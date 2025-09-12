@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
     
     steps:
     - name: Checkout code
@@ -73,9 +73,6 @@ jobs:
       working-directory: design-components
       run: npm ci
       
-    
-      
-    - name: Run Storybook tests with Vitest
+    - name: Build Storybook
       working-directory: design-components
-      run: npm run test
-      continue-on-error: true
+      run: npm run build-storybook
