@@ -11,7 +11,7 @@ const Text: React.FC<TextProps> = ({
   color = "#111827", // default dark gray
   children,
 }) => {
-  const styles: Record<TextProps["variant"], React.CSSProperties> = {
+  const styles: Record<NonNullable<TextProps["variant"]>, React.CSSProperties> = {
     h1: { fontSize: "2rem", fontWeight: 700 },
     h2: { fontSize: "1.5rem", fontWeight: 600 },
     h3: { fontSize: "1.25rem", fontWeight: 600 },
