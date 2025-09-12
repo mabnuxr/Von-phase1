@@ -12,7 +12,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
     
     steps:
     - name: Checkout code
@@ -53,29 +53,3 @@ jobs:
         path: design-components/coverage/
         retention-days: 30
 
-  # Optional: Add a separate job for Storybook visual tests if needed
-  storybook-tests:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: design-components/package-lock.json
-        
-    - name: Install dependencies
-      working-directory: design-components
-      run: npm ci
-      
-    
-      
-    - name: Run Storybook tests with Vitest
-      working-directory: design-components
-      run: npm run test
-      continue-on-error: true
