@@ -14,7 +14,7 @@ const Button: React.FC<ButtonProps> = ({
     onClick,
     children
 }) => {
-//@ts-expect-error
+//@ts-expect-error ButtonProps["color"] is not defined
 const backgroundColors: Record<ButtonProps["color"], string> = {
     primary: "#2563eb", 
     secondary: "#6b7280",
