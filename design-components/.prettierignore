@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Production
+dist/
+build/
+
+# Testing
+coverage/
+
+# Storybook
+storybook-static/
+
+# Environment
+.env*
+
+# Package manager
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Generated files
+*.min.js
+*.min.css

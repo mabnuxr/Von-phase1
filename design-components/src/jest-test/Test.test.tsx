@@ -13,7 +13,7 @@ describe('Text component', () => {
     const element = screen.getByText('Heading');
     expect(element).toHaveStyle({
       fontSize: '2rem',
-      fontWeight: '700'
+      fontWeight: '700',
     });
   });
 
