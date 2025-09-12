@@ -14,7 +14,7 @@ const Button: React.FC<ButtonProps> = ({
     onClick,
     children
 }) => {
-//@ts-ignore
+//@ts-expect-error
 const backgroundColors: Record<ButtonProps["color"], string> = {
     primary: "#2563eb", 
     secondary: "#6b7280",
