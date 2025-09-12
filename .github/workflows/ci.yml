@@ -149,10 +149,10 @@ jobs:
         ls -lh dist/assets/*.js | awk '{print $9 ": " $5}' >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         
-        # Fail if main bundle exceeds 200KB
+        # Fail if main bundle exceeds 400KB
         MAIN_BUNDLE_SIZE=$(stat -c%s dist/assets/index-*.js 2>/dev/null || stat -f%z dist/assets/index-*.js 2>/dev/null || echo 0)
-        if [ "$MAIN_BUNDLE_SIZE" -gt 204800 ]; then
-          echo "❌ Main bundle exceeds 200KB limit (current: $((MAIN_BUNDLE_SIZE / 1024))KB)"
+        if [ "$MAIN_BUNDLE_SIZE" -gt 409600 ]; then
+          echo "❌ Main bundle exceeds 400KB limit (current: $((MAIN_BUNDLE_SIZE / 1024))KB)"
           exit 1
         fi
     

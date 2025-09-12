@@ -7,9 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+**/dist/
+
+# Local files
 *.local
 
 # Editor directories and files
@@ -23,13 +31,23 @@ dist-ssr
 *.sln
 *.sw?
 
+# Storybook
 *storybook.log
-storybook-static
+storybook-static/
+**/storybook-static/
 
 # Environment files
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.local
 
 # Test coverage
 coverage/
+**/coverage/
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
