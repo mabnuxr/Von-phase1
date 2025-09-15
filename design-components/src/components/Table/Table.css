@@ -3,7 +3,7 @@
   border-collapse: separate;
   border-spacing: 0;
   border-radius: 10%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 14px;
   color: #1c1c1e;
 }
@@ -51,10 +51,9 @@
   color: #888;
   margin-top: 2px;
   margin-left: 10px;
-
 }
 
-.heading{
-  color:gray;
+.heading {
+  color: gray;
   font-size: 15px;
 }

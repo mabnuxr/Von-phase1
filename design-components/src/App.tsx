@@ -3,7 +3,6 @@ import Button from './components/Button/Button';
 import Text from './components/Text/Text';
 import Table from './components/Table/Table';
 function App() {
-  
   const tableData = [
     {
       id: 1,
@@ -58,8 +57,8 @@ function App() {
         <Text variant="caption" color="orange">
           Caption text
         </Text>
-        <div> 
-          <Table data={tableData}/>
+        <div>
+          <Table data={tableData} />
         </div>
       </div>
     </>
