@@ -9,7 +9,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.(css|less|scss|sass)$': '<rootDir>/test/__mocks__/styleMock.js',
   },
   testMatch: ['**/?(*.)+(test).[tj]s?(x)'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
