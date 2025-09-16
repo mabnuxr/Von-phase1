@@ -1,7 +1,7 @@
 import './App.css';
 import Button from './components/Button/Button';
 import Text from './components/Text/Text';
-import Table from './components/Table/Table';
+import { RsuitsTable } from './components/RsuitsTable';
 function App() {
   const tableData = [
     {
@@ -58,7 +58,7 @@ function App() {
           Caption text
         </Text>
         <div>
-          <Table data={tableData} />
+          <RsuitsTable data={tableData as any} />
         </div>
       </div>
     </>

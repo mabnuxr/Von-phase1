@@ -10,3 +10,7 @@ export type { TextProps } from './Text';
 
 // ErrorBoundary Component
 export { ErrorBoundary } from './ErrorBoundary';
+
+// RsuitsTable Component
+export { RsuitsTable } from './RsuitsTable';
+export type { RsuitsTableProps, RsuitsRowData } from './RsuitsTable';
