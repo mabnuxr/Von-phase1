@@ -1,15 +1,23 @@
 version: 1.0
-runtime: docker
+runtime: nodejs20
+
+build:
+  commands:
+    build:
+      - npm ci
+      - npm run build-storybook
 
 run:
+  runtime-version: 20.18.1
+  command: npx serve storybook-static
   network:
-    port: 80
+    port: 3000
     env: PORT
 
-health-check:
-  protocol: HTTP
+health_check:
   path: /
+  protocol: HTTP
   interval: 30
-  timeout: 3
-  healthy-threshold: 3
-  unhealthy-threshold: 3
+  timeout: 5
+  healthy_threshold: 2
+  unhealthy_threshold: 5
