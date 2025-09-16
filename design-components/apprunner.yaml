@@ -1,14 +1,7 @@
 version: 1.0
 runtime: docker
-build:
-  commands:
-    build:
-      - docker build -t storybook-app .
-    post-build:
-      - echo "Docker image built successfully"
 
 run:
-  runtime-version: latest
   network:
     port: 80
     env: PORT
