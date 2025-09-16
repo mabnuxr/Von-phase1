@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Storybook production service
+  storybook-prod:
+    image: revenue-os-storybook:latest
+    container_name: revenue-os-storybook-prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+
+  # Development service with hot reload
+  dev:
+    image: node:20-alpine
+    container_name: revenue-os-design-components-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"  # Vite dev server
+      - "6006:6006"  # Storybook
+    environment:
+      - NODE_ENV=development
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    networks:
+      - app-network
+    profiles:
+      - development
+
+  # Storybook development service
+  storybook-dev:
+    image: node:20-alpine
+    container_name: revenue-os-storybook-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "6006:6006"
+    environment:
+      - NODE_ENV=development
+    command: sh -c "npm install && npm run storybook -- --host 0.0.0.0"
+    networks:
+      - app-network
+    profiles:
+      - storybook-dev
+
+networks:
+  app-network:
+    driver: bridge
