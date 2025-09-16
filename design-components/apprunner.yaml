@@ -1,0 +1,22 @@
+version: 1.0
+runtime: docker
+build:
+  commands:
+    build:
+      - docker build -t storybook-app .
+    post-build:
+      - echo "Docker image built successfully"
+
+run:
+  runtime-version: latest
+  network:
+    port: 80
+    env: PORT
+
+health-check:
+  protocol: HTTP
+  path: /
+  interval: 30
+  timeout: 3
+  healthy-threshold: 3
+  unhealthy-threshold: 3
