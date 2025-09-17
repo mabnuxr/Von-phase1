@@ -4,11 +4,15 @@ import 'rsuite/dist/rsuite.min.css';
 
 interface RSuiteDropdownProps {
   title?: string;
-  placement?: 
-    | 'topStart' | 'topEnd' 
-    | 'bottomStart' | 'bottomEnd' 
-    | 'leftStart' | 'leftEnd' 
-    | 'rightStart' | 'rightEnd';
+  placement?:
+    | 'topStart'
+    | 'topEnd'
+    | 'bottomStart'
+    | 'bottomEnd'
+    | 'leftStart'
+    | 'leftEnd'
+    | 'rightStart'
+    | 'rightEnd';
   disabledItems?: boolean;
   itemCount?: number;
 }

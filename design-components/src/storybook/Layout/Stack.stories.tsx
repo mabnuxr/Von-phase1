@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryFn } from '@storybook/react-vite';
-import LayoutStack from '../../components/Layout/Stack/Stack'
+import LayoutStack from '../../components/Layout/Stack/Stack';
 
 export default {
   title: 'Layout/Stack',
@@ -17,11 +17,11 @@ export default {
     },
     justifyContent: {
       control: 'radio',
-      options: ['start', 'center', 'end', 'space-around', 'space-between'],
+      options: ['flex-start', 'center', 'flex-end', 'space-around', 'space-between'],
     },
     alignItems: {
       control: 'radio',
-      options: ['start', 'center', 'end', 'baseline', 'stretch'],
+      options: ['flex-start', 'center', 'flex-end', 'baseline', 'stretch'],
     },
     wrap: { control: 'boolean' },
   },
@@ -37,7 +37,7 @@ export const Default = Template.bind({});
 Default.args = {
   direction: 'row',
   spacing: 10,
-  justifyContent: 'start',
+  justifyContent: 'flex-start',
   alignItems: 'center',
   wrap: false,
 };

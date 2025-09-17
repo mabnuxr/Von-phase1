@@ -39,7 +39,11 @@ export const RsuitsTable: React.FC<RsuitsTableProps> = ({ data }) => {
       <tr className="rsuits-table-row">
         <td style={{ paddingLeft: `${16 + level * 20}px` }}>
           {row.children && row.children.length > 0 && (
-            <button className="expand-btn" onClick={() => toggleExpand(row.id)} aria-label={expandedById[row.id] ? 'Collapse' : 'Expand'}>
+            <button
+              className="expand-btn"
+              onClick={() => toggleExpand(row.id)}
+              aria-label={expandedById[row.id] ? 'Collapse' : 'Expand'}
+            >
               {expandedById[row.id] ? '▾' : '▸'}
             </button>
           )}
@@ -71,7 +75,9 @@ export const RsuitsTable: React.FC<RsuitsTableProps> = ({ data }) => {
           />
         </td>
       </tr>
-      {row.children && expandedById[row.id] && row.children.map((child) => renderRow(child, level + 1))}
+      {row.children &&
+        expandedById[row.id] &&
+        row.children.map((child) => renderRow(child, level + 1))}
     </React.Fragment>
   );
 
@@ -90,4 +96,4 @@ export const RsuitsTable: React.FC<RsuitsTableProps> = ({ data }) => {
   );
 };
 
-export default RsuitsTable; 
+export default RsuitsTable;

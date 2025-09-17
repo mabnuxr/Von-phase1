@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { NavigationSteps } from '../../components/Navigation/Steps/Steps'
+import { NavigationSteps } from '../../components/Navigation/Steps/Steps';
 
 const meta = {
   title: 'Navigation/Steps',
@@ -28,13 +28,13 @@ function WithState(args: React.ComponentProps<typeof NavigationSteps>) {
 export const Default: Story = {
   render: (args) => <WithState {...args} />,
   args: {
-  current: 1,
-  steps: [
-    { title: 'Step 1', description: 'Description for Step 1' },
-    { title: 'Step 2', description: 'Description for Step 2' },
-    { title: 'Step 3', description: 'Description for Step 3' },
-  ],
-  status: 'process',
-  showDescription: true,
+    current: 1,
+    steps: [
+      { title: 'Step 1', description: 'Description for Step 1' },
+      { title: 'Step 2', description: 'Description for Step 2' },
+      { title: 'Step 3', description: 'Description for Step 3' },
+    ],
+    status: 'process',
+    showDescription: true,
   },
 };

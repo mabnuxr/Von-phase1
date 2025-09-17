@@ -5,15 +5,15 @@ import 'rsuite/dist/rsuite.min.css';
 interface LayoutStackProps {
   direction?: 'row' | 'column';
   spacing?: number;
-  justifyContent?: 'start' | 'center' | 'end' | 'space-around' | 'space-between';
-  alignItems?: 'start' | 'center' | 'end' | 'baseline' | 'stretch';
+  justifyContent?: 'flex-start' | 'center' | 'flex-end' | 'space-around' | 'space-between';
+  alignItems?: 'flex-start' | 'center' | 'flex-end' | 'baseline' | 'stretch';
   wrap?: boolean;
 }
 
 const LayoutStack: React.FC<LayoutStackProps> = ({
   direction = 'row',
   spacing = 10,
-  justifyContent = 'start',
+  justifyContent = 'flex-start',
   alignItems = 'center',
   wrap = false,
 }) => {

@@ -27,12 +27,10 @@ const RSuiteText: React.FC<RSuiteTextProps> = ({
     color,
     fontSize,
     fontStyle: italic ? 'italic' : undefined,
-    textDecoration: [
-      underline ? 'underline' : '',
-      strikethrough ? 'line-through' : '',
-    ]
-      .filter(Boolean)
-      .join(' ') || undefined,
+    textDecoration:
+      [underline ? 'underline' : '', strikethrough ? 'line-through' : '']
+        .filter(Boolean)
+        .join(' ') || undefined,
     fontWeight: strong ? 'bold' : undefined,
   };
 

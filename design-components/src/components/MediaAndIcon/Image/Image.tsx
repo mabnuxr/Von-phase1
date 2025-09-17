@@ -40,7 +40,8 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({
       height={height}
       rounded={rounded}
       circle={circle}
-      responsive={responsive}
+      // rsuite Image doesn't support 'responsive' prop; emulate via style
+      style={responsive ? { maxWidth: '100%', height: 'auto' } : undefined}
       onError={() => setImageError(true)}
     />
   );

@@ -32,7 +32,9 @@ export const Default: Story = {
     const [open, setOpen] = useState(false);
     return (
       <div style={{ padding: 40 }}>
-        <button onClick={() => setOpen(true)} style={{ padding: '8px 12px' }}>Open Modal</button>
+        <button onClick={() => setOpen(true)} style={{ padding: '8px 12px' }}>
+          Open Modal
+        </button>
         <OverlaysModel {...args} open={open} onClose={() => setOpen(false)} />
       </div>
     );
@@ -51,7 +53,9 @@ export const FullScreen: Story = {
     const [open, setOpen] = useState(false);
     return (
       <div style={{ padding: 40 }}>
-        <button onClick={() => setOpen(true)} style={{ padding: '8px 12px' }}>Open Fullscreen Modal</button>
+        <button onClick={() => setOpen(true)} style={{ padding: '8px 12px' }}>
+          Open Fullscreen Modal
+        </button>
         <OverlaysModel {...args} open={open} onClose={() => setOpen(false)} />
       </div>
     );

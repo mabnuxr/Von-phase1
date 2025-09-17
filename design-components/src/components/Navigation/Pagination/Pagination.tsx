@@ -8,10 +8,8 @@ export interface PaginationProps {
   limit: number;
   activePage: number;
   size?: 'lg' | 'md' | 'sm' | 'xs';
-  layout?: string[];
+  layout?: ('total' | 'pager' | 'limit' | 'skip' | '-')[];
   disabled?: boolean;
-  first?: boolean;
-  last?: boolean;
   prev?: boolean;
   next?: boolean;
   boundaryLinks?: boolean;
@@ -26,8 +24,6 @@ const PaginationControl: React.FC<PaginationProps> = ({
   size = 'md',
   layout = ['total', '-', 'pager', 'limit'],
   disabled = false,
-  first = true,
-  last = true,
   prev = true,
   next = true,
   boundaryLinks = true,
@@ -42,13 +38,11 @@ const PaginationControl: React.FC<PaginationProps> = ({
       size={size}
       layout={layout}
       disabled={disabled}
-      first={first}
-      last={last}
       prev={prev}
       next={next}
       boundaryLinks={boundaryLinks}
       ellipsis={ellipsis}
-      onChange={onChange}
+      onChange={onChange as unknown as React.FormEventHandler<HTMLDivElement>}
     />
   );
 };

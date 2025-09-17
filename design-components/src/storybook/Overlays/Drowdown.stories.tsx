@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryFn } from '@storybook/react-vite';
-import OverlaysDropdown from '../../components/Overlays/Dropdown/Dropworn'
+import OverlaysDropdown from '../../components/Overlays/Dropdown/Dropworn';
 
 export default {
   title: 'Overlays/Dropdown',
@@ -12,10 +12,14 @@ export default {
     placement: {
       control: 'select',
       options: [
-        'topStart', 'topEnd',
-        'bottomStart', 'bottomEnd',
-        'leftStart', 'leftEnd',
-        'rightStart', 'rightEnd'
+        'topStart',
+        'topEnd',
+        'bottomStart',
+        'bottomEnd',
+        'leftStart',
+        'leftEnd',
+        'rightStart',
+        'rightEnd',
       ],
     },
     itemCount: {

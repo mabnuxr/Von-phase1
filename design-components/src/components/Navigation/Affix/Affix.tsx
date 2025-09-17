@@ -6,22 +6,13 @@ export interface RSuiteAffixProps {
   top?: number;
   children?: React.ReactNode;
   offsetTop?: number;
-  offsetBottom?: number;
+  // rsuite Affix has no bottom prop in types we consume
 }
 
-const RSuiteAffix: React.FC<RSuiteAffixProps> = ({
-  top = 0,
-  children,
-  offsetTop,
-  offsetBottom,
-}) => {
+const RSuiteAffix: React.FC<RSuiteAffixProps> = ({ top = 0, children, offsetTop }) => {
   return (
-    <Affix top={offsetTop ?? top} bottom={offsetBottom}>
-      {children || (
-        <Button appearance="primary">
-          I stick to the top
-        </Button>
-      )}
+    <Affix top={offsetTop ?? top}>
+      {children || <Button appearance="primary">I stick to the top</Button>}
     </Affix>
   );
 };

@@ -1,4 +1,3 @@
-
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import AvatarDisplay from '../../components/MediaAndIcon/Avatar/Avatar';
 
@@ -13,10 +12,10 @@ type Story = StoryObj<typeof AvatarDisplay>;
 
 export const Default: Story = {
   args: {
-  src: 'https://i.pravatar.cc/100?img=1',
-  alt: 'User Avatar',
-  size: 'md',
-  circle: true,
+    src: 'https://i.pravatar.cc/100?img=1',
+    alt: 'User Avatar',
+    size: 'md',
+    circle: true,
   },
 };
 

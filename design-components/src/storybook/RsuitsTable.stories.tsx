@@ -44,4 +44,4 @@ export const Default: Story = {
   args: {
     data: sampleData,
   },
-}; 
+};

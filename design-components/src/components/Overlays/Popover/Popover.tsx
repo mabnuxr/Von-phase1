@@ -4,11 +4,19 @@ import { Whisper, Popover, Button } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
 
 export interface OverlaysPopoverProps {
-  placement?: 
-    | 'top' | 'topStart' | 'topEnd'
-    | 'bottom' | 'bottomStart' | 'bottomEnd'
-    | 'left' | 'leftStart' | 'leftEnd'
-    | 'right' | 'rightStart' | 'rightEnd';
+  placement?:
+    | 'top'
+    | 'topStart'
+    | 'topEnd'
+    | 'bottom'
+    | 'bottomStart'
+    | 'bottomEnd'
+    | 'left'
+    | 'leftStart'
+    | 'leftEnd'
+    | 'right'
+    | 'rightStart'
+    | 'rightEnd';
   trigger?: 'click' | 'hover' | 'focus' | 'active' | 'none';
   title?: string;
   content?: React.ReactNode;
@@ -24,19 +32,10 @@ const OverlaysPopover: React.FC<OverlaysPopoverProps> = ({
   enterable = false,
   buttonLabel = 'Click me',
 }) => {
-  const speaker = (
-    <Popover title={title}>
-      {content}
-    </Popover>
-  );
+  const speaker = <Popover title={title}>{content}</Popover>;
 
   return (
-    <Whisper
-      trigger={trigger}
-      placement={placement}
-      speaker={speaker}
-      enterable={enterable}
-    >
+    <Whisper trigger={trigger} placement={placement} speaker={speaker} enterable={enterable}>
       <Button appearance="primary">{buttonLabel}</Button>
     </Whisper>
   );

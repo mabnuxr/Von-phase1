@@ -26,11 +26,20 @@ const Drawer: React.FC<DrawerProps> = ({
   className,
 }) => {
   return (
-    <RsDrawer open={open} onClose={onClose} placement={placement} size={size} className={className} style={style}>
-      {title ? <RsDrawer.Header><RsDrawer.Title>{title}</RsDrawer.Title></RsDrawer.Header> : null}
-      <RsDrawer.Body>
-        {children}
-      </RsDrawer.Body>
+    <RsDrawer
+      open={open}
+      onClose={onClose}
+      placement={placement}
+      size={size}
+      className={className}
+      style={style}
+    >
+      {title ? (
+        <RsDrawer.Header>
+          <RsDrawer.Title>{title}</RsDrawer.Title>
+        </RsDrawer.Header>
+      ) : null}
+      <RsDrawer.Body>{children}</RsDrawer.Body>
     </RsDrawer>
   );
 };

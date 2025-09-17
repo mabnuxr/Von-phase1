@@ -15,9 +15,7 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { RsuitsTable } from './RsuitsTable';
 export type { RsuitsTableProps, RsuitsRowData } from './RsuitsTable';
 
-// Layout Component
-export { Layout } from './Layout';
-export type { LayoutProps } from './Layout';
+// Layout barrel removed (no root Layout component)
 
 // Container Component
 export { Container } from './Layout/Container';
@@ -29,7 +27,7 @@ export type { DividerProps } from './Layout/Divider';
 
 // Grid Component
 export { Grid } from './Layout/Grid';
-export type { GridProps, GridRowProps, GridColProps } from './Layout/Grid';
+export type { GridProps } from './Layout/Grid';
 
 // Stack Component
 export { Stack } from './Layout/Stack';

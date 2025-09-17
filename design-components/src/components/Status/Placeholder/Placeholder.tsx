@@ -34,7 +34,12 @@ const RSuitePlaceholder: React.FC<RSuitePlaceholderProps> = ({
       return <Placeholder.Graph active={active} style={graphStyle} />;
     }
     case 'button':
-      return <Placeholder.Graph active={active} style={{ width: 120, height: 36, borderRadius: 8, ...style }} />;
+      return (
+        <Placeholder.Graph
+          active={active}
+          style={{ width: 120, height: 36, borderRadius: 8, ...style }}
+        />
+      );
     case 'grid':
       return <Placeholder.Grid active={active} rows={rows} columns={columns} style={style} />;
     default:

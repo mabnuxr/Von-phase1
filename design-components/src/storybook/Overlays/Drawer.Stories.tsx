@@ -26,11 +26,15 @@ function DrawerExample(args: React.ComponentProps<typeof Drawer>) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ padding: 16 }}>
-      <button onClick={() => setOpen(true)} style={{ padding: '8px 12px' }}>Open Drawer</button>
+      <button onClick={() => setOpen(true)} style={{ padding: '8px 12px' }}>
+        Open Drawer
+      </button>
       <Drawer {...args} open={open} onClose={() => setOpen(false)}>
         <div style={{ padding: 12 }}>
           <p>Drawer content goes here.</p>
-          <button onClick={() => setOpen(false)} style={{ padding: '8px 12px' }}>Close</button>
+          <button onClick={() => setOpen(false)} style={{ padding: '8px 12px' }}>
+            Close
+          </button>
         </div>
       </Drawer>
     </div>

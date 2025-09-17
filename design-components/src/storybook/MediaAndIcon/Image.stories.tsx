@@ -1,4 +1,3 @@
-
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import ImageDisplay from '../../components/MediaAndIcon/Image/Image';
 
@@ -13,10 +12,10 @@ type Story = StoryObj<typeof ImageDisplay>;
 
 export const Default: Story = {
   args: {
-  src: 'https://via.placeholder.com/150',
-  alt: 'Sample Image',
-  width: 150,
-  height: 150,
+    src: 'https://via.placeholder.com/150',
+    alt: 'Sample Image',
+    width: 150,
+    height: 150,
   },
 };
 
@@ -51,6 +50,19 @@ export const Circle: Story = {
 export const WithFallback: Story = {
   args: {
     src: 'https://not-a-real-image.jpg',
-    fallback: <div style={{ width: 150, height: 150, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Fallback</div>,
+    fallback: (
+      <div
+        style={{
+          width: 150,
+          height: 150,
+          background: '#eee',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        Fallback
+      </div>
+    ),
   },
 };

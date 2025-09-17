@@ -1,2 +1,2 @@
 export { default as Grid } from './Grid';
-export type { GridProps, GridRowProps, GridColProps } from './Grid'; 
+export type { default as GridProps } from './Grid';

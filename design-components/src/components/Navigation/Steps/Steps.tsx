@@ -23,8 +23,10 @@ const NavigationSteps: React.FC<NavigationStepsProps> = ({
   showDescription = true,
   onStepClick,
 }) => {
+  // keep "status" in the API for future support; currently unused by rsuite Steps
+  void status;
   return (
-    <Steps current={current} status={status}>
+    <Steps current={current}>
       {steps.map((step, index) => (
         <Steps.Item
           key={index}

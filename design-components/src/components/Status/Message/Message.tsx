@@ -1,4 +1,3 @@
-
 import { Message, Stack } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css'; // Import RSuite styles
 

@@ -5,25 +5,13 @@ import 'rsuite/dist/rsuite.min.css';
 interface RSuiteHighlightProps {
   children: string;
   query: string;
-  caseSensitive?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }
 
-const RSuiteHighlight: React.FC<RSuiteHighlightProps> = ({
-  children,
-  query,
-  caseSensitive = false,
-  style,
-  className,
-}) => {
+const RSuiteHighlight: React.FC<RSuiteHighlightProps> = ({ children, query, style, className }) => {
   return (
-    <Highlight
-      query={query}
-      caseSensitive={caseSensitive}
-      className={className}
-      style={style}
-    >
+    <Highlight query={query} className={className} style={style}>
       {children}
     </Highlight>
   );

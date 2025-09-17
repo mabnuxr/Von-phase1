@@ -8,7 +8,6 @@ const meta: Meta<typeof NavigationAffix> = {
   argTypes: {
     top: { control: 'number', min: 0, max: 300 },
     offsetTop: { control: 'number', min: 0, max: 300 },
-    offsetBottom: { control: 'number', min: 0, max: 300 },
   },
   args: {
     top: 10,

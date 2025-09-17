@@ -27,9 +27,7 @@ const OverlaysModel: React.FC<OverlaysModel> = ({
       <Modal.Header>
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        {children || 'This is the modal content.'}
-      </Modal.Body>
+      <Modal.Body>{children || 'This is the modal content.'}</Modal.Body>
       <Modal.Footer>
         <Button onClick={onClose} appearance="primary">
           OK

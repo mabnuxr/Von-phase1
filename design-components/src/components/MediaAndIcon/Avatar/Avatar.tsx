@@ -19,12 +19,7 @@ const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
   children,
 }) => {
   return (
-    <Avatar
-      src={src}
-      alt={alt}
-      size={size}
-      circle={circle}
-    >
+    <Avatar src={src} alt={alt} size={size} circle={circle}>
       {children}
     </Avatar>
   );

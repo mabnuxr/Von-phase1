@@ -22,7 +22,7 @@ const NavigatioNav: React.FC<NavigationNavProps> = ({
   appearance = 'default',
   orientation = 'horizontal',
   activeKey,
-  onSelect
+  onSelect,
 }) => {
   const [internalActive, setInternalActive] = useState<string | undefined>(activeKey);
 
@@ -39,11 +39,7 @@ const NavigatioNav: React.FC<NavigationNavProps> = ({
       onSelect={handleSelect}
     >
       {items.map((item) => (
-        <Nav.Item
-          key={item.eventKey}
-          eventKey={item.eventKey}
-          disabled={item.disabled}
-        >
+        <Nav.Item key={item.eventKey} eventKey={item.eventKey} disabled={item.disabled}>
           {item.label}
         </Nav.Item>
       ))}

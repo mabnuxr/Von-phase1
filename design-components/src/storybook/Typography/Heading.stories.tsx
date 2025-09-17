@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryFn } from '@storybook/react-vite';
-import TypoHeading from '../../components/Typography/Heading/Heading'
+import TypoHeading from '../../components/Typography/Heading/Heading';
 
 export default {
   title: 'Typography/Heading',

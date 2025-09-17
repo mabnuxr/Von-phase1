@@ -1,4 +1,3 @@
-
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import OverlaysPopover from '../../components/Overlays/Popover/Popover';
 
@@ -9,10 +8,18 @@ const meta: Meta<typeof OverlaysPopover> = {
     placement: {
       control: 'select',
       options: [
-        'top', 'topStart', 'topEnd',
-        'bottom', 'bottomStart', 'bottomEnd',
-        'left', 'leftStart', 'leftEnd',
-        'right', 'rightStart', 'rightEnd',
+        'top',
+        'topStart',
+        'topEnd',
+        'bottom',
+        'bottomStart',
+        'bottomEnd',
+        'left',
+        'leftStart',
+        'leftEnd',
+        'right',
+        'rightStart',
+        'rightEnd',
       ],
     },
     trigger: { control: 'select', options: ['click', 'hover', 'focus', 'active', 'none'] },
