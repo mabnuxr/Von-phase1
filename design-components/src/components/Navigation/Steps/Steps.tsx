@@ -11,7 +11,6 @@ export type Step = {
 export interface NavigationStepsProps {
   current: number;
   steps: Step[];
-  size?: 'lg' | 'md' | 'sm';
   status?: 'finish' | 'process' | 'waiting' | 'error';
   showDescription?: boolean;
   onStepClick?: (stepIndex: number) => void;
@@ -20,24 +19,23 @@ export interface NavigationStepsProps {
 const NavigationSteps: React.FC<NavigationStepsProps> = ({
   current,
   steps,
-  size = 'md',
   status = 'process',
   showDescription = true,
   onStepClick,
 }) => {
   return (
-    <Steps current={current} size={size} status={status}>
+    <Steps current={current} status={status}>
       {steps.map((step, index) => (
         <Steps.Item
           key={index}
           title={step.title}
           description={showDescription ? step.description : undefined}
           onClick={() => onStepClick?.(index)}
-          disabled={index > current}
         />
       ))}
     </Steps>
   );
 };
 
+export { NavigationSteps };
 export default NavigationSteps;

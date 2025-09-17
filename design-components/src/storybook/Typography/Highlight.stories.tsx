@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Meta, StoryFn } from '@storybook/react';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import TypoHighlight from '../../components/Typography/Highlight/HighLight'
 
 export default {

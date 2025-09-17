@@ -27,9 +27,11 @@ export const RsuitsTable: React.FC<RsuitsTableProps> = ({ data }) => {
     setEditedValueByKey((prev) => ({ ...prev, [`${rowId}-${key}`]: value }));
   };
 
-  const readCellValue = (row: RsuitsRowData, key: keyof RsuitsRowData) => {
+  const readCellValue = (row: RsuitsRowData, key: keyof RsuitsRowData): string => {
     const edited = editedValueByKey[`${row.id}-${key}`];
-    return edited !== undefined ? edited : (row as any)[key];
+    if (edited !== undefined) return edited;
+    const raw = row[key];
+    return typeof raw === 'string' ? raw : String(raw ?? '');
   };
 
   const renderRow = (row: RsuitsRowData, level: number = 0) => (

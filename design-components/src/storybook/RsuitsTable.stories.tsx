@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RsuitsTable } from '../components/RsuitsTable';
 import type { RsuitsRowData } from '../components/RsuitsTable';
 

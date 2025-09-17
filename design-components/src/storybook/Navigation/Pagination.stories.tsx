@@ -1,15 +1,19 @@
 // components/NavigationPagination.stories.tsx
 
 import React, { useState } from 'react';
-import type{ Meta, Story } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import NavigationPagination from '../../components/Navigation/Pagination/Pagination'
 
-export default {
+const meta = {
   title: 'Navigation/Pagination',
   component: NavigationPagination,
-} as Meta;
+} satisfies Meta<typeof NavigationPagination>;
 
-const Template: Story<NavigationPaginationProps> = (args) => {
+export default meta;
+
+type Story = StoryObj<typeof NavigationPagination>;
+
+function WithState(args: React.ComponentProps<typeof NavigationPagination>) {
   const [page, setPage] = useState(args.activePage);
 
   return (
@@ -22,14 +26,14 @@ const Template: Story<NavigationPaginationProps> = (args) => {
       }}
     />
   );
-};
+}
 
-export const Default = Template.bind({});
-Default.args = {
+export const Default: Story = {
+  render: (args) => <WithState {...args} />,
+  args: {
   total: 100,
   limit: 10,
   activePage: 1,
-  size: 'md',
   layout: ['total', '-', 'pager', 'limit'],
   disabled: false,
   first: true,
@@ -38,25 +42,20 @@ Default.args = {
   next: true,
   boundaryLinks: true,
   ellipsis: true,
+  },
 };
 
-export const SmallSize = Template.bind({});
-SmallSize.args = {
-  ...Default.args,
-  size: 'sm',
+export const SmallSize: Story = {
+  render: (args) => <WithState {...args} />,
+  args: { ...Default.args, activePage: 1 },
 };
 
-export const NoNavigationButtons = Template.bind({});
-NoNavigationButtons.args = {
-  ...Default.args,
-  first: false,
-  last: false,
-  prev: false,
-  next: false,
+export const NoNavigationButtons: Story = {
+  render: (args) => <WithState {...args} />,
+  args: { ...Default.args, first: false, last: false, prev: false, next: false },
 };
 
-export const Disabled = Template.bind({});
-Disabled.args = {
-  ...Default.args,
-  disabled: true,
+export const Disabled: Story = {
+  render: (args) => <WithState {...args} />,
+  args: { ...Default.args, disabled: true },
 };

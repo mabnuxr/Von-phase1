@@ -10,7 +10,7 @@ import Stack from './components/Layout/Stack/Stack';
 import StatusMessages from './components/Status/Message/Message';
 
 function App() {
-  const tableData = [
+  const tableData: import('./components/RsuitsTable/RsuitsTable').RsuitsRowData[] = [
     {
       id: 1,
       name: 'John Mitchell',
@@ -65,7 +65,7 @@ function App() {
           Caption text
         </Text>
         <div>
-          <RsuitsTable data={tableData as any} />
+          <RsuitsTable data={tableData} />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Meta, StoryFn } from '@storybook/react';
+import type { Meta, StoryFn } from '@storybook/react-vite';
 import StatusPlaceholder from '../../../components/Status/Placeholder/Placeholder';
 
 export default {
@@ -13,7 +13,7 @@ export default {
     active: { control: 'boolean' },
     rows: {
       control: 'number',
-      if: { arg: 'type', eq: 'paragraph' || 'grid' },
+      if: { arg: 'type', eq: 'paragraph' },
     },
     columns: {
       control: 'number',

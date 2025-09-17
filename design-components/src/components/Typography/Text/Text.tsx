@@ -23,7 +23,7 @@ const RSuiteText: React.FC<RSuiteTextProps> = ({
   color,
   fontSize,
 }) => {
-  let style: React.CSSProperties = {
+  const style: React.CSSProperties = {
     color,
     fontSize,
     fontStyle: italic ? 'italic' : undefined,

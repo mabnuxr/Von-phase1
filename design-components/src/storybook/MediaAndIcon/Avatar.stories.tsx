@@ -1,43 +1,50 @@
 
-import type { Meta, Story } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import AvatarDisplay from '../../components/MediaAndIcon/Avatar/Avatar';
 
-export default {
+const meta = {
   title: 'Media-and-Icon/AvatarDisplay',
   component: AvatarDisplay,
-} as Meta;
+} satisfies Meta<typeof AvatarDisplay>;
 
-const Template: Story<AvatarDisplayProps> = (args) => <AvatarDisplay {...args} />;
+export default meta;
 
-export const Default = Template.bind({});
-Default.args = {
+type Story = StoryObj<typeof AvatarDisplay>;
+
+export const Default: Story = {
+  args: {
   src: 'https://i.pravatar.cc/100?img=1',
   alt: 'User Avatar',
   size: 'md',
   circle: true,
+  },
 };
 
-export const WithInitials = Template.bind({});
-WithInitials.args = {
-  children: 'AB',
-  size: 'md',
+export const WithInitials: Story = {
+  args: {
+    children: 'AB',
+    size: 'md',
+  },
 };
 
-export const Square = Template.bind({});
-Square.args = {
-  src: 'https://i.pravatar.cc/100?img=2',
-  circle: false,
-  size: 'md',
+export const Square: Story = {
+  args: {
+    src: 'https://i.pravatar.cc/100?img=2',
+    circle: false,
+    size: 'md',
+  },
 };
 
-export const Small = Template.bind({});
-Small.args = {
-  src: 'https://i.pravatar.cc/100?img=3',
-  size: 'sm',
+export const Small: Story = {
+  args: {
+    src: 'https://i.pravatar.cc/100?img=3',
+    size: 'sm',
+  },
 };
 
-export const Large = Template.bind({});
-Large.args = {
-  src: 'https://i.pravatar.cc/100?img=4',
-  size: 'lg',
+export const Large: Story = {
+  args: {
+    src: 'https://i.pravatar.cc/100?img=4',
+    size: 'lg',
+  },
 };

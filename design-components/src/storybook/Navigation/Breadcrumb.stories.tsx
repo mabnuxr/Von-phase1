@@ -28,7 +28,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: (args) => (
     <div style={{ padding: 40 }}>
-      <NavigationBreadcrumb {...args} items={(args.items as any) ?? defaultItems} />
+      <NavigationBreadcrumb {...args} items={args.items as React.ComponentProps<typeof NavigationBreadcrumb>['items']} />
     </div>
   ),
 };
@@ -45,7 +45,7 @@ export const WithCustomSeparator: Story = {
   },
   render: (args) => (
     <div style={{ padding: 40 }}>
-      <NavigationBreadcrumb {...args} items={(args.items as any) ?? defaultItems} />
+      <NavigationBreadcrumb {...args} items={args.items as React.ComponentProps<typeof NavigationBreadcrumb>['items']} />
     </div>
   ),
 };
