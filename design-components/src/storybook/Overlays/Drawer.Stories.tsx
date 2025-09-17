@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import Drawer from '../../components/Overlays/Drawer/Drawer';
