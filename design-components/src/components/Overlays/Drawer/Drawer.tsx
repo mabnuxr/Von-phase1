@@ -1,35 +1,38 @@
 import React from 'react';
-import { Drawer } from 'rsuite';
+import { Drawer as RsDrawer } from 'rsuite';
 import 'rsuite/dist/rsuite.min.css';
 
-interface OverlaysDrawerProps {
+export type DrawerPlacement = 'left' | 'right' | 'top' | 'bottom';
+
+export type DrawerProps = {
   open: boolean;
   onClose: () => void;
-  placement?: 'left' | 'right' | 'top' | 'bottom';
+  placement?: DrawerPlacement;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'full';
-  title?: string;
-  closable?: boolean;
+  title?: React.ReactNode;
   children?: React.ReactNode;
-}
+  style?: React.CSSProperties;
+  className?: string;
+};
 
-const OverlaysDrawer: React.FC<OverlaysDrawerProps> = ({
+const Drawer: React.FC<DrawerProps> = ({
   open,
   onClose,
   placement = 'right',
   size = 'md',
-  title = 'Drawer Title',
-  closable = true,
+  title,
   children,
+  style,
+  className,
 }) => {
   return (
-    <Drawer open={open} onClose={onClose} placement={placement} size={size}>
-      <Drawer.Header>
-        <Drawer.Title>{title}</Drawer.Title>
-        {closable && <Drawer.Actions><span onClick={onClose} style={{ cursor: 'pointer' }}>Close</span></Drawer.Actions>}
-      </Drawer.Header>
-      <Drawer.Body>{children}</Drawer.Body>
-    </Drawer>
+    <RsDrawer open={open} onClose={onClose} placement={placement} size={size} className={className} style={style}>
+      {title ? <RsDrawer.Header><RsDrawer.Title>{title}</RsDrawer.Title></RsDrawer.Header> : null}
+      <RsDrawer.Body>
+        {children}
+      </RsDrawer.Body>
+    </RsDrawer>
   );
 };
 
-export default OverlaysDrawer;
+export default Drawer;
