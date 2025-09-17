@@ -1,25 +1,41 @@
-import { Message, Stack } from 'rsuite';
-import 'rsuite/dist/rsuite.min.css'; // Import RSuite styles
-
 const StatusMessages = () => {
+  const messageStyle = {
+    padding: '12px 16px',
+    marginBottom: '16px',
+    borderRadius: '6px',
+    border: '1px solid',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  };
+
+  const infoStyle = { ...messageStyle, backgroundColor: '#e3f2fd', borderColor: '#2196f3', color: '#0d47a1' };
+  const successStyle = { ...messageStyle, backgroundColor: '#e8f5e8', borderColor: '#4caf50', color: '#1b5e20' };
+  const warningStyle = { ...messageStyle, backgroundColor: '#fff3e0', borderColor: '#ff9800', color: '#e65100' };
+  const errorStyle = { ...messageStyle, backgroundColor: '#ffebee', borderColor: '#f44336', color: '#b71c1c' };
+
   return (
-    <Stack direction="column" spacing={20}>
-      <Message type="info" showIcon>
-        This is an informational message.
-      </Message>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={infoStyle}>
+        <span>ℹ️</span>
+        <span>This is an informational message.</span>
+      </div>
 
-      <Message type="success" showIcon>
-        Your action was successful!
-      </Message>
+      <div style={successStyle}>
+        <span>✅</span>
+        <span>Your action was successful!</span>
+      </div>
 
-      <Message type="warning" showIcon closable>
-        Warning: Please double-check your input.
-      </Message>
+      <div style={warningStyle}>
+        <span>⚠️</span>
+        <span>Warning: Please double-check your input.</span>
+      </div>
 
-      <Message type="error" showIcon closable>
-        Error: Something went wrong!
-      </Message>
-    </Stack>
+      <div style={errorStyle}>
+        <span>❌</span>
+        <span>Error: Something went wrong!</span>
+      </div>
+    </div>
   );
 };
 
