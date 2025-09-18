@@ -13,12 +13,12 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch",
+    "test": "npx jest",
+    "test:coverage": "npx jest --coverage",
+    "test:watch": "npx jest --watch",
     "typecheck": "tsc --noEmit",
     "ci:lint": "npm run lint && npm run format:check",
-    "ci:test": "jest --coverage --coverageThreshold='{\"global\":{\"branches\":10,\"functions\":8,\"lines\":15,\"statements\":14}}'",
+    "ci:test": "npx jest --coverage --coverageThreshold='{\"global\":{\"branches\":10,\"functions\":8,\"lines\":15,\"statements\":14}}'",
     "ci:build": "npm run typecheck && npm run build && npm run build-storybook"
   },
   "dependencies": {
