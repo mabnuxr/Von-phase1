@@ -11,7 +11,7 @@ export interface NavigationBreadcrumb {
 }
 
 export interface NavigationBreadcrumbProps {
-  items: BreadcrumbItem[];
+  items: NavigationBreadcrumb[];
   separator?: React.ReactNode;
   disabledLast?: boolean;
 }
@@ -29,7 +29,6 @@ const NavigationBreadcrumb: React.FC<NavigationBreadcrumbProps> = ({
         href={!isLast || !disabledLast ? item.href : undefined}
         onClick={item.onClick}
         active={isLast}
-        disabled={item.disabled || (isLast && disabledLast)}
       >
         {item.label}
       </Breadcrumb.Item>

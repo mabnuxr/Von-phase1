@@ -20,7 +20,7 @@ export interface TableProps<T = Record<string, unknown>> {
   loading?: boolean;
   bordered?: boolean;
   virtualized?: boolean;
-  onRowClick?: (rowData: T, rowIndex: number, event: React.MouseEvent) => void;
+  onRowClick?: (rowData: T, event: React.MouseEvent) => void;
 }
 
 const Table = <T extends Record<string, unknown>>({

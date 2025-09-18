@@ -47,8 +47,8 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
     setExpandedRows(newExpanded);
   };
 
-  const flattenData = (rows: TreeRow<T>[], level = 0): (T & { _level: number })[] => {
-    let result: (T & { _level: number })[] = [];
+  const flattenData = (rows: TreeRow<T>[], level = 0): (TreeRow<T> & { _level: number })[] => {
+    let result: (TreeRow<T> & { _level: number })[] = [];
     for (const row of rows) {
       result.push({ ...row, _level: level });
       if (row.children && expandedRows.has(row.id)) {
@@ -66,7 +66,7 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
       bordered={bordered}
       loading={loading}
       rowClassName={(rowData) => (rowData._level > 0 ? 'rs-table-row-child' : '')}
-      onRowClick={(rowData) => rowData.children && toggleRow(rowData[rowKey])}
+      onRowClick={(rowData) => rowData.children && toggleRow(rowData[rowKey as keyof typeof rowData] as string | number)}
     >
       {columns.map((col) => (
         <RsTable.Column
@@ -80,7 +80,7 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
           <RsTable.Cell>
             {(rowData) => (
               <div style={{ paddingLeft: (rowData._level || 0) * 20 }}>
-                {rowData.cellRenderer ? rowData.cellRenderer(rowData) : rowData[col.key]}
+                {col.cellRenderer ? col.cellRenderer(rowData as T) : String(rowData[col.key])}
               </div>
             )}
           </RsTable.Cell>

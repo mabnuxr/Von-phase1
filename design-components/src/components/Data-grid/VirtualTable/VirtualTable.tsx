@@ -19,7 +19,7 @@ export interface VirtualizedTableProps<T = Record<string, unknown>> {
   rowKey?: string;
   loading?: boolean;
   bordered?: boolean;
-  onRowClick?: (rowData: T, rowIndex: number, event: React.MouseEvent) => void;
+  onRowClick?: (rowData: T, event: React.MouseEvent) => void;
 }
 
 const VirtualizedTable = <T extends Record<string, unknown>>({
