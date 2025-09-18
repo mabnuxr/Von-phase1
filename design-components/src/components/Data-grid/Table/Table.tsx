@@ -2,28 +2,28 @@
 import React from 'react';
 import { Table as RsTable } from 'rsuite';
 
-export interface TableColumn {
+export interface TableColumn<T = Record<string, unknown>> {
   key: string;
   title: string;
   width?: number;
   resizable?: boolean;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
-  cellRenderer?: (rowData: any) => React.ReactNode;
+  cellRenderer?: (rowData: T) => React.ReactNode;
 }
 
-export interface TableProps {
-  data: any[];
-  columns: TableColumn[];
-  height?: number | string;
+export interface TableProps<T = Record<string, unknown>> {
+  data: T[];
+  columns: TableColumn<T>[];
+  height?: number;
   rowKey?: string;
   loading?: boolean;
   bordered?: boolean;
   virtualized?: boolean;
-  onRowClick?: (rowData: any, rowIndex: number, event: React.MouseEvent) => void;
+  onRowClick?: (rowData: T, rowIndex: number, event: React.MouseEvent) => void;
 }
 
-const Table: React.FC<TableProps> = ({
+const Table = <T extends Record<string, unknown>>({
   data,
   columns,
   height = 400,
@@ -32,7 +32,7 @@ const Table: React.FC<TableProps> = ({
   bordered = true,
   virtualized = false,
   onRowClick,
-}) => {
+}: TableProps<T>): React.ReactElement => {
   return (
     <RsTable
       data={data}
@@ -53,7 +53,7 @@ const Table: React.FC<TableProps> = ({
         >
           <RsTable.HeaderCell>{col.title}</RsTable.HeaderCell>
           <RsTable.Cell>
-            {(rowData) => (col.cellRenderer ? col.cellRenderer(rowData) : rowData[col.key])}
+            {(rowData) => (col.cellRenderer ? col.cellRenderer(rowData as T) : String((rowData as T)[col.key]))}
           </RsTable.Cell>
         </RsTable.Column>
       ))}

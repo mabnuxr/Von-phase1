@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Table, Input } from 'rsuite';
 
-export interface EditableColumn {
+export interface EditableColumn<T = Record<string, unknown>> {
   key: string;
   title: string;
   width?: number;
@@ -12,17 +12,17 @@ export interface EditableColumn {
   editable?: boolean;
 }
 
-export interface EditableTableProps {
-  data: any[];
-  columns: EditableColumn[];
-  height?: number | string;
+export interface EditableTableProps<T = Record<string, unknown>> {
+  data: T[];
+  columns: EditableColumn<T>[];
+  height?: number;
   rowKey?: string;
   bordered?: boolean;
-  onRowClick?: (rowData: any, rowIndex: number, event: React.MouseEvent) => void;
-  onChange?: (updatedData: any[]) => void;
+  onRowClick?: (rowData: T, rowIndex: number, event: React.MouseEvent) => void;
+  onChange?: (updatedData: T[]) => void;
 }
 
-const EditableTable: React.FC<EditableTableProps> = ({
+const EditableTable = <T extends Record<string, unknown>>({
   data,
   columns,
   height = 400,
@@ -30,10 +30,10 @@ const EditableTable: React.FC<EditableTableProps> = ({
   bordered = true,
   onRowClick,
   onChange,
-}) => {
+}: EditableTableProps<T>): React.ReactElement => {
   const [tableData, setTableData] = useState([...data]);
 
-  const handleCellChange = (rowIndex: number, key: string, value: any) => {
+  const handleCellChange = (rowIndex: number, key: string, value: unknown) => {
     const newData = [...tableData];
     newData[rowIndex] = { ...newData[rowIndex], [key]: value };
     setTableData(newData);

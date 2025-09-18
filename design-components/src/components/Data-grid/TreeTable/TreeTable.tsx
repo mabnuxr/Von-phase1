@@ -2,39 +2,39 @@
 import React, { useState } from 'react';
 import { Table as RsTable } from 'rsuite';
 
-export interface TreeColumn {
+export interface TreeColumn<T = Record<string, unknown>> {
   key: string;
   title: string;
   width?: number;
   resizable?: boolean;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
-  cellRenderer?: (rowData: any) => React.ReactNode;
+  cellRenderer?: (rowData: T) => React.ReactNode;
 }
 
-export interface TreeRow {
+export interface TreeRow<T = Record<string, unknown>> {
   id: string | number;
-  children?: TreeRow[];
-  [key: string]: any;
+  children?: TreeRow<T>[];
+  [key: string]: unknown;
 }
 
-export interface InteractiveTreeTableProps {
-  data: TreeRow[];
-  columns: TreeColumn[];
-  height?: number | string;
+export interface InteractiveTreeTableProps<T = Record<string, unknown>> {
+  data: TreeRow<T>[];
+  columns: TreeColumn<T>[];
+  height?: number;
   rowKey?: string;
   bordered?: boolean;
   loading?: boolean;
 }
 
-const InteractiveTreeTable: React.FC<InteractiveTreeTableProps> = ({
+const InteractiveTreeTable = <T extends Record<string, unknown>>({
   data,
   columns,
   height = 400,
   rowKey = 'id',
   bordered = true,
   loading = false,
-}) => {
+}: InteractiveTreeTableProps<T>): React.ReactElement => {
   const [expandedRows, setExpandedRows] = useState<Set<string | number>>(new Set());
 
   const toggleRow = (rowId: string | number) => {
@@ -47,8 +47,8 @@ const InteractiveTreeTable: React.FC<InteractiveTreeTableProps> = ({
     setExpandedRows(newExpanded);
   };
 
-  const flattenData = (rows: TreeRow[], level = 0): any[] => {
-    let result: any[] = [];
+  const flattenData = (rows: TreeRow<T>[], level = 0): (T & { _level: number })[] => {
+    let result: (T & { _level: number })[] = [];
     for (const row of rows) {
       result.push({ ...row, _level: level });
       if (row.children && expandedRows.has(row.id)) {

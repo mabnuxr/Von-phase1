@@ -2,29 +2,29 @@
 import React from 'react';
 import { Table as RsTable } from 'rsuite';
 
-export interface AffixColumn {
+export interface AffixColumn<T = Record<string, unknown>> {
   key: string;
   title: string;
   width?: number;
   resizable?: boolean;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
-  cellRenderer?: (rowData: any) => React.ReactNode;
+  cellRenderer?: (rowData: T) => React.ReactNode;
 }
 
-export interface AffixTableProps {
-  data: any[];
-  columns: AffixColumn[];
-  height?: number | string;
+export interface AffixTableProps<T = Record<string, unknown>> {
+  data: T[];
+  columns: AffixColumn<T>[];
+  height?: number;
   rowKey?: string;
   loading?: boolean;
   bordered?: boolean;
   affixHeader?: boolean;
   affixHorizontalScrollbar?: boolean;
-  onRowClick?: (rowData: any, rowIndex: number, event: React.MouseEvent) => void;
+  onRowClick?: (rowData: T, event: React.MouseEvent) => void;
 }
 
-const AffixTable: React.FC<AffixTableProps> = ({
+const AffixTable = <T extends Record<string, unknown>>({
   data,
   columns,
   height = 400,
@@ -34,7 +34,7 @@ const AffixTable: React.FC<AffixTableProps> = ({
   affixHeader = true,
   affixHorizontalScrollbar = true,
   onRowClick,
-}) => {
+}: AffixTableProps<T>): React.ReactElement => {
   return (
     <RsTable
     data={data}
@@ -56,7 +56,7 @@ const AffixTable: React.FC<AffixTableProps> = ({
         >
           <RsTable.HeaderCell>{col.title}</RsTable.HeaderCell>
           <RsTable.Cell>
-            {(rowData) => (col.cellRenderer ? col.cellRenderer(rowData) : rowData[col.key])}
+            {(rowData) => (col.cellRenderer ? col.cellRenderer(rowData as T) : String((rowData as T)[col.key]))}
           </RsTable.Cell>
         </RsTable.Column>
       ))}
@@ -65,3 +65,4 @@ const AffixTable: React.FC<AffixTableProps> = ({
 };
 
 export default AffixTable;
+  
