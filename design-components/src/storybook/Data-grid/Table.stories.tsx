@@ -45,10 +45,7 @@ export const Virtualized: Story = {
 
 export const CustomRowClick: Story = {
   render: (args: TableProps) => (
-    <Table
-      {...args}
-      onRowClick={(rowData) => alert(`Clicked: ${rowData.name}`)}
-    />
+    <Table {...args} onRowClick={(rowData) => alert(`Clicked: ${rowData.name}`)} />
   ),
   args: Default.args,
 };

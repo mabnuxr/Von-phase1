@@ -65,9 +65,7 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
       height={height}
       bordered={bordered}
       loading={loading}
-      rowClassName={(rowData) =>
-        rowData._level > 0 ? 'rs-table-row-child' : ''
-      }
+      rowClassName={(rowData) => (rowData._level > 0 ? 'rs-table-row-child' : '')}
       onRowClick={(rowData) => rowData.children && toggleRow(rowData[rowKey])}
     >
       {columns.map((col) => (
@@ -82,9 +80,7 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
           <RsTable.Cell>
             {(rowData) => (
               <div style={{ paddingLeft: (rowData._level || 0) * 20 }}>
-                {rowData.cellRenderer
-                  ? rowData.cellRenderer(rowData)
-                  : rowData[col.key]}
+                {rowData.cellRenderer ? rowData.cellRenderer(rowData) : rowData[col.key]}
               </div>
             )}
           </RsTable.Cell>

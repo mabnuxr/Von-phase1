@@ -1,4 +1,3 @@
-
 import { render, screen, fireEvent } from '@testing-library/react';
 import ImageDisplay from '../../components/MediaAndIcon/Image/Image';
 
@@ -35,9 +34,7 @@ describe('ImageDisplay Component', () => {
 
   it('renders children when no fallback provided and image fails', () => {
     const childText = 'Child Content';
-    const { container } = render(
-      <ImageDisplay src="invalid.png">{childText}</ImageDisplay>
-    );
+    const { container } = render(<ImageDisplay src="invalid.png">{childText}</ImageDisplay>);
     const image = container.querySelector('.rs-image');
     expect(image).toBeInTheDocument();
 

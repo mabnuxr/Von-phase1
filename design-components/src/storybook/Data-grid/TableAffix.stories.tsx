@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import AffixTable, { type AffixTableProps } from '../../components/Data-grid/Table-Affix/TableAffix';
+import AffixTable, {
+  type AffixTableProps,
+} from '../../components/Data-grid/Table-Affix/TableAffix';
 
 const meta = {
   title: 'Data-grid/Table Affix',
@@ -42,10 +44,7 @@ export const Loading: Story = {
 
 export const CustomRowClick: Story = {
   render: (args: AffixTableProps) => (
-    <AffixTable
-      {...args}
-      onRowClick={(rowData) => alert(`Clicked: ${rowData.name}`)}
-    />
+    <AffixTable {...args} onRowClick={(rowData) => alert(`Clicked: ${rowData.name}`)} />
   ),
   args: Default.args,
 };

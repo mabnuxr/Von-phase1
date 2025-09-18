@@ -1,4 +1,3 @@
-
 import { render, screen } from '@testing-library/react';
 import LayoutStack from '../../components/Layout/Stack/Stack';
 
@@ -30,12 +29,7 @@ describe('LayoutStack Component', () => {
 
   it('applies custom props (justifyContent, alignItems, wrap, spacing)', () => {
     const { container } = render(
-      <LayoutStack
-        justifyContent="space-between"
-        alignItems="flex-end"
-        wrap={true}
-        spacing={20}
-      />
+      <LayoutStack justifyContent="space-between" alignItems="flex-end" wrap={true} spacing={20} />
     );
     const stack = container.querySelector('.rs-stack');
     expect(stack).toHaveStyle('justify-content: space-between');

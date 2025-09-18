@@ -37,8 +37,8 @@ const AffixTable = <T extends Record<string, unknown>>({
 }: AffixTableProps<T>): React.ReactElement => {
   return (
     <RsTable
-    data={data}
-    height={height}
+      data={data}
+      height={height}
       rowKey={rowKey}
       loading={loading}
       bordered={bordered}
@@ -56,7 +56,9 @@ const AffixTable = <T extends Record<string, unknown>>({
         >
           <RsTable.HeaderCell>{col.title}</RsTable.HeaderCell>
           <RsTable.Cell>
-            {(rowData) => (col.cellRenderer ? col.cellRenderer(rowData as T) : String((rowData as T)[col.key]))}
+            {(rowData) =>
+              col.cellRenderer ? col.cellRenderer(rowData as T) : String((rowData as T)[col.key])
+            }
           </RsTable.Cell>
         </RsTable.Column>
       ))}
@@ -65,4 +67,3 @@ const AffixTable = <T extends Record<string, unknown>>({
 };
 
 export default AffixTable;
-  

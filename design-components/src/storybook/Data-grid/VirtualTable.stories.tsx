@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import VirtualizedTable, { type VirtualizedTableProps } from '../../components/Data-grid/VirtualTable/VirtualTable';
+import VirtualizedTable, {
+  type VirtualizedTableProps,
+} from '../../components/Data-grid/VirtualTable/VirtualTable';
 
 const meta = {
   title: 'Data-Grid/Virtualized',
@@ -40,10 +42,7 @@ export const Loading: Story = {
 
 export const CustomRowClick: Story = {
   render: (args: VirtualizedTableProps) => (
-    <VirtualizedTable
-      {...args}
-      onRowClick={(rowData) => alert(`Clicked: ${rowData.name}`)}
-    />
+    <VirtualizedTable {...args} onRowClick={(rowData) => alert(`Clicked: ${rowData.name}`)} />
   ),
   args: Default.args,
 };

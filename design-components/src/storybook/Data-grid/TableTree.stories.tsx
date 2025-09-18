@@ -1,6 +1,7 @@
-
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import InteractiveTreeTable, { type InteractiveTreeTableProps } from '../../components/Data-grid/TreeTable/TreeTable';
+import InteractiveTreeTable, {
+  type InteractiveTreeTableProps,
+} from '../../components/Data-grid/TreeTable/TreeTable';
 
 const meta = {
   title: 'Data-grid/Table Tree Interactive',
@@ -27,9 +28,7 @@ const sampleData = [
     name: 'Parent 2',
     age: 48,
     email: 'parent2@example.com',
-    children: [
-      { id: 21, name: 'Child 2-1', age: 18, email: 'child2-1@example.com' },
-    ],
+    children: [{ id: 21, name: 'Child 2-1', age: 18, email: 'child2-1@example.com' }],
   },
 ];
 

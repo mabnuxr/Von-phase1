@@ -1,4 +1,3 @@
-
 import { render, screen } from '@testing-library/react';
 import LayoutGrid from '../../components/Layout/Grid/Grid';
 
@@ -23,7 +22,7 @@ describe('LayoutGrid Component', () => {
     render(<LayoutGrid gutter={40} />);
     const cols = screen.getAllByText(/Col \d/);
 
-    // Since we can’t test rsuite inline styles in JSDOM, 
+    // Since we can’t test rsuite inline styles in JSDOM,
     // just check that the correct number of Cols still render
     expect(cols).toHaveLength(3);
   });

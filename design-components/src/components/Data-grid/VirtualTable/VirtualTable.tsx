@@ -51,7 +51,9 @@ const VirtualizedTable = <T extends Record<string, unknown>>({
         >
           <RsTable.HeaderCell>{col.title}</RsTable.HeaderCell>
           <RsTable.Cell>
-            {(rowData) => (col.cellRenderer ? col.cellRenderer(rowData as T) : String((rowData as T)[col.key]))}
+            {(rowData) =>
+              col.cellRenderer ? col.cellRenderer(rowData as T) : String((rowData as T)[col.key])
+            }
           </RsTable.Cell>
         </RsTable.Column>
       ))}

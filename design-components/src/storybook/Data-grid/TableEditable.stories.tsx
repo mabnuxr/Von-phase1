@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import EditableTable, { type EditableTableProps } from '../../components/Data-grid/TableEditable/TableEditable';
+import EditableTable, {
+  type EditableTableProps,
+} from '../../components/Data-grid/TableEditable/TableEditable';
 import { useState } from 'react';
 
 const meta = {

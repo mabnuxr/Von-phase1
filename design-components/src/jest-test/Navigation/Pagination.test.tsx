@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import PaginationControl, { type PaginationProps } from '../../components/Navigation/Pagination/Pagination';
+import PaginationControl, {
+  type PaginationProps,
+} from '../../components/Navigation/Pagination/Pagination';
 
 describe('PaginationControl Component', () => {
   const defaultProps: PaginationProps = {
@@ -23,7 +25,7 @@ describe('PaginationControl Component', () => {
   it('calls onChange when the page changes', () => {
     const onChangeMock = jest.fn();
     render(<PaginationControl {...defaultProps} onChange={onChangeMock} />);
-    
+
     // Simulate RSuite triggering the onChange (this is how RSuite works in tests)
     onChangeMock(2);
 
@@ -38,13 +40,7 @@ describe('PaginationControl Component', () => {
   });
 
   it('renders with custom layout and size', () => {
-    render(
-      <PaginationControl
-        {...defaultProps}
-        size="sm"
-        layout={['total', 'pager']}
-      />
-    );
+    render(<PaginationControl {...defaultProps} size="sm" layout={['total', 'pager']} />);
     const page1 = screen.getByRole('button', { name: '1' });
     expect(page1).toBeInTheDocument();
   });

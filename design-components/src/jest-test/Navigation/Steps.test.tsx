@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { NavigationSteps, type NavigationStepsProps, type Step } from '../../components/Navigation/Steps/Steps';
+import {
+  NavigationSteps,
+  type NavigationStepsProps,
+  type Step,
+} from '../../components/Navigation/Steps/Steps';
 
 describe('NavigationSteps Component', () => {
   const steps: Step[] = [
@@ -21,7 +25,7 @@ describe('NavigationSteps Component', () => {
 
   it('renders all steps with titles and descriptions', () => {
     render(<NavigationSteps {...defaultProps} />);
-    
+
     steps.forEach((step) => {
       expect(screen.getByText(step.title)).toBeInTheDocument();
       expect(screen.getByText(step.description!)).toBeInTheDocument();
@@ -30,7 +34,7 @@ describe('NavigationSteps Component', () => {
 
   it('highlights the current step correctly', () => {
     render(<NavigationSteps {...defaultProps} />);
-    
+
     const currentStep = screen.getByText('Step 2').closest('.rs-steps-item');
     expect(currentStep).toHaveClass('rs-steps-item-active');
   });
@@ -54,7 +58,7 @@ describe('NavigationSteps Component', () => {
 
   it('does not show descriptions if showDescription=false', () => {
     render(<NavigationSteps {...defaultProps} showDescription={false} />);
-    
+
     steps.forEach((step) => {
       if (step.description) {
         expect(screen.queryByText(step.description)).not.toBeInTheDocument();

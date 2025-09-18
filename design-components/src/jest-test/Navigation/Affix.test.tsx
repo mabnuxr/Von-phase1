@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import NavigationAffix from '../../components/Navigation/Affix/Affix';
@@ -8,7 +7,9 @@ jest.mock('rsuite', () => {
   const actual = jest.requireActual('rsuite');
   return {
     ...actual,
-    Affix: ({ children }: { children: React.ReactNode }) => <div className="rs-affix">{children}</div>,
+    Affix: ({ children }: { children: React.ReactNode }) => (
+      <div className="rs-affix">{children}</div>
+    ),
   };
 });
 

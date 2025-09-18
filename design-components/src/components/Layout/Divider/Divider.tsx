@@ -16,8 +16,7 @@ const LayoutDivider: React.FC<LayoutDividerProps> = ({
   style = {},
 }) => {
   // Map textAlign to class name (like rsuite expects)
-  const textAlignClass =
-    !vertical && textAlign ? `rs-divider-with-text-${textAlign}` : '';
+  const textAlignClass = !vertical && textAlign ? `rs-divider-with-text-${textAlign}` : '';
 
   return (
     <Divider vertical={vertical} className={textAlignClass} style={style}>

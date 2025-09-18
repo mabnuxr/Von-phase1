@@ -19,7 +19,7 @@ export interface NavigationBreadcrumbProps {
 const NavigationBreadcrumb: React.FC<NavigationBreadcrumbProps> = ({
   items,
   separator = '/',
-  disabledLast = false
+  disabledLast = false,
 }) => {
   const renderedItems = items.map((item, index) => {
     const isLast = index === items.length - 1;

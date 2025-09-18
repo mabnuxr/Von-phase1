@@ -1,6 +1,5 @@
-
 import { render, screen } from '@testing-library/react';
-import LayoutContainer from '../../components/Layout/Container/Container'
+import LayoutContainer from '../../components/Layout/Container/Container';
 
 describe('LayoutContainer Component', () => {
   it('renders with default props', () => {
@@ -47,12 +46,7 @@ describe('LayoutContainer Component', () => {
   });
 
   it('renders custom header and footer text', () => {
-    render(
-      <LayoutContainer
-        headerText="Custom Header"
-        footerText="Custom Footer"
-      />
-    );
+    render(<LayoutContainer headerText="Custom Header" footerText="Custom Footer" />);
     expect(screen.getByText('Custom Header')).toBeInTheDocument();
     expect(screen.getByText('Custom Footer')).toBeInTheDocument();
   });

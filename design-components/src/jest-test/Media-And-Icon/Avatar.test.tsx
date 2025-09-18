@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import AvatarDisplay from '../../components/MediaAndIcon/Avatar/Avatar'
+import AvatarDisplay from '../../components/MediaAndIcon/Avatar/Avatar';
 
 describe('AvatarDisplay Component', () => {
   it('renders without crashing with default props', () => {
