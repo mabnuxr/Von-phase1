@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Table, Input } from 'rsuite';
 
-export interface EditableColumn<T = Record<string, unknown>> {
+export interface EditableColumn {
   key: string;
   title: string;
   width?: number;
@@ -14,11 +14,11 @@ export interface EditableColumn<T = Record<string, unknown>> {
 
 export interface EditableTableProps<T = Record<string, unknown>> {
   data: T[];
-  columns: EditableColumn<T>[];
+  columns: EditableColumn[];
   height?: number;
   rowKey?: string;
   bordered?: boolean;
-  onRowClick?: (rowData: T, rowIndex: number, event: React.MouseEvent) => void;
+  onRowClick?: (rowData: T, event: React.MouseEvent) => void;
   onChange?: (updatedData: T[]) => void;
 }
 
@@ -62,7 +62,7 @@ const EditableTable = <T extends Record<string, unknown>>({
               col.editable ? (
                 <Input
                   value={rowData[col.key]}
-                  onChange={(value) => handleCellChange(rowIndex, col.key, value)}
+                  onChange={(value) => handleCellChange(rowIndex ?? 0, col.key, value)}
                   size="sm"
                 />
               ) : (
