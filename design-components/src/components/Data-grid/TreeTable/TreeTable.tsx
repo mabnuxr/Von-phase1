@@ -58,17 +58,24 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
     return result;
   };
 
+  const safeData = flattenData(data);
+
   return (
     <RsTable
-      data={flattenData(data)}
+      data={safeData}
       rowKey={rowKey}
       height={height}
       bordered={bordered}
       loading={loading}
-      rowClassName={(rowData) => (rowData._level > 0 ? 'rs-table-row-child' : '')}
-      onRowClick={(rowData) =>
-        rowData.children && toggleRow(rowData[rowKey as keyof typeof rowData] as string | number)
-      }
+      rowClassName={(rowData) => {
+        if (!rowData || typeof rowData._level === 'undefined') return '';
+        return rowData._level > 0 ? 'rs-table-row-child' : '';
+      }}
+      onRowClick={(rowData) => {
+        if (rowData && rowData.children) {
+          toggleRow(rowData[rowKey as keyof typeof rowData] as string | number);
+        }
+      }}
     >
       {columns.map((col) => (
         <RsTable.Column
@@ -80,11 +87,16 @@ const InteractiveTreeTable = <T extends Record<string, unknown>>({
         >
           <RsTable.HeaderCell>{col.title}</RsTable.HeaderCell>
           <RsTable.Cell>
-            {(rowData) => (
-              <div style={{ paddingLeft: (rowData._level || 0) * 20 }}>
-                {col.cellRenderer ? col.cellRenderer(rowData as T) : String(rowData[col.key])}
-              </div>
-            )}
+            {(rowData) => {
+              if (!rowData) return null; // ✅ guard against undefined
+              return (
+                <div style={{ paddingLeft: (rowData._level || 0) * 20 }}>
+                  {col.cellRenderer
+                    ? col.cellRenderer(rowData as T)
+                    : String(rowData[col.key] ?? '')}
+                </div>
+              );
+            }}
           </RsTable.Cell>
         </RsTable.Column>
       ))}
