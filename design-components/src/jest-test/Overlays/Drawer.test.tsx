@@ -1,9 +1,25 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import type { CSSProperties, ReactNode } from 'react';
 import Drawer, { type DrawerProps } from '../../components/Overlays/Drawer/Drawer';
+
+type Placement = 'left' | 'right' | 'top' | 'bottom';
+type DrawerSize = 'xs' | 'sm' | 'md' | 'lg' | 'full';
+
+interface MockDrawerProps {
+  open?: boolean;
+  onClose?: () => void;
+  placement?: Placement;
+  size?: DrawerSize;
+  children?: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}
+
+type MockSubProps = { children?: ReactNode };
 
 // Mock rsuite Drawer since it uses portals and animations
 jest.mock('rsuite', () => {
-  const DrawerMock: any = ({ open, onClose, placement, size, children, className, style }: any) => (
+  const DrawerMock = ({ open, onClose, placement, size, children, className, style }: MockDrawerProps) => (
     <div
       data-testid="mock-drawer"
       data-open={open}
@@ -20,9 +36,9 @@ jest.mock('rsuite', () => {
   );
 
   // Attach subcomponents like RSuite does
-  DrawerMock.Header = ({ children }: any) => <div data-testid="drawer-header">{children}</div>;
-  DrawerMock.Title = ({ children }: any) => <h2 data-testid="drawer-title">{children}</h2>;
-  DrawerMock.Body = ({ children }: any) => <div data-testid="drawer-body">{children}</div>;
+  DrawerMock.Header = ({ children }: MockSubProps) => <div data-testid="drawer-header">{children}</div>;
+  DrawerMock.Title = ({ children }: MockSubProps) => <h2 data-testid="drawer-title">{children}</h2>;
+  DrawerMock.Body = ({ children }: MockSubProps) => <div data-testid="drawer-body">{children}</div>;
 
   return { Drawer: DrawerMock };
 });

@@ -50,9 +50,7 @@ describe('Dropdown Component', () => {
   });
 
   it('renders with different placements', () => {
-    const placements: DropdownProps['placement'][] = [
-      'topStart', 'topEnd', 'bottomStart', 'bottomEnd'
-    ];
+    const placements = ['topStart', 'topEnd', 'bottomStart', 'bottomEnd'] as const;
 
     placements.forEach((placement) => {
       const { container } = render(<Dropdown placement={placement} />);
