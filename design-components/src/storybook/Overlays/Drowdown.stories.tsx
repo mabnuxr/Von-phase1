@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryFn } from '@storybook/react-vite';
-import OverlaysDropdown from '../../components/Overlays/Dropdown/Dropworn';
+import OverlaysDropdown from '../../components/Overlays/Dropdown/Dropdownn';
 
 export default {
   title: 'Overlays/Dropdown',
