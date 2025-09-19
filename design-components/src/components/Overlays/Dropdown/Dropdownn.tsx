@@ -24,16 +24,16 @@ const RSuiteDropdown: React.FC<RSuiteDropdownProps> = ({
   itemCount = 3,
 }) => {
   const items = Array.from({ length: itemCount }, (_, i) => (
-    <Dropdown.Item key={i} disabled={disabledItems}>
+    <Dropdown.Item key={i} disabled={disabledItems} data-testid="dropdown-item">
       Option {i + 1}
     </Dropdown.Item>
   ));
 
   return (
-    <Dropdown title={title} placement={placement}>
+    <Dropdown title={title} placement={placement} data-testid="mock-dropdown">
       {items}
-      <Dropdown.Separator />
-      <Dropdown.Item panel style={{ padding: 10, width: 160 }}>
+      <Dropdown.Separator data-testid="dropdown-separator" />
+      <Dropdown.Item panel style={{ padding: 10, width: 160 }} data-testid="dropdown-panel">
         Extra Panel Content
       </Dropdown.Item>
     </Dropdown>
