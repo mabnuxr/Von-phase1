@@ -19,7 +19,15 @@ type MockSubProps = { children?: ReactNode };
 
 // Mock rsuite Drawer since it uses portals and animations
 jest.mock('rsuite', () => {
-  const DrawerMock = ({ open, onClose, placement, size, children, className, style }: MockDrawerProps) => (
+  const DrawerMock = ({
+    open,
+    onClose,
+    placement,
+    size,
+    children,
+    className,
+    style,
+  }: MockDrawerProps) => (
     <div
       data-testid="mock-drawer"
       data-open={open}
@@ -36,7 +44,9 @@ jest.mock('rsuite', () => {
   );
 
   // Attach subcomponents like RSuite does
-  DrawerMock.Header = ({ children }: MockSubProps) => <div data-testid="drawer-header">{children}</div>;
+  DrawerMock.Header = ({ children }: MockSubProps) => (
+    <div data-testid="drawer-header">{children}</div>
+  );
   DrawerMock.Title = ({ children }: MockSubProps) => <h2 data-testid="drawer-title">{children}</h2>;
   DrawerMock.Body = ({ children }: MockSubProps) => <div data-testid="drawer-body">{children}</div>;
 

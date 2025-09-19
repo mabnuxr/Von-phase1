@@ -9,10 +9,7 @@ describe('Heading', () => {
 
   test('applies className and style', () => {
     render(
-      <Heading
-        className="custom-class"
-        style={{ color: 'red', fontSize: '24px' }}
-      >
+      <Heading className="custom-class" style={{ color: 'red', fontSize: '24px' }}>
         Styled Heading
       </Heading>
     );

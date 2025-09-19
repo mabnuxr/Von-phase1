@@ -4,7 +4,7 @@ import Dropdown from '../../components/Overlays/Dropdown/Dropdownn';
 describe('Dropdown Component', () => {
   it('renders all dropdown items', () => {
     render(<Dropdown />);
-    
+
     // Open the dropdown
     const button = screen.getByRole('button', { name: /dropdown/i });
     fireEvent.click(button);
@@ -17,7 +17,7 @@ describe('Dropdown Component', () => {
 
   it('renders the separator line', () => {
     render(<Dropdown />);
-    
+
     // Open the dropdown
     const button = screen.getByRole('button', { name: /dropdown/i });
     fireEvent.click(button);
@@ -27,7 +27,7 @@ describe('Dropdown Component', () => {
 
   it('ensures non-panel items are not marked as panel', () => {
     render(<Dropdown />);
-    
+
     const button = screen.getByRole('button', { name: /dropdown/i });
     fireEvent.click(button);
 
@@ -39,7 +39,7 @@ describe('Dropdown Component', () => {
 
   it('ensures items are not disabled by default', () => {
     render(<Dropdown />);
-    
+
     const button = screen.getByRole('button', { name: /dropdown/i });
     fireEvent.click(button);
 
@@ -55,7 +55,9 @@ describe('Dropdown Component', () => {
     placements.forEach((placement) => {
       const { container } = render(<Dropdown placement={placement} />);
       const button = container.querySelector('.rs-dropdown');
-      expect(button).toHaveClass(`rs-dropdown-placement-${placement.replace(/([A-Z])/g, '-$1').toLowerCase()}`);
+      expect(button).toHaveClass(
+        `rs-dropdown-placement-${placement.replace(/([A-Z])/g, '-$1').toLowerCase()}`
+      );
     });
   });
 });
