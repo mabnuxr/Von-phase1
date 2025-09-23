@@ -1,41 +1,44 @@
 import React from 'react';
-import Button from '../../../components/Button';
+import { Button, Text } from '../../../components';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
-  // Dummy data
-  const dummyUsers = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
-    name: `User ${i + 1}`,
-    email: `user${i + 1}@example.com`,
-  }));
+  const users = [
+    { id: 1, name: 'Alice Johnson', email: 'alice@example.com' },
+    { id: 2, name: 'Bob Smith', email: 'bob@example.com' },
+    { id: 3, name: 'Charlie Brown', email: 'charlie@example.com' },
+    { id: 4, name: 'Diana Prince', email: 'diana@example.com' },
+    { id: 5, name: 'Ethan Hunt', email: 'ethan@example.com' },
+    { id: 6, name: 'Fiona Gallagher', email: 'fiona@example.com' },
+    { id: 7, name: 'George Martin', email: 'george@example.com' },
+    { id: 8, name: 'Hannah Lee', email: 'hannah@example.com' },
+    { id: 9, name: 'Ian Wright', email: 'ian@example.com' },
+    { id: 10, name: 'Jane Doe', email: 'jane@example.com' },
+  ];
 
   return (
     <div style={{ padding: '20px' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Welcome, {user?.name || user?.email}</h1>
-        <Button width={100} color="danger" onClick={logout}>
-          Logout
-        </Button>
-      </header>
+      <Text variant="h1">Dashboard</Text>
+      <Text variant="body">Simple navigation demo.</Text>
 
-      <main style={{ marginTop: '30px' }}>
-        <h2>User List</h2>
-        <ul>
-          {dummyUsers.map((u) => (
-            <li key={u.id} style={{ marginBottom: '10px' }}>
-              <strong>{u.name}</strong> — {u.email}
-            </li>
+      <div style={{ marginTop: '24px' }}>
+        <Text variant="h2">User List</Text>
+        <div style={{ marginTop: '12px' }}>
+          {users.map(user => (
+            <div key={user.id} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <Text variant="body">
+                  {user.name} — {user.email}
+                </Text>
+              </div>
+            </div>
           ))}
-        </ul>
-      </main>
-
-      {/* Additional Logout button at the bottom */}
-      <div style={{ marginTop: '20px' }}>
-        <Button width={120} color="secondary" onClick={logout}>
-          Logout
-        </Button>
+        </div>
+      </div>
+      <div style={{ marginTop: '12px' }}>
+        <Button width={120} color="secondary" onClick={() => navigate('/')}>Go Back</Button>
       </div>
     </div>
   );

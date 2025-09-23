@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './App/src/Component/MainPage';
 import Dashboard from './App/src/Component/Dashboard';
-import LogoutScreen from './screens/LogoutScreen';
 
 function App() {
   return (
@@ -9,7 +8,6 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/logout" element={<LogoutScreen />} />
       </Routes>
     </Router>
   );
