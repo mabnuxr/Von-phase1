@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "workspaces": [
-    "design-components"
+    "design-components",
+    "App"
   ],
   "scripts": {
-    "lint": "npm -w design-components run ci:lint",
-    "typecheck": "npm -w design-components run typecheck",
-    "build": "npm -w design-components run build",
+    "lint": "npm -w design-components run ci:lint && npm -w App run lint",
+    "typecheck": "npm -w design-components run typecheck && npm -w App run typecheck",
+    "build": "npm -w design-components run build && npm -w App run build",
     "build-storybook": "npm -w design-components run build-storybook",
     "test": "npm -w design-components run ci:test",
     "ci:bundle": "npm run typecheck && npm run build && npm run build-storybook"

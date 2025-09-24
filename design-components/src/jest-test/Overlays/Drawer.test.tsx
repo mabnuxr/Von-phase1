@@ -3,7 +3,7 @@ import Drawer, { type DrawerProps } from '../../components/Overlays/Drawer/Drawe
 
 // Mock rsuite Drawer since it uses portals and animations
 jest.mock('rsuite', () => {
-  const DrawerMock: any = ({ open, onClose, placement, size, children, className, style }: any) => (
+  const DrawerMock = ({ open, onClose, placement, size, children, className, style }: Record<string, unknown>) => (
     <div
       data-testid="mock-drawer"
       data-open={open}
@@ -20,9 +20,12 @@ jest.mock('rsuite', () => {
   );
 
   // Attach subcomponents like RSuite does
-  DrawerMock.Header = ({ children }: any) => <div data-testid="drawer-header">{children}</div>;
-  DrawerMock.Title = ({ children }: any) => <h2 data-testid="drawer-title">{children}</h2>;
-  DrawerMock.Body = ({ children }: any) => <div data-testid="drawer-body">{children}</div>;
+  // @ts-expect-error mock subcomponents
+  DrawerMock.Header = ({ children }: { children?: React.ReactNode }) => <div data-testid="drawer-header">{children}</div>;
+  // @ts-expect-error mock subcomponents
+  DrawerMock.Title = ({ children }: { children?: React.ReactNode }) => <h2 data-testid="drawer-title">{children}</h2>;
+  // @ts-expect-error mock subcomponents
+  DrawerMock.Body = ({ children }: { children?: React.ReactNode }) => <div data-testid="drawer-body">{children}</div>;
 
   return { Drawer: DrawerMock };
 });

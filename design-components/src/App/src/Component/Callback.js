@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import ScaleKit from '../lib/scalekit';
 
 const Callback = () => {
@@ -13,7 +13,6 @@ const Callback = () => {
     try {
       const UrlParams = new URLSearchParams(window.location.search);
       const code = UrlParams.get('code');
-      const State = UrlParams.get('state');
       if (code) {
         const tokenResponse = await ScaleKit.exchangeCodefortoken({
           code,
@@ -36,4 +35,4 @@ const Callback = () => {
     </div>
   );
 };
-export default Callback();
+export default Callback;
