@@ -1,27 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ScaleKit from '../lib/scalekit';
 
 const Callback = () => {
   const Navigation = useNavigate();
+  const [isExchanging, setIsExchanging] = useState(false);
+  const UrlParams = new URLSearchParams(window.location.search);
+  const code = UrlParams.get('code');
 
   useEffect(() => {
-    handleCallback();
-  });
+    if (!isExchanging && code) {
+      setIsExchanging(true);
+      handleCallback().finally(() => setIsExchanging(false));
+    }
+  }, [code, isExchanging]);
 
   const handleCallback = async () => {
     try {
-      const UrlParams = new URLSearchParams(window.location.search);
-      const code = UrlParams.get('code');
-      if (code) {
-        const tokenResponse = await ScaleKit.exchangeCodefortoken({
-          code,
-          requiredUrl: `${window.location.href}/callback`,
-        });
-        localStorage.setItem('ScaleKit_itm', tokenResponse.access_token);
+      if (!code) {
+        throw new Error('No authorization code received');
+      }
+      const tokenResponse = await ScaleKit.exchangeCodefortoken({
+        code,
+        requiredUrl: `${window.location.origin}/callback`,
+      });
+      if (tokenResponse && tokenResponse.access_token) {
+        localStorage.setItem('ScaleKit_token', tokenResponse.access_token);
         Navigation('/dashboard');
       } else {
-        throw new Error('No authorization code received');
+        throw new Error('No access token received');
       }
     } catch (error) {
       console.error('Callback handling failed:', error);

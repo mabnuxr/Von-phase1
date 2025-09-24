@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../Hooks/useAuth";
 
 const ProtectedRoute =({children})=>{
@@ -11,9 +11,8 @@ const ProtectedRoute =({children})=>{
         )
     }
     if(!User){
-        return(
-            Naviagtion('/login')
-        )
+        Naviagtion('/login');
+        return null;
     }
 
     return children;

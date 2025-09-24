@@ -25,7 +25,7 @@ const Login =()=>{
                     onChange={(e)=>setOrganizationId(e.target.value)}
                     />
                 </div>
-                <button type="Sumbit" >
+                <button type="submit" >
                     {Loading? 'Loading...' : 'Loginn with SSO'}
                 </button>
             </form>

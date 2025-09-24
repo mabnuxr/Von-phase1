@@ -135,7 +135,7 @@ const ChatPanel = ({ onLogout }: { onLogout: () => void }) => (
 export default function Dashboard() {
   const navigate = useNavigate();
   const token = sessionStorage.getItem('access_token');
-  console.log('session access_token', token);
+  console.log('session access_token', token ? '[TOKEN_PRESENT]' : '[NO_TOKEN]');
 
   function logout() {
     sessionStorage.clear();
