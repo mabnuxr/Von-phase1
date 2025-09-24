@@ -1,5 +1,5 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import VonlabsImage from '../../public/Images/vonlabs.png'
 
 const kpis = [
   { label: 'Total Pipeline', value: '$26.4M', sub: '↑ 18% from last quarter', color: '#10b981' },
@@ -146,7 +146,11 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f9fafb' }}>
       {/* Left rail */}
       <aside style={{ width: 240, borderRight: '1px solid #e5e7eb', background: '#fff', padding: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 18 }}>Dashboards</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <img src={VonlabsImage} alt="App logo" style={{ width: 28, height: 28 }} />
+          <span style={{ fontWeight: 800, fontSize: 18 }}>Revenue OS</span>
+        </div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#6b7280', marginBottom: 8 }}>Dashboards</div>
         <nav style={{ marginTop: 12, display: 'grid', gap: 8 }}>
           {['Team Review', 'Forecast Q3', 'Forecast Q2', 'Reports', 'Sales Performance'].map((t) => (
             <div key={t} style={{ padding: '8px 10px', borderRadius: 8, cursor: 'default', background: t === 'Forecast Q3' ? '#eef2ff' : 'transparent', color: t === 'Forecast Q3' ? '#4338ca' : '#111827' }}>{t}</div>
