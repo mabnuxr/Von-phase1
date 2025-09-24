@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : 5176;
-const AUTH_BASE = process.env.SCALEKIT_AUTH_BASE_URL ?? 'https://vonlabs-afcu5dgbaafqi.scalekit.dev';
+const AUTH_BASE = process.env.SCALEKIT_AUTH_BASE_URL ?? process.env.VITE_AUTH_BASE_URL ?? 'https://vonlabs-afcu5dgbaafqi.scalekit.dev';
 const CLIENT_ID = process.env.SCALEKIT_CLIENT_ID ?? '';
 const CLIENT_SECRET = process.env.SCALEKIT_CLIENT_SECRET ?? '';
 const REDIRECT_URI = process.env.SCALEKIT_REDIRECT_URI ?? '';
