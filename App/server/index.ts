@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import fetch from 'node-fetch';
+// Using global fetch available in Node 18+
 
 const app = express();
 app.use(cors());
@@ -19,7 +19,7 @@ app.get('/health', (_req, res) => {
 
 app.post('/oauth/exchange', async (req, res) => {
   try {
-    const { code } = req.body ?? {};
+    const { code, code_verifier, redirect_uri, client_id } = req.body ?? {};
     if (!code) {
       return res.status(400).json({ error: 'missing_code' });
     }
@@ -29,9 +29,11 @@ app.post('/oauth/exchange', async (req, res) => {
     const params = new URLSearchParams();
     params.set('grant_type', 'authorization_code');
     params.set('code', code);
-    params.set('redirect_uri', REDIRECT_URI);
-    params.set('client_id', CLIENT_ID);
-    params.set('client_secret', CLIENT_SECRET);
+    params.set('redirect_uri', redirect_uri || REDIRECT_URI);
+    params.set('client_id', client_id || CLIENT_ID);
+    if (code_verifier) params.set('code_verifier', code_verifier);
+    // For confidential client flows, include secret if present
+    if (CLIENT_SECRET) params.set('client_secret', CLIENT_SECRET);
 
     const response = await fetch(tokenUrl, {
       method: 'POST',

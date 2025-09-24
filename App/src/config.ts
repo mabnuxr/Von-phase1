@@ -4,6 +4,7 @@ export const config = {
   authorizePath: (import.meta.env.VITE_AUTH_AUTHORIZE_PATH as string) || '/oauth/authorize',
   tokenPath: (import.meta.env.VITE_AUTH_TOKEN_PATH as string) || '/oauth/token',
   redirectUri: `${location.origin}/callback`,
+  apiBase: (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5176',
 };
 
 

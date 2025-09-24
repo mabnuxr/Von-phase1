@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { config } from '../config';
 
@@ -8,7 +7,6 @@ export default function Callback() {
   const code = params.get('code');
 
   async function exchange() {
-    const tokenUrl = new URL(config.tokenPath, config.authBase);
     const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
     if (!codeVerifier) {
       alert('Missing PKCE code verifier. Please try logging in again.');
@@ -16,17 +14,10 @@ export default function Callback() {
       return;
     }
 
-    const form = new URLSearchParams();
-    form.set('grant_type', 'authorization_code');
-    form.set('code', code || '');
-    form.set('redirect_uri', config.redirectUri);
-    form.set('client_id', config.clientId);
-    form.set('code_verifier', codeVerifier);
-
-    const res = await fetch(tokenUrl, {
+    const res = await fetch(`${config.apiBase}/oauth/exchange`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, code_verifier: codeVerifier, redirect_uri: config.redirectUri, client_id: config.clientId }),
     });
 
     if (!res.ok) {
