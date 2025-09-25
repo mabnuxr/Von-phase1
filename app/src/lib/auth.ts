@@ -42,7 +42,9 @@ export function logCurrentToken(context: string) {
   if (import.meta.env.DEV) {
     const token = getAccessToken();
     if (token) {
-      console.log(`[Auth] ${context} - token present (length: ${token.length})`);
+      console.log(
+        `[Auth] ${context} - token present (length: ${token.length})`,
+      );
     } else {
       console.log(`[Auth] ${context} - no access_token found`);
     }

@@ -224,6 +224,7 @@ jobs:
 
     steps:
       - name: Summary
+        working-directory: .
         run: |
           echo "## Storybook CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

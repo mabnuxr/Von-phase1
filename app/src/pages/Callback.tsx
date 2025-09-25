@@ -22,7 +22,10 @@ export default function Callback() {
     }
 
     try {
-      const tokenUrl = new URL(config.scalekitTokenPath, config.scalekitAuthBaseUrl).toString();
+      const tokenUrl = new URL(
+        config.scalekitTokenPath,
+        config.scalekitAuthBaseUrl,
+      ).toString();
       const form = new URLSearchParams();
       form.set("grant_type", "authorization_code");
       form.set("code", code || "");

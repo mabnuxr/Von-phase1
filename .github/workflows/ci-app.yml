@@ -195,6 +195,7 @@ jobs:
 
     steps:
       - name: Summary
+        working-directory: .
         run: |
           echo "## App CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

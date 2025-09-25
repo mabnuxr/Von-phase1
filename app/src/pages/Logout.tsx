@@ -7,7 +7,9 @@ function Logout() {
     // Clear all auth tokens from session storage first
     clearAllAuth();
     if (import.meta.env.DEV) {
-      console.log("[Auth] logout - tokens cleared, redirecting to ScaleKit logout");
+      console.log(
+        "[Auth] logout - tokens cleared, redirecting to ScaleKit logout",
+      );
     }
     // Redirect to ScaleKit logout to clear their session
     startProviderLogout();
