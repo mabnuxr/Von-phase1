@@ -1,24 +1,14 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { config } from '../config';
+import { useEffect } from "react";
+import { startAuthorization } from "../lib/authFlow";
+import { logCurrentToken } from "../lib/auth";
 
 export default function RootGate() {
-  const navigate = useNavigate();
-
   useEffect(() => {
-    try {
-      const targetUrl = new URL(config.authBase).toString();
-      const redirectTimeout = setTimeout(() => {
-        window.location.href = targetUrl;
-      }, 100);
-      return () => clearTimeout(redirectTimeout);
-    } catch (error) {
-      console.error('Redirect failed:', error);
-      navigate('/login', { replace: true });
-    }
-  }, [navigate]);
-  return <div>Redirecting to login...</div>;
+    logCurrentToken("on site load");
+    const t = setTimeout(() => {
+      startAuthorization();
+    }, 300);
+    return () => clearTimeout(t);
+  }, []);
+  return <div>Redirecting to sign-in...</div>;
 }
-
-
-

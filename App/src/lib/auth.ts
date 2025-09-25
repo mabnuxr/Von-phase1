@@ -1,6 +1,6 @@
-export const ACCESS_TOKEN_KEY = 'access_token';
-export const REFRESH_TOKEN_KEY = 'refresh_token';
-export const CODE_VERIFIER_KEY = 'pkce_code_verifier';
+export const ACCESS_TOKEN_KEY = "access_token";
+export const REFRESH_TOKEN_KEY = "refresh_token";
+export const CODE_VERIFIER_KEY = "pkce_code_verifier";
 
 export function getAccessToken(): string | null {
   return sessionStorage.getItem(ACCESS_TOKEN_KEY);
@@ -24,6 +24,15 @@ export function readCodeVerifier(): string | null {
   return sessionStorage.getItem(CODE_VERIFIER_KEY);
 }
 
+export function clearCodeVerifier() {
+  sessionStorage.removeItem(CODE_VERIFIER_KEY);
+}
+
+export function clearAllAuth() {
+  clearTokens();
+  clearCodeVerifier();
+}
+
 export function logCurrentToken(context: string) {
   const token = getAccessToken();
   if (token) {
@@ -32,5 +41,3 @@ export function logCurrentToken(context: string) {
     console.log(`[Auth] ${context} - no access_token found`);
   }
 }
-
-

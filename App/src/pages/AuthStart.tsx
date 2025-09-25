@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { startAuthorization } from '../lib/authFlow';
+import { useEffect } from "react";
+import { startAuthorization } from "../lib/authFlow";
 
 export default function AuthStart() {
   useEffect(() => {
@@ -7,5 +7,3 @@ export default function AuthStart() {
   }, []);
   return <div>Redirecting to sign-in...</div>;
 }
-
-

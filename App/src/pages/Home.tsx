@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+//
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -7,9 +7,7 @@ export default function Home() {
     <div style={{ padding: 24 }}>
       <h1>RevenueOS Auth Demo (PKCE)</h1>
       <p>Use the button below to start SSO with ScaleKit.</p>
-      <button onClick={() => navigate('/login')}>Enterprise Login</button>
+      <button onClick={() => navigate("/login")}>Enterprise Login</button>
     </div>
   );
 }
-
-
