@@ -19,8 +19,8 @@ run:
     - name: VITE_SCALEKIT_AUTH_BASE_URL
       value-from: "/revenue-os/prod/scalekit/environment-url"
     - name: VITE_SCALEKIT_AUTH_AUTHORIZE_PATH
-      value-from: "/oauth/authorize"
+      value: "/oauth/authorize"
     - name: VITE_SCALEKIT_AUTH_TOKEN_PATH
-      value-from: "/oauth/token"
+      value: "/oauth/token"
     - name: VITE_SCALEKIT_AUTH_LOGOUT_PATH
-      value-from: ""
+      value: ""
