@@ -27,9 +27,10 @@
     "allowJs": true,
     "esModuleInterop": true
   },
-  "include": ["src"]
-  ,
+  "include": ["src"],
   "exclude": [
-    "src/jest-test/**"
+    "src/jest-test/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
   ]
 }

@@ -17,7 +17,8 @@ export default function RootGate() {
       navigate('/login', { replace: true });
     }
   }, [navigate]);
-  return <div>Redirecting to SSO… If not redirected, you can continue to the login page.</div>;
+  return <div>Redirecting to login...</div>;
 }
+
 
 

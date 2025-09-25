@@ -1,5 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import VirtualizedTable, { type VirtualizedColumn } from '../../components/Data-grid/VirtualTable/VirtualTable';
+import VirtualizedTable, {
+  type VirtualizedColumn,
+} from '../../components/Data-grid/VirtualTable/VirtualTable';
 
 describe('VirtualizedTable Component', () => {
   const columns: VirtualizedColumn[] = [
@@ -36,7 +38,10 @@ describe('VirtualizedTable Component', () => {
     fireEvent.click(row!);
 
     expect(handleRowClick).toHaveBeenCalledTimes(1);
-    expect(handleRowClick).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: 'John', age: 30 }), expect.any(Object));
+    expect(handleRowClick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1, name: 'John', age: 30 }),
+      expect.any(Object)
+    );
   });
 
   test('renders loader when loading is true', () => {

@@ -15,10 +15,10 @@ beforeAll(() => {
 describe('RSuite Modal Component', () => {
   it('renders modal with title and default content', () => {
     render(<OverlaysModel open={true} onClose={jest.fn()} />);
-    
+
     expect(screen.getByText('Modal Title')).toBeInTheDocument();
     expect(screen.getByText('This is the modal content.')).toBeInTheDocument();
-    
+
     // Check buttons
     expect(screen.getByRole('button', { name: /OK/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('RSuite Modal Component', () => {
 
   it('does not render modal when open is false', () => {
     render(<OverlaysModel open={false} onClose={jest.fn()} />);
-    
+
     expect(screen.queryByText('Modal Title')).not.toBeInTheDocument();
   });
 });

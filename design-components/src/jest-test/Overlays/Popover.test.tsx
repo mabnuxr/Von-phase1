@@ -10,7 +10,7 @@ describe('RSuite Popover Component', () => {
 
   it('shows popover content on click trigger', () => {
     render(<OverlaysPopover trigger="click" />);
-    
+
     const button = screen.getByRole('button', { name: /Click me/i });
     fireEvent.click(button);
 
@@ -46,7 +46,7 @@ describe('RSuite Popover Component', () => {
   it('supports hover trigger', () => {
     render(<OverlaysPopover trigger="hover" />);
     const button = screen.getByRole('button', { name: /Click me/i });
-    
+
     fireEvent.mouseOver(button);
     expect(screen.getByText('Popover Title')).toBeInTheDocument();
     expect(screen.getByText('This is the popover content.')).toBeInTheDocument();

@@ -1,5 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import EditableTable, { type EditableColumn } from '../../components/Data-grid/TableEditable/TableEditable';
+import EditableTable, {
+  type EditableColumn,
+} from '../../components/Data-grid/TableEditable/TableEditable';
 
 beforeAll(() => {
   // Suppress RSuite warnings
