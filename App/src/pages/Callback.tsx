@@ -22,12 +22,12 @@ export default function Callback() {
     }
 
     try {
-      const tokenUrl = new URL(config.tokenPath, config.authBase).toString();
+      const tokenUrl = new URL(config.scalekitTokenPath, config.scalekitAuthBaseUrl).toString();
       const form = new URLSearchParams();
       form.set("grant_type", "authorization_code");
       form.set("code", code || "");
-      form.set("redirect_uri", config.redirectUri);
-      form.set("client_id", config.clientId);
+      form.set("redirect_uri", config.scalekitRedirectUri);
+      form.set("client_id", config.scalekitClientId);
       form.set("code_verifier", codeVerifier);
 
       const res = await fetch(tokenUrl, {
@@ -43,10 +43,15 @@ export default function Callback() {
       const data = await res.json();
       setTokens(data.access_token, data.refresh_token);
       clearCodeVerifier();
-      logCurrentToken("after login");
+      if (import.meta.env.DEV) {
+        logCurrentToken("after login");
+      }
       navigate("/dashboard", { replace: true });
     } catch (error: unknown) {
-      console.error("Token exchange failed:", error);
+      if (import.meta.env.DEV) {
+        console.error("Token exchange failed:", error);
+      }
+      // TODO: Add user-friendly error message
       navigate("/", { replace: true });
     }
   }, [code, navigate]);
@@ -63,8 +68,7 @@ export default function Callback() {
   if (!code) {
     return (
       <div style={{ padding: 24 }}>
-        <p>Missing authorization code.</p>
-        <button onClick={() => navigate("/login")}>Try again</button>
+        <p>Missing authorization code. Redirecting...</p>
       </div>
     );
   }

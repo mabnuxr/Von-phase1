@@ -1,22 +1,22 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { clearAllAuth } from "../lib/auth";
 import { startProviderLogout } from "../lib/authFlow";
 
 function Logout() {
-  useNavigate();
   useEffect(() => {
+    // Clear all auth tokens from session storage first
     clearAllAuth();
-    console.log("[Auth] logout - tokens cleared");
-    const t = setTimeout(() => {
-      startProviderLogout();
-    }, 100);
-    return () => clearTimeout(t);
+    if (import.meta.env.DEV) {
+      console.log("[Auth] logout - tokens cleared, redirecting to ScaleKit logout");
+    }
+    // Redirect to ScaleKit logout to clear their session
+    startProviderLogout();
   }, []);
+
   return (
-    <div>
-      <h1>you are logout !</h1>
-      <button onClick={() => startProviderLogout()}>Redirect to login </button>
+    <div style={{ padding: 24 }}>
+      <h1>Logging out...</h1>
+      <p>Clearing your session...</p>
     </div>
   );
 }

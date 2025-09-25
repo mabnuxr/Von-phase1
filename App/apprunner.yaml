@@ -1,0 +1,26 @@
+version: 1.0
+runtime: nodejs22
+
+build:
+  commands:
+    build:
+      - npm ci
+      - npm run build
+
+run:
+  runtime-version: 22.17.0
+  command: npm run preview
+  network:
+    port: 4173
+    env: PORT
+  env:
+    - name: VITE_SCALEKIT_CLIENT_ID
+      value-from: "/revenue-os/prod/scalekit/client-id"
+    - name: VITE_SCALEKIT_AUTH_BASE_URL
+      value-from: "/revenue-os/prod/scalekit/environment-url"
+    - name: VITE_SCALEKIT_AUTH_AUTHORIZE_PATH
+      value-from: "/oauth/authorize"
+    - name: VITE_SCALEKIT_AUTH_TOKEN_PATH
+      value-from: "/oauth/token"
+    - name: VITE_SCALEKIT_AUTH_LOGOUT_PATH
+      value-from: ""

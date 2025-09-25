@@ -29,15 +29,22 @@ export function clearCodeVerifier() {
 }
 
 export function clearAllAuth() {
+  // Clear all auth data from sessionStorage
+  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionStorage.removeItem(CODE_VERIFIER_KEY);
+  // Also clear using the helper functions for consistency
   clearTokens();
   clearCodeVerifier();
 }
 
 export function logCurrentToken(context: string) {
-  const token = getAccessToken();
-  if (token) {
-    console.log(`[Auth] ${context} - access_token:`, token);
-  } else {
-    console.log(`[Auth] ${context} - no access_token found`);
+  if (import.meta.env.DEV) {
+    const token = getAccessToken();
+    if (token) {
+      console.log(`[Auth] ${context} - token present (length: ${token.length})`);
+    } else {
+      console.log(`[Auth] ${context} - no access_token found`);
+    }
   }
 }

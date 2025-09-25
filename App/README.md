@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# ScaleKit Authentication App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A minimal React application with ScaleKit authentication (login/logout only).
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js (v18 or higher)
+- npm
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Install dependencies:
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Configuration
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Create a `.env` file in the root directory with your ScaleKit credentials:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_SCALEKIT_CLIENT_ID=your_client_id
+VITE_SCALEKIT_AUTH_BASE_URL=https://your-domain.scalekit.dev
+VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize
+VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token
+VITE_SCALEKIT_AUTH_LOGOUT_PATH=/logout
+```
+
+## Running the Application
+
+### Development Mode (with hot reload)
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### Production Build
+
+1. Build the application:
+```bash
+npm run build
+```
+
+2. Preview the production build:
+```bash
+npm run preview
+```
+
+The preview will be available at `http://localhost:4173`
+
+## Available Scripts
+
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run typecheck` - Run TypeScript type checking
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+
+## Features
+
+- ScaleKit OAuth2/OIDC authentication
+- PKCE flow for enhanced security
+- Session management
+- Secure logout with ScaleKit session termination
+
+## Project Structure
+
+```
+src/
+├── lib/           # Authentication logic
+│   ├── auth.ts    # Token management
+│   ├── authFlow.ts # OAuth flow
+│   └── pkce.ts    # PKCE implementation
+├── pages/         # Application pages
+│   ├── RootGate.tsx   # Entry point
+│   ├── Callback.tsx   # OAuth callback
+│   ├── Dashboard.tsx  # Protected route
+│   ├── Logout.tsx     # Logout handler
+│   └── AuthStart.tsx  # Auth initiation
+├── App.tsx        # Router setup
+├── config.ts      # Configuration
+└── main.tsx       # React entry point
 ```

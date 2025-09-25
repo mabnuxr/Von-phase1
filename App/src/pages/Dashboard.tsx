@@ -1,8 +1,25 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import VonlabsImage from "../../public/Images/vonlabs.png";
+import { getAccessToken } from "../lib/auth";
+const VonlabsImage = "/images/vonlabs.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = getAccessToken();
+    if (!token) {
+      if (import.meta.env.DEV) {
+        console.log("[Dashboard] No token found, redirecting to login");
+      }
+      navigate("/", { replace: true });
+      return;
+    }
+    if (import.meta.env.DEV) {
+      console.log("[Dashboard] Token found, user authenticated");
+    }
+  }, [navigate]);
 
   const styles = {
     container: {
