@@ -14,7 +14,7 @@ on:
 
 defaults:
   run:
-    working-directory: ./design-components
+    working-directory: design-components
 
 jobs:
   lint:
