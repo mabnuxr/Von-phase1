@@ -2,7 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import type React from 'react';
 import Drawer, { type DrawerProps } from '../../components/Overlays/Drawer/Drawer';
 
-
 // Mock rsuite Drawer since it uses portals and animations
 jest.mock('rsuite', () => {
   type Placement = 'left' | 'right' | 'top' | 'bottom';
