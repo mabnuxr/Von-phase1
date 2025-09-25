@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Enhanced Logout Flow > Logout Flow Integration > ensures seamless user experience: logout → ScaleKit logout → ScaleKit login 1`] = `
+{
+  "step1": "Clear local tokens",
+  "step2": "Generate new PKCE for fresh auth",
+  "step3": "Redirect to ScaleKit logout",
+  "step4": "ScaleKit logout redirects to ScaleKit login",
+  "step5": "User can start fresh authentication",
+}
+`;
