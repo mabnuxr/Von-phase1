@@ -1,0 +1,107 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PKCE Snapshots > should match PKCE flow structure 1`] = `
+{
+  "challenge": {
+    "length": 43,
+    "value": "AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK-2vcTL0tk",
+  },
+  "hashByteLength": 32,
+  "verifier": {
+    "length": 64,
+    "value": "00112233445566778899aabbccddeeff102132435465768798a9bacbdcedfe0f",
+  },
+}
+`;
+
+exports[`PKCE Snapshots > should match SHA256 hash structure 1`] = `
+{
+  "empty": {
+    "byteLength": 32,
+    "firstFourBytes": [
+      227,
+      176,
+      196,
+      66,
+    ],
+    "lastFourBytes": [
+      120,
+      82,
+      184,
+      85,
+    ],
+  },
+  "hello": {
+    "byteLength": 32,
+    "firstFourBytes": [
+      44,
+      242,
+      77,
+      186,
+    ],
+    "lastFourBytes": [
+      147,
+      139,
+      152,
+      36,
+    ],
+  },
+  "test": {
+    "byteLength": 32,
+    "firstFourBytes": [
+      159,
+      134,
+      208,
+      129,
+    ],
+    "lastFourBytes": [
+      176,
+      240,
+      10,
+      8,
+    ],
+  },
+  "🔐": {
+    "byteLength": 32,
+    "firstFourBytes": [
+      43,
+      64,
+      44,
+      144,
+    ],
+    "lastFourBytes": [
+      151,
+      73,
+      40,
+      228,
+    ],
+  },
+}
+`;
+
+exports[`PKCE Snapshots > should match URL encoding characteristics 1`] = `
+{
+  "encoded": "Pj8vKw",
+  "hasEquals": false,
+  "hasPlus": false,
+  "hasSlash": false,
+  "length": 6,
+}
+`;
+
+exports[`PKCE Snapshots > should match base64 encoding results 1`] = `
+{
+  "empty": "",
+  "hello": "SGVsbG8",
+  "numbers": "AAECAwQF",
+  "special": "__79_A",
+}
+`;
+
+exports[`PKCE Snapshots > should match random string patterns 1`] = `
+{
+  "length_16": "000102030405060708090a0b0c0d0e0f",
+  "length_32": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "length_8": "0001020304050607",
+}
+`;
