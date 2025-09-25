@@ -1,0 +1,220 @@
+name: App CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci-app.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci-app.yml'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  lint:
+    name: Lint app Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check formatting with Prettier
+        run: npm run format:check
+
+  type-check:
+    name: App TypeScript Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        run: npm run typecheck
+
+  build:
+    name: Build app
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_SCALEKIT_CLIENT_ID: ${{ secrets.VITE_SCALEKIT_CLIENT_ID }}
+          VITE_SCALEKIT_AUTH_BASE_URL: ${{ secrets.VITE_SCALEKIT_AUTH_BASE_URL }}
+          VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: '/oauth/authorize'
+          VITE_SCALEKIT_AUTH_TOKEN_PATH: '/oauth/token'
+          VITE_SCALEKIT_AUTH_LOGOUT_PATH: ''
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-dist
+          path: app/dist/
+          retention-days: 7
+
+  bundle-size:
+    name: Check App Bundle Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for production
+        run: npm run build
+        env:
+          VITE_SCALEKIT_CLIENT_ID: 'dummy'
+          VITE_SCALEKIT_AUTH_BASE_URL: 'https://dummy.scalekit.dev'
+          VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: '/oauth/authorize'
+          VITE_SCALEKIT_AUTH_TOKEN_PATH: '/oauth/token'
+          VITE_SCALEKIT_AUTH_LOGOUT_PATH: ''
+
+      - name: Check bundle size
+        run: |
+          echo "## App Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          find dist -name "*.js" -o -name "*.css" | while read file; do
+            size=$(du -h "$file" | cut -f1)
+            filename=$(basename "$file")
+            echo "| $filename | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          # Check if main bundle is under threshold (300KB)
+          main_bundle=$(find dist -name "*.js" | head -1)
+          if [ -f "$main_bundle" ]; then
+            size_kb=$(du -k "$main_bundle" | cut -f1)
+            if [ "$size_kb" -gt 300 ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ **Warning:** Main bundle size ($size_kb KB) exceeds 300KB threshold" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "✅ **Success:** Bundle size is within limits ($size_kb KB)" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+  security-scan:
+    name: App Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for security vulnerabilities
+        run: |
+          audit_output=$(npm audit --json)
+          high_vulns=$(echo "$audit_output" | jq '.metadata.vulnerabilities.high // 0')
+          critical_vulns=$(echo "$audit_output" | jq '.metadata.vulnerabilities.critical // 0')
+
+          echo "## Security Scan Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$critical_vulns" -gt 0 ]; then
+            echo "❌ Found $critical_vulns critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          elif [ "$high_vulns" -gt 0 ]; then
+            echo "⚠️ Found $high_vulns high vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "✅ No high or critical vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  app-checks-complete:
+    name: App All Checks Passed
+    needs: [lint, type-check, build, bundle-size, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Summary
+        working-directory: .
+        run: |
+          echo "## App CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.lint.result }}" == "success" ] && \
+             [ "${{ needs.type-check.result }}" == "success" ] && \
+             [ "${{ needs.build.result }}" == "success" ] && \
+             [ "${{ needs.bundle-size.result }}" == "success" ] && \
+             [ "${{ needs.security-scan.result }}" == "success" ]; then
+            echo "✅ **All App CI checks passed successfully!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some App CI checks failed**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Linting | ${{ needs.lint.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Type Checking | ${{ needs.type-check.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Size | ${{ needs.bundle-size.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY

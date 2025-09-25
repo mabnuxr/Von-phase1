@@ -64,7 +64,6 @@ function App() {
           <RsuitsTable data={tableData} />
         </div>
       </div>
-
       {/* layout showcase removed in app-level demo */}
       <div>
         <StatusMessages />

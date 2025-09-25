@@ -1,25 +1,31 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { CSSProperties, ReactNode } from 'react';
+import type React from 'react';
 import Drawer, { type DrawerProps } from '../../components/Overlays/Drawer/Drawer';
-
-type Placement = 'left' | 'right' | 'top' | 'bottom';
-type DrawerSize = 'xs' | 'sm' | 'md' | 'lg' | 'full';
-
-interface MockDrawerProps {
-  open?: boolean;
-  onClose?: () => void;
-  placement?: Placement;
-  size?: DrawerSize;
-  children?: ReactNode;
-  className?: string;
-  style?: CSSProperties;
-}
-
-type MockSubProps = { children?: ReactNode };
 
 // Mock rsuite Drawer since it uses portals and animations
 jest.mock('rsuite', () => {
-  const DrawerMock = ({
+  type Placement = 'left' | 'right' | 'top' | 'bottom';
+  type Size = 'xs' | 'sm' | 'md' | 'lg' | 'full';
+
+  type MockDrawerProps = {
+    open?: boolean;
+    onClose?: () => void;
+    placement?: Placement;
+    size?: Size;
+    children?: React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+  };
+
+  type WithChildren = { children?: React.ReactNode };
+
+  type DrawerMockType = React.FC<MockDrawerProps> & {
+    Header: React.FC<WithChildren>;
+    Title: React.FC<WithChildren>;
+    Body: React.FC<WithChildren>;
+  };
+
+  const DrawerMock: DrawerMockType = (({
     open,
     onClose,
     placement,
@@ -41,14 +47,13 @@ jest.mock('rsuite', () => {
       </button>
       {children}
     </div>
-  );
+  )) as DrawerMockType;
 
-  // Attach subcomponents like RSuite does
-  DrawerMock.Header = ({ children }: MockSubProps) => (
+  DrawerMock.Header = ({ children }: WithChildren) => (
     <div data-testid="drawer-header">{children}</div>
   );
-  DrawerMock.Title = ({ children }: MockSubProps) => <h2 data-testid="drawer-title">{children}</h2>;
-  DrawerMock.Body = ({ children }: MockSubProps) => <div data-testid="drawer-body">{children}</div>;
+  DrawerMock.Title = ({ children }: WithChildren) => <h2 data-testid="drawer-title">{children}</h2>;
+  DrawerMock.Body = ({ children }: WithChildren) => <div data-testid="drawer-body">{children}</div>;
 
   return { Drawer: DrawerMock };
 });
