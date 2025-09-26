@@ -7,14 +7,12 @@ build:
       - printenv | grep VITE_ || echo No VITE_ vars found
       - printenv | grep NODE_ENV || echo NODE_ENV not set
     build:
-      - echo VITE_SCALEKIT_CLIENT_ID=$VITE_SCALEKIT_CLIENT_ID
-      - echo VITE_SCALEKIT_AUTH_BASE_URL=$VITE_SCALEKIT_AUTH_BASE_URL
       - echo Creating .env file for build
-      - echo "VITE_SCALEKIT_CLIENT_ID=$VITE_SCALEKIT_CLIENT_ID" > .env
-      - echo "VITE_SCALEKIT_AUTH_BASE_URL=$VITE_SCALEKIT_AUTH_BASE_URL" >> .env
-      - echo "VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=$VITE_SCALEKIT_AUTH_AUTHORIZE_PATH" >> .env
-      - echo "VITE_SCALEKIT_AUTH_TOKEN_PATH=$VITE_SCALEKIT_AUTH_TOKEN_PATH" >> .env
-      - echo "VITE_SCALEKIT_AUTH_LOGOUT_PATH=$VITE_SCALEKIT_AUTH_LOGOUT_PATH" >> .env
+      - echo "VITE_SCALEKIT_CLIENT_ID=prd_skc_89676802255028999" > .env
+      - echo "VITE_SCALEKIT_AUTH_BASE_URL=https://auth.vonlabs.ai" >> .env
+      - echo "VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize" >> .env
+      - echo "VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token" >> .env
+      - echo "VITE_SCALEKIT_AUTH_LOGOUT_PATH=" >> .env
       - cat .env
       - npm ci
       - npm run build
@@ -45,16 +43,3 @@ run:
   network:
     port: 4173
     env: PORT
-  env:
-    - name: NODE_ENV
-      value: production
-    - name: VITE_SCALEKIT_AUTH_AUTHORIZE_PATH
-      value: /oauth/authorize
-    - name: VITE_SCALEKIT_AUTH_BASE_URL
-      value: https://auth.vonlabs.ai
-    - name: VITE_SCALEKIT_AUTH_LOGOUT_PATH
-      value: ""
-    - name: VITE_SCALEKIT_AUTH_TOKEN_PATH
-      value: /oauth/token
-    - name: VITE_SCALEKIT_CLIENT_ID
-      value: prd_skc_89676802255028999
