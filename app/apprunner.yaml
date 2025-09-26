@@ -22,3 +22,4 @@ run:
   command: npm run preview
   network:
     port: 4173
+    env: PORT
