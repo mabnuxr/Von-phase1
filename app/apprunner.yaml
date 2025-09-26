@@ -2,8 +2,18 @@ version: 1.0
 runtime: nodejs22
 build:
   commands:
+    pre-build:
+      - echo "=== CHECKING BUILD ENV VARS ==="
+      - printenv | grep VITE_ || echo "No VITE_ vars found"
+      - echo "NODE_ENV: $NODE_ENV"
+      - echo "=== END ENV CHECK ==="
     build:
       - npm ci && npm run build
+    post-build:
+      - echo "=== CHECKING BUILT FILES ==="
+      - ls -la dist/
+      - echo "=== CHECKING FOR ENV VARS IN BUILT JS ==="
+      - grep -r "VITE_SCALEKIT" dist/ || echo "No VITE vars found in build"
   env:
     - name: NODE_ENV
       value: production
