@@ -7,11 +7,17 @@ build:
       - printenv | grep VITE_ || echo No VITE_ vars found
       - printenv | grep NODE_ENV || echo NODE_ENV not set
     build:
+      - echo VITE_SCALEKIT_CLIENT_ID=$VITE_SCALEKIT_CLIENT_ID
+      - echo VITE_SCALEKIT_AUTH_BASE_URL=$VITE_SCALEKIT_AUTH_BASE_URL
       - npm ci && npm run build
     post-build:
       - echo CHECKING BUILT FILES
       - ls -la dist/
       - grep -r VITE_SCALEKIT dist/ || echo No VITE vars found in build
+      - echo CHECKING FOR CLIENT ID IN BUILD
+      - grep -r "prd_skc_89676802255028999" dist/ | head -5 || echo Client ID not found in build
+      - echo CHECKING FOR AUTH URL IN BUILD
+      - grep -r "auth.vonlabs.ai" dist/ | head -5 || echo Auth URL not found in build
   env:
     - name: NODE_ENV
       value: production
