@@ -1,0 +1,25 @@
+version: 1.0
+runtime: nodejs22
+build:
+  commands:
+    build:
+      - npm ci && npm run build
+  environment:
+    - name: NODE_ENV
+      value: production
+    - name: VITE_SCALEKIT_AUTH_AUTHORIZE_PATH
+      value: /oauth/authorize
+    - name: VITE_SCALEKIT_AUTH_BASE_URL
+      value: https://auth.vonlabs.ai
+    - name: VITE_SCALEKIT_AUTH_LOGOUT_PATH
+      value: "" 
+    - name: VITE_SCALEKIT_AUTH_TOKEN_PATH
+      value: /oauth/token
+    - name: VITE_SCALEKIT_CLIENT_ID
+      value: prd_skc_89676802255028999
+run:
+  runtime-version: latest
+  command: npm run preview
+  network:
+    port: 4173
+    env: PORT
