@@ -18,7 +18,7 @@ build:
     - name: VITE_SCALEKIT_CLIENT_ID
       value: prd_skc_89676802255028999
 run:
-  runtime-version: latest
+  runtime-version: 22.17.0
   command: npm run preview
   network:
     port: 4173
