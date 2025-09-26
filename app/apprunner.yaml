@@ -9,7 +9,15 @@ build:
     build:
       - echo VITE_SCALEKIT_CLIENT_ID=$VITE_SCALEKIT_CLIENT_ID
       - echo VITE_SCALEKIT_AUTH_BASE_URL=$VITE_SCALEKIT_AUTH_BASE_URL
-      - npm ci && npm run build
+      - echo Creating .env file for build
+      - echo "VITE_SCALEKIT_CLIENT_ID=$VITE_SCALEKIT_CLIENT_ID" > .env
+      - echo "VITE_SCALEKIT_AUTH_BASE_URL=$VITE_SCALEKIT_AUTH_BASE_URL" >> .env
+      - echo "VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=$VITE_SCALEKIT_AUTH_AUTHORIZE_PATH" >> .env
+      - echo "VITE_SCALEKIT_AUTH_TOKEN_PATH=$VITE_SCALEKIT_AUTH_TOKEN_PATH" >> .env
+      - echo "VITE_SCALEKIT_AUTH_LOGOUT_PATH=$VITE_SCALEKIT_AUTH_LOGOUT_PATH" >> .env
+      - cat .env
+      - npm ci
+      - npm run build
     post-build:
       - echo CHECKING BUILT FILES
       - ls -la dist/
