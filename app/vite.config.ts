@@ -7,5 +7,8 @@ export default defineConfig({
   server: {
     port: 5173,      // always start on 5173
     strictPort: true // fail if it's already in use
+  },
+  preview: {
+    allowedHosts: ['app.vonlabs.ai']
   }
 })
