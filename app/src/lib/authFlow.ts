@@ -15,7 +15,7 @@ export async function startAuthorization() {
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("client_id", config.scalekitClientId);
   authorizeUrl.searchParams.set("redirect_uri", config.scalekitRedirectUri);
-  authorizeUrl.searchParams.set("scope", "openid profile offline_access");
+  authorizeUrl.searchParams.set("scope", "openid profile offline_access email");
   authorizeUrl.searchParams.set("state", crypto.randomUUID());
   authorizeUrl.searchParams.set("code_challenge", codeChallenge);
   authorizeUrl.searchParams.set("code_challenge_method", "S256");
