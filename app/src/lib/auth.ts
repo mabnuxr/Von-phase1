@@ -13,9 +13,9 @@ export function setTokens(accessToken: string, refreshToken?: string) {
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     }
     // Force a storage event to ensure sync across tabs/windows
-    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event("storage"));
   } catch (error) {
-    console.error('[Auth] Failed to set tokens:', error);
+    console.error("[Auth] Failed to set tokens:", error);
     throw error;
   }
 }
