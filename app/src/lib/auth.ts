@@ -7,8 +7,17 @@ export function getAccessToken(): string | null {
 }
 
 export function setTokens(accessToken: string, refreshToken?: string) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  try {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    if (refreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
+    // Force a storage event to ensure sync across tabs/windows
+    window.dispatchEvent(new Event('storage'));
+  } catch (error) {
+    console.error('[Auth] Failed to set tokens:', error);
+    throw error;
+  }
 }
 
 export function clearTokens() {
@@ -30,10 +39,6 @@ export function clearCodeVerifier() {
 
 export function clearAllAuth() {
   // Clear all auth data from localStorage
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(CODE_VERIFIER_KEY);
-  // Also clear using the helper functions for consistency
   clearTokens();
   clearCodeVerifier();
 }
