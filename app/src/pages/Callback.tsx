@@ -49,6 +49,8 @@ export default function Callback() {
       if (import.meta.env.DEV) {
         logCurrentToken("after login");
       }
+      // Small delay to ensure localStorage is synced
+      await new Promise((resolve) => setTimeout(resolve, 50));
       navigate("/dashboard", { replace: true });
     } catch (error: unknown) {
       if (import.meta.env.DEV) {
