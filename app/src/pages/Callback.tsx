@@ -27,12 +27,12 @@ export default function Callback() {
         config.scalekitAuthBaseUrl,
       ).toString();
       const form = new URLSearchParams();
-      form.set("grant_type", "authorization_code");
+      form.set("grant_type", config.oauthGrantType);
       form.set("code", code || "");
       form.set("redirect_uri", config.scalekitRedirectUri);
       form.set("client_id", config.scalekitClientId);
       form.set("code_verifier", codeVerifier);
-      form.set("scope", "openid profile offline_access email");
+      form.set("scope", config.oauthScope);
 
       const res = await fetch(tokenUrl, {
         method: "POST",
