@@ -18,7 +18,10 @@ export async function startAuthorization() {
   authorizeUrl.searchParams.set("scope", config.oauthScope);
   authorizeUrl.searchParams.set("state", crypto.randomUUID());
   authorizeUrl.searchParams.set("code_challenge", codeChallenge);
-  authorizeUrl.searchParams.set("code_challenge_method", config.oauthCodeChallengeMethod);
+  authorizeUrl.searchParams.set(
+    "code_challenge_method",
+    config.oauthCodeChallengeMethod,
+  );
   // Force login prompt to ensure user re-authenticates after logout
   authorizeUrl.searchParams.set("prompt", "login");
 
