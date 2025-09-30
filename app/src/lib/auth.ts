@@ -1,6 +1,7 @@
 export const ACCESS_TOKEN_KEY = "access_token";
 export const REFRESH_TOKEN_KEY = "refresh_token";
 export const CODE_VERIFIER_KEY = "pkce_code_verifier";
+export const OAUTH_STATE_KEY = "oauth_state";
 
 // Custom event for auth state changes within the same tab
 export const AUTH_STATE_CHANGE_EVENT = "auth-state-change";
@@ -64,10 +65,23 @@ export function clearCodeVerifier() {
   localStorage.removeItem(CODE_VERIFIER_KEY);
 }
 
+export function storeOAuthState(state: string) {
+  localStorage.setItem(OAUTH_STATE_KEY, state);
+}
+
+export function readOAuthState(): string | null {
+  return localStorage.getItem(OAUTH_STATE_KEY);
+}
+
+export function clearOAuthState() {
+  localStorage.removeItem(OAUTH_STATE_KEY);
+}
+
 export function clearAllAuth() {
   // Clear all auth data from localStorage
   clearTokens();
   clearCodeVerifier();
+  clearOAuthState();
 }
 
 export function logCurrentToken(context: string) {
