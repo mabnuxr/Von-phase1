@@ -6,6 +6,11 @@ export const config = {
   scalekitTokenPath: import.meta.env.VITE_SCALEKIT_AUTH_TOKEN_PATH as string,
   scalekitLogoutPath: import.meta.env.VITE_SCALEKIT_AUTH_LOGOUT_PATH as string,
   scalekitRedirectUri: `${location.origin}/callback`,
+  // OAuth standard parameters
+  oauthResponseType: "code",
+  oauthScope: "openid profile offline_access email",
+  oauthCodeChallengeMethod: "S256",
+  oauthGrantType: "authorization_code",
 };
 
 // Debug: Log config values on initialization
