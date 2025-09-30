@@ -4,17 +4,31 @@ import { config } from "../config";
 import {
   setTokens,
   readCodeVerifier,
+  readOAuthState,
+  getAccessToken,
   logCurrentToken,
   clearCodeVerifier,
+  clearOAuthState,
 } from "../lib/auth";
 
 export default function Callback() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const code = params.get("code");
+  const state = params.get("state");
   const [isExchanging, setIsExchanging] = useState(false);
 
   const exchange = useCallback(async () => {
+    // Validate state parameter to prevent CSRF attacks
+    const storedState = readOAuthState();
+    if (!storedState || storedState !== state) {
+      if (import.meta.env.DEV) {
+        console.error("[Auth] State mismatch - possible CSRF attack");
+      }
+      navigate("/", { replace: true });
+      return;
+    }
+
     const codeVerifier = readCodeVerifier();
     if (!codeVerifier) {
       navigate("/", { replace: true });
@@ -45,22 +59,33 @@ export default function Callback() {
       }
 
       const data = await res.json();
+      if (!data.access_token) {
+        throw new Error("No access token received from server");
+      }
       setTokens(data.access_token, data.refresh_token);
       clearCodeVerifier();
+      clearOAuthState();
+
+      // Verify token was stored successfully before navigation
+      const storedToken = getAccessToken();
+      if (!storedToken) {
+        throw new Error("Failed to store access token");
+      }
+
       if (import.meta.env.DEV) {
         logCurrentToken("after login");
       }
-      // Small delay to ensure localStorage is synced
-      await new Promise((resolve) => setTimeout(resolve, 50));
       navigate("/dashboard", { replace: true });
     } catch (error: unknown) {
       if (import.meta.env.DEV) {
         console.error("Token exchange failed:", error);
       }
+      clearCodeVerifier();
+      clearOAuthState();
       // TODO: Add user-friendly error message
       navigate("/", { replace: true });
     }
-  }, [code, navigate]);
+  }, [code, state, navigate]);
 
   const startedRef = useRef(false);
   useEffect(() => {

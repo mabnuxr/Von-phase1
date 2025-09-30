@@ -1,12 +1,15 @@
 import { config } from "../config";
 import { randomString, sha256, base64UrlEncode } from "./pkce";
-import { storeCodeVerifier, clearAllAuth } from "./auth";
+import { storeCodeVerifier, storeOAuthState, clearAllAuth } from "./auth";
 
 export async function startAuthorization() {
   const codeVerifier = randomString(64);
   const challengeBuffer = await sha256(codeVerifier);
   const codeChallenge = base64UrlEncode(challengeBuffer);
+  const state = crypto.randomUUID();
+
   storeCodeVerifier(codeVerifier);
+  storeOAuthState(state);
 
   const authorizeUrl = new URL(
     config.scalekitAuthorizePath,
@@ -16,7 +19,7 @@ export async function startAuthorization() {
   authorizeUrl.searchParams.set("client_id", config.scalekitClientId);
   authorizeUrl.searchParams.set("redirect_uri", config.scalekitRedirectUri);
   authorizeUrl.searchParams.set("scope", config.oauthScope);
-  authorizeUrl.searchParams.set("state", crypto.randomUUID());
+  authorizeUrl.searchParams.set("state", state);
   authorizeUrl.searchParams.set("code_challenge", codeChallenge);
   authorizeUrl.searchParams.set(
     "code_challenge_method",
