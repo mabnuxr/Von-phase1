@@ -32,6 +32,7 @@ export default function Callback() {
       form.set("redirect_uri", config.scalekitRedirectUri);
       form.set("client_id", config.scalekitClientId);
       form.set("code_verifier", codeVerifier);
+      form.set("scope", "openid profile offline_access email");
 
       const res = await fetch(tokenUrl, {
         method: "POST",
