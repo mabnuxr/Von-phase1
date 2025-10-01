@@ -32,7 +32,7 @@ build:
     - name: VITE_SCALEKIT_AUTH_BASE_URL
       value: https://auth.vonlabs.ai
     - name: VITE_SCALEKIT_AUTH_LOGOUT_PATH
-      value: ""
+      value: /oauth/logout
     - name: VITE_SCALEKIT_AUTH_TOKEN_PATH
       value: /oauth/token
     - name: VITE_SCALEKIT_CLIENT_ID
