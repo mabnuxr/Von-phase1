@@ -25,6 +25,8 @@ export async function startAuthorization() {
     "code_challenge_method",
     config.oauthCodeChallengeMethod,
   );
+  // Force login prompt to ensure user re-authenticates after logout
+  authorizeUrl.searchParams.set("prompt", "login");
 
   window.location.href = authorizeUrl.toString();
 }
