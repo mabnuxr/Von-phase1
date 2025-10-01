@@ -2,7 +2,7 @@ import { config } from "../config";
 import { randomString, sha256, base64UrlEncode } from "./pkce";
 import { storeCodeVerifier, storeOAuthState, clearAllAuth } from "./auth";
 
-export async function startAuthorization(forceLogin = false) {
+export async function startAuthorization() {
   const codeVerifier = randomString(64);
   const challengeBuffer = await sha256(codeVerifier);
   const codeChallenge = base64UrlEncode(challengeBuffer);
@@ -25,11 +25,6 @@ export async function startAuthorization(forceLogin = false) {
     "code_challenge_method",
     config.oauthCodeChallengeMethod,
   );
-
-  // Only force login when explicitly requested (e.g., after logout)
-  if (forceLogin) {
-    authorizeUrl.searchParams.set("prompt", "login");
-  }
 
   window.location.href = authorizeUrl.toString();
 }
