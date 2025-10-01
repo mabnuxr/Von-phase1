@@ -26,7 +26,8 @@ export default function RootGate() {
     } else {
       // No token, redirect to ScaleKit auth
       const t = setTimeout(() => {
-        startAuthorization();
+        // Don't force login on initial page load, let ScaleKit handle session
+        startAuthorization(false);
       }, 300);
       return () => clearTimeout(t);
     }
@@ -40,8 +41,8 @@ export default function RootGate() {
         <p>You have been logged out from your account.</p>
         <button
           onClick={() => {
-            // Remove the logged_out param and start fresh auth
-            navigate("/", { replace: true });
+            // Force login after logout to ensure fresh authentication
+            startAuthorization(true);
           }}
           style={{
             marginTop: 20,
