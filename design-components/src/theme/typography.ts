@@ -9,7 +9,8 @@
  */
 export const fontFamily = {
   // SF Pro Display - for larger headings and display text
-  display: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+  display:
+    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
 
   // SF Pro Text - for body text and smaller UI elements
   text: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',

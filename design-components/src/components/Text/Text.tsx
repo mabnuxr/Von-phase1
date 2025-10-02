@@ -12,7 +12,15 @@ export interface TextProps {
    * Text color
    * @default 'primary'
    */
-  color?: 'primary' | 'secondary' | 'disabled' | 'inverse' | 'success' | 'warning' | 'error' | 'info';
+  color?:
+    | 'primary'
+    | 'secondary'
+    | 'disabled'
+    | 'inverse'
+    | 'success'
+    | 'warning'
+    | 'error'
+    | 'info';
 
   /**
    * Text alignment

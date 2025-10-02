@@ -71,7 +71,10 @@ export const Heading: React.FC<HeadingProps> = ({
     fontSize: levelStyle.fontSize,
     lineHeight: levelStyle.lineHeight,
     fontWeight: levelStyle.fontWeight,
-    letterSpacing: 'letterSpacing' in levelStyle ? (levelStyle as Record<string, unknown>).letterSpacing as string : undefined, // Apple's tight tracking
+    letterSpacing:
+      'letterSpacing' in levelStyle
+        ? ((levelStyle as Record<string, unknown>).letterSpacing as string)
+        : undefined, // Apple's tight tracking
     color: colorMap[color],
     textAlign: align,
     margin: 0,

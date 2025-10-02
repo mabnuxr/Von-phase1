@@ -56,10 +56,17 @@ function App() {
           </Stack>
         </Box>
 
-        <Box padding={6} backgroundColor={colors.success[50]} borderRadius="lg" border borderColor={colors.success[300]}>
+        <Box
+          padding={6}
+          backgroundColor={colors.success[50]}
+          borderRadius="lg"
+          border
+          borderColor={colors.success[300]}
+        >
           <Heading level="h2">Layout Components</Heading>
           <Text variant="body">
-            All components use the Stack, Container, and Box layout primitives with consistent spacing from design tokens.
+            All components use the Stack, Container, and Box layout primitives with consistent
+            spacing from design tokens.
           </Text>
         </Box>
       </Stack>

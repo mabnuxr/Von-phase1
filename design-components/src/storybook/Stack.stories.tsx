@@ -130,7 +130,12 @@ export const AlignmentVariants: Story = {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div>
         <h4>Align Start</h4>
-        <Stack direction="horizontal" gap="md" align="start" style={{ height: '100px', border: '1px dashed #ccc' }}>
+        <Stack
+          direction="horizontal"
+          gap="md"
+          align="start"
+          style={{ height: '100px', border: '1px dashed #ccc' }}
+        >
           <DemoItem>Short</DemoItem>
           <DemoItem>Tall Item with more content</DemoItem>
           <DemoItem>Medium</DemoItem>
@@ -138,7 +143,12 @@ export const AlignmentVariants: Story = {
       </div>
       <div>
         <h4>Align Center</h4>
-        <Stack direction="horizontal" gap="md" align="center" style={{ height: '100px', border: '1px dashed #ccc' }}>
+        <Stack
+          direction="horizontal"
+          gap="md"
+          align="center"
+          style={{ height: '100px', border: '1px dashed #ccc' }}
+        >
           <DemoItem>Short</DemoItem>
           <DemoItem>Tall Item with more content</DemoItem>
           <DemoItem>Medium</DemoItem>
@@ -146,7 +156,12 @@ export const AlignmentVariants: Story = {
       </div>
       <div>
         <h4>Align End</h4>
-        <Stack direction="horizontal" gap="md" align="end" style={{ height: '100px', border: '1px dashed #ccc' }}>
+        <Stack
+          direction="horizontal"
+          gap="md"
+          align="end"
+          style={{ height: '100px', border: '1px dashed #ccc' }}
+        >
           <DemoItem>Short</DemoItem>
           <DemoItem>Tall Item with more content</DemoItem>
           <DemoItem>Medium</DemoItem>
@@ -162,7 +177,12 @@ export const JustifyVariants: Story = {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div>
         <h4>Justify Start</h4>
-        <Stack direction="horizontal" gap="md" justify="start" style={{ width: '500px', border: '1px dashed #ccc' }}>
+        <Stack
+          direction="horizontal"
+          gap="md"
+          justify="start"
+          style={{ width: '500px', border: '1px dashed #ccc' }}
+        >
           <DemoItem>1</DemoItem>
           <DemoItem>2</DemoItem>
           <DemoItem>3</DemoItem>
@@ -170,7 +190,12 @@ export const JustifyVariants: Story = {
       </div>
       <div>
         <h4>Justify Center</h4>
-        <Stack direction="horizontal" gap="md" justify="center" style={{ width: '500px', border: '1px dashed #ccc' }}>
+        <Stack
+          direction="horizontal"
+          gap="md"
+          justify="center"
+          style={{ width: '500px', border: '1px dashed #ccc' }}
+        >
           <DemoItem>1</DemoItem>
           <DemoItem>2</DemoItem>
           <DemoItem>3</DemoItem>

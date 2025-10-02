@@ -80,16 +80,36 @@ export const PaddingVariants: Story = {
   args: { children: 'Placeholder' },
   render: () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <Box padding={2} backgroundColor={colors.primary[100]} border borderColor={colors.primary[300]}>
+      <Box
+        padding={2}
+        backgroundColor={colors.primary[100]}
+        border
+        borderColor={colors.primary[300]}
+      >
         Padding: 2 (8px)
       </Box>
-      <Box padding={4} backgroundColor={colors.primary[100]} border borderColor={colors.primary[300]}>
+      <Box
+        padding={4}
+        backgroundColor={colors.primary[100]}
+        border
+        borderColor={colors.primary[300]}
+      >
         Padding: 4 (16px)
       </Box>
-      <Box padding={6} backgroundColor={colors.primary[100]} border borderColor={colors.primary[300]}>
+      <Box
+        padding={6}
+        backgroundColor={colors.primary[100]}
+        border
+        borderColor={colors.primary[300]}
+      >
         Padding: 6 (24px)
       </Box>
-      <Box padding={8} backgroundColor={colors.primary[100]} border borderColor={colors.primary[300]}>
+      <Box
+        padding={8}
+        backgroundColor={colors.primary[100]}
+        border
+        borderColor={colors.primary[300]}
+      >
         Padding: 8 (32px)
       </Box>
     </div>
@@ -145,12 +165,26 @@ export const ColorVariants: Story = {
 export const ComplexLayout: Story = {
   args: { children: 'Placeholder' },
   render: () => (
-    <Box padding={6} backgroundColor={colors.neutral[50]} borderRadius="lg" border borderColor={colors.neutral[200]}>
+    <Box
+      padding={6}
+      backgroundColor={colors.neutral[50]}
+      borderRadius="lg"
+      border
+      borderColor={colors.neutral[200]}
+    >
       <Box marginBottom={4}>
         <h3 style={{ margin: 0, marginBottom: '0.5rem' }}>Card Title</h3>
-        <p style={{ margin: 0, color: colors.neutral[600] }}>This is a card-like layout using Box components</p>
+        <p style={{ margin: 0, color: colors.neutral[600] }}>
+          This is a card-like layout using Box components
+        </p>
       </Box>
-      <Box paddingY={3} border borderColor={colors.neutral[200]} borderRadius="md" backgroundColor={colors.common.white}>
+      <Box
+        paddingY={3}
+        border
+        borderColor={colors.neutral[200]}
+        borderRadius="md"
+        backgroundColor={colors.common.white}
+      >
         <Box paddingX={4}>Content area with custom spacing</Box>
       </Box>
       <Box marginTop={4} paddingTop={4} style={{ borderTop: `1px solid ${colors.neutral[200]}` }}>

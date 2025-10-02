@@ -123,9 +123,18 @@ export const AllVariants: Story = {
       <Input label="Text Input" placeholder="Enter text" />
       <Input label="Email Input" type="email" placeholder="you@example.com" />
       <Input label="Password Input" type="password" placeholder="Enter password" />
-      <Input label="With Helper Text" placeholder="Username" helperText="Choose a unique username" />
+      <Input
+        label="With Helper Text"
+        placeholder="Username"
+        helperText="Choose a unique username"
+      />
       <Input label="Required Field" placeholder="Required" required />
-      <Input label="Error State" placeholder="Invalid" error errorMessage="This field has an error" />
+      <Input
+        label="Error State"
+        placeholder="Invalid"
+        error
+        errorMessage="This field has an error"
+      />
       <Input label="Disabled" placeholder="Cannot edit" disabled />
     </div>
   ),

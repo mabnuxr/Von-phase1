@@ -16,7 +16,16 @@ const meta = {
     },
     color: {
       control: 'select',
-      options: ['primary', 'secondary', 'disabled', 'inverse', 'success', 'warning', 'error', 'info'],
+      options: [
+        'primary',
+        'secondary',
+        'disabled',
+        'inverse',
+        'success',
+        'warning',
+        'error',
+        'info',
+      ],
       description: 'Text color',
     },
     align: {
