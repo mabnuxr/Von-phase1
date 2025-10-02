@@ -30,3 +30,14 @@ export type { StackProps } from './Stack';
 // Box Component
 export { Box } from './Box';
 export type { BoxProps } from './Box';
+
+// Chat Component
+export { Chat, ChatHeader, ChatMessage, ChatInput } from './Chat';
+export type {
+  ChatProps,
+  Message,
+  FixedPosition,
+  ChatHeaderProps,
+  ChatMessageProps,
+  ChatInputProps,
+} from './Chat';
