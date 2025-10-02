@@ -1,82 +1,115 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import Button from '../components/Button/Button';
+import { Button } from '../components/Button';
 
-const meta: Meta<typeof Button> = {
+const meta = {
   title: 'Components/Button',
   component: Button,
   parameters: {
     layout: 'centered',
   },
   tags: ['autodocs'],
-  args: {
-    children: 'Click Me',
-    color: 'primary',
-    width: 150,
-  },
   argTypes: {
-    color: {
+    variant: {
       control: 'select',
-      options: ['primary', 'secondary', 'danger'],
+      options: ['primary', 'secondary', 'ghost', 'danger'],
+      description: 'Visual style variant of the button',
     },
-    width: {
-      control: 'text',
-      description: 'Width of the button (number or string)',
+    size: {
+      control: 'select',
+      options: ['small', 'medium', 'large'],
+      description: 'Size of the button',
     },
-    onClick: {
-      action: 'clicked',
-      description: 'Click handler function',
+    disabled: {
+      control: 'boolean',
+      description: 'Whether the button is disabled',
     },
-    children: {
-      control: 'text',
-      description: 'Button content',
+    fullWidth: {
+      control: 'boolean',
+      description: 'Whether the button should take full width',
     },
   },
-};
+} satisfies Meta<typeof Button>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Primary: Story = {
   args: {
-    color: 'primary',
+    variant: 'primary',
     children: 'Primary Button',
   },
 };
 
 export const Secondary: Story = {
   args: {
-    color: 'secondary',
+    variant: 'secondary',
     children: 'Secondary Button',
+  },
+};
+
+export const Ghost: Story = {
+  args: {
+    variant: 'ghost',
+    children: 'Ghost Button',
   },
 };
 
 export const Danger: Story = {
   args: {
-    color: 'danger',
-    children: 'Delete',
-  },
-};
-
-export const CustomWidth: Story = {
-  args: {
-    color: 'primary',
-    children: 'Custom Width',
-    width: '100%',
+    variant: 'danger',
+    children: 'Danger Button',
   },
 };
 
 export const Small: Story = {
   args: {
-    color: 'primary',
-    children: 'Small',
-    width: 80,
+    size: 'small',
+    children: 'Small Button',
+  },
+};
+
+export const Medium: Story = {
+  args: {
+    size: 'medium',
+    children: 'Medium Button',
   },
 };
 
 export const Large: Story = {
   args: {
-    color: 'primary',
+    size: 'large',
     children: 'Large Button',
-    width: 250,
   },
+};
+
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+    children: 'Disabled Button',
+  },
+};
+
+export const FullWidth: Story = {
+  args: {
+    fullWidth: true,
+    children: 'Full Width Button',
+  },
+  parameters: {
+    layout: 'padded',
+  },
+};
+
+export const AllVariants: Story = {
+  args: { children: 'Placeholder' },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: '300px' }}>
+      <Button variant="primary">Primary</Button>
+      <Button variant="secondary">Secondary</Button>
+      <Button variant="ghost">Ghost</Button>
+      <Button variant="danger">Danger</Button>
+      <Button variant="primary" disabled>
+        Disabled
+      </Button>
+    </div>
+  ),
 };

@@ -1,74 +1,76 @@
 import './App.css';
-import Button from './components/Button/Button';
-import Text from './components/Text/Text';
-import { RsuitsTable } from './components/RsuitsTable';
-// Removed layout demo components to avoid type mismatch in app demo
-import StatusMessages from './components/Status/Message/Message';
+import { Button } from './components/Button';
+import { Text } from './components/Text';
+import { Heading } from './components/Heading';
+import { Stack } from './components/Stack';
+import { Container } from './components/Container';
+import { Box } from './components/Box';
+import { colors } from './theme';
 
 function App() {
-  const tableData: import('./components/RsuitsTable/RsuitsTable').RsuitsRowData[] = [
-    {
-      id: 1,
-      name: 'John Mitchell',
-      title: 'CRO',
-      target: '$26.4M',
-      forecast: '$20.4M',
-      commit: '$18.1M',
-      children: [
-        {
-          id: 2,
-          name: 'Maria Thompson',
-          title: 'VP Sales - Enterprise',
-          target: '$18.5M',
-          forecast: '$7.8M',
-          commit: '$7.0M',
-        },
-        {
-          id: 3,
-          name: 'Robert Anderson',
-          title: 'VP Sales - Mid-Market',
-          target: '$6.5M',
-          forecast: '$3.2M',
-          commit: '$2.8M',
-        },
-      ],
-    },
-  ];
   return (
-    <>
-      <div>
-        <h1>Button Component</h1>
-        <Button color="primary" width={200} onClick={() => alert('Clicked!')}>
-          Click Me
-        </Button>
+    <Container maxWidth="lg">
+      <Stack direction="vertical" gap="xl">
+        <Box paddingY={4}>
+          <Heading level="h1" color="primary">
+            Design System Demo
+          </Heading>
+          <Text variant="body" color="secondary">
+            A showcase of the new design components with theme tokens
+          </Text>
+        </Box>
 
-        <Button color="danger" width={200} onClick={() => alert('Delete action triggered')}>
-          Delete
-        </Button>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <h1>Text Component</h1>
-        <Text variant="h1" color="black">
-          Heading one Text
-        </Text>
-        <Text variant="h2" color="blue">
-          Heading two Text
-        </Text>
-        <Text variant="body" color="aqua">
-          Body Text
-        </Text>
-        <Text variant="caption" color="orange">
-          Caption text
-        </Text>
-        <div>
-          <RsuitsTable data={tableData} />
-        </div>
-      </div>
-      {/* layout showcase removed in app-level demo */}
-      <div>
-        <StatusMessages />
-      </div>
-    </>
+        <Box padding={6} backgroundColor={colors.neutral[50]} borderRadius="lg">
+          <Heading level="h2">Button Component</Heading>
+          <Stack direction="horizontal" gap="md" wrap>
+            <Button variant="primary" onClick={() => alert('Primary clicked!')}>
+              Primary Button
+            </Button>
+            <Button variant="secondary" onClick={() => alert('Secondary clicked!')}>
+              Secondary Button
+            </Button>
+            <Button variant="ghost">Ghost Button</Button>
+            <Button variant="danger" onClick={() => alert('Delete action triggered')}>
+              Delete
+            </Button>
+            <Button variant="primary" disabled>
+              Disabled
+            </Button>
+          </Stack>
+        </Box>
+
+        <Box padding={6} backgroundColor={colors.primary[50]} borderRadius="lg">
+          <Heading level="h2">Typography Components</Heading>
+          <Stack direction="vertical" gap="md">
+            <Heading level="h1">Heading 1</Heading>
+            <Heading level="h2">Heading 2</Heading>
+            <Heading level="h3">Heading 3</Heading>
+            <Text variant="body">
+              This is body text using the Text component with design tokens.
+            </Text>
+            <Text variant="bodySmall" color="secondary">
+              This is smaller body text with secondary color.
+            </Text>
+            <Text variant="caption">This is caption text.</Text>
+            <Text variant="label">Form Label</Text>
+          </Stack>
+        </Box>
+
+        <Box
+          padding={6}
+          backgroundColor={colors.success[50]}
+          borderRadius="lg"
+          border
+          borderColor={colors.success[300]}
+        >
+          <Heading level="h2">Layout Components</Heading>
+          <Text variant="body">
+            All components use the Stack, Container, and Box layout primitives with consistent
+            spacing from design tokens.
+          </Text>
+        </Box>
+      </Stack>
+    </Container>
   );
 }
 

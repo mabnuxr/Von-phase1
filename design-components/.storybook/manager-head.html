@@ -1,0 +1,89 @@
+<!-- Favicon for browser tab with cache busting -->
+<link rel="icon" type="image/png" href="/logo.png?v=1" />
+<link rel="shortcut icon" type="image/png" href="/logo.png?v=1" />
+<link rel="apple-touch-icon" href="/logo.png?v=1" />
+<link rel="icon" type="image/png" sizes="32x32" href="/logo.png?v=1" />
+<link rel="icon" type="image/png" sizes="16x16" href="/logo.png?v=1" />
+
+<!-- Force update page title and favicon -->
+<script>
+  // Update title
+  document.title = 'Von Design System';
+
+  // Keep updating in case Storybook tries to override
+  const observer = new MutationObserver(() => {
+    if (document.title !== 'Von Design System') {
+      document.title = 'Von Design System';
+    }
+  });
+
+  observer.observe(
+    document.querySelector('title') || document.head,
+    { childList: true, characterData: true, subtree: true }
+  );
+
+  // Force update favicon dynamically
+  function updateFavicon() {
+    // Remove old favicons
+    const oldIcons = document.querySelectorAll('link[rel*="icon"]');
+    oldIcons.forEach(icon => icon.remove());
+
+    // Add new favicon
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/png';
+    link.href = '/logo.png?v=' + new Date().getTime();
+    document.head.appendChild(link);
+
+    // Add shortcut icon
+    const shortcut = document.createElement('link');
+    shortcut.rel = 'shortcut icon';
+    shortcut.type = 'image/png';
+    shortcut.href = '/logo.png?v=' + new Date().getTime();
+    document.head.appendChild(shortcut);
+  }
+
+  // Update favicon on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateFavicon);
+  } else {
+    updateFavicon();
+  }
+</script>
+
+<!-- Custom styles for Storybook manager (sidebar) -->
+<style>
+  /* Shrink the logo size in the sidebar */
+  .sidebar-header img {
+    max-width: 40px !important;
+    max-height: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    object-fit: contain;
+  }
+
+  /* Adjust spacing for the brand */
+  .sidebar-header {
+    padding: 12px 16px !important;
+    gap: 12px !important;
+  }
+
+  /* Style the brand title text */
+  .sidebar-header a {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  /* Display the title attribute as visible text using ::after */
+  .sidebar-header a[title]::after {
+    content: attr(title) !important;
+    color: #1d1d1f !important; /* Apple's near-black */
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif !important;
+    margin-left: 12px !important;
+    display: inline-block !important;
+    opacity: 1 !important;
+  }
+</style>

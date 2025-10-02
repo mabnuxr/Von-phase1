@@ -1,70 +1,93 @@
+import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Button from '../components/Button/Button';
 import '@testing-library/jest-dom';
+import { Button } from '../components/Button';
 
 describe('Button Component', () => {
-  it('renders with default props', () => {
-    render(<Button width={100}>Click Me</Button>);
-    const button = screen.getByRole('button', { name: /click me/i });
-
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveStyle({
-      backgroundColor: '#2563eb', // default primary
-      width: '100px',
-    });
+  it('renders with children', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByText('Click me')).toBeInTheDocument();
   });
 
-  it('applies secondary color', () => {
-    render(
-      <Button color="secondary" width="200px">
-        Secondary
-      </Button>
-    );
-    const button = screen.getByRole('button', { name: /secondary/i });
-
-    expect(button).toHaveStyle({ backgroundColor: '#6b7280', width: '200px' });
-  });
-
-  it('applies danger color', () => {
-    render(
-      <Button color="danger" width="50%">
-        Danger
-      </Button>
-    );
-    const button = screen.getByRole('button', { name: /danger/i });
-
-    expect(button).toHaveStyle({ backgroundColor: '#dc2626', width: '50%' });
-  });
-
-  it('handles onClick event', () => {
+  it('calls onClick when clicked', () => {
     const handleClick = jest.fn();
-    render(
-      <Button width={120} onClick={handleClick}>
-        Press
-      </Button>
-    );
-    const button = screen.getByRole('button', { name: /press/i });
-
-    fireEvent.click(button);
+    render(<Button onClick={handleClick}>Click me</Button>);
+    fireEvent.click(screen.getByText('Click me'));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  it('renders custom width as number', () => {
-    render(<Button width={150}>Numeric Width</Button>);
-    const button = screen.getByRole('button', { name: /numeric width/i });
-
-    expect(button).toHaveStyle({ width: '150px' });
+  it('does not call onClick when disabled', () => {
+    const handleClick = jest.fn();
+    render(
+      <Button onClick={handleClick} disabled>
+        Click me
+      </Button>
+    );
+    fireEvent.click(screen.getByText('Click me'));
+    expect(handleClick).not.toHaveBeenCalled();
   });
 
-  it('renders custom width as string', () => {
-    render(<Button width="75%">Percentage Width</Button>);
-    const button = screen.getByRole('button', { name: /percentage width/i });
-
-    expect(button).toHaveStyle({ width: '75%' });
+  it('renders primary variant by default', () => {
+    render(<Button>Primary</Button>);
+    const button = screen.getByText('Primary');
+    expect(button).toBeInTheDocument();
   });
 
-  it('renders children correctly', () => {
-    render(<Button width={200}>Hello World</Button>);
-    expect(screen.getByText('Hello World')).toBeInTheDocument();
+  it('renders different variants', () => {
+    const { rerender } = render(<Button variant="primary">Primary</Button>);
+    expect(screen.getByText('Primary')).toBeInTheDocument();
+
+    rerender(<Button variant="secondary">Secondary</Button>);
+    expect(screen.getByText('Secondary')).toBeInTheDocument();
+
+    rerender(<Button variant="ghost">Ghost</Button>);
+    expect(screen.getByText('Ghost')).toBeInTheDocument();
+
+    rerender(<Button variant="danger">Danger</Button>);
+    expect(screen.getByText('Danger')).toBeInTheDocument();
+  });
+
+  it('renders different sizes', () => {
+    const { rerender } = render(<Button size="small">Small</Button>);
+    expect(screen.getByText('Small')).toBeInTheDocument();
+
+    rerender(<Button size="medium">Medium</Button>);
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+
+    rerender(<Button size="large">Large</Button>);
+    expect(screen.getByText('Large')).toBeInTheDocument();
+  });
+
+  it('applies fullWidth prop', () => {
+    render(<Button fullWidth>Full Width</Button>);
+    const button = screen.getByText('Full Width');
+    expect(button).toHaveStyle({ width: '100%' });
+  });
+
+  it('has correct type attribute', () => {
+    const { rerender } = render(<Button type="button">Button</Button>);
+    expect(screen.getByText('Button')).toHaveAttribute('type', 'button');
+
+    rerender(<Button type="submit">Submit</Button>);
+    expect(screen.getByText('Submit')).toHaveAttribute('type', 'submit');
+
+    rerender(<Button type="reset">Reset</Button>);
+    expect(screen.getByText('Reset')).toHaveAttribute('type', 'reset');
+  });
+
+  it('applies custom className', () => {
+    render(<Button className="custom-class">Custom</Button>);
+    expect(screen.getByText('Custom')).toHaveClass('custom-class');
+  });
+
+  it('has correct aria attributes', () => {
+    render(
+      <Button ariaLabel="Custom label" disabled>
+        Disabled
+      </Button>
+    );
+    const button = screen.getByText('Disabled');
+    expect(button).toHaveAttribute('aria-label', 'Custom label');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
   });
 });
