@@ -1,5 +1,8 @@
 // Main barrel export file for all components
 
+// ErrorBoundary Component
+export { ErrorBoundary } from './ErrorBoundary';
+
 // Button Component
 export { Button } from './Button';
 export type { ButtonProps } from './Button';
@@ -8,27 +11,22 @@ export type { ButtonProps } from './Button';
 export { Text } from './Text';
 export type { TextProps } from './Text';
 
-// ErrorBoundary Component
-export { ErrorBoundary } from './ErrorBoundary';
+// Heading Component
+export { Heading } from './Heading';
+export type { HeadingProps } from './Heading';
 
-// RsuitsTable Component
-export { RsuitsTable } from './RsuitsTable';
-export type { RsuitsTableProps, RsuitsRowData } from './RsuitsTable';
-
-// Layout barrel removed (no root Layout component)
+// Input Component
+export { Input } from './Input';
+export type { InputProps } from './Input';
 
 // Container Component
-export { Container } from './Layout/Container';
-export type { ContainerProps } from './Layout/Container';
-
-// Divider Component
-export { Divider } from './Layout/Divider';
-export type { DividerProps } from './Layout/Divider';
-
-// Grid Component
-export { Grid } from './Layout/Grid';
-export type { GridProps } from './Layout/Grid';
+export { Container } from './Container';
+export type { ContainerProps } from './Container';
 
 // Stack Component
-export { Stack } from './Layout/Stack';
-export type { StackProps } from './Layout/Stack';
+export { Stack } from './Stack';
+export type { StackProps } from './Stack';
+
+// Box Component
+export { Box } from './Box';
+export type { BoxProps } from './Box';

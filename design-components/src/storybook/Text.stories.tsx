@@ -1,82 +1,111 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
-import Text from '../components/Text/Text';
+import type { Meta, StoryObj } from '@storybook/react';
+import { Text } from '../components/Text';
 
-const meta: Meta<typeof Text> = {
+const meta = {
   title: 'Components/Text',
   component: Text,
   parameters: {
     layout: 'centered',
   },
   tags: ['autodocs'],
-  args: {
-    children: 'Sample Text',
-    variant: 'body',
-    color: 'black',
-  },
   argTypes: {
     variant: {
       control: 'select',
-      options: ['h1', 'h2', 'h3', 'body', 'caption'],
-      description: 'Text variant/style',
+      options: ['body', 'bodySmall', 'caption', 'label', 'labelLarge'],
+      description: 'Text variant style',
     },
     color: {
-      control: 'color',
+      control: 'select',
+      options: ['primary', 'secondary', 'disabled', 'inverse', 'success', 'warning', 'error', 'info'],
       description: 'Text color',
     },
-    children: {
-      control: 'text',
-      description: 'Text content',
+    align: {
+      control: 'select',
+      options: ['left', 'center', 'right', 'justify'],
+      description: 'Text alignment',
+    },
+    weight: {
+      control: 'select',
+      options: ['light', 'regular', 'medium', 'semibold', 'bold'],
+      description: 'Font weight',
     },
   },
-};
+} satisfies Meta<typeof Text>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Heading1: Story = {
-  args: {
-    variant: 'h1',
-    children: 'Heading 1 Text',
-    color: '#1a1a1a',
-  },
-};
-
-export const Heading2: Story = {
-  args: {
-    variant: 'h2',
-    children: 'Heading 2 Text',
-    color: '#333333',
-  },
-};
-
-export const Heading3: Story = {
-  args: {
-    variant: 'h3',
-    children: 'Heading 3 Text',
-    color: '#555555',
-  },
-};
-
 export const Body: Story = {
   args: {
     variant: 'body',
-    children: 'This is body text that can be used for paragraphs and general content.',
-    color: '#666666',
+    children: 'This is body text with default styling.',
+  },
+};
+
+export const BodySmall: Story = {
+  args: {
+    variant: 'bodySmall',
+    children: 'This is small body text.',
   },
 };
 
 export const Caption: Story = {
   args: {
     variant: 'caption',
-    children: 'Caption text for annotations',
-    color: '#888888',
+    children: 'This is caption text.',
   },
 };
 
-export const ColorfulText: Story = {
+export const Label: Story = {
   args: {
-    variant: 'h2',
-    children: 'Colorful Text Example',
-    color: '#2563eb',
+    variant: 'label',
+    children: 'This is label text.',
   },
+};
+
+export const LabelLarge: Story = {
+  args: {
+    variant: 'labelLarge',
+    children: 'This is large label text.',
+  },
+};
+
+export const AllVariants: Story = {
+  args: { children: 'Placeholder' },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '600px' }}>
+      <Text variant="body">Body: The quick brown fox jumps over the lazy dog.</Text>
+      <Text variant="bodySmall">Body Small: The quick brown fox jumps over the lazy dog.</Text>
+      <Text variant="caption">Caption: The quick brown fox jumps over the lazy dog.</Text>
+      <Text variant="label">Label: Form Label</Text>
+      <Text variant="labelLarge">Label Large: Section Label</Text>
+    </div>
+  ),
+};
+
+export const ColorVariants: Story = {
+  args: { children: 'Placeholder' },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '600px' }}>
+      <Text color="primary">Primary text color</Text>
+      <Text color="secondary">Secondary text color</Text>
+      <Text color="success">Success text color</Text>
+      <Text color="warning">Warning text color</Text>
+      <Text color="error">Error text color</Text>
+      <Text color="info">Info text color</Text>
+    </div>
+  ),
+};
+
+export const WeightVariants: Story = {
+  args: { children: 'Placeholder' },
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '600px' }}>
+      <Text weight="light">Light weight text</Text>
+      <Text weight="regular">Regular weight text</Text>
+      <Text weight="medium">Medium weight text</Text>
+      <Text weight="semibold">Semibold weight text</Text>
+      <Text weight="bold">Bold weight text</Text>
+    </div>
+  ),
 };
