@@ -4,7 +4,8 @@ runtime: nodejs22
 build:
   commands:
     build:
-      - chmod +x build.sh start.sh
+      - ls -la
+      - chmod +x ./build.sh ./start.sh
       - ./build.sh
 
 run:
