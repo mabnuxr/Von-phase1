@@ -3,17 +3,17 @@ runtime: nodejs22
 build:
   commands:
     pre-build:
-      - sh -c 'cd .. && echo CHECKING BUILD ENV VARS && printenv | grep VITE_ || echo No VITE_ vars found && printenv | grep NODE_ENV || echo NODE_ENV not set'
+      - sh -c "cd .. && echo CHECKING BUILD ENV VARS && printenv | grep VITE_ || echo No VITE_ vars found && printenv | grep NODE_ENV || echo NODE_ENV not set"
     build:
-      - sh -c 'cd .. && echo Creating .env file for build at workspace root && echo "VITE_SCALEKIT_CLIENT_ID=prd_skc_89676802255028999" > .env && echo "VITE_SCALEKIT_AUTH_BASE_URL=https://auth.vonlabs.ai" >> .env && echo "VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize" >> .env && echo "VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token" >> .env && echo "VITE_SCALEKIT_AUTH_LOGOUT_PATH=" >> .env && cat .env'
-      - sh -c 'cd .. && echo Installing workspace dependencies && npm ci'
-      - sh -c 'cd .. && echo Building design-components library && npm run build:design'
-      - sh -c 'cd .. && echo Building app && npm run build:app'
+      - sh -c "cd .. && echo Creating .env file for build at workspace root && echo 'VITE_SCALEKIT_CLIENT_ID=prd_skc_89676802255028999' > .env && echo 'VITE_SCALEKIT_AUTH_BASE_URL=https://auth.vonlabs.ai' >> .env && echo 'VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize' >> .env && echo 'VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token' >> .env && echo 'VITE_SCALEKIT_AUTH_LOGOUT_PATH=' >> .env && cat .env"
+      - sh -c "cd .. && echo Installing workspace dependencies && npm ci"
+      - sh -c "cd .. && echo Building design-components library && npm run build:design"
+      - sh -c "cd .. && echo Building app && npm run build:app"
     post-build:
-      - sh -c 'cd .. && echo CHECKING BUILT FILES && ls -la app/dist/'
-      - sh -c 'cd .. && grep -r VITE_SCALEKIT app/dist/ || echo No VITE vars found in build'
-      - sh -c 'cd .. && echo CHECKING FOR CLIENT ID IN BUILD && grep -r "prd_skc_89676802255028999" app/dist/ | head -5 || echo Client ID not found in build'
-      - sh -c 'cd .. && echo CHECKING FOR AUTH URL IN BUILD && grep -r "auth.vonlabs.ai" app/dist/ | head -5 || echo Auth URL not found in build'
+      - sh -c "cd .. && echo CHECKING BUILT FILES && ls -la app/dist/"
+      - sh -c "cd .. && grep -r VITE_SCALEKIT app/dist/ || echo No VITE vars found in build"
+      - sh -c "cd .. && echo CHECKING FOR CLIENT ID IN BUILD && grep -r prd_skc_89676802255028999 app/dist/ | head -5 || echo Client ID not found in build"
+      - sh -c "cd .. && echo CHECKING FOR AUTH URL IN BUILD && grep -r auth.vonlabs.ai app/dist/ | head -5 || echo Auth URL not found in build"
   env:
     - name: NODE_ENV
       value: production
@@ -29,7 +29,7 @@ build:
       value: prd_skc_89676802255028999
 run:
   runtime-version: 22.17.0
-  command: sh -c 'cd .. && npm run preview --workspace=app'
+  command: sh -c "cd .. && npm run preview --workspace=app"
   network:
     port: 4173
     env: PORT
