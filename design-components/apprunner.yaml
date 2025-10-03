@@ -4,14 +4,11 @@ runtime: nodejs22
 build:
   commands:
     build:
-      - cd .. && echo Installing workspace dependencies
-      - cd .. && npm ci
-      - cd .. && echo Building Storybook
-      - cd .. && npm run build-storybook --workspace=design-components
+      - sh -c 'cd .. && echo Installing workspace dependencies && npm ci && echo Building Storybook && npm run build-storybook --workspace=design-components'
 
 run:
   runtime-version: 22.17.0
-  command: cd .. && npx serve design-components/storybook-static
+  command: sh -c 'cd .. && npx serve design-components/storybook-static'
   network:
     port: 3000
     env: PORT
