@@ -5,20 +5,23 @@ on:
     branches: [ main, develop ]
     paths:
       - 'app/**'
+      - 'design-components/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/ci-app.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'app/**'
+      - 'design-components/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/ci-app.yml'
 
-defaults:
-  run:
-    working-directory: app
-
+# Run from workspace root
 jobs:
   lint:
-    name: Lint app Code
+    name: Lint App Code
     runs-on: ubuntu-latest
 
     steps:
@@ -30,16 +33,16 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint --workspace=app
 
       - name: Check formatting with Prettier
-        run: npm run format:check
+        run: npm run format:check --workspace=app
 
   type-check:
     name: App TypeScript Type Check
@@ -54,16 +57,16 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Run TypeScript type check
-        run: npm run typecheck
+        run: npm run typecheck --workspace=app
 
   build:
-    name: Build app
+    name: Build App
     runs-on: ubuntu-latest
 
     steps:
@@ -75,14 +78,18 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
+      - name: Build design-components library
+        run: npm run build:design
+
       - name: Build application
-        run: npm run build
+        run: npm run build:app
         env:
+          NODE_ENV: production
           VITE_SCALEKIT_CLIENT_ID: ${{ secrets.VITE_SCALEKIT_CLIENT_ID }}
           VITE_SCALEKIT_AUTH_BASE_URL: ${{ secrets.VITE_SCALEKIT_AUTH_BASE_URL }}
           VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: '/oauth/authorize'
@@ -109,14 +116,18 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
+      - name: Build design-components library
+        run: npm run build:design
+
       - name: Build for production
-        run: npm run build
+        run: npm run build:app
         env:
+          NODE_ENV: production
           VITE_SCALEKIT_CLIENT_ID: 'dummy'
           VITE_SCALEKIT_AUTH_BASE_URL: 'https://dummy.scalekit.dev'
           VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: '/oauth/authorize'
@@ -129,14 +140,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|------|------|" >> $GITHUB_STEP_SUMMARY
-          find dist -name "*.js" -o -name "*.css" | while read file; do
+          find app/dist -name "*.js" -o -name "*.css" | while read file; do
             size=$(du -h "$file" | cut -f1)
             filename=$(basename "$file")
             echo "| $filename | $size |" >> $GITHUB_STEP_SUMMARY
           done
 
-          # Check if main bundle is under threshold (300KB)
-          main_bundle=$(find dist -name "*.js" | head -1)
+          main_bundle=$(find app/dist -name "*.js" | head -1)
           if [ -f "$main_bundle" ]; then
             size_kb=$(du -k "$main_bundle" | cut -f1)
             if [ "$size_kb" -gt 300 ]; then
@@ -162,7 +172,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Run npm audit
         run: npm audit --audit-level=high
@@ -195,7 +205,6 @@ jobs:
 
     steps:
       - name: Summary
-        working-directory: .
         run: |
           echo "## App CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -1,23 +1,38 @@
 {
-  "name": "revenue-os-frontend-2",
+  "name": "@vonlabs/design-components",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js"
+    },
+    "./styles": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "preview": "vite preview",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build",
-    "test-storybook": "test-storybook",
+    "dev": "npx vite",
+    "build": "npx vite build --config vite.config.lib.ts && npx tsc --project tsconfig.build.json",
+    "build:lib": "npx vite build --config vite.config.lib.ts && npx tsc --project tsconfig.build.json",
+    "lint": "npx eslint .",
+    "lint:fix": "npx eslint . --fix",
+    "format": "npx prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "npx prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "preview": "npx vite preview",
+    "storybook": "npx storybook dev -p 6006",
+    "build-storybook": "npx storybook build",
+    "test-storybook": "npx test-storybook",
     "test": "npx jest",
     "test:coverage": "npx jest --coverage",
     "test:watch": "npx jest --watch",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx tsc --noEmit",
     "ci:lint": "npm run lint && npm run format:check",
     "ci:test": "npx jest --coverage --coverageThreshold='{\"global\":{\"branches\":10,\"functions\":8,\"lines\":15,\"statements\":14}}'",
     "ci:build": "npm run typecheck && npm run build && npm run build-storybook"

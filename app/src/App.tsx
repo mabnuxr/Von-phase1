@@ -1,4 +1,3 @@
-//
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import RootGate from "./pages/RootGate";
 import Callback from "./pages/Callback";

@@ -1,0 +1,29 @@
+{
+  "name": "revenue-os-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Revenue OS Frontend Monorepo",
+  "workspaces": [
+    "app",
+    "design-components"
+  ],
+  "scripts": {
+    "dev:app": "npm run dev --workspace=app",
+    "dev:design": "npm run storybook --workspace=design-components",
+    "build:design": "npm run build:lib --workspace=design-components",
+    "build:app": "npm run build --workspace=app",
+    "build:all": "npm run build:design && npm run build:app",
+    "setup": "npm install && npm run build:design",
+    "lint:all": "npm run lint --workspaces --if-present",
+    "format:all": "npm run format --workspaces --if-present",
+    "typecheck:all": "npm run typecheck --workspaces --if-present",
+    "clean": "rm -rf app/node_modules design-components/node_modules node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  }
+}
