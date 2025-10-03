@@ -5,17 +5,18 @@ on:
     branches: [ main, develop ]
     paths:
       - 'design-components/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/ci-storybook.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'design-components/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/ci-storybook.yml'
 
-defaults:
-  run:
-    working-directory: design-components
-
+# Run from workspace root
 jobs:
   lint:
     name: Lint Storybook Code
@@ -30,16 +31,16 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint --workspace=design-components
 
       - name: Check formatting with Prettier
-        run: npm run format:check
+        run: npm run format:check --workspace=design-components
 
   type-check:
     name: Storybook TypeScript Type Check
@@ -54,13 +55,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Run TypeScript type check
-        run: npm run typecheck
+        run: npm run typecheck --workspace=design-components
 
   build-storybook:
     name: Build Storybook
@@ -75,13 +76,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Build Storybook
-        run: npm run build-storybook
+        run: npm run build-storybook --workspace=design-components
 
       - name: Upload Storybook artifacts
         uses: actions/upload-artifact@v4
@@ -103,22 +104,22 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
       - name: Build Storybook
-        run: npm run build-storybook
+        run: npm run build-storybook --workspace=design-components
 
       - name: Run Storybook tests
         run: |
           npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
-            "npx http-server storybook-static --port 6006 --silent" \
-            "npx wait-on http://localhost:6006 && npm run test-storybook"
+            "npx http-server design-components/storybook-static --port 6006 --silent" \
+            "npx wait-on http://localhost:6006 && npm run test-storybook --workspace=design-components"
 
   chromatic:
     name: Visual Regression Testing
@@ -136,9 +137,9 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Publish to Chromatic
@@ -163,18 +164,18 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: npm ci
 
       - name: Build Storybook
-        run: npm run build-storybook
+        run: npm run build-storybook --workspace=design-components
 
       - name: Run accessibility tests
         run: |
           npx concurrently -k -s first -n "SB,A11Y" -c "magenta,blue" \
-            "npx http-server storybook-static --port 6006 --silent" \
+            "npx http-server design-components/storybook-static --port 6006 --silent" \
             "npx wait-on http://localhost:6006 && npx storybook-addon-a11y-report"
         continue-on-error: true
 
@@ -191,7 +192,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: design-components/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Run npm audit
         run: npm audit --audit-level=high
@@ -224,7 +225,6 @@ jobs:
 
     steps:
       - name: Summary
-        working-directory: .
         run: |
           echo "## Storybook CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
