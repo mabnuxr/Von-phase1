@@ -12,7 +12,6 @@ echo "NODE_ENV=$NODE_ENV"
 # Create .env file from environment variables set by App Runner
 echo "=== Creating .env file at workspace root ==="
 cat > .env << EOF
-NODE_ENV=production
 VITE_SCALEKIT_CLIENT_ID=prd_skc_89676802255028999
 VITE_SCALEKIT_AUTH_BASE_URL=https://auth.vonlabs.ai
 VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize
