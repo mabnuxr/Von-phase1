@@ -3,7 +3,7 @@ import { Box } from '../components/Box';
 import { colors } from '../theme';
 
 const meta = {
-  title: 'Layout/Box',
+  title: 'Atoms/Layout/Box',
   component: Box,
   parameters: {
     layout: 'centered',

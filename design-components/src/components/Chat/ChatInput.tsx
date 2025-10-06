@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { spacing, fontFamily, fontSize, semanticColors } from '../../theme';
+import { fontFamily, fontSize, semanticColors } from '../../theme';
 
 export interface ChatInputProps {
   /**
@@ -24,6 +24,17 @@ export interface ChatInputProps {
   onBuild?: () => void;
 
   /**
+   * Context tag to display above input (e.g., "@Forecast Q3")
+   */
+  contextTag?: string;
+
+  /**
+   * Whether to show Ask and Build buttons
+   * @default true
+   */
+  showActionButtons?: boolean;
+
+  /**
    * Whether the input is disabled
    * @default false
    */
@@ -36,6 +47,10 @@ export interface ChatInputProps {
 export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = 'Ask von anything',
   onSend,
+  onAsk,
+  onBuild,
+  contextTag,
+  showActionButtons = true,
   disabled = false,
 }) => {
   const [message, setMessage] = useState('');
@@ -43,6 +58,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const handleSend = () => {
     if (message.trim() && onSend) {
       onSend(message.trim());
+      setMessage('');
+    }
+  };
+
+  const handleAsk = () => {
+    if (message.trim() && onAsk) {
+      onAsk(message.trim());
       setMessage('');
     }
   };
@@ -55,24 +77,38 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const containerStyles: React.CSSProperties = {
-    padding: spacing[4],
-    borderTop: `1px solid ${semanticColors.border.default}`,
-    backgroundColor: semanticColors.background.primary,
+    padding: '12px 16px',
+    backgroundColor: '#FFFFFF',
     display: 'flex',
     flexDirection: 'column',
-    gap: spacing[2],
+    gap: '6px',
+    borderTop: '1px solid rgba(0,0,0,0.06)',
+    WebkitFontSmoothing: 'antialiased',
+    MozOsxFontSmoothing: 'grayscale',
+  };
+
+  const contextTagStyles: React.CSSProperties = {
+    display: 'inline-block',
+    padding: '4px 10px',
+    backgroundColor: '#FFF4E6',
+    borderRadius: '12px',
+    fontSize: '12px',
+    color: semanticColors.text.secondary,
+    fontFamily: fontFamily.text,
+    marginBottom: '4px',
+    alignSelf: 'flex-start',
   };
 
   const inputContainerStyles: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: semanticColors.background.secondary,
-    borderRadius: '24px', // Apple-style rounded corners
-    padding: `${spacing[2]} ${spacing[3]}`,
-    border: `1px solid ${semanticColors.border.default}`,
-    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+    gap: '8px',
+    backgroundColor: '#FFFFFF',
+    borderRadius: '20px',
+    padding: '8px 12px',
+    border: `1px solid rgba(0,0,0,0.1)`,
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   };
 
   const inputStyles: React.CSSProperties = {
@@ -87,63 +123,77 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     minWidth: 0, // Allow input to shrink
   };
 
-  const iconButtonStyles: React.CSSProperties = {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
+  const actionButtonStyles: React.CSSProperties = {
+    padding: '6px 10px',
     border: 'none',
     backgroundColor: 'transparent',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    fontSize: '13px',
+    fontWeight: 500,
+    color: semanticColors.text.secondary,
+    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
+    fontFamily: fontFamily.text,
+    borderRadius: '6px',
+  };
+
+  const plusButtonStyles: React.CSSProperties = {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    border: 'none',
+    backgroundColor: '#F5F5F7',
     cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: fontSize.lg.size,
+    fontSize: '16px',
     color: semanticColors.text.secondary,
     transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
     flexShrink: 0,
   };
 
-  const sendButtonStyles: React.CSSProperties = {
-    width: '36px',
-    height: '36px',
+  const uploadButtonStyles: React.CSSProperties = {
+    width: '32px',
+    height: '32px',
     borderRadius: '50%',
     border: 'none',
-    backgroundColor: semanticColors.text.primary,
+    backgroundColor: '#000000',
     cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: fontSize.lg.size,
-    color: semanticColors.text.inverse,
+    color: '#FFFFFF',
     transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
     opacity: disabled ? 0.5 : 1,
     flexShrink: 0,
   };
 
   const footerStyles: React.CSSProperties = {
-    fontSize: fontSize.xs.size,
-    lineHeight: fontSize.xs.lineHeight,
+    fontSize: '11px',
+    lineHeight: '1.4',
     color: semanticColors.text.tertiary,
     textAlign: 'center',
     fontFamily: fontFamily.text,
-    marginTop: spacing[1],
+    marginTop: '4px',
   };
 
   return (
     <div style={containerStyles}>
+      {contextTag && <div style={contextTagStyles}>{contextTag}</div>}
+
       <div style={inputContainerStyles}>
         <button
-          style={iconButtonStyles}
+          style={plusButtonStyles}
           onClick={() => {}}
           disabled={disabled}
           aria-label="Add"
           onMouseEnter={(e) => {
             if (!disabled) {
-              e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+              e.currentTarget.style.backgroundColor = '#E8E8EA';
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.backgroundColor = '#F5F5F7';
           }}
         >
           +
@@ -159,18 +209,53 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           style={inputStyles}
         />
 
+        {showActionButtons && (
+          <>
+            <button
+              style={actionButtonStyles}
+              onClick={handleAsk}
+              disabled={disabled}
+              onMouseEnter={(e) => {
+                if (!disabled) {
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Ask
+            </button>
+            <button
+              style={actionButtonStyles}
+              onClick={onBuild}
+              disabled={disabled}
+              onMouseEnter={(e) => {
+                if (!disabled) {
+                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Build
+            </button>
+          </>
+        )}
+
         <button
-          style={sendButtonStyles}
+          style={uploadButtonStyles}
           onClick={handleSend}
           disabled={disabled}
-          aria-label="Send"
+          aria-label="Upload"
           onMouseEnter={(e) => {
             if (!disabled) {
-              e.currentTarget.style.backgroundColor = semanticColors.border.hover;
+              e.currentTarget.style.backgroundColor = '#333333';
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = semanticColors.text.primary;
+            e.currentTarget.style.backgroundColor = '#000000';
           }}
         >
           ↑

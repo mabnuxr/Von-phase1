@@ -1,0 +1,93 @@
+/**
+ * Global Design System Styles
+ * Apple-inspired typography and base styles
+ */
+
+/* Base typography */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.0625rem; /* 17px - Apple's preferred body size */
+  line-height: 1.47059;
+  color: #1d1d1f;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 600;
+}
+
+h1 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-size: 3rem; /* 48px */
+  line-height: 1.08334;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+h2 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-size: 2.5rem; /* 40px */
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  font-size: 2rem; /* 32px */
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h4 {
+  font-size: 1.5rem; /* 24px */
+  line-height: 1.33334;
+  font-weight: 600;
+}
+
+h5 {
+  font-size: 1.3125rem; /* 21px */
+  line-height: 1.38096;
+  font-weight: 600;
+}
+
+h6 {
+  font-size: 1.1875rem; /* 19px */
+  line-height: 1.42106;
+  font-weight: 600;
+}
+
+/* Paragraphs and text */
+p {
+  margin: 0 0 1rem 0;
+}
+
+/* Links */
+a {
+  color: #007aff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Remove default button styles */
+button {
+  font-family: inherit;
+}
+
+/* Form elements */
+input, textarea, select {
+  font-family: inherit;
+}

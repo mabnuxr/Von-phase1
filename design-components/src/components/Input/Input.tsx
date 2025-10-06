@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { colors, spacing, fontSize, fontFamily, semanticColors } from '../../theme';
+import { spacing, fontSize, fontFamily, semanticColors } from '../../theme';
 
 export interface InputProps {
   /**
@@ -160,21 +160,24 @@ export const Input: React.FC<InputProps> = ({
   const getBorderColor = () => {
     if (error) return semanticColors.border.error;
     if (isFocused) return semanticColors.border.focus;
-    if (disabled) return colors.neutral[200];
-    return semanticColors.border.default;
+    if (disabled) return 'rgba(0,0,0,0.1)';
+    return 'rgba(0,0,0,0.15)';
   };
 
   const inputStyles: React.CSSProperties = {
     fontFamily: fontFamily.sans,
     width: fullWidth ? '100%' : 'auto',
     border: `1px solid ${getBorderColor()}`,
-    borderRadius: '0.375rem',
-    backgroundColor: disabled ? colors.neutral[50] : colors.common.white,
-    color: disabled ? semanticColors.text.disabled : semanticColors.text.primary,
+    borderRadius: '6px',
+    backgroundColor: disabled ? '#f5f5f7' : '#FFFFFF',
+    color: disabled ? semanticColors.text.disabled : '#1d1d1f',
     cursor: disabled ? 'not-allowed' : 'text',
     outline: 'none',
-    transition: 'all 0.2s ease-in-out',
+    transition: 'all 0.2s ease',
     boxSizing: 'border-box',
+    boxShadow: isFocused ? '0 0 0 3px rgba(0,125,250,0.1)' : '0 1px 2px rgba(0,0,0,0.04)',
+    WebkitFontSmoothing: 'antialiased',
+    MozOsxFontSmoothing: 'grayscale',
     ...sizeStyles[size],
   };
 
