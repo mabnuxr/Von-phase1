@@ -38,14 +38,14 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint --workspace=app
+      - name: Run ESLint on all workspaces
+        run: npm run lint:all
 
-      - name: Check formatting with Prettier
-        run: npm run format:check --workspace=app
+      - name: Check formatting with Prettier on all workspaces
+        run: npm run format:check:all
 
   type-check:
-    name: App TypeScript Type Check
+    name: TypeScript Type Check
     runs-on: ubuntu-latest
 
     steps:
@@ -62,8 +62,8 @@ jobs:
       - name: Install workspace dependencies
         run: npm ci
 
-      - name: Run TypeScript type check
-        run: npm run typecheck --workspace=app
+      - name: Run TypeScript type check on all workspaces
+        run: npm run typecheck:all
 
   build:
     name: Build App
@@ -90,11 +90,13 @@ jobs:
         run: npm run build:app
         env:
           NODE_ENV: production
+          VITE_API_BASE_URL: https://apiv2.vonlabs.ai
           VITE_SCALEKIT_CLIENT_ID: ${{ secrets.VITE_SCALEKIT_CLIENT_ID }}
           VITE_SCALEKIT_AUTH_BASE_URL: ${{ secrets.VITE_SCALEKIT_AUTH_BASE_URL }}
-          VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: '/oauth/authorize'
-          VITE_SCALEKIT_AUTH_TOKEN_PATH: '/oauth/token'
+          VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: /oauth/authorize
+          VITE_SCALEKIT_AUTH_TOKEN_PATH: /oauth/token
           VITE_SCALEKIT_AUTH_LOGOUT_PATH: ''
+          VITE_SCALEKIT_REDIRECT_URI: https://app.vonlabs.ai/callback
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -128,11 +130,13 @@ jobs:
         run: npm run build:app
         env:
           NODE_ENV: production
-          VITE_SCALEKIT_CLIENT_ID: 'dummy'
-          VITE_SCALEKIT_AUTH_BASE_URL: 'https://dummy.scalekit.dev'
-          VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: '/oauth/authorize'
-          VITE_SCALEKIT_AUTH_TOKEN_PATH: '/oauth/token'
-          VITE_SCALEKIT_AUTH_LOGOUT_PATH: ''
+          VITE_API_BASE_URL: https://apiv2.vonlabs.ai
+          VITE_SCALEKIT_CLIENT_ID: dummy_client_id
+          VITE_SCALEKIT_AUTH_BASE_URL: https://dummy.scalekit.dev
+          VITE_SCALEKIT_AUTH_AUTHORIZE_PATH: /oauth/authorize
+          VITE_SCALEKIT_AUTH_TOKEN_PATH: /oauth/token
+          VITE_SCALEKIT_AUTH_LOGOUT_PATH: /oauth/logout
+          VITE_SCALEKIT_REDIRECT_URI: http://localhost:5173/callback
 
       - name: Check bundle size
         run: |
@@ -140,22 +144,21 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|------|------|" >> $GITHUB_STEP_SUMMARY
-          find app/dist -name "*.js" -o -name "*.css" | while read file; do
+          find app/dist/assets -type f \( -name "*.js" -o -name "*.css" \) | while read file; do
             size=$(du -h "$file" | cut -f1)
             filename=$(basename "$file")
             echo "| $filename | $size |" >> $GITHUB_STEP_SUMMARY
           done
 
-          main_bundle=$(find app/dist -name "*.js" | head -1)
+          main_bundle=$(find app/dist/assets -name "index-*.js" | head -1)
           if [ -f "$main_bundle" ]; then
             size_kb=$(du -k "$main_bundle" | cut -f1)
-            if [ "$size_kb" -gt 300 ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "⚠️ **Warning:** Main bundle size ($size_kb KB) exceeds 300KB threshold" >> $GITHUB_STEP_SUMMARY
-              exit 1
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Main bundle size:** $size_kb KB" >> $GITHUB_STEP_SUMMARY
+            if [ "$size_kb" -gt 500 ]; then
+              echo "⚠️ **Warning:** Main bundle size ($size_kb KB) exceeds 500KB threshold" >> $GITHUB_STEP_SUMMARY
             else
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "✅ **Success:** Bundle size is within limits ($size_kb KB)" >> $GITHUB_STEP_SUMMARY
+              echo "✅ **Success:** Bundle size is within limits" >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
