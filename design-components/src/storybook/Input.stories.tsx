@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Input } from '../components/Input';
 
 const meta = {
-  title: 'Components/Input',
+  title: 'Atoms/Forms/Input',
   component: Input,
   parameters: {
     layout: 'centered',

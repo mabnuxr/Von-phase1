@@ -73,21 +73,25 @@ export const Button: React.FC<ButtonProps> = ({
       backgroundColor: disabled ? colors.neutral[400] : colors.primary[500], // Apple blue
       color: colors.common.white,
       border: 'none',
+      boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.1)',
     },
     secondary: {
       backgroundColor: disabled ? colors.neutral[200] : colors.neutral[200], // Apple light gray
       color: disabled ? colors.neutral[400] : colors.neutral[800], // Near black text
-      border: `1px solid ${disabled ? colors.neutral[300] : colors.neutral[300]}`,
+      border: `1px solid ${disabled ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.1)'}`,
+      boxShadow: disabled ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
     },
     ghost: {
       backgroundColor: 'transparent',
       color: disabled ? colors.neutral[400] : colors.primary[500], // Apple blue
       border: 'none',
+      boxShadow: 'none',
     },
     danger: {
       backgroundColor: disabled ? colors.neutral[400] : colors.error[500], // Apple red
       color: colors.common.white,
       border: 'none',
+      boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.1)',
     },
   };
 

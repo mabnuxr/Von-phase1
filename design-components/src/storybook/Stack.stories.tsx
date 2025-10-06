@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Stack } from '../components/Stack';
 
 const meta = {
-  title: 'Layout/Stack',
+  title: 'Atoms/Layout/Stack',
   component: Stack,
   parameters: {
     layout: 'centered',
