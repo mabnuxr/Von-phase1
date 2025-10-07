@@ -1,5 +1,5 @@
 import { config } from "../config";
-import { getAccessToken } from "../lib/auth";
+import { getAccessToken, clearAllAuth } from "../lib/auth";
 
 /**
  * API Error class for handling API-specific errors
@@ -121,6 +121,13 @@ export class ApiClient {
         } catch {
           // If response is not JSON, use status text
           errorMessage = response.statusText || errorMessage;
+        }
+
+        // Handle 401 Unauthorized - clear auth and redirect to login
+        if (response.status === 401) {
+          clearAllAuth();
+          window.location.href = "/";
+          throw new ApiError(errorMessage, response.status, errorData);
         }
 
         throw new ApiError(errorMessage, response.status, errorData);

@@ -67,7 +67,6 @@ export interface PusherConfig {
   key: string;
   cluster: string;
   authEndpoint?: string;
-  forceTLS?: boolean;
 }
 
 export interface ApiEndpoints {
