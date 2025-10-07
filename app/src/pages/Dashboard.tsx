@@ -1,12 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccessToken } from "../lib/auth";
 import {
   TopBar,
   ChatSidebar,
-  ChatConversation,
+  Chat,
   Banner,
-  type ConversationMessage,
 } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
@@ -22,27 +21,12 @@ const Dashboard = () => {
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const avatarButtonRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<ConversationMessage[]>([
-    {
-      id: "1",
-      type: "user",
-      content: "How much will I win this quarter?",
-      showAvatar: true,
-    },
-    {
-      id: "2",
-      type: "assistant",
-      content:
-        "Based on your forecast data, your projected win rate for this quarter is $2.4M across 12 opportunities. This represents a 15% increase from Q2.",
-      showTabs: true,
-      activeTab: "output",
-      documents: [
-        { id: "d1", title: "Forecast Q3", timestamp: "2 min ago" },
-        { id: "d2", title: "Sales Pipeline Report", timestamp: "5 min ago" },
-      ],
-      showAvatar: true,
-    },
-  ]);
+
+  // Generate conversation ID with format: vonlabs-chat-{tenant_id}-{user_id}-{uuid}
+  const conversationId = useMemo(() => {
+    if (!user?.tenantId || !user?.id) return null;
+    return `vonlabs-chat-${user.tenantId}-${user.id}-${crypto.randomUUID()}`;
+  }, [user?.tenantId, user?.id]);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -133,7 +117,7 @@ const Dashboard = () => {
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
-  const avatarSrc = user?.avatarUrl;
+  const avatarSrc = typeof user?.avatarUrl === 'string' ? user.avatarUrl : undefined;
   const displayName = user
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
@@ -146,61 +130,12 @@ const Dashboard = () => {
     { id: "5", label: "Market Analysis", timestamp: "Last month" },
   ];
 
-  const handleSendMessage = (content: string) => {
-    const newMessage: ConversationMessage = {
-      id: `msg-${Date.now()}`,
-      type: "user",
-      content,
-      showAvatar: true,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Simulate assistant response
-    setTimeout(() => {
-      const assistantMessage: ConversationMessage = {
-        id: `msg-${Date.now()}-assistant`,
-        type: "assistant",
-        content:
-          "This is a demo response from the von AI assistant. In production, this would connect to your backend API for real conversational AI.",
-        showTabs: true,
-        activeTab: "output",
-        showAvatar: true,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
-  };
-
-  const handleAskMessage = (content: string) => {
-    const newMessage: ConversationMessage = {
-      id: `msg-${Date.now()}`,
-      type: "user",
-      content,
-      showAvatar: true,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Simulate assistant response with document references
-    setTimeout(() => {
-      const assistantMessage: ConversationMessage = {
-        id: `msg-${Date.now()}-assistant`,
-        type: "assistant",
-        content:
-          "Here's the analysis you requested based on your forecast data and recent reports.",
-        showTabs: true,
-        activeTab: "output",
-        documents: [
-          {
-            id: `doc-${Date.now()}`,
-            title: "Forecast Q3",
-            timestamp: "Just now",
-          },
-        ],
-        showAvatar: true,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
+  // Handle chat errors
+  const handleChatError = (error: Error) => {
+    if (import.meta.env.DEV) {
+      console.error("[Dashboard] Chat error:", error);
+    }
+    // You can show an error banner or notification here
   };
 
   return (
@@ -293,7 +228,6 @@ const Dashboard = () => {
               selectedChatId={selectedChatId}
               onChatClick={(id: string) => setSelectedChatId(id)}
               onNewChatClick={() => {
-                setMessages([]);
                 console.log("New chat created");
               }}
               onSearchChange={(value: string) =>
@@ -304,7 +238,7 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Right Pane - ChatConversation with rounded corners */}
+          {/* Right Pane - Chat with rounded corners */}
           <div
             style={{
               flex: 1,
@@ -315,15 +249,26 @@ const Dashboard = () => {
               minWidth: 0,
             }}
           >
-            <ChatConversation
-              question="How much will I win this quarter?"
-              messages={messages}
-              onSend={handleSendMessage}
-              onAsk={handleAskMessage}
-              onBuild={() => console.log("Build clicked")}
-              contextTag="@Forecast Q3"
-              showActionButtons={true}
+            <Chat
+              title="von AI"
+              userId={user?.id}
+              apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
+              pusherConfig={{
+                key: import.meta.env.VITE_PUSHER_KEY || "",
+                cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
+                authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
+              }}
+              conversationId={conversationId || undefined}
+              enableRealtime={
+                !!conversationId &&
+                !!import.meta.env.VITE_PUSHER_KEY &&
+                !!import.meta.env.VITE_PUSHER_CLUSTER
+              }
               placeholder="Ask von anything"
+              onError={handleChatError}
+              variant="floating"
+              height="100%"
+              width="100%"
             />
           </div>
         </div>

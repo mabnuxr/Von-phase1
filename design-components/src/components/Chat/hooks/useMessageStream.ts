@@ -28,11 +28,15 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
 
   useEffect(() => {
     if (!channel) {
+      console.log('[MessageStream] No channel available');
       return;
     }
 
+    console.log('[MessageStream] Setting up event listeners on channel:', channel.name);
+
     // Handle message start event
     const handleMessageStart = (data: { message_id: string; role: string }) => {
+      console.log('[MessageStream] message.start received:', data);
       const { message_id } = data;
 
       // Prevent duplicate processing
@@ -47,6 +51,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
 
     // Handle message chunk event (incremental streaming)
     const handleMessageChunk = (data: { message_id: string; chunk: string; content?: string }) => {
+      console.log('[MessageStream] message.chunk received:', data);
       const { message_id, chunk, content } = data;
 
       setStreamingMessages((prev) => {
@@ -65,6 +70,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
 
     // Handle message complete event
     const handleMessageComplete = (data: { message_id: string; content: string }) => {
+      console.log('[MessageStream] message.complete received:', data);
       const { message_id, content } = data;
 
       setStreamingMessages((prev) => {
@@ -87,6 +93,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
 
     // Handle error event
     const handleError = (data: { message_id: string; error: string }) => {
+      console.error('[MessageStream] message.error received:', data);
       const { message_id, error } = data;
 
       setStreamingMessages((prev) => {
@@ -98,18 +105,39 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       events.onError?.(new Error(error));
     };
 
-    // Bind to Pusher events
+    // Handle message.received event (immediate complete message - non-streaming)
+    const handleMessageReceived = (data: { message_id: string; content: string; role: string }) => {
+      console.log('[MessageStream] message.received received:', data);
+      const { message_id, content } = data;
+
+      // Treat as immediate start and complete (non-streaming response)
+      if (!seenMessageIds.current.has(message_id)) {
+        seenMessageIds.current.add(message_id);
+        events.onMessageStart?.(message_id);
+      }
+      events.onMessageComplete?.(message_id, content);
+    };
+
+    // Bind to all Pusher events
     channel.bind('message.start', handleMessageStart);
     channel.bind('message.chunk', handleMessageChunk);
     channel.bind('message.complete', handleMessageComplete);
+    channel.bind('message.received', handleMessageReceived);
     channel.bind('message.error', handleError);
+
+    // Bind to all events for debugging
+    channel.bind_global((eventName: string, data: any) => {
+      console.log(`[MessageStream] Event received:`, eventName, data);
+    });
 
     // Cleanup
     return () => {
       channel.unbind('message.start', handleMessageStart);
       channel.unbind('message.chunk', handleMessageChunk);
       channel.unbind('message.complete', handleMessageComplete);
+      channel.unbind('message.received', handleMessageReceived);
       channel.unbind('message.error', handleError);
+      channel.unbind_global();
     };
   }, [channel, events]);
 
