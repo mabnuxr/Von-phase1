@@ -95,7 +95,8 @@ export class AuthService {
    * ```
    */
   async getMe(): Promise<User> {
-    const backendUser = await apiClient.get<UserBackendResponse>("/api/v1/auth/me");
+    const backendUser =
+      await apiClient.get<UserBackendResponse>("/api/v1/auth/me");
     return transformUser(backendUser);
   }
 

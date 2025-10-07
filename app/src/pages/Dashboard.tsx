@@ -1,12 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAccessToken } from "../lib/auth";
-import {
-  TopBar,
-  ChatSidebar,
-  Chat,
-  Banner,
-} from "@vonlabs/design-components";
+import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
@@ -117,7 +112,8 @@ const Dashboard = () => {
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
-  const avatarSrc = typeof user?.avatarUrl === 'string' ? user.avatarUrl : undefined;
+  const avatarSrc =
+    typeof user?.avatarUrl === "string" ? user.avatarUrl : undefined;
   const displayName = user
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;

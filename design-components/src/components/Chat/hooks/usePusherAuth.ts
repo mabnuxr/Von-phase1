@@ -54,7 +54,10 @@ export function usePusherAuth(
       });
 
       // Enable Pusher logging in development
-      if (typeof window !== 'undefined' && (window as Window & { localStorage?: Storage }).localStorage?.getItem('debug') === 'pusher') {
+      if (
+        typeof window !== 'undefined' &&
+        (window as Window & { localStorage?: Storage }).localStorage?.getItem('debug') === 'pusher'
+      ) {
         Pusher.logToConsole = true;
       }
 
