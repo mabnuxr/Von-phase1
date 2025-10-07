@@ -54,7 +54,7 @@ export function usePusherAuth(
       });
 
       // Enable Pusher logging in development
-      if (typeof window !== 'undefined' && (window as any).localStorage?.getItem('debug') === 'pusher') {
+      if (typeof window !== 'undefined' && (window as Window & { localStorage?: Storage }).localStorage?.getItem('debug') === 'pusher') {
         Pusher.logToConsole = true;
       }
 
@@ -100,7 +100,7 @@ export function usePusherAuth(
       });
 
       // Handle subscription error
-      channel.bind('pusher:subscription_error', (status: any) => {
+      channel.bind('pusher:subscription_error', (status: unknown) => {
         console.error(`[Pusher] ✗ Subscription failed:`, status);
         setError(new Error(`Subscription failed: ${JSON.stringify(status)}`));
       });

@@ -126,7 +126,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
     channel.bind('message.error', handleError);
 
     // Bind to all events for debugging
-    channel.bind_global((eventName: string, data: any) => {
+    channel.bind_global((eventName: string, data: unknown) => {
       console.log(`[MessageStream] Event received:`, eventName, data);
     });
 
