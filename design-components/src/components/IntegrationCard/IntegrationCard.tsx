@@ -181,21 +181,9 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
     >
       {/* Upper Section - Visual Connection Flow */}
       <div style={upperSectionStyles}>
-        <img
-          src={integrationLogoPath}
-          alt={`${name} logo`}
-          style={logoStyles}
-        />
-        <img
-          src="/Images/connection.svg"
-          alt="connection"
-          style={connectionIconStyles}
-        />
-        <img
-          src="/Images/vonlabs.png"
-          alt="Von logo"
-          style={logoStyles}
-        />
+        <img src={integrationLogoPath} alt={`${name} logo`} style={logoStyles} />
+        <img src="/Images/connection.svg" alt="connection" style={connectionIconStyles} />
+        <img src="/Images/vonlabs.png" alt="Von logo" style={logoStyles} />
       </div>
 
       {/* Lower Section - Name, Status, and Toggle */}

@@ -57,14 +57,14 @@ export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
   const handleToggle = (id: string, enabled: boolean) => {
     setIntegrations((prev) =>
       prev.map((integration) =>
-        integration.id === id ? { ...integration, enabled } : integration
-      )
+        integration.id === id ? { ...integration, enabled } : integration,
+      ),
     );
     onIntegrationToggle?.(id, enabled);
   };
 
   const handleRequestDisableConfirmation = (
-    integrationName: string
+    integrationName: string,
   ): Promise<boolean> => {
     return new Promise((resolve) => {
       setModalState({

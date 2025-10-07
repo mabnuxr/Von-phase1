@@ -123,7 +123,9 @@ const Settings = () => {
   const renderContent = () => {
     switch (selectedSettingId) {
       case "integrations":
-        return <IntegrationsPanel onIntegrationToggle={handleIntegrationToggle} />;
+        return (
+          <IntegrationsPanel onIntegrationToggle={handleIntegrationToggle} />
+        );
       case "fields":
       case "defaults":
       case "sales-process":
@@ -137,7 +139,10 @@ const Settings = () => {
             }}
           >
             <h1 style={{ fontSize: "24px", fontWeight: 600, color: "#1d1d1f" }}>
-              {settingsItems.find((item) => item.id === selectedSettingId)?.label}
+              {
+                settingsItems.find((item) => item.id === selectedSettingId)
+                  ?.label
+              }
             </h1>
             <p style={{ fontSize: "14px", color: "#6e6e73", marginTop: "8px" }}>
               This section is coming soon.

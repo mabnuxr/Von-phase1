@@ -87,7 +87,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const menuItemStyles = (
     isSelected: boolean,
-    isHovered: boolean
+    isHovered: boolean,
   ): React.CSSProperties => ({
     display: "flex",
     alignItems: "center",
