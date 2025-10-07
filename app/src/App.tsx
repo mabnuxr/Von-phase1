@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Logout from "./pages/Logout";
 import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
+import Settings from "./pages/Settings";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/" element={<RootGate />} />
         <Route path="/callback" element={<Callback />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/auth/start" element={<AuthStart />} />
       </Routes>

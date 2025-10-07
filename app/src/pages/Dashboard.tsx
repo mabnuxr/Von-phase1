@@ -84,9 +84,7 @@ const Dashboard = () => {
 
   // Handle Settings click
   const handleSettingsClick = () => {
-    // TODO: Navigate to settings page when it exists
-    console.log("Settings clicked");
-    // navigate("/settings");
+    navigate("/settings");
   };
 
   // Handle Logout click
