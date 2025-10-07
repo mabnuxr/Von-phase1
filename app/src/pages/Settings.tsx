@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAccessToken } from "../lib/auth";
 import { TopBar } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
+import { useAuthCheck } from "../hooks/useAuthCheck";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
@@ -12,26 +12,12 @@ import { authService } from "../services";
 
 const Settings = () => {
   const navigate = useNavigate();
+  useAuthCheck(); // Check authentication and redirect if not authenticated
   const { user } = useUser();
   const [selectedSettingId, setSelectedSettingId] = useState("integrations");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const avatarButtonRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = getAccessToken();
-    if (!token) {
-      if (import.meta.env.DEV) {
-        console.log("[Settings] No token found, redirecting to login");
-      }
-      navigate("/", { replace: true });
-      return;
-    }
-    if (import.meta.env.DEV) {
-      console.log("[Settings] Token found, user authenticated");
-    }
-  }, [navigate]);
 
   // Handle avatar click
   const handleAvatarClick = () => {

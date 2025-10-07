@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAccessToken } from "../lib/auth";
 import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
+import { useAuthCheck } from "../hooks/useAuthCheck";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { startProviderLogout } from "../lib/authFlow";
@@ -10,6 +10,7 @@ import { authService } from "../services";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  useAuthCheck(); // Check authentication and redirect if not authenticated
   const { user, isConnectionError, refetch } = useUser();
   const [selectedChatId, setSelectedChatId] = useState("1");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -22,21 +23,6 @@ const Dashboard = () => {
     if (!user?.tenantId || !user?.id) return null;
     return `vonlabs-chat-${user.tenantId}-${user.id}-${crypto.randomUUID()}`;
   }, [user?.tenantId, user?.id]);
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = getAccessToken();
-    if (!token) {
-      if (import.meta.env.DEV) {
-        console.log("[Dashboard] No token found, redirecting to login");
-      }
-      navigate("/", { replace: true });
-      return;
-    }
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Token found, user authenticated");
-    }
-  }, [navigate]);
 
   // Show/hide connection banner based on connection error state
   useEffect(() => {
