@@ -1,43 +1,23 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
+import { TopBar } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
+import { SettingsSidebar } from "../components/SettingsSidebar";
+import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 
-const Dashboard = () => {
+const Settings = () => {
   const navigate = useNavigate();
   useAuthCheck(); // Check authentication and redirect if not authenticated
-  const { user, isConnectionError, refetch } = useUser();
-  const [selectedChatId, setSelectedChatId] = useState("1");
+  const { user } = useUser();
+  const [selectedSettingId, setSelectedSettingId] = useState("integrations");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
-  const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const avatarButtonRef = useRef<HTMLDivElement>(null);
-
-  // Generate conversation ID with format: vonlabs-chat-{tenant_id}-{user_id}-{uuid}
-  const conversationId = useMemo(() => {
-    if (!user?.tenantId || !user?.id) return null;
-    return `vonlabs-chat-${user.tenantId}-${user.id}-${crypto.randomUUID()}`;
-  }, [user?.tenantId, user?.id]);
-
-  // Show/hide connection banner based on connection error state
-  useEffect(() => {
-    if (isConnectionError) {
-      setShowConnectionBanner(true);
-    }
-  }, [isConnectionError]);
-
-  // Handle retry connection
-  const handleRetry = async () => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Retrying connection...");
-    }
-    await refetch();
-  };
 
   // Handle avatar click
   const handleAvatarClick = () => {
@@ -47,7 +27,7 @@ const Dashboard = () => {
     setIsAvatarMenuOpen(true);
   };
 
-  // Handle Settings click
+  // Handle Settings click - navigate back to settings (refresh)
   const handleSettingsClick = () => {
     navigate("/settings");
   };
@@ -55,7 +35,7 @@ const Dashboard = () => {
   // Handle Logout click
   const handleLogoutClick = async () => {
     if (import.meta.env.DEV) {
-      console.log("[Dashboard] Logout clicked");
+      console.log("[Settings] Logout clicked");
     }
 
     try {
@@ -63,7 +43,7 @@ const Dashboard = () => {
       const response = await authService.logout();
       if (import.meta.env.DEV) {
         console.log(
-          "[Dashboard] Backend logout successful, redirect URL:",
+          "[Settings] Backend logout successful, redirect URL:",
           response.redirectUrl,
         );
       }
@@ -79,7 +59,7 @@ const Dashboard = () => {
         // Fallback to default logout flow if no redirect URL provided
         if (import.meta.env.DEV) {
           console.warn(
-            "[Dashboard] No redirect URL provided, using default logout flow",
+            "[Settings] No redirect URL provided, using default logout flow",
           );
         }
         startProviderLogout();
@@ -87,7 +67,7 @@ const Dashboard = () => {
     } catch (error) {
       // Log error but continue with logout flow
       if (import.meta.env.DEV) {
-        console.error("[Dashboard] Backend logout failed:", error);
+        console.error("[Settings] Backend logout failed:", error);
       }
       // Still clear local tokens and redirect, even if backend call fails
       startProviderLogout();
@@ -102,20 +82,62 @@ const Dashboard = () => {
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  const chatItems = [
-    { id: "1", label: "Team Review", timestamp: "Yesterday" },
-    { id: "2", label: "Forecast Q3", timestamp: "2 hours ago" },
-    { id: "3", label: "Sales Performance Analysis", timestamp: "Last week" },
-    { id: "4", label: "Revenue Projections", timestamp: "3 days ago" },
-    { id: "5", label: "Market Analysis", timestamp: "Last month" },
+  const settingsItems = [
+    {
+      id: "integrations",
+      label: "Integrations",
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path
+            d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
   ];
 
-  // Handle chat errors
-  const handleChatError = (error: Error) => {
+  const handleIntegrationToggle = (id: string, enabled: boolean) => {
     if (import.meta.env.DEV) {
-      console.error("[Dashboard] Chat error:", error);
+      console.log(`[Settings] Integration ${id} toggled to ${enabled}`);
     }
-    // You can show an error banner or notification here
+    // TODO: Implement actual integration toggle logic
+  };
+
+  const renderContent = () => {
+    switch (selectedSettingId) {
+      case "integrations":
+        return (
+          <IntegrationsPanel onIntegrationToggle={handleIntegrationToggle} />
+        );
+      case "fields":
+      case "defaults":
+      case "sales-process":
+      case "manager-agent":
+        return (
+          <div
+            style={{
+              padding: "24px",
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+            }}
+          >
+            <h1 style={{ fontSize: "24px", fontWeight: 600, color: "#1d1d1f" }}>
+              {
+                settingsItems.find((item) => item.id === selectedSettingId)
+                  ?.label
+              }
+            </h1>
+            <p style={{ fontSize: "14px", color: "#6e6e73", marginTop: "8px" }}>
+              This section is coming soon.
+            </p>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -128,17 +150,6 @@ const Dashboard = () => {
         alignItems: "center",
       }}
     >
-      {/* Connection Error Banner */}
-      {showConnectionBanner && (
-        <Banner
-          variant="error"
-          message="Issue Connecting to Backend Services"
-          onClose={() => setShowConnectionBanner(false)}
-          action={{ label: "Retry", onClick: handleRetry }}
-          dismissible={true}
-        />
-      )}
-
       {/* Max-width container for large screens */}
       <div
         style={{
@@ -193,7 +204,7 @@ const Dashboard = () => {
             minHeight: 0,
           }}
         >
-          {/* Left Pane - ChatSidebar with rounded corners */}
+          {/* Left Pane - SettingsSidebar with rounded corners */}
           <div
             style={{
               width: "280px",
@@ -203,22 +214,15 @@ const Dashboard = () => {
               boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
             }}
           >
-            <ChatSidebar
-              chatItems={chatItems}
-              selectedChatId={selectedChatId}
-              onChatClick={(id: string) => setSelectedChatId(id)}
-              onNewChatClick={() => {
-                console.log("New chat created");
-              }}
-              onSearchChange={(value: string) =>
-                console.log("Search chats:", value)
-              }
-              searchPlaceholder="Search conversations..."
+            <SettingsSidebar
+              settingsItems={settingsItems}
+              selectedSettingId={selectedSettingId}
+              onSettingClick={(id: string) => setSelectedSettingId(id)}
               width="100%"
             />
           </div>
 
-          {/* Right Pane - Chat with rounded corners */}
+          {/* Right Pane - Content Area with rounded corners */}
           <div
             style={{
               flex: 1,
@@ -229,27 +233,7 @@ const Dashboard = () => {
               minWidth: 0,
             }}
           >
-            <Chat
-              title="von AI"
-              userId={user?.id}
-              apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
-              pusherConfig={{
-                key: import.meta.env.VITE_PUSHER_KEY || "",
-                cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-                authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
-              }}
-              conversationId={conversationId || undefined}
-              enableRealtime={
-                !!conversationId &&
-                !!import.meta.env.VITE_PUSHER_KEY &&
-                !!import.meta.env.VITE_PUSHER_CLUSTER
-              }
-              placeholder="Ask von anything"
-              onError={handleChatError}
-              variant="floating"
-              height="100%"
-              width="100%"
-            />
+            {renderContent()}
           </div>
         </div>
       </div>
@@ -257,4 +241,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Settings;

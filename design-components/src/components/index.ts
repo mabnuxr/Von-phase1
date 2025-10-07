@@ -87,6 +87,12 @@ export type { DocumentCardProps } from './DocumentCard';
 export { TabSwitcher } from './TabSwitcher';
 export type { TabSwitcherProps, TabSwitcherTab } from './TabSwitcher';
 
+export { IntegrationCard } from './IntegrationCard';
+export type { IntegrationCardProps } from './IntegrationCard';
+
+export { ConfirmationModal } from './ConfirmationModal';
+export type { ConfirmationModalProps } from './ConfirmationModal';
+
 // ============================================================================
 // ORGANISMS
 // Complex components with state management, hooks, and business logic.
