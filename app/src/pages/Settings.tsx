@@ -90,7 +90,8 @@ const Settings = () => {
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
-  const avatarSrc = user?.avatarUrl;
+  const avatarSrc =
+    typeof user?.avatarUrl === "string" ? user.avatarUrl : undefined;
   const displayName = user
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
