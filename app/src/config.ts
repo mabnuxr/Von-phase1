@@ -1,7 +1,6 @@
 export const config = {
   // Backend API configuration
-  apiBaseUrl:
-    (import.meta.env.VITE_API_BASE_URL as string) || "https://apiv2.vonlabs.ai",
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL as string,
 
   // ScaleKit OAuth configuration
   scalekitClientId: import.meta.env.VITE_SCALEKIT_CLIENT_ID as string,

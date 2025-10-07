@@ -1,7 +1,26 @@
 import { apiClient } from "./apiClient";
 
 /**
- * User information returned from /api/v1/auth/me endpoint
+ * User information from backend (snake_case)
+ */
+interface UserBackendResponse {
+  id: string;
+  email: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  tenant?: string;
+  tenant_id?: string;
+  roles?: string[];
+  permissions?: string[];
+  is_verified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * User information in frontend (camelCase)
  */
 export interface User {
   id: string;
@@ -9,14 +28,34 @@ export interface User {
   name?: string;
   firstName?: string;
   lastName?: string;
-  avatarUrl?: string;
-  organizationId?: string;
-  organizationName?: string;
-  role?: string;
+  tenant?: string;
+  tenantId?: string;
+  roles?: string[];
   permissions?: string[];
+  isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown; // Allow additional fields
+}
+
+/**
+ * Transform backend user response to frontend User object
+ */
+function transformUser(backendUser: UserBackendResponse): User {
+  return {
+    id: backendUser.id,
+    email: backendUser.email,
+    name: backendUser.name,
+    firstName: backendUser.first_name,
+    lastName: backendUser.last_name,
+    tenant: backendUser.tenant,
+    tenantId: backendUser.tenant_id,
+    roles: backendUser.roles,
+    permissions: backendUser.permissions,
+    isVerified: backendUser.is_verified,
+    createdAt: backendUser.createdAt,
+    updatedAt: backendUser.updatedAt,
+  };
 }
 
 /**
@@ -56,7 +95,9 @@ export class AuthService {
    * ```
    */
   async getMe(): Promise<User> {
-    return apiClient.get<User>("/api/v1/auth/me");
+    const backendUser =
+      await apiClient.get<UserBackendResponse>("/api/v1/auth/me");
+    return transformUser(backendUser);
   }
 
   /**

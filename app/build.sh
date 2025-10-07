@@ -18,6 +18,10 @@ VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize
 VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token
 VITE_SCALEKIT_AUTH_LOGOUT_PATH=
 VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback
+VITE_API_BASE_URL=https://apiv2.vonlabs.ai
+VITE_PUSHER_KEY=58829a8a049e0cfc8bb6
+VITE_PUSHER_CLUSTER=us3
+VITE_PUSHER_AUTH_ENDPOINT=https://apiv2.vonlabs.ai/api/v1/pusher/auth
 EOF
 
 echo "=== .env file contents ==="

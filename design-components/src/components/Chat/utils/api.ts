@@ -2,6 +2,14 @@
  * API utility functions for Chat backend integration
  */
 
+/**
+ * Get the authorization header with bearer token
+ */
+function getAuthHeader(): HeadersInit {
+  const token = localStorage.getItem('access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export interface ApiEndpoints {
   conversations: string;
   messages: string;
@@ -33,10 +41,11 @@ export async function createConversation(
   userId: string,
   title?: string
 ): Promise<Conversation> {
-  const response = await fetch(`${apiBaseUrl}/conversations`, {
+  const response = await fetch(`${apiBaseUrl}/api/v1/conversations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify({
       userId,
@@ -60,10 +69,11 @@ export async function sendMessage(
   content: string,
   userId: string
 ): Promise<ApiMessage> {
-  const response = await fetch(`${apiBaseUrl}/conversations/${conversationId}/messages`, {
+  const response = await fetch(`${apiBaseUrl}/api/v1/conversations/${conversationId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify({
       content,
@@ -89,11 +99,12 @@ export async function fetchConversationHistory(
   offset = 0
 ): Promise<ApiMessage[]> {
   const response = await fetch(
-    `${apiBaseUrl}/conversations/${conversationId}/history?limit=${limit}&offset=${offset}`,
+    `${apiBaseUrl}/api/v1/conversations/${conversationId}/history?limit=${limit}&offset=${offset}`,
     {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeader(),
       },
     }
   );
@@ -112,10 +123,11 @@ export async function fetchUserConversations(
   apiBaseUrl: string,
   userId: string
 ): Promise<Conversation[]> {
-  const response = await fetch(`${apiBaseUrl}/users/${userId}/conversations`, {
+  const response = await fetch(`${apiBaseUrl}/api/v1/users/${userId}/conversations`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
   });
 
@@ -133,10 +145,11 @@ export async function deleteConversation(
   apiBaseUrl: string,
   conversationId: string
 ): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}/conversations/${conversationId}`, {
+  const response = await fetch(`${apiBaseUrl}/api/v1/conversations/${conversationId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
   });
 
@@ -153,10 +166,11 @@ export async function updateConversationTitle(
   conversationId: string,
   title: string
 ): Promise<Conversation> {
-  const response = await fetch(`${apiBaseUrl}/conversations/${conversationId}`, {
+  const response = await fetch(`${apiBaseUrl}/api/v1/conversations/${conversationId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify({ title }),
   });
