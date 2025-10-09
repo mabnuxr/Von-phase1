@@ -98,29 +98,25 @@ function transformIntegration(
 
 /**
  * Integrations Service - Handles integration-related API calls
+ *
+ * Uses JWT-based authentication - tenant and user are automatically extracted from token
  */
 export class IntegrationsService {
   /**
-   * Get integrations for a specific tenant and user
+   * Get integrations for the authenticated user's organization
    *
-   * @param tenantId - MongoDB tenant ID
-   * @param userId - MongoDB user ID
+   *
    * @param activeOnly - Optional flag to return only active integrations
    * @param configuredOnly - Optional flag to return only configured integrations
    * @returns Integration list with metadata
    *
    * @example
    * ```ts
-   * const result = await integrationsService.getIntegrationsByTenantAndUser(
-   *   "68e6f5d9473f2e641e306209",
-   *   "68e6f5da473f2e641e306221"
-   * );
+   * const result = await integrationsService.getIntegrations();
    * console.log(`Found ${result.total} integrations for ${result.tenantName}`);
    * ```
    */
-  async getIntegrationsByTenantAndUser(
-    tenantId: string,
-    userId: string,
+  async getIntegrations(
     activeOnly = false,
     configuredOnly = false,
   ): Promise<{
@@ -135,9 +131,7 @@ export class IntegrationsService {
     if (configuredOnly) params.set("configured_only", "true");
 
     const queryString = params.toString();
-    const endpoint = `/api/v1/integrations/tenant/${tenantId}/user/${userId}${
-      queryString ? `?${queryString}` : ""
-    }`;
+    const endpoint = `/api/v1/integrations${queryString ? `?${queryString}` : ""}`;
 
     const response = await apiClient.get<IntegrationListResponse>(endpoint);
 

@@ -78,12 +78,19 @@ export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
     integrationName: "",
   });
 
-  // Fetch integrations when user data is available
+  // Fetch integrations when user is authenticated
+  // JWT token automatically provides tenant and user context
   useEffect(() => {
     let cancelled = false; // Flag to prevent state updates after unmount
 
     const fetchIntegrations = async () => {
-      if (!user?.id || !user?.tenantId) {
+      // Wait for user to be loaded (we need the token)
+      if (userLoading) {
+        return;
+      }
+
+      // If no user, stop loading
+      if (!user) {
         if (!cancelled) {
           setLoading(false);
         }
@@ -96,10 +103,9 @@ export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
           setError(null);
         }
 
-        const result = await integrationsService.getIntegrationsByTenantAndUser(
-          user.tenantId,
-          user.id,
-        );
+        // New API: No need to pass tenant_id or user_id
+        // They're automatically extracted from JWT token
+        const result = await integrationsService.getIntegrations();
 
         // Only update state if this request hasn't been cancelled
         if (!cancelled) {
@@ -132,15 +138,14 @@ export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
       }
     };
 
-    if (!userLoading) {
-      fetchIntegrations();
-    }
+    fetchIntegrations();
 
     // Cleanup function to cancel pending updates
     return () => {
       cancelled = true;
     };
-  }, [user?.id, user?.tenantId, userLoading, retryCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLoading, retryCount]); // Intentionally omit 'user' to prevent infinite loop - JWT token in apiClient is what matters
 
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1);
