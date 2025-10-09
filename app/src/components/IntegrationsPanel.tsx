@@ -1,5 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
+import {
+  integrationsService,
+  IntegrationType,
+  type Integration as BackendIntegration,
+} from "../services";
+import { useUser } from "../hooks/useUser";
 
 export interface Integration {
   id: string;
@@ -16,9 +22,36 @@ export interface IntegrationsPanelProps {
 }
 
 /**
+ * Map integration type to logo path
+ */
+function getIntegrationLogoPath(type: IntegrationType): string {
+  const logoMap: Record<IntegrationType, string> = {
+    [IntegrationType.SALESFORCE]: "/Images/salesforce.svg",
+    [IntegrationType.GONG]: "/Images/gong.svg",
+    [IntegrationType.HUBSPOT]: "/Images/hubspot.svg",
+  };
+  return logoMap[type] || "/Images/default-integration.svg";
+}
+
+/**
+ * Transform backend integration to display format
+ */
+function transformBackendIntegration(
+  backendIntegration: BackendIntegration,
+): Integration {
+  return {
+    id: backendIntegration.id,
+    name: backendIntegration.provider,
+    integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
+    enabled: backendIntegration.isActive,
+  };
+}
+
+/**
  * IntegrationsPanel - Panel for managing integrations
  *
  * Displays a list of available integrations with toggle controls.
+ * Fetches integrations from the backend based on the current user's tenant.
  *
  * @example
  * ```tsx
@@ -30,20 +63,11 @@ export interface IntegrationsPanelProps {
 export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
   onIntegrationToggle,
 }) => {
-  const [integrations, setIntegrations] = useState<Integration[]>([
-    {
-      id: "salesforce",
-      name: "Salesforce",
-      integrationLogoPath: "/Images/salesforce.svg",
-      enabled: false,
-    },
-    {
-      id: "gong",
-      name: "Gong",
-      integrationLogoPath: "/Images/gong.svg",
-      enabled: false,
-    },
-  ]);
+  const { user, loading: userLoading } = useUser();
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -53,6 +77,74 @@ export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
     isOpen: false,
     integrationName: "",
   });
+
+  // Fetch integrations when user data is available
+  useEffect(() => {
+    let cancelled = false; // Flag to prevent state updates after unmount
+
+    const fetchIntegrations = async () => {
+      if (!user?.id || !user?.tenantId) {
+        if (!cancelled) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        if (!cancelled) {
+          setLoading(true);
+          setError(null);
+        }
+
+        const result = await integrationsService.getIntegrationsByTenantAndUser(
+          user.tenantId,
+          user.id,
+        );
+
+        // Only update state if this request hasn't been cancelled
+        if (!cancelled) {
+          const transformedIntegrations = result.integrations.map(
+            transformBackendIntegration,
+          );
+          setIntegrations(transformedIntegrations);
+
+          if (import.meta.env.DEV) {
+            console.log(
+              `[IntegrationsPanel] Loaded ${result.total} integrations for ${result.tenantName}`,
+            );
+          }
+        }
+      } catch (err) {
+        // Only update error state if not cancelled
+        if (!cancelled) {
+          const errorMessage =
+            err instanceof Error ? err.message : "Failed to fetch integrations";
+          setError(errorMessage);
+          console.error(
+            "[IntegrationsPanel] Error fetching integrations:",
+            err,
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    if (!userLoading) {
+      fetchIntegrations();
+    }
+
+    // Cleanup function to cancel pending updates
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.tenantId, userLoading, retryCount]);
+
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1);
+  };
 
   const handleToggle = (id: string, enabled: boolean) => {
     setIntegrations((prev) =>
@@ -116,12 +208,103 @@ export const IntegrationsPanel: React.FC<IntegrationsPanelProps> = ({
     gap: "16px",
   };
 
+  // Show loading state while user or integrations are loading
+  if (userLoading || loading) {
+    const skeletonCardStyles: React.CSSProperties = {
+      height: "200px",
+      borderRadius: "12px",
+      background:
+        "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
+      backgroundSize: "200% 100%",
+      animation: "shimmer 1.5s ease-in-out infinite",
+    };
+
+    return (
+      <div style={containerStyles}>
+        <style>
+          {`
+            @keyframes shimmer {
+              0% { background-position: 200% 0; }
+              100% { background-position: -200% 0; }
+            }
+          `}
+        </style>
+        <div style={headerStyles}>
+          <h1 style={titleStyles}>Integrations</h1>
+          <p style={subtitleStyles}>Loading integrations...</p>
+        </div>
+        <div style={gridStyles}>
+          {[1, 2].map((i) => (
+            <div key={i} style={skeletonCardStyles} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there was an error fetching integrations
+  if (error) {
+    const retryButtonStyles: React.CSSProperties = {
+      marginTop: "16px",
+      padding: "10px 20px",
+      backgroundColor: "#0071e3",
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      fontSize: "14px",
+      fontWeight: 500,
+      cursor: "pointer",
+      transition: "background-color 0.2s",
+    };
+
+    return (
+      <div style={containerStyles}>
+        <div style={headerStyles}>
+          <h1 style={titleStyles}>Integrations</h1>
+          <p
+            style={{ ...subtitleStyles, color: "#d1293d", marginBottom: "8px" }}
+          >
+            Error: {error}
+          </p>
+          <button
+            style={retryButtonStyles}
+            onClick={handleRetry}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = "#0077ed";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = "#0071e3";
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if user is not authenticated
+  if (!user) {
+    return (
+      <div style={containerStyles}>
+        <div style={headerStyles}>
+          <h1 style={titleStyles}>Integrations</h1>
+          <p style={subtitleStyles}>Please log in to view integrations</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div style={containerStyles}>
         <div style={headerStyles}>
           <h1 style={titleStyles}>Integrations</h1>
-          <p style={subtitleStyles}>Available Integrations</p>
+          <p style={subtitleStyles}>
+            {integrations.length > 0
+              ? `${integrations.length} integration${integrations.length === 1 ? "" : "s"} available`
+              : "No integrations available"}
+          </p>
         </div>
         <div style={gridStyles}>
           {integrations.map((integration) => (

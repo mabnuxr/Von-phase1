@@ -5,3 +5,14 @@ export type { ApiRequestOptions } from "./apiClient";
 // Auth Service
 export { AuthService, authService } from "./authService";
 export type { User, LogoutResponse } from "./authService";
+
+// Integrations Service
+export {
+  IntegrationsService,
+  integrationsService,
+} from "./integrationsService";
+export type {
+  Integration,
+  IntegrationListResponse,
+} from "./integrationsService";
+export { IntegrationType, IntegrationStatus } from "./integrationsService";
