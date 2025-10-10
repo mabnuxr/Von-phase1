@@ -291,6 +291,42 @@ export class IntegrationsService {
       message: response.message,
     };
   }
+
+  /**
+   * Cancel pending OAuth authorization
+   *
+   * Cancels an in-progress OAuth authorization and resets the integration to NOT_AUTHENTICATED status.
+   * Useful when user closes popup or timeout occurs.
+   *
+   * @param integrationId - MongoDB integration ID
+   * @returns Cancellation status
+   *
+   * @example
+   * ```ts
+   * const result = await integrationsService.cancelAuthorization(
+   *   "68e6f5da473f2e641e30622d"
+   * );
+   * console.log(result.message); // "Authorization cancelled"
+   * ```
+   */
+  async cancelAuthorization(integrationId: string): Promise<{
+    status: string;
+    integrationId: string;
+    message: string;
+  }> {
+    // Use revoke endpoint to reset state - backend handles AUTHENTICATING -> NOT_AUTHENTICATED transition
+    const response = await apiClient.post<{
+      status: string;
+      integration_id: string;
+      message: string;
+    }>(`/api/v1/integrations/${integrationId}/revoke`);
+
+    return {
+      status: response.status,
+      integrationId: response.integration_id,
+      message: response.message,
+    };
+  }
 }
 
 // Export a default instance

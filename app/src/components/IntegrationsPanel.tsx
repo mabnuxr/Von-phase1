@@ -9,6 +9,7 @@ import {
   useAuthorizeIntegration,
   useCheckAllAuthStatuses,
   useRevokeIntegration,
+  useCancelAuthorization,
 } from "../hooks/useIntegrations";
 import { IntegrationType, AuthenticationStatus } from "../services";
 
@@ -55,6 +56,9 @@ export function IntegrationsPanel({
   // OAuth revocation mutation
   const revokeIntegration = useRevokeIntegration();
 
+  // OAuth cancellation mutation
+  const cancelAuthorization = useCancelAuthorization();
+
   // Track authenticating integrations for polling
   const authenticatingIds =
     integrationsData?.integrations
@@ -65,10 +69,15 @@ export function IntegrationsPanel({
       .map((i: { id: string }) => i.id) || [];
 
   // Poll all authenticating integrations concurrently
-  useCheckAllAuthStatuses(authenticatingIds);
+  const { timedOutIntegrations } = useCheckAllAuthStatuses(authenticatingIds);
 
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);
+
+  // Track timeout warnings that have been shown
+  const [shownTimeoutWarnings, setShownTimeoutWarnings] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Disable confirmation modal state
   const [modalState, setModalState] = useState<{
@@ -121,23 +130,21 @@ export function IntegrationsPanel({
     setOauthError(null);
 
     if (enabled) {
-      // Set loading state
-      setLoadingIntegrationId(id);
+      setShownTimeoutWarnings((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
 
-      // Enable: Initiate OAuth
+      setLoadingIntegrationId(id);
       authorizeIntegration.mutate(id, {
-        onSuccess: () => {
-          // Loading state will be cleared when status changes to AUTHENTICATING
-          // The isAuthenticating check in the render will handle the loading state
-          setLoadingIntegrationId(null);
-        },
+        onSuccess: () => setLoadingIntegrationId(null),
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
           setOauthError(error.message);
         },
       });
     } else {
-      // Disable: Show confirmation
       const confirmed = await new Promise<boolean>((resolve) => {
         const integration = integrations.find((i) => i.id === id);
         pendingResolverRef.current = resolve;
@@ -152,10 +159,7 @@ export function IntegrationsPanel({
       pendingResolverRef.current = null;
 
       if (confirmed) {
-        // Set loading state
         setLoadingIntegrationId(id);
-
-        // Revoke OAuth authorization
         revokeIntegration.mutate(id, {
           onSuccess: () => {
             setLoadingIntegrationId(null);
@@ -181,6 +185,26 @@ export function IntegrationsPanel({
     pendingResolverRef.current = null;
     setModalState({ isOpen: false, integrationName: "" });
   };
+
+  useEffect(() => {
+    timedOutIntegrations.forEach((id) => {
+      if (!shownTimeoutWarnings.has(id)) {
+        const integration = integrations.find((i) => i.id === id);
+        if (integration) {
+          setOauthError(
+            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`,
+          );
+          setShownTimeoutWarnings((prev) => new Set(prev).add(id));
+          cancelAuthorization.mutate(id);
+        }
+      }
+    });
+  }, [
+    timedOutIntegrations,
+    shownTimeoutWarnings,
+    integrations,
+    cancelAuthorization,
+  ]);
 
   // Loading state
   if (isLoading) {
@@ -245,8 +269,10 @@ export function IntegrationsPanel({
           const isAuthenticating =
             backendIntegration?.authenticationStatus ===
             AuthenticationStatus.AUTHENTICATING;
+          const isTimedOut = timedOutIntegrations.includes(integration.id);
           const isLoading =
-            loadingIntegrationId === integration.id || isAuthenticating;
+            loadingIntegrationId === integration.id ||
+            (isAuthenticating && !isTimedOut);
 
           return (
             <IntegrationCard
