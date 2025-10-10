@@ -13,6 +13,7 @@
     "preview": "npx vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.2",
     "@vonlabs/design-components": "*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -1,4 +1,9 @@
-import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { integrationsService } from "../services";
@@ -29,17 +34,28 @@ export function useAuthorizeIntegration() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (integrationId: string) =>
-      integrationsService.authorizeIntegration(integrationId),
-    onSuccess: (data) => {
+    mutationFn: async (integrationId: string) => {
+      const data =
+        await integrationsService.authorizeIntegration(integrationId);
+
       // Open OAuth URL in new tab
       const oauthWindow = window.open(data.authorizationUrl, "_blank");
 
-      if (!oauthWindow || oauthWindow.closed || typeof oauthWindow.closed === "undefined") {
-        // Popup was blocked - throw error to trigger onError callback
+      // Give popup time to be blocked before checking (async popup blockers)
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+
+      if (!oauthWindow || oauthWindow.closed) {
         throw new Error("POPUP_BLOCKED");
       }
 
+      return data;
+    },
+    onSuccess: (data: {
+      authorizationUrl: string;
+      status: string;
+      integrationId: string;
+      message: string;
+    }) => {
       // Invalidate integrations to refetch and pick up AUTHENTICATING status
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
 
@@ -47,13 +63,15 @@ export function useAuthorizeIntegration() {
         console.log("[useAuthorizeIntegration] OAuth initiated:", data);
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("[useAuthorizeIntegration] Error:", error);
 
       // Don't use alert - let the UI component handle the error display
       if (error instanceof Error && error.message === "POPUP_BLOCKED") {
         // Re-throw with user-friendly message for UI to handle
-        throw new Error("Please allow popups for this site to complete OAuth authorization");
+        throw new Error(
+          "Please allow popups for this site to complete OAuth authorization",
+        );
       }
     },
   });
@@ -63,7 +81,10 @@ export function useAuthorizeIntegration() {
  * Check auth status with polling for a single integration
  * Auto-enables when integration is in AUTHENTICATING state
  */
-export function useCheckAuthStatus(integrationId: string | null, isAuthenticating: boolean) {
+export function useCheckAuthStatus(
+  integrationId: string | null,
+  isAuthenticating: boolean,
+) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -73,7 +94,10 @@ export function useCheckAuthStatus(integrationId: string | null, isAuthenticatin
         throw new Error("Integration ID is required");
       }
       if (import.meta.env.DEV) {
-        console.log("[useCheckAuthStatus] Polling auth status for integration:", integrationId);
+        console.log(
+          "[useCheckAuthStatus] Polling auth status for integration:",
+          integrationId,
+        );
       }
       return integrationsService.checkAuthStatus(integrationId);
     },
@@ -86,9 +110,15 @@ export function useCheckAuthStatus(integrationId: string | null, isAuthenticatin
       }
 
       // Stop polling if authenticated or failed
-      if (data?.status === "AUTHENTICATED" || data?.status === "AUTHENTICATION_FAILED") {
+      if (
+        data?.status === "AUTHENTICATED" ||
+        data?.status === "AUTHENTICATION_FAILED"
+      ) {
         if (import.meta.env.DEV) {
-          console.log("[useCheckAuthStatus] Stopping polling, final status:", data.status);
+          console.log(
+            "[useCheckAuthStatus] Stopping polling, final status:",
+            data.status,
+          );
         }
         return false;
       }
@@ -120,7 +150,10 @@ export function useCheckAuthStatus(integrationId: string | null, isAuthenticatin
       // Refetch integrations to update UI
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     } else if (data.status === "AUTHENTICATION_FAILED") {
-      console.error("[useCheckAuthStatus] Authentication failed:", data.message);
+      console.error(
+        "[useCheckAuthStatus] Authentication failed:",
+        data.message,
+      );
 
       // Refetch integrations to show failed state
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
@@ -145,7 +178,10 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
     queryKey: ["auth-status", id],
     queryFn: () => {
       if (import.meta.env.DEV) {
-        console.log("[useCheckAllAuthStatuses] Polling auth status for integration:", id);
+        console.log(
+          "[useCheckAllAuthStatuses] Polling auth status for integration:",
+          id,
+        );
       }
       return integrationsService.checkAuthStatus(id);
     },
@@ -154,9 +190,17 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
       const data = query.state.data;
 
       // Stop polling if authenticated or failed
-      if (data?.status === "AUTHENTICATED" || data?.status === "AUTHENTICATION_FAILED") {
+      if (
+        data?.status === "AUTHENTICATED" ||
+        data?.status === "AUTHENTICATION_FAILED"
+      ) {
         if (import.meta.env.DEV) {
-          console.log("[useCheckAllAuthStatuses] Stopping polling for", id, "- status:", data.status);
+          console.log(
+            "[useCheckAllAuthStatuses] Stopping polling for",
+            id,
+            "- status:",
+            data.status,
+          );
         }
         return false;
       }
@@ -177,18 +221,26 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
   useEffect(() => {
     let hasChanges = false;
 
-    results.forEach((result, index: number) => {
+    results.forEach((result: { data?: AuthStatusResponse }, index: number) => {
       const data = result.data;
       if (!data) return;
 
       const integrationId = authenticatingIds[index];
       const statusKey = `${integrationId}-${data.status}`;
 
-      if (data.status === "AUTHENTICATED" || data.status === "AUTHENTICATION_FAILED") {
+      if (
+        data.status === "AUTHENTICATED" ||
+        data.status === "AUTHENTICATION_FAILED"
+      ) {
         // Only process if we haven't seen this status change before
         if (!processedStatusesRef.current.has(statusKey)) {
           if (import.meta.env.DEV) {
-            console.log("[useCheckAllAuthStatuses] Integration", integrationId, "status changed:", data.status);
+            console.log(
+              "[useCheckAllAuthStatuses] Integration",
+              integrationId,
+              "status changed:",
+              data.status,
+            );
           }
 
           processedStatusesRef.current.add(statusKey);
@@ -202,19 +254,22 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results.map(r => r.data?.status).join(','), queryClient]);
+  }, [
+    results.map((r: { data?: AuthStatusResponse }) => r.data?.status).join(","),
+    queryClient,
+  ]);
 
   // Clean up processed statuses when integrations change
   useEffect(() => {
     // Remove processed statuses for integrations no longer authenticating
-    processedStatusesRef.current.forEach(key => {
-      const integrationId = key.split('-')[0];
+    processedStatusesRef.current.forEach((key) => {
+      const integrationId = key.split("-")[0];
       if (!authenticatingIds.includes(integrationId)) {
         processedStatusesRef.current.delete(key);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authenticatingIds.join(',')]);
+  }, [authenticatingIds.join(",")]);
 
   return results;
 }
@@ -228,7 +283,11 @@ export function useRevokeIntegration() {
   return useMutation({
     mutationFn: (integrationId: string) =>
       integrationsService.revokeIntegration(integrationId),
-    onSuccess: (data) => {
+    onSuccess: (data: {
+      status: string;
+      integrationId: string;
+      message: string;
+    }) => {
       if (import.meta.env.DEV) {
         console.log("[useRevokeIntegration] Revocation successful:", data);
       }
@@ -236,9 +295,10 @@ export function useRevokeIntegration() {
       // Invalidate integrations to refetch and update UI
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("[useRevokeIntegration] Error:", error);
-      alert(`Failed to revoke integration: ${error instanceof Error ? error.message : "Unknown error"}`);
+      // Don't use alert - let the UI component handle error display
+      // The component should check for mutation error state
     },
   });
 }

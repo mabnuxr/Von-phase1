@@ -15,4 +15,8 @@ export type {
   Integration,
   IntegrationListResponse,
 } from "./integrationsService";
-export { IntegrationType, IntegrationStatus } from "./integrationsService";
+export {
+  IntegrationType,
+  IntegrationStatus,
+  AuthenticationStatus,
+} from "./integrationsService";

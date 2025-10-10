@@ -1,4 +1,8 @@
-import { IntegrationCard, ConfirmationModal, Banner } from "@vonlabs/design-components";
+import {
+  IntegrationCard,
+  ConfirmationModal,
+  Banner,
+} from "@vonlabs/design-components";
 import { useState, useRef, useEffect } from "react";
 import {
   useIntegrations,
@@ -34,9 +38,16 @@ function getIntegrationLogoPath(type: IntegrationType): string {
 /**
  * IntegrationsPanel - Displays and manages integrations with React Query
  */
-export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProps) {
+export function IntegrationsPanel({
+  onIntegrationToggle,
+}: IntegrationsPanelProps) {
   // Fetch integrations with React Query
-  const { data: integrationsData, isLoading, error, refetch } = useIntegrations();
+  const {
+    data: integrationsData,
+    isLoading,
+    error,
+    refetch,
+  } = useIntegrations();
 
   // OAuth authorization mutation
   const authorizeIntegration = useAuthorizeIntegration();
@@ -45,15 +56,19 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
   const revokeIntegration = useRevokeIntegration();
 
   // Track authenticating integrations for polling
-  const authenticatingIds = integrationsData?.integrations
-    .filter((i) => i.authenticationStatus === AuthenticationStatus.AUTHENTICATING)
-    .map((i) => i.id) || [];
+  const authenticatingIds =
+    integrationsData?.integrations
+      .filter(
+        (i: { authenticationStatus: string }) =>
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
+      )
+      .map((i: { id: string }) => i.id) || [];
 
   // Poll all authenticating integrations concurrently
   useCheckAllAuthStatuses(authenticatingIds);
 
-  // Error state for popup blocker
-  const [popupError, setPopupError] = useState<string | null>(null);
+  // Error state for OAuth operations
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   // Disable confirmation modal state
   const [modalState, setModalState] = useState<{
@@ -69,7 +84,9 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
   const pendingResolverRef = useRef<((value: boolean) => void) | null>(null);
 
   // Track which integration is currently loading
-  const [loadingIntegrationId, setLoadingIntegrationId] = useState<string | null>(null);
+  const [loadingIntegrationId, setLoadingIntegrationId] = useState<
+    string | null
+  >(null);
 
   // Cleanup pending resolver on unmount to prevent memory leaks
   useEffect(() => {
@@ -82,16 +99,26 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
   }, []);
 
   // Transform backend integrations to display format
-  const integrations: Integration[] = integrationsData?.integrations.map((backendIntegration) => ({
-    id: backendIntegration.id,
-    name: backendIntegration.provider,
-    integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
-    enabled: backendIntegration.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
-  })) || [];
+  const integrations: Integration[] =
+    integrationsData?.integrations.map(
+      (backendIntegration: {
+        id: string;
+        provider: string;
+        type: IntegrationType;
+        authenticationStatus: string;
+      }) => ({
+        id: backendIntegration.id,
+        name: backendIntegration.provider,
+        integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
+        enabled:
+          backendIntegration.authenticationStatus ===
+          AuthenticationStatus.AUTHENTICATED,
+      }),
+    ) || [];
 
   const handleToggle = async (id: string, enabled: boolean) => {
-    // Clear any previous popup errors
-    setPopupError(null);
+    // Clear any previous errors
+    setOauthError(null);
 
     if (enabled) {
       // Set loading state
@@ -103,10 +130,10 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
           // Keep loading state until status changes to AUTHENTICATING
           setTimeout(() => setLoadingIntegrationId(null), 1000);
         },
-        onError: (error) => {
+        onError: (error: Error) => {
           setLoadingIntegrationId(null);
-          if (error instanceof Error && error.message.includes("popup")) {
-            setPopupError(error.message);
+          if (error instanceof Error) {
+            setOauthError(error.message);
           }
         },
       });
@@ -135,8 +162,11 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
             setLoadingIntegrationId(null);
             onIntegrationToggle?.(id, false);
           },
-          onError: () => {
+          onError: (error: Error) => {
             setLoadingIntegrationId(null);
+            if (error instanceof Error) {
+              setOauthError(`Failed to revoke integration: ${error.message}`);
+            }
           },
         });
       }
@@ -169,7 +199,8 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-red-500">
-          Failed to load integrations: {error instanceof Error ? error.message : "Unknown error"}
+          Failed to load integrations:{" "}
+          {error instanceof Error ? error.message : "Unknown error"}
         </div>
         <button
           onClick={() => refetch()}
@@ -192,20 +223,25 @@ export function IntegrationsPanel({ onIntegrationToggle }: IntegrationsPanelProp
 
   return (
     <>
-      {popupError && (
+      {oauthError && (
         <Banner
           variant="warning"
-          message={popupError}
-          onClose={() => setPopupError(null)}
+          message={oauthError}
+          onClose={() => setOauthError(null)}
           dismissible={true}
         />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {integrations.map((integration) => {
-          const backendIntegration = integrationsData?.integrations.find(i => i.id === integration.id);
-          const isAuthenticating = backendIntegration?.authenticationStatus === AuthenticationStatus.AUTHENTICATING;
-          const isLoading = loadingIntegrationId === integration.id || isAuthenticating;
+          const backendIntegration = integrationsData?.integrations.find(
+            (i: { id: string }) => i.id === integration.id,
+          );
+          const isAuthenticating =
+            backendIntegration?.authenticationStatus ===
+            AuthenticationStatus.AUTHENTICATING;
+          const isLoading =
+            loadingIntegrationId === integration.id || isAuthenticating;
 
           return (
             <IntegrationCard
