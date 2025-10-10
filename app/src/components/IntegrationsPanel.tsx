@@ -127,13 +127,13 @@ export function IntegrationsPanel({
       // Enable: Initiate OAuth
       authorizeIntegration.mutate(id, {
         onSuccess: () => {
-          // Keep loading state until status changes to AUTHENTICATING
-          setTimeout(() => setLoadingIntegrationId(null), 1000);
+          // Loading state will be cleared when status changes to AUTHENTICATING
+          // The isAuthenticating check in the render will handle the loading state
+          setLoadingIntegrationId(null);
         },
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
-setOauthError(error.message);
-          }
+          setOauthError(error.message);
         },
       });
     } else {
@@ -163,9 +163,7 @@ setOauthError(error.message);
           },
           onError: (error: Error) => {
             setLoadingIntegrationId(null);
-            if (error instanceof Error) {
-              setOauthError(`Failed to revoke integration: ${error.message}`);
-            }
+            setOauthError(`Failed to revoke integration: ${error.message}`);
           },
         });
       }
@@ -221,17 +219,25 @@ setOauthError(error.message);
   }
 
   return (
-    <>
+    <div style={{ padding: "24px", width: "100%" }}>
       {oauthError && (
-        <Banner
-          variant="warning"
-          message={oauthError}
-          onClose={() => setOauthError(null)}
-          dismissible={true}
-        />
+        <div style={{ marginBottom: "16px" }}>
+          <Banner
+            variant="warning"
+            message={oauthError}
+            onClose={() => setOauthError(null)}
+            dismissible={true}
+          />
+        </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: "16px",
+        }}
+      >
         {integrations.map((integration) => {
           const backendIntegration = integrationsData?.integrations.find(
             (i: { id: string }) => i.id === integration.id,
@@ -264,6 +270,6 @@ setOauthError(error.message);
         onConfirm={handleModalConfirm}
         onCancel={handleModalCancel}
       />
-    </>
+    </div>
   );
 }
