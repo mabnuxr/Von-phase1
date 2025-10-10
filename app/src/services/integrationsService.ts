@@ -25,6 +25,19 @@ export type IntegrationStatus =
   (typeof IntegrationStatus)[keyof typeof IntegrationStatus];
 
 /**
+ * Authentication status constants matching backend
+ */
+export const AuthenticationStatus = {
+  NOT_AUTHENTICATED: "NOT_AUTHENTICATED",
+  AUTHENTICATING: "AUTHENTICATING",
+  AUTHENTICATED: "AUTHENTICATED",
+  AUTHENTICATION_FAILED: "AUTHENTICATION_FAILED",
+} as const;
+
+export type AuthenticationStatus =
+  (typeof AuthenticationStatus)[keyof typeof AuthenticationStatus];
+
+/**
  * Backend integration response (snake_case)
  */
 export interface IntegrationBackendResponse {
@@ -41,6 +54,8 @@ export interface IntegrationBackendResponse {
   features_enabled: string[];
   last_sync: string | null;
   sync_success_rate: number;
+  authentication_status: AuthenticationStatus;
+  last_authenticated_at: string | null;
 }
 
 /**
@@ -71,6 +86,8 @@ export interface Integration {
   featuresEnabled: string[];
   lastSync: string | null;
   syncSuccessRate: number;
+  authenticationStatus: AuthenticationStatus;
+  lastAuthenticatedAt: string | null;
 }
 
 /**
@@ -93,6 +110,8 @@ function transformIntegration(
     featuresEnabled: backendIntegration.features_enabled,
     lastSync: backendIntegration.last_sync,
     syncSuccessRate: backendIntegration.sync_success_rate,
+    authenticationStatus: backendIntegration.authentication_status,
+    lastAuthenticatedAt: backendIntegration.last_authenticated_at,
   };
 }
 
@@ -163,6 +182,114 @@ export class IntegrationsService {
       `/api/v1/integrations/${integrationId}`,
     );
     return transformIntegration(response);
+  }
+
+  /**
+   * Initiate OAuth authorization for an integration
+   *
+   * @param integrationId - MongoDB integration ID
+   * @returns Authorization URL and status
+   *
+   * @example
+   * ```ts
+   * const result = await integrationsService.authorizeIntegration(
+   *   "68e6f5da473f2e641e30622d"
+   * );
+   * window.open(result.authorizationUrl, '_blank');
+   * ```
+   */
+  async authorizeIntegration(integrationId: string): Promise<{
+    authorizationUrl: string;
+    status: AuthenticationStatus;
+    integrationId: string;
+    message: string;
+  }> {
+    const response = await apiClient.post<{
+      authorization_url: string;
+      status: AuthenticationStatus;
+      integration_id: string;
+      message: string;
+    }>("/api/v1/integrations/authorize", {
+      integration_id: integrationId,
+    });
+
+    return {
+      authorizationUrl: response.authorization_url,
+      status: response.status,
+      integrationId: response.integration_id,
+      message: response.message,
+    };
+  }
+
+  /**
+   * Check OAuth authorization status
+   *
+   * Poll this endpoint to check if OAuth authorization has completed.
+   * Use this in a polling loop after opening the OAuth authorization URL.
+   *
+   * @param integrationId - MongoDB integration ID
+   * @returns Current authorization status
+   *
+   * @example
+   * ```ts
+   * const status = await integrationsService.checkAuthStatus(
+   *   "68e6f5da473f2e641e30622d"
+   * );
+   * if (status.status === 'AUTHENTICATED') {
+   *   console.log('Authorization complete!');
+   * }
+   * ```
+   */
+  async checkAuthStatus(integrationId: string): Promise<{
+    status: string;
+    integrationId: string;
+    message: string;
+  }> {
+    const response = await apiClient.post<{
+      status: string;
+      integration_id: string;
+      message: string;
+    }>(`/api/v1/integrations/${integrationId}/check-auth-status`);
+
+    return {
+      status: response.status,
+      integrationId: response.integration_id,
+      message: response.message,
+    };
+  }
+
+  /**
+   * Revoke OAuth authorization for an integration
+   *
+   * Clears OAuth credentials and resets the integration to NOT_AUTHENTICATED status.
+   *
+   * @param integrationId - MongoDB integration ID
+   * @returns Revocation status
+   *
+   * @example
+   * ```ts
+   * const result = await integrationsService.revokeIntegration(
+   *   "68e6f5da473f2e641e30622d"
+   * );
+   * console.log(result.message); // "Salesforce authorization has been revoked"
+   * ```
+   */
+  async revokeIntegration(integrationId: string): Promise<{
+    status: string;
+    integrationId: string;
+    message: string;
+  }> {
+    const response = await apiClient.post<{
+      status: string;
+      integration_id: string;
+      message: string;
+    }>(`/api/v1/integrations/${integrationId}/revoke`);
+
+    return {
+      status: response.status,
+      integrationId: response.integration_id,
+      message: response.message,
+    };
   }
 }
 
