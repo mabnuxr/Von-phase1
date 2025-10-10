@@ -67,7 +67,7 @@ export function useAuthorizeIntegration() {
       console.error("[useAuthorizeIntegration] Error:", error);
 
       // Don't use alert - let the UI component handle the error display
-      if (error instanceof Error && error.message === "POPUP_BLOCKED") {
+if (error.message === "POPUP_BLOCKED") {
         // Re-throw with user-friendly message for UI to handle
         throw new Error(
           "Please allow popups for this site to complete OAuth authorization",
