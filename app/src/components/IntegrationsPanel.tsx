@@ -3,7 +3,7 @@ import {
   ConfirmationModal,
   Banner,
 } from "@vonlabs/design-components";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   useIntegrations,
   useAuthorizeIntegration,
@@ -108,22 +108,25 @@ export function IntegrationsPanel({
   }, []);
 
   // Transform backend integrations to display format
-  const integrations: Integration[] =
-    integrationsData?.integrations.map(
-      (backendIntegration: {
-        id: string;
-        provider: string;
-        type: IntegrationType;
-        authenticationStatus: string;
-      }) => ({
-        id: backendIntegration.id,
-        name: backendIntegration.provider,
-        integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
-        enabled:
-          backendIntegration.authenticationStatus ===
-          AuthenticationStatus.AUTHENTICATED,
-      }),
-    ) || [];
+  const integrations: Integration[] = useMemo(
+    () =>
+      integrationsData?.integrations.map(
+        (backendIntegration: {
+          id: string;
+          provider: string;
+          type: IntegrationType;
+          authenticationStatus: string;
+        }) => ({
+          id: backendIntegration.id,
+          name: backendIntegration.provider,
+          integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
+          enabled:
+            backendIntegration.authenticationStatus ===
+            AuthenticationStatus.AUTHENTICATED,
+        }),
+      ) || [],
+    [integrationsData],
+  );
 
   const handleToggle = async (id: string, enabled: boolean) => {
     // Clear any previous errors

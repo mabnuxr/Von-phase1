@@ -162,7 +162,7 @@ export function useCheckAuthStatus(
 export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
   const queryClient = useQueryClient();
   const processedStatusesRef = useRef<Set<string>>(new Set());
-  const [_, setTimedOutSet] = useState<Set<string>>(new Set());
+  const [, setTimedOutSet] = useState<Set<string>>(new Set());
   const timedOutIntegrationsRef = useRef<Set<string>>(new Set());
 
   // Initialize polling timers before creating queries
@@ -232,6 +232,11 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
 
   const results = useQueries({ queries });
 
+  // Extract status string for stable dependency
+  const resultsStatusKey = results
+    .map((r: { data?: AuthStatusResponse }) => r.data?.status)
+    .join(",");
+
   useEffect(() => {
     let hasChanges = false;
 
@@ -263,10 +268,7 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    results.map((r: { data?: AuthStatusResponse }) => r.data?.status).join(","),
-    queryClient,
-  ]);
+  }, [resultsStatusKey, queryClient]);
 
   useEffect(() => {
     processedStatusesRef.current.forEach((key) => {
