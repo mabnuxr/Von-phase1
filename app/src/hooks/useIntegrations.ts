@@ -175,6 +175,7 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
     }
   });
 
+  // Cleanup polling state for integrations no longer authenticating
   useEffect(() => {
     pollingStartTimes.forEach((_, id) => {
       if (!authenticatingIds.includes(id)) {
@@ -194,6 +195,21 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
       setTimedOutSet(new Set(timedOutIntegrationsRef.current));
     }
   }, [authenticatingIds]);
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    const currentAuthenticatingIds = authenticatingIds;
+    const currentTimedOutRef = timedOutIntegrationsRef;
+
+    return () => {
+      // Clean up all polling state for this component's integrations
+      currentAuthenticatingIds.forEach((id) => {
+        pollingStartTimes.delete(id);
+        currentTimedOutRef.current.delete(id);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeAuthenticatingIds = authenticatingIds.filter(
     (id) => !timedOutIntegrationsRef.current.has(id),
