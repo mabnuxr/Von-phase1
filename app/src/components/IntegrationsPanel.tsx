@@ -132,8 +132,7 @@ export function IntegrationsPanel({
         },
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
-          if (error instanceof Error) {
-            setOauthError(error.message);
+setOauthError(error.message);
           }
         },
       });
