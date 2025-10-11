@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { Query } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { integrationsService } from "../services";
 
 /**
@@ -78,8 +78,17 @@ export function useAuthorizeIntegration() {
 }
 
 /**
+ * OAuth polling timeout - 30 seconds for testing
+ */
+const OAUTH_POLLING_TIMEOUT_MS = 30 * 1000;
+
+/**
+ * Tracks polling start times per integration
+ */
+const pollingStartTimes = new Map<string, number>();
+
+/**
  * Check auth status with polling for a single integration
- * Auto-enables when integration is in AUTHENTICATING state
  */
 export function useCheckAuthStatus(
   integrationId: string | null,
@@ -93,131 +102,157 @@ export function useCheckAuthStatus(
       if (!integrationId) {
         throw new Error("Integration ID is required");
       }
-      if (import.meta.env.DEV) {
-        console.log(
-          "[useCheckAuthStatus] Polling auth status for integration:",
-          integrationId,
-        );
-      }
       return integrationsService.checkAuthStatus(integrationId);
     },
-    enabled: !!integrationId && isAuthenticating, // Only poll when AUTHENTICATING
+    enabled: !!integrationId && isAuthenticating,
     refetchInterval: (query: Query<AuthStatusResponse>) => {
       const data = query.state.data;
 
-      if (import.meta.env.DEV) {
-        console.log("[useCheckAuthStatus] refetchInterval check, data:", data);
-      }
-
-      // Stop polling if authenticated or failed
       if (
         data?.status === "AUTHENTICATED" ||
         data?.status === "AUTHENTICATION_FAILED"
       ) {
-        if (import.meta.env.DEV) {
-          console.log(
-            "[useCheckAuthStatus] Stopping polling, final status:",
-            data.status,
-          );
-        }
         return false;
       }
 
-      // Poll every 3 seconds while AUTHENTICATING
-      if (import.meta.env.DEV) {
-        console.log("[useCheckAuthStatus] Continuing polling every 3 seconds");
+      if (integrationId) {
+        const startTime = pollingStartTimes.get(integrationId);
+        if (startTime && Date.now() - startTime > OAUTH_POLLING_TIMEOUT_MS) {
+          pollingStartTimes.delete(integrationId);
+          return false;
+        }
       }
+
       return 3000;
     },
-    refetchIntervalInBackground: true, // Continue polling even when tab is not focused
+    refetchIntervalInBackground: true,
   });
 
-  // React Query v5: Use useEffect instead of onSuccess callback
+  useEffect(() => {
+    if (
+      integrationId &&
+      isAuthenticating &&
+      !pollingStartTimes.has(integrationId)
+    ) {
+      pollingStartTimes.set(integrationId, Date.now());
+    }
+  }, [integrationId, isAuthenticating]);
+
   useEffect(() => {
     const data = query.data;
-
     if (!data) return;
 
-    if (import.meta.env.DEV) {
-      console.log("[useCheckAuthStatus] Data changed:", data);
-    }
-
-    if (data.status === "AUTHENTICATED") {
-      if (import.meta.env.DEV) {
-        console.log("[useCheckAuthStatus] Authentication complete:", data);
+    if (
+      data.status === "AUTHENTICATED" ||
+      data.status === "AUTHENTICATION_FAILED"
+    ) {
+      if (integrationId) {
+        pollingStartTimes.delete(integrationId);
       }
-
-      // Refetch integrations to update UI
-      queryClient.invalidateQueries({ queryKey: ["integrations"] });
-    } else if (data.status === "AUTHENTICATION_FAILED") {
-      console.error(
-        "[useCheckAuthStatus] Authentication failed:",
-        data.message,
-      );
-
-      // Refetch integrations to show failed state
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     }
-  }, [query.data, queryClient]);
+  }, [query.data, queryClient, integrationId]);
 
   return query;
 }
 
 /**
- * Poll all authenticating integrations
- * This hook dynamically creates polling queries for each integration in AUTHENTICATING state
+ * Poll all authenticating integrations with timeout support
  */
 export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
   const queryClient = useQueryClient();
-
-  // Track which integrations have already been processed to avoid duplicate invalidations
   const processedStatusesRef = useRef<Set<string>>(new Set());
+  const [, setTimedOutSet] = useState<Set<string>>(new Set());
+  const timedOutIntegrationsRef = useRef<Set<string>>(new Set());
 
-  // Create a query for each authenticating integration
-  const queries = authenticatingIds.map((id) => ({
-    queryKey: ["auth-status", id],
-    queryFn: () => {
-      if (import.meta.env.DEV) {
-        console.log(
-          "[useCheckAllAuthStatuses] Polling auth status for integration:",
-          id,
-        );
+  // Initialize polling timers before creating queries
+  authenticatingIds.forEach((id) => {
+    if (
+      !pollingStartTimes.has(id) &&
+      !timedOutIntegrationsRef.current.has(id)
+    ) {
+      pollingStartTimes.set(id, Date.now());
+    }
+  });
+
+  // Cleanup polling state for integrations no longer authenticating
+  useEffect(() => {
+    pollingStartTimes.forEach((_, id) => {
+      if (!authenticatingIds.includes(id)) {
+        pollingStartTimes.delete(id);
       }
-      return integrationsService.checkAuthStatus(id);
-    },
+    });
+
+    let hasTimeoutChanges = false;
+    timedOutIntegrationsRef.current.forEach((id) => {
+      if (!authenticatingIds.includes(id)) {
+        timedOutIntegrationsRef.current.delete(id);
+        hasTimeoutChanges = true;
+      }
+    });
+
+    if (hasTimeoutChanges) {
+      setTimedOutSet(new Set(timedOutIntegrationsRef.current));
+    }
+  }, [authenticatingIds]);
+
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    const currentAuthenticatingIds = authenticatingIds;
+    const currentTimedOutRef = timedOutIntegrationsRef;
+
+    return () => {
+      // Clean up all polling state for this component's integrations
+      currentAuthenticatingIds.forEach((id) => {
+        pollingStartTimes.delete(id);
+        currentTimedOutRef.current.delete(id);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const activeAuthenticatingIds = authenticatingIds.filter(
+    (id) => !timedOutIntegrationsRef.current.has(id),
+  );
+
+  const queries = activeAuthenticatingIds.map((id) => ({
+    queryKey: ["auth-status", id],
+    queryFn: () => integrationsService.checkAuthStatus(id),
     enabled: true,
     refetchInterval: (query: Query<AuthStatusResponse>) => {
       const data = query.state.data;
 
-      // Stop polling if authenticated or failed
       if (
         data?.status === "AUTHENTICATED" ||
         data?.status === "AUTHENTICATION_FAILED"
       ) {
-        if (import.meta.env.DEV) {
-          console.log(
-            "[useCheckAllAuthStatuses] Stopping polling for",
-            id,
-            "- status:",
-            data.status,
-          );
-        }
+        pollingStartTimes.delete(id);
+        timedOutIntegrationsRef.current.delete(id);
         return false;
       }
 
-      // Poll every 3 seconds while AUTHENTICATING
+      const startTime = pollingStartTimes.get(id);
+      const elapsed = startTime ? Date.now() - startTime : 0;
+
+      if (startTime && elapsed > OAUTH_POLLING_TIMEOUT_MS) {
+        timedOutIntegrationsRef.current.add(id);
+        pollingStartTimes.delete(id);
+        setTimedOutSet(new Set(timedOutIntegrationsRef.current));
+        return false;
+      }
+
       return 3000;
     },
     refetchIntervalInBackground: true,
   }));
 
-  // Use useQueries to poll all at once
-  const results = useQueries({
-    queries,
-  });
+  const results = useQueries({ queries });
 
-  // Watch for status changes and invalidate integrations list
-  // Use a stable comparison to avoid infinite loops
+  // Extract status string for stable dependency
+  const resultsStatusKey = results
+    .map((r: { data?: AuthStatusResponse }) => r.data?.status)
+    .join(",");
+
   useEffect(() => {
     let hasChanges = false;
 
@@ -232,36 +267,26 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
         data.status === "AUTHENTICATED" ||
         data.status === "AUTHENTICATION_FAILED"
       ) {
-        // Only process if we haven't seen this status change before
         if (!processedStatusesRef.current.has(statusKey)) {
-          if (import.meta.env.DEV) {
-            console.log(
-              "[useCheckAllAuthStatuses] Integration",
-              integrationId,
-              "status changed:",
-              data.status,
-            );
-          }
-
           processedStatusesRef.current.add(statusKey);
           hasChanges = true;
         }
       }
     });
 
-    // Only invalidate once if there were any changes
+    timedOutIntegrationsRef.current.forEach((id) => {
+      if (authenticatingIds.includes(id)) {
+        hasChanges = true;
+      }
+    });
+
     if (hasChanges) {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    results.map((r: { data?: AuthStatusResponse }) => r.data?.status).join(","),
-    queryClient,
-  ]);
+  }, [resultsStatusKey, queryClient]);
 
-  // Clean up processed statuses when integrations change
   useEffect(() => {
-    // Remove processed statuses for integrations no longer authenticating
     processedStatusesRef.current.forEach((key) => {
       const integrationId = key.split("-")[0];
       if (!authenticatingIds.includes(integrationId)) {
@@ -271,7 +296,20 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authenticatingIds.join(",")]);
 
-  return results;
+  return {
+    results,
+    timedOutIntegrations: Array.from(timedOutIntegrationsRef.current),
+  };
+}
+
+export function hasIntegrationTimedOut(integrationId: string): boolean {
+  const startTime = pollingStartTimes.get(integrationId);
+  if (!startTime) return false;
+  return Date.now() - startTime > OAUTH_POLLING_TIMEOUT_MS;
+}
+
+export function resetPollingTimeout(integrationId: string): void {
+  pollingStartTimes.delete(integrationId);
 }
 
 /**
@@ -299,6 +337,42 @@ export function useRevokeIntegration() {
       console.error("[useRevokeIntegration] Error:", error);
       // Don't use alert - let the UI component handle error display
       // The component should check for mutation error state
+    },
+  });
+}
+
+/**
+ * Cancel pending OAuth authorization
+ * Useful for cleaning up stuck AUTHENTICATING states
+ */
+export function useCancelAuthorization() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (integrationId: string) => {
+      // Reset polling timeout first
+      resetPollingTimeout(integrationId);
+      // Then cancel on backend
+      return integrationsService.cancelAuthorization(integrationId);
+    },
+    onSuccess: (data: {
+      status: string;
+      integrationId: string;
+      message: string;
+    }) => {
+      if (import.meta.env.DEV) {
+        console.log("[useCancelAuthorization] Cancellation successful:", data);
+      }
+
+      // Invalidate integrations to refetch and update UI
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      // Also clear the auth-status query cache
+      queryClient.invalidateQueries({
+        queryKey: ["auth-status", data.integrationId],
+      });
+    },
+    onError: (error: Error) => {
+      console.error("[useCancelAuthorization] Error:", error);
     },
   });
 }
