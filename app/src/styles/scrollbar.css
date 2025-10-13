@@ -1,0 +1,59 @@
+/**
+ * Custom scrollbar styles for chat sidebar
+ * Matches the New Chat button color (#1b1b1f)
+ *
+ * Targets the internal scroll container within ChatSidebar component
+ */
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.chat-sidebar-wrapper *::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-sidebar-wrapper *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-sidebar-wrapper *::-webkit-scrollbar-thumb {
+  background: #1b1b1f;
+  border-radius: 3px;
+}
+
+.chat-sidebar-wrapper *::-webkit-scrollbar-thumb:hover {
+  background: #2c2c30;
+}
+
+/* Firefox */
+.chat-sidebar-wrapper * {
+  scrollbar-width: thin;
+  scrollbar-color: #1b1b1f transparent;
+}
+
+/**
+ * Custom scrollbar styles for chat messages container
+ * Matches the sidebar scrollbar styling
+ */
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.chat-messages-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages-wrapper::-webkit-scrollbar-thumb {
+  background: #1b1b1f;
+  border-radius: 3px;
+}
+
+.chat-messages-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #2c2c30;
+}
+
+/* Firefox */
+.chat-messages-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #1b1b1f transparent;
+}

@@ -36,7 +36,6 @@ export interface ChatMessageProps {
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
-  timestamp,
   isLoading = false,
   activeTab: initialActiveTab = 'output',
 }) => {
@@ -93,14 +92,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     backgroundColor: isActive ? semanticColors.background.secondary : 'transparent',
   });
 
-  const timestampStyles: React.CSSProperties = {
-    fontSize: fontSize.xs.size,
-    lineHeight: fontSize.xs.lineHeight,
-    color: semanticColors.text.tertiary,
-    marginTop: spacing[1],
-    textAlign: isUser ? 'right' : 'left',
-    fontFamily: fontFamily.text,
-  };
+  // const timestampStyles: React.CSSProperties = {
+  //   fontSize: fontSize.xs.size,
+  //   lineHeight: fontSize.xs.lineHeight,
+  //   color: semanticColors.text.tertiary,
+  //   marginTop: spacing[1],
+  //   textAlign: isUser ? 'right' : 'left',
+  //   fontFamily: fontFamily.text,
+  // };
 
   const loadingContainerStyles: React.CSSProperties = {
     display: 'flex',
@@ -153,11 +152,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         </div>
       </div>
-      {timestamp && !isLoading && (
+      {/* {timestamp && !isLoading && (
         <div style={timestampStyles}>
           {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
-      )}
+      )} */}
       <style>
         {`
           @keyframes bounce {

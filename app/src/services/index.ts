@@ -20,3 +20,6 @@ export {
   IntegrationStatus,
   AuthenticationStatus,
 } from "./integrationsService";
+
+// Conversations Service
+export { conversationsService } from "./conversationsService";

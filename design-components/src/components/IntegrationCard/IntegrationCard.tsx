@@ -35,6 +35,12 @@ export interface IntegrationCardProps {
    * @default false
    */
   disabled?: boolean;
+
+  /**
+   * Loading state with optional text (e.g., "Authenticating... 5s")
+   * When set, toggle morphs into animated progress indicator
+   */
+  loadingText?: string;
 }
 
 /**
@@ -60,8 +66,10 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   onToggle,
   onRequestDisableConfirmation,
   disabled = false,
+  loadingText,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const isLoading = !!loadingText;
 
   const cardStyles: React.CSSProperties = {
     display: 'flex',
@@ -126,7 +134,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
   const statusStyles: React.CSSProperties = {
     fontSize: '12px',
-    color: enabled ? '#34C759' : '#8E8E93',
+    color: isLoading ? '#8039E9' : enabled ? '#34C759' : '#8E8E93',
     margin: 0,
     fontWeight: 500,
   };
@@ -135,13 +143,14 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
     position: 'relative',
     width: '44px',
     height: '24px',
-    backgroundColor: enabled ? '#007AFF' : '#E5E5EA',
+    backgroundColor: isLoading ? '#E5E5EA' : enabled ? '#8039E9' : '#E5E5EA',
     borderRadius: '12px',
-    cursor: disabled ? 'not-allowed' : 'pointer',
+    cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
     transition: 'background-color 0.2s ease',
     border: 'none',
     padding: 0,
     flexShrink: 0,
+    overflow: 'hidden',
   };
 
   const toggleKnobStyles: React.CSSProperties = {
@@ -156,8 +165,41 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
   };
 
+  // Shimmer animation for loading state with Von's purple/violet gradient
+  const shimmerStyles: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: '-100%',
+    width: '200%',
+    height: '100%',
+    background: 'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)',
+    animation: 'shimmer 1.5s infinite',
+  };
+
+  // Inject keyframes for shimmer animation
+  React.useEffect(() => {
+    if (!isLoading) return;
+
+    const styleSheet = document.styleSheets[0];
+    const keyframes = `
+      @keyframes shimmer {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(50%); }
+      }
+    `;
+
+    // Check if animation already exists
+    const existingRule = Array.from(styleSheet.cssRules).find(
+      rule => rule instanceof CSSKeyframesRule && rule.name === 'shimmer'
+    );
+
+    if (!existingRule) {
+      styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+    }
+  }, [isLoading]);
+
   const handleToggle = async () => {
-    if (disabled) return;
+    if (disabled || isLoading) return;
 
     const newState = !enabled;
 
@@ -190,16 +232,23 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       <div style={lowerSectionStyles}>
         <div style={textContainerStyles}>
           <h3 style={nameStyles}>{name}</h3>
-          <p style={statusStyles}>{enabled ? 'Connected' : 'Not Connected'}</p>
+          <p style={statusStyles}>
+            {isLoading ? loadingText : enabled ? 'Connected' : 'Not Connected'}
+          </p>
         </div>
         <button
           style={toggleStyles}
           onClick={handleToggle}
-          disabled={disabled}
+          disabled={disabled || isLoading}
           aria-label={`Toggle ${name} integration`}
           aria-pressed={enabled}
+          aria-busy={isLoading}
         >
-          <div style={toggleKnobStyles} />
+          {isLoading ? (
+            <div style={shimmerStyles} />
+          ) : (
+            <div style={toggleKnobStyles} />
+          )}
         </button>
       </div>
     </div>

@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { colors } from '../../theme';
 
 export interface ChatItem {
@@ -43,6 +42,17 @@ export interface ChatSidebarProps {
    * @default '200px'
    */
   width?: string;
+
+  /**
+   * Ref for infinite scroll trigger element
+   * Attach this to a div at the bottom of the list for infinite scroll
+   */
+  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+
+  /**
+   * Whether currently fetching more items
+   */
+  isFetchingMore?: boolean;
 }
 
 /**
@@ -69,12 +79,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedChatId,
   onChatClick,
   onNewChatClick,
-  onSearchChange,
-  searchPlaceholder = 'Search Chats',
   width = '200px',
+  loadMoreRef,
+  isFetchingMore = false,
 }) => {
-  const [searchValue, setSearchValue] = useState('');
-
   const sidebarStyles: React.CSSProperties = {
     width,
     height: '100%',
@@ -88,49 +96,23 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const newChatButtonStyles: React.CSSProperties = {
     display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: '6px',
     padding: '6px 10px',
     margin: '12px 12px 8px',
-    backgroundColor: 'transparent',
+    backgroundColor: '#1b1b1f',
     border: `1px solid rgba(0,0,0,0.1)`,
-    borderRadius: '6px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 500,
-    color: '#1d1d1f',
+    color: "white",
     transition: 'all 0.2s ease',
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
     boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-  };
-
-  const searchContainerStyles: React.CSSProperties = {
-    padding: '0 12px 10px',
-    position: 'relative',
-  };
-
-  const searchInputStyles: React.CSSProperties = {
-    width: '100%',
-    padding: '6px 10px',
-    paddingRight: '30px',
-    borderRadius: '6px',
-    border: '1px solid rgba(0,0,0,0.1)',
-    backgroundColor: '#f5f5f7',
-    fontSize: '12px',
-    outline: 'none',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    transition: 'all 0.2s ease',
-  };
-
-  const searchIconStyles: React.CSSProperties = {
-    position: 'absolute',
-    right: '20px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    pointerEvents: 'none',
-    color: colors.neutral[500],
   };
 
   const sectionHeaderStyles: React.CSSProperties = {
@@ -157,26 +139,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     padding: '8px 12px',
     fontSize: '13px',
     color: isSelected ? colors.neutral[900] : colors.neutral[700],
-    backgroundColor: isSelected ? colors.neutral[100] : 'transparent',
+    backgroundColor: isSelected ? colors.neutral[200] : 'transparent',
     cursor: 'pointer',
     transition: 'background-color 0.15s ease',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
+    fontWeight: isSelected ? 500 : "normal", // 500 is medium weight
     textOverflow: 'ellipsis',
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
     borderRadius: '6px',
     margin: '2px 8px',
   });
-
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    onSearchChange?.(value);
-  };
-
-  const filteredChats = searchValue
-    ? chatItems.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase()))
-    : chatItems;
 
   return (
     <div style={sidebarStyles}>
@@ -185,63 +159,37 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         style={newChatButtonStyles}
         onClick={onNewChatClick}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = colors.neutral[50];
+          e.currentTarget.style.backgroundColor = colors.neutral[700];
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.backgroundColor = '#1b1b1f';
         }}
       >
+        New Chat
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
         </svg>
-        New Chat
       </button>
-
-      {/* Search Input */}
-      <div style={searchContainerStyles}>
-        <input
-          type="search"
-          placeholder={searchPlaceholder}
-          value={searchValue}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          style={searchInputStyles}
-        />
-        <svg
-          style={searchIconStyles}
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <circle cx="11" cy="11" r="8" strokeWidth="2" />
-          <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </div>
 
       {/* Section Header */}
       <div style={sectionHeaderStyles}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path
-            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <circle cx="12" cy="12" r="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M12 6v6l4 2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         Past Chats
       </div>
 
       {/* Chat List */}
       <div style={chatListStyles}>
-        {filteredChats.map((item) => (
+        {chatItems.map((item) => (
           <div
             key={item.id}
             style={chatItemStyles(item.id === selectedChatId)}
             onClick={() => onChatClick?.(item.id)}
             onMouseEnter={(e) => {
               if (item.id !== selectedChatId) {
-                e.currentTarget.style.backgroundColor = colors.neutral[50];
+                e.currentTarget.style.backgroundColor = colors.neutral[100];
               }
             }}
             onMouseLeave={(e) => {
@@ -253,6 +201,23 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             {item.label}
           </div>
         ))}
+
+        {/* Infinite scroll trigger */}
+        {loadMoreRef && <div ref={loadMoreRef} style={{ height: '1px' }} />}
+
+        {/* Loading indicator */}
+        {isFetchingMore && (
+          <div
+            style={{
+              padding: '12px',
+              textAlign: 'center',
+              fontSize: '12px',
+              color: colors.neutral[500],
+            }}
+          >
+            Loading more...
+          </div>
+        )}
       </div>
     </div>
   );

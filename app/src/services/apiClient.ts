@@ -52,7 +52,8 @@ export class ApiClient {
     // Add authorization header if not skipped and token exists
     if (!skipAuth) {
       const token = getAccessToken();
-      if (token) {
+      // Only add Authorization header if token is non-empty
+      if (token && token.trim()) {
         headers.Authorization = `Bearer ${token}`;
       }
     }

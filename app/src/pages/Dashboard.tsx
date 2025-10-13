@@ -1,28 +1,78 @@
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
-import { useUser } from "../hooks/useUser";
-import { useAuthCheck } from "../hooks/useAuthCheck";
-import { getUserInitials, getDisplayName } from "../lib/userUtils";
-import { AvatarMenu } from "../components/AvatarMenu";
-import { startProviderLogout } from "../lib/authFlow";
+import "../styles/scrollbar.css";
 import { authService } from "../services";
+import { useNewChat } from "../hooks/useNewChat";
+import { useNavigate } from "react-router-dom";
+import useChatStore from "../store/chatStore";
+import { useUser } from "../hooks/useUser";
+import { AvatarMenu } from "../components/AvatarMenu";
+import { useMessages } from "../hooks/useMessages";
+import { useAuthCheck } from "../hooks/useAuthCheck";
+import { useSendMessage } from "../hooks/useSendMessage";
+import { startProviderLogout } from "../lib/authFlow";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useConversationInit } from "../hooks/useConversationInit";
+import { getUserInitials, getDisplayName } from "../lib/userUtils";
+import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
+import type { Message as ChatMessage } from "@vonlabs/design-components";
+import type { Message } from "../types/conversation";
+import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  useAuthCheck(); // Check authentication and redirect if not authenticated
+  useAuthCheck(); 
   const { user, isConnectionError, refetch } = useUser();
-  const [selectedChatId, setSelectedChatId] = useState("1");
+
+  // Chat state management
+  const { currentConversationId, setCurrentConversationId, messages } = useChatStore();
+  const conversationMessages = currentConversationId
+    ? messages[currentConversationId] || []
+    : [];
+
+  // Initialize conversation (load latest or create new)
+  const { isInitializing, error: initError } = useConversationInit();
+
+  // New chat creation
+  const { createNewChat, isCreating: isCreatingNewChat } = useNewChat();
+
+  // Fetch conversations with infinite scroll for sidebar
+  const {
+    data: infiniteConversationsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteConversations(20);
+
+  // Infinite scroll hook for loading more conversations
+  const loadMoreConversationsRef = useInfiniteScroll({
+    onLoadMore: () => fetchNextPage(),
+    hasMore: !!hasNextPage,
+    isLoading: isFetchingNextPage,
+  });
+
+  // Fetch messages for current conversation with infinite scroll
+  const {
+    fetchNextPage: fetchNextMessagePage,
+    hasNextPage: hasNextMessagePage,
+    isFetchingNextPage: isFetchingNextMessagePage,
+    isLoading: isLoadingMessages,
+  } = useMessages(currentConversationId, 50);
+
+  // Infinite scroll hook for loading older messages
+  const loadMoreMessagesRef = useInfiniteScroll({
+    onLoadMore: () => fetchNextMessagePage(),
+    hasMore: !!hasNextMessagePage,
+    isLoading: isFetchingNextMessagePage,
+  });
+
+  // Send message mutation
+  const { mutate: sendMessage, isPending: isSendingMessage } = useSendMessage();
+
+  // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const avatarButtonRef = useRef<HTMLDivElement>(null);
-
-  // Generate conversation ID with format: vonlabs-chat-{tenant_id}-{user_id}-{uuid}
-  const conversationId = useMemo(() => {
-    if (!user?.tenantId || !user?.id) return null;
-    return `vonlabs-chat-${user.tenantId}-${user.id}-${crypto.randomUUID()}`;
-  }, [user?.tenantId, user?.id]);
 
   // Show/hide connection banner based on connection error state
   useEffect(() => {
@@ -94,6 +144,75 @@ const Dashboard = () => {
     }
   };
 
+  // Chat handlers
+  const handleChatClick = (conversationId: string) => {
+    setCurrentConversationId(conversationId);
+  };
+
+  const handleNewChatClick = async () => {
+    try {
+      await createNewChat();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("[Dashboard] Failed to create new chat:", error);
+      }
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    // TODO: Implement search in next phase
+    console.log("Search:", value);
+  };
+
+  const handleChatError = (error: Error) => {
+    if (import.meta.env.DEV) {
+      console.error("[Dashboard] Chat error:", error);
+    }
+  };
+
+  const handleSendMessage = (content: string) => {
+    sendMessage(content);
+  };
+
+  // Handle Pusher messages from Chat component
+  const handlePusherMessage = (chatMessage: ChatMessage) => {
+    if (!currentConversationId) return;
+
+    // Convert Chat component message format to backend message format
+    const backendMessage: Message = {
+      id: chatMessage.id,
+      conversationId: currentConversationId,
+      messageType: "text",
+      messageContent: chatMessage.content,
+      role: chatMessage.type,
+      createdAt: chatMessage.timestamp?.toISOString() || new Date().toISOString(),
+      createdBy: chatMessage.type === "user" ? "current-user" : "assistant",
+    };
+
+    // Add or update message in Zustand store
+    const currentMessages = messages[currentConversationId] || [];
+    const existingIndex = currentMessages.findIndex(m => m.id === backendMessage.id);
+
+    if (existingIndex >= 0) {
+      // Update existing message (for streaming updates)
+      const updatedMessages = [...currentMessages];
+      updatedMessages[existingIndex] = backendMessage;
+      useChatStore.getState().setMessages(currentConversationId, updatedMessages);
+    } else {
+      // Add new message
+      useChatStore.getState().addMessage(currentConversationId, backendMessage);
+    }
+  };
+
+  // Transform backend messages to Chat component format
+  const transformedMessages: ChatMessage[] = conversationMessages.map((msg) => ({
+    id: msg.id,
+    type: msg.role === "user" ? "user" : "assistant",
+    content: msg.messageContent,
+    timestamp: new Date(msg.createdAt),
+    isStreaming: false,
+  }));
+
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
   const avatarSrc =
@@ -102,30 +221,33 @@ const Dashboard = () => {
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  const chatItems = [
-    { id: "1", label: "Team Review", timestamp: "Yesterday" },
-    { id: "2", label: "Forecast Q3", timestamp: "2 hours ago" },
-    { id: "3", label: "Sales Performance Analysis", timestamp: "Last week" },
-    { id: "4", label: "Revenue Projections", timestamp: "3 days ago" },
-    { id: "5", label: "Market Analysis", timestamp: "Last month" },
-  ];
+  // Flatten paginated conversations data
+  const allConversations =
+    infiniteConversationsData?.pages.flatMap((page) => page.data) || [];
 
-  // Handle chat errors
-  const handleChatError = (error: Error) => {
-    if (import.meta.env.DEV) {
-      console.error("[Dashboard] Chat error:", error);
-    }
-    // You can show an error banner or notification here
-  };
+  // Transform conversations for ChatSidebar
+  const chatItems = allConversations.map((conv) => ({
+    id: conv.id,
+    label: conv.title,
+    timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
+  }));
+
+  // Memoize pusherConfig to prevent unnecessary Pusher reconnections
+  const pusherConfig = useMemo(() => ({
+    key: import.meta.env.VITE_PUSHER_KEY || "",
+    cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
+    authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
+  }), []); // Empty deps since env vars don't change during runtime
 
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         backgroundColor: "#f5f5f7",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        overflow: "hidden", 
       }}
     >
       {/* Connection Error Banner */}
@@ -139,14 +261,25 @@ const Dashboard = () => {
         />
       )}
 
+      {/* Initialization Error Banner */}
+      {initError && (
+        <Banner
+          variant="error"
+          message="Failed to load conversations"
+          onClose={() => {}}
+          dismissible={false}
+        />
+      )}
+
       {/* Max-width container for large screens */}
       <div
         style={{
           width: "100%",
           maxWidth: "1440px",
+          height: "100%", 
           display: "flex",
           flexDirection: "column",
-          flex: 1,
+          overflow: "hidden", 
         }}
       >
         {/* TopBar in White Rounded Container */}
@@ -190,13 +323,18 @@ const Dashboard = () => {
             padding: "0 16px 16px 16px",
             gap: "8px",
             overflow: "hidden",
-            minHeight: 0,
+            minHeight: 0, 
           }}
         >
-          {/* Left Pane - ChatSidebar with rounded corners */}
+          {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
           <div
+            className="chat-sidebar-wrapper"
             style={{
               width: "280px",
+              height: "100%", 
+              display: "flex",
+              flexDirection: "column",
+              minHeight: 0, 
               borderRadius: "12px",
               overflow: "hidden",
               backgroundColor: "#FFFFFF",
@@ -205,16 +343,14 @@ const Dashboard = () => {
           >
             <ChatSidebar
               chatItems={chatItems}
-              selectedChatId={selectedChatId}
-              onChatClick={(id: string) => setSelectedChatId(id)}
-              onNewChatClick={() => {
-                console.log("New chat created");
-              }}
-              onSearchChange={(value: string) =>
-                console.log("Search chats:", value)
-              }
+              selectedChatId={currentConversationId || undefined}
+              onChatClick={handleChatClick}
+              onNewChatClick={handleNewChatClick}
+              onSearchChange={handleSearchChange}
               searchPlaceholder="Search conversations..."
               width="100%"
+              loadMoreRef={loadMoreConversationsRef}
+              isFetchingMore={isFetchingNextPage}
             />
           </div>
 
@@ -222,34 +358,54 @@ const Dashboard = () => {
           <div
             style={{
               flex: 1,
-              borderRadius: "12px",
-              overflow: "hidden",
-              backgroundColor: "#FFFFFF",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+              display: "flex",
               minWidth: 0,
             }}
           >
-            <Chat
-              title="von AI"
-              userId={user?.id}
-              apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
-              pusherConfig={{
-                key: import.meta.env.VITE_PUSHER_KEY || "",
-                cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-                authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
-              }}
-              conversationId={conversationId || undefined}
-              enableRealtime={
-                !!conversationId &&
-                !!import.meta.env.VITE_PUSHER_KEY &&
-                !!import.meta.env.VITE_PUSHER_CLUSTER
-              }
-              placeholder="Ask von anything"
-              onError={handleChatError}
-              variant="floating"
-              height="100%"
-              width="100%"
-            />
+            {isInitializing || isCreatingNewChat || (isLoadingMessages && conversationMessages.length === 0) ? (
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: "12px",
+                  fontSize: "14px",
+                  color: "#666",
+                }}
+              >
+                {isCreatingNewChat
+                  ? "Creating new chat..."
+                  : isLoadingMessages
+                    ? "Loading messages..."
+                    : "Loading chat..."}
+              </div>
+            ) : (
+              <Chat
+                title="von AI"
+                userId={user?.id}
+                apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
+                pusherConfig={pusherConfig}
+                conversationId={currentConversationId || undefined}
+                enableRealtime={
+                  !!currentConversationId &&
+                  !!import.meta.env.VITE_PUSHER_KEY &&
+                  !!import.meta.env.VITE_PUSHER_CLUSTER
+                }
+                messages={transformedMessages}
+                onSendMessage={handleSendMessage}
+                onPusherMessage={handlePusherMessage}
+                isLoading={isSendingMessage}
+                loadMoreRef={loadMoreMessagesRef}
+                isFetchingMore={isFetchingNextMessagePage}
+                placeholder="Ask von anything"
+                onError={handleChatError}
+                variant="floating"
+                height="100%"
+                width="100%"
+              />
+            )}
           </div>
         </div>
       </div>

@@ -35,7 +35,6 @@ export interface ChatHeaderProps {
  */
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   title = 'Chat',
-  onAddClick,
   onRefreshClick,
   onClose,
   showClose = false,
@@ -97,7 +96,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <div style={actionsStyles}>
         {!showClose && (
           <>
-            <button
+            {/* <button
               style={iconButtonStyles}
               onClick={onAddClick}
               aria-label="Add"
@@ -105,7 +104,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               onMouseLeave={handleMouseLeave}
             >
               +
-            </button>
+            </button> */}
             <button
               style={iconButtonStyles}
               onClick={onRefreshClick}

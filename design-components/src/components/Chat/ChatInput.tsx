@@ -47,10 +47,7 @@ export interface ChatInputProps {
 export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = 'Ask von anything',
   onSend,
-  onAsk,
-  onBuild,
   contextTag,
-  showActionButtons = true,
   disabled = false,
 }) => {
   const [message, setMessage] = useState('');
@@ -58,13 +55,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const handleSend = () => {
     if (message.trim() && onSend) {
       onSend(message.trim());
-      setMessage('');
-    }
-  };
-
-  const handleAsk = () => {
-    if (message.trim() && onAsk) {
-      onAsk(message.trim());
       setMessage('');
     }
   };
@@ -121,19 +111,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     fontFamily: fontFamily.text,
     color: semanticColors.text.primary,
     minWidth: 0, // Allow input to shrink
-  };
-
-  const actionButtonStyles: React.CSSProperties = {
-    padding: '6px 10px',
-    border: 'none',
-    backgroundColor: 'transparent',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    fontSize: '13px',
-    fontWeight: 500,
-    color: semanticColors.text.secondary,
-    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-    fontFamily: fontFamily.text,
-    borderRadius: '6px',
   };
 
   const plusButtonStyles: React.CSSProperties = {
@@ -209,7 +186,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           style={inputStyles}
         />
 
-        {showActionButtons && (
+        {/* {showActionButtons && (
           <>
             <button
               style={actionButtonStyles}
@@ -242,7 +219,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               Build
             </button>
           </>
-        )}
+        )} */}
 
         <button
           style={uploadButtonStyles}
