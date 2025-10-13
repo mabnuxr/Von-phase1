@@ -210,7 +210,6 @@ export function IntegrationsPanel({
     cancelAuthorization,
   ]);
 
-
   const emptyStateContainerStyle: React.CSSProperties = {
     padding: "24px",
     display: "flex",

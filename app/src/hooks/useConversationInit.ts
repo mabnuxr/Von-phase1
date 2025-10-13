@@ -51,7 +51,7 @@ export function useConversationInit() {
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useConversationInit] Loaded conversation: ${mostRecent.title} (${mostRecent.id})`
+          `[useConversationInit] Loaded conversation: ${mostRecent.title} (${mostRecent.id})`,
         );
       }
     } else {
@@ -82,13 +82,13 @@ export function useConversationInit() {
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useConversationInit] Created: ${response.conversation.id}`
+          `[useConversationInit] Created: ${response.conversation.id}`,
         );
       }
     } catch (error) {
       console.error(
         "[useConversationInit] Failed to create conversation:",
-        error
+        error,
       );
     }
   }

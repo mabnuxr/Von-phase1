@@ -51,7 +51,7 @@ export function useInfiniteScroll({
           onLoadMore();
         }
       },
-      { threshold: 1.0 } // Trigger when fully visible
+      { threshold: 1.0 }, // Trigger when fully visible
     );
 
     const currentRef = observerRef.current;

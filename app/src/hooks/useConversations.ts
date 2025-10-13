@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import type {
   PaginatedConversationsResponse,
@@ -43,7 +39,7 @@ export function useConversations(page: number = 1, limit: number = 20) {
 export function useConversationMessages(
   conversationId: string | null,
   page: number = 1,
-  limit: number = 50
+  limit: number = 50,
 ) {
   return useQuery<PaginatedMessagesResponse>({
     queryKey: conversationId
@@ -56,7 +52,7 @@ export function useConversationMessages(
       return conversationsService.getConversationMessages(
         conversationId,
         page,
-        limit
+        limit,
       );
     },
     enabled: !!conversationId,
@@ -76,10 +72,7 @@ export function useCreateConversation() {
       conversationsService.createConversation(title),
     onSuccess: (data) => {
       if (import.meta.env.DEV) {
-        console.log(
-          "[useCreateConversation] Created:",
-          data.conversation.id
-        );
+        console.log("[useCreateConversation] Created:", data.conversation.id);
       }
       // Invalidate all conversation lists to refetch
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });

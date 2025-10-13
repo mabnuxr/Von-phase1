@@ -123,7 +123,12 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
     };
 
     // Handle new-message event (immediate complete message - non-streaming)
-    const handleMessageReceived = (data: { id: string; messageContent?: string; content?: string; role: string }) => {
+    const handleMessageReceived = (data: {
+      id: string;
+      messageContent?: string;
+      content?: string;
+      role: string;
+    }) => {
       const { id, messageContent, content, role } = data;
       // Backend uses messageContent, fallback to content for compatibility
       const messageText = messageContent || content || '';

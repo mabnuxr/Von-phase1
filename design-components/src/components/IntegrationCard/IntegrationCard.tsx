@@ -172,7 +172,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
     left: '-100%',
     width: '200%',
     height: '100%',
-    background: 'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)',
+    background:
+      'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)',
     animation: 'shimmer 1.5s infinite',
   };
 
@@ -190,7 +191,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
     // Check if animation already exists
     const existingRule = Array.from(styleSheet.cssRules).find(
-      rule => rule instanceof CSSKeyframesRule && rule.name === 'shimmer'
+      (rule) => rule instanceof CSSKeyframesRule && rule.name === 'shimmer'
     );
 
     if (!existingRule) {
@@ -244,11 +245,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           aria-pressed={enabled}
           aria-busy={isLoading}
         >
-          {isLoading ? (
-            <div style={shimmerStyles} />
-          ) : (
-            <div style={toggleKnobStyles} />
-          )}
+          {isLoading ? <div style={shimmerStyles} /> : <div style={toggleKnobStyles} />}
         </button>
       </div>
     </div>

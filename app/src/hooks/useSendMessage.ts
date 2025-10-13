@@ -42,7 +42,7 @@ export function useSendMessage() {
       return conversationsService.sendMessage(
         currentConversationId,
         content,
-        "text"
+        "text",
       );
     },
 
@@ -50,7 +50,7 @@ export function useSendMessage() {
       if (import.meta.env.DEV) {
         console.log(
           "[useSendMessage] Message sent successfully:",
-          response.message.id
+          response.message.id,
         );
       }
       // Backend emits Pusher events:

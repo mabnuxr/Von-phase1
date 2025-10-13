@@ -11,7 +11,7 @@ interface ChatState {
   sidebarExpanded: boolean;
   setSidebarExpanded: (expand: boolean) => void;
 
-  // Messages state - keyed by conversationId. 
+  // Messages state - keyed by conversationId.
   messages: Record<string, Message[]>;
   setMessages: (conversationId: string, messages: Message[]) => void;
   addMessage: (conversationId: string, message: Message) => void;
@@ -57,10 +57,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
     set((state) => ({
       messages: {
         ...state.messages,
-        [conversationId]: [
-          ...(state.messages[conversationId] || []),
-          message,
-        ],
+        [conversationId]: [...(state.messages[conversationId] || []), message],
       },
     })),
 

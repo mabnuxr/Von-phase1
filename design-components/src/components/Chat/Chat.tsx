@@ -145,9 +145,7 @@ export const Chat: React.FC<ChatProps> = ({
       } else {
         // In uncontrolled mode, update internal state
         setInternalMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId ? { ...msg, content } : msg
-          )
+          prev.map((msg) => (msg.id === messageId ? { ...msg, content } : msg))
         );
       }
     },
@@ -379,7 +377,11 @@ export const Chat: React.FC<ChatProps> = ({
         showClose={isFixed || isFullPage}
       />
 
-      <div ref={messagesContainerRef} style={messagesContainerStyles} className="chat-messages-wrapper">
+      <div
+        ref={messagesContainerRef}
+        style={messagesContainerStyles}
+        className="chat-messages-wrapper"
+      >
         {/* Loading indicator for older messages (infinite scroll) */}
         {isFetchingMore && (
           <div

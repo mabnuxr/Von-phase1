@@ -20,11 +20,12 @@ import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  useAuthCheck(); 
+  useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
 
   // Chat state management
-  const { currentConversationId, setCurrentConversationId, messages } = useChatStore();
+  const { currentConversationId, setCurrentConversationId, messages } =
+    useChatStore();
   const conversationMessages = currentConversationId
     ? messages[currentConversationId] || []
     : [];
@@ -185,19 +186,24 @@ const Dashboard = () => {
       messageType: "text",
       messageContent: chatMessage.content,
       role: chatMessage.type,
-      createdAt: chatMessage.timestamp?.toISOString() || new Date().toISOString(),
+      createdAt:
+        chatMessage.timestamp?.toISOString() || new Date().toISOString(),
       createdBy: chatMessage.type === "user" ? "current-user" : "assistant",
     };
 
     // Add or update message in Zustand store
     const currentMessages = messages[currentConversationId] || [];
-    const existingIndex = currentMessages.findIndex(m => m.id === backendMessage.id);
+    const existingIndex = currentMessages.findIndex(
+      (m) => m.id === backendMessage.id,
+    );
 
     if (existingIndex >= 0) {
       // Update existing message (for streaming updates)
       const updatedMessages = [...currentMessages];
       updatedMessages[existingIndex] = backendMessage;
-      useChatStore.getState().setMessages(currentConversationId, updatedMessages);
+      useChatStore
+        .getState()
+        .setMessages(currentConversationId, updatedMessages);
     } else {
       // Add new message
       useChatStore.getState().addMessage(currentConversationId, backendMessage);
@@ -205,13 +211,15 @@ const Dashboard = () => {
   };
 
   // Transform backend messages to Chat component format
-  const transformedMessages: ChatMessage[] = conversationMessages.map((msg) => ({
-    id: msg.id,
-    type: msg.role === "user" ? "user" : "assistant",
-    content: msg.messageContent,
-    timestamp: new Date(msg.createdAt),
-    isStreaming: false,
-  }));
+  const transformedMessages: ChatMessage[] = conversationMessages.map(
+    (msg) => ({
+      id: msg.id,
+      type: msg.role === "user" ? "user" : "assistant",
+      content: msg.messageContent,
+      timestamp: new Date(msg.createdAt),
+      isStreaming: false,
+    }),
+  );
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
@@ -233,11 +241,14 @@ const Dashboard = () => {
   }));
 
   // Memoize pusherConfig to prevent unnecessary Pusher reconnections
-  const pusherConfig = useMemo(() => ({
-    key: import.meta.env.VITE_PUSHER_KEY || "",
-    cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-    authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
-  }), []); // Empty deps since env vars don't change during runtime
+  const pusherConfig = useMemo(
+    () => ({
+      key: import.meta.env.VITE_PUSHER_KEY || "",
+      cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
+      authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
+    }),
+    [],
+  ); // Empty deps since env vars don't change during runtime
 
   return (
     <div
@@ -247,7 +258,7 @@ const Dashboard = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        overflow: "hidden", 
+        overflow: "hidden",
       }}
     >
       {/* Connection Error Banner */}
@@ -276,10 +287,10 @@ const Dashboard = () => {
         style={{
           width: "100%",
           maxWidth: "1440px",
-          height: "100%", 
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden", 
+          overflow: "hidden",
         }}
       >
         {/* TopBar in White Rounded Container */}
@@ -323,7 +334,7 @@ const Dashboard = () => {
             padding: "0 16px 16px 16px",
             gap: "8px",
             overflow: "hidden",
-            minHeight: 0, 
+            minHeight: 0,
           }}
         >
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
@@ -331,10 +342,10 @@ const Dashboard = () => {
             className="chat-sidebar-wrapper"
             style={{
               width: "280px",
-              height: "100%", 
+              height: "100%",
               display: "flex",
               flexDirection: "column",
-              minHeight: 0, 
+              minHeight: 0,
               borderRadius: "12px",
               overflow: "hidden",
               backgroundColor: "#FFFFFF",
@@ -362,7 +373,9 @@ const Dashboard = () => {
               minWidth: 0,
             }}
           >
-            {isInitializing || isCreatingNewChat || (isLoadingMessages && conversationMessages.length === 0) ? (
+            {isInitializing ||
+            isCreatingNewChat ||
+            (isLoadingMessages && conversationMessages.length === 0) ? (
               <div
                 style={{
                   flex: 1,

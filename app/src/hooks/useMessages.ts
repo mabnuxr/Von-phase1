@@ -24,10 +24,7 @@ import useChatStore from "../store/chatStore";
  * const messages = useChatStore.use.messages()[currentConversationId] || [];
  * ```
  */
-export function useMessages(
-  conversationId: string | null,
-  limit: number = 50
-) {
+export function useMessages(conversationId: string | null, limit: number = 50) {
   const { setMessages, setIsLoadingMessages } = useChatStore();
 
   // Fetch messages with infinite scroll pagination
@@ -39,11 +36,7 @@ export function useMessages(
     isLoading,
     error,
   } = useInfiniteQuery({
-    queryKey: conversationKeys.messagesList(
-      conversationId || "none",
-      1,
-      limit
-    ),
+    queryKey: conversationKeys.messagesList(conversationId || "none", 1, limit),
     queryFn: ({ pageParam }) => {
       if (!conversationId) {
         throw new Error("Conversation ID is required");
@@ -51,7 +44,7 @@ export function useMessages(
       return conversationsService.getConversationMessages(
         conversationId,
         pageParam,
-        limit
+        limit,
       );
     },
     getNextPageParam: (lastPage) => {
@@ -96,7 +89,7 @@ export function useMessages(
 
     if (import.meta.env.DEV) {
       console.log(
-        `[useMessages] Synced ${allMessages.length} messages from ${pages.length} page(s) for conversation ${conversationId}`
+        `[useMessages] Synced ${allMessages.length} messages from ${pages.length} page(s) for conversation ${conversationId}`,
       );
     }
   }, [infiniteMessagesData, conversationId, setMessages]);

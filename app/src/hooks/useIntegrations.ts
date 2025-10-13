@@ -64,7 +64,10 @@ export function useAuthorizeIntegration() {
       } catch (e) {
         // Some browsers throw when accessing .location on blocked popups
         // Check if it's a security error (indicates blocked popup)
-        if (e instanceof Error && (e.name === "SecurityError" || e.message.includes("cross-origin"))) {
+        if (
+          e instanceof Error &&
+          (e.name === "SecurityError" || e.message.includes("cross-origin"))
+        ) {
           // This is actually okay - cross-origin restriction means popup opened successfully
           // The popup is on a different domain (OAuth provider)
         } else {
@@ -86,7 +89,7 @@ export function useAuthorizeIntegration() {
       // Don't use alert - let the UI component handle the error display
       if (error.message === "POPUP_BLOCKED") {
         throw new Error(
-          "Please allow popups for this site to complete OAuth authorization"
+          "Please allow popups for this site to complete OAuth authorization",
         );
       }
     },
@@ -103,7 +106,7 @@ const OAUTH_POLLING_TIMEOUT_MS = 30 * 1000;
  */
 export function useCheckAuthStatus(
   integrationId: string | null,
-  isAuthenticating: boolean
+  isAuthenticating: boolean,
 ) {
   const queryClient = useQueryClient();
   const pollingStartTimeRef = useRef<number | null>(null);
@@ -234,7 +237,7 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
   }, []);
 
   const activeAuthenticatingIds = authenticatingIds.filter(
-    (id) => !timedOutIntegrationsRef.current.has(id)
+    (id) => !timedOutIntegrationsRef.current.has(id),
   );
 
   const queries = activeAuthenticatingIds.map((id) => ({

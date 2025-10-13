@@ -49,7 +49,7 @@ export function useNewChat() {
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useNewChat] Created and switched to: ${response.conversation.id}`
+          `[useNewChat] Created and switched to: ${response.conversation.id}`,
         );
       }
 

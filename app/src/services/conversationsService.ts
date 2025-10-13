@@ -18,10 +18,10 @@ class ConversationsService {
    */
   async getConversations(
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ): Promise<PaginatedConversationsResponse> {
     return apiClient.get<PaginatedConversationsResponse>(
-      `/api/v1/chat/conversations?page=${page}&limit=${limit}`
+      `/api/v1/chat/conversations?page=${page}&limit=${limit}`,
     );
   }
 
@@ -31,7 +31,7 @@ class ConversationsService {
   async createConversation(title: string): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
-      { title }
+      { title },
     );
   }
 
@@ -40,7 +40,7 @@ class ConversationsService {
    */
   async getConversation(conversationId: string): Promise<Conversation> {
     return apiClient.get<Conversation>(
-      `/api/v1/chat/conversations/${conversationId}`
+      `/api/v1/chat/conversations/${conversationId}`,
     );
   }
 
@@ -50,10 +50,10 @@ class ConversationsService {
   async getConversationMessages(
     conversationId: string,
     page: number = 1,
-    limit: number = 50
+    limit: number = 50,
   ): Promise<PaginatedMessagesResponse> {
     return apiClient.get<PaginatedMessagesResponse>(
-      `/api/v1/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`
+      `/api/v1/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
     );
   }
 
@@ -63,11 +63,11 @@ class ConversationsService {
   async sendMessage(
     conversationId: string,
     content: string,
-    messageType: "text" | "json" | "markdown" = "text"
+    messageType: "text" | "json" | "markdown" = "text",
   ): Promise<CreateMessageResponse> {
     return apiClient.post<CreateMessageResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages`,
-      { content, messageType }
+      { content, messageType },
     );
   }
 
@@ -76,7 +76,7 @@ class ConversationsService {
    */
   async deleteConversation(conversationId: string): Promise<void> {
     return apiClient.delete<void>(
-      `/api/v1/chat/conversations/${conversationId}`
+      `/api/v1/chat/conversations/${conversationId}`,
     );
   }
 }

@@ -108,7 +108,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 500,
-    color: "white",
+    color: 'white',
     transition: 'all 0.2s ease',
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
@@ -144,7 +144,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     transition: 'background-color 0.15s ease',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
-    fontWeight: isSelected ? 500 : "normal", // 500 is medium weight
+    fontWeight: isSelected ? 500 : 'normal', // 500 is medium weight
     textOverflow: 'ellipsis',
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
@@ -174,7 +174,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* Section Header */}
       <div style={sectionHeaderStyles}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <circle cx="12" cy="12" r="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle
+            cx="12"
+            cy="12"
+            r="10"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           <path d="M12 6v6l4 2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         Past Chats

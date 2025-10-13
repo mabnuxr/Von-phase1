@@ -66,7 +66,8 @@ export class ErrorBoundary extends Component<Props, State> {
             height: "100vh",
             padding: "24px",
             backgroundColor: "#f5f5f7",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
           }}
         >
           <div
