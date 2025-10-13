@@ -13,6 +13,7 @@ export interface MessageStreamEvents {
   onMessageStart?: (messageId: string) => void;
   onMessageChunk?: (messageId: string, chunk: string) => void;
   onMessageComplete?: (messageId: string, fullContent: string) => void;
+  onMessageReceived?: (messageId: string, content: string, role: 'user' | 'assistant') => void;
   onError?: (error: Error) => void;
 }
 
@@ -25,110 +26,131 @@ export interface MessageStreamEvents {
 export function useMessageStream(channel: Channel | null, events: MessageStreamEvents = {}) {
   const [streamingMessages, setStreamingMessages] = useState<Map<string, string>>(new Map());
   const seenMessageIds = useRef<Set<string>>(new Set());
+  const eventsRef = useRef(events);
+
+  // Update ref when events change, but don't re-run effect
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
+
+  // Cleanup seen message IDs periodically to prevent unbounded growth
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const currentSize = seenMessageIds.current.size;
+
+      // If we have more than 100 seen messages, clear old ones
+      // Keep only the most recent by clearing half when limit reached
+      if (currentSize > 100) {
+        const idsArray = Array.from(seenMessageIds.current);
+        // Keep the newer half
+        seenMessageIds.current = new Set(idsArray.slice(Math.floor(currentSize / 2)));
+      }
+    }, 60000); // Run every minute
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
 
   useEffect(() => {
     if (!channel) {
-      console.log('[MessageStream] No channel available');
       return;
     }
 
-    console.log('[MessageStream] Setting up event listeners on channel:', channel.name);
-
     // Handle message start event
-    const handleMessageStart = (data: { message_id: string; role: string }) => {
-      console.log('[MessageStream] message.start received:', data);
-      const { message_id } = data;
+    const handleMessageStart = (data: { id: string; role: string }) => {
+      const { id } = data;
 
       // Prevent duplicate processing
-      if (seenMessageIds.current.has(message_id)) {
+      if (seenMessageIds.current.has(id)) {
         return;
       }
-      seenMessageIds.current.add(message_id);
+      seenMessageIds.current.add(id);
 
-      setStreamingMessages((prev) => new Map(prev).set(message_id, ''));
-      events.onMessageStart?.(message_id);
+      setStreamingMessages((prev) => new Map(prev).set(id, ''));
+      eventsRef.current.onMessageStart?.(id);
     };
 
     // Handle message chunk event (incremental streaming)
-    const handleMessageChunk = (data: { message_id: string; chunk: string; content?: string }) => {
-      console.log('[MessageStream] message.chunk received:', data);
-      const { message_id, chunk, content } = data;
+    const handleMessageChunk = (data: { id: string; chunk: string; content?: string }) => {
+      const { id, chunk, content } = data;
 
       setStreamingMessages((prev) => {
         const newMap = new Map(prev);
-        const current = newMap.get(message_id) || '';
+        const current = newMap.get(id) || '';
 
         // Support both incremental (chunk) and progressive (content) formats
         const newContent = content !== undefined ? content : current + chunk;
-        newMap.set(message_id, newContent);
+        newMap.set(id, newContent);
 
         return newMap;
       });
 
-      events.onMessageChunk?.(message_id, chunk || content || '');
+      eventsRef.current.onMessageChunk?.(id, chunk || content || '');
     };
 
     // Handle message complete event
-    const handleMessageComplete = (data: { message_id: string; content: string }) => {
-      console.log('[MessageStream] message.complete received:', data);
-      const { message_id, content } = data;
+    const handleMessageComplete = (data: { id: string; content: string }) => {
+      const { id, content } = data;
 
       setStreamingMessages((prev) => {
         const newMap = new Map(prev);
-        newMap.set(message_id, content);
+        newMap.set(id, content);
         return newMap;
       });
 
-      events.onMessageComplete?.(message_id, content);
+      eventsRef.current.onMessageComplete?.(id, content);
 
       // Clean up after a short delay to allow for final rendering
       setTimeout(() => {
         setStreamingMessages((prev) => {
           const newMap = new Map(prev);
-          newMap.delete(message_id);
+          newMap.delete(id);
           return newMap;
         });
       }, 100);
     };
 
     // Handle error event
-    const handleError = (data: { message_id: string; error: string }) => {
-      console.error('[MessageStream] message.error received:', data);
-      const { message_id, error } = data;
+    const handleError = (data: { id: string; error: string }) => {
+      const { id, error } = data;
 
       setStreamingMessages((prev) => {
         const newMap = new Map(prev);
-        newMap.delete(message_id);
+        newMap.delete(id);
         return newMap;
       });
 
-      events.onError?.(new Error(error));
+      eventsRef.current.onError?.(new Error(error));
     };
 
-    // Handle message.received event (immediate complete message - non-streaming)
-    const handleMessageReceived = (data: { message_id: string; content: string; role: string }) => {
-      console.log('[MessageStream] message.received received:', data);
-      const { message_id, content } = data;
+    // Handle new-message event (immediate complete message - non-streaming)
+    const handleMessageReceived = (data: { id: string; messageContent?: string; content?: string; role: string }) => {
+      const { id, messageContent, content, role } = data;
+      // Backend uses messageContent, fallback to content for compatibility
+      const messageText = messageContent || content || '';
 
-      // Treat as immediate start and complete (non-streaming response)
-      if (!seenMessageIds.current.has(message_id)) {
-        seenMessageIds.current.add(message_id);
-        events.onMessageStart?.(message_id);
+      // Prevent duplicate processing
+      if (seenMessageIds.current.has(id)) {
+        return;
       }
-      events.onMessageComplete?.(message_id, content);
+      seenMessageIds.current.add(id);
+
+      // Call onMessageReceived if available (for immediate messages like user messages)
+      if (eventsRef.current.onMessageReceived) {
+        eventsRef.current.onMessageReceived(id, messageText, role as 'user' | 'assistant');
+      } else {
+        // Fallback: treat as immediate start and complete (for backwards compatibility)
+        eventsRef.current.onMessageStart?.(id);
+        eventsRef.current.onMessageComplete?.(id, messageText);
+      }
     };
 
     // Bind to all Pusher events
     channel.bind('message.start', handleMessageStart);
     channel.bind('message.chunk', handleMessageChunk);
     channel.bind('message.complete', handleMessageComplete);
-    channel.bind('message.received', handleMessageReceived);
+    channel.bind('message.received', handleMessageReceived); // Legacy event name
+    channel.bind('new-message', handleMessageReceived); // Backend emits this
     channel.bind('message.error', handleError);
-
-    // Bind to all events for debugging
-    channel.bind_global((eventName: string, data: unknown) => {
-      console.log(`[MessageStream] Event received:`, eventName, data);
-    });
 
     // Cleanup
     return () => {
@@ -136,10 +158,18 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       channel.unbind('message.chunk', handleMessageChunk);
       channel.unbind('message.complete', handleMessageComplete);
       channel.unbind('message.received', handleMessageReceived);
+      channel.unbind('new-message', handleMessageReceived);
       channel.unbind('message.error', handleError);
-      channel.unbind_global();
     };
-  }, [channel, events]);
+  }, [channel]); // Only re-run when channel changes, not when event handlers change
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      seenMessageIds.current.clear();
+      setStreamingMessages(new Map());
+    };
+  }, []);
 
   return {
     streamingMessages,

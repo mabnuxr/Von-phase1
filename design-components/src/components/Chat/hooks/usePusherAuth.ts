@@ -33,6 +33,16 @@ export function usePusherAuth(
 
   useEffect(() => {
     if (!conversationId || !config.key) {
+      // Clean up any existing connection when conversationId becomes null
+      if (channelRef.current) {
+        pusherRef.current?.unsubscribe(channelRef.current.name);
+        channelRef.current = null;
+      }
+      if (pusherRef.current) {
+        pusherRef.current.disconnect();
+        pusherRef.current = null;
+      }
+      setIsConnected(false);
       return;
     }
 
@@ -63,48 +73,53 @@ export function usePusherAuth(
 
       pusherRef.current = pusher;
 
-      console.log(`[Pusher] Initializing with channel: private-${conversationId}`);
-      console.log(`[Pusher] Auth endpoint:`, config.authEndpoint);
-      console.log(`[Pusher] Has access token:`, !!accessToken);
+      if (import.meta.env.DEV) {
+        console.log(`[Pusher] Initializing channel: private-${conversationId}`);
+      }
 
       // Handle connection state changes
       pusher.connection.bind('connected', () => {
-        console.log('[Pusher] Connected to Pusher');
         setIsConnected(true);
         setError(null);
       });
 
       pusher.connection.bind('disconnected', () => {
-        console.log('[Pusher] Disconnected from Pusher');
         setIsConnected(false);
       });
 
       pusher.connection.bind('error', (err: { error?: { message?: string } }) => {
-        console.error('[Pusher] Connection error:', err);
+        if (import.meta.env.DEV) {
+          console.error('[Pusher] Connection error:', err);
+        }
         setError(new Error(err.error?.message || 'Pusher connection error'));
       });
 
       pusher.connection.bind('state_change', (states: { previous: string; current: string }) => {
-        console.log(`[Pusher] State changed: ${states.previous} -> ${states.current}`);
+        if (import.meta.env.DEV) {
+          console.log(`[Pusher] ${states.previous} -> ${states.current}`);
+        }
       });
 
       // Subscribe to conversation-specific private channel
-      // conversationId should be the full channel name (e.g., vonlabs-chat-{tenant_id}-{user_id}-{uuid})
+      // conversationId is the UUID from the database (e.g., "550e8400-e29b-41d4-a716-446655440000")
+      // Channel name becomes "private-{conversationId}"
       const channelName = `private-${conversationId}`;
-      console.log(`[Pusher] Subscribing to channel: ${channelName}`);
-
       const channel = pusher.subscribe(channelName);
 
       channelRef.current = channel;
 
       // Handle subscription success
       channel.bind('pusher:subscription_succeeded', () => {
-        console.log(`[Pusher] ✓ Successfully subscribed to ${channelName}`);
+        if (import.meta.env.DEV) {
+          console.log(`[Pusher] Subscribed to ${channelName}`);
+        }
       });
 
       // Handle subscription error
       channel.bind('pusher:subscription_error', (status: unknown) => {
-        console.error(`[Pusher] ✗ Subscription failed:`, status);
+        if (import.meta.env.DEV) {
+          console.error(`[Pusher] Subscription failed:`, status);
+        }
         setError(new Error(`Subscription failed: ${JSON.stringify(status)}`));
       });
     } catch (err) {

@@ -2,6 +2,7 @@ import {
   IntegrationCard,
   ConfirmationModal,
   Banner,
+  Text,
 } from "@vonlabs/design-components";
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
@@ -209,11 +210,22 @@ export function IntegrationsPanel({
     cancelAuthorization,
   ]);
 
+
+  const emptyStateContainerStyle: React.CSSProperties = {
+    padding: "24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "400px",
+  };
+
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading integrations...</div>
+      <div style={emptyStateContainerStyle}>
+        <Text variant="body" color="secondary">
+          Loading integrations...
+        </Text>
       </div>
     );
   }
@@ -236,11 +248,13 @@ export function IntegrationsPanel({
     );
   }
 
-  // Empty state
-  if (integrations.length === 0) {
+  // Empty state - only show if data is loaded and truly empty
+  if (!isLoading && (!integrationsData || integrations.length === 0)) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">No integrations available</div>
+      <div style={emptyStateContainerStyle}>
+        <Text variant="body" color="secondary">
+          No integrations available
+        </Text>
       </div>
     );
   }
@@ -284,6 +298,7 @@ export function IntegrationsPanel({
               integrationLogoPath={integration.integrationLogoPath}
               enabled={integration.enabled}
               disabled={isLoading}
+              loadingText={isLoading ? "Authenticating" : undefined}
               onToggle={(enabled) => handleToggle(integration.id, enabled)}
             />
           );
