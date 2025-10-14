@@ -95,7 +95,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
         ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-default'}
       `}
       style={{
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
       }}
       initial={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
       whileHover={
@@ -114,11 +115,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           alt={`${name} logo`}
           className="h-10 w-auto max-w-[120px] object-contain"
         />
-        <img
-          src="/Images/connection.svg"
-          alt="connection"
-          className="h-6 w-auto opacity-70"
-        />
+        <img src="/Images/connection.svg" alt="connection" className="h-6 w-auto opacity-70" />
         <img
           src="/Images/vonlabs.png"
           alt="Von logo"
@@ -129,9 +126,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       {/* Lower Section - Name, Status, and Toggle */}
       <div className="py-4 px-5 flex items-center justify-between bg-white">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold text-[#1d1d1f] m-0">
-            {name}
-          </h3>
+          <h3 className="text-sm font-semibold text-[#1d1d1f] m-0">{name}</h3>
           <p
             className={`
               text-xs m-0 font-medium
@@ -160,7 +155,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
               <motion.div
                 className="absolute inset-y-0 left-0 w-[200%]"
                 style={{
-                  background: 'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)'
+                  background:
+                    'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)',
                 }}
                 animate={{ x: ['0%', '50%'] }}
                 transition={{

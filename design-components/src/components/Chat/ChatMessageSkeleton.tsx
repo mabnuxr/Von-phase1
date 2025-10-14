@@ -11,9 +11,7 @@ export interface ChatMessageSkeletonProps {
 /**
  * Skeleton loader for chat messages with shimmer animation
  */
-export const ChatMessageSkeleton: React.FC<ChatMessageSkeletonProps> = ({
-  type = 'assistant',
-}) => {
+export const ChatMessageSkeleton: React.FC<ChatMessageSkeletonProps> = ({ type = 'assistant' }) => {
   const isUser = type === 'user';
 
   return (

@@ -1,11 +1,12 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /**
  * Tailwind v4 Theme Configuration
  * Custom design tokens for the design system
  */
 @theme {
-  --font-family-sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --font-family-sf:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
 }
 
 /**
@@ -13,7 +14,8 @@
  * Custom font family utility for SF Pro Text
  */
 .font-sf {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
 }
 
 /**

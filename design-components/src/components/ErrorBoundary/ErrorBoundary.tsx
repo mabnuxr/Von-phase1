@@ -68,9 +68,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             <div className="text-5xl mb-4">⚠️</div>
 
             {/* Error Title */}
-            <h1 className="text-2xl font-semibold mb-3 text-[#1a1a1a]">
-              Something went wrong
-            </h1>
+            <h1 className="text-2xl font-semibold mb-3 text-[#1a1a1a]">Something went wrong</h1>
 
             {/* Error Message */}
             <p className="text-sm text-gray-600 mb-6 leading-relaxed">

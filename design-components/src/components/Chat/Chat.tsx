@@ -335,7 +335,9 @@ export const Chat: React.FC<ChatProps> = ({
     'bg-white',
     'antialiased',
     'font-sf',
-    isFullPage ? 'w-screen h-screen rounded-none border-none' : `rounded-2xl border border-gray-200`,
+    isFullPage
+      ? 'w-screen h-screen rounded-none border-none'
+      : `rounded-2xl border border-gray-200`,
     isFixed && 'fixed z-[1000] shadow-[0_8px_24px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.08)]',
     !isFixed && !isFullPage && 'shadow-[0_4px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]',
     isFullPage && 'fixed inset-0 z-[999]',
@@ -345,8 +347,8 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Inline styles only for dynamic width/height and fixedPosition
   const containerStyles: React.CSSProperties = {
-    ...((!isFullPage && width) && { width }),
-    ...((!isFullPage && height) && { height }),
+    ...(!isFullPage && width && { width }),
+    ...(!isFullPage && height && { height }),
     ...(isFixed && fixedPosition),
   };
 
@@ -432,9 +434,7 @@ export const Chat: React.FC<ChatProps> = ({
         </AnimatePresence>
 
         {/* Loading indicator for new message - Enhanced typing indicator */}
-        <AnimatePresence>
-          {isLoading && <ChatTypingIndicator />}
-        </AnimatePresence>
+        <AnimatePresence>{isLoading && <ChatTypingIndicator />}</AnimatePresence>
 
         {/* Invisible div for auto-scroll to bottom */}
         <div ref={messagesEndRef} className="h-px" />
