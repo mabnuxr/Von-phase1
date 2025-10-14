@@ -5,7 +5,9 @@
  * Custom design tokens for the application
  */
 @theme {
-  --font-family-sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --font-family-sf:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
+    sans-serif;
 }
 
 /**
@@ -27,7 +29,9 @@ body,
  * Custom font family utility for SF Pro Text
  */
 .font-sf {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
+    sans-serif;
 }
 
 /**

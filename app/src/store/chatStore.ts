@@ -59,7 +59,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
       const messageExists = existingMessages.some((m) => m.id === message.id);
 
       if (messageExists) {
-        return state; 
+        return state;
       }
 
       return {

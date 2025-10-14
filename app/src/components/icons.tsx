@@ -27,7 +27,7 @@ export const SettingsIcon = memo<IconProps>(
         strokeLinejoin="round"
       />
     </svg>
-  )
+  ),
 );
 SettingsIcon.displayName = "SettingsIcon";
 
@@ -53,7 +53,7 @@ export const LogoutIcon = memo<IconProps>(
         strokeLinejoin="round"
       />
     </svg>
-  )
+  ),
 );
 LogoutIcon.displayName = "LogoutIcon";
 
@@ -73,7 +73,7 @@ export const IntegrationsIcon = memo<IconProps>(
         strokeLinejoin="round"
       />
     </svg>
-  )
+  ),
 );
 IntegrationsIcon.displayName = "IntegrationsIcon";
 
@@ -95,7 +95,7 @@ export const PlusIcon = memo<IconProps>(
         strokeLinejoin="round"
       />
     </svg>
-  )
+  ),
 );
 PlusIcon.displayName = "PlusIcon";
 
@@ -125,7 +125,7 @@ export const ClockIcon = memo<IconProps>(
         strokeLinejoin="round"
       />
     </svg>
-  )
+  ),
 );
 ClockIcon.displayName = "ClockIcon";
 
@@ -153,6 +153,6 @@ export const DocumentIcon = memo<IconProps>(
         strokeLinejoin="round"
       />
     </svg>
-  )
+  ),
 );
 DocumentIcon.displayName = "DocumentIcon";

@@ -13,7 +13,7 @@ import { authService } from "../services";
 
 const Settings = () => {
   const navigate = useNavigate();
-  useAuthCheck(); 
+  useAuthCheck();
   const { user } = useUser();
   const [selectedSettingId, setSelectedSettingId] = useState("integrations");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);

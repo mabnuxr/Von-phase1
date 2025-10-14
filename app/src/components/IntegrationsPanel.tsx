@@ -65,7 +65,7 @@ export function IntegrationsPanel({
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
       )
       .map((i: { id: string }) => i.id) || [];
 
@@ -77,7 +77,7 @@ export function IntegrationsPanel({
 
   // Track timeout warnings that have been shown
   const [shownTimeoutWarnings, setShownTimeoutWarnings] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Disable confirmation modal state
@@ -124,9 +124,9 @@ export function IntegrationsPanel({
           enabled:
             backendIntegration.authenticationStatus ===
             AuthenticationStatus.AUTHENTICATED,
-        })
+        }),
       ) || [],
-    [integrationsData]
+    [integrationsData],
   );
 
   const handleToggle = async (id: string, enabled: boolean) => {
@@ -196,7 +196,7 @@ export function IntegrationsPanel({
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`
+            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`,
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
           cancelAuthorization.mutate(id);
@@ -268,7 +268,7 @@ export function IntegrationsPanel({
       <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
         {integrations.map((integration) => {
           const backendIntegration = integrationsData?.integrations.find(
-            (i: { id: string }) => i.id === integration.id
+            (i: { id: string }) => i.id === integration.id,
           );
           const isAuthenticating =
             backendIntegration?.authenticationStatus ===

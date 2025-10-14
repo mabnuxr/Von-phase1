@@ -38,7 +38,7 @@ export default function Callback() {
     try {
       const tokenUrl = new URL(
         config.scalekitTokenPath,
-        config.scalekitAuthBaseUrl
+        config.scalekitAuthBaseUrl,
       ).toString();
       const form = new URLSearchParams();
       form.set("grant_type", config.oauthGrantType);
