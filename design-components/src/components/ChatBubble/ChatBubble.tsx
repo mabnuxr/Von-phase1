@@ -1,5 +1,4 @@
 import React from 'react';
-import { colors } from '../../theme';
 
 export interface ChatBubbleProps {
   /**
@@ -60,50 +59,44 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
 }) => {
   const isUser = type === 'user';
 
-  const containerStyles: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: isUser ? 'flex-end' : 'flex-start',
-    alignItems: 'flex-start',
-    gap: '8px',
-    marginBottom: 0,
-  };
-
-  const bubbleStyles: React.CSSProperties = {
-    maxWidth: isUser ? '70%' : '100%',
-    padding: isUser ? '10px 14px' : '0',
-    backgroundColor: isUser ? '#E8EEF7' : 'transparent',
-    borderRadius: isUser ? '16px' : '0',
-    fontSize: '14px',
-    lineHeight: 1.5,
-    color: '#1d1d1f',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-    boxShadow: isUser ? '0 1px 2px rgba(0,0,0,0.04)' : 'none',
-  };
-
-  const avatarStyles: React.CSSProperties = {
-    width: '22px',
-    height: '22px',
-    borderRadius: '50%',
-    backgroundColor: avatarColor,
-    color: colors.common.white,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '10px',
-    fontWeight: 600,
-    flexShrink: 0,
-  };
-
   return (
-    <div className={className} style={containerStyles}>
-      {!isUser && showAvatar && <div style={avatarStyles}>{avatarLabel}</div>}
-      <div style={bubbleStyles}>{content}</div>
-      {isUser && showAvatar && <div style={avatarStyles}>{avatarLabel}</div>}
+    <div
+      className={`flex items-start gap-2 mb-0 ${isUser ? 'justify-end' : 'justify-start'} ${className || ''}`}
+    >
+      {/* Avatar - Left side for assistant */}
+      {!isUser && showAvatar && (
+        <div
+          className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold text-white flex-shrink-0"
+          style={{ backgroundColor: avatarColor }}
+        >
+          {avatarLabel}
+        </div>
+      )}
+
+      {/* Message Bubble */}
+      <div
+        className={`
+          text-sm leading-relaxed text-[#1d1d1f] font-sans antialiased
+          whitespace-pre-wrap break-words
+          ${
+            isUser
+              ? 'max-w-[70%] px-3.5 py-2.5 bg-[#E8EEF7] rounded-2xl shadow-sm'
+              : 'max-w-full p-0 bg-transparent'
+          }
+        `}
+      >
+        {content}
+      </div>
+
+      {/* Avatar - Right side for user */}
+      {isUser && showAvatar && (
+        <div
+          className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-semibold text-white flex-shrink-0"
+          style={{ backgroundColor: avatarColor }}
+        >
+          {avatarLabel}
+        </div>
+      )}
     </div>
   );
 };

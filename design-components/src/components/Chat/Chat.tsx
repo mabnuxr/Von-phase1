@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { spacing, fontFamily, fontSize, semanticColors } from '../../theme';
+import { ChatEmptyState } from './ChatEmptyState';
+import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { usePusherAuth } from './hooks/usePusherAuth';
 import { useMessageStream } from './hooks/useMessageStream';
 import { sendMessage as apiSendMessage } from './utils/api';
@@ -42,6 +44,7 @@ export const Chat: React.FC<ChatProps> = ({
   onRefreshClick,
   onClose,
   onError,
+  onPusherMessage,
   placeholder = 'Ask von anything',
   isLoading: controlledIsLoading = false,
   height = '600px',
@@ -50,9 +53,18 @@ export const Chat: React.FC<ChatProps> = ({
   fixedPosition = { bottom: '24px', right: '24px' },
   enableRealtime = false,
   conversationId,
+  loadMoreRef,
+  isFetchingMore = false,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
+
+  // Ref for auto-scrolling to bottom
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Track last seen message ID for smart scrolling
+  const lastSeenMessageIdRef = useRef<string | null>(null);
 
   // Internal state for real-time mode
   const [internalMessages, setInternalMessages] = useState<Message[]>([]);
@@ -63,6 +75,20 @@ export const Chat: React.FC<ChatProps> = ({
   const messages = isControlled ? controlledMessages : internalMessages;
   const isLoading = isControlled ? controlledIsLoading : internalIsLoading;
 
+  /**
+   * Check if user is near the bottom of the scroll container
+   * Used to determine if we should auto-scroll when new messages arrive
+   */
+  const isNearBottom = useCallback(() => {
+    if (!messagesContainerRef.current) return true;
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    // Consider "near bottom" if within 100px
+    return distanceFromBottom < 100;
+  }, []);
+
   // Pusher integration (only when enableRealtime is true)
   const { channel, error: pusherError } = usePusherAuth(
     enableRealtime && conversationId ? conversationId : null,
@@ -71,34 +97,77 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Message streaming (only when channel is available)
   const { streamingMessages } = useMessageStream(enableRealtime ? channel : null, {
+    onMessageReceived: (messageId, content, role) => {
+      // Handle immediate complete messages (user messages after POST, or assistant non-streaming)
+      const receivedMessage: Message = {
+        id: messageId,
+        type: role,
+        content,
+        isStreaming: false,
+        timestamp: new Date(),
+      };
+
+      if (isControlled) {
+        // In controlled mode, notify parent to add complete message
+        onPusherMessage?.(receivedMessage);
+      } else {
+        // In uncontrolled mode, add to internal state
+        setInternalMessages((prev) => [...prev, receivedMessage]);
+      }
+    },
     onMessageStart: (messageId) => {
-      if (!isControlled) {
-        setInternalMessages((prev) => [
-          ...prev,
-          {
-            id: messageId,
-            type: 'assistant',
-            content: '',
-            isStreaming: true,
-            timestamp: new Date(),
-          },
-        ]);
+      const newMessage: Message = {
+        id: messageId,
+        type: 'assistant',
+        content: '',
+        isStreaming: true,
+        timestamp: new Date(),
+      };
+
+      if (isControlled) {
+        // In controlled mode, notify parent to add message
+        onPusherMessage?.(newMessage);
+      } else {
+        // In uncontrolled mode, update internal state
+        setInternalMessages((prev) => [...prev, newMessage]);
       }
     },
     onMessageChunk: (messageId) => {
-      if (!isControlled) {
+      const content = streamingMessages.get(messageId) || '';
+
+      if (isControlled) {
+        // In controlled mode, notify parent to update message
+        onPusherMessage?.({
+          id: messageId,
+          type: 'assistant',
+          content,
+          isStreaming: true,
+          timestamp: new Date(),
+        });
+      } else {
+        // In uncontrolled mode, update internal state
         setInternalMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId ? { ...msg, content: streamingMessages.get(messageId) || '' } : msg
-          )
+          prev.map((msg) => (msg.id === messageId ? { ...msg, content } : msg))
         );
       }
     },
     onMessageComplete: (messageId, fullContent) => {
-      if (!isControlled) {
+      const completedMessage: Message = {
+        id: messageId,
+        type: 'assistant',
+        content: fullContent,
+        isStreaming: false,
+        timestamp: new Date(),
+      };
+
+      if (isControlled) {
+        // In controlled mode, notify parent of completed message
+        onPusherMessage?.(completedMessage);
+      } else {
+        // In uncontrolled mode, update internal state
         setInternalMessages((prev) => {
           const updatedMessages = prev.map((msg) =>
-            msg.id === messageId ? { ...msg, content: fullContent, isStreaming: false } : msg
+            msg.id === messageId ? completedMessage : msg
           );
 
           // Save to localStorage
@@ -144,6 +213,53 @@ export const Chat: React.FC<ChatProps> = ({
       onError?.(pusherError);
     }
   }, [pusherError, onError]);
+
+  // Smart auto-scroll: Only scroll when appropriate using Message ID tracking
+  useEffect(() => {
+    if (messages.length === 0 || !messagesEndRef.current) return;
+
+    const lastMessage = messages[messages.length - 1];
+    const lastSeenId = lastSeenMessageIdRef.current;
+
+    // Detect if this is a NEW message (not just a re-render or older message load)
+    const isNewMessage = lastSeenId !== lastMessage.id;
+
+    if (isNewMessage && !isFetchingMore) {
+      // Determine if we should scroll:
+      // 1. Always scroll for user's own messages (they just sent it)
+      // 2. For assistant messages, only scroll if user is near bottom
+      //    (don't interrupt if they're reading older messages)
+      const shouldScroll = lastMessage.type === 'user' || isNearBottom();
+
+      if (shouldScroll) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // Update last seen message ID
+      lastSeenMessageIdRef.current = lastMessage.id;
+    }
+  }, [messages, isFetchingMore, isNearBottom]);
+
+  // Always scroll to bottom when conversation changes (switching conversations)
+  useEffect(() => {
+    if (conversationId && messages.length > 0 && messagesEndRef.current) {
+      // Reset tracking for new conversation
+      lastSeenMessageIdRef.current = null;
+
+      // Capture last message ID outside timeout to avoid stale closure
+      const lastMessageId = messages[messages.length - 1]?.id;
+
+      // Use timeout to ensure DOM is fully updated
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+
+        // Set initial last seen message ID
+        if (lastMessageId) {
+          lastSeenMessageIdRef.current = lastMessageId;
+        }
+      }, 100);
+    }
+  }, [conversationId, messages]);
 
   // Handle sending a message
   const handleSendMessage = useCallback(
@@ -211,50 +327,33 @@ export const Chat: React.FC<ChatProps> = ({
     ]
   );
 
-  const containerStyles: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    width: isFullPage ? '100vw' : width,
-    height: isFullPage ? '100vh' : height,
-    backgroundColor: semanticColors.background.primary,
-    borderRadius: isFullPage ? '0' : '16px',
-    border: isFullPage ? 'none' : `1px solid ${semanticColors.border.default}`,
-    overflow: 'hidden',
-    boxShadow: isFixed
-      ? '0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08)'
-      : isFullPage
-        ? 'none'
-        : '0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04)',
-    fontFamily: fontFamily.text,
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-    ...(isFixed && {
-      position: 'fixed',
-      zIndex: 1000,
-      ...fixedPosition,
-    }),
-    ...(isFullPage && {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      zIndex: 999,
-    }),
-  };
+  // Generate container class names based on variant
+  const containerClassName = [
+    'flex',
+    'flex-col',
+    'overflow-hidden',
+    'bg-white',
+    'antialiased',
+    'font-sf',
+    isFullPage
+      ? 'w-screen h-screen rounded-none border-none'
+      : `rounded-2xl border border-gray-200`,
+    isFixed && 'fixed z-[1000] shadow-[0_8px_24px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.08)]',
+    !isFixed && !isFullPage && 'shadow-[0_4px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]',
+    isFullPage && 'fixed inset-0 z-[999]',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  const messagesContainerStyles: React.CSSProperties = {
-    flex: 1,
-    overflowY: 'auto',
-    padding: spacing[5],
-    display: 'flex',
-    flexDirection: 'column',
-    gap: spacing[4],
-    backgroundColor: semanticColors.background.primary,
+  // Inline styles only for dynamic width/height and fixedPosition
+  const containerStyles: React.CSSProperties = {
+    ...(!isFullPage && width && { width }),
+    ...(!isFullPage && height && { height }),
+    ...(isFixed && fixedPosition),
   };
 
   return (
-    <div style={containerStyles}>
+    <div className={containerClassName} style={containerStyles}>
       <ChatHeader
         title={title}
         onAddClick={onAddClick}
@@ -263,32 +362,82 @@ export const Chat: React.FC<ChatProps> = ({
         showClose={isFixed || isFullPage}
       />
 
-      <div style={messagesContainerStyles}>
-        {messages.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              color: semanticColors.text.tertiary,
-              padding: spacing[6],
-              fontSize: fontSize.sm.size,
-              lineHeight: fontSize.sm.lineHeight,
-            }}
-          >
-            No messages yet. Start a conversation!
-          </div>
-        ) : (
-          messages.map((message) => (
-            <ChatMessage
-              key={message.id}
-              type={message.type}
-              content={message.content}
-              timestamp={message.timestamp}
-              activeTab={message.activeTab}
-              isLoading={message.isStreaming}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-white chat-messages-wrapper"
+      >
+        {/* Loading indicator for older messages (infinite scroll) */}
+        <AnimatePresence>
+          {isFetchingMore && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="text-center py-3 text-xs text-gray-500 font-sf"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="inline-block"
+              >
+                ⟳
+              </motion.div>{' '}
+              Loading older messages...
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Infinite scroll trigger at TOP (for loading older messages) */}
+        {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
+
+        {/* Messages or Empty State */}
+        <AnimatePresence mode="wait">
+          {messages.length === 0 ? (
+            <ChatEmptyState
+              key="empty-state"
+              onPromptClick={(prompt) => {
+                handleSendMessage(prompt);
+              }}
             />
-          ))
-        )}
-        {isLoading && <ChatMessage type="assistant" content="Thinking..." isLoading />}
+          ) : (
+            <motion.div
+              key={conversationId || 'messages'}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {messages.map((message) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{
+                    duration: 0.2,
+                    ease: 'easeOut',
+                  }}
+                  layout
+                >
+                  <ChatMessage
+                    type={message.type}
+                    content={message.content}
+                    timestamp={message.timestamp}
+                    activeTab={message.activeTab}
+                    isLoading={message.isStreaming}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Loading indicator for new message - Enhanced typing indicator */}
+        <AnimatePresence>{isLoading && <ChatTypingIndicator />}</AnimatePresence>
+
+        {/* Invisible div for auto-scroll to bottom */}
+        <div ref={messagesEndRef} className="h-px" />
       </div>
 
       <ChatInput placeholder={placeholder} onSend={handleSendMessage} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { colors, spacing, fontFamily, fontSize, fontWeight, semanticColors } from '../../theme';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ChatMessageProps {
   /**
@@ -36,142 +36,132 @@ export interface ChatMessageProps {
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
-  timestamp,
   isLoading = false,
   activeTab: initialActiveTab = 'output',
 }) => {
   const isUser = type === 'user';
   const [activeTab, setActiveTab] = useState<'output' | 'sources' | 'thought'>(initialActiveTab);
 
-  const messageContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: isUser ? 'flex-end' : 'flex-start',
-    width: '100%',
-  };
-
-  const messageBubbleStyles: React.CSSProperties = {
-    maxWidth: '85%',
-    borderRadius: '16px', // More Apple-like rounded corners
-    fontSize: fontSize.sm.size,
-    lineHeight: fontSize.sm.lineHeight,
-    wordWrap: 'break-word',
-    fontFamily: fontFamily.text,
-    backgroundColor: isUser ? colors.primary[50] : semanticColors.background.primary, // Subtle light blue for user
-    color: isUser ? colors.primary[700] : semanticColors.text.primary, // Dark blue text for user messages
-    border: `1px solid ${isUser ? colors.primary[100] : semanticColors.border.default}`,
-    boxShadow: isUser ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.04)', // Subtle shadow for assistant messages
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-    overflow: 'hidden',
-  };
-
-  const messageContentStyles: React.CSSProperties = {
-    padding: `${spacing[3]} ${spacing[4]}`, // More generous padding
-  };
-
-  const tabsContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    gap: spacing[4],
-    padding: `${spacing[2]} ${spacing[4]}`,
-    borderBottom: `1px solid ${semanticColors.border.default}`,
-    backgroundColor: 'transparent', // Clean transparent background
-  };
-
-  const tabStyles = (isActive: boolean): React.CSSProperties => ({
-    fontSize: fontSize.xs.size,
-    lineHeight: fontSize.xs.lineHeight,
-    fontWeight: isActive ? fontWeight.semibold : fontWeight.medium,
-    color: isActive ? semanticColors.text.primary : semanticColors.text.secondary,
-    cursor: 'pointer',
-    padding: `${spacing[1]} ${spacing[2]}`,
-    borderRadius: '6px',
-    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)', // Snappier transition
-    userSelect: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing[1],
-    backgroundColor: isActive ? semanticColors.background.secondary : 'transparent',
-  });
-
-  const timestampStyles: React.CSSProperties = {
-    fontSize: fontSize.xs.size,
-    lineHeight: fontSize.xs.lineHeight,
-    color: semanticColors.text.tertiary,
-    marginTop: spacing[1],
-    textAlign: isUser ? 'right' : 'left',
-    fontFamily: fontFamily.text,
-  };
-
-  const loadingContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    gap: spacing[1],
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  };
-
-  const dotStyles = (delay: number): React.CSSProperties => ({
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: semanticColors.text.secondary,
-    animation: `bounce 1.4s ease-in-out ${delay}s infinite`,
-  });
-
   return (
     <div>
-      <div style={messageContainerStyles}>
-        <div style={messageBubbleStyles}>
+      {/* Message Container */}
+      <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
+        {/* Message Bubble */}
+        <div
+          className={`
+            max-w-[85%] rounded-2xl text-sm break-words antialiased overflow-hidden
+            ${
+              isUser
+                ? 'bg-[#E8EEF7] text-[#1d1d1f] border border-blue-100'
+                : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+            }
+          `}
+        >
+          {/* Tabs for assistant messages */}
           {!isUser && !isLoading && (
-            <div style={tabsContainerStyles}>
-              <div style={tabStyles(activeTab === 'output')} onClick={() => setActiveTab('output')}>
+            <div className="flex gap-4 px-4 py-2 border-b border-gray-200 bg-transparent">
+              <div
+                className={`
+                  text-xs cursor-pointer px-2 py-1 rounded-md transition-all duration-150
+                  flex items-center gap-1 select-none
+                  ${
+                    activeTab === 'output'
+                      ? 'font-semibold text-gray-900 bg-gray-100'
+                      : 'font-medium text-gray-600 bg-transparent hover:bg-gray-50'
+                  }
+                `}
+                onClick={() => setActiveTab('output')}
+              >
                 <span>≡</span> Output
               </div>
               <div
-                style={tabStyles(activeTab === 'sources')}
+                className={`
+                  text-xs cursor-pointer px-2 py-1 rounded-md transition-all duration-150
+                  flex items-center gap-1 select-none
+                  ${
+                    activeTab === 'sources'
+                      ? 'font-semibold text-gray-900 bg-gray-100'
+                      : 'font-medium text-gray-600 bg-transparent hover:bg-gray-50'
+                  }
+                `}
                 onClick={() => setActiveTab('sources')}
               >
                 <span>⊞</span> Sources
               </div>
               <div
-                style={tabStyles(activeTab === 'thought')}
+                className={`
+                  text-xs cursor-pointer px-2 py-1 rounded-md transition-all duration-150
+                  flex items-center gap-1 select-none
+                  ${
+                    activeTab === 'thought'
+                      ? 'font-semibold text-gray-900 bg-gray-100'
+                      : 'font-medium text-gray-600 bg-transparent hover:bg-gray-50'
+                  }
+                `}
                 onClick={() => setActiveTab('thought')}
               >
                 <span>◇</span> Thought
               </div>
             </div>
           )}
-          <div style={messageContentStyles}>
-            {isLoading ? (
-              <div style={loadingContainerStyles}>
-                <div style={dotStyles(0)} />
-                <div style={dotStyles(0.2)} />
-                <div style={dotStyles(0.4)} />
-              </div>
-            ) : (
-              content
-            )}
+
+          {/* Message Content */}
+          <div className="px-4 py-3">
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  key="loading"
+                  className="flex gap-1 items-center justify-start"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-gray-500"
+                    animate={{ y: [0, -10, 0], opacity: [0.7, 1, 0.7] }}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    }}
+                  />
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-gray-500"
+                    animate={{ y: [0, -10, 0], opacity: [0.7, 1, 0.7] }}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: 0.2,
+                    }}
+                  />
+                  <motion.div
+                    className="w-2 h-2 rounded-full bg-gray-500"
+                    animate={{ y: [0, -10, 0], opacity: [0.7, 1, 0.7] }}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                      delay: 0.4,
+                    }}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={`content-${activeTab}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {content}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
-      {timestamp && !isLoading && (
-        <div style={timestampStyles}>
-          {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      )}
-      <style>
-        {`
-          @keyframes bounce {
-            0%, 60%, 100% {
-              transform: translateY(0);
-              opacity: 0.7;
-            }
-            30% {
-              transform: translateY(-10px);
-              opacity: 1;
-            }
-          }
-        `}
-      </style>
     </div>
   );
 };

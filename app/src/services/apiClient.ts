@@ -53,7 +53,12 @@ export class ApiClient {
     if (!skipAuth) {
       const token = getAccessToken();
       if (token) {
-        headers.Authorization = `Bearer ${token}`;
+        const trimmedToken = token.trim();
+        if (trimmedToken) {
+          headers.Authorization = `Bearer ${trimmedToken}`;
+        } else if (import.meta.env.DEV) {
+          console.warn("[API] Empty access token found");
+        }
       }
     }
 

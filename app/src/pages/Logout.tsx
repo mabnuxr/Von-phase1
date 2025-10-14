@@ -46,7 +46,7 @@ function Logout() {
   }, []);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="p-6">
       <h1>Logging out...</h1>
       <p>Clearing your session...</p>
     </div>

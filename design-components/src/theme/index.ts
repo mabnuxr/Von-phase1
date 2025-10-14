@@ -1,6 +1,15 @@
 /**
  * Design system theme
  * Central export for all design tokens
+ *
+ * @deprecated This theme system is being migrated to Tailwind CSS.
+ * For new components, use Tailwind utility classes instead of importing from this file.
+ *
+ * Migration status (as of Oct 2024):
+ * - ✅ Chat components (Chat, ChatHeader, ChatInput, ChatMessage, ChatEmptyState)
+ * - ⏳ Pending: Avatar, Box, Button, Container, Dropdown, Header, Input, Menu, Stack, TabPill, Text, TopBar, etc.
+ *
+ * See: /design-components/src/index.css for Tailwind configuration
  */
 
 import { colors as colorsImport, semanticColors as semanticColorsImport } from './colors';

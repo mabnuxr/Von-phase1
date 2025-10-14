@@ -98,14 +98,14 @@ export default function Callback() {
 
   if (!code) {
     return (
-      <div style={{ padding: 24 }}>
+      <div className="p-6">
         <p>Missing authorization code. Redirecting...</p>
       </div>
     );
   }
 
   if (isExchanging) {
-    return <div style={{ padding: 24 }}>Processing authentication...</div>;
+    return <div className="p-6">Processing authentication...</div>;
   }
-  return <div style={{ padding: 24 }}>Processing authentication...</div>;
+  return <div className="p-6">Processing authentication...</div>;
 }

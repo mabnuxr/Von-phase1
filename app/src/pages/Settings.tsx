@@ -7,12 +7,13 @@ import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
+import { IntegrationsIcon } from "../components/icons";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 
 const Settings = () => {
   const navigate = useNavigate();
-  useAuthCheck(); // Check authentication and redirect if not authenticated
+  useAuthCheck();
   const { user } = useUser();
   const [selectedSettingId, setSelectedSettingId] = useState("integrations");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -86,16 +87,7 @@ const Settings = () => {
     {
       id: "integrations",
       label: "Integrations",
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path
-            d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ),
+      icon: <IntegrationsIcon />,
     },
   ];
 
@@ -117,20 +109,14 @@ const Settings = () => {
       case "sales-process":
       case "manager-agent":
         return (
-          <div
-            style={{
-              padding: "24px",
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-            }}
-          >
-            <h1 style={{ fontSize: "24px", fontWeight: 600, color: "#1d1d1f" }}>
+          <div className="p-6">
+            <h1 className="text-2xl font-semibold text-[#1d1d1f]">
               {
                 settingsItems.find((item) => item.id === selectedSettingId)
                   ?.label
               }
             </h1>
-            <p style={{ fontSize: "14px", color: "#6e6e73", marginTop: "8px" }}>
+            <p className="text-sm text-[#6e6e73] mt-2">
               This section is coming soon.
             </p>
           </div>
@@ -141,35 +127,11 @@ const Settings = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f5f5f7",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
+    <div className="min-h-screen bg-[#f5f5f7] flex flex-col items-center">
       {/* Max-width container for large screens */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1440px",
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-        }}
-      >
+      <div className="w-full max-w-[1440px] flex flex-col flex-1">
         {/* TopBar in White Rounded Container */}
-        <div
-          style={{
-            margin: "16px 16px 8px 16px",
-            borderRadius: "12px",
-            overflow: "hidden",
-            backgroundColor: "#FFFFFF",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-          }}
-        >
+        <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div ref={avatarButtonRef}>
             <TopBar
               logoSrc="/logo.gif"
@@ -194,26 +156,9 @@ const Settings = () => {
         />
 
         {/* Two-Pane Layout with Rounded Corners */}
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            padding: "0 16px 16px 16px",
-            gap: "8px",
-            overflow: "hidden",
-            minHeight: 0,
-          }}
-        >
+        <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
           {/* Left Pane - SettingsSidebar with rounded corners */}
-          <div
-            style={{
-              width: "280px",
-              borderRadius: "12px",
-              overflow: "hidden",
-              backgroundColor: "#FFFFFF",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-            }}
-          >
+          <div className="w-[280px] rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             <SettingsSidebar
               settingsItems={settingsItems}
               selectedSettingId={selectedSettingId}
@@ -223,16 +168,7 @@ const Settings = () => {
           </div>
 
           {/* Right Pane - Content Area with rounded corners */}
-          <div
-            style={{
-              flex: 1,
-              borderRadius: "12px",
-              overflow: "hidden",
-              backgroundColor: "#FFFFFF",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-              minWidth: 0,
-            }}
-          >
+          <div className="flex-1 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0">
             {renderContent()}
           </div>
         </div>

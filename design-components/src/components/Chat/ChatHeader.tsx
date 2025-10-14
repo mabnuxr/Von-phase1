@@ -1,5 +1,4 @@
 import React from 'react';
-import { spacing, fontFamily, fontSize, fontWeight, semanticColors } from '../../theme';
 
 export interface ChatHeaderProps {
   /**
@@ -35,83 +34,22 @@ export interface ChatHeaderProps {
  */
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   title = 'Chat',
-  onAddClick,
   onRefreshClick,
   onClose,
   showClose = false,
 }) => {
-  const headerStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: `${spacing[4]} ${spacing[5]}`, // More generous padding
-    borderBottom: `1px solid ${semanticColors.border.default}`,
-    backgroundColor: semanticColors.background.primary,
-  };
-
-  const titleStyles: React.CSSProperties = {
-    fontSize: fontSize.lg.size, // Slightly larger for prominence
-    lineHeight: fontSize.lg.lineHeight,
-    fontWeight: fontWeight.semibold,
-    color: semanticColors.text.primary,
-    fontFamily: fontFamily.text,
-    letterSpacing: '-0.01em', // Tight tracking like Apple
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-  };
-
-  const actionsStyles: React.CSSProperties = {
-    display: 'flex',
-    gap: spacing[1],
-    alignItems: 'center',
-  };
-
-  const iconButtonStyles: React.CSSProperties = {
-    width: '36px',
-    height: '36px',
-    borderRadius: '8px', // More rounded for Apple aesthetic
-    border: 'none',
-    backgroundColor: 'transparent',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: fontSize.xl.size,
-    color: semanticColors.text.secondary,
-    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)', // Snappier
-  };
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = semanticColors.background.secondary;
-    e.currentTarget.style.color = semanticColors.text.primary;
-  };
-
-  const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.style.backgroundColor = 'transparent';
-    e.currentTarget.style.color = semanticColors.text.secondary;
-  };
-
   return (
-    <div style={headerStyles}>
-      <div style={titleStyles}>{title}</div>
-      <div style={actionsStyles}>
+    <div className="flex items-center justify-between py-4 px-5 border-b border-gray-200 bg-white">
+      <div className="text-lg leading-7 font-semibold text-gray-900 font-sf tracking-tight antialiased">
+        {title}
+      </div>
+      <div className="flex gap-1 items-center">
         {!showClose && (
           <>
             <button
-              style={iconButtonStyles}
-              onClick={onAddClick}
-              aria-label="Add"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              +
-            </button>
-            <button
-              style={iconButtonStyles}
+              className="w-9 h-9 rounded-lg border-0 bg-transparent cursor-pointer flex items-center justify-center text-xl text-gray-600 transition-all duration-150 hover:bg-gray-100 hover:text-gray-900"
               onClick={onRefreshClick}
               aria-label="Refresh"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
             >
               ↻
             </button>
@@ -119,11 +57,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         )}
         {showClose && (
           <button
-            style={iconButtonStyles}
+            className="w-9 h-9 rounded-lg border-0 bg-transparent cursor-pointer flex items-center justify-center text-xl text-gray-600 transition-all duration-150 hover:bg-gray-100 hover:text-gray-900"
             onClick={onClose}
             aria-label="Close"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
           >
             ×
           </button>

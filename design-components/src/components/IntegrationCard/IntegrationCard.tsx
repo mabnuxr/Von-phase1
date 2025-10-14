@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { motion } from 'framer-motion';
 
 export interface IntegrationCardProps {
   /**
@@ -35,6 +36,12 @@ export interface IntegrationCardProps {
    * @default false
    */
   disabled?: boolean;
+
+  /**
+   * Loading state with optional text (e.g., "Authenticating... 5s")
+   * When set, toggle morphs into animated progress indicator
+   */
+  loadingText?: string;
 }
 
 /**
@@ -60,104 +67,12 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   onToggle,
   onRequestDisableConfirmation,
   disabled = false,
+  loadingText,
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const cardStyles: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
-    border: '1px solid rgba(0,0,0,0.1)',
-    borderRadius: '12px',
-    transition: 'all 0.2s ease',
-    boxShadow: isHovered ? '0 2px 8px rgba(0,0,0,0.08)' : '0 1px 2px rgba(0,0,0,0.04)',
-    cursor: disabled ? 'not-allowed' : 'default',
-    opacity: disabled ? 0.6 : 1,
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-    overflow: 'hidden',
-  };
-
-  const upperSectionStyles: React.CSSProperties = {
-    backgroundColor: '#fafafa',
-    padding: '32px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '16px',
-    borderBottom: '1px solid rgba(0,0,0,0.06)',
-  };
-
-  const logoStyles: React.CSSProperties = {
-    height: '40px',
-    width: 'auto',
-    maxWidth: '120px',
-    objectFit: 'contain',
-  };
-
-  const connectionIconStyles: React.CSSProperties = {
-    height: '24px',
-    width: 'auto',
-    opacity: 0.7,
-  };
-
-  const lowerSectionStyles: React.CSSProperties = {
-    padding: '16px 20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-  };
-
-  const textContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  };
-
-  const nameStyles: React.CSSProperties = {
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#1d1d1f',
-    margin: 0,
-  };
-
-  const statusStyles: React.CSSProperties = {
-    fontSize: '12px',
-    color: enabled ? '#34C759' : '#8E8E93',
-    margin: 0,
-    fontWeight: 500,
-  };
-
-  const toggleStyles: React.CSSProperties = {
-    position: 'relative',
-    width: '44px',
-    height: '24px',
-    backgroundColor: enabled ? '#007AFF' : '#E5E5EA',
-    borderRadius: '12px',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    transition: 'background-color 0.2s ease',
-    border: 'none',
-    padding: 0,
-    flexShrink: 0,
-  };
-
-  const toggleKnobStyles: React.CSSProperties = {
-    position: 'absolute',
-    top: '2px',
-    left: enabled ? '22px' : '2px',
-    width: '20px',
-    height: '20px',
-    backgroundColor: '#FFFFFF',
-    borderRadius: '50%',
-    transition: 'left 0.2s ease',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-  };
+  const isLoading = !!loadingText;
 
   const handleToggle = async () => {
-    if (disabled) return;
+    if (disabled || isLoading) return;
 
     const newState = !enabled;
 
@@ -174,35 +89,93 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   };
 
   return (
-    <div
-      style={cardStyles}
-      onMouseEnter={() => !disabled && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <motion.div
+      className={`
+        flex flex-col bg-white border border-black/10 rounded-xl overflow-hidden antialiased
+        ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-default'}
+      `}
+      style={{
+        fontFamily:
+          '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+      }}
+      initial={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
+      whileHover={
+        !disabled
+          ? {
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              transition: { duration: 0.2 },
+            }
+          : {}
+      }
     >
       {/* Upper Section - Visual Connection Flow */}
-      <div style={upperSectionStyles}>
-        <img src={integrationLogoPath} alt={`${name} logo`} style={logoStyles} />
-        <img src="/Images/connection.svg" alt="connection" style={connectionIconStyles} />
-        <img src="/Images/vonlabs.png" alt="Von logo" style={logoStyles} />
+      <div className="bg-[#fafafa] py-8 px-6 flex items-center justify-center gap-4 border-b border-black/[0.06]">
+        <img
+          src={integrationLogoPath}
+          alt={`${name} logo`}
+          className="h-10 w-auto max-w-[120px] object-contain"
+        />
+        <img src="/Images/connection.svg" alt="connection" className="h-6 w-auto opacity-70" />
+        <img
+          src="/Images/vonlabs.png"
+          alt="Von logo"
+          className="h-10 w-auto max-w-[120px] object-contain"
+        />
       </div>
 
       {/* Lower Section - Name, Status, and Toggle */}
-      <div style={lowerSectionStyles}>
-        <div style={textContainerStyles}>
-          <h3 style={nameStyles}>{name}</h3>
-          <p style={statusStyles}>{enabled ? 'Connected' : 'Not Connected'}</p>
+      <div className="py-4 px-5 flex items-center justify-between bg-white">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-sm font-semibold text-[#1d1d1f] m-0">{name}</h3>
+          <p
+            className={`
+              text-xs m-0 font-medium
+              ${isLoading ? 'text-[#8039E9]' : enabled ? 'text-[#34C759]' : 'text-[#8E8E93]'}
+            `}
+          >
+            {isLoading ? loadingText : enabled ? 'Connected' : 'Not Connected'}
+          </p>
         </div>
+
         <button
-          style={toggleStyles}
+          className={`
+            relative w-11 h-6 rounded-xl border-none p-0 flex-shrink-0 overflow-hidden
+            transition-colors duration-200
+            ${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'}
+            ${isLoading ? 'bg-[#E5E5EA]' : enabled ? 'bg-[#8039E9]' : 'bg-[#E5E5EA]'}
+          `}
           onClick={handleToggle}
-          disabled={disabled}
+          disabled={disabled || isLoading}
           aria-label={`Toggle ${name} integration`}
           aria-pressed={enabled}
+          aria-busy={isLoading}
         >
-          <div style={toggleKnobStyles} />
+          {isLoading ? (
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                className="absolute inset-y-0 left-0 w-[200%]"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)',
+                }}
+                animate={{ x: ['0%', '50%'] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              />
+            </div>
+          ) : (
+            <motion.div
+              className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+              animate={{ left: enabled ? '22px' : '2px' }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            />
+          )}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

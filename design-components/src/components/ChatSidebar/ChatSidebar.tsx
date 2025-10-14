@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { colors } from '../../theme';
+import { motion } from 'framer-motion';
 
 export interface ChatItem {
   id: string;
@@ -43,6 +42,27 @@ export interface ChatSidebarProps {
    * @default '200px'
    */
   width?: string;
+
+  /**
+   * Ref for infinite scroll trigger element
+   * Attach this to a div at the bottom of the list for infinite scroll
+   */
+  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+
+  /**
+   * Whether currently fetching more items
+   */
+  isFetchingMore?: boolean;
+
+  /**
+   * Whether there are more items to load
+   */
+  hasNextPage?: boolean;
+
+  /**
+   * Callback to load more items
+   */
+  onLoadMore?: () => void;
 }
 
 /**
@@ -69,190 +89,140 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedChatId,
   onChatClick,
   onNewChatClick,
-  onSearchChange,
-  searchPlaceholder = 'Search Chats',
-  width = '200px',
+  loadMoreRef,
+  isFetchingMore = false,
+  hasNextPage = false,
+  onLoadMore,
 }) => {
-  const [searchValue, setSearchValue] = useState('');
-
-  const sidebarStyles: React.CSSProperties = {
-    width,
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-  };
-
-  const newChatButtonStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 10px',
-    margin: '12px 12px 8px',
-    backgroundColor: 'transparent',
-    border: `1px solid rgba(0,0,0,0.1)`,
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    fontWeight: 500,
-    color: '#1d1d1f',
-    transition: 'all 0.2s ease',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-  };
-
-  const searchContainerStyles: React.CSSProperties = {
-    padding: '0 12px 10px',
-    position: 'relative',
-  };
-
-  const searchInputStyles: React.CSSProperties = {
-    width: '100%',
-    padding: '6px 10px',
-    paddingRight: '30px',
-    borderRadius: '6px',
-    border: '1px solid rgba(0,0,0,0.1)',
-    backgroundColor: '#f5f5f7',
-    fontSize: '12px',
-    outline: 'none',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    transition: 'all 0.2s ease',
-  };
-
-  const searchIconStyles: React.CSSProperties = {
-    position: 'absolute',
-    right: '20px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    pointerEvents: 'none',
-    color: colors.neutral[500],
-  };
-
-  const sectionHeaderStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 12px',
-    fontSize: '11px',
-    fontWeight: 600,
-    color: colors.neutral[600],
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  };
-
-  const chatListStyles: React.CSSProperties = {
-    flex: 1,
-    overflowY: 'auto',
-    overflowX: 'hidden',
-  };
-
-  const chatItemStyles = (isSelected: boolean): React.CSSProperties => ({
-    padding: '8px 12px',
-    fontSize: '13px',
-    color: isSelected ? colors.neutral[900] : colors.neutral[700],
-    backgroundColor: isSelected ? colors.neutral[100] : 'transparent',
-    cursor: 'pointer',
-    transition: 'background-color 0.15s ease',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    borderRadius: '6px',
-    margin: '2px 8px',
-  });
-
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    onSearchChange?.(value);
-  };
-
-  const filteredChats = searchValue
-    ? chatItems.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase()))
-    : chatItems;
-
   return (
-    <div style={sidebarStyles}>
+    <div className="p-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf">
       {/* New Chat Button */}
-      <button
-        style={newChatButtonStyles}
+      <motion.button
+        className="w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-medium cursor-pointer"
         onClick={onNewChatClick}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = colors.neutral[50];
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }}
+        whileHover={{ scale: 1.02, opacity: 0.9 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.2 }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" />
-        </svg>
         New Chat
-      </button>
-
-      {/* Search Input */}
-      <div style={searchContainerStyles}>
-        <input
-          type="search"
-          placeholder={searchPlaceholder}
-          value={searchValue}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          style={searchInputStyles}
-        />
         <svg
-          style={searchIconStyles}
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+        >
+          <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+        </svg>
+      </motion.button>
+
+      {/* Section Header */}
+      <div className="flex items-center gap-2 py-2 mb-1 text-[13px] font-normal text-gray-500 uppercase">
+        <svg
           width="16"
           height="16"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
+          strokeWidth="2"
         >
-          <circle cx="11" cy="11" r="8" strokeWidth="2" />
-          <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </div>
-
-      {/* Section Header */}
-      <div style={sectionHeaderStyles}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path
-            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         Past Chats
       </div>
 
-      {/* Chat List */}
-      <div style={chatListStyles}>
-        {filteredChats.map((item) => (
-          <div
-            key={item.id}
-            style={chatItemStyles(item.id === selectedChatId)}
-            onClick={() => onChatClick?.(item.id)}
-            onMouseEnter={(e) => {
-              if (item.id !== selectedChatId) {
-                e.currentTarget.style.backgroundColor = colors.neutral[50];
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (item.id !== selectedChatId) {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }
-            }}
+      {/* Chat List Container - Relative positioning for absolute indicator */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Chat List - Scrollable but hidden scrollbar */}
+        <div className="h-full overflow-y-scroll overflow-x-hidden scrollbar-hide">
+          {chatItems.map((item) => {
+            const isSelected = item.id === selectedChatId;
+            return (
+              <div
+                key={item.id}
+                className={`
+                  px-3 py-1.5 mx-0 my-0.5 text-[14px] cursor-pointer
+                  transition-all duration-150 whitespace-nowrap overflow-hidden
+                  text-ellipsis rounded-lg text-gray-900 font-normal
+                  ${isSelected ? 'bg-gray-300' : 'bg-transparent hover:bg-gray-100'}
+                `}
+                onClick={() => onChatClick?.(item.id)}
+              >
+                {item.label}
+              </div>
+            );
+          })}
+
+          {/* Infinite scroll trigger - hidden but still functional */}
+          {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
+        </div>
+
+        {/* More Content Indicator - Animated double arrow at bottom */}
+        {hasNextPage && !isFetchingMore && (
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 h-16 flex items-end justify-center pb-2 pointer-events-none gradient-fade-top"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
           >
-            {item.label}
-          </div>
-        ))}
+            <motion.button
+              className="pointer-events-auto px-4 py-2 flex flex-col items-center justify-center gap-0 cursor-pointer"
+              onClick={onLoadMore}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <motion.svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="text-gray-600"
+                animate={{
+                  y: [0, 4, 0],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+                <path d="M7 13l5 5 5-5M7 6l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+              </motion.svg>
+              <span className="text-[11px] text-gray-600 font-medium">More</span>
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* Loading indicator */}
+        {isFetchingMore && (
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-center gradient-fade-top"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <motion.div
+                className="w-1 h-1 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+              />
+              <motion.div
+                className="w-1 h-1 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+              />
+              <motion.div
+                className="w-1 h-1 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+              />
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

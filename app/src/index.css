@@ -1,12 +1,27 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /**
  * Tailwind v4 Theme Configuration
- * Custom design tokens for the design system
+ * Custom design tokens for the application
  */
 @theme {
   --font-family-sf:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+/**
+ * Base Layout Styles
+ * Full viewport with no overflow for app container
+ */
+html,
+body,
+#root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 /**
@@ -15,13 +30,14 @@
  */
 .font-sf {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
+    sans-serif;
 }
 
 /**
  * Scrollbar Utilities
  * ==================
- * Two approaches to scrollbars in the design system:
+ * Two approaches to scrollbars in the app:
  * 1. .scrollbar-hide - Completely hides scrollbar (used in ChatSidebar)
  * 2. .chat-messages-wrapper - Shows styled minimal scrollbar (used in Chat messages)
  */

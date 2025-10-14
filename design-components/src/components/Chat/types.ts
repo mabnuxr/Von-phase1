@@ -137,6 +137,12 @@ export interface ChatProps {
   onError?: (error: Error) => void;
 
   /**
+   * Callback when a message is received via Pusher (for controlled mode)
+   * Allows parent component to handle message updates
+   */
+  onPusherMessage?: (message: Message) => void;
+
+  /**
    * Placeholder text for the input
    * @default 'Ask von anything'
    */
@@ -185,4 +191,16 @@ export interface ChatProps {
    * Active conversation ID (for multi-conversation support)
    */
   conversationId?: string;
+
+  /**
+   * Ref for infinite scroll trigger (load older messages)
+   * Place this at the top of the messages container
+   */
+  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+
+  /**
+   * Whether currently fetching older messages (for infinite scroll)
+   * @default false
+   */
+  isFetchingMore?: boolean;
 }
