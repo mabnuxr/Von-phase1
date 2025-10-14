@@ -65,7 +65,7 @@ export function IntegrationsPanel({
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
       )
       .map((i: { id: string }) => i.id) || [];
 
@@ -77,7 +77,7 @@ export function IntegrationsPanel({
 
   // Track timeout warnings that have been shown
   const [shownTimeoutWarnings, setShownTimeoutWarnings] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
 
   // Disable confirmation modal state
@@ -124,9 +124,9 @@ export function IntegrationsPanel({
           enabled:
             backendIntegration.authenticationStatus ===
             AuthenticationStatus.AUTHENTICATED,
-        }),
+        })
       ) || [],
-    [integrationsData],
+    [integrationsData]
   );
 
   const handleToggle = async (id: string, enabled: boolean) => {
@@ -196,7 +196,7 @@ export function IntegrationsPanel({
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`,
+            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
           cancelAuthorization.mutate(id);
@@ -210,18 +210,10 @@ export function IntegrationsPanel({
     cancelAuthorization,
   ]);
 
-  const emptyStateContainerStyle: React.CSSProperties = {
-    padding: "24px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "400px",
-  };
-
   // Loading state
   if (isLoading) {
     return (
-      <div style={emptyStateContainerStyle}>
+      <div className="flex items-center justify-center min-h-[400px] p-6">
         <Text variant="body" color="secondary">
           Loading integrations...
         </Text>
@@ -232,14 +224,14 @@ export function IntegrationsPanel({
   // Error state
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-500">
+      <div className="flex flex-col items-center justify-center min-h-64 space-y-4 p-6">
+        <div className="text-red-600 text-center">
           Failed to load integrations:{" "}
           {error instanceof Error ? error.message : "Unknown error"}
         </div>
         <button
           onClick={() => refetch()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
         >
           Retry
         </button>
@@ -250,7 +242,7 @@ export function IntegrationsPanel({
   // Empty state - only show if data is loaded and truly empty
   if (!isLoading && (!integrationsData || integrations.length === 0)) {
     return (
-      <div style={emptyStateContainerStyle}>
+      <div className="flex items-center justify-center min-h-[400px] p-6">
         <Text variant="body" color="secondary">
           No integrations available
         </Text>
@@ -259,9 +251,10 @@ export function IntegrationsPanel({
   }
 
   return (
-    <div style={{ padding: "24px", width: "100%" }}>
+    <div className="w-full p-6">
+      {/* OAuth Error Banner */}
       {oauthError && (
-        <div style={{ marginBottom: "16px" }}>
+        <div className="mb-4">
           <Banner
             variant="warning"
             message={oauthError}
@@ -271,16 +264,11 @@ export function IntegrationsPanel({
         </div>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: "16px",
-        }}
-      >
+      {/* Integrations Grid */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
         {integrations.map((integration) => {
           const backendIntegration = integrationsData?.integrations.find(
-            (i: { id: string }) => i.id === integration.id,
+            (i: { id: string }) => i.id === integration.id
           );
           const isAuthenticating =
             backendIntegration?.authenticationStatus ===
@@ -304,6 +292,7 @@ export function IntegrationsPanel({
         })}
       </div>
 
+      {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={modalState.isOpen}
         title="Disable Integration"

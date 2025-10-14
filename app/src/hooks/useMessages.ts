@@ -3,6 +3,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { conversationKeys } from "./useConversations";
 import useChatStore from "../store/chatStore";
+import { MESSAGES_STALE_TIME, MESSAGES_PAGE_LIMIT } from "../config/constants";
 
 /**
  * Hook to manage messages for a conversation
@@ -24,7 +25,10 @@ import useChatStore from "../store/chatStore";
  * const messages = useChatStore.use.messages()[currentConversationId] || [];
  * ```
  */
-export function useMessages(conversationId: string | null, limit: number = 50) {
+export function useMessages(
+  conversationId: string | null,
+  limit: number = MESSAGES_PAGE_LIMIT,
+) {
   const { setMessages, setIsLoadingMessages } = useChatStore();
 
   // Fetch messages with infinite scroll pagination
@@ -53,7 +57,7 @@ export function useMessages(conversationId: string | null, limit: number = 50) {
     },
     initialPageParam: 1,
     enabled: !!conversationId,
-    staleTime: 10000, // Messages stay fresh for 10s
+    staleTime: MESSAGES_STALE_TIME,
   });
 
   // Sync messages to Zustand store when data changes

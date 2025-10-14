@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { SettingsIcon, LogoutIcon } from "./icons";
 
 export interface AvatarMenuProps {
   /**
@@ -64,7 +66,6 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
   triggerRect,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -91,66 +92,10 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
-  const menuStyles: React.CSSProperties = {
-    position: "fixed",
-    top: triggerRect ? `${triggerRect.bottom + 8}px` : "60px",
-    right: triggerRect ? `${window.innerWidth - triggerRect.right}px` : "16px",
-    backgroundColor: "#FFFFFF",
-    border: "1px solid rgba(0,0,0,0.1)",
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-    minWidth: "240px",
-    zIndex: 1000,
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    WebkitFontSmoothing: "antialiased",
-    MozOsxFontSmoothing: "grayscale",
-  };
-
-  const userInfoStyles: React.CSSProperties = {
-    padding: "16px",
-    borderBottom: "1px solid rgba(0,0,0,0.08)",
-  };
-
-  const userNameStyles: React.CSSProperties = {
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "#1d1d1f",
-    marginBottom: "4px",
-  };
-
-  const userEmailStyles: React.CSSProperties = {
-    fontSize: "12px",
-    color: "#6e6e73",
-  };
-
-  const menuListStyles: React.CSSProperties = {
-    padding: "8px",
-  };
-
-  const menuItemStyles = (isHovered: boolean): React.CSSProperties => ({
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "10px 12px",
-    fontSize: "14px",
-    color: "#1d1d1f",
-    backgroundColor: isHovered ? "#f5f5f7" : "transparent",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    transition: "background-color 0.15s ease",
-    width: "100%",
-    textAlign: "left",
-  });
-
-  const iconStyles: React.CSSProperties = {
-    width: "18px",
-    height: "18px",
-    color: "#6e6e73",
-  };
+  const menuTop = triggerRect ? `${triggerRect.bottom + 8}px` : "60px";
+  const menuRight = triggerRect
+    ? `${window.innerWidth - triggerRect.right}px`
+    : "16px";
 
   const handleItemClick = (callback?: () => void) => {
     callback?.();
@@ -158,73 +103,56 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
   };
 
   return (
-    <div ref={menuRef} style={menuStyles}>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={menuRef}
+          className="fixed bg-white border border-black/10 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] min-w-[240px] z-[1000]"
+          style={{ top: menuTop, right: menuRight }}
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+          transition={{
+            duration: 0.2,
+            ease: [0.16, 1, 0.3, 1],
+          }}
+        >
       {/* User Info Section */}
       {(userName || userEmail) && (
-        <div style={userInfoStyles}>
-          {userName && <div style={userNameStyles}>{userName}</div>}
-          {userEmail && <div style={userEmailStyles}>{userEmail}</div>}
+        <div className="p-4 border-b border-black/8">
+          {userName && (
+            <div className="text-sm font-semibold text-[#1d1d1f] mb-1">
+              {userName}
+            </div>
+          )}
+          {userEmail && (
+            <div className="text-xs text-[#6e6e73]">{userEmail}</div>
+          )}
         </div>
       )}
 
       {/* Menu Items */}
-      <div style={menuListStyles}>
-        <button
-          style={menuItemStyles(hoveredItem === "settings")}
-          onMouseEnter={() => setHoveredItem("settings")}
-          onMouseLeave={() => setHoveredItem(null)}
+      <div className="p-2">
+        <motion.button
+          className="flex items-center gap-3 px-3 py-2.5 text-sm text-[#1d1d1f] border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-[#f5f5f7] transition-colors duration-150"
           onClick={() => handleItemClick(onSettingsClick)}
+          whileTap={{ scale: 0.98 }}
         >
-          <svg
-            style={iconStyles}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              d="M12 15a3 3 0 100-6 3 3 0 000 6z"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <SettingsIcon />
           Settings
-        </button>
+        </motion.button>
 
-        <button
-          style={menuItemStyles(hoveredItem === "logout")}
-          onMouseEnter={() => setHoveredItem("logout")}
-          onMouseLeave={() => setHoveredItem(null)}
+        <motion.button
+          className="flex items-center gap-3 px-3 py-2.5 text-sm text-[#1d1d1f] border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-[#f5f5f7] transition-colors duration-150"
           onClick={() => handleItemClick(onLogoutClick)}
+          whileTap={{ scale: 0.98 }}
         >
-          <svg
-            style={iconStyles}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path
-              d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M16 17l5-5-5-5M21 12H9"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <LogoutIcon />
           Logout
-        </button>
+        </motion.button>
       </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

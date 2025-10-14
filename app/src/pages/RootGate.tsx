@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import { startAuthorization } from "../lib/authFlow";
 import { getAccessToken, logCurrentToken } from "../lib/auth";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function RootGate() {
   const navigate = useNavigate();
@@ -35,24 +35,14 @@ export default function RootGate() {
   // Show logout confirmation if coming back from ScaleKit logout
   if (isLoggedOut) {
     return (
-      <div style={{ padding: 24 }}>
+      <div className="p-6">
         <h1>Successfully logged out</h1>
         <p>You have been logged out from your account.</p>
         <button
           onClick={() => {
-            // Remove the logged_out param and start fresh auth
             navigate("/", { replace: true });
           }}
-          style={{
-            marginTop: 20,
-            padding: "10px 20px",
-            backgroundColor: "#007bff",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            fontSize: "16px",
-          }}
+          className="mt-5 px-5 py-2.5 bg-[#007bff] text-white border-0 rounded cursor-pointer text-base hover:bg-[#0056b3] transition-colors"
         >
           Login Again
         </button>
@@ -60,5 +50,5 @@ export default function RootGate() {
     );
   }
 
-  return <div style={{ padding: 24 }}>Redirecting to sign-in...</div>;
+  return <div className="p-6">Redirecting to sign-in...</div>;
 }

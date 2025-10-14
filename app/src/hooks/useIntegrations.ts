@@ -7,6 +7,11 @@ import {
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { integrationsService } from "../services";
+import {
+  OAUTH_POLLING_TIMEOUT_MS,
+  OAUTH_POLLING_INTERVAL_MS,
+  OAUTH_POPUP_CHECK_DELAY_MS,
+} from "../config/constants";
 
 /**
  * Type for auth status response
@@ -48,7 +53,9 @@ export function useAuthorizeIntegration() {
 
       // Check if window is actually open after a brief delay
       // Some browsers allow the window.open() call but close it immediately
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await new Promise<void>((resolve) =>
+        setTimeout(resolve, OAUTH_POPUP_CHECK_DELAY_MS),
+      );
 
       if (oauthWindow.closed) {
         throw new Error("POPUP_BLOCKED");
@@ -97,11 +104,6 @@ export function useAuthorizeIntegration() {
 }
 
 /**
- * OAuth polling timeout - 30 seconds
- */
-const OAUTH_POLLING_TIMEOUT_MS = 30 * 1000;
-
-/**
  * Check auth status with polling for a single integration
  */
 export function useCheckAuthStatus(
@@ -138,7 +140,7 @@ export function useCheckAuthStatus(
         }
       }
 
-      return 3000;
+      return OAUTH_POLLING_INTERVAL_MS;
     },
     refetchIntervalInBackground: true,
   });
@@ -266,7 +268,7 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
         return false;
       }
 
-      return 3000;
+      return OAUTH_POLLING_INTERVAL_MS;
     },
     refetchIntervalInBackground: true,
   }));

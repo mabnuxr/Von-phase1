@@ -12,7 +12,7 @@ function Logout() {
         if (import.meta.env.DEV) {
           console.log(
             "[Logout] Backend logout successful, redirect URL:",
-            response.redirectUrl,
+            response.redirectUrl
           );
         }
 
@@ -26,7 +26,7 @@ function Logout() {
           // Fallback to default logout flow if no redirect URL provided
           if (import.meta.env.DEV) {
             console.warn(
-              "[Logout] No redirect URL provided, using default logout flow",
+              "[Logout] No redirect URL provided, using default logout flow"
             );
           }
           startProviderLogout();
@@ -46,7 +46,7 @@ function Logout() {
   }, []);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="p-6">
       <h1>Logging out...</h1>
       <p>Clearing your session...</p>
     </div>

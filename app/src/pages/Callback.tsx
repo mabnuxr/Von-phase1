@@ -38,7 +38,7 @@ export default function Callback() {
     try {
       const tokenUrl = new URL(
         config.scalekitTokenPath,
-        config.scalekitAuthBaseUrl,
+        config.scalekitAuthBaseUrl
       ).toString();
       const form = new URLSearchParams();
       form.set("grant_type", config.oauthGrantType);
@@ -98,14 +98,14 @@ export default function Callback() {
 
   if (!code) {
     return (
-      <div style={{ padding: 24 }}>
+      <div className="p-6">
         <p>Missing authorization code. Redirecting...</p>
       </div>
     );
   }
 
   if (isExchanging) {
-    return <div style={{ padding: 24 }}>Processing authentication...</div>;
+    return <div className="p-6">Processing authentication...</div>;
   }
-  return <div style={{ padding: 24 }}>Processing authentication...</div>;
+  return <div className="p-6">Processing authentication...</div>;
 }

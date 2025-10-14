@@ -1,6 +1,10 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { conversationKeys } from "./useConversations";
+import {
+  CONVERSATIONS_STALE_TIME,
+  CONVERSATIONS_PAGE_LIMIT,
+} from "../config/constants";
 
 /**
  * Fetch conversations with infinite scroll pagination
@@ -14,7 +18,9 @@ import { conversationKeys } from "./useConversations";
  * @param limit - Number of conversations per page
  * @returns Infinite query result with flattened conversations
  */
-export function useInfiniteConversations(limit: number = 20) {
+export function useInfiniteConversations(
+  limit: number = CONVERSATIONS_PAGE_LIMIT,
+) {
   return useInfiniteQuery({
     queryKey: conversationKeys.lists(),
     queryFn: ({ pageParam }) =>
@@ -24,6 +30,6 @@ export function useInfiniteConversations(limit: number = 20) {
       return pagination.hasNextPage ? pagination.page + 1 : undefined;
     },
     initialPageParam: 1,
-    staleTime: 30000, // Consider data fresh for 30s
+    staleTime: CONVERSATIONS_STALE_TIME,
   });
 }

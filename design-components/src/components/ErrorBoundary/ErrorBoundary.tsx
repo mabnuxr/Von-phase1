@@ -62,62 +62,50 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
       // Default error UI
       return (
-        <div
-          style={{
-            padding: '20px',
-            margin: '20px',
-            border: '2px solid #dc2626',
-            borderRadius: '8px',
-            backgroundColor: '#fef2f2',
-            color: '#991b1b',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <h2 style={{ marginTop: 0, color: '#dc2626' }}>Something went wrong</h2>
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#f5f5f7] font-sans">
+          <div className="w-full max-w-[500px] bg-white rounded-xl p-8 shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-center">
+            {/* Error Icon */}
+            <div className="text-5xl mb-4">⚠️</div>
 
-          {import.meta.env.DEV && this.state.error && (
-            <>
-              <details style={{ marginTop: '16px', cursor: 'pointer' }}>
-                <summary>Error Details (Development Only)</summary>
-                <pre
-                  style={{
-                    marginTop: '8px',
-                    padding: '12px',
-                    backgroundColor: '#fee',
-                    borderRadius: '4px',
-                    overflow: 'auto',
-                    fontSize: '12px',
-                  }}
-                >
+            {/* Error Title */}
+            <h1 className="text-2xl font-semibold mb-3 text-[#1a1a1a]">
+              Something went wrong
+            </h1>
+
+            {/* Error Message */}
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              {this.state.error?.message || 'An unexpected error occurred'}
+            </p>
+
+            {/* Development-only error details */}
+            {import.meta.env.DEV && this.state.error && (
+              <details className="mt-4 mb-6 text-left cursor-pointer">
+                <summary className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                  Error Details (Development Only)
+                </summary>
+                <pre className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg overflow-auto text-xs text-red-900 max-h-60">
                   {this.state.error.toString()}
                   {this.state.errorInfo && this.state.errorInfo.componentStack}
                 </pre>
               </details>
-            </>
-          )}
+            )}
 
-          <button
-            onClick={this.handleReset}
-            style={{
-              marginTop: '16px',
-              padding: '8px 16px',
-              backgroundColor: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 500,
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#b91c1c';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = '#dc2626';
-            }}
-          >
-            Try Again
-          </button>
+            {/* Action Buttons */}
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={this.handleReset}
+                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 border-0 rounded-lg cursor-pointer transition-colors duration-200 hover:bg-blue-700"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-5 py-2.5 text-sm font-medium text-blue-600 bg-transparent border border-blue-600 rounded-lg cursor-pointer transition-colors duration-200 hover:bg-gray-100"
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
         </div>
       );
     }

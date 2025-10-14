@@ -1,4 +1,5 @@
 import type { StorybookConfig } from '@storybook/react-vite';
+import tailwindcss from '@tailwindcss/vite';
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
@@ -21,6 +22,21 @@ const config: StorybookConfig = {
   framework: {
     name: '@storybook/react-vite',
     options: {},
+  },
+  async viteFinal(config) {
+    // Add Tailwind CSS plugin to Storybook's Vite config
+    config.plugins = config.plugins || [];
+
+    // Check if Tailwind plugin is already registered to prevent duplicates
+    const hasTailwind = config.plugins.some(
+      (plugin: any) => plugin?.name === 'tailwindcss-vite'
+    );
+
+    if (!hasTailwind) {
+      config.plugins.push(tailwindcss());
+    }
+
+    return config;
   },
   docs: {
     defaultName: 'Documentation',

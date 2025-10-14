@@ -1,4 +1,3 @@
-import "../styles/scrollbar.css";
 import { authService } from "../services";
 import { useNewChat } from "../hooks/useNewChat";
 import { useNavigate } from "react-router-dom";
@@ -251,16 +250,7 @@ const Dashboard = () => {
   ); // Empty deps since env vars don't change during runtime
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        backgroundColor: "#f5f5f7",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        overflow: "hidden",
-      }}
-    >
+    <div className="h-screen bg-[#f5f5f7] flex flex-col items-center overflow-hidden">
       {/* Connection Error Banner */}
       {showConnectionBanner && (
         <Banner
@@ -283,26 +273,9 @@ const Dashboard = () => {
       )}
 
       {/* Max-width container for large screens */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1440px",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <div className="w-full max-w-[1440px] h-full flex flex-col overflow-hidden">
         {/* TopBar in White Rounded Container */}
-        <div
-          style={{
-            margin: "16px 16px 8px 16px",
-            borderRadius: "12px",
-            overflow: "hidden",
-            backgroundColor: "#FFFFFF",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-          }}
-        >
+        <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div ref={avatarButtonRef}>
             <TopBar
               logoSrc="/logo.gif"
@@ -327,31 +300,9 @@ const Dashboard = () => {
         />
 
         {/* Two-Pane Layout with Rounded Corners */}
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            padding: "0 16px 16px 16px",
-            gap: "8px",
-            overflow: "hidden",
-            minHeight: 0,
-          }}
-        >
+        <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
-          <div
-            className="chat-sidebar-wrapper"
-            style={{
-              width: "280px",
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 0,
-              borderRadius: "12px",
-              overflow: "hidden",
-              backgroundColor: "#FFFFFF",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-            }}
-          >
+          <div className="chat-sidebar-wrapper w-[280px] h-full flex flex-col min-h-0 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             <ChatSidebar
               chatItems={chatItems}
               selectedChatId={currentConversationId || undefined}
@@ -359,35 +310,19 @@ const Dashboard = () => {
               onNewChatClick={handleNewChatClick}
               onSearchChange={handleSearchChange}
               searchPlaceholder="Search conversations..."
-              width="100%"
               loadMoreRef={loadMoreConversationsRef}
               isFetchingMore={isFetchingNextPage}
+              hasNextPage={!!hasNextPage}
+              onLoadMore={() => fetchNextPage()}
             />
           </div>
 
           {/* Right Pane - Chat with rounded corners */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              minWidth: 0,
-            }}
-          >
+          <div className="flex-1 flex min-w-0">
             {isInitializing ||
             isCreatingNewChat ||
             (isLoadingMessages && conversationMessages.length === 0) ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "12px",
-                  fontSize: "14px",
-                  color: "#666",
-                }}
-              >
+              <div className="flex-1 flex items-center justify-center bg-white rounded-xl text-sm text-[#666]">
                 {isCreatingNewChat
                   ? "Creating new chat..."
                   : isLoadingMessages

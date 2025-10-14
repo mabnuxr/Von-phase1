@@ -4,6 +4,12 @@ import type {
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
 } from "../types/conversation";
+import {
+  CONVERSATIONS_STALE_TIME,
+  MESSAGES_STALE_TIME,
+  CONVERSATIONS_PAGE_LIMIT,
+  MESSAGES_PAGE_LIMIT,
+} from "../config/constants";
 
 /**
  * Query keys for conversations
@@ -24,11 +30,14 @@ export const conversationKeys = {
  * Fetch paginated conversations
  * Auto-refetches on window focus for fresh data
  */
-export function useConversations(page: number = 1, limit: number = 20) {
+export function useConversations(
+  page: number = 1,
+  limit: number = CONVERSATIONS_PAGE_LIMIT,
+) {
   return useQuery<PaginatedConversationsResponse>({
     queryKey: conversationKeys.list(page, limit),
     queryFn: () => conversationsService.getConversations(page, limit),
-    staleTime: 30000, // Consider data fresh for 30s
+    staleTime: CONVERSATIONS_STALE_TIME,
   });
 }
 
@@ -39,7 +48,7 @@ export function useConversations(page: number = 1, limit: number = 20) {
 export function useConversationMessages(
   conversationId: string | null,
   page: number = 1,
-  limit: number = 50,
+  limit: number = MESSAGES_PAGE_LIMIT,
 ) {
   return useQuery<PaginatedMessagesResponse>({
     queryKey: conversationId
@@ -56,7 +65,7 @@ export function useConversationMessages(
       );
     },
     enabled: !!conversationId,
-    staleTime: 10000, // Messages stay fresh for 10s
+    staleTime: MESSAGES_STALE_TIME,
   });
 }
 

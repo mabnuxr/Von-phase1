@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { fontFamily, fontSize, semanticColors } from '../../theme';
 
 export interface ChatInputProps {
   /**
@@ -66,112 +65,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const containerStyles: React.CSSProperties = {
-    padding: '12px 16px',
-    backgroundColor: '#FFFFFF',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    borderTop: '1px solid rgba(0,0,0,0.06)',
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-  };
-
-  const contextTagStyles: React.CSSProperties = {
-    display: 'inline-block',
-    padding: '4px 10px',
-    backgroundColor: '#FFF4E6',
-    borderRadius: '12px',
-    fontSize: '12px',
-    color: semanticColors.text.secondary,
-    fontFamily: fontFamily.text,
-    marginBottom: '4px',
-    alignSelf: 'flex-start',
-  };
-
-  const inputContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    backgroundColor: '#FFFFFF',
-    borderRadius: '20px',
-    padding: '8px 12px',
-    border: `1px solid rgba(0,0,0,0.1)`,
-    transition: 'all 0.2s ease',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-  };
-
-  const inputStyles: React.CSSProperties = {
-    flex: 1,
-    border: 'none',
-    outline: 'none',
-    backgroundColor: 'transparent',
-    fontSize: fontSize.sm.size,
-    lineHeight: fontSize.sm.lineHeight,
-    fontFamily: fontFamily.text,
-    color: semanticColors.text.primary,
-    minWidth: 0, // Allow input to shrink
-  };
-
-  const plusButtonStyles: React.CSSProperties = {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    border: 'none',
-    backgroundColor: '#F5F5F7',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '16px',
-    color: semanticColors.text.secondary,
-    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-    flexShrink: 0,
-  };
-
-  const uploadButtonStyles: React.CSSProperties = {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    border: 'none',
-    backgroundColor: '#000000',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#FFFFFF',
-    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
-    opacity: disabled ? 0.5 : 1,
-    flexShrink: 0,
-  };
-
-  const footerStyles: React.CSSProperties = {
-    fontSize: '11px',
-    lineHeight: '1.4',
-    color: semanticColors.text.tertiary,
-    textAlign: 'center',
-    fontFamily: fontFamily.text,
-    marginTop: '4px',
-  };
-
   return (
-    <div style={containerStyles}>
-      {contextTag && <div style={contextTagStyles}>{contextTag}</div>}
+    <div className="p-3 px-4 bg-white flex flex-col gap-1.5 border-t border-gray-100 antialiased font-sf">
+      {contextTag && (
+        <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600 font-sf mb-1">
+          {contextTag}
+        </div>
+      )}
 
-      <div style={inputContainerStyles}>
+      <div className="flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border border-gray-200 transition-all duration-200 shadow-sm hover:shadow-md">
         <button
-          style={plusButtonStyles}
+          className={`w-7 h-7 rounded-full border-0 bg-gray-100 flex items-center justify-center text-base text-gray-600 transition-all duration-150 flex-shrink-0 ${
+            disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-200'
+          }`}
           onClick={() => {}}
           disabled={disabled}
           aria-label="Add"
-          onMouseEnter={(e) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = '#E8E8EA';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#F5F5F7';
-          }}
         >
           +
         </button>
@@ -183,63 +92,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          style={inputStyles}
+          className="flex-1 border-0 outline-none bg-transparent text-sm leading-5 font-sf text-gray-900 placeholder:text-gray-400 min-w-0"
         />
 
-        {/* {showActionButtons && (
-          <>
-            <button
-              style={actionButtonStyles}
-              onClick={handleAsk}
-              disabled={disabled}
-              onMouseEnter={(e) => {
-                if (!disabled) {
-                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              Ask
-            </button>
-            <button
-              style={actionButtonStyles}
-              onClick={onBuild}
-              disabled={disabled}
-              onMouseEnter={(e) => {
-                if (!disabled) {
-                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              Build
-            </button>
-          </>
-        )} */}
-
         <button
-          style={uploadButtonStyles}
+          className={`w-8 h-8 rounded-full border-0 bg-black flex items-center justify-center text-white transition-all duration-150 flex-shrink-0 ${
+            disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-gray-800'
+          }`}
           onClick={handleSend}
           disabled={disabled}
-          aria-label="Upload"
-          onMouseEnter={(e) => {
-            if (!disabled) {
-              e.currentTarget.style.backgroundColor = '#333333';
-            }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#000000';
-          }}
+          aria-label="Send"
         >
           ↑
         </button>
       </div>
 
-      <div style={footerStyles}>
+      <div className="text-[11px] leading-normal text-gray-500 text-center font-sf mt-1">
         Von AI may make mistakes. Please recheck all important information.
       </div>
     </div>

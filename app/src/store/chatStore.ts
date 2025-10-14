@@ -54,23 +54,35 @@ const useChatStoreBase = create<ChatState>((set) => ({
     })),
 
   addMessage: (conversationId, message) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [conversationId]: [...(state.messages[conversationId] || []), message],
-      },
-    })),
+    set((state) => {
+      const existingMessages = state.messages[conversationId] || [];
+      const messageExists = existingMessages.some((m) => m.id === message.id);
+
+      if (messageExists) {
+        return state; 
+      }
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: [...existingMessages, message],
+        },
+      };
+    }),
 
   prependMessages: (conversationId, olderMessages) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [conversationId]: [
-          ...olderMessages,
-          ...(state.messages[conversationId] || []),
-        ],
-      },
-    })),
+    set((state) => {
+      const existingMessages = state.messages[conversationId] || [];
+      const existingIds = new Set(existingMessages.map((m) => m.id));
+      const newMessages = olderMessages.filter((m) => !existingIds.has(m.id));
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: [...newMessages, ...existingMessages],
+        },
+      };
+    }),
 
   clearMessages: (conversationId) =>
     set((state) => {

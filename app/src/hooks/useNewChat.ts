@@ -3,6 +3,7 @@ import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useCreateConversation } from "./useConversations";
 import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
+import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 
 /**
  * Hook for creating and switching to a new chat conversation
@@ -18,7 +19,9 @@ export function useNewChat() {
   const { setCurrentConversationId } = useChatStore();
 
   // Get current conversations data for title numbering
-  const { data: infiniteConversationsData } = useInfiniteConversations(20);
+  const { data: infiniteConversationsData } = useInfiniteConversations(
+    CONVERSATIONS_PAGE_LIMIT,
+  );
 
   // Create conversation mutation
   const {

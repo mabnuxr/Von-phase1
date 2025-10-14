@@ -3,6 +3,7 @@ import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useCreateConversation } from "./useConversations";
 import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
+import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 
 /**
  * Initialize conversation on Dashboard mount
@@ -23,7 +24,7 @@ export function useConversationInit() {
     data: infiniteConversationsData,
     isLoading: isLoadingConversations,
     error: conversationsError,
-  } = useInfiniteConversations(20);
+  } = useInfiniteConversations(CONVERSATIONS_PAGE_LIMIT);
 
   // Mutation for creating new conversation
   const {

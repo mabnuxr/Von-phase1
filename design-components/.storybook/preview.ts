@@ -1,5 +1,6 @@
 import type { Preview } from '@storybook/react-vite';
 import React from 'react';
+import '../src/index.css';
 
 // Global decorator to apply design system styles
 const withDesignSystem = (Story: React.ComponentType) => {

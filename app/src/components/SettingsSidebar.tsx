@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 export interface SettingsItem {
   id: string;
@@ -52,92 +52,41 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onSettingClick,
   width = "280px",
 }) => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-
-  const sidebarStyles: React.CSSProperties = {
-    width,
-    height: "100%",
-    backgroundColor: "#FFFFFF",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-    WebkitFontSmoothing: "antialiased",
-    MozOsxFontSmoothing: "grayscale",
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-  };
-
-  const headerStyles: React.CSSProperties = {
-    padding: "20px 16px 16px",
-    borderBottom: "1px solid rgba(0,0,0,0.08)",
-  };
-
-  const titleStyles: React.CSSProperties = {
-    fontSize: "20px",
-    fontWeight: 600,
-    color: "#1d1d1f",
-    margin: 0,
-  };
-
-  const menuListStyles: React.CSSProperties = {
-    padding: "12px 8px",
-    flex: 1,
-    overflowY: "auto",
-  };
-
-  const menuItemStyles = (
-    isSelected: boolean,
-    isHovered: boolean,
-  ): React.CSSProperties => ({
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "10px 12px",
-    fontSize: "14px",
-    color: isSelected ? "#1d1d1f" : "#6e6e73",
-    backgroundColor: isSelected
-      ? "#f5f5f7"
-      : isHovered
-        ? "#fafafa"
-        : "transparent",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-    width: "100%",
-    textAlign: "left",
-    fontWeight: isSelected ? 600 : 400,
-    margin: "2px 0",
-  });
-
-  const iconStyles: React.CSSProperties = {
-    width: "18px",
-    height: "18px",
-    color: "#6e6e73",
-  };
-
   return (
-    <div style={sidebarStyles}>
+    <div
+      className="h-full bg-white flex flex-col overflow-hidden antialiased font-sans"
+      style={{ width }}
+    >
       {/* Header */}
-      <div style={headerStyles}>
-        <h2 style={titleStyles}>Settings</h2>
+      <div className="px-4 pt-5 pb-4 border-b border-black/8">
+        <h2 className="text-xl font-semibold text-[#1d1d1f] m-0">Settings</h2>
       </div>
 
       {/* Menu Items */}
-      <div style={menuListStyles}>
+      <div className="flex-1 overflow-y-auto p-3">
         {settingsItems.map((item) => {
           const isSelected = item.id === selectedSettingId;
-          const isHovered = item.id === hoveredItem;
 
           return (
             <button
               key={item.id}
-              style={menuItemStyles(isSelected, isHovered)}
-              onMouseEnter={() => setHoveredItem(item.id)}
-              onMouseLeave={() => setHoveredItem(null)}
+              className={`
+                flex items-center gap-3 px-3 py-2.5 my-0.5
+                text-sm rounded-lg border-0 cursor-pointer
+                w-full text-left transition-all duration-150
+                ${
+                  isSelected
+                    ? "bg-[#f5f5f7] text-[#1d1d1f] font-semibold"
+                    : "bg-transparent text-[#6e6e73] font-normal hover:bg-[#fafafa]"
+                }
+              `}
               onClick={() => onSettingClick?.(item.id)}
             >
-              {item.icon && <span style={iconStyles}>{item.icon}</span>}
+              {item.icon && (
+                <span className="w-[18px] h-[18px] text-[#6e6e73]">
+                  {item.icon}
+                </span>
+              )}
               {item.label}
             </button>
           );

@@ -1,5 +1,8 @@
 // Main entry point for the component library
 
+// Import CSS
+import './index.css';
+
 // Export all components
 export * from './components';
 

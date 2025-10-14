@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { INFINITE_SCROLL_THRESHOLD } from "../config/constants";
 
 /**
  * Options for infinite scroll behavior
@@ -51,7 +52,7 @@ export function useInfiniteScroll({
           onLoadMore();
         }
       },
-      { threshold: 1.0 }, // Trigger when fully visible
+      { threshold: INFINITE_SCROLL_THRESHOLD },
     );
 
     const currentRef = observerRef.current;
@@ -61,9 +62,7 @@ export function useInfiniteScroll({
 
     // Cleanup observer on unmount or dependency change
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+      observer.disconnect();
     };
   }, [hasMore, isLoading, onLoadMore]);
 

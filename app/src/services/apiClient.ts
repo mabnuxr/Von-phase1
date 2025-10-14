@@ -52,9 +52,13 @@ export class ApiClient {
     // Add authorization header if not skipped and token exists
     if (!skipAuth) {
       const token = getAccessToken();
-      // Only add Authorization header if token is non-empty
-      if (token && token.trim()) {
-        headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        const trimmedToken = token.trim();
+        if (trimmedToken) {
+          headers.Authorization = `Bearer ${trimmedToken}`;
+        } else if (import.meta.env.DEV) {
+          console.warn("[API] Empty access token found");
+        }
       }
     }
 
