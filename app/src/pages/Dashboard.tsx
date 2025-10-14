@@ -16,6 +16,10 @@ import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import type { Message as ChatMessage } from "@vonlabs/design-components";
 import type { Message } from "../types/conversation";
 import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
+import {
+  CONVERSATIONS_PAGE_LIMIT,
+  MESSAGES_PAGE_LIMIT,
+} from "../config/constants";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -41,7 +45,7 @@ const Dashboard = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteConversations(20);
+  } = useInfiniteConversations(CONVERSATIONS_PAGE_LIMIT);
 
   // Infinite scroll hook for loading more conversations
   const loadMoreConversationsRef = useInfiniteScroll({
@@ -56,7 +60,7 @@ const Dashboard = () => {
     hasNextPage: hasNextMessagePage,
     isFetchingNextPage: isFetchingNextMessagePage,
     isLoading: isLoadingMessages,
-  } = useMessages(currentConversationId, 50);
+  } = useMessages(currentConversationId, MESSAGES_PAGE_LIMIT);
 
   // Infinite scroll hook for loading older messages
   const loadMoreMessagesRef = useInfiniteScroll({
