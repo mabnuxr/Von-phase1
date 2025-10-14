@@ -29,7 +29,10 @@ const config: StorybookConfig = {
 
     // Check if Tailwind plugin is already registered to prevent duplicates
     const hasTailwind = config.plugins.some(
-      (plugin: any) => plugin?.name === 'tailwindcss-vite'
+      (plugin: unknown) => {
+        const p = plugin as { name?: string };
+        return p?.name === 'tailwindcss-vite';
+      }
     );
 
     if (!hasTailwind) {
