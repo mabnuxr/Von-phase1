@@ -6,6 +6,8 @@ export interface PusherConfig {
   key: string;
   cluster: string;
   authEndpoint?: string;
+  tenantId?: string;
+  userId?: string;
 }
 
 export interface UsePusherAuthReturn {
@@ -18,8 +20,8 @@ export interface UsePusherAuthReturn {
 /**
  * Hook for managing Pusher connection, authentication, and channel subscription
  *
- * @param conversationId - Unique conversation ID for the channel
- * @param config - Pusher configuration
+ * @param conversationId - Conversation ID for channel naming
+ * @param config - Pusher configuration (includes tenantId and userId for standardized channels)
  * @returns Pusher client, channel, connection status, and any errors
  */
 export function usePusherAuth(
@@ -32,8 +34,9 @@ export function usePusherAuth(
   const channelRef = useRef<Channel | null>(null);
 
   useEffect(() => {
-    if (!conversationId || !config.key) {
-      // Clean up any existing connection when conversationId becomes null
+    // Require conversationId, tenantId, and userId for standardized channel format
+    if (!conversationId || !config.tenantId || !config.userId || !config.key) {
+      // Clean up any existing connection when required params are missing
       if (channelRef.current) {
         pusherRef.current?.unsubscribe(channelRef.current.name);
         channelRef.current = null;
@@ -44,6 +47,18 @@ export function usePusherAuth(
       }
       setIsConnected(false);
       return;
+    }
+
+    // Build standardized channel name: private-vonlabs-chat-{tenant_id}-{user_id}-{conversation_id}
+    const channelName = `private-vonlabs-chat-${config.tenantId}-${config.userId}-${conversationId}`;
+
+    if (import.meta.env.DEV) {
+      console.log(`[Pusher] Will subscribe to channel: ${channelName}`);
+      console.log('[Pusher] Channel params:', {
+        tenantId: config.tenantId,
+        userId: config.userId,
+        conversationId,
+      });
     }
 
     try {
@@ -73,10 +88,6 @@ export function usePusherAuth(
 
       pusherRef.current = pusher;
 
-      if (import.meta.env.DEV) {
-        console.log(`[Pusher] Initializing channel: private-${conversationId}`);
-      }
-
       // Handle connection state changes
       pusher.connection.bind('connected', () => {
         setIsConnected(true);
@@ -100,10 +111,8 @@ export function usePusherAuth(
         }
       });
 
-      // Subscribe to conversation-specific private channel
-      // conversationId is the UUID from the database (e.g., "550e8400-e29b-41d4-a716-446655440000")
-      // Channel name becomes "private-{conversationId}"
-      const channelName = `private-${conversationId}`;
+      // Subscribe to conversation-specific private channel with standardized format
+      // Channel name: private-vonlabs-chat-{tenant_id}-{user_id}-{conversation_uuid}
       const channel = pusher.subscribe(channelName);
 
       channelRef.current = channel;
@@ -128,17 +137,21 @@ export function usePusherAuth(
 
     // Cleanup on unmount or when conversationId changes
     return () => {
-      if (channelRef.current) {
-        pusherRef.current?.unsubscribe(channelRef.current.name);
+      if (channelRef.current && pusherRef.current) {
+        const channelName = channelRef.current.name;
+        console.log(`[Pusher] Unsubscribing from channel: ${channelName}`);
+        pusherRef.current.unsubscribe(channelName);
         channelRef.current = null;
       }
-      if (pusherRef.current) {
-        pusherRef.current.disconnect();
-        pusherRef.current = null;
-      }
-      setIsConnected(false);
     };
-  }, [conversationId, config.key, config.cluster, config.authEndpoint]);
+  }, [
+    conversationId,
+    config.key,
+    config.cluster,
+    config.authEndpoint,
+    config.tenantId,
+    config.userId,
+  ]);
 
   return {
     pusher: pusherRef.current,

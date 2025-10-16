@@ -47,12 +47,13 @@ export function useConversationInit() {
 
     if (conversations.length > 0) {
       // Use most recent conversation (index 0, sorted by updatedAt DESC)
+      // Use UUID as primary identifier
       const mostRecent = conversations[0];
-      setCurrentConversationId(mostRecent.id);
+      setCurrentConversationId(mostRecent.conversationId);
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useConversationInit] Loaded conversation: ${mostRecent.title} (${mostRecent.id})`,
+          `[useConversationInit] Loaded conversation: ${mostRecent.title} (${mostRecent.conversationId})`,
         );
       }
     } else {
@@ -79,11 +80,11 @@ export function useConversationInit() {
       }
 
       const response = await createConversation(title);
-      setCurrentConversationId(response.conversation.id);
+      setCurrentConversationId(response.conversation.conversationId);
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useConversationInit] Created: ${response.conversation.id}`,
+          `[useConversationInit] Created: ${response.conversation.conversationId}`,
         );
       }
     } catch (error) {

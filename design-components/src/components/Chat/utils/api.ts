@@ -18,7 +18,7 @@ export interface ApiEndpoints {
 }
 
 export interface Conversation {
-  id: string;
+  conversationId: string;
   title: string;
   userId: string;
   createdAt: Date;

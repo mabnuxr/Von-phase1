@@ -49,16 +49,14 @@ export function useSendMessage() {
     onSuccess: (response) => {
       if (import.meta.env.DEV) {
         console.log(
-          "[useSendMessage] Message sent successfully:",
-          response.message.id,
+          "[useSendMessage] Message acknowledged:",
+          response.messageId,
         );
       }
       // Backend emits Pusher events:
-      // - message.received: user's message appears in UI
-      // - message.start: assistant placeholder appears
-      // - message.chunk: streaming content updates
-      // - message.complete: final message finalized
-      // No need to manually update UI here
+      // - message.content: user's message appears in UI
+      // - message.content: assistant response appears in UI
+      // No need to manually update UI here - Pusher handles everything
     },
 
     onError: (error: Error) => {

@@ -236,9 +236,9 @@ const Dashboard = () => {
   const allConversations =
     infiniteConversationsData?.pages.flatMap((page) => page.data) || [];
 
-  // Transform conversations for ChatSidebar
+  // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
   const chatItems = allConversations.map((conv) => ({
-    id: conv.id,
+    id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
     label: conv.title,
     timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
   }));
@@ -249,9 +249,11 @@ const Dashboard = () => {
       key: import.meta.env.VITE_PUSHER_KEY || "",
       cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
       authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
+      tenantId: user?.tenantId,
+      userId: user?.id,
     }),
-    [],
-  ); // Empty deps since env vars don't change during runtime
+    [user?.tenantId, user?.id],
+  );
 
   return (
     <div className="h-screen bg-[#f5f5f7] flex flex-col items-center overflow-hidden">

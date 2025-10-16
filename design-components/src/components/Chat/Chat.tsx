@@ -175,7 +175,7 @@ export const Chat: React.FC<ChatProps> = ({
             saveConversation(
               conversationId,
               {
-                id: conversationId,
+                conversationId: conversationId,
                 title: title,
                 userId,
                 createdAt: new Date(),
@@ -301,7 +301,7 @@ export const Chat: React.FC<ChatProps> = ({
         saveConversation(
           conversationId,
           {
-            id: conversationId,
+            conversationId: conversationId,
             title,
             userId,
             createdAt: new Date(),
