@@ -129,7 +129,6 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       content?: string;
       role: string;
     }) => {
-
       const { id, messageContent, content, role } = data;
       // Backend uses messageContent, fallback to content for compatibility
       const messageText = messageContent || content || '';
