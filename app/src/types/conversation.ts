@@ -3,7 +3,7 @@
  * Sorted by updatedAt DESC by default from API
  */
 export interface Conversation {
-  id: string;
+  conversationId: string; // UUID for Pusher channels and external references
   userId: string;
   tenantId: string;
   title: string;
@@ -56,5 +56,10 @@ export interface CreateConversationResponse {
 }
 
 export interface CreateMessageResponse {
-  message: Message;
+  id: string;
+  messageId: string;
+  conversationId: string;
+  success: boolean;
+  timestamp: string;
+  pusher_triggered?: boolean;
 }

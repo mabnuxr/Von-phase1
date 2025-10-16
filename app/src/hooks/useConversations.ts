@@ -81,7 +81,7 @@ export function useCreateConversation() {
       conversationsService.createConversation(title),
     onSuccess: (data) => {
       if (import.meta.env.DEV) {
-        console.log("[useCreateConversation] Created:", data.conversation.id);
+        console.log("[useCreateConversation] Created:", data.conversation.conversationId);
       }
       // Invalidate all conversation lists to refetch
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });

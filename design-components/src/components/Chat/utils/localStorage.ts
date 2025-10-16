@@ -171,7 +171,7 @@ function cleanupOldConversations(): void {
   // Remove oldest 5 conversations
   const toRemove = conversations.slice(0, 5);
   toRemove.forEach(({ conversation }) => {
-    deleteConversation(conversation.id);
+    deleteConversation(conversation.conversationId);
   });
 
   console.log(`Cleaned up ${toRemove.length} old conversations`);

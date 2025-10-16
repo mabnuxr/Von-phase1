@@ -129,6 +129,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       content?: string;
       role: string;
     }) => {
+
       const { id, messageContent, content, role } = data;
       // Backend uses messageContent, fallback to content for compatibility
       const messageText = messageContent || content || '';
@@ -153,8 +154,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
     channel.bind('message.start', handleMessageStart);
     channel.bind('message.chunk', handleMessageChunk);
     channel.bind('message.complete', handleMessageComplete);
-    channel.bind('message.received', handleMessageReceived); // Legacy event name
-    channel.bind('new-message', handleMessageReceived); // Backend emits this
+    channel.bind('message.content', handleMessageReceived); // Message content event (user and assistant messages)
     channel.bind('message.error', handleError);
 
     // Cleanup
@@ -162,8 +162,7 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       channel.unbind('message.start', handleMessageStart);
       channel.unbind('message.chunk', handleMessageChunk);
       channel.unbind('message.complete', handleMessageComplete);
-      channel.unbind('message.received', handleMessageReceived);
-      channel.unbind('new-message', handleMessageReceived);
+      channel.unbind('message.content', handleMessageReceived);
       channel.unbind('message.error', handleError);
     };
   }, [channel]); // Only re-run when channel changes, not when event handlers change

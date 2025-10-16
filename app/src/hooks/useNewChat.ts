@@ -47,12 +47,12 @@ export function useNewChat() {
       // Create conversation
       const response = await createConversation(title);
 
-      // Switch to the new conversation
-      setCurrentConversationId(response.conversation.id);
+      // Switch to the new conversation (use UUID, not MongoDB ObjectId)
+      setCurrentConversationId(response.conversation.conversationId);
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useNewChat] Created and switched to: ${response.conversation.id}`,
+          `[useNewChat] Created and switched to: ${response.conversation.conversationId}`,
         );
       }
 
