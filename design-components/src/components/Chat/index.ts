@@ -21,6 +21,12 @@ export type { ChatMessageProps } from './ChatMessage';
 export { ChatInput } from './ChatInput';
 export type { ChatInputProps } from './ChatInput';
 
+export { ChatMarkdown } from './ChatMarkdown';
+export type { ChatMarkdownProps } from './ChatMarkdown';
+
+export { ThinkingBlock } from './ThinkingBlock';
+export type { ThinkingBlockProps } from './ThinkingBlock';
+
 // Export hooks
 export { usePusherAuth } from './hooks/usePusherAuth';
 export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './hooks/usePusherAuth';

@@ -364,7 +364,7 @@ export const Chat: React.FC<ChatProps> = ({
 
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-white chat-messages-wrapper"
+        className="flex-1 overflow-y-auto flex flex-col bg-gray-50/30 chat-messages-wrapper"
       >
         {/* Loading indicator for older messages (infinite scroll) */}
         <AnimatePresence>
@@ -423,9 +423,11 @@ export const Chat: React.FC<ChatProps> = ({
                   <ChatMessage
                     type={message.type}
                     content={message.content}
+                    thoughtContent={message.thoughtContent}
                     timestamp={message.timestamp}
                     activeTab={message.activeTab}
                     isLoading={message.isStreaming}
+                    isStreaming={message.isStreaming}
                   />
                 </motion.div>
               ))}
