@@ -46,7 +46,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
-    "rsuite": "^5.70.2"
+    "rsuite": "^5.70.2",
+    "streamdown": "^1.4.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",

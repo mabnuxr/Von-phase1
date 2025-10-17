@@ -12,8 +12,10 @@ export interface StreamMessage {
 export interface MessageStreamEvents {
   onMessageStart?: (messageId: string) => void;
   onMessageChunk?: (messageId: string, chunk: string) => void;
-  onMessageComplete?: (messageId: string, fullContent: string) => void;
+  onMessageComplete?: (messageId: string, fullContent: string, reasoningContent?: string) => void;
   onMessageReceived?: (messageId: string, content: string, role: 'user' | 'assistant') => void;
+  onThinkingChunk?: (messageId: string, chunk: string) => void;
+  onThinkingComplete?: (messageId: string, fullThinking: string) => void;
   onError?: (error: Error) => void;
 }
 
@@ -25,13 +27,19 @@ export interface MessageStreamEvents {
  */
 export function useMessageStream(channel: Channel | null, events: MessageStreamEvents = {}) {
   const [streamingMessages, setStreamingMessages] = useState<Map<string, string>>(new Map());
+  const [streamingReasoning, setStreamingReasoning] = useState<Map<string, string>>(new Map());
+  const currentMessageIdRef = useRef<string | null>(null);
+  const streamingMessagesRef = useRef<Map<string, string>>(new Map());
+  const streamingReasoningRef = useRef<Map<string, string>>(new Map());
   const seenMessageIds = useRef<Set<string>>(new Set());
   const eventsRef = useRef(events);
 
-  // Update ref when events change, but don't re-run effect
+  // Update refs when state changes
   useEffect(() => {
     eventsRef.current = events;
-  }, [events]);
+    streamingMessagesRef.current = streamingMessages;
+    streamingReasoningRef.current = streamingReasoning;
+  }, [events, streamingMessages, streamingReasoning]);
 
   // Cleanup seen message IDs periodically to prevent unbounded growth
   useEffect(() => {
@@ -55,57 +63,94 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       return;
     }
 
-    // Handle message start event
-    const handleMessageStart = (data: { id: string; role: string }) => {
-      const { id } = data;
+    // Handle Claude-style message_start event
+    const handleMessageStart = (data: { type: string; message: { id: string; role: string } }) => {
+      const messageId = data.message.id;
 
       // Prevent duplicate processing
-      if (seenMessageIds.current.has(id)) {
+      if (seenMessageIds.current.has(messageId)) {
         return;
       }
-      seenMessageIds.current.add(id);
+      seenMessageIds.current.add(messageId);
 
-      setStreamingMessages((prev) => new Map(prev).set(id, ''));
-      eventsRef.current.onMessageStart?.(id);
+      currentMessageIdRef.current = messageId;
+      setStreamingMessages((prev) => new Map(prev).set(messageId, ''));
+      setStreamingReasoning((prev) => new Map(prev).set(messageId, ''));
+      eventsRef.current.onMessageStart?.(messageId);
     };
 
-    // Handle message chunk event (incremental streaming)
-    const handleMessageChunk = (data: { id: string; chunk: string; content?: string }) => {
-      const { id, chunk, content } = data;
+    // Handle Claude-style content_block_delta event
+    const handleContentBlockDelta = (data: {
+      type: string;
+      index: number;
+      delta: { type: string; thinking?: string; text?: string };
+    }) => {
+      const messageId = currentMessageIdRef.current;
+      if (!messageId) return;
 
-      setStreamingMessages((prev) => {
-        const newMap = new Map(prev);
-        const current = newMap.get(id) || '';
+      const { index, delta } = data;
 
-        // Support both incremental (chunk) and progressive (content) formats
-        const newContent = content !== undefined ? content : current + chunk;
-        newMap.set(id, newContent);
-
-        return newMap;
-      });
-
-      eventsRef.current.onMessageChunk?.(id, chunk || content || '');
+      // Index 0 = thinking block, Index 1 = content block
+      if (index === 0 && delta.type === 'thinking_delta' && delta.thinking) {
+        // Thinking/reasoning chunk
+        setStreamingReasoning((prev) => {
+          const newMap = new Map(prev);
+          const current = newMap.get(messageId) || '';
+          newMap.set(messageId, current + delta.thinking);
+          return newMap;
+        });
+        eventsRef.current.onThinkingChunk?.(messageId, delta.thinking);
+      } else if (index === 1 && delta.type === 'text_delta' && delta.text) {
+        // Content chunk
+        setStreamingMessages((prev) => {
+          const newMap = new Map(prev);
+          const current = newMap.get(messageId) || '';
+          newMap.set(messageId, current + delta.text);
+          return newMap;
+        });
+        eventsRef.current.onMessageChunk?.(messageId, delta.text);
+      }
     };
 
-    // Handle message complete event
-    const handleMessageComplete = (data: { id: string; content: string }) => {
-      const { id, content } = data;
+    // Handle Claude-style content_block_stop event
+    const handleContentBlockStop = (data: { type: string; index: number }) => {
+      const messageId = currentMessageIdRef.current;
+      if (!messageId) return;
 
-      setStreamingMessages((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(id, content);
-        return newMap;
-      });
+      const { index } = data;
 
-      eventsRef.current.onMessageComplete?.(id, content);
+      // Index 0 = thinking complete, Index 1 = content complete
+      if (index === 0) {
+        const fullThinking = streamingReasoningRef.current.get(messageId) || '';
+        eventsRef.current.onThinkingComplete?.(messageId, fullThinking);
+      }
+      // Note: We don't call onMessageComplete here for index 1,
+      // we wait for message_stop to ensure we have the final state
+    };
+
+    // Handle Claude-style message_stop event (final completion)
+    const handleMessageStop = () => {
+      const messageId = currentMessageIdRef.current;
+      if (!messageId) return;
+
+      const fullContent = streamingMessagesRef.current.get(messageId) || '';
+      const fullReasoning = streamingReasoningRef.current.get(messageId) || '';
+
+      eventsRef.current.onMessageComplete?.(messageId, fullContent, fullReasoning);
 
       // Clean up after a short delay to allow for final rendering
       setTimeout(() => {
         setStreamingMessages((prev) => {
           const newMap = new Map(prev);
-          newMap.delete(id);
+          newMap.delete(messageId);
           return newMap;
         });
+        setStreamingReasoning((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(messageId);
+          return newMap;
+        });
+        currentMessageIdRef.current = null;
       }, 100);
     };
 
@@ -149,33 +194,38 @@ export function useMessageStream(channel: Channel | null, events: MessageStreamE
       }
     };
 
-    // Bind to all Pusher events
-    channel.bind('message.start', handleMessageStart);
-    channel.bind('message.chunk', handleMessageChunk);
-    channel.bind('message.complete', handleMessageComplete);
-    channel.bind('message.content', handleMessageReceived); // Message content event (user and assistant messages)
-    channel.bind('message.error', handleError);
+    // Bind to Claude-style Pusher events
+    channel.bind('message_start', handleMessageStart);
+    channel.bind('content_block_delta', handleContentBlockDelta);
+    channel.bind('content_block_stop', handleContentBlockStop);
+    channel.bind('message_stop', handleMessageStop);
+    channel.bind('user_message', handleMessageReceived); // User messages (non-streaming)
+    channel.bind('error', handleError);
 
     // Cleanup
     return () => {
-      channel.unbind('message.start', handleMessageStart);
-      channel.unbind('message.chunk', handleMessageChunk);
-      channel.unbind('message.complete', handleMessageComplete);
-      channel.unbind('message.content', handleMessageReceived);
-      channel.unbind('message.error', handleError);
+      channel.unbind('message_start', handleMessageStart);
+      channel.unbind('content_block_delta', handleContentBlockDelta);
+      channel.unbind('content_block_stop', handleContentBlockStop);
+      channel.unbind('message_stop', handleMessageStop);
+      channel.unbind('user_message', handleMessageReceived);
+      channel.unbind('error', handleError);
     };
-  }, [channel]); // Only re-run when channel changes, not when event handlers change
+  }, [channel]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       seenMessageIds.current.clear();
       setStreamingMessages(new Map());
+      setStreamingReasoning(new Map());
+      currentMessageIdRef.current = null;
     };
   }, []);
 
   return {
     streamingMessages,
-    isStreaming: streamingMessages.size > 0,
+    streamingReasoning,
+    isStreaming: streamingMessages.size > 0 || streamingReasoning.size > 0,
   };
 }

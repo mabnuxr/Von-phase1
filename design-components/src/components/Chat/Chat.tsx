@@ -96,106 +96,157 @@ export const Chat: React.FC<ChatProps> = ({
   );
 
   // Message streaming (only when channel is available)
-  const { streamingMessages } = useMessageStream(enableRealtime ? channel : null, {
-    onMessageReceived: (messageId, content, role) => {
-      // Handle immediate complete messages (user messages after POST, or assistant non-streaming)
-      const receivedMessage: Message = {
-        id: messageId,
-        type: role,
-        content,
-        isStreaming: false,
-        timestamp: new Date(),
-      };
+  const { streamingMessages, streamingReasoning } = useMessageStream(
+    enableRealtime ? channel : null,
+    {
+      onMessageReceived: (messageId, content, role) => {
+        // Handle immediate complete messages (user messages after POST, or assistant non-streaming)
+        const receivedMessage: Message = {
+          id: messageId,
+          type: role,
+          content,
+          isStreaming: false,
+          timestamp: new Date(),
+        };
 
-      if (isControlled) {
-        // In controlled mode, notify parent to add complete message
-        onPusherMessage?.(receivedMessage);
-      } else {
-        // In uncontrolled mode, add to internal state
-        setInternalMessages((prev) => [...prev, receivedMessage]);
-      }
-    },
-    onMessageStart: (messageId) => {
-      const newMessage: Message = {
-        id: messageId,
-        type: 'assistant',
-        content: '',
-        isStreaming: true,
-        timestamp: new Date(),
-      };
-
-      if (isControlled) {
-        // In controlled mode, notify parent to add message
-        onPusherMessage?.(newMessage);
-      } else {
-        // In uncontrolled mode, update internal state
-        setInternalMessages((prev) => [...prev, newMessage]);
-      }
-    },
-    onMessageChunk: (messageId) => {
-      const content = streamingMessages.get(messageId) || '';
-
-      if (isControlled) {
-        // In controlled mode, notify parent to update message
-        onPusherMessage?.({
+        if (isControlled) {
+          // In controlled mode, notify parent to add complete message
+          onPusherMessage?.(receivedMessage);
+        } else {
+          // In uncontrolled mode, add to internal state
+          setInternalMessages((prev) => [...prev, receivedMessage]);
+        }
+      },
+      onMessageStart: (messageId) => {
+        const newMessage: Message = {
           id: messageId,
           type: 'assistant',
-          content,
+          content: '',
+          reasoningContent: '',
           isStreaming: true,
+          isReasoningStreaming: true,
           timestamp: new Date(),
-        });
-      } else {
-        // In uncontrolled mode, update internal state
-        setInternalMessages((prev) =>
-          prev.map((msg) => (msg.id === messageId ? { ...msg, content } : msg))
-        );
-      }
-    },
-    onMessageComplete: (messageId, fullContent) => {
-      const completedMessage: Message = {
-        id: messageId,
-        type: 'assistant',
-        content: fullContent,
-        isStreaming: false,
-        timestamp: new Date(),
-      };
+        };
 
-      if (isControlled) {
-        // In controlled mode, notify parent of completed message
-        onPusherMessage?.(completedMessage);
-      } else {
-        // In uncontrolled mode, update internal state
-        setInternalMessages((prev) => {
-          const updatedMessages = prev.map((msg) =>
-            msg.id === messageId ? completedMessage : msg
+        if (isControlled) {
+          // In controlled mode, notify parent to add message
+          onPusherMessage?.(newMessage);
+        } else {
+          // In uncontrolled mode, update internal state
+          setInternalMessages((prev) => [...prev, newMessage]);
+        }
+      },
+      onThinkingChunk: (messageId) => {
+        const reasoningContent = streamingReasoning.get(messageId) || '';
+
+        if (isControlled) {
+          // In controlled mode, notify parent to update reasoning
+          onPusherMessage?.({
+            id: messageId,
+            type: 'assistant',
+            content: streamingMessages.get(messageId) || '',
+            reasoningContent,
+            isStreaming: true,
+            isReasoningStreaming: true,
+            timestamp: new Date(),
+          });
+        } else {
+          // In uncontrolled mode, update internal state
+          setInternalMessages((prev) =>
+            prev.map((msg) => (msg.id === messageId ? { ...msg, reasoningContent } : msg))
           );
+        }
+      },
+      onThinkingComplete: (messageId) => {
+        const reasoningContent = streamingReasoning.get(messageId) || '';
 
-          // Save to localStorage
-          if (conversationId && userId) {
-            saveConversation(
-              conversationId,
-              {
-                conversationId: conversationId,
-                title: title,
-                userId,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              },
-              updatedMessages
+        if (isControlled) {
+          onPusherMessage?.({
+            id: messageId,
+            type: 'assistant',
+            content: streamingMessages.get(messageId) || '',
+            reasoningContent,
+            isStreaming: true,
+            isReasoningStreaming: false,
+            timestamp: new Date(),
+          });
+        } else {
+          setInternalMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId ? { ...msg, reasoningContent, isReasoningStreaming: false } : msg
+            )
+          );
+        }
+      },
+      onMessageChunk: (messageId) => {
+        const content = streamingMessages.get(messageId) || '';
+        const reasoningContent = streamingReasoning.get(messageId) || '';
+
+        if (isControlled) {
+          // In controlled mode, notify parent to update message
+          onPusherMessage?.({
+            id: messageId,
+            type: 'assistant',
+            content,
+            reasoningContent,
+            isStreaming: true,
+            timestamp: new Date(),
+          });
+        } else {
+          // In uncontrolled mode, update internal state
+          setInternalMessages((prev) =>
+            prev.map((msg) => (msg.id === messageId ? { ...msg, content } : msg))
+          );
+        }
+      },
+      onMessageComplete: (messageId, fullContent, fullReasoning) => {
+        const completedMessage: Message = {
+          id: messageId,
+          type: 'assistant',
+          content: fullContent,
+          reasoningContent: fullReasoning,
+          isStreaming: false,
+          isReasoningStreaming: false,
+          timestamp: new Date(),
+        };
+
+        if (isControlled) {
+          // In controlled mode, notify parent of completed message
+          onPusherMessage?.(completedMessage);
+        } else {
+          // In uncontrolled mode, update internal state
+          setInternalMessages((prev) => {
+            const updatedMessages = prev.map((msg) =>
+              msg.id === messageId ? completedMessage : msg
             );
-          }
 
-          return updatedMessages;
-        });
-      }
-    },
-    onError: (error) => {
-      onError?.(error);
-      if (!isControlled) {
-        setInternalIsLoading(false);
-      }
-    },
-  });
+            // Save to localStorage
+            if (conversationId && userId) {
+              saveConversation(
+                conversationId,
+                {
+                  conversationId: conversationId,
+                  title: title,
+                  userId,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                },
+                updatedMessages
+              );
+            }
+
+            return updatedMessages;
+          });
+        }
+      },
+      onError: (error) => {
+        onError?.(error);
+        if (!isControlled) {
+          setInternalIsLoading(false);
+        }
+      },
+    }
+  );
 
   // Load messages from localStorage on mount (real-time mode only)
   useEffect(() => {
@@ -364,7 +415,7 @@ export const Chat: React.FC<ChatProps> = ({
 
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-white chat-messages-wrapper"
+        className="flex-1 overflow-y-auto flex flex-col bg-gray-50/30 chat-messages-wrapper"
       >
         {/* Loading indicator for older messages (infinite scroll) */}
         <AnimatePresence>
@@ -423,9 +474,12 @@ export const Chat: React.FC<ChatProps> = ({
                   <ChatMessage
                     type={message.type}
                     content={message.content}
+                    reasoningContent={message.reasoningContent}
                     timestamp={message.timestamp}
                     activeTab={message.activeTab}
                     isLoading={message.isStreaming}
+                    isStreaming={message.isStreaming}
+                    isReasoningStreaming={message.isReasoningStreaming}
                   />
                 </motion.div>
               ))}
@@ -433,7 +487,7 @@ export const Chat: React.FC<ChatProps> = ({
           )}
         </AnimatePresence>
 
-        {/* Loading indicator for new message - Enhanced typing indicator */}
+        {/* Loading indicator for new message */}
         <AnimatePresence>{isLoading && <ChatTypingIndicator />}</AnimatePresence>
 
         {/* Invisible div for auto-scroll to bottom */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export interface ChatInputProps {
   /**
@@ -41,7 +41,7 @@ export interface ChatInputProps {
 }
 
 /**
- * Chat input component with text field and action buttons
+ * Chat input component with simple textarea
  */
 export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = 'Ask von anything',
@@ -50,15 +50,27 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   disabled = false,
 }) => {
   const [message, setMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+  }, [message]);
 
   const handleSend = () => {
     if (message.trim() && onSend) {
       onSend(message.trim());
       setMessage('');
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -74,34 +86,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       <div className="flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border border-gray-200 transition-all duration-200 shadow-sm hover:shadow-md">
-        <button
-          className={`w-7 h-7 rounded-full border-0 bg-gray-100 flex items-center justify-center text-base text-gray-600 transition-all duration-150 flex-shrink-0 ${
-            disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-200'
-          }`}
-          onClick={() => {}}
-          disabled={disabled}
-          aria-label="Add"
-        >
-          +
-        </button>
-
-        <input
-          type="text"
-          placeholder={placeholder}
+        <textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
+          placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 border-0 outline-none bg-transparent text-sm leading-5 font-sf text-gray-900 placeholder:text-gray-400 min-w-0"
+          className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden"
+          style={{
+            minHeight: '20px',
+            maxHeight: '200px',
+            padding: '0',
+            lineHeight: '1.5',
+          }}
+          rows={1}
         />
 
         <button
-          className={`w-8 h-8 rounded-full border-0 bg-black flex items-center justify-center text-white transition-all duration-150 flex-shrink-0 ${
-            disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-gray-800'
+          className={`w-8 h-8 flex-shrink-0 rounded-full border-0 bg-black flex items-center justify-center text-white transition-all duration-150 ${
+            disabled || !message.trim()
+              ? 'cursor-not-allowed opacity-50'
+              : 'cursor-pointer hover:bg-gray-800'
           }`}
           onClick={handleSend}
-          disabled={disabled}
-          aria-label="Send"
+          disabled={disabled || !message.trim()}
+          aria-label="Send message"
         >
           ↑
         </button>

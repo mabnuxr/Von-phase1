@@ -6,6 +6,15 @@ export interface Message {
   id: string;
   type: 'user' | 'assistant';
   content: string;
+  /**
+   * Thought content for assistant messages (separate from main content)
+   */
+  thoughtContent?: string;
+  /**
+   * Reasoning content from AI SDK (Claude thinking blocks)
+   * This is streamed separately from the main content
+   */
+  reasoningContent?: string;
   timestamp?: Date;
   /**
    * Active tab for assistant messages
@@ -16,6 +25,10 @@ export interface Message {
    * Whether this message is currently streaming
    */
   isStreaming?: boolean;
+  /**
+   * Whether the reasoning/thinking is currently streaming
+   */
+  isReasoningStreaming?: boolean;
   /**
    * Whether this message has an error
    */
