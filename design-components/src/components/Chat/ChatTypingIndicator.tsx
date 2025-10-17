@@ -2,49 +2,58 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 /**
- * Animated typing indicator for chat
+ * Clean minimal thinking indicator for full-width chat layout
+ * Shows just the thinking dots without duplicate assistant label
  */
 export const ChatTypingIndicator: React.FC = () => {
   return (
     <motion.div
-      className="flex w-full justify-start"
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      className="w-full"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
     >
-      <div className="max-w-[85%] rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 flex items-center gap-1.5">
-          {/* Animated typing dots */}
-          <motion.div
-            className="w-2 h-2 rounded-full bg-gray-400"
-            animate={{ y: [0, -4, 0] }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-          <motion.div
-            className="w-2 h-2 rounded-full bg-gray-400"
-            animate={{ y: [0, -4, 0] }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: 0.15,
-            }}
-          />
-          <motion.div
-            className="w-2 h-2 rounded-full bg-gray-400"
-            animate={{ y: [0, -4, 0] }}
-            transition={{
-              duration: 0.6,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: 0.3,
-            }}
-          />
+      {/* Full-width section matching assistant message style */}
+      <div className="w-full py-6 bg-gradient-to-br from-gray-50 via-gray-50/80 to-white">
+        {/* Centered content area */}
+        <div className="max-w-3xl mx-auto px-8">
+          {/* Minimal thinking indicator - no label needed as it follows assistant messages */}
+          <div className="flex items-center gap-1.5">
+            {/* Animated dots */}
+            <motion.div
+              className="w-1.5 h-1.5 rounded-full bg-gray-400"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+            <motion.div
+              className="w-1.5 h-1.5 rounded-full bg-gray-400"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 0.2,
+              }}
+            />
+            <motion.div
+              className="w-1.5 h-1.5 rounded-full bg-gray-400"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: 0.4,
+              }}
+            />
+
+            {/* Subtle text */}
+            <span className="text-sm text-gray-400 ml-1">thinking</span>
+          </div>
         </div>
       </div>
     </motion.div>

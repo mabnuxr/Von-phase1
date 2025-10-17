@@ -69,19 +69,22 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       {/* Full-width section container */}
       <div
         className={`
-          w-full py-10 transition-all duration-300
-          ${isUser
-            ? 'bg-white hover:bg-gray-50/30'
-            : 'bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white'
+          w-full py-6 transition-all duration-300
+          ${
+            isUser
+              ? 'bg-white hover:bg-gray-50/30'
+              : 'bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white'
           }
         `}
       >
         {/* Centered content area */}
         <div className="max-w-3xl mx-auto px-8">
           {/* Label: "You" or "Assistant" with elegant spacing */}
-          <div className={`mb-4 text-[13px] font-medium flex items-center gap-2.5 ${
-            isUser ? 'text-gray-700' : 'text-gray-600'
-          }`}>
+          <div
+            className={`mb-3 text-[13px] font-medium flex items-center gap-2 ${
+              isUser ? 'text-gray-700' : 'text-gray-600'
+            }`}
+          >
             {isUser ? (
               <>
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
