@@ -14,7 +14,7 @@ import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import type { Message as ChatMessage } from "@vonlabs/design-components";
-import type { Message } from "../types/conversation";
+import type { MessageWithStreaming } from "../types/conversation";
 import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -184,11 +184,7 @@ const Dashboard = () => {
 
     // Convert Chat component message format to backend message format
     // Preserve streaming metadata as optional fields
-    const backendMessage: Message & {
-      isStreaming?: boolean;
-      isReasoningStreaming?: boolean;
-      reasoningContent?: string;
-    } = {
+    const backendMessage: MessageWithStreaming = {
       id: chatMessage.id,
       conversationId: currentConversationId,
       messageType: "text",
@@ -223,18 +219,19 @@ const Dashboard = () => {
   };
 
   // Transform backend messages to Chat component format
-  const transformedMessages: ChatMessage[] = conversationMessages.map(
-    (msg) => ({
-      id: msg.id,
-      type: msg.role === "user" ? "user" : "assistant",
-      content: msg.messageContent,
-      timestamp: new Date(msg.createdAt),
+  const transformedMessages: ChatMessage[] = conversationMessages.map((msg) => {
+    const streamingMsg = msg as MessageWithStreaming;
+    return {
+      id: streamingMsg.id,
+      type: streamingMsg.role === "user" ? "user" : "assistant",
+      content: streamingMsg.messageContent,
+      timestamp: new Date(streamingMsg.createdAt),
       // Preserve streaming state if present
-      isStreaming: (msg as any).isStreaming || false,
-      isReasoningStreaming: (msg as any).isReasoningStreaming || false,
-      reasoningContent: (msg as any).reasoningContent,
-    }),
-  );
+      isStreaming: streamingMsg.isStreaming || false,
+      isReasoningStreaming: streamingMsg.isReasoningStreaming || false,
+      reasoningContent: streamingMsg.reasoningContent,
+    };
+  });
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
@@ -367,7 +364,9 @@ const Dashboard = () => {
                 isLoading={
                   isSendingMessage &&
                   !transformedMessages.some(
-                    (m) => m.type === 'assistant' && (m.content || m.reasoningContent)
+                    (m) =>
+                      m.type === "assistant" &&
+                      (m.content || m.reasoningContent),
                   )
                 }
                 loadMoreRef={loadMoreMessagesRef}

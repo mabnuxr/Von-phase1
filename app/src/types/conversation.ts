@@ -26,6 +26,16 @@ export interface Message {
 }
 
 /**
+ * Extended message type with streaming properties
+ * Used for real-time streaming updates via Pusher
+ */
+export interface MessageWithStreaming extends Message {
+  isStreaming?: boolean;
+  isReasoningStreaming?: boolean;
+  reasoningContent?: string;
+}
+
+/**
  * Pagination metadata from backend
  */
 export interface PaginationMeta {
