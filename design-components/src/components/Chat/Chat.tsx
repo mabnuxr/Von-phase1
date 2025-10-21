@@ -36,6 +36,8 @@ import type { ChatProps, Message } from './types';
 export const Chat: React.FC<ChatProps> = ({
   title = 'Chat',
   userId,
+  userName,
+  userEmail,
   apiBaseUrl,
   pusherConfig,
   messages: controlledMessages,
@@ -459,30 +461,44 @@ export const Chat: React.FC<ChatProps> = ({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{
-                    duration: 0.2,
-                    ease: 'easeOut',
-                  }}
-                  layout
-                >
-                  <ChatMessage
-                    type={message.type}
-                    content={message.content}
-                    reasoningContent={message.reasoningContent}
-                    timestamp={message.timestamp}
-                    activeTab={message.activeTab}
-                    isLoading={message.isStreaming}
-                    isStreaming={message.isStreaming}
-                    isReasoningStreaming={message.isReasoningStreaming}
-                  />
-                </motion.div>
-              ))}
+              {messages
+                .filter((message) => {
+                  // Hide empty assistant messages when typing indicator is showing
+                  if (
+                    isLoading &&
+                    message.type === 'assistant' &&
+                    !message.content &&
+                    !message.reasoningContent
+                  ) {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{
+                      duration: 0.15,
+                      ease: 'easeOut',
+                    }}
+                  >
+                    <ChatMessage
+                      type={message.type}
+                      content={message.content}
+                      reasoningContent={message.reasoningContent}
+                      timestamp={message.timestamp}
+                      activeTab={message.activeTab}
+                      isLoading={message.isStreaming}
+                      isStreaming={message.isStreaming}
+                      isReasoningStreaming={message.isReasoningStreaming}
+                      userName={userName}
+                      userEmail={userEmail}
+                    />
+                  </motion.div>
+                ))}
             </motion.div>
           )}
         </AnimatePresence>
@@ -494,7 +510,11 @@ export const Chat: React.FC<ChatProps> = ({
         <div ref={messagesEndRef} className="h-px" />
       </div>
 
-      <ChatInput placeholder={placeholder} onSend={handleSendMessage} />
+      <ChatInput
+        placeholder={placeholder}
+        onSend={handleSendMessage}
+        disabled={isLoading || messages.some((m) => m.isStreaming)}
+      />
     </div>
   );
 };

@@ -183,7 +183,12 @@ const Dashboard = () => {
     if (!currentConversationId) return;
 
     // Convert Chat component message format to backend message format
-    const backendMessage: Message = {
+    // Preserve streaming metadata as optional fields
+    const backendMessage: Message & {
+      isStreaming?: boolean;
+      isReasoningStreaming?: boolean;
+      reasoningContent?: string;
+    } = {
       id: chatMessage.id,
       conversationId: currentConversationId,
       messageType: "text",
@@ -192,6 +197,10 @@ const Dashboard = () => {
       createdAt:
         chatMessage.timestamp?.toISOString() || new Date().toISOString(),
       createdBy: chatMessage.type === "user" ? "current-user" : "assistant",
+      // Preserve streaming state
+      isStreaming: chatMessage.isStreaming,
+      isReasoningStreaming: chatMessage.isReasoningStreaming,
+      reasoningContent: chatMessage.reasoningContent,
     };
 
     // Add or update message in Zustand store
@@ -220,7 +229,10 @@ const Dashboard = () => {
       type: msg.role === "user" ? "user" : "assistant",
       content: msg.messageContent,
       timestamp: new Date(msg.createdAt),
-      isStreaming: false,
+      // Preserve streaming state if present
+      isStreaming: (msg as any).isStreaming || false,
+      isReasoningStreaming: (msg as any).isReasoningStreaming || false,
+      reasoningContent: (msg as any).reasoningContent,
     }),
   );
 
@@ -339,6 +351,8 @@ const Dashboard = () => {
               <Chat
                 title="von AI"
                 userId={user?.id}
+                userName={user?.name || user?.firstName}
+                userEmail={user?.email}
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
                 pusherConfig={pusherConfig}
                 conversationId={currentConversationId || undefined}
@@ -350,7 +364,12 @@ const Dashboard = () => {
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
                 onPusherMessage={handlePusherMessage}
-                isLoading={isSendingMessage}
+                isLoading={
+                  isSendingMessage &&
+                  !transformedMessages.some(
+                    (m) => m.type === 'assistant' && (m.content || m.reasoningContent)
+                  )
+                }
                 loadMoreRef={loadMoreMessagesRef}
                 isFetchingMore={isFetchingNextMessagePage}
                 placeholder="Ask von anything"

@@ -85,15 +85,21 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      <div className="flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border border-gray-200 transition-all duration-200 shadow-sm hover:shadow-md">
+      <div
+        className={`flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border transition-all duration-200 ${
+          disabled
+            ? 'border-gray-200 opacity-60 cursor-not-allowed'
+            : 'border-gray-200 shadow-sm hover:shadow-md'
+        }`}
+      >
         <textarea
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={disabled ? 'Waiting for response...' : placeholder}
           disabled={disabled}
-          className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden"
+          className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
           style={{
             minHeight: '20px',
             maxHeight: '200px',

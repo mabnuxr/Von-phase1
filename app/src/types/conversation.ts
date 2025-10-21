@@ -8,7 +8,7 @@ export interface Conversation {
   tenantId: string;
   title: string;
   createdAt: string;
-  createdBy: string;
+  createdBy: string | null; // Optional - can be null if context not set
   updatedAt: string | null;
 }
 
@@ -22,7 +22,7 @@ export interface Message {
   messageContent: string;
   role: "user" | "assistant";
   createdAt: string;
-  createdBy: string;
+  createdBy: string | null; // Optional - can be null if context not set
 }
 
 /**

@@ -27,11 +27,12 @@ class ConversationsService {
 
   /**
    * Create a new conversation
+   * Backend expects: { request: { title: string } }
    */
   async createConversation(title: string): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
-      { title },
+      { request: { title } },
     );
   }
 
@@ -59,6 +60,7 @@ class ConversationsService {
 
   /**
    * Send a message in a conversation
+   * Backend expects: { request: { content: string, messageType: string } }
    */
   async sendMessage(
     conversationId: string,
@@ -67,7 +69,7 @@ class ConversationsService {
   ): Promise<CreateMessageResponse> {
     return apiClient.post<CreateMessageResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages`,
-      { content, messageType },
+      { request: { content, messageType } },
     );
   }
 

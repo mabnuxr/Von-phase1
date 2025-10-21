@@ -2,6 +2,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMarkdown } from './ChatMarkdown';
 import { ThinkingBlock } from './ThinkingBlock';
 
+/**
+ * Get user initials from name or email
+ */
+function getUserInitials(name?: string, email?: string): string {
+  // Try to get initials from name first
+  if (name && name.trim()) {
+    const parts = name.trim().split(/\s+/);
+
+    if (parts.length >= 2) {
+      // First and last name
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length > 0) {
+      // Single name, take first character
+      return parts[0][0].toUpperCase();
+    }
+  }
+
+  // Fallback to email
+  if (email && email.trim()) {
+    const emailUsername = email.split('@')[0];
+    if (emailUsername.length >= 2) {
+      return emailUsername.substring(0, 2).toUpperCase();
+    } else if (emailUsername.length === 1) {
+      return emailUsername[0].toUpperCase();
+    }
+  }
+
+  // Final fallback
+  return 'U';
+}
+
 export interface ChatMessageProps {
   /**
    * Type of message
@@ -49,6 +80,16 @@ export interface ChatMessageProps {
    * Whether the reasoning is currently streaming
    */
   isReasoningStreaming?: boolean;
+
+  /**
+   * User's name (for user messages)
+   */
+  userName?: string;
+
+  /**
+   * User's email (for user messages)
+   */
+  userEmail?: string;
 }
 
 /**
@@ -61,8 +102,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isLoading = false,
   isStreaming = false,
   isReasoningStreaming = false,
+  userName,
+  userEmail,
 }) => {
   const isUser = type === 'user';
+  const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
 
   return (
     <div className="w-full group">
@@ -88,7 +132,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             {isUser ? (
               <>
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
-                  U
+                  {userInitials}
                 </div>
                 <span className="tracking-wide">You</span>
               </>
@@ -114,45 +158,46 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           {/* Message Content */}
           <div className="text-sm">
             <AnimatePresence mode="wait">
-              {isLoading ? (
-                // Loading indicator
+              {isLoading || (isStreaming && !content) ? (
+                // Loading indicator - show when explicitly loading OR when streaming with no content yet
                 <motion.div
                   key="loading"
-                  className="flex gap-1.5 items-center justify-start py-2"
+                  className="flex gap-1.5 items-center justify-start"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
                   <motion.div
-                    className="w-2 h-2 rounded-full bg-gray-500"
-                    animate={{ y: [0, -8, 0], opacity: [0.7, 1, 0.7] }}
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
                     transition={{
-                      duration: 1.4,
+                      duration: 1.2,
                       repeat: Infinity,
                       ease: 'easeInOut',
                     }}
                   />
                   <motion.div
-                    className="w-2 h-2 rounded-full bg-gray-500"
-                    animate={{ y: [0, -8, 0], opacity: [0.7, 1, 0.7] }}
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
                     transition={{
-                      duration: 1.4,
+                      duration: 1.2,
                       repeat: Infinity,
                       ease: 'easeInOut',
                       delay: 0.2,
                     }}
                   />
                   <motion.div
-                    className="w-2 h-2 rounded-full bg-gray-500"
-                    animate={{ y: [0, -8, 0], opacity: [0.7, 1, 0.7] }}
+                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
                     transition={{
-                      duration: 1.4,
+                      duration: 1.2,
                       repeat: Infinity,
                       ease: 'easeInOut',
                       delay: 0.4,
                     }}
                   />
+                  <span className="text-sm text-gray-400 ml-1">thinking</span>
                 </motion.div>
               ) : (
                 // Markdown content - Claude style (no tabs)
