@@ -32,19 +32,19 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50/30 overflow-hidden">
+    <div className="mb-2 overflow-hidden">
       {/* Header - Clickable to expand/collapse */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-100/40 transition-colors duration-200 group"
+        className="w-full px-3 py-1.5 flex items-center justify-between hover:bg-gray-50 rounded-md transition-colors duration-200 group"
         aria-expanded={isExpanded}
         aria-label={isExpanded ? 'Collapse thinking process' : 'Expand thinking process'}
       >
         <div className="flex items-center gap-2.5">
           {/* Thinking icon */}
-          <div className="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center">
+          <div className="w-4 h-4 rounded-full bg-gray-500/80 flex items-center justify-center">
             <svg
-              className={`w-3 h-3 text-white ${isStreaming ? 'animate-pulse' : ''}`}
+              className={`w-2.5 h-2.5 text-white ${isStreaming ? 'animate-pulse' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -59,7 +59,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           </div>
 
           {/* Label */}
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-xs font-medium text-gray-600">
             {isStreaming ? 'Thinking...' : 'Thought process'}
           </span>
 
@@ -87,7 +87,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
 
         {/* Chevron icon */}
         <motion.svg
-          className="w-4 h-4 text-gray-500 group-hover:text-gray-700 transition-colors"
+          className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -108,7 +108,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="px-4 py-3 pt-0 border-t border-gray-200/50">
+            <div className="px-3 py-2 pt-0">
               <div className="text-sm text-gray-700 leading-relaxed">
                 <ChatMarkdown content={content} isStreaming={isStreaming} />
               </div>

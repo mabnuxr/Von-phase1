@@ -27,6 +27,7 @@ class ConversationsService {
 
   /**
    * Create a new conversation
+   * Backend expects: { title: string }
    */
   async createConversation(title: string): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
@@ -59,6 +60,7 @@ class ConversationsService {
 
   /**
    * Send a message in a conversation
+   * Backend expects: { content: string, messageType: string }
    */
   async sendMessage(
     conversationId: string,

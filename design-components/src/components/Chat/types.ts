@@ -109,6 +109,16 @@ export interface ChatProps {
   userId?: string;
 
   /**
+   * User's name (for displaying initials in user messages)
+   */
+  userName?: string;
+
+  /**
+   * User's email (for displaying initials in user messages)
+   */
+  userEmail?: string;
+
+  /**
    * Base URL for the backend API
    */
   apiBaseUrl?: string;

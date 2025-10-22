@@ -14,7 +14,7 @@ import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import type { Message as ChatMessage } from "@vonlabs/design-components";
-import type { Message } from "../types/conversation";
+import type { MessageWithStreaming } from "../types/conversation";
 import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -183,7 +183,8 @@ const Dashboard = () => {
     if (!currentConversationId) return;
 
     // Convert Chat component message format to backend message format
-    const backendMessage: Message = {
+    // Preserve streaming metadata as optional fields
+    const backendMessage: MessageWithStreaming = {
       id: chatMessage.id,
       conversationId: currentConversationId,
       messageType: "text",
@@ -192,6 +193,10 @@ const Dashboard = () => {
       createdAt:
         chatMessage.timestamp?.toISOString() || new Date().toISOString(),
       createdBy: chatMessage.type === "user" ? "current-user" : "assistant",
+      // Preserve streaming state
+      isStreaming: chatMessage.isStreaming,
+      isReasoningStreaming: chatMessage.isReasoningStreaming,
+      reasoningContent: chatMessage.reasoningContent,
     };
 
     // Add or update message in Zustand store
@@ -214,15 +219,19 @@ const Dashboard = () => {
   };
 
   // Transform backend messages to Chat component format
-  const transformedMessages: ChatMessage[] = conversationMessages.map(
-    (msg) => ({
-      id: msg.id,
-      type: msg.role === "user" ? "user" : "assistant",
-      content: msg.messageContent,
-      timestamp: new Date(msg.createdAt),
-      isStreaming: false,
-    }),
-  );
+  const transformedMessages: ChatMessage[] = conversationMessages.map((msg) => {
+    const streamingMsg = msg as MessageWithStreaming;
+    return {
+      id: streamingMsg.id,
+      type: streamingMsg.role === "user" ? "user" : "assistant",
+      content: streamingMsg.messageContent,
+      timestamp: new Date(streamingMsg.createdAt),
+      // Preserve streaming state if present
+      isStreaming: streamingMsg.isStreaming || false,
+      isReasoningStreaming: streamingMsg.isReasoningStreaming || false,
+      reasoningContent: streamingMsg.reasoningContent,
+    };
+  });
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
@@ -339,6 +348,8 @@ const Dashboard = () => {
               <Chat
                 title="von AI"
                 userId={user?.id}
+                userName={user?.name || user?.firstName}
+                userEmail={user?.email}
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
                 pusherConfig={pusherConfig}
                 conversationId={currentConversationId || undefined}
@@ -350,7 +361,14 @@ const Dashboard = () => {
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
                 onPusherMessage={handlePusherMessage}
-                isLoading={isSendingMessage}
+                isLoading={
+                  isSendingMessage &&
+                  !transformedMessages.some(
+                    (m) =>
+                      m.type === "assistant" &&
+                      (m.content || m.reasoningContent),
+                  )
+                }
                 loadMoreRef={loadMoreMessagesRef}
                 isFetchingMore={isFetchingNextMessagePage}
                 placeholder="Ask von anything"
