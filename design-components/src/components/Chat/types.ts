@@ -33,6 +33,22 @@ export interface Message {
    * Whether this message has an error
    */
   hasError?: boolean;
+  /**
+   * Tool calls made during this message (AGUI)
+   */
+  toolCalls?: ToolCall[];
+  /**
+   * Multiple text message blocks (for multi-step agent responses)
+   */
+  stepMessages?: string[];
+  /**
+   * AGUI metadata
+   */
+  metadata?: {
+    run_id: string;
+    thread_id: string;
+    sequences: number[];
+  };
 }
 
 export interface ChatSession {
@@ -94,6 +110,153 @@ export interface FixedPosition {
   right?: string;
   bottom?: string;
   left?: string;
+}
+
+/**
+ * AGUI (Agent UI) Event Types
+ * Following the AGUI convention for agent streaming events
+ */
+
+// AGUI Event wrapper - all events come wrapped in this structure
+export interface AguiEventWrapper {
+  sequence: number;
+  timestamp: string;
+  run_id: string; // Maps to message ID
+  thread_id: string; // Maps to conversation ID
+  event: AguiEvent;
+  meta: EventMeta;
+}
+
+export interface EventMeta {
+  backend: string;
+  version: string;
+  sequence_info: {
+    total_events: number;
+    run_start_time: string;
+  };
+}
+
+// Union type of all possible AGUI events
+export type AguiEvent =
+  | RunStartedEvent
+  | StepStartedEvent
+  | TextMessageStartEvent
+  | TextMessageContentEvent
+  | TextMessageEndEvent
+  | ToolCallStartEvent
+  | ToolCallArgsEvent
+  | ToolCallEndEvent
+  | ToolCallResultEvent
+  | StepFinishedEvent
+  | RunFinishedEvent;
+
+// Individual event types
+export interface RunStartedEvent {
+  type: 'RUN_STARTED';
+  thread_id: string;
+  run_id: string;
+}
+
+export interface StepStartedEvent {
+  type: 'STEP_STARTED';
+  step_name: string;
+}
+
+export interface TextMessageStartEvent {
+  type: 'TEXT_MESSAGE_START';
+  message_id: string;
+  role: 'assistant';
+}
+
+export interface TextMessageContentEvent {
+  type: 'TEXT_MESSAGE_CONTENT';
+  message_id: string;
+  delta: string;
+}
+
+export interface TextMessageEndEvent {
+  type: 'TEXT_MESSAGE_END';
+  message_id: string;
+}
+
+export interface ToolCallStartEvent {
+  type: 'TOOL_CALL_START';
+  tool_call_id: string;
+  tool_call_name: string;
+  parent_message_id: string;
+}
+
+export interface ToolCallArgsEvent {
+  type: 'TOOL_CALL_ARGS';
+  tool_call_id: string;
+  delta: string;
+}
+
+export interface ToolCallEndEvent {
+  type: 'TOOL_CALL_END';
+  tool_call_id: string;
+}
+
+export interface ToolCallResultEvent {
+  type: 'TOOL_CALL_RESULT';
+  message_id: string;
+  tool_call_id: string;
+  content: string;
+  role: 'tool';
+}
+
+export interface StepFinishedEvent {
+  type: 'STEP_FINISHED';
+  step_name: string;
+}
+
+export interface RunFinishedEvent {
+  type: 'RUN_FINISHED';
+  thread_id: string;
+  run_id: string;
+  result: {
+    status: 'completed' | 'failed';
+  };
+}
+
+/**
+ * Tool execution types
+ */
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+  result?: ToolResult;
+  status: 'pending' | 'running' | 'success' | 'error';
+  executionTime?: number;
+  parentMessageId: string;
+}
+
+export interface ToolResult {
+  raw: any; // Raw JSON result from tool
+  type: 'table' | 'query' | 'metrics' | 'json';
+  table?: TableData;
+  queries?: QueryInfo[];
+  metrics?: MetricData[];
+}
+
+export interface TableData {
+  columns: string[];
+  rows: Record<string, any>[];
+  rowCount: number;
+  isComplete: boolean;
+}
+
+export interface QueryInfo {
+  label: string;
+  dialect: string;
+  statement: string;
+}
+
+export interface MetricData {
+  label: string;
+  value: number | string;
+  type: 'currency' | 'count' | 'trend' | 'general';
 }
 
 export interface ChatProps {

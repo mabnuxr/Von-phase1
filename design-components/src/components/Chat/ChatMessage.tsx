@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatMarkdown } from './ChatMarkdown';
+import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
+import { ToolCallBlock } from './ToolCallBlock';
+import type { ToolCall } from './types';
 
 /**
  * Get user initials from name or email
@@ -90,6 +92,16 @@ export interface ChatMessageProps {
    * User's email (for user messages)
    */
   userEmail?: string;
+
+  /**
+   * Tool calls made during this message (AGUI)
+   */
+  toolCalls?: ToolCall[];
+
+  /**
+   * Multiple text message blocks (for multi-step agent responses)
+   */
+  stepMessages?: string[];
 }
 
 /**
@@ -104,6 +116,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isReasoningStreaming = false,
   userName,
   userEmail,
+  toolCalls,
+  stepMessages,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -146,73 +160,115 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             )}
           </div>
 
-          {/* Thinking Block - Only for assistant messages with reasoning */}
-          {!isUser && reasoningContent && (
-            <ThinkingBlock
-              content={reasoningContent}
-              isStreaming={isReasoningStreaming}
-              defaultExpanded={isReasoningStreaming}
-            />
-          )}
-
-          {/* Message Content */}
-          <div className="text-sm">
-            <AnimatePresence mode="wait">
-              {isLoading || (isStreaming && !content) ? (
-                // Loading indicator - show when explicitly loading OR when streaming with no content yet
-                <motion.div
-                  key="loading"
-                  className="flex gap-1.5 items-center justify-start"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: 0.2,
-                    }}
-                  />
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: 0.4,
-                    }}
-                  />
-                  <span className="text-sm text-gray-400 ml-1">thinking</span>
-                </motion.div>
-              ) : (
-                // Markdown content - Claude style (no tabs)
-                <motion.div
-                  key="content"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChatMarkdown content={content} isStreaming={isStreaming} />
-                </motion.div>
+          {/* For assistant messages: render in order - thinking, step messages, tool calls, final content */}
+          {!isUser ? (
+            <>
+              {/* Thinking Block - Only for assistant messages with reasoning */}
+              {reasoningContent && (
+                <ThinkingBlock
+                  content={reasoningContent}
+                  isStreaming={isReasoningStreaming}
+                  defaultExpanded={isReasoningStreaming}
+                />
               )}
-            </AnimatePresence>
-          </div>
+
+              {/* Step messages - intermediate text blocks */}
+              {stepMessages && stepMessages.length > 0 && (
+                <div className="space-y-3">
+                  {stepMessages.map((stepContent, idx) => (
+                    <div key={idx} className="text-sm prose prose-sm max-w-none">
+                      <Streamdown
+                        parseIncompleteMarkdown={isStreaming && idx === stepMessages.length - 1}
+                        isAnimating={isStreaming && idx === stepMessages.length - 1}
+                      >
+                        {stepContent}
+                      </Streamdown>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Tool Calls */}
+              {toolCalls && toolCalls.length > 0 && (
+                <div className="space-y-2">
+                  {toolCalls.map((toolCall) => (
+                    <ToolCallBlock key={toolCall.id} toolCall={toolCall} />
+                  ))}
+                </div>
+              )}
+
+              {/* Main content */}
+              <div className="text-sm">
+                <AnimatePresence mode="wait">
+                  {isLoading || (isStreaming && !content) ? (
+                    // Loading indicator
+                    <motion.div
+                      key="loading"
+                      className="flex gap-1.5 items-center justify-start"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <motion.div
+                        className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{
+                          duration: 1.2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }}
+                      />
+                      <motion.div
+                        className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{
+                          duration: 1.2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          delay: 0.2,
+                        }}
+                      />
+                      <motion.div
+                        className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{
+                          duration: 1.2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          delay: 0.4,
+                        }}
+                      />
+                      <span className="text-sm text-gray-400 ml-1">thinking</span>
+                    </motion.div>
+                  ) : (
+                    content && (
+                      <motion.div
+                        key="content"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="prose prose-sm max-w-none"
+                      >
+                        <Streamdown
+                          parseIncompleteMarkdown={isStreaming}
+                          isAnimating={isStreaming}
+                        >
+                          {content}
+                        </Streamdown>
+                      </motion.div>
+                    )
+                  )}
+                </AnimatePresence>
+              </div>
+            </>
+          ) : (
+            // User messages - simple rendering
+            <div className="text-sm prose prose-sm max-w-none">
+              <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
+            </div>
+          )}
         </div>
       </div>
     </div>
