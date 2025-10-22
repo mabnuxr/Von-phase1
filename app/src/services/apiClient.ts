@@ -119,6 +119,12 @@ export class ApiClient {
           if (
             typeof errorData === "object" &&
             errorData !== null &&
+            "detail" in errorData
+          ) {
+            errorMessage = (errorData as { detail: string }).detail;
+          } else if (
+            typeof errorData === "object" &&
+            errorData !== null &&
             "message" in errorData
           ) {
             errorMessage = (errorData as { message: string }).message;
@@ -128,10 +134,42 @@ export class ApiClient {
           errorMessage = response.statusText || errorMessage;
         }
 
-        // Handle 401 Unauthorized - clear auth and redirect to login
+        // Handle 401 Unauthorized - check for token expiration
         if (response.status === 401) {
-          clearAllAuth();
-          window.location.href = "/";
+          const errorCode =
+            typeof errorData === "object" &&
+            errorData !== null &&
+            "error" in errorData
+              ? (errorData as { error: string }).error
+              : null;
+
+          if (import.meta.env.DEV) {
+            console.log(
+              `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
+            );
+          }
+
+          // Check if this is a token expiration error
+          if (errorCode === "token_expired") {
+            if (import.meta.env.DEV) {
+              console.log("[API] Token expired - logging out");
+            }
+            clearAllAuth();
+            // Use a small delay to ensure storage events propagate
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 100);
+          } else {
+            // Other 401 errors (invalid token, missing auth, etc.)
+            if (import.meta.env.DEV) {
+              console.log("[API] Authentication error - logging out");
+            }
+            clearAllAuth();
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 100);
+          }
+
           throw new ApiError(errorMessage, response.status, errorData);
         }
 
