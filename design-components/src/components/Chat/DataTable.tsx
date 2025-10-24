@@ -139,7 +139,9 @@ export const DataTable: React.FC<DataTableProps> = ({ data, queries, onViewQuery
                 {col}
               </HeaderCell>
               <Cell dataKey={col}>
-                {(rowData: Record<string, unknown>) => <CellFormatter value={rowData[col]} columnName={col} />}
+                {(rowData: Record<string, unknown>) => (
+                  <CellFormatter value={rowData[col]} columnName={col} />
+                )}
               </Cell>
             </Column>
           ))}
