@@ -31,6 +31,10 @@ interface ChatState {
   shouldScrollToBottom: Record<string, boolean>;
   triggerScrollToBottom: (conversationId: string) => void;
   clearScrollTrigger: (conversationId: string) => void;
+
+  // FIX: Force-complete message (timeout recovery)
+  forceCompleteMessage: (conversationId: string, messageId: string) => void;
+  markMessageTimeout: (conversationId: string, messageId: string) => void;
 }
 
 const useChatStoreBase = create<ChatState>((set) => ({
@@ -127,6 +131,46 @@ const useChatStoreBase = create<ChatState>((set) => ({
         [conversationId]: false,
       },
     })),
+
+  // FIX: Force-complete message (timeout recovery)
+  forceCompleteMessage: (conversationId, messageId) =>
+    set((state) => {
+      const messages = state.messages[conversationId];
+      if (!messages) return state;
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: messages.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, isStreaming: false, status: "completed" as const }
+              : msg,
+          ),
+        },
+      };
+    }),
+
+  markMessageTimeout: (conversationId, messageId) =>
+    set((state) => {
+      const messages = state.messages[conversationId];
+      if (!messages) return state;
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: messages.map((msg) =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  isStreaming: false,
+                  status: "timeout" as const,
+                  errorMessage: "Message timed out after 60 seconds",
+                }
+              : msg,
+          ),
+        },
+      };
+    }),
 }));
 
 const useChatStore = createSelectors(useChatStoreBase);

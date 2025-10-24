@@ -57,8 +57,9 @@ export interface Message {
    *
    * Note: Stuck/timed-out messages are soft-deleted by backend,
    * so they disappear from the list rather than showing timeout status.
+   * However, client-side timeout recovery may set status to "timeout" temporarily.
    */
-  status?: 'created' | 'streaming' | 'completed' | 'failed';
+  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
   /**
    * Error message if status is 'failed'
    */

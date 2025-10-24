@@ -383,6 +383,10 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             finalStepMessages.length > 0 ? finalStepMessages : undefined
           );
 
+          // FIX: Clear event buffer immediately to prevent memory leak
+          state.eventBuffer = [];
+          state.nextExpectedSequence = 1;
+
           // Cleanup after short delay
           setTimeout(() => {
             setStreamingMessages((prev) => {
@@ -403,8 +407,10 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             //   return next;
             // });
 
-            // Clean up state
+            // FIX: Clear all maps to prevent memory leaks
             state.messageContent.delete(wrapper.run_id);
+            state.toolCallArgs.clear(); // Clear accumulated args
+            state.toolCalls.clear(); // Clear tool calls map
             // NOTE: Don't clear stepMessages here - they need to persist for React rendering
             // They'll be cleared on the next RUN_STARTED
             state.currentRunId = null;
@@ -438,6 +444,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       // TEXT_MESSAGE_START must be processed immediately to create the step before content arrives
       // TEXT_MESSAGE_CONTENT must be processed immediately for smooth token-by-token streaming
       // TOOL_CALL_* events must be processed immediately to show tool calls in real-time
+      // RUN_FINISHED must be processed immediately to re-enable the input without delay
       // We can do this safely because these events are independent and order-insensitive
       const immediateEvents = [
         'TEXT_MESSAGE_START',
@@ -447,6 +454,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
         'TOOL_CALL_ARGS',
         'TOOL_CALL_END',
         'TOOL_CALL_RESULT',
+        'RUN_FINISHED', // FIX: Process immediately to re-enable input
       ];
 
       if (immediateEvents.includes(wrapper.event.type)) {

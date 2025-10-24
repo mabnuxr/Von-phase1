@@ -38,6 +38,12 @@ export interface ChatInputProps {
    * @default false
    */
   disabled?: boolean;
+
+  /**
+   * FIX: Whether a message is actively streaming
+   * @default false
+   */
+  isStreaming?: boolean;
 }
 
 /**
@@ -48,6 +54,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSend,
   contextTag,
   disabled = false,
+  isStreaming = false, // FIX: Default to false
 }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -88,7 +95,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <div
         className={`flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border transition-all duration-200 ${
           disabled
-            ? 'border-gray-200 opacity-60 cursor-not-allowed'
+            ? isStreaming
+              ? 'border-blue-200 opacity-75 cursor-not-allowed'
+              : 'border-gray-200 opacity-60 cursor-not-allowed'
             : 'border-gray-200 shadow-sm hover:shadow-md'
         }`}
       >
@@ -97,7 +106,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={disabled ? 'Waiting for response...' : placeholder}
+          placeholder={
+            disabled
+              ? 'Waiting for response...'
+              : placeholder
+          }
           disabled={disabled}
           className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
           style={{

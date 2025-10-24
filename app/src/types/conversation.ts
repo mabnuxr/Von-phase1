@@ -17,8 +17,14 @@ export interface Conversation {
  *
  * Note: Stuck/timed-out messages are soft-deleted by the backend,
  * so they simply disappear from the list rather than showing timeout status.
+ * However, client-side timeout recovery may set status to "timeout" temporarily.
  */
-export type MessageStatus = "created" | "streaming" | "completed" | "failed";
+export type MessageStatus =
+  | "created"
+  | "streaming"
+  | "completed"
+  | "failed"
+  | "timeout";
 
 /**
  * Message entity from backend

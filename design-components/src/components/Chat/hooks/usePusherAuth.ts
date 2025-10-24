@@ -201,7 +201,14 @@ export function usePusherAuth(
         channelRef.current = null;
       }
     };
-  }, [conversationId, config]); // Simplified dependency array - config is memoized by parent
+  }, [
+    conversationId,
+    config.key,
+    config.cluster,
+    config.authEndpoint,
+    config.tenantId,
+    config.userId,
+  ]); // FIX: Use primitive values only to prevent infinite reconnection loops
 
   return {
     pusher: pusherRef.current,

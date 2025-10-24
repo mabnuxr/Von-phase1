@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatHeader } from './ChatHeader';
 import { ChatMessage } from './ChatMessage';
@@ -181,6 +181,7 @@ export const Chat: React.FC<ChatProps> = ({
           toolCalls,
           stepMessages,
           isStreaming: false,
+          status: 'completed',
           timestamp: new Date(),
         };
 
@@ -325,6 +326,48 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [conversationId, messages]);
 
+  // FIX: Memoize visible messages to avoid O(N) filtering on every render
+  // With 500+ messages, this prevents performance degradation
+  const visibleMessages = useMemo(() => {
+    return messages.filter((message) => {
+      // Hide empty assistant messages when typing indicator is showing
+      if (
+        isLoading &&
+        message.type === 'assistant' &&
+        !message.content &&
+        !message.reasoningContent
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [messages, isLoading]);
+
+  // FIX: Failsafe watchdog - Force re-enable input if stuck for >10s
+  // This is a last-resort safety net if all other timeout mechanisms fail
+  // TODO: Increase to 65s after debugging
+  useEffect(() => {
+    const streamingMessages = messages.filter((m) => m.isStreaming);
+    if (streamingMessages.length === 0) return;
+
+    // Set timer to force-complete after 10s (for debugging)
+    const timer = setTimeout(() => {
+      streamingMessages.forEach((msg) => {
+        // Force completion via parent callback
+        if (onPusherMessage && conversationId) {
+          onPusherMessage({
+            ...msg,
+            isStreaming: false,
+            status: 'timeout',
+            errorMessage: 'Message timed out',
+          } as Message);
+        }
+      });
+    }, 10000); // 10s for debugging (change to 65000 after fixing)
+
+    return () => clearTimeout(timer);
+  }, [messages, conversationId, onPusherMessage]);
+
   // Handle sending a message
   const handleSendMessage = useCallback(
     async (content: string) => {
@@ -465,39 +508,26 @@ export const Chat: React.FC<ChatProps> = ({
           />
         ) : (
           <div>
-            {messages
-              .filter((message) => {
-                // Hide empty assistant messages when typing indicator is showing
-                if (
-                  isLoading &&
-                  message.type === 'assistant' &&
-                  !message.content &&
-                  !message.reasoningContent
-                ) {
-                  return false;
-                }
-                return true;
-              })
-              .map((message) => (
-                <div key={message.id}>
-                  <ChatMessage
-                    type={message.type}
-                    content={message.content}
-                    reasoningContent={message.reasoningContent}
-                    timestamp={message.timestamp}
-                    activeTab={message.activeTab}
-                    isLoading={false}
-                    isStreaming={message.isStreaming}
-                    isReasoningStreaming={message.isReasoningStreaming}
-                    toolCalls={message.toolCalls}
-                    stepMessages={message.stepMessages}
-                    userName={userName}
-                    userEmail={userEmail}
-                    status={message.status}
-                    errorMessage={message.errorMessage}
-                  />
-                </div>
-              ))}
+            {visibleMessages.map((message) => (
+              <div key={message.id}>
+                <ChatMessage
+                  type={message.type}
+                  content={message.content}
+                  reasoningContent={message.reasoningContent}
+                  timestamp={message.timestamp}
+                  activeTab={message.activeTab}
+                  isLoading={false}
+                  isStreaming={message.isStreaming}
+                  isReasoningStreaming={message.isReasoningStreaming}
+                  toolCalls={message.toolCalls}
+                  stepMessages={message.stepMessages}
+                  userName={userName}
+                  userEmail={userEmail}
+                  status={message.status}
+                  errorMessage={message.errorMessage}
+                />
+              </div>
+            ))}
           </div>
         )}
 
@@ -511,7 +541,10 @@ export const Chat: React.FC<ChatProps> = ({
       <ChatInput
         placeholder={placeholder}
         onSend={handleSendMessage}
-        disabled={isLoading || messages.some((m) => m.isStreaming && m.status !== 'failed')}
+        disabled={
+          isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
+        }
+        isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
       />
     </div>
   );
