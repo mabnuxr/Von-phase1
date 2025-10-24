@@ -34,7 +34,7 @@ function formatNumber(num: number): string {
 /**
  * Smart cell formatter based on column name and value type
  */
-function CellFormatter({ value, columnName }: { value: any; columnName: string }) {
+function CellFormatter({ value, columnName }: { value: unknown; columnName: string }) {
   // Null/undefined
   if (value === null || value === undefined) {
     return <span className="text-gray-400">—</span>;
@@ -139,7 +139,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, queries, onViewQuery
                 {col}
               </HeaderCell>
               <Cell dataKey={col}>
-                {(rowData: any) => <CellFormatter value={rowData[col]} columnName={col} />}
+                {(rowData: Record<string, unknown>) => <CellFormatter value={rowData[col]} columnName={col} />}
               </Cell>
             </Column>
           ))}

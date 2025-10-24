@@ -125,7 +125,7 @@ export const ToolCallBlock: React.FC<ToolCallBlockProps> = ({
         className="my-3 border-purple-200 bg-purple-50/20 hover:bg-purple-50/30"
         style={{
           // Disable all transitions to prevent layout shifts during streaming
-          transition: 'none !important' as any,
+          transition: 'none !important' as React.CSSProperties['transition'],
         }}
         header={
           <div className="flex items-center justify-between w-full">

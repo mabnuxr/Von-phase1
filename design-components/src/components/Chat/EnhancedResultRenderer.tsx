@@ -264,7 +264,7 @@ const JsonResultView = ({ result }: { result: ToolResult }) => {
 };
 
 // Helper functions
-function formatCellValue(value: any): string {
+function formatCellValue(value: unknown): string {
   if (value === null || value === undefined) return '-';
   if (typeof value === 'number') {
     if (value > 1000000) return `$${(value / 1000000).toFixed(2)}M`;
@@ -274,7 +274,7 @@ function formatCellValue(value: any): string {
   return String(value);
 }
 
-function formatMetricValue(value: any, type: string): string {
+function formatMetricValue(value: unknown, type: string): string {
   if (type === 'currency' && typeof value === 'number') {
     return `$${value.toLocaleString()}`;
   }

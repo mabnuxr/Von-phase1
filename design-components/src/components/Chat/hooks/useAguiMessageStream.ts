@@ -71,6 +71,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
   }, [events]);
 
   // Helper: Parse tool result and detect type
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parseToolResult = (resultJson: any): ToolResult => {
     try {
       // Auto-detect table data (SQL results)
@@ -93,6 +94,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       if (resultJson.values && Array.isArray(resultJson.values) && resultJson.values.length > 0) {
         // Check if values have the right structure (value + count)
         const hasValidStructure = resultJson.values.every(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (item: any) => item.value !== undefined && item.count !== undefined
         );
 
@@ -515,6 +517,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
   };
 
   // Handle user messages (non-streaming)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUserMessage = (data: any) => {
     const parsed = typeof data === 'string' ? JSON.parse(data) : data;
     const { id, messageContent, content, role } = parsed;
@@ -551,6 +554,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
     channel.bind('user_message', handleUserMessage);
 
     // Error handling
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     channel.bind('error', (data: any) => {
       eventsRef.current.onError?.(new Error(data.error || 'Unknown error'));
     });

@@ -257,7 +257,9 @@ export interface RunFinishedEvent {
 export interface ToolCall {
   id: string;
   name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   arguments: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args?: Record<string, any>; // Alias for arguments (used in some contexts)
   result?: ToolResult;
   status: 'pending' | 'running' | 'success' | 'error';
@@ -268,6 +270,7 @@ export interface ToolCall {
 }
 
 export interface ToolResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any; // Raw JSON result from tool
   type: 'table' | 'query' | 'metrics' | 'values' | 'json';
   table?: TableData;
@@ -278,6 +281,7 @@ export interface ToolResult {
 
 export interface TableData {
   columns: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rows: Record<string, any>[];
   rowCount: number;
   isComplete: boolean;

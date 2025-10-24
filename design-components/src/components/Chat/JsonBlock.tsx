@@ -6,7 +6,7 @@ export interface JsonBlockProps {
   /**
    * JSON data to display
    */
-  data: any;
+  data: unknown;
 
   /**
    * Optional label for the JSON block

@@ -275,7 +275,7 @@ function formatArgKey(key: string): string {
  * Format argument value for display
  * Handles different types: strings, numbers, booleans, arrays, objects
  */
-function formatArgValue(value: any): string {
+function formatArgValue(value: unknown): string {
   if (value === null || value === undefined) {
     return 'null';
   }

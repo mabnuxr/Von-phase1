@@ -36,6 +36,7 @@ export const TOOL_ICONS: Record<string, React.ComponentType<IconProps>> = {
  * Generate natural language summary from tool arguments
  * Converts JSON args to human-readable description
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function generateToolSummary(toolName: string, args: Record<string, any>): string {
   if (!args || Object.keys(args).length === 0) {
     return '';
