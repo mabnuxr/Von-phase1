@@ -106,11 +106,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            disabled
-              ? 'Waiting for response...'
-              : placeholder
-          }
+          placeholder={disabled ? 'Waiting for response...' : placeholder}
           disabled={disabled}
           className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
           style={{
