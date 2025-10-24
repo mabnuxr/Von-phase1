@@ -26,6 +26,8 @@ import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
+  MAX_REPLAY_CACHE_SIZE,
+  STREAM_TIMEOUT_MS,
 } from "../config/constants";
 
 const Dashboard = () => {
@@ -209,6 +211,9 @@ const Dashboard = () => {
       // Preserve AGUI streaming data
       stepMessages: chatMessage.stepMessages as StepMessage[],
       toolCalls: chatMessage.toolCalls as ToolCall[],
+      // FIX: Preserve status and error message
+      status: chatMessage.status,
+      errorMessage: chatMessage.errorMessage,
     };
 
     // Add or update message in Zustand store
@@ -230,26 +235,34 @@ const Dashboard = () => {
     }
   };
 
-  // Handle stream timeout - refetch messages from backend
+  // Handle stream timeout - force clear state and refetch messages from backend
   const handleStreamTimeout = async (messageId: string) => {
-    if (import.meta.env.DEV) {
-      console.warn(
-        `[Dashboard] Message ${messageId} timed out, refetching messages...`,
-      );
-    }
+    if (!currentConversationId) return;
 
-    // Refetch messages to get the latest status from backend
-    // Backend will have marked this message as TIMEOUT
+    // FIX: Force clear streaming state immediately (re-enables input)
+    // This ensures the UI is responsive even if backend is down
+    useChatStore
+      .getState()
+      .markMessageTimeout(currentConversationId, messageId);
+
+    // THEN refetch messages to get the latest status from backend
+    // Backend will have marked this message as TIMEOUT or soft-deleted it
     if (refetchMessages) {
       await refetchMessages();
     }
   };
 
   // Cache for replayed events to avoid reprocessing on every render
+  // FIX: Add size limit to prevent unbounded memory growth
   const replayCache = useRef<
     Map<
       string,
-      { content: string; stepMessages: StepMessage[]; toolCalls: ToolCall[] }
+      {
+        content: string;
+        stepMessages: StepMessage[];
+        toolCalls: ToolCall[];
+        timestamp: number; // Track insertion time for LRU eviction
+      }
     >
   >(new Map());
 
@@ -279,9 +292,24 @@ const Dashboard = () => {
 
         if (!replayed) {
           // Not in cache, replay the events
-          replayed = replayAguiEvents(streamingMsg.events);
-          if (replayed) {
+          const replayedData = replayAguiEvents(streamingMsg.events);
+          if (replayedData) {
+            replayed = {
+              ...replayedData,
+              timestamp: Date.now(), // Track insertion time
+            };
             replayCache.current.set(cacheKey, replayed);
+
+            // FIX: Implement cache size limit with LRU eviction
+            if (replayCache.current.size > MAX_REPLAY_CACHE_SIZE) {
+              // Sort by timestamp (oldest first) and remove oldest 500 entries
+              const entries = Array.from(replayCache.current.entries()).sort(
+                (a, b) => a[1].timestamp - b[1].timestamp,
+              );
+
+              const toDelete = entries.slice(0, 500);
+              toDelete.forEach(([key]) => replayCache.current.delete(key));
+            }
           }
         }
 
@@ -325,8 +353,16 @@ const Dashboard = () => {
     conversationMessages as MessageWithStreaming[],
     currentConversationId,
     {
-      timeoutMs: 60000, // 60 seconds
+      timeoutMs: STREAM_TIMEOUT_MS,
       onTimeout: handleStreamTimeout,
+      // FIX: Force-clear streaming state immediately on timeout
+      onForceComplete: (messageId) => {
+        if (currentConversationId) {
+          useChatStore
+            .getState()
+            .forceCompleteMessage(currentConversationId, messageId);
+        }
+      },
     },
   );
 

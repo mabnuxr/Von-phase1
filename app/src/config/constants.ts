@@ -64,6 +64,22 @@ export const OAUTH_POPUP_CHECK_DELAY_MS = 100 as const;
 export const INFINITE_SCROLL_THRESHOLD = 1.0 as const;
 
 // ============================================================================
+// Message Cache Constants
+// ============================================================================
+
+/**
+ * Maximum size of the replay cache for AGUI event reconstruction
+ * Prevents unbounded memory growth from cached replayed events
+ */
+export const MAX_REPLAY_CACHE_SIZE = 1000 as const;
+
+/**
+ * Timeout duration in milliseconds while waiting for response
+ * After this time, the response will be considered timed out
+ */
+export const STREAM_TIMEOUT_MS = 60000 as const; // 60 seconds
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -80,4 +96,6 @@ export const QUERY_CONSTANTS = {
   OAUTH_POLLING_INTERVAL_MS,
   OAUTH_POPUP_CHECK_DELAY_MS,
   INFINITE_SCROLL_THRESHOLD,
+  MAX_REPLAY_CACHE_SIZE,
+  STREAM_TIMEOUT_MS,
 } as const;

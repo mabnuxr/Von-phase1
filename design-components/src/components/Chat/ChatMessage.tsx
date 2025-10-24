@@ -94,8 +94,9 @@ export interface ChatMessageProps {
 
   /**
    * Message status from backend persistence
+   * Includes 'timeout' for client-side timeout recovery
    */
-  status?: 'created' | 'streaming' | 'completed' | 'failed';
+  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
 
   /**
    * Error message if status is 'failed'

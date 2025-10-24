@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import type { MessageWithStreaming } from "../types/conversation";
+import { STREAM_TIMEOUT_MS } from "../config/constants";
 
 interface UseStreamTimeoutOptions {
-  timeoutMs?: number; // Default 60 seconds
+  timeoutMs?: number; // Default from STREAM_TIMEOUT_MS constant
   onTimeout: (messageId: string) => void;
+  onForceComplete?: (messageId: string) => void; // FIX: Force clear state before refetch
 }
 
 /**
@@ -29,7 +31,7 @@ export function useStreamTimeout(
   conversationId: string | null,
   options: UseStreamTimeoutOptions,
 ) {
-  const { timeoutMs = 60000, onTimeout } = options; // 60 seconds default
+  const { timeoutMs = STREAM_TIMEOUT_MS, onTimeout, onForceComplete } = options;
   // Use number instead of NodeJS.Timeout (browser environment)
   const timersRef = useRef<Map<string, number>>(new Map());
 
@@ -71,8 +73,12 @@ export function useStreamTimeout(
       // Set timer for remaining time
       const remainingTime = timeoutMs - timeSinceUpdate;
       const timer = setTimeout(() => {
-        console.warn(`Message ${msg.id} timed out after ${timeoutMs}ms`);
+        // FIX: Force clear streaming state immediately (re-enables input)
+        onForceComplete?.(msg.id);
+
+        // THEN trigger refetch for authoritative state
         onTimeout(msg.id);
+
         timersRef.current.delete(msg.id);
       }, remainingTime);
 

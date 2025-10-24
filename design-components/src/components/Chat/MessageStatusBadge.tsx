@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 interface MessageStatusBadgeProps {
-  status?: 'created' | 'streaming' | 'completed' | 'failed';
+  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
   errorMessage?: string;
   className?: string;
 }
@@ -23,8 +23,8 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
   errorMessage,
   className = '',
 }) => {
-  // Don't show badge for normal states
-  if (!status || status === 'created' || status === 'completed') {
+  // Don't show badge for normal states or timeout (timeout is internal recovery, not user-facing)
+  if (!status || status === 'created' || status === 'completed' || status === 'timeout') {
     return null;
   }
 
@@ -75,5 +75,8 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
     );
   }
 
+  // Timeout state is handled silently (no badge shown)
+  // The timeout mechanism still works to recover stuck inputs,
+  // but we don't show it to users as it's an internal recovery mechanism
   return null;
 };
