@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatMarkdown } from './ChatMarkdown';
+import { Streamdown } from 'streamdown';
 
 export interface ThinkingBlockProps {
   /**
@@ -109,8 +109,10 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
             className="overflow-hidden"
           >
             <div className="px-3 py-2 pt-0">
-              <div className="text-sm text-gray-700 leading-relaxed">
-                <ChatMarkdown content={content} isStreaming={isStreaming} />
+              <div className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
+                <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
+                  {content}
+                </Streamdown>
               </div>
             </div>
           </motion.div>

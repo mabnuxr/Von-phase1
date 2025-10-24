@@ -33,9 +33,20 @@ export function usePusherAuth(
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
 
+  // Store previous config to detect actual changes
+  const prevConfigRef = useRef<PusherConfig | null>(null);
+
   useEffect(() => {
     // Require conversationId, tenantId, and userId for standardized channel format
     if (!conversationId || !config.tenantId || !config.userId || !config.key) {
+      if (import.meta.env.DEV) {
+        console.log('[usePusherAuth] Missing required config:', {
+          hasConversationId: !!conversationId,
+          hasTenantId: !!config.tenantId,
+          hasUserId: !!config.userId,
+          hasKey: !!config.key,
+        });
+      }
       // Clean up any existing connection when required params are missing
       if (channelRef.current) {
         pusherRef.current?.unsubscribe(channelRef.current.name);
@@ -49,88 +60,134 @@ export function usePusherAuth(
       return;
     }
 
+    // Check if config actually changed (deep comparison of relevant fields)
+    const configChanged =
+      !prevConfigRef.current ||
+      prevConfigRef.current.key !== config.key ||
+      prevConfigRef.current.cluster !== config.cluster ||
+      prevConfigRef.current.authEndpoint !== config.authEndpoint ||
+      prevConfigRef.current.tenantId !== config.tenantId ||
+      prevConfigRef.current.userId !== config.userId;
+
+    // Store current config
+    prevConfigRef.current = config;
+
     // Build standardized channel name: private-vonlabs-chat-{tenant_id}-{user_id}-{conversation_id}
     const channelName = `private-vonlabs-chat-${config.tenantId}-${config.userId}-${conversationId}`;
 
-    if (import.meta.env.DEV) {
-      console.log(`[Pusher] Will subscribe to channel: ${channelName}`);
-      console.log('[Pusher] Channel params:', {
-        tenantId: config.tenantId,
-        userId: config.userId,
-        conversationId,
-      });
-    }
+    console.log(`[PUSHER] Will subscribe to channel: ${channelName}`);
+    console.log('[PUSHER] Channel params:', {
+      tenantId: config.tenantId,
+      userId: config.userId,
+      conversationId,
+      configChanged,
+      hasPusher: !!pusherRef.current,
+      hasChannel: !!channelRef.current,
+      currentChannel: channelRef.current?.name,
+    });
 
     try {
       // Get access token from localStorage
       const accessToken = localStorage.getItem('access_token');
 
-      // Initialize Pusher client with debug logging
-      const pusher = new Pusher(config.key, {
-        cluster: config.cluster,
-        authEndpoint: config.authEndpoint,
-        forceTLS: true,
-        // Add Authorization header to auth requests
-        auth: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      });
-
-      // Enable Pusher logging in development
-      if (
-        typeof window !== 'undefined' &&
-        (window as Window & { localStorage?: Storage }).localStorage?.getItem('debug') === 'pusher'
-      ) {
-        Pusher.logToConsole = true;
+      if (import.meta.env.DEV) {
+        console.log('[Pusher] Auth config:', {
+          authEndpoint: config.authEndpoint,
+          hasToken: !!accessToken,
+          tokenLength: accessToken?.length,
+        });
       }
 
-      pusherRef.current = pusher;
+      // Reuse existing Pusher instance if config hasn't changed
+      let pusher = pusherRef.current;
 
-      // Handle connection state changes
-      pusher.connection.bind('connected', () => {
-        setIsConnected(true);
-        setError(null);
-      });
+      if (!pusher || configChanged) {
+        console.log('[PUSHER] Creating new Pusher instance');
 
-      pusher.connection.bind('disconnected', () => {
-        setIsConnected(false);
-      });
-
-      pusher.connection.bind('error', (err: { error?: { message?: string } }) => {
-        if (import.meta.env.DEV) {
-          console.error('[Pusher] Connection error:', err);
+        // Disconnect old instance if it exists
+        if (pusher) {
+          pusher.disconnect();
         }
-        setError(new Error(err.error?.message || 'Pusher connection error'));
-      });
 
-      pusher.connection.bind('state_change', (states: { previous: string; current: string }) => {
-        if (import.meta.env.DEV) {
-          console.log(`[Pusher] ${states.previous} -> ${states.current}`);
+        // Initialize Pusher client with debug logging
+        pusher = new Pusher(config.key, {
+          cluster: config.cluster,
+          authEndpoint: config.authEndpoint,
+          forceTLS: true,
+          // Add Authorization header to auth requests
+          auth: {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        });
+
+        // Enable Pusher logging in development
+        if (
+          typeof window !== 'undefined' &&
+          (window as Window & { localStorage?: Storage }).localStorage?.getItem('debug') ===
+            'pusher'
+        ) {
+          Pusher.logToConsole = true;
         }
-      });
 
-      // Subscribe to conversation-specific private channel with standardized format
-      // Channel name: private-vonlabs-chat-{tenant_id}-{user_id}-{conversation_uuid}
-      const channel = pusher.subscribe(channelName);
+        pusherRef.current = pusher;
+      } else {
+        console.log('[PUSHER] Reusing existing Pusher instance');
+      }
 
-      channelRef.current = channel;
+      // Only bind connection events if this is a new Pusher instance
+      if (!pusherRef.current || configChanged) {
+        // Handle connection state changes
+        pusher.connection.bind('connected', () => {
+          setIsConnected(true);
+          setError(null);
+        });
 
-      // Handle subscription success
-      channel.bind('pusher:subscription_succeeded', () => {
-        if (import.meta.env.DEV) {
-          console.log(`[Pusher] Subscribed to ${channelName}`);
-        }
-      });
+        pusher.connection.bind('disconnected', () => {
+          setIsConnected(false);
+        });
 
-      // Handle subscription error
-      channel.bind('pusher:subscription_error', (status: unknown) => {
-        if (import.meta.env.DEV) {
-          console.error(`[Pusher] Subscription failed:`, status);
-        }
-        setError(new Error(`Subscription failed: ${JSON.stringify(status)}`));
-      });
+        pusher.connection.bind('error', (err: { error?: { message?: string } }) => {
+          if (import.meta.env.DEV) {
+            console.error('[Pusher] Connection error:', err);
+          }
+          setError(new Error(err.error?.message || 'Pusher connection error'));
+        });
+
+        pusher.connection.bind('state_change', (states: { previous: string; current: string }) => {
+          if (import.meta.env.DEV) {
+            console.log(`[Pusher] ${states.previous} -> ${states.current}`);
+          }
+        });
+      }
+
+      // Unsubscribe from old channel if switching conversations
+      if (channelRef.current && channelRef.current.name !== channelName) {
+        console.log(`[PUSHER] Switching from ${channelRef.current.name} to ${channelName}`);
+        pusher.unsubscribe(channelRef.current.name);
+        channelRef.current = null;
+      }
+
+      // Subscribe to conversation-specific private channel if not already subscribed
+      if (!channelRef.current) {
+        console.log(`[PUSHER] Subscribing to channel: ${channelName}`);
+        const channel = pusher.subscribe(channelName);
+        channelRef.current = channel;
+
+        // Handle subscription success
+        channel.bind('pusher:subscription_succeeded', () => {
+          console.log(`[PUSHER] ✅ Successfully subscribed to ${channelName}`);
+        });
+
+        // Handle subscription error
+        channel.bind('pusher:subscription_error', (status: unknown) => {
+          console.error(`[PUSHER] ❌ Subscription failed:`, status);
+          setError(new Error(`Subscription failed: ${JSON.stringify(status)}`));
+        });
+      } else {
+        console.log(`[PUSHER] Already subscribed to ${channelName}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to initialize Pusher'));
     }
@@ -139,19 +196,12 @@ export function usePusherAuth(
     return () => {
       if (channelRef.current && pusherRef.current) {
         const channelName = channelRef.current.name;
-        console.log(`[Pusher] Unsubscribing from channel: ${channelName}`);
+        console.log(`[PUSHER] Cleanup: Unsubscribing from channel: ${channelName}`);
         pusherRef.current.unsubscribe(channelName);
         channelRef.current = null;
       }
     };
-  }, [
-    conversationId,
-    config.key,
-    config.cluster,
-    config.authEndpoint,
-    config.tenantId,
-    config.userId,
-  ]);
+  }, [conversationId, config]); // Simplified dependency array - config is memoized by parent
 
   return {
     pusher: pusherRef.current,

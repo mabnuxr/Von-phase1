@@ -2,6 +2,16 @@
  * Type definitions for Chat component with backend integration
  */
 
+/**
+ * Step message in a multi-step agent response
+ * Each step has its own content and associated tool calls
+ */
+export interface StepMessage {
+  message_id: string;
+  content: string;
+  toolCalls?: ToolCall[];
+}
+
 export interface Message {
   id: string;
   type: 'user' | 'assistant';
@@ -33,6 +43,42 @@ export interface Message {
    * Whether this message has an error
    */
   hasError?: boolean;
+  /**
+   * AGUI metadata
+   */
+  metadata?: {
+    run_id: string;
+    thread_id: string;
+    sequences: number[];
+  };
+  /**
+   * Message status from backend persistence
+   * Tracks the lifecycle state of the message
+   *
+   * Note: Stuck/timed-out messages are soft-deleted by backend,
+   * so they disappear from the list rather than showing timeout status.
+   */
+  status?: 'created' | 'streaming' | 'completed' | 'failed';
+  /**
+   * Error message if status is 'failed'
+   */
+  errorMessage?: string;
+  /**
+   * Complete event stream from backend (event array architecture)
+   * Array of AG-UI events with sequence numbers and metadata
+   * Enables event-driven rendering and complete playback
+   */
+  events?: AguiEventWrapper[];
+  /**
+   * Tool calls made during this message (AGUI)
+   * @deprecated Use stepMessages with tool calls instead
+   */
+  toolCalls?: ToolCall[];
+  /**
+   * Multiple step messages (for multi-step agent responses)
+   * Each step message contains its content and associated tool calls
+   */
+  stepMessages?: StepMessage[];
 }
 
 export interface ChatSession {
@@ -80,6 +126,8 @@ export interface PusherConfig {
   key: string;
   cluster: string;
   authEndpoint?: string;
+  tenantId?: string;
+  userId?: string;
 }
 
 export interface ApiEndpoints {
@@ -94,6 +142,166 @@ export interface FixedPosition {
   right?: string;
   bottom?: string;
   left?: string;
+}
+
+/**
+ * AGUI (Agent UI) Event Types
+ * Following the AGUI convention for agent streaming events
+ */
+
+// AGUI Event wrapper - all events come wrapped in this structure
+export interface AguiEventWrapper {
+  sequence: number;
+  timestamp: string;
+  run_id: string; // Maps to message ID
+  thread_id: string; // Maps to conversation ID
+  event: AguiEvent;
+  meta: EventMeta;
+}
+
+export interface EventMeta {
+  backend: string;
+  version: string;
+  sequence_info: {
+    total_events: number;
+    run_start_time: string;
+  };
+}
+
+// Union type of all possible AGUI events
+export type AguiEvent =
+  | RunStartedEvent
+  | StepStartedEvent
+  | TextMessageStartEvent
+  | TextMessageContentEvent
+  | TextMessageEndEvent
+  | ToolCallStartEvent
+  | ToolCallArgsEvent
+  | ToolCallEndEvent
+  | ToolCallResultEvent
+  | StepFinishedEvent
+  | RunFinishedEvent;
+
+// Individual event types
+export interface RunStartedEvent {
+  type: 'RUN_STARTED';
+  thread_id: string;
+  run_id: string;
+}
+
+export interface StepStartedEvent {
+  type: 'STEP_STARTED';
+  step_name: string;
+}
+
+export interface TextMessageStartEvent {
+  type: 'TEXT_MESSAGE_START';
+  message_id: string;
+  role: 'assistant';
+}
+
+export interface TextMessageContentEvent {
+  type: 'TEXT_MESSAGE_CONTENT';
+  message_id: string;
+  delta: string;
+}
+
+export interface TextMessageEndEvent {
+  type: 'TEXT_MESSAGE_END';
+  message_id: string;
+}
+
+export interface ToolCallStartEvent {
+  type: 'TOOL_CALL_START';
+  tool_call_id: string;
+  tool_call_name: string;
+  parent_message_id: string;
+}
+
+export interface ToolCallArgsEvent {
+  type: 'TOOL_CALL_ARGS';
+  tool_call_id: string;
+  delta: string;
+}
+
+export interface ToolCallEndEvent {
+  type: 'TOOL_CALL_END';
+  tool_call_id: string;
+}
+
+export interface ToolCallResultEvent {
+  type: 'TOOL_CALL_RESULT';
+  message_id: string;
+  tool_call_id: string;
+  content: string;
+  role: 'tool';
+}
+
+export interface StepFinishedEvent {
+  type: 'STEP_FINISHED';
+  step_name: string;
+}
+
+export interface RunFinishedEvent {
+  type: 'RUN_FINISHED';
+  thread_id: string;
+  run_id: string;
+  result: {
+    status: 'completed' | 'failed';
+  };
+}
+
+/**
+ * Tool execution types
+ */
+export interface ToolCall {
+  id: string;
+  name: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  arguments: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args?: Record<string, any>; // Alias for arguments (used in some contexts)
+  result?: ToolResult;
+  status: 'pending' | 'running' | 'success' | 'error';
+  executionTime?: number;
+  startTime?: number; // Timestamp when tool execution started
+  endTime?: number; // Timestamp when tool execution completed
+  parentMessageId: string;
+}
+
+export interface ToolResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  raw: any; // Raw JSON result from tool
+  type: 'table' | 'query' | 'metrics' | 'values' | 'json';
+  table?: TableData;
+  queries?: QueryInfo[];
+  metrics?: MetricData[];
+  values?: ValueData[];
+}
+
+export interface TableData {
+  columns: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: Record<string, any>[];
+  rowCount: number;
+  isComplete: boolean;
+}
+
+export interface QueryInfo {
+  label: string;
+  dialect: string;
+  statement: string;
+}
+
+export interface MetricData {
+  label: string;
+  value: number | string;
+  type: 'currency' | 'count' | 'trend' | 'general';
+}
+
+export interface ValueData {
+  value: string;
+  count: number;
 }
 
 export interface ChatProps {

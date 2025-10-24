@@ -115,6 +115,18 @@ export type { HeaderProps } from './Header';
 export { Chat } from './Chat';
 export type { ChatProps, Message, FixedPosition } from './Chat';
 
+// Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
+export type {
+  AguiEventWrapper,
+  AguiEvent,
+  ToolCall,
+  ToolResult,
+  StepMessage,
+  TableData,
+  QueryInfo,
+  MetricData,
+} from './Chat/index';
+
 // TopBar Organism (uses: TabPill + Avatar, manages tab state)
 export { TopBar } from './TopBar';
 export type { TopBarProps, Tab } from './TopBar';

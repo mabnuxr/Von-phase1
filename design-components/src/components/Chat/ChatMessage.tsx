@@ -1,6 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChatMarkdown } from './ChatMarkdown';
+import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
+import { MessageStatusBadge } from './MessageStatusBadge';
+import { ElegantToolBlock } from './ElegantToolBlock';
 
 /**
  * Get user initials from name or email
@@ -90,6 +91,34 @@ export interface ChatMessageProps {
    * User's email (for user messages)
    */
   userEmail?: string;
+
+  /**
+   * Message status from backend persistence
+   */
+  status?: 'created' | 'streaming' | 'completed' | 'failed';
+
+  /**
+   * Error message if status is 'failed'
+   */
+  errorMessage?: string;
+
+  /**
+   * Complete event stream from backend (event array architecture)
+   * Enables event-driven rendering of agent execution
+   */
+  events?: import('./types').AguiEventWrapper[];
+
+  /**
+   * Tool calls made during this message (AGUI)
+   * @deprecated Use stepMessages with tool calls instead
+   */
+  toolCalls?: import('./types').ToolCall[];
+
+  /**
+   * Multiple step messages (for multi-step agent responses)
+   * Each step message contains its content and associated tool calls
+   */
+  stepMessages?: import('./types').StepMessage[];
 }
 
 /**
@@ -99,11 +128,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
   reasoningContent,
-  isLoading = false,
   isStreaming = false,
   isReasoningStreaming = false,
   userName,
   userEmail,
+  toolCalls: _toolCalls, // eslint-disable-line @typescript-eslint/no-unused-vars
+  stepMessages,
+  status,
+  errorMessage,
+  events: _events, // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -142,77 +175,69 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   A
                 </div>
                 <span className="tracking-wide">Assistant</span>
+                {/* Status badge for assistant messages */}
+                <MessageStatusBadge status={status} errorMessage={errorMessage} />
               </>
             )}
           </div>
 
-          {/* Thinking Block - Only for assistant messages with reasoning */}
-          {!isUser && reasoningContent && (
-            <ThinkingBlock
-              content={reasoningContent}
-              isStreaming={isReasoningStreaming}
-              defaultExpanded={isReasoningStreaming}
-            />
-          )}
-
-          {/* Message Content */}
-          <div className="text-sm">
-            <AnimatePresence mode="wait">
-              {isLoading || (isStreaming && !content) ? (
-                // Loading indicator - show when explicitly loading OR when streaming with no content yet
-                <motion.div
-                  key="loading"
-                  className="flex gap-1.5 items-center justify-start"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                    }}
-                  />
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: 0.2,
-                    }}
-                  />
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-gray-400"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{
-                      duration: 1.2,
-                      repeat: Infinity,
-                      ease: 'easeInOut',
-                      delay: 0.4,
-                    }}
-                  />
-                  <span className="text-sm text-gray-400 ml-1">thinking</span>
-                </motion.div>
-              ) : (
-                // Markdown content - Claude style (no tabs)
-                <motion.div
-                  key="content"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChatMarkdown content={content} isStreaming={isStreaming} />
-                </motion.div>
+          {/* For assistant messages: render thinking block and content */}
+          {!isUser ? (
+            <>
+              {/* Thinking Block - Only for assistant messages with reasoning */}
+              {reasoningContent && (
+                <ThinkingBlock
+                  content={reasoningContent}
+                  isStreaming={isReasoningStreaming}
+                  defaultExpanded={isReasoningStreaming}
+                />
               )}
-            </AnimatePresence>
-          </div>
+
+              {/* Render stepMessages if available (AGUI multi-step responses) */}
+              {stepMessages && stepMessages.length > 0 ? (
+                <div className="space-y-4">
+                  {stepMessages.map((step, index) => (
+                    <div key={step.message_id || index} className="space-y-3">
+                      {/* Step content */}
+                      {step.content && (
+                        <div className="text-sm prose prose-sm max-w-none">
+                          <Streamdown
+                            parseIncompleteMarkdown={isStreaming}
+                            isAnimating={isStreaming}
+                          >
+                            {step.content}
+                          </Streamdown>
+                        </div>
+                      )}
+
+                      {/* Tool calls for this step */}
+                      {step.toolCalls && step.toolCalls.length > 0 && (
+                        <div className="space-y-2">
+                          {step.toolCalls.map((tool) => (
+                            <ElegantToolBlock key={tool.id} toolCall={tool} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Fallback: render plain content if no stepMessages */
+                content && (
+                  <div className="text-sm prose prose-sm max-w-none">
+                    <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
+                      {content}
+                    </Streamdown>
+                  </div>
+                )
+              )}
+            </>
+          ) : (
+            // User messages - simple rendering
+            <div className="text-sm prose prose-sm max-w-none">
+              <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
+            </div>
+          )}
         </div>
       </div>
     </div>

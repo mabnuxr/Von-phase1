@@ -7,14 +7,21 @@ import { AvatarMenu } from "../components/AvatarMenu";
 import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useSendMessage } from "../hooks/useSendMessage";
+import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
-import type { Message as ChatMessage } from "@vonlabs/design-components";
 import type { MessageWithStreaming } from "../types/conversation";
+import { replayAguiEvents } from "../utils/replayAguiEvents";
+// Import Message type from design-components (includes events field)
+import type {
+  Message as ChatMessage,
+  ToolCall,
+  StepMessage,
+} from "@vonlabs/design-components";
 import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -60,6 +67,7 @@ const Dashboard = () => {
     hasNextPage: hasNextMessagePage,
     isFetchingNextPage: isFetchingNextMessagePage,
     isLoading: isLoadingMessages,
+    refetch: refetchMessages,
   } = useMessages(currentConversationId, MESSAGES_PAGE_LIMIT);
 
   // Infinite scroll hook for loading older messages
@@ -70,7 +78,7 @@ const Dashboard = () => {
   });
 
   // Send message mutation
-  const { mutate: sendMessage, isPending: isSendingMessage } = useSendMessage();
+  const { mutate: sendMessage } = useSendMessage();
 
   // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -197,6 +205,10 @@ const Dashboard = () => {
       isStreaming: chatMessage.isStreaming,
       isReasoningStreaming: chatMessage.isReasoningStreaming,
       reasoningContent: chatMessage.reasoningContent,
+      events: chatMessage.events,
+      // Preserve AGUI streaming data
+      stepMessages: chatMessage.stepMessages as StepMessage[],
+      toolCalls: chatMessage.toolCalls as ToolCall[],
     };
 
     // Add or update message in Zustand store
@@ -218,20 +230,105 @@ const Dashboard = () => {
     }
   };
 
+  // Handle stream timeout - refetch messages from backend
+  const handleStreamTimeout = async (messageId: string) => {
+    if (import.meta.env.DEV) {
+      console.warn(
+        `[Dashboard] Message ${messageId} timed out, refetching messages...`,
+      );
+    }
+
+    // Refetch messages to get the latest status from backend
+    // Backend will have marked this message as TIMEOUT
+    if (refetchMessages) {
+      await refetchMessages();
+    }
+  };
+
+  // Cache for replayed events to avoid reprocessing on every render
+  const replayCache = useRef<
+    Map<
+      string,
+      { content: string; stepMessages: StepMessage[]; toolCalls: ToolCall[] }
+    >
+  >(new Map());
+
   // Transform backend messages to Chat component format
-  const transformedMessages: ChatMessage[] = conversationMessages.map((msg) => {
-    const streamingMsg = msg as MessageWithStreaming;
-    return {
-      id: streamingMsg.id,
-      type: streamingMsg.role === "user" ? "user" : "assistant",
-      content: streamingMsg.messageContent,
-      timestamp: new Date(streamingMsg.createdAt),
-      // Preserve streaming state if present
-      isStreaming: streamingMsg.isStreaming || false,
-      isReasoningStreaming: streamingMsg.isReasoningStreaming || false,
-      reasoningContent: streamingMsg.reasoningContent,
-    };
-  });
+  // Use useMemo to avoid recreating on every render
+  const transformedMessages: ChatMessage[] = useMemo(() => {
+    return conversationMessages.map((msg) => {
+      const streamingMsg = msg as MessageWithStreaming;
+
+      // For fetched messages with events, replay them to reconstruct stepMessages and toolCalls
+      let content = streamingMsg.messageContent;
+      let stepMessages = (streamingMsg as MessageWithStreaming).stepMessages;
+      let toolCalls = (streamingMsg as MessageWithStreaming).toolCalls;
+
+      // If message has events but no stepMessages/toolCalls, replay the events
+      // Only replay for completed messages (not streaming) to avoid performance issues
+      if (
+        streamingMsg.events &&
+        streamingMsg.events.length > 0 &&
+        !streamingMsg.isStreaming &&
+        !stepMessages &&
+        !toolCalls
+      ) {
+        // Check cache first
+        const cacheKey = `${streamingMsg.id}-${streamingMsg.events.length}`;
+        let replayed = replayCache.current.get(cacheKey);
+
+        if (!replayed) {
+          // Not in cache, replay the events
+          replayed = replayAguiEvents(streamingMsg.events);
+          if (replayed) {
+            replayCache.current.set(cacheKey, replayed);
+          }
+        }
+
+        if (replayed) {
+          content = replayed.content || content;
+          stepMessages = replayed.stepMessages;
+          toolCalls = replayed.toolCalls;
+        }
+      }
+
+      const transformed: ChatMessage = {
+        id: streamingMsg.id,
+        type:
+          streamingMsg.role === "user"
+            ? ("user" as const)
+            : ("assistant" as const),
+        content,
+        timestamp: new Date(streamingMsg.createdAt),
+        // Preserve streaming state if present
+        isStreaming: streamingMsg.isStreaming || false,
+        isReasoningStreaming: streamingMsg.isReasoningStreaming || false,
+        reasoningContent: streamingMsg.reasoningContent,
+        // Include AGUI streaming data (for both live streams and fetched messages)
+        toolCalls,
+        stepMessages,
+        // Include status and error fields for persistence
+        status: streamingMsg.status,
+        errorMessage: streamingMsg.errorMessage,
+        // Pass events array for event-driven rendering (for future use)
+        events: streamingMsg.events,
+      };
+
+      return transformed;
+    });
+  }, [conversationMessages]);
+
+  // Client-side timeout detection (60 seconds)
+  // This triggers a refetch to get the latest status from backend
+  // Use conversationMessages (MessageWithStreaming[]) instead of transformedMessages (Message[])
+  useStreamTimeout(
+    conversationMessages as MessageWithStreaming[],
+    currentConversationId,
+    {
+      timeoutMs: 60000, // 60 seconds
+      onTimeout: handleStreamTimeout,
+    },
+  );
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
@@ -361,14 +458,7 @@ const Dashboard = () => {
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
                 onPusherMessage={handlePusherMessage}
-                isLoading={
-                  isSendingMessage &&
-                  !transformedMessages.some(
-                    (m) =>
-                      m.type === "assistant" &&
-                      (m.content || m.reasoningContent),
-                  )
-                }
+                isLoading={false}
                 loadMoreRef={loadMoreMessagesRef}
                 isFetchingMore={isFetchingNextMessagePage}
                 placeholder="Ask von anything"

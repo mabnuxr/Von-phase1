@@ -34,6 +34,70 @@ export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './ho
 export { useMessageStream } from './hooks/useMessageStream';
 export type { StreamMessage, MessageStreamEvents } from './hooks/useMessageStream';
 
+export { useAguiMessageStream } from './hooks/useAguiMessageStream';
+export type { MessageStreamEvents as AguiMessageStreamEvents } from './hooks/useAguiMessageStream';
+
+// Export tool call and result components
+export { DataTable } from './DataTable';
+export type { DataTableProps } from './DataTable';
+
+export { QueryBlock } from './QueryBlock';
+export type { QueryBlockProps } from './QueryBlock';
+
+export { JsonBlock } from './JsonBlock';
+export type { JsonBlockProps } from './JsonBlock';
+
+export { MetricsGrid } from './MetricsGrid';
+export type { MetricsGridProps } from './MetricsGrid';
+
+export { ToolResultRenderer } from './ToolResultRenderer';
+export type { ToolResultRendererProps } from './ToolResultRenderer';
+
+export { ToolCallBlock } from './ToolCallBlock';
+export type { ToolCallBlockProps } from './ToolCallBlock';
+
+// Export icons
+export {
+  DatabaseIcon,
+  ToolIcon,
+  SearchIcon,
+  CalculatorIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  LoaderIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  ArrowDownIcon,
+  TrendingUpIcon,
+  HashIcon,
+  DollarSignIcon,
+} from './icons';
+export type { IconProps } from './icons';
+
+// Export AGUI types
+export type {
+  AguiEventWrapper,
+  AguiEvent,
+  EventMeta,
+  RunStartedEvent,
+  StepStartedEvent,
+  TextMessageStartEvent,
+  TextMessageContentEvent,
+  TextMessageEndEvent,
+  ToolCallStartEvent,
+  ToolCallArgsEvent,
+  ToolCallEndEvent,
+  ToolCallResultEvent,
+  StepFinishedEvent,
+  RunFinishedEvent,
+  ToolCall,
+  ToolResult,
+  TableData,
+  QueryInfo,
+  MetricData,
+  StepMessage,
+} from './types';
+
 // Export API utilities
 export {
   createConversation,
