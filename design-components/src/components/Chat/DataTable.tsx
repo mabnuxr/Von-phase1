@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Table } from 'rsuite';
 import type { TableData, QueryInfo } from './types';
 
@@ -57,11 +57,7 @@ function CellFormatter({ value, columnName }: { value: any; columnName: string }
     }
 
     // Percentage fields
-    if (
-      lowerCol.includes('prob') ||
-      lowerCol.includes('percent') ||
-      lowerCol.includes('rate')
-    ) {
+    if (lowerCol.includes('prob') || lowerCol.includes('percent') || lowerCol.includes('rate')) {
       return <span className="font-mono text-gray-900">{value.toFixed(1)}%</span>;
     }
 

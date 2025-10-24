@@ -103,9 +103,10 @@
 /**
  * Markdown Content Styles
  * Custom styling for markdown rendered in chat messages
+ * Balanced colors for readability without harsh contrast
  */
 .markdown-content {
-  color: #1d1d1f;
+  color: #374151;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -119,6 +120,7 @@
   font-weight: 600;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
+  color: #1f2937;
 }
 
 .markdown-content h1:first-child,
@@ -190,26 +192,102 @@
   font-style: italic;
 }
 
-.markdown-content table {
+.markdown-content table,
+.prose table[data-streamdown='table'] {
   width: 100%;
   border-collapse: collapse;
   margin: 1em 0;
+  border: 1px solid #d1d5db !important;
 }
 
 .markdown-content th,
-.markdown-content td {
-  border: 1px solid #e5e5e5;
-  padding: 0.5em;
+.markdown-content td,
+.prose th[data-streamdown='table-header-cell'],
+.prose td[data-streamdown='table-cell'] {
+  border: 1px solid #d1d5db !important;
+  padding: 0.75em 1em !important;
   text-align: left;
+  color: #374151 !important;
 }
 
-.markdown-content th {
-  background-color: #f5f5f5;
+.markdown-content td,
+.prose td[data-streamdown='table-cell'] {
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.markdown-content th,
+.prose th[data-streamdown='table-header-cell'] {
+  background-color: #f3f4f6 !important;
   font-weight: 600;
+  color: #1f2937 !important;
+  border-bottom: 2px solid #d1d5db !important;
+}
+
+/* Override Streamdown's default table styling */
+.prose thead[data-streamdown='table-header'] {
+  background-color: #f3f4f6 !important;
+}
+
+.prose tbody[data-streamdown='table-body'] {
+  background-color: transparent !important;
+}
+
+.prose tr[data-streamdown='table-row'] {
+  border-color: #d1d5db !important;
 }
 
 .markdown-content hr {
   border: none;
   border-top: 1px solid #e5e5e5;
   margin: 2em 0;
+}
+
+/**
+ * Prose (Tailwind Typography) Overrides
+ * Balanced colors for better readability with proper contrast
+ */
+.prose {
+  color: #374151;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: #1f2937;
+}
+
+.prose strong {
+  color: #1f2937;
+}
+
+.prose table {
+  color: #374151;
+}
+
+.prose th {
+  color: #1f2937;
+}
+
+.prose td {
+  color: #374151;
+}
+
+/**
+ * Streamdown Table Controls
+ * Hide the download button for markdown tables while keeping code copy buttons
+ */
+/* Hide the download button (in relative div with download icon) */
+.prose div.relative:has(button[title="Download table"]),
+.markdown-content div.relative:has(button[title="Download table"]),
+.prose button[title="Download table"],
+.markdown-content button[title="Download table"],
+/* Hide any button with lucide-download icon near tables */
+.prose button:has(svg.lucide-download),
+.markdown-content button:has(svg.lucide-download),
+.prose div.relative:has(svg.lucide-download),
+.markdown-content div.relative:has(svg.lucide-download) {
+  display: none !important;
 }

@@ -6,7 +6,7 @@ import { ChatInput } from './ChatInput';
 import { ChatEmptyState } from './ChatEmptyState';
 import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { usePusherAuth } from './hooks/usePusherAuth';
-import { useMessageStream } from './hooks/useMessageStream';
+import { useAguiMessageStream } from './hooks/useAguiMessageStream';
 import { sendMessage as apiSendMessage } from './utils/api';
 import { saveConversation, loadConversation } from './utils/localStorage';
 
@@ -24,7 +24,7 @@ export type {
   ChatProps,
 } from './types';
 
-import type { ChatProps, Message } from './types';
+import type { ChatProps, Message, ToolCall, StepMessage } from './types';
 
 /**
  * Chat component with optional Pusher real-time integration
@@ -98,10 +98,10 @@ export const Chat: React.FC<ChatProps> = ({
   );
 
   // Message streaming (only when channel is available)
-  const { streamingMessages, streamingReasoning } = useMessageStream(
+  const { streamingMessages, streamingToolCalls, streamingStepMessages } = useAguiMessageStream(
     enableRealtime ? channel : null,
     {
-      onMessageReceived: (messageId, content, role) => {
+      onMessageReceived: (messageId: string, content: string, role: 'user' | 'assistant') => {
         // Handle immediate complete messages (user messages after POST, or assistant non-streaming)
         const receivedMessage: Message = {
           id: messageId,
@@ -119,14 +119,12 @@ export const Chat: React.FC<ChatProps> = ({
           setInternalMessages((prev) => [...prev, receivedMessage]);
         }
       },
-      onMessageStart: (messageId) => {
+      onMessageStart: (messageId: string) => {
         const newMessage: Message = {
           id: messageId,
           type: 'assistant',
           content: '',
-          reasoningContent: '',
           isStreaming: true,
-          isReasoningStreaming: true,
           timestamp: new Date(),
         };
 
@@ -138,51 +136,10 @@ export const Chat: React.FC<ChatProps> = ({
           setInternalMessages((prev) => [...prev, newMessage]);
         }
       },
-      onThinkingChunk: (messageId) => {
-        const reasoningContent = streamingReasoning.get(messageId) || '';
-
-        if (isControlled) {
-          // In controlled mode, notify parent to update reasoning
-          onPusherMessage?.({
-            id: messageId,
-            type: 'assistant',
-            content: streamingMessages.get(messageId) || '',
-            reasoningContent,
-            isStreaming: true,
-            isReasoningStreaming: true,
-            timestamp: new Date(),
-          });
-        } else {
-          // In uncontrolled mode, update internal state
-          setInternalMessages((prev) =>
-            prev.map((msg) => (msg.id === messageId ? { ...msg, reasoningContent } : msg))
-          );
-        }
-      },
-      onThinkingComplete: (messageId) => {
-        const reasoningContent = streamingReasoning.get(messageId) || '';
-
-        if (isControlled) {
-          onPusherMessage?.({
-            id: messageId,
-            type: 'assistant',
-            content: streamingMessages.get(messageId) || '',
-            reasoningContent,
-            isStreaming: true,
-            isReasoningStreaming: false,
-            timestamp: new Date(),
-          });
-        } else {
-          setInternalMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId ? { ...msg, reasoningContent, isReasoningStreaming: false } : msg
-            )
-          );
-        }
-      },
-      onMessageChunk: (messageId) => {
+      onMessageChunk: (messageId: string) => {
         const content = streamingMessages.get(messageId) || '';
-        const reasoningContent = streamingReasoning.get(messageId) || '';
+        const toolCalls = streamingToolCalls.get(messageId) || [];
+        const stepMessages = streamingStepMessages.get(messageId) || [];
 
         if (isControlled) {
           // In controlled mode, notify parent to update message
@@ -190,25 +147,40 @@ export const Chat: React.FC<ChatProps> = ({
             id: messageId,
             type: 'assistant',
             content,
-            reasoningContent,
+            toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+            stepMessages: stepMessages.length > 0 ? stepMessages : undefined,
             isStreaming: true,
             timestamp: new Date(),
           });
         } else {
           // In uncontrolled mode, update internal state
           setInternalMessages((prev) =>
-            prev.map((msg) => (msg.id === messageId ? { ...msg, content } : msg))
+            prev.map((msg) =>
+              msg.id === messageId
+                ? {
+                    ...msg,
+                    content,
+                    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+                    stepMessages: stepMessages.length > 0 ? stepMessages : undefined,
+                  }
+                : msg
+            )
           );
         }
       },
-      onMessageComplete: (messageId, fullContent, fullReasoning) => {
+      onMessageComplete: (
+        messageId: string,
+        fullContent: string,
+        toolCalls?: ToolCall[],
+        stepMessages?: StepMessage[]
+      ) => {
         const completedMessage: Message = {
           id: messageId,
           type: 'assistant',
           content: fullContent,
-          reasoningContent: fullReasoning,
+          toolCalls,
+          stepMessages,
           isStreaming: false,
-          isReasoningStreaming: false,
           timestamp: new Date(),
         };
 
@@ -241,7 +213,7 @@ export const Chat: React.FC<ChatProps> = ({
           });
         }
       },
-      onError: (error) => {
+      onError: (error: Error) => {
         onError?.(error);
         if (!isControlled) {
           setInternalIsLoading(false);
@@ -277,6 +249,9 @@ export const Chat: React.FC<ChatProps> = ({
     // Detect if this is a NEW message (not just a re-render or older message load)
     const isNewMessage = lastSeenId !== lastMessage.id;
 
+    // Check if any message is currently streaming
+    const hasStreamingMessage = messages.some((m) => m.isStreaming);
+
     if (isNewMessage && !isFetchingMore) {
       // Determine if we should scroll:
       // 1. Always scroll for user's own messages (they just sent it)
@@ -285,13 +260,49 @@ export const Chat: React.FC<ChatProps> = ({
       const shouldScroll = lastMessage.type === 'user' || isNearBottom();
 
       if (shouldScroll) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        // Use requestAnimationFrame to ensure DOM has updated before scrolling
+        requestAnimationFrame(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        });
       }
 
       // Update last seen message ID
       lastSeenMessageIdRef.current = lastMessage.id;
+    } else if (hasStreamingMessage && isNearBottom()) {
+      // During streaming, continuously scroll to bottom without animation
+      // This prevents the "jump" effect as content appears
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      });
     }
   }, [messages, isFetchingMore, isNearBottom]);
+
+  // Keep scrolling during tool call updates (when tool results appear)
+  useEffect(() => {
+    if (!messagesEndRef.current || !messagesContainerRef.current) return;
+
+    // Check if any message is streaming or if there are active tool calls
+    const hasStreamingMessage = messages.some((m) => m.isStreaming);
+
+    if (hasStreamingMessage && isNearBottom()) {
+      // Use MutationObserver to aggressively maintain scroll position at bottom
+      // This catches ALL DOM changes (content expanding, tool results appearing, etc.)
+      const observer = new MutationObserver(() => {
+        if (isNearBottom() && messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }
+      });
+
+      observer.observe(messagesContainerRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true,
+      });
+
+      return () => observer.disconnect();
+    }
+  }, [streamingToolCalls, messages, isNearBottom]);
 
   // Always scroll to bottom when conversation changes (switching conversations)
   useEffect(() => {
@@ -418,6 +429,7 @@ export const Chat: React.FC<ChatProps> = ({
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-gray-50/30 chat-messages-wrapper"
+        style={{ overflowAnchor: 'none' }}
       >
         {/* Loading indicator for older messages (infinite scroll) */}
         <AnimatePresence>
@@ -445,63 +457,49 @@ export const Chat: React.FC<ChatProps> = ({
         {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
 
         {/* Messages or Empty State */}
-        <AnimatePresence mode="wait">
-          {messages.length === 0 ? (
-            <ChatEmptyState
-              key="empty-state"
-              onPromptClick={(prompt) => {
-                handleSendMessage(prompt);
-              }}
-            />
-          ) : (
-            <motion.div
-              key={conversationId || 'messages'}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-            >
-              {messages
-                .filter((message) => {
-                  // Hide empty assistant messages when typing indicator is showing
-                  if (
-                    isLoading &&
-                    message.type === 'assistant' &&
-                    !message.content &&
-                    !message.reasoningContent
-                  ) {
-                    return false;
-                  }
-                  return true;
-                })
-                .map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      duration: 0.15,
-                      ease: 'easeOut',
-                    }}
-                  >
-                    <ChatMessage
-                      type={message.type}
-                      content={message.content}
-                      reasoningContent={message.reasoningContent}
-                      timestamp={message.timestamp}
-                      activeTab={message.activeTab}
-                      isLoading={message.isStreaming}
-                      isStreaming={message.isStreaming}
-                      isReasoningStreaming={message.isReasoningStreaming}
-                      userName={userName}
-                      userEmail={userEmail}
-                    />
-                  </motion.div>
-                ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {messages.length === 0 ? (
+          <ChatEmptyState
+            onPromptClick={(prompt) => {
+              handleSendMessage(prompt);
+            }}
+          />
+        ) : (
+          <div>
+            {messages
+              .filter((message) => {
+                // Hide empty assistant messages when typing indicator is showing
+                if (
+                  isLoading &&
+                  message.type === 'assistant' &&
+                  !message.content &&
+                  !message.reasoningContent
+                ) {
+                  return false;
+                }
+                return true;
+              })
+              .map((message) => (
+                <div key={message.id}>
+                  <ChatMessage
+                    type={message.type}
+                    content={message.content}
+                    reasoningContent={message.reasoningContent}
+                    timestamp={message.timestamp}
+                    activeTab={message.activeTab}
+                    isLoading={false}
+                    isStreaming={message.isStreaming}
+                    isReasoningStreaming={message.isReasoningStreaming}
+                    toolCalls={message.toolCalls}
+                    stepMessages={message.stepMessages}
+                    userName={userName}
+                    userEmail={userEmail}
+                    status={message.status}
+                    errorMessage={message.errorMessage}
+                  />
+                </div>
+              ))}
+          </div>
+        )}
 
         {/* Loading indicator for new message */}
         <AnimatePresence>{isLoading && <ChatTypingIndicator />}</AnimatePresence>
@@ -513,7 +511,7 @@ export const Chat: React.FC<ChatProps> = ({
       <ChatInput
         placeholder={placeholder}
         onSend={handleSendMessage}
-        disabled={isLoading || messages.some((m) => m.isStreaming)}
+        disabled={isLoading || messages.some((m) => m.isStreaming && m.status !== 'failed')}
       />
     </div>
   );

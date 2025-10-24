@@ -50,28 +50,35 @@ export const QueryBlock: React.FC<QueryBlockProps> = ({ queries }) => {
             className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-100 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-purple-700">
-                {query.label || 'Query'}
-              </span>
+              <span className="text-xs font-medium text-purple-700">{query.label || 'Query'}</span>
               <span className="text-xs text-gray-500 px-2 py-0.5 rounded bg-gray-200 font-mono">
                 {query.dialect}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   copyQuery(query.statement, idx);
                 }}
-                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                className="p-1 hover:bg-gray-200 rounded transition-colors cursor-pointer"
                 title="Copy query"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    copyQuery(query.statement, idx);
+                  }
+                }}
               >
                 {copiedIndex === idx ? (
                   <CheckCircleIcon className="w-3.5 h-3.5 text-green-600" />
                 ) : (
                   <CopyIcon className="w-3.5 h-3.5 text-gray-500" />
                 )}
-              </button>
+              </div>
               <ChevronDownIcon
                 className={`w-4 h-4 text-gray-400 transition-transform ${
                   expandedQueries.has(idx) ? 'rotate-180' : ''

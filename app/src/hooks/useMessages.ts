@@ -39,6 +39,7 @@ export function useMessages(
     isFetchingNextPage,
     isLoading,
     error,
+    refetch,
   } = useInfiniteQuery({
     queryKey: conversationKeys.messagesList(conversationId || "none", 1, limit),
     queryFn: ({ pageParam }) => {
@@ -116,5 +117,6 @@ export function useMessages(
     isFetchingNextPage,
     isLoading,
     error,
+    refetch,
   };
 }

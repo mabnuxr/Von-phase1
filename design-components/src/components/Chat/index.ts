@@ -95,6 +95,7 @@ export type {
   TableData,
   QueryInfo,
   MetricData,
+  StepMessage,
 } from './types';
 
 // Export API utilities

@@ -2,6 +2,16 @@
  * Type definitions for Chat component with backend integration
  */
 
+/**
+ * Step message in a multi-step agent response
+ * Each step has its own content and associated tool calls
+ */
+export interface StepMessage {
+  message_id: string;
+  content: string;
+  toolCalls?: ToolCall[];
+}
+
 export interface Message {
   id: string;
   type: 'user' | 'assistant';
@@ -34,14 +44,6 @@ export interface Message {
    */
   hasError?: boolean;
   /**
-   * Tool calls made during this message (AGUI)
-   */
-  toolCalls?: ToolCall[];
-  /**
-   * Multiple text message blocks (for multi-step agent responses)
-   */
-  stepMessages?: string[];
-  /**
    * AGUI metadata
    */
   metadata?: {
@@ -49,6 +51,34 @@ export interface Message {
     thread_id: string;
     sequences: number[];
   };
+  /**
+   * Message status from backend persistence
+   * Tracks the lifecycle state of the message
+   *
+   * Note: Stuck/timed-out messages are soft-deleted by backend,
+   * so they disappear from the list rather than showing timeout status.
+   */
+  status?: 'created' | 'streaming' | 'completed' | 'failed';
+  /**
+   * Error message if status is 'failed'
+   */
+  errorMessage?: string;
+  /**
+   * Complete event stream from backend (event array architecture)
+   * Array of AG-UI events with sequence numbers and metadata
+   * Enables event-driven rendering and complete playback
+   */
+  events?: AguiEventWrapper[];
+  /**
+   * Tool calls made during this message (AGUI)
+   * @deprecated Use stepMessages with tool calls instead
+   */
+  toolCalls?: ToolCall[];
+  /**
+   * Multiple step messages (for multi-step agent responses)
+   * Each step message contains its content and associated tool calls
+   */
+  stepMessages?: StepMessage[];
 }
 
 export interface ChatSession {
@@ -96,6 +126,8 @@ export interface PusherConfig {
   key: string;
   cluster: string;
   authEndpoint?: string;
+  tenantId?: string;
+  userId?: string;
 }
 
 export interface ApiEndpoints {
@@ -226,18 +258,22 @@ export interface ToolCall {
   id: string;
   name: string;
   arguments: Record<string, any>;
+  args?: Record<string, any>; // Alias for arguments (used in some contexts)
   result?: ToolResult;
   status: 'pending' | 'running' | 'success' | 'error';
   executionTime?: number;
+  startTime?: number; // Timestamp when tool execution started
+  endTime?: number; // Timestamp when tool execution completed
   parentMessageId: string;
 }
 
 export interface ToolResult {
   raw: any; // Raw JSON result from tool
-  type: 'table' | 'query' | 'metrics' | 'json';
+  type: 'table' | 'query' | 'metrics' | 'values' | 'json';
   table?: TableData;
   queries?: QueryInfo[];
   metrics?: MetricData[];
+  values?: ValueData[];
 }
 
 export interface TableData {
@@ -257,6 +293,11 @@ export interface MetricData {
   label: string;
   value: number | string;
   type: 'currency' | 'count' | 'trend' | 'general';
+}
+
+export interface ValueData {
+  value: string;
+  count: number;
 }
 
 export interface ChatProps {

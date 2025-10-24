@@ -13,6 +13,14 @@ export interface Conversation {
 }
 
 /**
+ * Message status enum (matches backend MessageStatus)
+ *
+ * Note: Stuck/timed-out messages are soft-deleted by the backend,
+ * so they simply disappear from the list rather than showing timeout status.
+ */
+export type MessageStatus = "created" | "streaming" | "completed" | "failed";
+
+/**
  * Message entity from backend
  */
 export interface Message {
@@ -26,6 +34,13 @@ export interface Message {
 }
 
 /**
+ * AG-UI Event Wrapper (imported and re-exported from design-components)
+ * Matches PusherEnvelope format from backend
+ */
+import type { AguiEventWrapper } from "@vonlabs/design-components";
+export type { AguiEventWrapper } from "@vonlabs/design-components";
+
+/**
  * Extended message type with streaming properties
  * Used for real-time streaming updates via Pusher
  */
@@ -33,6 +48,19 @@ export interface MessageWithStreaming extends Message {
   isStreaming?: boolean;
   isReasoningStreaming?: boolean;
   reasoningContent?: string;
+
+  // Status tracking (from backend persistence)
+  status?: MessageStatus;
+  runId?: string;
+  lastStreamedAt?: string;
+  errorMessage?: string;
+
+  // Event array from backend (event-driven rendering)
+  events?: AguiEventWrapper[];
+
+  // AGUI streaming data (reconstructed from events or received during live streaming)
+  stepMessages?: import("@vonlabs/design-components").StepMessage[];
+  toolCalls?: import("@vonlabs/design-components").ToolCall[];
 }
 
 /**

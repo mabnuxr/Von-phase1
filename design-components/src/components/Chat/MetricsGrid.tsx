@@ -42,13 +42,7 @@ function formatMetricValue(value: number | string, type: MetricData['type']): st
 /**
  * Get appropriate icon for metric type
  */
-function MetricIcon({
-  type,
-  className,
-}: {
-  type: MetricData['type'];
-  className?: string;
-}) {
+function MetricIcon({ type, className }: { type: MetricData['type']; className?: string }) {
   const iconClass = className || 'w-4 h-4';
 
   switch (type) {
@@ -75,11 +69,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 my-3">
       {metrics.map((metric, idx) => (
-        <Panel
-          key={idx}
-          bordered
-          className="p-3 hover:shadow-md transition-shadow duration-200"
-        >
+        <Panel key={idx} bordered className="p-3 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-start gap-3">
             {/* Icon */}
             <div className="p-2 rounded-lg bg-blue-50 flex-shrink-0">
