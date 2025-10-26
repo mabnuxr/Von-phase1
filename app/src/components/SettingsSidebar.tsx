@@ -63,7 +63,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       </div>
 
       {/* Menu Items */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-3 settings-scrollbar">
         {settingsItems.map((item) => {
           const isSelected = item.id === selectedSettingId;
 

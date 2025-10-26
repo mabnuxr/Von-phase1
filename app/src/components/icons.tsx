@@ -156,3 +156,292 @@ export const DocumentIcon = memo<IconProps>(
   ),
 );
 DocumentIcon.displayName = "DocumentIcon";
+
+// Fields Icon - Used for custom fields settings - Memoized
+export const FieldsIcon = memo<IconProps>(
+  ({ className = "w-[18px] h-[18px]" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+    >
+      <rect
+        x="3"
+        y="3"
+        width="7"
+        height="7"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="14"
+        y="3"
+        width="7"
+        height="7"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="14"
+        y="14"
+        width="7"
+        height="7"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="3"
+        y="14"
+        width="7"
+        height="7"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+);
+FieldsIcon.displayName = "FieldsIcon";
+
+// Defaults Icon - Used for default settings/preferences - Memoized
+export const DefaultsIcon = memo<IconProps>(
+  ({ className = "w-[18px] h-[18px]" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+    >
+      <path
+        d="M12 2L2 7l10 5 10-5-10-5z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 17l10 5 10-5"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 12l10 5 10-5"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+);
+DefaultsIcon.displayName = "DefaultsIcon";
+
+// Sales Process Icon - Used for sales workflow settings - Memoized
+export const SalesProcessIcon = memo<IconProps>(
+  ({ className = "w-[18px] h-[18px]" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+    >
+      <path
+        d="M22 12h-4l-3 9L9 3l-3 9H2"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+);
+SalesProcessIcon.displayName = "SalesProcessIcon";
+
+// Manager Agent Icon - Used for AI/manager agent settings - Memoized
+export const ManagerAgentIcon = memo<IconProps>(
+  ({ className = "w-[18px] h-[18px]" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+    >
+      <path
+        d="M12 2a3 3 0 013 3v4a3 3 0 01-6 0V5a3 3 0 013-3z"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 10v2a7 7 0 01-14 0v-2"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 19v3M8 22h8"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+);
+ManagerAgentIcon.displayName = "ManagerAgentIcon";
+
+// Tabs Icon - Used for tab/navigation settings - Memoized
+export const TabsIcon = memo<IconProps>(
+  ({ className = "w-[18px] h-[18px]" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+    >
+      <path
+        d="M2 3h6a2 2 0 012 2v3a2 2 0 01-2 2H2a2 2 0 01-2-2V5a2 2 0 012-2z"
+        transform="translate(2 2)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 3h6a2 2 0 012 2v3a2 2 0 01-2 2h-6a2 2 0 01-2-2V5a2 2 0 012-2z"
+        transform="translate(2 2)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="2"
+        y="14"
+        width="20"
+        height="8"
+        rx="2"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+);
+TabsIcon.displayName = "TabsIcon";
+
+// Sidebar Icon - Used for sidebar navigation settings - Memoized
+export const SidebarIcon = memo<IconProps>(
+  ({ className = "w-[18px] h-[18px]" }) => (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+    >
+      <rect
+        x="3"
+        y="3"
+        width="18"
+        height="18"
+        rx="2"
+        ry="2"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 3v18"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+);
+SidebarIcon.displayName = "SidebarIcon";
+
+// ChevronDown Icon - Used for dropdown indicators - Memoized
+export const ChevronDownIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M6 9l6 6 6-6"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+ChevronDownIcon.displayName = "ChevronDownIcon";
+
+// Chevron Right Icon - Used for collapsible items - Memoized
+export const ChevronRightIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M9 6l6 6-6 6"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+ChevronRightIcon.displayName = "ChevronRightIcon";
+
+// Search Icon - Used for search inputs - Memoized
+export const SearchIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <circle
+      cx="11"
+      cy="11"
+      r="8"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M21 21l-4.35-4.35"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+SearchIcon.displayName = "SearchIcon";
+
+// Edit Icon - Used for edit buttons - Memoized
+export const EditIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+EditIcon.displayName = "EditIcon";

@@ -40,9 +40,7 @@ function getIntegrationLogoPath(type: IntegrationType): string {
 /**
  * IntegrationsPanel - Displays and manages integrations with React Query
  */
-export function IntegrationsPanel({
-  onIntegrationToggle,
-}: IntegrationsPanelProps) {
+export function IntegrationsPanel() {
   // Fetch integrations with React Query
   const {
     data: integrationsData,
@@ -167,7 +165,6 @@ export function IntegrationsPanel({
         revokeIntegration.mutate(id, {
           onSuccess: () => {
             setLoadingIntegrationId(null);
-            onIntegrationToggle?.(id, false);
           },
           onError: (error: Error) => {
             setLoadingIntegrationId(null);

@@ -7,9 +7,16 @@ import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
-import { IntegrationsIcon } from "../components/icons";
+import {
+  DefaultsIcon,
+  FieldsIcon,
+  IntegrationsIcon,
+} from "../components/icons";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
+import DefaultsPanel from "../components/DefaultsPanel";
+import FieldsPanel from "../components/FieldsPanel";
+import { FieldDetailPane } from "../components/FieldDetailPane";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -89,47 +96,40 @@ const Settings = () => {
       label: "Integrations",
       icon: <IntegrationsIcon />,
     },
+    {
+      id: "fields",
+      label: "Fields",
+      icon: <FieldsIcon />,
+    },
+    {
+      id: "defaults",
+      label: "Defaults",
+      icon: <DefaultsIcon />,
+    },
   ];
-
-  const handleIntegrationToggle = (id: string, enabled: boolean) => {
-    if (import.meta.env.DEV) {
-      console.log(`[Settings] Integration ${id} toggled to ${enabled}`);
-    }
-    // TODO: Implement actual integration toggle logic
-  };
 
   const renderContent = () => {
     switch (selectedSettingId) {
       case "integrations":
-        return (
-          <IntegrationsPanel onIntegrationToggle={handleIntegrationToggle} />
-        );
+        return <IntegrationsPanel />;
       case "fields":
+        return <FieldsPanel />;
       case "defaults":
+        return <DefaultsPanel />;
       case "sales-process":
       case "manager-agent":
-        return (
-          <div className="p-6">
-            <h1 className="text-2xl font-semibold text-[#1d1d1f]">
-              {
-                settingsItems.find((item) => item.id === selectedSettingId)
-                  ?.label
-              }
-            </h1>
-            <p className="text-sm text-[#6e6e73] mt-2">
-              This section is coming soon.
-            </p>
-          </div>
-        );
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col items-center">
+    <div className="h-screen bg-[#f5f5f7] flex flex-col items-center">
+      {/* Field Detail Pane - Global */}
+      <FieldDetailPane />
+
       {/* Max-width container for large screens */}
-      <div className="w-full max-w-[1440px] flex flex-col flex-1">
+      <div className="w-full max-w-[1440px] flex flex-col h-full">
         {/* TopBar in White Rounded Container */}
         <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div ref={avatarButtonRef}>
@@ -168,7 +168,7 @@ const Settings = () => {
           </div>
 
           {/* Right Pane - Content Area with rounded corners */}
-          <div className="flex-1 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0">
+          <div className="flex-1 rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0 overflow-hidden">
             {renderContent()}
           </div>
         </div>

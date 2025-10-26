@@ -8,12 +8,103 @@ import type {
   StepMessage,
   ToolCall,
   AguiEventWrapper,
+  ToolResult,
+  MetricData,
 } from "@vonlabs/design-components";
 
 interface ReplayResult {
   content: string;
   stepMessages: StepMessage[];
   toolCalls: ToolCall[];
+}
+
+/**
+ * Parse tool result JSON to detect type and structure
+ * Same logic as used in useAguiMessageStream for consistency
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseToolResult(resultJson: any): ToolResult {
+  try {
+    // Auto-detect table data (SQL results)
+    if (resultJson.sample?.columns && resultJson.sample?.rows) {
+      return {
+        raw: resultJson,
+        type: 'table',
+        table: {
+          columns: resultJson.sample.columns,
+          rows: resultJson.sample.rows,
+          rowCount: resultJson.row_count || resultJson.sample.size || 0,
+          isComplete: resultJson.sample.is_complete ?? true,
+        },
+        queries: resultJson.queries,
+      };
+    }
+
+    // Detect values discovery (e.g., sql_discover_values)
+    if (resultJson.values && Array.isArray(resultJson.values) && resultJson.values.length > 0) {
+      const hasValidStructure = resultJson.values.every(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (item: any) => item.value !== undefined && item.count !== undefined
+      );
+
+      if (hasValidStructure) {
+        return {
+          raw: resultJson,
+          type: 'values',
+          values: resultJson.values,
+          queries: resultJson.queries,
+        };
+      }
+    }
+
+    // Detect query information
+    if (resultJson.queries && Array.isArray(resultJson.queries)) {
+      return {
+        raw: resultJson,
+        type: 'query',
+        queries: resultJson.queries,
+      };
+    }
+
+    // Detect metrics/counts
+    if (resultJson.row_count !== undefined || resultJson.value_count !== undefined) {
+      const metrics: MetricData[] = [];
+
+      if (resultJson.row_count !== undefined) {
+        metrics.push({
+          label: 'Row Count',
+          value: resultJson.row_count,
+          type: 'count',
+        });
+      }
+
+      if (resultJson.value_count !== undefined) {
+        metrics.push({
+          label: 'Unique Values',
+          value: resultJson.value_count,
+          type: 'count',
+        });
+      }
+
+      return {
+        raw: resultJson,
+        type: 'metrics',
+        metrics,
+      };
+    }
+
+    // Fallback to JSON
+    return {
+      raw: resultJson,
+      type: 'json',
+    };
+  } catch (error) {
+    console.error('[parseToolResult] Error parsing tool result:', error);
+    return {
+      raw: resultJson,
+      type: 'json',
+    };
+  }
 }
 
 /**
@@ -196,15 +287,17 @@ export function replayAguiEvents(
           if (toolCall) {
             try {
               const resultData = JSON.parse(event.content);
-              toolCall.result = resultData;
+              // Use parseToolResult to properly detect SQL results, tables, metrics, etc.
+              toolCall.result = parseToolResult(resultData);
               toolCall.status = "success";
-              console.log("[replayAguiEvents] Successfully parsed result");
-            } catch {
+              console.log("[replayAguiEvents] Successfully parsed result with type:", toolCall.result.type);
+            } catch (error) {
               // If result is not JSON, store raw string in 'raw' field
               toolCall.result = { raw: event.content, type: "json" };
               toolCall.status = "error";
               console.log(
-                "[replayAguiEvents] Result is not JSON, treating as error",
+                "[replayAguiEvents] Result is not JSON, treating as error:",
+                error,
               );
             }
           }

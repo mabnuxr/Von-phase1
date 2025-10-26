@@ -22,9 +22,10 @@
 /**
  * Scrollbar Utilities
  * ==================
- * Two approaches to scrollbars in the design system:
+ * Three approaches to scrollbars in the design system:
  * 1. .scrollbar-hide - Completely hides scrollbar (used in ChatSidebar)
  * 2. .chat-messages-wrapper - Shows styled minimal scrollbar (used in Chat messages)
+ * 3. .settings-scrollbar - Subtle light scrollbar (used in Settings panels)
  */
 
 /* Hide scrollbar completely while maintaining scroll functionality */
@@ -58,6 +59,29 @@
 .chat-messages-wrapper {
   scrollbar-width: thin;
   scrollbar-color: #1b1b1f transparent;
+}
+
+/* Custom styled scrollbar for settings panels */
+.settings-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.settings-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-scrollbar::-webkit-scrollbar-thumb {
+  background: #d2d2d7;
+  border-radius: 2px;
+}
+
+.settings-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b8b8bd;
+}
+
+.settings-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d2d2d7 transparent;
 }
 
 /**
