@@ -157,7 +157,7 @@ export const DocumentIcon = memo<IconProps>(
 );
 DocumentIcon.displayName = "DocumentIcon";
 
-// Fields Icon - Used for custom fields settings - Memoized
+// Fields Icon (Salesforce Cloud) - Used for Salesforce fields settings - Memoized
 export const FieldsIcon = memo<IconProps>(
   ({ className = "w-[18px] h-[18px]" }) => (
     <svg
@@ -166,38 +166,9 @@ export const FieldsIcon = memo<IconProps>(
       fill="none"
       stroke="currentColor"
     >
-      <rect
-        x="3"
-        y="3"
-        width="7"
-        height="7"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="14"
-        y="3"
-        width="7"
-        height="7"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="14"
-        y="14"
-        width="7"
-        height="7"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="3"
-        y="14"
-        width="7"
-        height="7"
+      {/* Salesforce-style cloud icon */}
+      <path
+        d="M18 10.5c1.7 0 3 1.3 3 3s-1.3 3-3 3H6c-2.2 0-4-1.8-4-4s1.8-4 4-4c0-2.8 2.2-5 5-5 2.4 0 4.4 1.7 4.9 4"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"

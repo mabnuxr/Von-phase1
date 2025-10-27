@@ -23,3 +23,7 @@ export {
 
 // Conversations Service
 export { conversationsService } from "./conversationsService";
+
+// Preferences Service
+export { preferencesService } from "./preferencesService";
+export type { PreferencesData } from "./preferencesService";

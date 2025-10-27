@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { TopBar } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
@@ -17,6 +17,8 @@ import { authService } from "../services";
 import DefaultsPanel from "../components/DefaultsPanel";
 import FieldsPanel from "../components/FieldsPanel";
 import { FieldDetailPane } from "../components/FieldDetailPane";
+import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
+import usePreferencesStore from "../store/preferencesStore";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -26,6 +28,49 @@ const Settings = () => {
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const avatarButtonRef = useRef<HTMLDivElement>(null);
+
+  // Get current user context for preferences
+  const tenantId = user?.tenantId;
+  const userId = user?.id;
+
+  // Track if initial data has been loaded
+  const hasInitialLoadRef = useRef(false);
+
+  // Fetch preferences with scoped query key
+  const { data: preferencesData } = usePreferences(tenantId, userId);
+  const { queueUpdate } = useUpdatePreferences(tenantId, userId);
+  const {
+    syncFromServer,
+    salesforceFields,
+    emailCategorization,
+    processConfiguration,
+  } = usePreferencesStore();
+
+  // Sync server data to Zustand store on load (only once)
+  useEffect(() => {
+    if (preferencesData && !hasInitialLoadRef.current) {
+      syncFromServer(preferencesData);
+      hasInitialLoadRef.current = true;
+    }
+  }, [preferencesData, syncFromServer]);
+
+  // Auto-save whenever store changes (debounced)
+  // Only save after initial load to prevent saving default values
+  useEffect(() => {
+    // Only queue update after initial data has been loaded from server
+    if (hasInitialLoadRef.current) {
+      queueUpdate({
+        salesforceFields,
+        emailCategorization,
+        processConfiguration,
+      });
+    }
+  }, [
+    salesforceFields,
+    emailCategorization,
+    processConfiguration,
+    queueUpdate,
+  ]);
 
   // Handle avatar click
   const handleAvatarClick = () => {
@@ -98,12 +143,12 @@ const Settings = () => {
     },
     {
       id: "fields",
-      label: "Fields",
+      label: "Salesforce Fields",
       icon: <FieldsIcon />,
     },
     {
       id: "defaults",
-      label: "Defaults",
+      label: "Process Configuration",
       icon: <DefaultsIcon />,
     },
   ];

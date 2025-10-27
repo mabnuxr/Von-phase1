@@ -1,27 +1,15 @@
 import { useState, useEffect } from "react";
 import usePreferencesStore from "../store/preferencesStore";
 import type { Field } from "../store/preferencesStore";
-import { ChevronDownIcon } from "./icons";
 
 export function FieldDetailPane() {
-  const {
-    editingFieldId,
-    setEditingField,
-    vonFields,
-    salesforceFields,
-    updateField,
-  } = usePreferencesStore();
+  const { editingFieldId, setEditingField, salesforceFields, updateField } =
+    usePreferencesStore();
 
   // Find the field being edited
   const field = editingFieldId
-    ? [...vonFields, ...salesforceFields].find((f) => f.id === editingFieldId)
+    ? salesforceFields.find((f) => f.id === editingFieldId)
     : null;
-
-  const category = field
-    ? vonFields.some((f) => f.id === field.id)
-      ? "von"
-      : "salesforce"
-    : "von";
 
   // Form state
   const [formData, setFormData] = useState<Partial<Field>>({});
@@ -40,25 +28,23 @@ export function FieldDetailPane() {
 
   const handleSave = () => {
     if (field && editingFieldId) {
-      // Validate required fields
-      if (!formData.name || formData.name.trim() === "") {
-        alert("Field name is required");
+      // Validate Salesforce object and field name
+      if (
+        !formData.salesforceObject ||
+        formData.salesforceObject.trim() === ""
+      ) {
+        alert("Salesforce Object is required");
         return;
       }
-      if (!formData.apiName || formData.apiName.trim() === "") {
-        alert("API name is required");
-        return;
-      }
-      if (!formData.type || formData.type.trim() === "") {
-        alert("Type is required");
+      if (
+        !formData.salesforceFieldName ||
+        formData.salesforceFieldName.trim() === ""
+      ) {
+        alert("Field Name is required");
         return;
       }
 
-      const updatedData = {
-        ...formData,
-        updatedAt: new Date().toISOString(),
-      };
-      updateField(editingFieldId, updatedData, category);
+      updateField(editingFieldId, formData);
       handleClose();
     }
   };
@@ -119,34 +105,14 @@ export function FieldDetailPane() {
           {/* Form Content */}
           <div className="flex-1 overflow-y-auto settings-scrollbar px-6 py-4">
             <div className="space-y-4">
-              {/* Name */}
+              {/* Name (Read-only) */}
               <div>
                 <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Name
-                  <span className="text-red-500 ml-1">*</span>
+                  Field Name
                 </label>
-                <input
-                  type="text"
-                  value={formData.name || ""}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
-                  placeholder="Enter field name"
-                />
-              </div>
-
-              {/* API Name */}
-              <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  API Name
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.apiName || ""}
-                  onChange={(e) => handleChange("apiName", e.target.value)}
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
-                  placeholder="e.g., field_name__c"
-                />
+                <div className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg">
+                  {field.name}
+                </div>
               </div>
 
               {/* Description */}
@@ -163,135 +129,62 @@ export function FieldDetailPane() {
                 />
               </div>
 
-              {/* Prompt */}
+              {/* Type (Read-only) */}
               <div>
                 <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Prompt
+                  Field Type
                 </label>
-                <textarea
-                  value={formData.prompt || ""}
-                  onChange={(e) => handleChange("prompt", e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200 resize-none"
-                  placeholder="Enter the prompt for this field"
+                <input
+                  type="text"
+                  value={formData.type || ""}
+                  disabled
+                  className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
                 />
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Field type is predefined for this mapping
+                </p>
               </div>
 
-              {/* Type */}
+              {/* Salesforce Object */}
               <div>
                 <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Type
+                  Salesforce Object
                   <span className="text-red-500 ml-1">*</span>
                 </label>
-                <div className="relative">
-                  <select
-                    value={formData.type || ""}
-                    onChange={(e) => handleChange("type", e.target.value)}
-                    className="w-full px-3 py-2 pr-10 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200 cursor-pointer appearance-none"
-                  >
-                    <option value="">Select type</option>
-                    <option value="Text">Text</option>
-                    <option value="Number">Number</option>
-                    <option value="Date">Date</option>
-                    <option value="Boolean">Boolean</option>
-                    <option value="Picklist">Picklist</option>
-                    <option value="Lookup">Lookup</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ChevronDownIcon className="w-4 h-4 text-gray-600" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Mapped Salesforce Field */}
-              <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Mapped Salesforce Field
-                </label>
                 <input
                   type="text"
-                  value={formData.mappedSalesforceField || ""}
+                  value={formData.salesforceObject || ""}
                   onChange={(e) =>
-                    handleChange("mappedSalesforceField", e.target.value)
+                    handleChange("salesforceObject", e.target.value)
                   }
                   className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
-                  placeholder="e.g., Account.CustomField__c"
+                  placeholder="Opportunity"
                 />
+                <p className="mt-1.5 text-xs text-gray-500">
+                  The Salesforce object (e.g., Opportunity, Account, Contact)
+                </p>
               </div>
 
-              {/* Run Condition - Prompt */}
+              {/* Salesforce Field Name */}
               <div>
                 <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Only run if (prompt)
+                  Field Name
+                  <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
-                  value={formData.runConditionPrompt || ""}
+                  value={formData.salesforceFieldName || ""}
                   onChange={(e) =>
-                    handleChange("runConditionPrompt", e.target.value)
+                    handleChange("salesforceFieldName", e.target.value)
                   }
                   className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
-                  placeholder="Enter condition for prompt"
-                />
-              </div>
-
-              {/* Run Condition - Preview */}
-              <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Only run if (preview)
-                </label>
-                <input
-                  type="text"
-                  value={formData.runConditionPreview || ""}
-                  onChange={(e) =>
-                    handleChange("runConditionPreview", e.target.value)
+                  placeholder={
+                    field.name === "Amount" ? "Amount" : "Competition__c"
                   }
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
-                  placeholder="Enter condition for preview"
                 />
-              </div>
-
-              {/* Source */}
-              <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
-                  Source
-                </label>
-                <input
-                  type="text"
-                  value={formData.source || ""}
-                  onChange={(e) => handleChange("source", e.target.value)}
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
-                  placeholder="Enter source configuration"
-                />
-              </div>
-
-              {/* Enabled Toggle */}
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.enabled || false}
-                    onChange={(e) => handleChange("enabled", e.target.checked)}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
-                  />
-                  <span className="text-sm font-medium text-[#1d1d1f]">
-                    Field is enabled
-                  </span>
-                </label>
-              </div>
-
-              {/* Timestamps (Read-only) */}
-              <div className="pt-2 border-t border-gray-200">
-                <div className="flex gap-6 text-xs text-gray-500">
-                  <div>
-                    <span className="font-medium">Created:</span>{" "}
-                    {new Date(field.createdAt).toLocaleString()}
-                  </div>
-                  <div>
-                    <span className="font-medium">Updated:</span>{" "}
-                    {new Date(field.updatedAt).toLocaleString()}
-                  </div>
-                </div>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  The API name of the field (e.g., Amount, Competition__c)
+                </p>
               </div>
             </div>
           </div>
