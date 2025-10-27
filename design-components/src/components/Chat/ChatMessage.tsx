@@ -186,37 +186,87 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <ThinkingBlock
                       content={reasoningContent}
                       isStreaming={isReasoningStreaming}
-                      defaultExpanded={isReasoningStreaming}
+                      status={status}
                     />
                   )}
 
                   {/* Render stepMessages if available (AGUI multi-step responses) */}
                   {stepMessages && stepMessages.length > 0 ? (
                     <div className="space-y-4">
-                      {stepMessages.map((step, index) => (
-                        <div key={step.message_id || index} className="space-y-3">
-                          {/* Step content */}
-                          {step.content && (
-                            <div className="text-sm prose prose-sm max-w-none">
-                              <Streamdown
-                                parseIncompleteMarkdown={isStreaming}
-                                isAnimating={isStreaming}
-                              >
-                                {step.content}
-                              </Streamdown>
-                            </div>
-                          )}
+                      {/* Always use same structure: ThinkingBlock for intermediate steps + final message */}
+                      {stepMessages.length > 1 && (
+                        <ThinkingBlock
+                          key="thinking-block"
+                          isStreaming={isStreaming}
+                          status={status}
+                        >
+                          <div className="space-y-4">
+                            {stepMessages.slice(0, -1).map((step, index) => (
+                              <div key={step.message_id || index} className="space-y-3">
+                                {/* Step content */}
+                                {step.content && (
+                                  <div
+                                    className={
+                                      isStreaming
+                                        ? 'text-sm prose prose-sm max-w-none'
+                                        : 'prose prose-xs max-w-none'
+                                    }
+                                  >
+                                    <Streamdown
+                                      parseIncompleteMarkdown={isStreaming}
+                                      isAnimating={isStreaming}
+                                    >
+                                      {step.content}
+                                    </Streamdown>
+                                  </div>
+                                )}
 
-                          {/* Tool calls for this step */}
-                          {step.toolCalls && step.toolCalls.length > 0 && (
-                            <div className="space-y-2">
-                              {step.toolCalls.map((tool) => (
-                                <ElegantToolBlock key={tool.id} toolCall={tool} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                                {/* Tool calls for this step */}
+                                {step.toolCalls && step.toolCalls.length > 0 && (
+                                  <div
+                                    className={
+                                      isStreaming ? 'space-y-2' : 'space-y-2 scale-95 origin-left'
+                                    }
+                                  >
+                                    {step.toolCalls.map((tool) => (
+                                      <ElegantToolBlock key={tool.id} toolCall={tool} />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </ThinkingBlock>
+                      )}
+
+                      {/* Final Message - Always rendered prominently outside ThinkingBlock */}
+                      {(() => {
+                        const finalStep = stepMessages[stepMessages.length - 1];
+                        return (
+                          <div className="space-y-3">
+                            {/* Final step content */}
+                            {finalStep.content && (
+                              <div className="text-sm prose prose-sm max-w-none">
+                                <Streamdown
+                                  parseIncompleteMarkdown={isStreaming}
+                                  isAnimating={isStreaming}
+                                >
+                                  {finalStep.content}
+                                </Streamdown>
+                              </div>
+                            )}
+
+                            {/* Tool calls for final step */}
+                            {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
+                              <div className="space-y-2">
+                                {finalStep.toolCalls.map((tool) => (
+                                  <ElegantToolBlock key={tool.id} toolCall={tool} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     /* Fallback: render plain content if no stepMessages */
