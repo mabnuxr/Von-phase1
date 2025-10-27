@@ -157,88 +157,136 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       >
         {/* Centered content area */}
         <div className="max-w-3xl mx-auto px-8">
-          {/* Label: "You" or "Assistant" with elegant spacing */}
-          <div
-            className={`mb-3 text-[13px] font-medium flex items-center gap-2 ${
-              isUser ? 'text-gray-700' : 'text-gray-600'
-            }`}
-          >
-            {isUser ? (
-              <>
+          {/* Horizontal layout: Avatar + Content */}
+          <div className="flex items-start gap-4">
+            {/* Avatar and Status Badge */}
+            <div className="flex items-start gap-2 flex-shrink-0">
+              {isUser ? (
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
                   {userInitials}
                 </div>
-                <span className="tracking-wide">You</span>
-              </>
-            ) : (
-              <>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
-                  A
-                </div>
-                <span className="tracking-wide">Assistant</span>
-                {/* Status badge for assistant messages */}
-                <MessageStatusBadge status={status} errorMessage={errorMessage} />
-              </>
-            )}
-          </div>
-
-          {/* For assistant messages: render thinking block and content */}
-          {!isUser ? (
-            <>
-              {/* Thinking Block - Only for assistant messages with reasoning */}
-              {reasoningContent && (
-                <ThinkingBlock
-                  content={reasoningContent}
-                  isStreaming={isReasoningStreaming}
-                  defaultExpanded={isReasoningStreaming}
-                />
-              )}
-
-              {/* Render stepMessages if available (AGUI multi-step responses) */}
-              {stepMessages && stepMessages.length > 0 ? (
-                <div className="space-y-4">
-                  {stepMessages.map((step, index) => (
-                    <div key={step.message_id || index} className="space-y-3">
-                      {/* Step content */}
-                      {step.content && (
-                        <div className="text-sm prose prose-sm max-w-none">
-                          <Streamdown
-                            parseIncompleteMarkdown={isStreaming}
-                            isAnimating={isStreaming}
-                          >
-                            {step.content}
-                          </Streamdown>
-                        </div>
-                      )}
-
-                      {/* Tool calls for this step */}
-                      {step.toolCalls && step.toolCalls.length > 0 && (
-                        <div className="space-y-2">
-                          {step.toolCalls.map((tool) => (
-                            <ElegantToolBlock key={tool.id} toolCall={tool} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
               ) : (
-                /* Fallback: render plain content if no stepMessages */
-                content && (
-                  <div className="text-sm prose prose-sm max-w-none">
-                    <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
-                      {content}
-                    </Streamdown>
+                <>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
+                    A
                   </div>
-                )
+                  {/* Status badge inline with avatar for assistant messages */}
+                  <MessageStatusBadge status={status} errorMessage={errorMessage} />
+                </>
               )}
-            </>
-          ) : (
-            // User messages - simple rendering
-            <div className="text-sm prose prose-sm max-w-none">
-              <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
             </div>
-          )}
+
+            {/* Content Column */}
+            <div className="flex-1 min-w-0 -mt-0.5">
+              {/* For assistant messages: render thinking block and content */}
+              {!isUser ? (
+                <>
+                  {/* Thinking Block - Only for assistant messages with reasoning */}
+                  {reasoningContent && (
+                    <ThinkingBlock
+                      content={reasoningContent}
+                      isStreaming={isReasoningStreaming}
+                      status={status}
+                    />
+                  )}
+
+                  {/* Render stepMessages if available (AGUI multi-step responses) */}
+                  {stepMessages && stepMessages.length > 0 ? (
+                    <div className="space-y-4">
+                      {/* Always use same structure: ThinkingBlock for intermediate steps + final message */}
+                      {stepMessages.length > 1 && (
+                        <ThinkingBlock
+                          key="thinking-block"
+                          isStreaming={isStreaming}
+                          status={status}
+                        >
+                          <div className="space-y-4">
+                            {stepMessages.slice(0, -1).map((step, index) => (
+                              <div key={step.message_id || index} className="space-y-3">
+                                {/* Step content */}
+                                {step.content && (
+                                  <div
+                                    className={
+                                      isStreaming
+                                        ? 'text-sm prose prose-sm max-w-none'
+                                        : 'prose prose-xs max-w-none'
+                                    }
+                                  >
+                                    <Streamdown
+                                      parseIncompleteMarkdown={isStreaming}
+                                      isAnimating={isStreaming}
+                                    >
+                                      {step.content}
+                                    </Streamdown>
+                                  </div>
+                                )}
+
+                                {/* Tool calls for this step */}
+                                {step.toolCalls && step.toolCalls.length > 0 && (
+                                  <div
+                                    className={
+                                      isStreaming ? 'space-y-2' : 'space-y-2 scale-95 origin-left'
+                                    }
+                                  >
+                                    {step.toolCalls.map((tool) => (
+                                      <ElegantToolBlock key={tool.id} toolCall={tool} />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </ThinkingBlock>
+                      )}
+
+                      {/* Final Message - Always rendered prominently outside ThinkingBlock */}
+                      {(() => {
+                        const finalStep = stepMessages[stepMessages.length - 1];
+                        return (
+                          <div className="space-y-3">
+                            {/* Final step content */}
+                            {finalStep.content && (
+                              <div className="text-sm prose prose-sm max-w-none">
+                                <Streamdown
+                                  parseIncompleteMarkdown={isStreaming}
+                                  isAnimating={isStreaming}
+                                >
+                                  {finalStep.content}
+                                </Streamdown>
+                              </div>
+                            )}
+
+                            {/* Tool calls for final step */}
+                            {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
+                              <div className="space-y-2">
+                                {finalStep.toolCalls.map((tool) => (
+                                  <ElegantToolBlock key={tool.id} toolCall={tool} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    /* Fallback: render plain content if no stepMessages */
+                    content && (
+                      <div className="text-sm prose prose-sm max-w-none">
+                        <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
+                          {content}
+                        </Streamdown>
+                      </div>
+                    )
+                  )}
+                </>
+              ) : (
+                // User messages - simple rendering
+                <div className="text-sm prose prose-sm max-w-none">
+                  <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

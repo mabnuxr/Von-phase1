@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedResultRenderer } from './EnhancedResultRenderer';
 import { getToolDisplayInfo, generateToolSummary } from './utils/toolFormatting';
@@ -19,13 +19,11 @@ interface ElegantToolBlockProps {
 /**
  * World-class tool call block with professional design
  * - SVG icons (no emoji)
- * - Auto-expand on results, auto-collapse after 5s
+ * - Collapsed by default for cleaner UX
  * - Smooth animations and gradients
  */
 export const ElegantToolBlock: React.FC<ElegantToolBlockProps> = ({ toolCall }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [userManuallyExpanded, setUserManuallyExpanded] = useState(false);
-  const autoCollapseTimer = useRef<NodeJS.Timeout | null>(null);
 
   const { name: displayName, IconComponent } = getToolDisplayInfo(toolCall.name);
   const toolArgs = toolCall.args || toolCall.arguments || {};
@@ -37,33 +35,9 @@ export const ElegantToolBlock: React.FC<ElegantToolBlockProps> = ({ toolCall }) 
       ? ((toolCall.endTime - toolCall.startTime) / 1000).toFixed(1)
       : null;
 
-  // Auto-expand when results arrive
-  useEffect(() => {
-    if (toolCall.result && toolCall.status === 'success' && !userManuallyExpanded) {
-      setIsExpanded(true);
-
-      // Auto-collapse after 5 seconds
-      autoCollapseTimer.current = setTimeout(() => {
-        if (!userManuallyExpanded) {
-          setIsExpanded(false);
-        }
-      }, 5000);
-
-      return () => {
-        if (autoCollapseTimer.current) {
-          clearTimeout(autoCollapseTimer.current);
-        }
-      };
-    }
-  }, [toolCall.result, toolCall.status, userManuallyExpanded]);
-
   // Manual toggle
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
-    setUserManuallyExpanded(true);
-    if (autoCollapseTimer.current) {
-      clearTimeout(autoCollapseTimer.current);
-    }
   };
 
   // Status-based styling

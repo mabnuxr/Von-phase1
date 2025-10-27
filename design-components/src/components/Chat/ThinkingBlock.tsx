@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Streamdown } from 'streamdown';
 
@@ -6,18 +6,25 @@ export interface ThinkingBlockProps {
   /**
    * The reasoning/thinking content to display
    */
-  content: string;
+  content?: string;
+
+  /**
+   * JSX children to render instead of content string
+   * When provided, this takes precedence over content
+   */
+  children?: React.ReactNode;
 
   /**
    * Whether the content is currently streaming
+   * Used for visual indicators (animations, styling)
    */
   isStreaming?: boolean;
 
   /**
-   * Whether the block should be expanded by default
-   * @default false
+   * Message status - used to determine when to collapse
+   * Block auto-collapses when status becomes 'completed'
    */
-  defaultExpanded?: boolean;
+  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
 }
 
 /**
@@ -26,23 +33,39 @@ export interface ThinkingBlockProps {
  */
 export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   content,
+  children,
   isStreaming = false,
-  defaultExpanded = false,
+  status,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  // Stable state: always start expanded when mounted
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [userManuallyToggled, setUserManuallyToggled] = useState(false);
+
+  // Auto-collapse only when status becomes 'completed' (and user hasn't manually toggled)
+  useEffect(() => {
+    if (status === 'completed' && !userManuallyToggled) {
+      setIsExpanded(false);
+    }
+  }, [status, userManuallyToggled]);
+
+  // Handle manual toggle by user
+  const handleToggle = () => {
+    setUserManuallyToggled(true);
+    setIsExpanded(!isExpanded);
+  };
 
   return (
     <div className="mb-2 overflow-hidden">
       {/* Header - Clickable to expand/collapse */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-3 py-1.5 flex items-center justify-between hover:bg-gray-50 rounded-md transition-colors duration-200 group"
+        onClick={handleToggle}
+        className="w-full px-3 py-2 flex items-center justify-between bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 group cursor-pointer"
         aria-expanded={isExpanded}
         aria-label={isExpanded ? 'Collapse thinking process' : 'Expand thinking process'}
       >
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {/* Thinking icon */}
-          <div className="w-4 h-4 rounded-full bg-gray-500/80 flex items-center justify-center">
+          <div className="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
             <svg
               className={`w-2.5 h-2.5 text-white ${isStreaming ? 'animate-pulse' : ''}`}
               fill="none"
@@ -59,13 +82,13 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           </div>
 
           {/* Label */}
-          <span className="text-xs font-medium text-gray-600">
+          <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
             {isStreaming ? 'Thinking...' : 'Thought process'}
           </span>
 
           {/* Streaming indicator */}
           {isStreaming && (
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <motion.div
                 className="w-1 h-1 rounded-full bg-gray-500"
                 animate={{ opacity: [0.4, 1, 0.4] }}
@@ -87,7 +110,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
 
         {/* Chevron icon */}
         <motion.svg
-          className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-colors"
+          className="w-4 h-4 text-gray-500 group-hover:text-gray-700 transition-colors flex-shrink-0 ml-2"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -109,11 +132,21 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
             className="overflow-hidden"
           >
             <div className="px-3 py-2 pt-0">
-              <div className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
-                <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
-                  {content}
-                </Streamdown>
-              </div>
+              {children ? (
+                // Render JSX children with enhanced visual styling for thinking content
+                <div className="bg-gray-50/40 rounded-lg border-l-2 border-gray-300/50 pl-3 py-2">
+                  <div className="text-xs text-gray-600 leading-snug prose prose-xs max-w-none">
+                    {children}
+                  </div>
+                </div>
+              ) : (
+                // Fallback to content string with Streamdown
+                <div className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
+                  <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
+                    {content}
+                  </Streamdown>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
