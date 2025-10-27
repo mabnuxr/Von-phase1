@@ -19,6 +19,22 @@ export const CONVERSATIONS_STALE_TIME = 30000 as const; // 30 seconds
  */
 export const MESSAGES_STALE_TIME = 10000 as const; // 10 seconds
 
+/**
+ * Time in milliseconds that data is considered fresh for user preferences
+ * Longer than other queries since preferences rarely change
+ */
+export const PREFERENCES_STALE_TIME = 300000 as const; // 5 minutes (5 * 60 * 1000)
+
+// ============================================================================
+// Debounce Constants
+// ============================================================================
+
+/**
+ * Debounce delay in milliseconds for preferences auto-save
+ * Batches multiple rapid edits into a single API call
+ */
+export const PREFERENCES_DEBOUNCE_DELAY = 2000 as const; // 2 seconds
+
 // ============================================================================
 // Pagination Constants
 // ============================================================================
@@ -90,6 +106,8 @@ export const STREAM_TIMEOUT_MS = 60000 as const; // 60 seconds
 export const QUERY_CONSTANTS = {
   CONVERSATIONS_STALE_TIME,
   MESSAGES_STALE_TIME,
+  PREFERENCES_STALE_TIME,
+  PREFERENCES_DEBOUNCE_DELAY,
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
   OAUTH_POLLING_TIMEOUT_MS,

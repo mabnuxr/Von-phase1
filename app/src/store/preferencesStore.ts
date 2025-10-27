@@ -23,17 +23,10 @@ export type CustomerStage = (typeof CustomerStage)[keyof typeof CustomerStage];
 export interface Field {
   id: string;
   name: string;
-  apiName: string;
   type: string;
-  enabled: boolean;
   description: string;
-  prompt: string;
-  mappedSalesforceField: string;
-  runConditionPrompt: string;
-  runConditionPreview: string;
-  source: string;
-  createdAt: string;
-  updatedAt: string;
+  salesforceObject: string; // e.g., "Opportunity", "Account", "Contact"
+  salesforceFieldName: string; // e.g., "Amount", "Competition__c"
 }
 
 // Email categorization settings
@@ -69,9 +62,6 @@ export interface ProcessConfigurationSettings {
   renewalDetectionField: string;
   customerIdentificationField: string;
   salesQuarter: "Fiscal" | "Calendar";
-  keywords: string[];
-  businessProcess: string;
-  companyInfo: string;
 }
 
 interface PreferencesState {
@@ -81,13 +71,15 @@ interface PreferencesState {
     tab: "email-categorization" | "process-configuration",
   ) => void;
 
-  // Tab state for fields panel
-  fieldsActiveTab: "von-fields" | "salesforce-fields";
-  setFieldsActiveTab: (tab: "von-fields" | "salesforce-fields") => void;
-
   // Fields data
-  vonFields: Field[];
   salesforceFields: Field[];
+
+  // Server sync method
+  syncFromServer: (data: {
+    salesforceFields: Field[];
+    emailCategorization: EmailCategorizationSettings;
+    processConfiguration: ProcessConfigurationSettings;
+  }) => void;
 
   // Fields UI state
   fieldsSearchTerm: string;
@@ -98,14 +90,9 @@ interface PreferencesState {
   setEditingField: (id: string | null) => void;
 
   // Field management methods
-  addField: (field: Field, category: "von" | "salesforce") => void;
-  updateField: (
-    id: string,
-    updates: Partial<Field>,
-    category: "von" | "salesforce",
-  ) => void;
-  deleteField: (id: string, category: "von" | "salesforce") => void;
-  toggleFieldEnabled: (id: string, category: "von" | "salesforce") => void;
+  addField: (field: Field) => void;
+  updateField: (id: string, updates: Partial<Field>) => void;
+  deleteField: (id: string) => void;
 
   // Email categorization settings
   emailCategorization: EmailCategorizationSettings;
@@ -138,8 +125,6 @@ interface PreferencesState {
   removeBusinessStage: (stage: BusinessStage) => void;
   addCustomerStage: (stage: CustomerStage) => void;
   removeCustomerStage: (stage: CustomerStage) => void;
-  addKeyword: (keyword: string) => void;
-  removeKeyword: (keyword: string) => void;
 }
 
 const usePreferencesStoreBase = create<PreferencesState>((set) => ({
@@ -147,285 +132,34 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   defaultsActiveTab: "process-configuration",
   setDefaultsActiveTab: (tab) => set({ defaultsActiveTab: tab }),
 
-  // Fields tab state
-  fieldsActiveTab: "von-fields",
-  setFieldsActiveTab: (tab) => set({ fieldsActiveTab: tab }),
-
-  // Fields data
-  vonFields: [
-    {
-      id: "von-1",
-      name: "Amount",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "This field signifies amount",
-      prompt: "Check through existing deal data to configure amount",
-      mappedSalesforceField: "Amount",
-      runConditionPrompt: "Stage is S3",
-      runConditionPreview: "S3",
-      source: "All, @Calls, @Emails from last 10 days",
-      createdAt: "2025-05-30T07:00:00Z",
-      updatedAt: "2025-06-02T07:00:00Z",
-    },
-    {
-      id: "von-2",
-      name: "Competition",
-      apiName: "opps_competition",
-      type: "Text",
-      enabled: true,
-      description: "Track competitor information",
-      prompt: "What competitors were mentioned in the conversation?",
-      mappedSalesforceField: "Competition__c",
-      runConditionPrompt: "When competitors are discussed",
-      runConditionPreview: "Competitive deals",
-      source: "Call, Meeting",
-      createdAt: "2024-01-10T09:00:00Z",
-      updatedAt: "2024-01-18T16:20:00Z",
-    },
-    {
-      id: "von-3",
-      name: "Executive sponsor confirmed?",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "von-4",
-      name: "Use case defined?",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "von-5",
-      name: "Timeline status",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "von-6",
-      name: "ROI validation",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-  ],
+  // Fields data - Only Amount and Competition for Salesforce mapping
   salesforceFields: [
     {
-      id: "sf-1",
+      id: "sf-amount",
       name: "Amount",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "This field signifies amount",
-      prompt: "Check through existing deal data to configure amount",
-      mappedSalesforceField: "Amount",
-      runConditionPrompt: "Stage is S3",
-      runConditionPreview: "S3",
-      source: "All, @Calls, @Emails from last 10 days",
-      createdAt: "2025-05-30T07:00:00Z",
-      updatedAt: "2025-06-02T07:00:00Z",
+      type: "Currency",
+      description: "The Salesforce field that represents the deal amount",
+      salesforceObject: "",
+      salesforceFieldName: "",
     },
     {
-      id: "sf-2",
+      id: "sf-competition",
       name: "Competition",
-      apiName: "opps_competition",
       type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "Competition__c",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-10T09:00:00Z",
-      updatedAt: "2024-01-18T16:20:00Z",
-    },
-    {
-      id: "sf-3",
-      name: "Executive sponsor confirmed?",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-4",
-      name: "Is Budget at Risk?",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-5",
-      name: "Timeline status",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-6",
-      name: "ROI validation",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-7",
-      name: "Decision maker present?",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-8",
-      name: "Urgency to close",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-9",
-      name: "Stakeholder alignment",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-10",
-      name: "Timeline status",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-11",
-      name: "Pricing acceptance",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: true,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
-    },
-    {
-      id: "sf-12",
-      name: "Legal approval",
-      apiName: "opp_amount",
-      type: "Text",
-      enabled: false,
-      description: "",
-      prompt: "",
-      mappedSalesforceField: "",
-      runConditionPrompt: "",
-      runConditionPreview: "",
-      source: "",
-      createdAt: "2024-01-05T11:15:00Z",
-      updatedAt: "2024-01-22T10:30:00Z",
+      description:
+        "The Salesforce field that represents competition information",
+      salesforceObject: "",
+      salesforceFieldName: "",
     },
   ],
+
+  // Server sync method
+  syncFromServer: (data) =>
+    set({
+      salesforceFields: data.salesforceFields,
+      emailCategorization: data.emailCategorization,
+      processConfiguration: data.processConfiguration,
+    }),
 
   // Fields UI state
   fieldsSearchTerm: "",
@@ -441,40 +175,22 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   setEditingField: (id) => set({ editingFieldId: id }),
 
   // Field management methods
-  addField: (field, category) =>
+  addField: (field) =>
     set((state) => ({
-      [category === "von" ? "vonFields" : "salesforceFields"]: [
-        ...(category === "von" ? state.vonFields : state.salesforceFields),
-        field,
-      ],
+      salesforceFields: [...state.salesforceFields, field],
     })),
 
-  updateField: (id, updates, category) =>
+  updateField: (id, updates) =>
     set((state) => ({
-      [category === "von" ? "vonFields" : "salesforceFields"]: (category ===
-      "von"
-        ? state.vonFields
-        : state.salesforceFields
-      ).map((field) => (field.id === id ? { ...field, ...updates } : field)),
+      salesforceFields: state.salesforceFields.map((field) =>
+        field.id === id ? { ...field, ...updates } : field,
+      ),
     })),
 
-  deleteField: (id, category) =>
+  deleteField: (id) =>
     set((state) => ({
-      [category === "von" ? "vonFields" : "salesforceFields"]: (category ===
-      "von"
-        ? state.vonFields
-        : state.salesforceFields
-      ).filter((field) => field.id !== id),
-    })),
-
-  toggleFieldEnabled: (id, category) =>
-    set((state) => ({
-      [category === "von" ? "vonFields" : "salesforceFields"]: (category ===
-      "von"
-        ? state.vonFields
-        : state.salesforceFields
-      ).map((field) =>
-        field.id === id ? { ...field, enabled: !field.enabled } : field,
+      salesforceFields: state.salesforceFields.filter(
+        (field) => field.id !== id,
       ),
     })),
 
@@ -624,9 +340,6 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
     renewalDetectionField: "",
     customerIdentificationField: "",
     salesQuarter: "Fiscal",
-    keywords: [],
-    businessProcess: "",
-    companyInfo: "",
   },
 
   updateProcessConfiguration: (settings) =>
@@ -669,24 +382,6 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
         ...state.processConfiguration,
         customerStages: state.processConfiguration.customerStages.filter(
           (s) => s !== stage,
-        ),
-      },
-    })),
-
-  addKeyword: (keyword) =>
-    set((state) => ({
-      processConfiguration: {
-        ...state.processConfiguration,
-        keywords: [...state.processConfiguration.keywords, keyword],
-      },
-    })),
-
-  removeKeyword: (keyword) =>
-    set((state) => ({
-      processConfiguration: {
-        ...state.processConfiguration,
-        keywords: state.processConfiguration.keywords.filter(
-          (k) => k !== keyword,
         ),
       },
     })),
