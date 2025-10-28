@@ -270,14 +270,27 @@ export interface ToolCall {
   parentMessageId: string;
 }
 
+export interface SchemaData {
+  tableName?: string;
+  columns: Array<{ name: string; type: string }>;
+}
+
+export interface StatisticsData {
+  [key: string]: number | string | null;
+}
+
 export interface ToolResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any; // Raw JSON result from tool
-  type: 'table' | 'query' | 'metrics' | 'values' | 'json';
+  type: 'table' | 'query' | 'metrics' | 'values' | 'json' | 'schema' | 'table_list' | 'statistics';
   table?: TableData;
   queries?: QueryInfo[];
   metrics?: MetricData[];
   values?: ValueData[];
+  schema?: SchemaData;
+  tables?: string[];
+  statistics?: StatisticsData;
+  error?: string;
 }
 
 export interface TableData {
