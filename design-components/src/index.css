@@ -6,17 +6,210 @@
  * Custom design tokens for the design system
  */
 @theme {
+  /* SF Pro Text for body and UI (19px and smaller) */
   --font-family-sf:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+
+  /* SF Pro Display for headlines (20px and larger) */
+  --font-family-display:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Icons', 'Helvetica Neue',
+    Helvetica, Arial, sans-serif;
+
+  /* Default sans to SF Pro stack */
+  --font-family-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+
+  /* Apple standard font weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-heavy: 800;
+
+  /* Apple letter spacing (tracking) - exact specs from apple.com */
+  --letter-spacing-tight: -0.022em;
+  --letter-spacing-normal: -0.016em;
+  --letter-spacing-wide: 0;
+
+  /* Von AI Brand Colors */
+  /* Primary Purple - Von's signature color */
+  --color-von-purple-50: #f5f3ff;
+  --color-von-purple-100: #ede9fe;
+  --color-von-purple-200: #ddd6fe;
+  --color-von-purple-500: #8039e9;
+  --color-von-purple-600: #6928d6;
+  --color-von-purple-700: #5a21b6;
+  --color-von-purple-900: #3b0a7a;
+
+  /* Secondary Blue - Professional accent */
+  --color-von-blue-500: #0071e3;
+  --color-von-blue-600: #0063c1;
+  --color-von-blue-700: #0055aa;
+
+  /* Accent Teal - Complementary highlight */
+  --color-von-teal-500: #14b8a6;
+  --color-von-teal-600: #0d9488;
+
+  /* Semantic Colors */
+  --color-von-success: #10b981;
+  --color-von-warning: #f59e0b;
+  --color-von-error: #ef4444;
+
+  /* Apple-Style Gray System (Consistent Neutrals) */
+  --color-gray-50: #f5f5f7;
+  --color-gray-100: #e8e8ed;
+  --color-gray-200: #d2d2d7;
+  --color-gray-300: #c7c7cc;
+  --color-gray-500: #a1a1a6;
+  --color-gray-600: #8e8e93;
+  --color-gray-700: #6e6e73;
+  --color-gray-800: #3a3a3c;
+  --color-gray-900: #1d1d1f;
+
+  /* Semantic Text Colors */
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-tertiary: #8e8e93;
+
+  /* Semantic Background Colors */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f5f5f7;
+  --color-bg-selected: #e8e8ed;
+  --color-bg-hover: #f5f5f7;
+
+  /* Semantic Border Colors */
+  --color-border-default: #d2d2d7;
+  --color-border-input: #c7c7cc;
+  --color-border-light: rgba(0, 0, 0, 0.08);
+
+  /* Shadow Elevation System */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-normal: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+}
+
+/**
+ * Apple Font Smoothing
+ * Enables crisp, beautiful text rendering on all platforms
+ */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /**
  * Font Utilities
- * Custom font family utility for SF Pro Text
+ * Custom font family utilities for SF Pro
  */
 .font-sf {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  letter-spacing: -0.022em;
+}
+
+.font-display {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+  letter-spacing: -0.022em;
+  line-height: 1.0833333333;
+}
+
+/**
+ * Von AI Color Utilities
+ * Utility classes for Von's brand colors
+ */
+
+/* Background Colors */
+.bg-von-purple {
+  background-color: var(--color-von-purple-500);
+}
+
+.bg-von-purple-light {
+  background-color: var(--color-von-purple-100);
+}
+
+.bg-von-blue {
+  background-color: var(--color-von-blue-500);
+}
+
+/* Text Colors */
+.text-von-purple {
+  color: var(--color-von-purple-500);
+}
+
+.text-von-blue {
+  color: var(--color-von-blue-500);
+}
+
+.text-von-teal {
+  color: var(--color-von-teal-500);
+}
+
+/* Border Colors */
+.border-von-purple {
+  border-color: var(--color-von-purple-500);
+}
+
+.border-von-purple-light {
+  border-color: var(--color-von-purple-200);
+}
+
+.border-von-blue {
+  border-color: var(--color-von-blue-500);
+}
+
+/* Hover States */
+.hover\:bg-von-purple-dark:hover {
+  background-color: var(--color-von-purple-600);
+}
+
+.hover\:bg-von-purple-light:hover {
+  background-color: var(--color-von-purple-50);
+}
+
+.hover\:text-von-purple-dark:hover {
+  color: var(--color-von-purple-600);
+}
+
+.hover\:border-von-purple:hover {
+  border-color: var(--color-von-purple-500);
+}
+
+/* Gradients */
+.gradient-von-purple {
+  background: linear-gradient(
+    135deg,
+    var(--color-von-purple-500) 0%,
+    var(--color-von-purple-600) 100%
+  );
+}
+
+.gradient-von-blue-purple {
+  background: linear-gradient(
+    135deg,
+    var(--color-von-blue-500) 0%,
+    var(--color-von-purple-500) 100%
+  );
+}
+
+.gradient-von-subtle {
+  background: linear-gradient(
+    135deg,
+    var(--color-von-purple-50) 0%,
+    var(--color-von-blue-500) 100%
+  );
 }
 
 /**
@@ -142,7 +335,7 @@
 .markdown-content h5,
 .markdown-content h6 {
   font-weight: 600;
-  margin-top: 1.5em;
+  margin-top: 1em;
   margin-bottom: 0.5em;
   color: #1f2937;
 }
@@ -175,12 +368,18 @@
 }
 
 .markdown-content code {
-  background-color: #f5f5f5;
+  background-color: #f5f5f7;
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875em;
   font-family:
     'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+.prose code {
+  background-color: #f5f5f7;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
 }
 
 .markdown-content pre {
@@ -200,20 +399,36 @@
 }
 
 .markdown-content a {
-  color: #007aff;
+  color: #06c;
   text-decoration: none;
 }
 
 .markdown-content a:hover {
+  color: #0055aa;
+  text-decoration: underline;
+}
+
+.prose a {
+  color: #06c;
+  text-decoration: none;
+}
+
+.prose a:hover {
+  color: #0055aa;
   text-decoration: underline;
 }
 
 .markdown-content blockquote {
-  border-left: 4px solid #e5e5e5;
+  border-left: 4px solid #d2d2d7;
   padding-left: 1em;
   margin: 1em 0;
   color: #6e6e73;
   font-style: italic;
+}
+
+.prose blockquote {
+  border-left: 4px solid #d2d2d7;
+  color: #6e6e73;
 }
 
 .markdown-content table,
@@ -232,6 +447,9 @@
   padding: 0.75em 1em !important;
   text-align: left;
   color: #374151 !important;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
 }
 
 .markdown-content td,
@@ -268,35 +486,197 @@
 
 /**
  * Prose (Tailwind Typography) Overrides
- * Balanced colors for better readability with proper contrast
+ * Apple-exact typography matching apple.com specifications
  */
 .prose {
-  color: #374151;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.4705882353;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
 }
 
 .prose h1,
 .prose h2,
-.prose h3,
+.prose h3 {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+  font-weight: 700;
+  line-height: 1.0833333333;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
 .prose h4,
 .prose h5,
 .prose h6 {
-  color: #1f2937;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-weight: 600;
+  line-height: 1.1666666667;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.prose h1:first-child,
+.prose h2:first-child,
+.prose h3:first-child,
+.prose h4:first-child,
+.prose h5:first-child,
+.prose h6:first-child {
+  margin-top: 0;
 }
 
 .prose strong {
-  color: #1f2937;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.prose p {
+  font-weight: 400;
+  margin-bottom: 1em;
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
 }
 
 .prose table {
-  color: #374151;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  color: #1d1d1f;
+  font-weight: 400;
 }
 
 .prose th {
-  color: #1f2937;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-weight: 600;
+  color: #1d1d1f;
 }
 
 .prose td {
-  color: #374151;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  color: #1d1d1f;
+}
+
+.prose ul,
+.prose ol {
+  margin-bottom: 1em;
+}
+
+.prose li {
+  margin-bottom: 0.2em;
+}
+
+/**
+ * Prose Size Variants
+ * .prose-sm and .prose-xs for different content contexts
+ */
+.prose-sm {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
+}
+
+.prose-sm h1,
+.prose-sm h2,
+.prose-sm h3,
+.prose-sm h4,
+.prose-sm h5,
+.prose-sm h6 {
+  margin-top: 0.85em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+}
+
+.prose-sm h1:first-child,
+.prose-sm h2:first-child,
+.prose-sm h3:first-child,
+.prose-sm h4:first-child,
+.prose-sm h5:first-child,
+.prose-sm h6:first-child {
+  margin-top: 0;
+}
+
+.prose-sm p {
+  margin-bottom: 0.65em;
+}
+
+.prose-sm p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-sm ul,
+.prose-sm ol {
+  margin-bottom: 0.65em;
+}
+
+.prose-sm li {
+  margin-bottom: 0.15em;
+}
+
+.prose-xs {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
+}
+
+.prose-xs h1,
+.prose-xs h2,
+.prose-xs h3,
+.prose-xs h4,
+.prose-xs h5,
+.prose-xs h6 {
+  margin-top: 0.75em;
+  margin-bottom: 0.35em;
+  font-weight: 600;
+}
+
+.prose-xs h1:first-child,
+.prose-xs h2:first-child,
+.prose-xs h3:first-child,
+.prose-xs h4:first-child,
+.prose-xs h5:first-child,
+.prose-xs h6:first-child {
+  margin-top: 0;
+}
+
+.prose-xs p {
+  margin-bottom: 0.5em;
+}
+
+.prose-xs p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-xs ul,
+.prose-xs ol {
+  margin-bottom: 0.5em;
+}
+
+.prose-xs li {
+  margin-bottom: 0.12em;
 }
 
 /**

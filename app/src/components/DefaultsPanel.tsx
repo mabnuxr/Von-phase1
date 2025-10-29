@@ -15,7 +15,7 @@ export default function DefaultsPanel() {
       </div> */}
 
       {/* Tab Content */}
-      <div className="px-6 pt-6 pb-4 flex-1 overflow-y-auto min-h-0 settings-scrollbar">
+      <div className="flex-1 overflow-y-auto min-h-0 settings-scrollbar">
         <ProcessConfigurationTab />
       </div>
     </div>

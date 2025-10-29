@@ -54,12 +54,12 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 }) => {
   return (
     <div
-      className="h-full bg-white flex flex-col overflow-hidden antialiased font-sans"
+      className="h-full bg-white flex flex-col overflow-hidden antialiased font-sf"
       style={{ width }}
     >
       {/* Header */}
-      <div className="px-4 pt-5 pb-4 border-b border-black/8">
-        <h2 className="text-xl font-semibold text-[#1d1d1f] m-0">Settings</h2>
+      <div className="px-4 pt-5 pb-4 border-b border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900 m-0">Settings</h2>
       </div>
 
       {/* Menu Items */}
@@ -73,19 +73,17 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               className={`
                 flex items-center gap-3 px-3 py-2.5 my-0.5
                 text-sm rounded-lg border-0 cursor-pointer
-                w-full text-left transition-all duration-150
+                w-full text-left transition-all duration-200
                 ${
                   isSelected
-                    ? "bg-[#f5f5f7] text-[#1d1d1f] font-semibold"
-                    : "bg-transparent text-[#6e6e73] font-normal hover:bg-[#fafafa]"
+                    ? "bg-gray-100 text-gray-900 font-semibold"
+                    : "bg-transparent text-gray-700 font-normal hover:bg-gray-50"
                 }
               `}
               onClick={() => onSettingClick?.(item.id)}
             >
               {item.icon && (
-                <span className="w-[18px] h-[18px] text-[#6e6e73]">
-                  {item.icon}
-                </span>
+                <span className="w-5 h-5 text-gray-700">{item.icon}</span>
               )}
               {item.label}
             </button>

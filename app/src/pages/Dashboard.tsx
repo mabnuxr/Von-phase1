@@ -8,6 +8,7 @@ import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
+import { useSidebarState } from "../hooks/useSidebarState";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -436,13 +437,14 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Max-width container for large screens */}
-      <div className="w-full max-w-[1440px] h-full flex flex-col overflow-hidden">
+      {/* Full-width container */}
+      <div className="w-full h-full flex flex-col overflow-hidden">
         {/* TopBar in White Rounded Container */}
         <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div ref={avatarButtonRef}>
             <TopBar
               logoSrc="/logo.gif"
+              logoText="Von"
               onLogoClick={() => navigate("/dashboard")}
               showMenu={false}
               avatarLabel={avatarLabel}
@@ -466,7 +468,10 @@ const Dashboard = () => {
         {/* Two-Pane Layout with Rounded Corners */}
         <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
-          <div className="chat-sidebar-wrapper w-[280px] h-full flex flex-col min-h-0 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div
+            className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300"
+            style={{ width: isSidebarCollapsed ? "64px" : "280px" }}
+          >
             <ChatSidebar
               chatItems={chatItems}
               selectedChatId={currentConversationId || undefined}
@@ -474,6 +479,8 @@ const Dashboard = () => {
               onNewChatClick={handleNewChatClick}
               onSearchChange={handleSearchChange}
               searchPlaceholder="Search conversations..."
+              isCollapsed={isSidebarCollapsed}
+              onToggleCollapse={toggleSidebar}
               loadMoreRef={loadMoreConversationsRef}
               isFetchingMore={isFetchingNextPage}
               hasNextPage={!!hasNextPage}

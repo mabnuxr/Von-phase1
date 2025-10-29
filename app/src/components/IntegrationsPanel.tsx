@@ -248,45 +248,49 @@ export function IntegrationsPanel() {
   }
 
   return (
-    <div className="w-full p-6">
-      {/* OAuth Error Banner */}
-      {oauthError && (
-        <div className="mb-4">
-          <Banner
-            variant="warning"
-            message={oauthError}
-            onClose={() => setOauthError(null)}
-            dismissible={true}
-          />
+    <div className="w-full h-full flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-6 py-6">
+          {/* OAuth Error Banner */}
+          {oauthError && (
+            <div className="mb-4">
+              <Banner
+                variant="warning"
+                message={oauthError}
+                onClose={() => setOauthError(null)}
+                dismissible={true}
+              />
+            </div>
+          )}
+
+          {/* Integrations Grid */}
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+            {integrations.map((integration) => {
+              const backendIntegration = integrationsData?.integrations.find(
+                (i: { id: string }) => i.id === integration.id,
+              );
+              const isAuthenticating =
+                backendIntegration?.authenticationStatus ===
+                AuthenticationStatus.AUTHENTICATING;
+              const isTimedOut = timedOutIntegrations.includes(integration.id);
+              const isLoading =
+                loadingIntegrationId === integration.id ||
+                (isAuthenticating && !isTimedOut);
+
+              return (
+                <IntegrationCard
+                  key={integration.id}
+                  name={integration.name}
+                  integrationLogoPath={integration.integrationLogoPath}
+                  enabled={integration.enabled}
+                  disabled={isLoading}
+                  loadingText={isLoading ? "Authenticating" : undefined}
+                  onToggle={(enabled) => handleToggle(integration.id, enabled)}
+                />
+              );
+            })}
+          </div>
         </div>
-      )}
-
-      {/* Integrations Grid */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
-        {integrations.map((integration) => {
-          const backendIntegration = integrationsData?.integrations.find(
-            (i: { id: string }) => i.id === integration.id,
-          );
-          const isAuthenticating =
-            backendIntegration?.authenticationStatus ===
-            AuthenticationStatus.AUTHENTICATING;
-          const isTimedOut = timedOutIntegrations.includes(integration.id);
-          const isLoading =
-            loadingIntegrationId === integration.id ||
-            (isAuthenticating && !isTimedOut);
-
-          return (
-            <IntegrationCard
-              key={integration.id}
-              name={integration.name}
-              integrationLogoPath={integration.integrationLogoPath}
-              enabled={integration.enabled}
-              disabled={isLoading}
-              loadingText={isLoading ? "Authenticating" : undefined}
-              onToggle={(enabled) => handleToggle(integration.id, enabled)}
-            />
-          );
-        })}
       </div>
 
       {/* Confirmation Modal */}

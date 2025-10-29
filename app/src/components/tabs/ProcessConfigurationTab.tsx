@@ -42,17 +42,17 @@ export function ProcessConfigurationTab() {
       {/* Business Stages Section */}
       <div className="space-y-4">
         <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
             What stage is qualified opportunity. What stages do you use and for
             which business line (including renewals)
-            <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+            <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
               ?
             </span>
           </label>
 
           {/* Business Stages Multi-Select */}
           <div className="mb-4">
-            <p className="text-xs text-[#6e6e73] mb-2">Business stage</p>
+            <p className="text-xs text-gray-700 mb-2">Business stage</p>
             <MultiSelect
               options={businessStageOptions}
               value={config.businessStages}
@@ -64,7 +64,7 @@ export function ProcessConfigurationTab() {
 
           {/* Customer Stages Multi-Select */}
           <div>
-            <p className="text-xs text-[#6e6e73] mb-2">Customer stage</p>
+            <p className="text-xs text-gray-700 mb-2">Customer stage</p>
             <MultiSelect
               options={customerStageOptions}
               value={config.customerStages}
@@ -78,9 +78,9 @@ export function ProcessConfigurationTab() {
 
       {/* Churn Signal Field */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           How do you signify churn in Salesforce
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
@@ -88,7 +88,7 @@ export function ProcessConfigurationTab() {
           value={config.churnSignalField}
           onChange={(e) => updateConfig({ churnSignalField: e.target.value })}
           placeholder="Opportunity type is partial churn or churn"
-          className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-white"
+          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
           style={{
             fontFamily:
               '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
@@ -99,9 +99,9 @@ export function ProcessConfigurationTab() {
 
       {/* Renewal Detection Field */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           How do we let what is a renewal opportunity
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
@@ -111,7 +111,7 @@ export function ProcessConfigurationTab() {
             updateConfig({ renewalDetectionField: e.target.value })
           }
           placeholder='Enter opportunity type contains word "renewal" or the opportunity name contains word "renewal"'
-          className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-white"
+          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
           style={{
             fontFamily:
               '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
@@ -122,9 +122,9 @@ export function ProcessConfigurationTab() {
 
       {/* Customer Identification Field */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           How do you let who is a customer?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
@@ -134,7 +134,7 @@ export function ProcessConfigurationTab() {
             updateConfig({ customerIdentificationField: e.target.value })
           }
           placeholder='Account type field, on the account object, is "Customer"'
-          className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-white"
+          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
           style={{
             fontFamily:
               '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
@@ -145,9 +145,9 @@ export function ProcessConfigurationTab() {
 
       {/* Sales Quarter */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           What is your sales quarter?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
@@ -159,7 +159,7 @@ export function ProcessConfigurationTab() {
                 salesQuarter: e.target.value as "Fiscal" | "Calendar",
               })
             }
-            className="w-full px-3 py-2 pr-10 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all duration-200 cursor-pointer appearance-none"
+            className="w-full px-3 py-2 pr-10 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200 cursor-pointer appearance-none"
             style={{
               fontFamily:
                 '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
@@ -169,7 +169,7 @@ export function ProcessConfigurationTab() {
             <option value="Calendar">Calendar</option>
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <ChevronDownIcon className="w-4 h-4 text-gray-600" />
+            <ChevronDownIcon className="size-4 text-gray-600" />
           </div>
         </div>
       </div>

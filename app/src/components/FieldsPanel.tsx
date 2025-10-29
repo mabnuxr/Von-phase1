@@ -13,7 +13,7 @@ export default function FieldsPanel() {
   return (
     <div className="w-full h-full flex flex-col">
       {/* Fields List */}
-      <div className="px-6 pt-6 pb-4 flex-1 overflow-y-auto min-h-0 settings-scrollbar">
+      <div className="flex-1 overflow-y-auto min-h-0 settings-scrollbar">
         <div className="px-6 pt-2 pb-6 space-y-2 max-w-4xl">
           {filteredFields.map((field) => (
             <FieldItem key={field.id} field={field} />
