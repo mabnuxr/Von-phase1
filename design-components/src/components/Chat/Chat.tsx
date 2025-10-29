@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatHeader } from './ChatHeader';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ChatEmptyState } from './ChatEmptyState';
@@ -42,9 +41,9 @@ export const Chat: React.FC<ChatProps> = ({
   pusherConfig,
   messages: controlledMessages,
   onSendMessage,
-  onAddClick,
-  onRefreshClick,
-  onClose,
+  onAddClick: _onAddClick, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onRefreshClick: _onRefreshClick, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onClose: _onClose, // eslint-disable-line @typescript-eslint/no-unused-vars
   onError,
   onPusherMessage,
   placeholder = 'Ask von anything',
