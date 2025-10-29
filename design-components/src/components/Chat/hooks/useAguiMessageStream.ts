@@ -72,8 +72,14 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
 
   // Helper: Parse tool result and detect type
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseToolResult = (resultJson: any): ToolResult => {
+  const parseToolResult = (resultJson: any): ToolResult | null => {
     try {
+      // FIX: Check backend success field first
+      // If backend indicates failure, return null to mark tool call as error
+      if (resultJson.success === false) {
+        return null; // This will cause status to be set to 'error'
+      }
+
       // Auto-detect table data (SQL results)
       if (resultJson.sample?.columns && resultJson.sample?.rows) {
         return {
@@ -106,6 +112,39 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             queries: resultJson.queries,
           };
         }
+      }
+
+      // Detect schema information (sql_list_schema, sql_list_tables)
+      if (resultJson.columns && Array.isArray(resultJson.columns)) {
+        return {
+          raw: resultJson,
+          type: 'schema',
+          schema: {
+            tableName: resultJson.table_name,
+            columns: resultJson.columns,
+          },
+          queries: resultJson.queries,
+        };
+      }
+
+      // Detect table list (sql_list_tables)
+      if (resultJson.materialized_views && Array.isArray(resultJson.materialized_views)) {
+        return {
+          raw: resultJson,
+          type: 'table_list',
+          tables: resultJson.materialized_views || resultJson.all_objects,
+          queries: resultJson.queries,
+        };
+      }
+
+      // Detect statistics (sql_get_statistics)
+      if (resultJson.statistics && typeof resultJson.statistics === 'object') {
+        return {
+          raw: resultJson,
+          type: 'statistics',
+          statistics: resultJson.statistics,
+          queries: resultJson.queries,
+        };
       }
 
       // Detect query information
@@ -262,9 +301,20 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
           let parentStep = state.stepMessages.get(e.parent_message_id);
 
           if (!parentStep) {
-            // Orphaned tool - attach to the most recent text step
-            const allSteps = Array.from(state.stepMessages.values());
-            parentStep = allSteps[allSteps.length - 1]; // Get last step
+            // FIX: Create parent step if it doesn't exist
+            // This handles cases where TOOL_CALL_START arrives before TEXT_MESSAGE_START
+            if (e.parent_message_id) {
+              parentStep = {
+                message_id: e.parent_message_id,
+                content: '',
+                toolCalls: [],
+              };
+              state.stepMessages.set(e.parent_message_id, parentStep);
+            } else {
+              // No parent_message_id, try last step as fallback
+              const allSteps = Array.from(state.stepMessages.values());
+              parentStep = allSteps[allSteps.length - 1];
+            }
           }
 
           if (parentStep) {
@@ -272,6 +322,10 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
               parentStep.toolCalls = [];
             }
             parentStep.toolCalls.push(toolCall);
+          } else {
+            console.warn(
+              '[useAguiMessageStream] No parent step found for tool call - this should not happen!'
+            );
           }
 
           eventsRef.current.onToolCallStart?.(wrapper.run_id, toolCall);
@@ -328,8 +382,13 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
               const resultJson = JSON.parse(e.content);
               const parsedResult = parseToolResult(resultJson);
 
-              toolCall.result = parsedResult;
-              toolCall.status = parsedResult ? 'success' : 'error';
+              if (parsedResult) {
+                toolCall.result = parsedResult;
+                toolCall.status = 'success';
+              } else {
+                // parsedResult is null, meaning backend indicated failure
+                toolCall.status = 'error';
+              }
               toolCall.endTime = Date.now(); // Track when tool completed
 
               state.toolCalls.set(e.tool_call_id, toolCall);
@@ -342,7 +401,13 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
                 return next;
               });
 
-              eventsRef.current.onToolCallComplete?.(wrapper.run_id, e.tool_call_id, parsedResult);
+              if (parsedResult) {
+                eventsRef.current.onToolCallComplete?.(
+                  wrapper.run_id,
+                  e.tool_call_id,
+                  parsedResult
+                );
+              }
             } catch {
               console.warn('Tool result is not valid JSON, treating as error message:', e.content);
 

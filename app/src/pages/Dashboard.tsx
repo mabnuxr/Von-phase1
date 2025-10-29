@@ -93,6 +93,16 @@ const Dashboard = () => {
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
     useSidebarState();
 
+  // Message filtering state for ChatGPT-style visual clearing
+  // Track which messages to show (index in messages array)
+  // When user sends new message, we set this to current length to hide old messages
+  const [showMessagesFromIndex, setShowMessagesFromIndex] = useState<number>(0);
+
+  // Reset message filtering when conversation changes
+  useEffect(() => {
+    setShowMessagesFromIndex(0);
+  }, [currentConversationId]);
+
   // Show/hide connection banner based on connection error state
   useEffect(() => {
     if (isConnectionError) {
@@ -190,6 +200,12 @@ const Dashboard = () => {
   };
 
   const handleSendMessage = (content: string) => {
+    // Set the index to current message count to hide old messages
+    // This creates the ChatGPT-style clean slate effect
+    if (currentConversationId) {
+      const currentMessages = messages[currentConversationId] || [];
+      setShowMessagesFromIndex(currentMessages.length);
+    }
     sendMessage(content);
   };
 
@@ -513,6 +529,7 @@ const Dashboard = () => {
                 variant="floating"
                 height="100%"
                 width="100%"
+                showMessagesFromIndex={showMessagesFromIndex}
               />
             )}
           </div>
