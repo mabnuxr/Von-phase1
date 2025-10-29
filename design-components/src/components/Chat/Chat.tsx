@@ -461,17 +461,9 @@ export const Chat: React.FC<ChatProps> = ({
 
   return (
     <div className={containerClassName} style={containerStyles}>
-      <ChatHeader
-        title={title}
-        onAddClick={onAddClick}
-        onRefreshClick={onRefreshClick}
-        onClose={onClose}
-        showClose={isFixed || isFullPage}
-      />
-
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto flex flex-col bg-gray-50/30 chat-messages-wrapper"
+        className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
         style={{ overflowAnchor: 'none' }}
       >
         {/* Loading indicator for older messages (infinite scroll) */}

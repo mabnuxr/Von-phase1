@@ -25,7 +25,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 }) => {
   return (
     <motion.div
-      className="flex flex-col items-center justify-start min-h-0 px-6 py-8 overflow-y-auto"
+      className="flex flex-col items-center justify-start min-h-0 px-6 py-8 overflow-y-auto font-sf"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -38,7 +38,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <motion.div
-          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg"
+          className="w-16 h-16 rounded-2xl gradient-von-purple flex items-center justify-center shadow-lg"
           animate={{
             boxShadow: [
               '0 10px 30px rgba(128, 57, 233, 0.3)',
@@ -66,7 +66,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
       {/* Heading */}
       <motion.h3
-        className="text-lg font-semibold text-gray-900 mb-2"
+        className="text-2xl font-bold text-gray-900 mb-3 tracking-tight"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
@@ -76,7 +76,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
       {/* Subtitle */}
       <motion.p
-        className="text-sm text-gray-500 text-center mb-6 max-w-sm"
+        className="text-base text-gray-500 text-center mb-8 max-w-xl"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.4 }}
@@ -86,7 +86,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
       {/* Example Prompts */}
       <motion.div
-        className="flex flex-col gap-3 w-full max-w-md"
+        className="flex flex-col gap-3 w-full max-w-2xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.4 }}
@@ -97,7 +97,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         {examplePrompts.map((prompt, index) => (
           <motion.button
             key={prompt}
-            className="text-left px-4 py-3 rounded-xl bg-white border border-gray-200 text-sm text-gray-700 hover:border-purple-300 hover:bg-purple-50 transition-colors cursor-pointer"
+            className="text-left px-5 py-4 rounded-xl bg-white border border-gray-200 shadow-sm text-base text-gray-700 font-medium hover:border-von-purple-light hover:bg-von-purple-light hover:shadow-md transition-all cursor-pointer"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
@@ -105,7 +105,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={() => onPromptClick?.(prompt)}
           >
-            <span className="text-purple-500 mr-2">→</span>
+            <span className="text-von-purple mr-2">→</span>
             {prompt}
           </motion.button>
         ))}

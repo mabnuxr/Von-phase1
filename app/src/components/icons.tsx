@@ -7,7 +7,7 @@ export interface IconProps {
 
 // Settings Icon - Memoized for performance
 export const SettingsIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px] text-[#6e6e73]" }) => (
+  ({ className = "size-5 text-gray-700" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -33,7 +33,7 @@ SettingsIcon.displayName = "SettingsIcon";
 
 // Logout Icon - Memoized for performance
 export const LogoutIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px] text-[#6e6e73]" }) => (
+  ({ className = "size-5 text-gray-700" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -101,7 +101,7 @@ PlusIcon.displayName = "PlusIcon";
 
 // Clock Icon - Used for timestamps and history - Memoized
 export const ClockIcon = memo<IconProps>(
-  ({ className = "w-[14px] h-[14px]", size = 14 }) => (
+  ({ className = "size-4", size = 16 }) => (
     <svg
       className={className}
       width={size}
@@ -131,7 +131,7 @@ ClockIcon.displayName = "ClockIcon";
 
 // Document Icon - Used for file/document cards - Memoized
 export const DocumentIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]", size = 18 }) => (
+  ({ className = "size-5", size = 20 }) => (
     <svg
       className={className}
       width={size}
@@ -159,7 +159,7 @@ DocumentIcon.displayName = "DocumentIcon";
 
 // Fields Icon (Salesforce Cloud) - Used for Salesforce fields settings - Memoized
 export const FieldsIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]" }) => (
+  ({ className = "size-5" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -180,7 +180,7 @@ FieldsIcon.displayName = "FieldsIcon";
 
 // Defaults Icon - Used for default settings/preferences - Memoized
 export const DefaultsIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]" }) => (
+  ({ className = "size-5" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -212,7 +212,7 @@ DefaultsIcon.displayName = "DefaultsIcon";
 
 // Sales Process Icon - Used for sales workflow settings - Memoized
 export const SalesProcessIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]" }) => (
+  ({ className = "size-5" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -232,7 +232,7 @@ SalesProcessIcon.displayName = "SalesProcessIcon";
 
 // Manager Agent Icon - Used for AI/manager agent settings - Memoized
 export const ManagerAgentIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]" }) => (
+  ({ className = "size-5" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -264,7 +264,7 @@ ManagerAgentIcon.displayName = "ManagerAgentIcon";
 
 // Tabs Icon - Used for tab/navigation settings - Memoized
 export const TabsIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]" }) => (
+  ({ className = "size-5" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"
@@ -302,7 +302,7 @@ TabsIcon.displayName = "TabsIcon";
 
 // Sidebar Icon - Used for sidebar navigation settings - Memoized
 export const SidebarIcon = memo<IconProps>(
-  ({ className = "w-[18px] h-[18px]" }) => (
+  ({ className = "size-5" }) => (
     <svg
       className={className}
       viewBox="0 0 24 24"

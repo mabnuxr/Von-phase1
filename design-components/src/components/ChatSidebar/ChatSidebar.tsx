@@ -44,6 +44,17 @@ export interface ChatSidebarProps {
   width?: string;
 
   /**
+   * Whether the sidebar is collapsed
+   * @default false
+   */
+  isCollapsed?: boolean;
+
+  /**
+   * Callback when collapse toggle is clicked
+   */
+  onToggleCollapse?: () => void;
+
+  /**
    * Ref for infinite scroll trigger element
    * Attach this to a div at the bottom of the list for infinite scroll
    */
@@ -89,16 +100,57 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedChatId,
   onChatClick,
   onNewChatClick,
+  isCollapsed = false,
+  onToggleCollapse,
   loadMoreRef,
   isFetchingMore = false,
   hasNextPage = false,
   onLoadMore,
 }) => {
+  // Collapsed state - show minimal sidebar with toggle button
+  if (isCollapsed) {
+    return (
+      <motion.div
+        className="h-full w-full bg-white flex flex-col items-center py-3 overflow-hidden antialiased"
+        initial={{ width: 280 }}
+        animate={{ width: 64 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {/* Expand Button */}
+        <motion.button
+          className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+          onClick={onToggleCollapse}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="Expand sidebar"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-gray-700"
+          >
+            <path d="M3 12h18M3 6h18M3 18h18" strokeLinecap="round" />
+          </svg>
+        </motion.button>
+      </motion.div>
+    );
+  }
+
+  // Expanded state - show full sidebar
   return (
-    <div className="p-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf">
+    <motion.div
+      className="p-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf"
+      initial={{ width: 64 }}
+      animate={{ width: 280 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* New Chat Button */}
       <motion.button
-        className="w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-medium cursor-pointer"
+        className="w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-semibold cursor-pointer"
         onClick={onNewChatClick}
         whileHover={{ scale: 1.02, opacity: 0.9 }}
         whileTap={{ scale: 0.98 }}
@@ -117,20 +169,43 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </svg>
       </motion.button>
 
-      {/* Section Header */}
-      <div className="flex items-center gap-2 py-2 mb-1 text-[13px] font-normal text-gray-500 uppercase">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
+      {/* Section Header with Collapse Button */}
+      <div className="flex items-center justify-between py-2 mb-1">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-500 uppercase tracking-wide">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Past Chats
+        </div>
+
+        {/* Collapse Button */}
+        <motion.button
+          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
+          onClick={onToggleCollapse}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="Collapse sidebar"
         >
-          <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        Past Chats
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-gray-500"
+          >
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.button>
       </div>
 
       {/* Chat List Container - Relative positioning for absolute indicator */}
@@ -143,10 +218,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               <div
                 key={item.id}
                 className={`
-                  px-3 py-1.5 mx-0 my-0.5 text-[14px] cursor-pointer
-                  transition-all duration-150 whitespace-nowrap overflow-hidden
-                  text-ellipsis rounded-lg text-gray-900 font-normal
-                  ${isSelected ? 'bg-gray-300' : 'bg-transparent hover:bg-gray-100'}
+                  px-3 py-1.5 mx-0 my-0.5 text-sm cursor-pointer
+                  transition-all duration-200 whitespace-nowrap overflow-hidden
+                  text-ellipsis rounded-lg text-gray-900
+                  ${isSelected ? 'bg-gray-100 font-semibold' : 'bg-transparent hover:bg-gray-50 font-medium'}
                 `}
                 onClick={() => onChatClick?.(item.id)}
               >
@@ -224,7 +299,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

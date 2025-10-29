@@ -143,32 +143,24 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
 
   return (
-    <div className="w-full group">
-      {/* Full-width section container */}
-      <div
-        className={`
-          w-full py-6 transition-all duration-300
-          ${
-            isUser
-              ? 'bg-white hover:bg-gray-50/30'
-              : 'bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white'
-          }
-        `}
-      >
-        {/* Centered content area */}
-        <div className="max-w-3xl mx-auto px-8">
-          {/* Horizontal layout: Avatar + Content */}
-          <div className="flex items-start gap-4">
+    <div className="w-full group font-sf mb-4">
+      {/* Centered container */}
+      <div className="px-6">
+        <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
+          {/* Minimal message layout */}
+          <div className={`py-4 ${isUser ? 'max-w-3xl' : 'w-full'}`}>
+            {/* Horizontal layout: Avatar + Content (reversed for user) */}
+            <div className={`flex items-start gap-4 ${isUser ? 'flex-row-reverse' : ''}`}>
             {/* Avatar and Status Badge */}
             <div className="flex items-start gap-2 flex-shrink-0">
               {isUser ? (
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
+                <div className="w-8 h-8 rounded-full bg-von-purple flex items-center justify-center text-white text-xs font-semibold">
                   {userInitials}
                 </div>
               ) : (
                 <>
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
-                    A
+                  <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs font-semibold">
+                    AI
                   </div>
                   {/* Status badge inline with avatar for assistant messages */}
                   <MessageStatusBadge status={status} errorMessage={errorMessage} />
@@ -208,8 +200,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                   <div
                                     className={
                                       isStreaming
-                                        ? 'text-sm prose prose-sm max-w-none'
-                                        : 'prose prose-xs max-w-none'
+                                        ? 'prose max-w-none'
+                                        : 'prose-sm max-w-none'
                                     }
                                   >
                                     <Streamdown
@@ -246,7 +238,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           <div className="space-y-3">
                             {/* Final step content */}
                             {finalStep.content && (
-                              <div className="text-sm prose prose-sm max-w-none">
+                              <div className="prose max-w-none font-sf">
                                 <Streamdown
                                   parseIncompleteMarkdown={isStreaming}
                                   isAnimating={isStreaming}
@@ -271,7 +263,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   ) : (
                     /* Fallback: render plain content if no stepMessages */
                     content && (
-                      <div className="text-sm prose prose-sm max-w-none">
+                      <div className="prose max-w-none font-sf">
                         <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
                           {content}
                         </Streamdown>
@@ -281,11 +273,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 </>
               ) : (
                 // User messages - simple rendering
-                <div className="text-sm prose prose-sm max-w-none">
+                <div className="prose max-w-none font-sf">
                   <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
       </div>

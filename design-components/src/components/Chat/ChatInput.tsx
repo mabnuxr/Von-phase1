@@ -85,22 +85,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className="p-3 px-4 bg-white flex flex-col gap-1.5 border-t border-gray-100 antialiased font-sf">
-      {contextTag && (
-        <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600 font-sf mb-1">
-          {contextTag}
-        </div>
-      )}
+    <div className="p-3 bg-white antialiased font-sf">
+      <div className="px-6 max-w-4xl mx-auto w-full flex flex-col gap-1.5">
+        {contextTag && (
+          <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600 font-sf mb-1">
+            {contextTag}
+          </div>
+        )}
 
-      <div
-        className={`flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border transition-all duration-200 ${
-          disabled
-            ? isStreaming
-              ? 'border-blue-200 opacity-75 cursor-not-allowed'
-              : 'border-gray-200 opacity-60 cursor-not-allowed'
-            : 'border-gray-200 shadow-sm hover:shadow-md'
-        }`}
-      >
+        <div
+          className={`flex items-center gap-2 bg-white rounded-[20px] px-3 py-2 border transition-all duration-200 ${
+            disabled
+              ? isStreaming
+                ? 'border-von-purple-light opacity-75 cursor-not-allowed'
+                : 'border-gray-200 opacity-60 cursor-not-allowed'
+              : 'border-gray-200 shadow-sm hover:shadow-md hover:border-von-purple-light'
+          }`}
+        >
         <textarea
           ref={textareaRef}
           value={message}
@@ -119,10 +120,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         />
 
         <button
-          className={`w-8 h-8 flex-shrink-0 rounded-full border-0 bg-black flex items-center justify-center text-white transition-all duration-150 ${
+          className={`w-8 h-8 flex-shrink-0 rounded-full border-0 gradient-von-purple flex items-center justify-center text-white transition-all duration-150 ${
             disabled || !message.trim()
               ? 'cursor-not-allowed opacity-50'
-              : 'cursor-pointer hover:bg-gray-800'
+              : 'cursor-pointer hover:opacity-90 hover:shadow-lg'
           }`}
           onClick={handleSend}
           disabled={disabled || !message.trim()}
@@ -130,10 +131,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         >
           ↑
         </button>
-      </div>
+        </div>
 
-      <div className="text-[11px] leading-normal text-gray-500 text-center font-sf mt-1">
-        Von AI may make mistakes. Please recheck all important information.
+        <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+          Von AI may make mistakes. Please recheck all important information.
+        </div>
       </div>
     </div>
   );

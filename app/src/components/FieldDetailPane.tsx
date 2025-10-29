@@ -70,7 +70,7 @@ export function FieldDetailPane() {
 
       {/* Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[480px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-[480px] bg-white shadow-elevated z-50 transform transition-transform duration-300 ease-out ${
           editingFieldId ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -78,7 +78,7 @@ export function FieldDetailPane() {
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200 shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-[#1d1d1f] m-0">
+              <h2 className="text-lg font-semibold text-gray-900 m-0">
                 Edit Field
               </h2>
               <button
@@ -86,7 +86,7 @@ export function FieldDetailPane() {
                 className="text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="size-5"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -107,7 +107,7 @@ export function FieldDetailPane() {
             <div className="space-y-4">
               {/* Name (Read-only) */}
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Field Name
                 </label>
                 <div className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg">
@@ -117,21 +117,21 @@ export function FieldDetailPane() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Description
                 </label>
                 <textarea
                   value={formData.description || ""}
                   onChange={(e) => handleChange("description", e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200 resize-none"
+                  className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200 resize-none"
                   placeholder="Describe what this field is for"
                 />
               </div>
 
               {/* Type (Read-only) */}
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Field Type
                 </label>
                 <input
@@ -147,7 +147,7 @@ export function FieldDetailPane() {
 
               {/* Salesforce Object */}
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Salesforce Object
                   <span className="text-red-500 ml-1">*</span>
                 </label>
@@ -157,7 +157,7 @@ export function FieldDetailPane() {
                   onChange={(e) =>
                     handleChange("salesforceObject", e.target.value)
                   }
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
                   placeholder="Opportunity"
                 />
                 <p className="mt-1.5 text-xs text-gray-500">
@@ -167,7 +167,7 @@ export function FieldDetailPane() {
 
               {/* Salesforce Field Name */}
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f] mb-1.5">
+                <label className="block text-sm font-medium text-gray-900 mb-1.5">
                   Field Name
                   <span className="text-red-500 ml-1">*</span>
                 </label>
@@ -177,7 +177,7 @@ export function FieldDetailPane() {
                   onChange={(e) =>
                     handleChange("salesforceFieldName", e.target.value)
                   }
-                  className="w-full px-3 py-2 text-sm text-[#1d1d1f] border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
                   placeholder={
                     field.name === "Amount" ? "Amount" : "Competition__c"
                   }
@@ -200,7 +200,7 @@ export function FieldDetailPane() {
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                className="px-4 py-2 text-sm font-medium text-white bg-von-purple border border-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200"
               >
                 Save changes
               </button>

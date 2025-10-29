@@ -5,9 +5,57 @@
  * Custom design tokens for the application
  */
 @theme {
+  /* SF Pro Text for body and UI (19px and smaller) */
   --font-family-sf:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
+
+  /* SF Pro Display for headlines (20px and larger) */
+  --font-family-display:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial,
+    sans-serif;
+
+  /* Default sans to SF Pro stack */
+  --font-family-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro", "Helvetica Neue", Arial,
+    sans-serif;
+
+  /* Apple standard font weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-heavy: 800;
+
+  /* Apple letter spacing (tracking) - exact specs from apple.com */
+  --letter-spacing-tight: -0.022em;
+  --letter-spacing-normal: -0.016em;
+  --letter-spacing-wide: 0;
+
+  /* Von AI Brand Colors */
+  /* Primary Purple - Von's signature color */
+  --color-von-purple-50: #f5f3ff;
+  --color-von-purple-100: #ede9fe;
+  --color-von-purple-200: #ddd6fe;
+  --color-von-purple-500: #8039e9;
+  --color-von-purple-600: #6928d6;
+  --color-von-purple-700: #5a21b6;
+  --color-von-purple-900: #3b0a7a;
+
+  /* Secondary Blue - Professional accent */
+  --color-von-blue-500: #0071e3;
+  --color-von-blue-600: #0063c1;
+  --color-von-blue-700: #0055aa;
+
+  /* Accent Teal - Complementary highlight */
+  --color-von-teal-500: #14b8a6;
+  --color-von-teal-600: #0d9488;
+
+  /* Semantic Colors */
+  --color-von-success: #10b981;
+  --color-von-warning: #f59e0b;
+  --color-von-error: #ef4444;
 }
 
 /**
@@ -25,6 +73,26 @@ body,
 }
 
 /**
+ * Apple Font Smoothing
+ * Enables crisp, beautiful text rendering on all platforms
+ */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.4705882353;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  color: #1d1d1f;
+  background-color: #fff;
+}
+
+/**
  * Font Utilities
  * Custom font family utility for SF Pro Text
  */
@@ -32,6 +100,80 @@ body,
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
+}
+
+/**
+ * Von AI Color Utilities
+ * Utility classes for Von's brand colors
+ */
+
+/* Background Colors */
+.bg-von-purple {
+  background-color: var(--color-von-purple-500);
+}
+
+.bg-von-purple-light {
+  background-color: var(--color-von-purple-100);
+}
+
+.bg-von-blue {
+  background-color: var(--color-von-blue-500);
+}
+
+/* Text Colors */
+.text-von-purple {
+  color: var(--color-von-purple-500);
+}
+
+.text-von-blue {
+  color: var(--color-von-blue-500);
+}
+
+.text-von-teal {
+  color: var(--color-von-teal-500);
+}
+
+/* Border Colors */
+.border-von-purple {
+  border-color: var(--color-von-purple-500);
+}
+
+.border-von-purple-light {
+  border-color: var(--color-von-purple-200);
+}
+
+.border-von-blue {
+  border-color: var(--color-von-blue-500);
+}
+
+/* Hover States */
+.hover\:bg-von-purple-dark:hover {
+  background-color: var(--color-von-purple-600);
+}
+
+.hover\:bg-von-purple-light:hover {
+  background-color: var(--color-von-purple-50);
+}
+
+.hover\:text-von-purple-dark:hover {
+  color: var(--color-von-purple-600);
+}
+
+.hover\:border-von-purple:hover {
+  border-color: var(--color-von-purple-500);
+}
+
+/* Gradients */
+.gradient-von-purple {
+  background: linear-gradient(135deg, var(--color-von-purple-500) 0%, var(--color-von-purple-600) 100%);
+}
+
+.gradient-von-blue-purple {
+  background: linear-gradient(135deg, var(--color-von-blue-500) 0%, var(--color-von-purple-500) 100%);
+}
+
+.gradient-von-subtle {
+  background: linear-gradient(135deg, var(--color-von-purple-50) 0%, var(--color-von-blue-500) 100%);
 }
 
 /**

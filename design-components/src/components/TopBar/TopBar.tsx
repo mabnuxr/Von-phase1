@@ -21,17 +21,6 @@ export interface TopBarProps {
   onTabClick?: (id: string) => void;
 
   /**
-   * Search placeholder text
-   * @default 'Ask von anything'
-   */
-  searchPlaceholder?: string;
-
-  /**
-   * Search input change handler
-   */
-  onSearchChange?: (value: string) => void;
-
-  /**
    * Avatar label/initials
    */
   avatarLabel?: string;
@@ -63,6 +52,11 @@ export interface TopBarProps {
   logoSrc?: string;
 
   /**
+   * Logo text to display next to the icon (e.g., "Von")
+   */
+  logoText?: string;
+
+  /**
    * Logo click handler
    */
   onLogoClick?: () => void;
@@ -71,7 +65,7 @@ export interface TopBarProps {
 /**
  * TopBar - Minimal top navigation bar
  *
- * Simple navigation bar with logo, hamburger menu, scrollable tabs, search, and avatar.
+ * Simple navigation bar with logo, hamburger menu, scrollable tabs, and avatar.
  * Background is transparent to show page background color.
  *
  * @example
@@ -83,21 +77,19 @@ export interface TopBarProps {
  *   ]}
  *   onTabClick={(id) => console.log(id)}
  *   avatarLabel="CB"
- *   onSearchChange={(value) => console.log(value)}
  * />
  * ```
  */
 export const TopBar: React.FC<TopBarProps> = ({
   tabs = [],
   onTabClick,
-  searchPlaceholder = 'Ask von anything',
-  onSearchChange,
   avatarLabel,
   avatarSrc,
   onAvatarClick,
   showMenu = true,
   onMenuClick,
   logoSrc = '/logo.gif',
+  logoText,
   onLogoClick,
 }) => {
   const containerStyles: React.CSSProperties = {
@@ -153,18 +145,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     gap: spacing[3],
   };
 
-  const searchInputStyles: React.CSSProperties = {
-    padding: `${spacing[2]} ${spacing[4]}`,
-    borderRadius: '20px',
-    border: '1px solid #E5E5E7',
-    backgroundColor: '#FFFFFF',
-    fontSize: '14px',
-    outline: 'none',
-    width: '200px',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-  };
-
   const moreButtonStyles: React.CSSProperties = {
     ...iconButtonStyles,
     fontSize: '18px',
@@ -176,6 +156,11 @@ export const TopBar: React.FC<TopBarProps> = ({
       {/* Left Section */}
       <div style={leftSectionStyles}>
         {logoSrc && <img src={logoSrc} alt="Logo" style={logoStyles} onClick={onLogoClick} />}
+        {logoText && (
+          <span className="text-lg font-semibold text-[#1d1d1f] font-sf">
+            {logoText}
+          </span>
+        )}
         {showMenu && (
           <button
             style={iconButtonStyles}
@@ -223,12 +208,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Right Section */}
       <div style={rightSectionStyles}>
-        <input
-          type="search"
-          placeholder={searchPlaceholder}
-          style={searchInputStyles}
-          onChange={(e) => onSearchChange?.(e.target.value)}
-        />
         <Avatar src={avatarSrc} fallback={avatarLabel} size="medium" onClick={onAvatarClick} />
       </div>
     </div>
