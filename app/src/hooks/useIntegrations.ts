@@ -7,6 +7,7 @@ import {
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { integrationsService } from "../services";
+import type { IntegrationType } from "../services";
 import {
   OAUTH_POLLING_TIMEOUT_MS,
   OAUTH_POLLING_INTERVAL_MS,
@@ -400,7 +401,7 @@ export function useCreateIntegration() {
 
   return useMutation({
     mutationFn: (data: {
-      type: string;
+      type: IntegrationType;
       accessLevel: "tenant" | "user";
       config: Record<string, unknown>;
       name?: string;

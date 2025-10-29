@@ -6,6 +6,7 @@ import {
   useCreateIntegration,
   useUpdateIntegration,
 } from "../hooks/useIntegrations";
+import type { IntegrationType } from "../services/integrationsService";
 
 interface IntegrationDetails {
   id: string;
@@ -133,7 +134,7 @@ export function IntegrationConfigPane() {
       } else {
         // Create new integration
         await createMutation.mutateAsync({
-          type: configuringIntegrationId.toUpperCase(),
+          type: configuringIntegrationId.toUpperCase() as IntegrationType,
           accessLevel: formData.accessLevel,
           config,
         });
