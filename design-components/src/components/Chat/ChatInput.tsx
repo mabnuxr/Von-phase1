@@ -102,35 +102,35 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               : 'border-gray-200 shadow-sm hover:shadow-md hover:border-von-purple-light'
           }`}
         >
-        <textarea
-          ref={textareaRef}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={disabled ? 'Waiting for response...' : placeholder}
-          disabled={disabled}
-          className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
-          style={{
-            minHeight: '20px',
-            maxHeight: '200px',
-            padding: '0',
-            lineHeight: '1.5',
-          }}
-          rows={1}
-        />
+          <textarea
+            ref={textareaRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={disabled ? 'Waiting for response...' : placeholder}
+            disabled={disabled}
+            className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
+            style={{
+              minHeight: '20px',
+              maxHeight: '200px',
+              padding: '0',
+              lineHeight: '1.5',
+            }}
+            rows={1}
+          />
 
-        <button
-          className={`w-8 h-8 flex-shrink-0 rounded-full border-0 gradient-von-purple flex items-center justify-center text-white transition-all duration-150 ${
-            disabled || !message.trim()
-              ? 'cursor-not-allowed opacity-50'
-              : 'cursor-pointer hover:opacity-90 hover:shadow-lg'
-          }`}
-          onClick={handleSend}
-          disabled={disabled || !message.trim()}
-          aria-label="Send message"
-        >
-          ↑
-        </button>
+          <button
+            className={`w-8 h-8 flex-shrink-0 rounded-full border-0 gradient-von-purple flex items-center justify-center text-white transition-all duration-150 ${
+              disabled || !message.trim()
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:opacity-90 hover:shadow-lg'
+            }`}
+            onClick={handleSend}
+            disabled={disabled || !message.trim()}
+            aria-label="Send message"
+          >
+            ↑
+          </button>
         </div>
 
         <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">

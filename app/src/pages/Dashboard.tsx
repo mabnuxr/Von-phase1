@@ -90,7 +90,8 @@ const Dashboard = () => {
   const avatarButtonRef = useRef<HTMLDivElement>(null);
 
   // Sidebar collapse state
-  const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } = useSidebarState();
+  const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
+    useSidebarState();
 
   // Show/hide connection banner based on connection error state
   useEffect(() => {
@@ -457,7 +458,7 @@ const Dashboard = () => {
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
           <div
             className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300"
-            style={{ width: isSidebarCollapsed ? '64px' : '280px' }}
+            style={{ width: isSidebarCollapsed ? "64px" : "280px" }}
           >
             <ChatSidebar
               chatItems={chatItems}

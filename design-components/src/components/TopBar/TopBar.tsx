@@ -157,9 +157,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div style={leftSectionStyles}>
         {logoSrc && <img src={logoSrc} alt="Logo" style={logoStyles} onClick={onLogoClick} />}
         {logoText && (
-          <span className="text-lg font-semibold text-[#1d1d1f] font-sf">
-            {logoText}
-          </span>
+          <span className="text-lg font-semibold text-[#1d1d1f] font-sf">{logoText}</span>
         )}
         {showMenu && (
           <button

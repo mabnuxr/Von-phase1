@@ -158,177 +158,165 @@ export const DocumentIcon = memo<IconProps>(
 DocumentIcon.displayName = "DocumentIcon";
 
 // Fields Icon (Salesforce Cloud) - Used for Salesforce fields settings - Memoized
-export const FieldsIcon = memo<IconProps>(
-  ({ className = "size-5" }) => (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-    >
-      {/* Salesforce-style cloud icon */}
-      <path
-        d="M18 10.5c1.7 0 3 1.3 3 3s-1.3 3-3 3H6c-2.2 0-4-1.8-4-4s1.8-4 4-4c0-2.8 2.2-5 5-5 2.4 0 4.4 1.7 4.9 4"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-);
+export const FieldsIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    {/* Salesforce-style cloud icon */}
+    <path
+      d="M18 10.5c1.7 0 3 1.3 3 3s-1.3 3-3 3H6c-2.2 0-4-1.8-4-4s1.8-4 4-4c0-2.8 2.2-5 5-5 2.4 0 4.4 1.7 4.9 4"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
 FieldsIcon.displayName = "FieldsIcon";
 
 // Defaults Icon - Used for default settings/preferences - Memoized
-export const DefaultsIcon = memo<IconProps>(
-  ({ className = "size-5" }) => (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-    >
-      <path
-        d="M12 2L2 7l10 5 10-5-10-5z"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 17l10 5 10-5"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 12l10 5 10-5"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-);
+export const DefaultsIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M12 2L2 7l10 5 10-5-10-5z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2 17l10 5 10-5"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2 12l10 5 10-5"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
 DefaultsIcon.displayName = "DefaultsIcon";
 
 // Sales Process Icon - Used for sales workflow settings - Memoized
-export const SalesProcessIcon = memo<IconProps>(
-  ({ className = "size-5" }) => (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-    >
-      <path
-        d="M22 12h-4l-3 9L9 3l-3 9H2"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-);
+export const SalesProcessIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M22 12h-4l-3 9L9 3l-3 9H2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
 SalesProcessIcon.displayName = "SalesProcessIcon";
 
 // Manager Agent Icon - Used for AI/manager agent settings - Memoized
-export const ManagerAgentIcon = memo<IconProps>(
-  ({ className = "size-5" }) => (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-    >
-      <path
-        d="M12 2a3 3 0 013 3v4a3 3 0 01-6 0V5a3 3 0 013-3z"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M19 10v2a7 7 0 01-14 0v-2"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 19v3M8 22h8"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-);
+export const ManagerAgentIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M12 2a3 3 0 013 3v4a3 3 0 01-6 0V5a3 3 0 013-3z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M19 10v2a7 7 0 01-14 0v-2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 19v3M8 22h8"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
 ManagerAgentIcon.displayName = "ManagerAgentIcon";
 
 // Tabs Icon - Used for tab/navigation settings - Memoized
-export const TabsIcon = memo<IconProps>(
-  ({ className = "size-5" }) => (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-    >
-      <path
-        d="M2 3h6a2 2 0 012 2v3a2 2 0 01-2 2H2a2 2 0 01-2-2V5a2 2 0 012-2z"
-        transform="translate(2 2)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 3h6a2 2 0 012 2v3a2 2 0 01-2 2h-6a2 2 0 01-2-2V5a2 2 0 012-2z"
-        transform="translate(2 2)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="2"
-        y="14"
-        width="20"
-        height="8"
-        rx="2"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-);
+export const TabsIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M2 3h6a2 2 0 012 2v3a2 2 0 01-2 2H2a2 2 0 01-2-2V5a2 2 0 012-2z"
+      transform="translate(2 2)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14 3h6a2 2 0 012 2v3a2 2 0 01-2 2h-6a2 2 0 01-2-2V5a2 2 0 012-2z"
+      transform="translate(2 2)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <rect
+      x="2"
+      y="14"
+      width="20"
+      height="8"
+      rx="2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
 TabsIcon.displayName = "TabsIcon";
 
 // Sidebar Icon - Used for sidebar navigation settings - Memoized
-export const SidebarIcon = memo<IconProps>(
-  ({ className = "size-5" }) => (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-    >
-      <rect
-        x="3"
-        y="3"
-        width="18"
-        height="18"
-        rx="2"
-        ry="2"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 3v18"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ),
-);
+export const SidebarIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <rect
+      x="3"
+      y="3"
+      width="18"
+      height="18"
+      rx="2"
+      ry="2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 3v18"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
 SidebarIcon.displayName = "SidebarIcon";
 
 // ChevronDown Icon - Used for dropdown indicators - Memoized

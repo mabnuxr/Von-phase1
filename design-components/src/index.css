@@ -8,15 +8,18 @@
 @theme {
   /* SF Pro Text for body and UI (19px and smaller) */
   --font-family-sf:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
 
   /* SF Pro Display for headlines (20px and larger) */
   --font-family-display:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Icons', 'Helvetica Neue',
+    Helvetica, Arial, sans-serif;
 
   /* Default sans to SF Pro stack */
   --font-family-sans:
-    -apple-system, BlinkMacSystemFont, 'SF Pro', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
 
   /* Apple standard font weights */
   --font-weight-light: 300;
@@ -110,13 +113,15 @@
  */
 .font-sf {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   letter-spacing: -0.022em;
 }
 
 .font-display {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
   letter-spacing: -0.022em;
   line-height: 1.0833333333;
 }
@@ -184,15 +189,27 @@
 
 /* Gradients */
 .gradient-von-purple {
-  background: linear-gradient(135deg, var(--color-von-purple-500) 0%, var(--color-von-purple-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-von-purple-500) 0%,
+    var(--color-von-purple-600) 100%
+  );
 }
 
 .gradient-von-blue-purple {
-  background: linear-gradient(135deg, var(--color-von-blue-500) 0%, var(--color-von-purple-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-von-blue-500) 0%,
+    var(--color-von-purple-500) 100%
+  );
 }
 
 .gradient-von-subtle {
-  background: linear-gradient(135deg, var(--color-von-purple-50) 0%, var(--color-von-blue-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-von-purple-50) 0%,
+    var(--color-von-blue-500) 100%
+  );
 }
 
 /**
@@ -430,7 +447,9 @@
   padding: 0.75em 1em !important;
   text-align: left;
   color: #374151 !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
 }
 
 .markdown-content td,
@@ -470,7 +489,9 @@
  * Apple-exact typography matching apple.com specifications
  */
 .prose {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   font-size: 17px;
   line-height: 1.4705882353;
   letter-spacing: -0.022em;
@@ -480,7 +501,9 @@
 .prose h1,
 .prose h2,
 .prose h3 {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
   font-weight: 700;
   line-height: 1.0833333333;
   letter-spacing: -0.022em;
@@ -492,7 +515,9 @@
 .prose h4,
 .prose h5,
 .prose h6 {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   font-weight: 600;
   line-height: 1.1666666667;
   letter-spacing: -0.022em;
@@ -525,19 +550,25 @@
 }
 
 .prose table {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   color: #1d1d1f;
   font-weight: 400;
 }
 
 .prose th {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   font-weight: 600;
   color: #1d1d1f;
 }
 
 .prose td {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   color: #1d1d1f;
 }
 
@@ -555,7 +586,9 @@
  * .prose-sm and .prose-xs for different content contexts
  */
 .prose-sm {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   letter-spacing: -0.022em;
@@ -600,7 +633,9 @@
 }
 
 .prose-xs {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
   font-size: 12px;
   line-height: 1.5;
   letter-spacing: -0.022em;

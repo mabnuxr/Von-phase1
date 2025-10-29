@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-const SIDEBAR_STATE_KEY = 'von-ai-sidebar-collapsed';
+const SIDEBAR_STATE_KEY = "von-ai-sidebar-collapsed";
 
 /**
  * Hook for managing sidebar collapse state with localStorage persistence
@@ -10,7 +10,7 @@ export function useSidebarState() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     // Initialize from localStorage
     const stored = localStorage.getItem(SIDEBAR_STATE_KEY);
-    return stored === 'true';
+    return stored === "true";
   });
 
   // Persist to localStorage whenever state changes

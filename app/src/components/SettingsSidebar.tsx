@@ -83,9 +83,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               onClick={() => onSettingClick?.(item.id)}
             >
               {item.icon && (
-                <span className="w-5 h-5 text-gray-700">
-                  {item.icon}
-                </span>
+                <span className="w-5 h-5 text-gray-700">{item.icon}</span>
               )}
               {item.label}
             </button>

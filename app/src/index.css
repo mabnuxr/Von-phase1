@@ -12,8 +12,8 @@
 
   /* SF Pro Display for headlines (20px and larger) */
   --font-family-display:
-    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial,
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue",
+    Arial, sans-serif;
 
   /* Default sans to SF Pro stack */
   --font-family-sans:
@@ -83,7 +83,9 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 17px;
   line-height: 1.4705882353;
   font-weight: 400;
@@ -165,15 +167,27 @@ body {
 
 /* Gradients */
 .gradient-von-purple {
-  background: linear-gradient(135deg, var(--color-von-purple-500) 0%, var(--color-von-purple-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-von-purple-500) 0%,
+    var(--color-von-purple-600) 100%
+  );
 }
 
 .gradient-von-blue-purple {
-  background: linear-gradient(135deg, var(--color-von-blue-500) 0%, var(--color-von-purple-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-von-blue-500) 0%,
+    var(--color-von-purple-500) 100%
+  );
 }
 
 .gradient-von-subtle {
-  background: linear-gradient(135deg, var(--color-von-purple-50) 0%, var(--color-von-blue-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-von-purple-50) 0%,
+    var(--color-von-blue-500) 100%
+  );
 }
 
 /**
