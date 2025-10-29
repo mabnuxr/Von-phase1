@@ -219,7 +219,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                     {step.content && (
                                       <div
                                         className={
-                                          isStreaming ? 'prose markdown-body max-w-none' : 'prose-sm markdown-body max-w-none'
+                                          isStreaming
+                                            ? 'prose markdown-body max-w-none'
+                                            : 'prose-sm markdown-body max-w-none'
                                         }
                                       >
                                         <Streamdown
