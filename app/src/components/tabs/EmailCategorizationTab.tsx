@@ -69,10 +69,10 @@ export function EmailCategorizationTab() {
             onChange={(e) => updateConfig({ enabled: e.target.checked })}
             className="sr-only peer"
           />
-          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-von-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-von-purple"></div>
         </label>
         <div>
-          <p className="text-sm font-medium text-[#1d1d1f]">
+          <p className="text-sm font-medium text-gray-900">
             Email correspondence
           </p>
         </div>
@@ -80,16 +80,16 @@ export function EmailCategorizationTab() {
 
       {/* Which object are emails logged to? */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           Which object are emails logged to?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
         <select
           value={config.emailObjectType}
           onChange={(e) => updateConfig({ emailObjectType: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white"
         >
           <option value="Task">Task</option>
           <option value="Email">Email</option>
@@ -99,16 +99,16 @@ export function EmailCategorizationTab() {
 
       {/* Which field identifies the opportunity? */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           Which field identifies the opportunity?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
         <select
           value={config.opportunityField}
           onChange={(e) => updateConfig({ opportunityField: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white"
         >
           <option value="Related To ID">Related To ID</option>
           <option value="WhatId">WhatId</option>
@@ -118,16 +118,16 @@ export function EmailCategorizationTab() {
 
       {/* Which field identifies the account? */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           Which field identifies the account?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
         <select
           value={config.accountField}
           onChange={(e) => updateConfig({ accountField: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white"
         >
           <option value="Account ID">Account ID</option>
           <option value="AccountId">AccountId</option>
@@ -137,16 +137,16 @@ export function EmailCategorizationTab() {
 
       {/* Which field identifies the email body? */}
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] mb-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
           Which field identifies the email body?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+          <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
             ?
           </span>
         </label>
         <select
           value={config.emailBodyField}
           onChange={(e) => updateConfig({ emailBodyField: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white"
         >
           <option value="Description">Description</option>
           <option value="Body">Body</option>
@@ -157,17 +157,17 @@ export function EmailCategorizationTab() {
       {/* Filter records - Entire section as a visual block */}
       <div className="border-2 border-gray-200 rounded-lg bg-gray-50/30 overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 bg-white">
-          <label className="flex items-center gap-2 text-sm font-medium text-[#1d1d1f] m-0">
+        <div className="px-6 py-4 border-b border-gray-200 bg-white">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-900 m-0">
             Filter records to which emails are logged
-            <span className="inline-flex items-center justify-center w-4 h-4 bg-purple-100 text-purple-600 rounded-full text-xs cursor-help">
+            <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
               ?
             </span>
           </label>
         </div>
 
         {/* Content Area */}
-        <div className="p-5 space-y-3">
+        <div className="px-6 py-5 space-y-3">
           {/* Individual Filter Conditions */}
           {config.filterConditions.map((condition, index) => (
             <div key={condition.id}>
@@ -181,7 +181,7 @@ export function EmailCategorizationTab() {
                           logicalOperator: "AND",
                         })
                       }
-                      className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                      className={`px-3 py-2 text-xs font-semibold transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-von-purple ${
                         (condition.logicalOperator || "AND") === "AND"
                           ? "bg-gray-200 text-gray-900"
                           : "bg-white text-gray-600 hover:bg-gray-50"
@@ -196,7 +196,7 @@ export function EmailCategorizationTab() {
                           logicalOperator: "OR",
                         })
                       }
-                      className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                      className={`px-3 py-2 text-xs font-semibold transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-von-purple ${
                         condition.logicalOperator === "OR"
                           ? "bg-gray-200 text-gray-900"
                           : "bg-white text-gray-600 hover:bg-gray-50"
@@ -219,7 +219,7 @@ export function EmailCategorizationTab() {
                     })
                   }
                   placeholder="Field"
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-von-purple"
                 />
 
                 <select
@@ -229,7 +229,7 @@ export function EmailCategorizationTab() {
                       operator: e.target.value as FilterCondition["operator"],
                     })
                   }
-                  className="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-von-purple"
                 >
                   <option value="equals">Equal to</option>
                   <option value="contains">Contains</option>
@@ -246,16 +246,16 @@ export function EmailCategorizationTab() {
                     })
                   }
                   placeholder="Value"
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-von-purple"
                 />
 
                 <button
                   onClick={() => removeFilterCondition(condition.id)}
-                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  className="p-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors min-w-[44px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-red-500"
                   title="Remove condition"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="size-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -285,7 +285,7 @@ export function EmailCategorizationTab() {
                           logicalOperator: "AND",
                         })
                       }
-                      className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                      className={`px-3 py-2 text-xs font-semibold transition-colors min-h-[44px] ${
                         group.logicalOperator === "AND"
                           ? "bg-gray-200 text-gray-900"
                           : "bg-white text-gray-600 hover:bg-gray-50"
@@ -300,7 +300,7 @@ export function EmailCategorizationTab() {
                           logicalOperator: "OR",
                         })
                       }
-                      className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                      className={`px-3 py-2 text-xs font-semibold transition-colors min-h-[44px] ${
                         (group.logicalOperator || "OR") === "OR"
                           ? "bg-gray-200 text-gray-900"
                           : "bg-white text-gray-600 hover:bg-gray-50"
@@ -313,9 +313,9 @@ export function EmailCategorizationTab() {
               )}
 
               {/* Group Container - Subtle visual distinction */}
-              <div className="space-y-3 pl-4 border-l-4 border-purple-300">
+              <div className="space-y-3 pl-4 border-l-4 border-von-purple-300">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-purple-600 uppercase tracking-wide">
+                  <span className="text-xs font-medium text-von-purple uppercase tracking-wide">
                     Condition Group
                   </span>
                   <button
@@ -339,7 +339,7 @@ export function EmailCategorizationTab() {
                                 logicalOperator: "AND",
                               })
                             }
-                            className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                            className={`px-3 py-2 text-xs font-semibold transition-colors min-h-[44px] ${
                               (condition.logicalOperator || "AND") === "AND"
                                 ? "bg-gray-200 text-gray-900"
                                 : "bg-white text-gray-600 hover:bg-gray-50"
@@ -354,7 +354,7 @@ export function EmailCategorizationTab() {
                                 logicalOperator: "OR",
                               })
                             }
-                            className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                            className={`px-3 py-2 text-xs font-semibold transition-colors min-h-[44px] ${
                               condition.logicalOperator === "OR"
                                 ? "bg-gray-200 text-gray-900"
                                 : "bg-white text-gray-600 hover:bg-gray-50"
@@ -376,7 +376,7 @@ export function EmailCategorizationTab() {
                           })
                         }
                         placeholder="Field"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-von-purple"
                       />
 
                       <select
@@ -387,7 +387,7 @@ export function EmailCategorizationTab() {
                               .value as FilterCondition["operator"],
                           })
                         }
-                        className="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-von-purple"
                       >
                         <option value="equals">Equal to</option>
                         <option value="contains">Contains</option>
@@ -404,18 +404,18 @@ export function EmailCategorizationTab() {
                           })
                         }
                         placeholder="Value"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-von-purple"
                       />
 
                       <button
                         onClick={() =>
                           removeConditionFromGroup(group.id, condition.id)
                         }
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors min-w-[44px] min-h-[44px] focus:outline-none focus:ring-2 focus:ring-red-500"
                         title="Remove condition"
                       >
                         <svg
-                          className="w-5 h-5"
+                          className="size-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -435,7 +435,7 @@ export function EmailCategorizationTab() {
                 {/* Add condition to group button */}
                 <button
                   onClick={() => handleAddConditionToGroup(group.id)}
-                  className="w-full px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="w-full px-3 py-2 text-sm font-medium text-von-purple bg-white border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-von-purple"
                 >
                   + Add condition to group
                 </button>
@@ -445,17 +445,17 @@ export function EmailCategorizationTab() {
         </div>
 
         {/* Footer - Add Condition Buttons */}
-        <div className="px-5 py-4 border-t border-gray-200 bg-white">
+        <div className="px-6 py-4 border-t border-gray-200 bg-white">
           <div className="flex gap-2">
             <button
               onClick={handleAddCondition}
-              className="px-4 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-von-purple bg-white border border-von-purple rounded-lg hover:bg-von-purple-50 transition-colors focus:outline-none focus:ring-2 focus:ring-von-purple"
             >
               + Add condition
             </button>
             <button
               onClick={handleAddConditionGroup}
-              className="px-4 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-von-purple bg-white border border-von-purple rounded-lg hover:bg-von-purple-50 transition-colors focus:outline-none focus:ring-2 focus:ring-von-purple"
             >
               + Add condition group
             </button>

@@ -169,53 +169,51 @@ const Settings = () => {
   };
 
   return (
-    <div className="h-screen bg-[#f5f5f7] flex flex-col items-center">
+    <div className="h-screen bg-[#f5f5f7] flex flex-col">
       {/* Field Detail Pane - Global */}
       <FieldDetailPane />
 
-      {/* Max-width container for large screens */}
-      <div className="w-full max-w-[1440px] flex flex-col h-full">
-        {/* TopBar in White Rounded Container */}
-        <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div ref={avatarButtonRef}>
-            <TopBar
-              logoSrc="/logo.gif"
-              onLogoClick={() => navigate("/dashboard")}
-              showMenu={false}
-              avatarLabel={avatarLabel}
-              avatarSrc={avatarSrc}
-              onAvatarClick={handleAvatarClick}
-            />
-          </div>
+      {/* TopBar in White Rounded Container - Full Width */}
+      <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div ref={avatarButtonRef}>
+          <TopBar
+            logoSrc="/logo.gif"
+            logoText="Von"
+            onLogoClick={() => navigate("/dashboard")}
+            showMenu={false}
+            avatarLabel={avatarLabel}
+            avatarSrc={avatarSrc}
+            onAvatarClick={handleAvatarClick}
+          />
+        </div>
+      </div>
+
+      {/* Avatar Menu Dropdown */}
+      <AvatarMenu
+        userName={displayName}
+        userEmail={user?.email}
+        isOpen={isAvatarMenuOpen}
+        onClose={() => setIsAvatarMenuOpen(false)}
+        onSettingsClick={handleSettingsClick}
+        onLogoutClick={handleLogoutClick}
+        triggerRect={avatarRect}
+      />
+
+      {/* Full-width content container */}
+      <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
+        {/* Left Pane - SettingsSidebar with rounded corners */}
+        <div className="w-[280px] rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <SettingsSidebar
+            settingsItems={settingsItems}
+            selectedSettingId={selectedSettingId}
+            onSettingClick={(id: string) => setSelectedSettingId(id)}
+            width="100%"
+          />
         </div>
 
-        {/* Avatar Menu Dropdown */}
-        <AvatarMenu
-          userName={displayName}
-          userEmail={user?.email}
-          isOpen={isAvatarMenuOpen}
-          onClose={() => setIsAvatarMenuOpen(false)}
-          onSettingsClick={handleSettingsClick}
-          onLogoutClick={handleLogoutClick}
-          triggerRect={avatarRect}
-        />
-
-        {/* Two-Pane Layout with Rounded Corners */}
-        <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
-          {/* Left Pane - SettingsSidebar with rounded corners */}
-          <div className="w-[280px] rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-            <SettingsSidebar
-              settingsItems={settingsItems}
-              selectedSettingId={selectedSettingId}
-              onSettingClick={(id: string) => setSelectedSettingId(id)}
-              width="100%"
-            />
-          </div>
-
-          {/* Right Pane - Content Area with rounded corners */}
-          <div className="flex-1 rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0 overflow-hidden">
-            {renderContent()}
-          </div>
+        {/* Right Pane - Content Area with rounded corners */}
+        <div className="flex-1 rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0 overflow-hidden">
+          {renderContent()}
         </div>
       </div>
     </div>

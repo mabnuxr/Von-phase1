@@ -91,25 +91,12 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   return (
     <motion.div
       className={`
-        flex flex-col bg-white border border-black/10 rounded-xl overflow-hidden antialiased
-        ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-default'}
+        flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden antialiased font-sf
+        ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-default'}
       `}
-      style={{
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-      }}
-      initial={{ boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}
-      whileHover={
-        !disabled
-          ? {
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              transition: { duration: 0.2 },
-            }
-          : {}
-      }
     >
       {/* Upper Section - Visual Connection Flow */}
-      <div className="bg-[#fafafa] py-8 px-6 flex items-center justify-center gap-4 border-b border-black/[0.06]">
+      <div className="bg-white py-8 px-6 flex items-center justify-center gap-4 border-b border-gray-200">
         <img
           src={integrationLogoPath}
           alt={`${name} logo`}
@@ -126,11 +113,11 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       {/* Lower Section - Name, Status, and Toggle */}
       <div className="py-4 px-5 flex items-center justify-between bg-white">
         <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-semibold text-[#1d1d1f] m-0">{name}</h3>
+          <h3 className="text-sm font-semibold text-gray-900 m-0">{name}</h3>
           <p
             className={`
               text-xs m-0 font-medium
-              ${isLoading ? 'text-[#8039E9]' : enabled ? 'text-[#34C759]' : 'text-[#8E8E93]'}
+              ${isLoading ? 'text-von-purple' : enabled ? 'text-[#34C759]' : 'text-gray-600'}
             `}
           >
             {isLoading ? loadingText : enabled ? 'Connected' : 'Not Connected'}
@@ -139,10 +126,10 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
         <button
           className={`
-            relative w-11 h-6 rounded-xl border-none p-0 flex-shrink-0 overflow-hidden
+            relative w-11 h-6 rounded-full border-none p-0 flex-shrink-0 overflow-hidden
             transition-colors duration-200
             ${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'}
-            ${isLoading ? 'bg-[#E5E5EA]' : enabled ? 'bg-[#8039E9]' : 'bg-[#E5E5EA]'}
+            ${isLoading ? 'bg-gray-200' : enabled ? 'bg-von-purple' : 'bg-gray-200'}
           `}
           onClick={handleToggle}
           disabled={disabled || isLoading}

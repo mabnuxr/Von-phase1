@@ -10,13 +10,13 @@
 export const fontFamily = {
   // SF Pro Display - for larger headings and display text
   display:
-    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
 
   // SF Pro Text - for body text and smaller UI elements
-  text: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+  text: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
 
   // SF Pro - general purpose (auto-switches between Display and Text based on size)
-  sans: '-apple-system, BlinkMacSystemFont, "SF Pro", "Helvetica Neue", Arial, sans-serif',
+  sans: '-apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif',
 
   // New York - Apple's serif font for editorial content
   serif: '"New York", "Times New Roman", Georgia, serif',

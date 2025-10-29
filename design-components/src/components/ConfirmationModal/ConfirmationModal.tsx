@@ -92,57 +92,6 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const overlayStyles: React.CSSProperties = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-    padding: '16px',
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-    WebkitFontSmoothing: 'antialiased',
-    MozOsxFontSmoothing: 'grayscale',
-  };
-
-  const modalStyles: React.CSSProperties = {
-    backgroundColor: '#FFFFFF',
-    borderRadius: '12px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-    maxWidth: '400px',
-    width: '100%',
-    padding: '24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  };
-
-  const titleStyles: React.CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#1d1d1f',
-    margin: 0,
-  };
-
-  const messageStyles: React.CSSProperties = {
-    fontSize: '14px',
-    color: '#6e6e73',
-    lineHeight: '1.5',
-    margin: 0,
-  };
-
-  const actionsStyles: React.CSSProperties = {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'flex-end',
-    marginTop: '4px',
-  };
-
   const handleOverlayClick = (e: React.MouseEvent) => {
     // Close modal if clicking on overlay (not the modal content)
     if (e.target === e.currentTarget) {
@@ -151,13 +100,21 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   };
 
   return (
-    <div style={overlayStyles} onClick={handleOverlayClick}>
-      <div style={modalStyles} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <h2 id="modal-title" style={titleStyles}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 font-sf antialiased"
+      onClick={handleOverlayClick}
+    >
+      <div
+        className="bg-white rounded-xl shadow-modal max-w-[400px] w-full p-6 flex flex-col gap-5"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <h2 id="modal-title" className="text-xl font-semibold text-gray-900 m-0">
           {title}
         </h2>
-        <p style={messageStyles}>{message}</p>
-        <div style={actionsStyles}>
+        <p className="text-sm text-gray-700 leading-6 m-0">{message}</p>
+        <div className="flex gap-3 justify-end mt-1">
           <Button variant="secondary" onClick={onCancel}>
             {cancelText}
           </Button>

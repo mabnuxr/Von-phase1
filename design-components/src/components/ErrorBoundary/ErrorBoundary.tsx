@@ -62,7 +62,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
       // Default error UI
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#f5f5f7] font-sans">
+        <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-[#f5f5f7] font-sf">
           <div className="w-full max-w-[500px] bg-white rounded-xl p-8 shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-center">
             {/* Error Icon */}
             <div className="text-5xl mb-4">⚠️</div>

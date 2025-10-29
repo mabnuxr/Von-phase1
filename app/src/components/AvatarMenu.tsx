@@ -107,7 +107,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
       {isOpen && (
         <motion.div
           ref={menuRef}
-          className="fixed bg-white border border-black/10 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] min-w-[240px] z-[1000]"
+          className="fixed bg-white border border-black/10 rounded-xl shadow-elevated min-w-[240px] z-[1000]"
           style={{ top: menuTop, right: menuRight }}
           initial={{ opacity: 0, scale: 0.95, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -121,12 +121,12 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           {(userName || userEmail) && (
             <div className="p-4 border-b border-black/8">
               {userName && (
-                <div className="text-sm font-semibold text-[#1d1d1f] mb-1">
+                <div className="text-sm font-semibold text-gray-900 mb-1">
                   {userName}
                 </div>
               )}
               {userEmail && (
-                <div className="text-xs text-[#6e6e73]">{userEmail}</div>
+                <div className="text-xs text-gray-700">{userEmail}</div>
               )}
             </div>
           )}
@@ -134,7 +134,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           {/* Menu Items */}
           <div className="p-2">
             <motion.button
-              className="flex items-center gap-3 px-3 py-2.5 text-sm text-[#1d1d1f] border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-[#f5f5f7] transition-colors duration-150"
+              className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"
               onClick={() => handleItemClick(onSettingsClick)}
               whileTap={{ scale: 0.98 }}
             >
@@ -143,7 +143,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
             </motion.button>
 
             <motion.button
-              className="flex items-center gap-3 px-3 py-2.5 text-sm text-[#1d1d1f] border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-[#f5f5f7] transition-colors duration-150"
+              className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"
               onClick={() => handleItemClick(onLogoutClick)}
               whileTap={{ scale: 0.98 }}
             >

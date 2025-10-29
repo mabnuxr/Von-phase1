@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatHeader } from './ChatHeader';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ChatEmptyState } from './ChatEmptyState';
@@ -42,9 +41,9 @@ export const Chat: React.FC<ChatProps> = ({
   pusherConfig,
   messages: controlledMessages,
   onSendMessage,
-  onAddClick,
-  onRefreshClick,
-  onClose,
+  onAddClick: _onAddClick, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onRefreshClick: _onRefreshClick, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onClose: _onClose, // eslint-disable-line @typescript-eslint/no-unused-vars
   onError,
   onPusherMessage,
   placeholder = 'Ask von anything',
@@ -461,17 +460,9 @@ export const Chat: React.FC<ChatProps> = ({
 
   return (
     <div className={containerClassName} style={containerStyles}>
-      <ChatHeader
-        title={title}
-        onAddClick={onAddClick}
-        onRefreshClick={onRefreshClick}
-        onClose={onClose}
-        showClose={isFixed || isFullPage}
-      />
-
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto flex flex-col bg-gray-50/30 chat-messages-wrapper"
+        className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
         style={{ overflowAnchor: 'none' }}
       >
         {/* Loading indicator for older messages (infinite scroll) */}
