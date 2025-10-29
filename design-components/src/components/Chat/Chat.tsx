@@ -57,16 +57,29 @@ export const Chat: React.FC<ChatProps> = ({
   conversationId,
   loadMoreRef,
   isFetchingMore = false,
+  showMessagesFromIndex = 0,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
 
-  // Ref for auto-scrolling to bottom
+  const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Track last seen message ID for smart scrolling
-  const lastSeenMessageIdRef = useRef<string | null>(null);
+  const shouldAutoScrollRef = useRef(true);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    // ChatGPT-style scroll: scroll to absolute bottom
+    const container = containerRef.current;
+    if (!container) return;
+
+    const targetScroll = container.scrollHeight - container.clientHeight;
+
+    if (behavior === 'smooth') {
+      container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    } else {
+      container.scrollTop = targetScroll;
+    }
+  }, []);
 
   // Internal state for real-time mode
   const [internalMessages, setInternalMessages] = useState<Message[]>([]);
@@ -77,25 +90,38 @@ export const Chat: React.FC<ChatProps> = ({
   const messages = isControlled ? controlledMessages : internalMessages;
   const isLoading = isControlled ? controlledIsLoading : internalIsLoading;
 
-  /**
-   * Check if user is near the bottom of the scroll container
-   * Used to determine if we should auto-scroll when new messages arrive
-   */
-  const isNearBottom = useCallback(() => {
-    if (!messagesContainerRef.current) return true;
-
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-    // Consider "near bottom" if within 100px
-    return distanceFromBottom < 100;
-  }, []);
-
   // Pusher integration (only when enableRealtime is true)
   const { channel, error: pusherError } = usePusherAuth(
     enableRealtime && conversationId ? conversationId : null,
     enableRealtime && pusherConfig ? pusherConfig : { key: '', cluster: '' }
   );
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      // Within 50px of bottom → enable auto-scroll (ChatGPT uses tighter threshold)
+      shouldAutoScrollRef.current = distanceFromBottom < 50;
+    };
+
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive or content updates
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    const isStreaming = messages.some((m) => m.isStreaming);
+
+    // Always scroll to bottom when new messages are added or streaming, unless user has scrolled up
+    if (shouldAutoScrollRef.current) {
+      // Use smooth scroll for new messages, instant for streaming updates (ChatGPT style)
+      scrollToBottom(isStreaming ? 'smooth' : 'smooth');
+    }
+  }, [messages, scrollToBottom]);
 
   // Message streaming (only when channel is available)
   const { streamingMessages, streamingToolCalls, streamingStepMessages } = useAguiMessageStream(
@@ -125,6 +151,7 @@ export const Chat: React.FC<ChatProps> = ({
           type: 'assistant',
           content: '',
           isStreaming: true,
+          isReasoningStreaming: true, // Show thinking block immediately
           timestamp: new Date(),
         };
 
@@ -229,9 +256,14 @@ export const Chat: React.FC<ChatProps> = ({
       const stored = loadConversation(conversationId);
       if (stored) {
         setInternalMessages(stored.messages);
+
+        // Scroll to bottom after loading messages
+        setTimeout(() => {
+          scrollToBottom('auto');
+        }, 100);
       }
     }
-  }, [conversationId, enableRealtime, isControlled]);
+  }, [conversationId, enableRealtime, isControlled, scrollToBottom]);
 
   // Handle Pusher errors
   useEffect(() => {
@@ -240,112 +272,33 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [pusherError, onError]);
 
-  // Smart auto-scroll: Only scroll when appropriate using Message ID tracking
-  useEffect(() => {
-    if (messages.length === 0 || !messagesEndRef.current) return;
-
-    const lastMessage = messages[messages.length - 1];
-    const lastSeenId = lastSeenMessageIdRef.current;
-
-    // Detect if this is a NEW message (not just a re-render or older message load)
-    const isNewMessage = lastSeenId !== lastMessage.id;
-
-    // Check if any message is currently streaming
-    const hasStreamingMessage = messages.some((m) => m.isStreaming);
-
-    if (isNewMessage && !isFetchingMore) {
-      // Determine if we should scroll:
-      // 1. Always scroll for user's own messages (they just sent it)
-      // 2. For assistant messages, only scroll if user is near bottom
-      //    (don't interrupt if they're reading older messages)
-      const shouldScroll = lastMessage.type === 'user' || isNearBottom();
-
-      if (shouldScroll) {
-        // Use requestAnimationFrame to ensure DOM has updated before scrolling
-        requestAnimationFrame(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-        });
-      }
-
-      // Update last seen message ID
-      lastSeenMessageIdRef.current = lastMessage.id;
-    } else if (hasStreamingMessage && isNearBottom()) {
-      // During streaming, continuously scroll to bottom without animation
-      // This prevents the "jump" effect as content appears
-      requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-      });
-    }
-  }, [messages, isFetchingMore, isNearBottom]);
-
-  // Keep scrolling during tool call updates (when tool results appear)
-  useEffect(() => {
-    if (!messagesEndRef.current || !messagesContainerRef.current) return;
-
-    // Check if any message is streaming or if there are active tool calls
-    const hasStreamingMessage = messages.some((m) => m.isStreaming);
-
-    if (hasStreamingMessage && isNearBottom()) {
-      // Use MutationObserver to aggressively maintain scroll position at bottom
-      // This catches ALL DOM changes (content expanding, tool results appearing, etc.)
-      const observer = new MutationObserver(() => {
-        if (isNearBottom() && messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
-        }
-      });
-
-      observer.observe(messagesContainerRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        characterData: true,
-      });
-
-      return () => observer.disconnect();
-    }
-  }, [streamingToolCalls, messages, isNearBottom]);
-
-  // Always scroll to bottom when conversation changes (switching conversations)
-  useEffect(() => {
-    if (conversationId && messages.length > 0 && messagesEndRef.current) {
-      // Reset tracking for new conversation
-      lastSeenMessageIdRef.current = null;
-
-      // Capture last message ID outside timeout to avoid stale closure
-      const lastMessageId = messages[messages.length - 1]?.id;
-
-      // Use timeout to ensure DOM is fully updated
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-
-        // Set initial last seen message ID
-        if (lastMessageId) {
-          lastSeenMessageIdRef.current = lastMessageId;
-        }
-      }, 100);
-    }
-  }, [conversationId, messages]);
+  // Determine effective showFromIndex (use prop)
+  const effectiveShowFromIndex = showMessagesFromIndex || 0;
 
   // FIX: Memoize visible messages to avoid O(N) filtering on every render
-  // With 500+ messages, this prevents performance degradation
   const visibleMessages = useMemo(() => {
-    return messages.filter((message) => {
-      // Hide empty assistant messages when typing indicator is showing
-      if (
-        isLoading &&
-        message.type === 'assistant' &&
-        !message.content &&
-        !message.reasoningContent
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [messages, isLoading]);
+    return messages
+      .map((message, index) => ({
+        ...message,
+        // Mark messages before showMessagesFromIndex as compressed
+        isCompressed: index < effectiveShowFromIndex,
+        originalIndex: index,
+      }))
+      .filter((message) => {
+        // Hide empty assistant messages when typing indicator is showing
+        if (
+          isLoading &&
+          message.type === 'assistant' &&
+          !message.content &&
+          !message.reasoningContent
+        ) {
+          return false;
+        }
+        return true;
+      });
+  }, [messages, isLoading, effectiveShowFromIndex]);
 
   // FIX: Failsafe watchdog - Force re-enable input if stuck for >10s
-  // This is a last-resort safety net if all other timeout mechanisms fail
-  // TODO: Increase to 65s after debugging
   useEffect(() => {
     const streamingMessages = messages.filter((m) => m.isStreaming);
     if (streamingMessages.length === 0) return;
@@ -396,6 +349,11 @@ export const Chat: React.FC<ChatProps> = ({
 
         setInternalMessages((prev) => [...prev, userMessage]);
 
+        // Force scroll to bottom when user sends a message
+        setTimeout(() => {
+          scrollToBottom('smooth');
+        }, 50);
+
         // Send to API
         const response = await apiSendMessage(apiBaseUrl, conversationId, content, userId);
 
@@ -431,6 +389,7 @@ export const Chat: React.FC<ChatProps> = ({
       title,
       messages,
       onError,
+      scrollToBottom,
     ]
   );
 
@@ -470,9 +429,8 @@ export const Chat: React.FC<ChatProps> = ({
       />
 
       <div
-        ref={messagesContainerRef}
+        ref={containerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-gray-50/30 chat-messages-wrapper"
-        style={{ overflowAnchor: 'none' }}
       >
         {/* Loading indicator for older messages (infinite scroll) */}
         <AnimatePresence>
@@ -507,27 +465,40 @@ export const Chat: React.FC<ChatProps> = ({
             }}
           />
         ) : (
-          <div>
-            {visibleMessages.map((message) => (
-              <div key={message.id}>
-                <ChatMessage
-                  type={message.type}
-                  content={message.content}
-                  reasoningContent={message.reasoningContent}
-                  timestamp={message.timestamp}
-                  activeTab={message.activeTab}
-                  isLoading={false}
-                  isStreaming={message.isStreaming}
-                  isReasoningStreaming={message.isReasoningStreaming}
-                  toolCalls={message.toolCalls}
-                  stepMessages={message.stepMessages}
-                  userName={userName}
-                  userEmail={userEmail}
-                  status={message.status}
-                  errorMessage={message.errorMessage}
-                />
-              </div>
-            ))}
+          <div className="flex flex-col">
+            <AnimatePresence initial={false}>
+              {visibleMessages.map((message) => (
+                <motion.div
+                  key={message.id}
+                  layout={false}
+                  initial={false}
+                  animate={false}
+                  exit={{ opacity: 0, y: -20, height: 0 }}
+                  transition={{
+                    duration: 0.3,
+                    ease: 'easeInOut',
+                  }}
+                  className="mb-4"
+                >
+                  <ChatMessage
+                    type={message.type}
+                    content={message.content}
+                    reasoningContent={message.reasoningContent}
+                    timestamp={message.timestamp}
+                    activeTab={message.activeTab}
+                    isLoading={false}
+                    isStreaming={message.isStreaming}
+                    isReasoningStreaming={message.isReasoningStreaming}
+                    toolCalls={message.toolCalls}
+                    stepMessages={message.stepMessages}
+                    userName={userName}
+                    userEmail={userEmail}
+                    status={message.status}
+                    errorMessage={message.errorMessage}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 

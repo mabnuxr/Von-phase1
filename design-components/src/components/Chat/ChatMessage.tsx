@@ -2,8 +2,7 @@ import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { MessageStatusBadge } from './MessageStatusBadge';
 import { ElegantToolBlock } from './ElegantToolBlock';
-
-/**
+ /**
  * Get user initials from name or email
  */
 function getUserInitials(name?: string, email?: string): string {
@@ -120,6 +119,12 @@ export interface ChatMessageProps {
    * Each step message contains its content and associated tool calls
    */
   stepMessages?: import('./types').StepMessage[];
+
+  /**
+   * Whether this message should be displayed in compressed form
+   * @default false
+   */
+  isCompressed?: boolean;
 }
 
 /**
@@ -147,44 +152,35 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       {/* Full-width section container */}
       <div
         className={`
-          w-full py-6 transition-all duration-300
+          w-full transition-all duration-300
           ${
             isUser
-              ? 'bg-white hover:bg-gray-50/30'
-              : 'bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white'
+              ? 'py-6 bg-white hover:bg-gray-50/30'
+              : `pt-6 ${
+                  isStreaming && !content && !reasoningContent
+                    ? 'pb-48'
+                    : 'pb-12'
+                } bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white`
           }
         `}
       >
         {/* Centered content area */}
-        <div className="max-w-3xl mx-auto px-8">
-          {/* Horizontal layout: Avatar + Content */}
-          <div className="flex items-start gap-4">
-            {/* Avatar and Status Badge */}
-            <div className="flex items-start gap-2 flex-shrink-0">
-              {isUser ? (
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
-                  {userInitials}
-                </div>
-              ) : (
-                <>
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-[11px] font-semibold shadow-sm ring-1 ring-black/5">
-                    A
-                  </div>
-                  {/* Status badge inline with avatar for assistant messages */}
-                  <MessageStatusBadge status={status} errorMessage={errorMessage} />
-                </>
-              )}
-            </div>
-
-            {/* Content Column */}
-            <div className="flex-1 min-w-0 -mt-0.5">
+        <div className="max-w-4xl mx-auto px-8">
+          {/* Full-width content */}
+          <div className="w-full">
+            {/* Optional: Status badge in top-right corner for assistant messages */}
+            {!isUser && status && (
+              <div className="float-right mb-2">
+                <MessageStatusBadge status={status} errorMessage={errorMessage} />
+              </div>
+            )}
               {/* For assistant messages: render thinking block and content */}
               {!isUser ? (
                 <>
-                  {/* Thinking Block - Only for assistant messages with reasoning */}
-                  {reasoningContent && (
+                  {/* Thinking Block - Show immediately when reasoning starts */}
+                  {(isReasoningStreaming || reasoningContent) && (
                     <ThinkingBlock
-                      content={reasoningContent}
+                      content={reasoningContent || ''}
                       isStreaming={isReasoningStreaming}
                       status={status}
                     />
@@ -280,12 +276,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   )}
                 </>
               ) : (
-                // User messages - simple rendering
-                <div className="text-sm prose prose-sm max-w-none">
-                  <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
+                // User messages - with initials avatar
+                <div className="flex items-start gap-3">
+                  {/* User initials avatar */}
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                    {userInitials}
+                  </div>
+
+                  {/* Message content */}
+                  <div className="flex-1 text-sm prose prose-sm max-w-none">
+                    <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
+                  </div>
                 </div>
               )}
-            </div>
           </div>
         </div>
       </div>

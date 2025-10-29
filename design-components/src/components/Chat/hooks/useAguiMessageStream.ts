@@ -381,7 +381,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             try {
               const resultJson = JSON.parse(e.content);
               const parsedResult = parseToolResult(resultJson);
-              
+
               if (parsedResult) {
                 toolCall.result = parsedResult;
                 toolCall.status = 'success';

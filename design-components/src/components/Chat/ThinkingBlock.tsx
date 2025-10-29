@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Streamdown } from 'streamdown';
+import { BrainIcon } from './icons';
 
 export interface ThinkingBlockProps {
   /**
@@ -59,50 +60,39 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
       {/* Header - Clickable to expand/collapse */}
       <button
         onClick={handleToggle}
-        className="w-full px-3 py-2 flex items-center justify-between bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 group cursor-pointer"
+        className="w-full px-3 py-2 flex items-center justify-between rounded-lg transition-all duration-200 group cursor-pointer bg-gray-100 hover:bg-gray-200"
         aria-expanded={isExpanded}
         aria-label={isExpanded ? 'Collapse thinking process' : 'Expand thinking process'}
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          {/* Thinking icon */}
-          <div className="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
-            <svg
-              className={`w-2.5 h-2.5 text-white ${isStreaming ? 'animate-pulse' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
+          {/* Brain icon - clean, no animations */}
+          <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 relative overflow-hidden bg-gray-600">
+            {/* Brain icon */}
+            <BrainIcon className="w-3 h-3 text-white relative z-10" size={12} />
           </div>
 
           {/* Label */}
-          <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
+          <span className="text-sm font-medium transition-colors text-gray-700 group-hover:text-gray-900">
             {isStreaming ? 'Thinking...' : 'Thought process'}
           </span>
 
-          {/* Streaming indicator */}
+          {/* Streaming indicator - enhanced animated dots */}
           {isStreaming && (
             <div className="flex gap-1 flex-shrink-0">
               <motion.div
-                className="w-1 h-1 rounded-full bg-gray-500"
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-1.5 h-1.5 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
               />
               <motion.div
-                className="w-1 h-1 rounded-full bg-gray-500"
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+                className="w-1.5 h-1.5 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
               />
               <motion.div
-                className="w-1 h-1 rounded-full bg-gray-500"
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+                className="w-1.5 h-1.5 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
               />
             </div>
           )}

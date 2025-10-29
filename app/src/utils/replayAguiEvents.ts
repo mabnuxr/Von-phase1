@@ -28,7 +28,7 @@ function parseToolResult(resultJson: any): ToolResult | null {
     // FIX: Check backend success field first
     // If backend indicates failure, return null to mark tool call as error
     if (resultJson.success === false) {
-      return null; 
+      return null;
     }
 
     // Auto-detect table data (SQL results)
@@ -81,7 +81,10 @@ function parseToolResult(resultJson: any): ToolResult | null {
     }
 
     // Detect table list (sql_list_tables)
-    if (resultJson.materialized_views && Array.isArray(resultJson.materialized_views)) {
+    if (
+      resultJson.materialized_views &&
+      Array.isArray(resultJson.materialized_views)
+    ) {
       return {
         raw: resultJson,
         type: "table_list",
@@ -300,19 +303,14 @@ export function replayAguiEvents(
               if (parsedResult) {
                 toolCall.result = parsedResult;
                 toolCall.status = "success";
-                console.log('[Tool Result - Replay] Set status to SUCCESS', {
+                console.log("[Tool Result - Replay] Set status to SUCCESS", {
                   tool_call_id: event.tool_call_id,
                   tool_name: toolCall.name,
-                  status: toolCall.status
+                  status: toolCall.status,
                 });
               } else {
                 // parsedResult is null, meaning backend indicated failure
                 toolCall.status = "error";
-                console.log('[Tool Result - Replay] Set status to ERROR (parseResult returned null)', {
-                  tool_call_id: event.tool_call_id,
-                  tool_name: toolCall.name,
-                  success: resultData.success
-                });
               }
             } catch {
               // If result is not JSON, store raw string in 'raw' field

@@ -448,4 +448,13 @@ export interface ChatProps {
    * @default false
    */
   isFetchingMore?: boolean;
+
+  /**
+   * Index to start showing messages from (for visual message clearing)
+   * Messages before this index will be hidden but preserved in state
+   * Used for ChatGPT-style clean slate UX
+   * Users can scroll up to see hidden messages once streaming completes
+   * @default 0 (show all messages)
+   */
+  showMessagesFromIndex?: number;
 }
