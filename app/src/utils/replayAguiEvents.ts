@@ -289,13 +289,13 @@ export function replayAguiEvents(
               const resultData = JSON.parse(event.content);
 
               // Log the raw backend result for debugging (same as live streaming)
-              console.log('[Tool Result from Backend - Replay]', {
+              console.log("[Tool Result from Backend - Replay]", {
                 tool_call_id: event.tool_call_id,
                 tool_name: toolCall.name,
                 success: resultData.success,
                 has_error: !!resultData.error,
                 error: resultData.error,
-                result: resultData
+                result: resultData,
               });
 
               const parsedResult = parseToolResult(resultData);

@@ -422,7 +422,6 @@ export const Chat: React.FC<ChatProps> = ({
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
-
       >
         {/* Loading indicator for older messages (infinite scroll) */}
         <AnimatePresence>
