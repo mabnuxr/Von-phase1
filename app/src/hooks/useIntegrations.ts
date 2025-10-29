@@ -391,3 +391,58 @@ export function useCancelAuthorization() {
     },
   });
 }
+
+/**
+ * Create a new integration
+ */
+export function useCreateIntegration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      type: string;
+      accessLevel: "tenant" | "user";
+      config: Record<string, unknown>;
+      name?: string;
+    }) => integrationsService.createIntegration(data),
+    onSuccess: () => {
+      // Invalidate integrations to refetch and show the new integration
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useCreateIntegration] Error:", error);
+      }
+    },
+  });
+}
+
+/**
+ * Update an existing integration
+ */
+export function useUpdateIntegration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      integrationId,
+      data,
+    }: {
+      integrationId: string;
+      data: {
+        accessLevel?: "tenant" | "user";
+        config?: Record<string, unknown>;
+        name?: string;
+      };
+    }) => integrationsService.updateIntegration(integrationId, data),
+    onSuccess: () => {
+      // Invalidate integrations to refetch and show the updated integration
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useUpdateIntegration] Error:", error);
+      }
+    },
+  });
+}

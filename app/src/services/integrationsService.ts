@@ -51,6 +51,8 @@ export interface IntegrationBackendResponse {
   status: IntegrationStatus;
   is_active: boolean;
   is_configured: boolean;
+  access_level: string;
+  config: Record<string, unknown>;
   features_enabled: string[];
   last_sync: string | null;
   sync_success_rate: number;
@@ -83,6 +85,8 @@ export interface Integration {
   status: IntegrationStatus;
   isActive: boolean;
   isConfigured: boolean;
+  accessLevel: string;
+  config: Record<string, unknown>;
   featuresEnabled: string[];
   lastSync: string | null;
   syncSuccessRate: number;
@@ -107,6 +111,8 @@ function transformIntegration(
     status: backendIntegration.status,
     isActive: backendIntegration.is_active,
     isConfigured: backendIntegration.is_configured,
+    accessLevel: backendIntegration.access_level,
+    config: backendIntegration.config,
     featuresEnabled: backendIntegration.features_enabled,
     lastSync: backendIntegration.last_sync,
     syncSuccessRate: backendIntegration.sync_success_rate,
@@ -326,6 +332,84 @@ export class IntegrationsService {
       integrationId: response.integration_id,
       message: response.message,
     };
+  }
+
+  /**
+   * Create a new integration
+   *
+   * @param data - Integration creation data
+   * @returns Created integration
+   *
+   * @example
+   * ```ts
+   * const integration = await integrationsService.createIntegration({
+   *   type: "SALESFORCE",
+   *   accessLevel: "user",
+   *   config: {
+   *     instance_url: "https://company.salesforce.com",
+   *     environment_type: "production",
+   *     api_version: "v62.0"
+   *   },
+   *   name: "Production Salesforce"
+   * });
+   * ```
+   */
+  async createIntegration(data: {
+    type: IntegrationType;
+    accessLevel: "tenant" | "user";
+    config: Record<string, unknown>;
+    name?: string;
+  }): Promise<Integration> {
+    const response = await apiClient.post<IntegrationBackendResponse>(
+      "/api/v1/integrations",
+      {
+        type: data.type,
+        access_level: data.accessLevel,
+        config: data.config,
+        name: data.name,
+      },
+    );
+    return transformIntegration(response);
+  }
+
+  /**
+   * Update an existing integration
+   *
+   * @param integrationId - MongoDB integration ID
+   * @param data - Integration update data
+   * @returns Updated integration
+   *
+   * @example
+   * ```ts
+   * const integration = await integrationsService.updateIntegration(
+   *   "68e6f5da473f2e641e30622d",
+   *   {
+   *     config: {
+   *       instance_url: "https://newcompany.salesforce.com",
+   *       environment_type: "production",
+   *       api_version: "v63.0"
+   *     }
+   *   }
+   * );
+   * ```
+   */
+  async updateIntegration(
+    integrationId: string,
+    data: {
+      accessLevel?: "tenant" | "user";
+      config?: Record<string, unknown>;
+      name?: string;
+    },
+  ): Promise<Integration> {
+    const response = await apiClient.patch<IntegrationBackendResponse>(
+      `/api/v1/integrations/${integrationId}`,
+      {
+        access_level: data.accessLevel,
+        config: data.config,
+        name: data.name,
+      },
+    );
+    return transformIntegration(response);
   }
 }
 

@@ -8,7 +8,7 @@ export function FieldDetailPane() {
 
   // Find the field being edited
   const field = editingFieldId
-    ? salesforceFields.find((f) => f.id === editingFieldId)
+    ? salesforceFields.find((f: { id: string }) => f.id === editingFieldId)
     : null;
 
   // Form state
@@ -56,8 +56,6 @@ export function FieldDetailPane() {
     }));
   };
 
-  if (!field) return null;
-
   return (
     <>
       {/* Backdrop */}
@@ -70,7 +68,7 @@ export function FieldDetailPane() {
 
       {/* Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[480px] bg-white shadow-elevated z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-[480px] bg-white shadow-elevated z-50 transform transition-transform duration-300 ease-in-out ${
           editingFieldId ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -111,7 +109,7 @@ export function FieldDetailPane() {
                   Field Name
                 </label>
                 <div className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg">
-                  {field.name}
+                  {field?.name}
                 </div>
               </div>
 
@@ -179,7 +177,7 @@ export function FieldDetailPane() {
                   }
                   className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
                   placeholder={
-                    field.name === "Amount" ? "Amount" : "Competition__c"
+                    field?.name === "Amount" ? "Amount" : "Competition__c"
                   }
                 />
                 <p className="mt-1.5 text-xs text-gray-500">

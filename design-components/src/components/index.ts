@@ -38,6 +38,9 @@ export type { InputProps } from './Input';
 export { MultiSelect } from './MultiSelect';
 export type { MultiSelectProps, MultiSelectOption } from './MultiSelect';
 
+export { RadioButton } from './RadioButton';
+export type { RadioButtonProps } from './RadioButton';
+
 // Layout Atoms
 // ------------
 export { Box } from './Box';
@@ -78,6 +81,34 @@ export { ChatTypingIndicator } from './Chat/ChatTypingIndicator';
 
 export { ChatMessageSkeleton } from './Chat/ChatMessageSkeleton';
 export type { ChatMessageSkeletonProps } from './Chat/ChatMessageSkeleton';
+
+// Icon Atoms
+// ----------
+export {
+  DatabaseIcon,
+  ToolIcon,
+  SearchIcon,
+  CalculatorIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  LoaderIcon,
+  ClockIcon,
+  PlayCircleIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  ArrowDownIcon,
+  TrendingUpIcon,
+  HashIcon,
+  DollarSignIcon,
+  BarChartIcon,
+  LayersIcon,
+  ZapIcon,
+  BrainIcon,
+  EditIcon,
+  ServerIcon,
+  GlobeIcon,
+} from './Chat/icons';
+export type { IconProps } from './Chat/icons';
 
 // ============================================================================
 // MOLECULES
