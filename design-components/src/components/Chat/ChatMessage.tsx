@@ -219,7 +219,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                     {step.content && (
                                       <div
                                         className={
-                                          isStreaming ? 'prose max-w-none' : 'prose-sm max-w-none'
+                                          isStreaming ? 'prose markdown-body max-w-none' : 'prose-sm markdown-body max-w-none'
                                         }
                                       >
                                         <Streamdown
@@ -258,7 +258,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               <div className="space-y-3">
                                 {/* Final step content */}
                                 {finalStep.content && (
-                                  <div className="prose max-w-none">
+                                  <div className="prose markdown-body max-w-none">
                                     <Streamdown
                                       parseIncompleteMarkdown={isStreaming}
                                       isAnimating={isStreaming}
@@ -283,7 +283,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       ) : (
                         /* Fallback: render plain content if no stepMessages */
                         content && (
-                          <div className="prose max-w-none">
+                          <div className="prose markdown-body max-w-none">
                             <Streamdown
                               parseIncompleteMarkdown={isStreaming}
                               isAnimating={isStreaming}
@@ -296,7 +296,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </>
                   ) : (
                     // User messages - simple rendering
-                    <div className="prose max-w-none">
+                    <div className="prose markdown-body max-w-none">
                       <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
                     </div>
                   )}
