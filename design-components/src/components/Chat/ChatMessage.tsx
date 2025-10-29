@@ -158,10 +158,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           ${
             isUser
               ? 'py-6 bg-white hover:bg-gray-50/30'
-              : `py-6 ${
-                  isStreaming && !content && !reasoningContent
-                    ? 'pb-48'
-                    : ''
+              : `pt-6 ${
+                  isStreaming && !content && !reasoningContent ? 'pb-48' : 'pb-12'
                 } bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white`
           }
         `}
@@ -221,9 +219,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                     {step.content && (
                                       <div
                                         className={
-                                          isStreaming
-                                            ? 'prose max-w-none'
-                                            : 'prose-sm max-w-none'
+                                          isStreaming ? 'prose max-w-none' : 'prose-sm max-w-none'
                                         }
                                       >
                                         <Streamdown

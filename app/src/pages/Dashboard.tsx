@@ -89,6 +89,10 @@ const Dashboard = () => {
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const avatarButtonRef = useRef<HTMLDivElement>(null);
 
+  // Sidebar collapse state
+  const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
+    useSidebarState();
+
   // Message filtering state for ChatGPT-style visual clearing
   // Track which messages to show (index in messages array)
   // When user sends new message, we set this to current length to hide old messages
@@ -139,7 +143,7 @@ const Dashboard = () => {
       if (import.meta.env.DEV) {
         console.log(
           "[Dashboard] Backend logout successful, redirect URL:",
-          response.redirectUrl
+          response.redirectUrl,
         );
       }
 
@@ -154,7 +158,7 @@ const Dashboard = () => {
         // Fallback to default logout flow if no redirect URL provided
         if (import.meta.env.DEV) {
           console.warn(
-            "[Dashboard] No redirect URL provided, using default logout flow"
+            "[Dashboard] No redirect URL provided, using default logout flow",
           );
         }
         startProviderLogout();
@@ -236,7 +240,7 @@ const Dashboard = () => {
     // Add or update message in Zustand store
     const currentMessages = messages[currentConversationId] || [];
     const existingIndex = currentMessages.findIndex(
-      (m) => m.id === backendMessage.id
+      (m) => m.id === backendMessage.id,
     );
 
     if (existingIndex >= 0) {
@@ -321,7 +325,7 @@ const Dashboard = () => {
             if (replayCache.current.size > MAX_REPLAY_CACHE_SIZE) {
               // Sort by timestamp (oldest first) and remove oldest 500 entries
               const entries = Array.from(replayCache.current.entries()).sort(
-                (a, b) => a[1].timestamp - b[1].timestamp
+                (a, b) => a[1].timestamp - b[1].timestamp,
               );
 
               const toDelete = entries.slice(0, 500);
@@ -380,7 +384,7 @@ const Dashboard = () => {
             .forceCompleteMessage(currentConversationId, messageId);
         }
       },
-    }
+    },
   );
 
   // Compute avatar props from user data
@@ -411,7 +415,7 @@ const Dashboard = () => {
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [user?.tenantId, user?.id]
+    [user?.tenantId, user?.id],
   );
 
   return (
