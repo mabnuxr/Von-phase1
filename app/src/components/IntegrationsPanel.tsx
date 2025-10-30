@@ -331,8 +331,7 @@ export function IntegrationsPanel() {
             {!isLoading && (!integrationsData || integrations.length === 0) ? (
               <div className="flex items-center justify-center min-h-[300px]">
                 <Text variant="body" color="secondary">
-                  No active integrations. Configure an integration from the Apps
-                  tab to get started.
+                  No active integrations.
                 </Text>
               </div>
             ) : (
