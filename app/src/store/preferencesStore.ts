@@ -61,6 +61,7 @@ export interface ProcessConfigurationSettings {
   churnSignalField: string;
   renewalDetectionField: string;
   customerIdentificationField: string;
+  salesforceDescription: string;
   salesQuarter: "Fiscal" | "Calendar";
 }
 
@@ -365,6 +366,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
     churnSignalField: "",
     renewalDetectionField: "",
     customerIdentificationField: "",
+    salesforceDescription: "",
     salesQuarter: "Fiscal",
   },
 
