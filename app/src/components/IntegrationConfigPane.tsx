@@ -326,7 +326,7 @@ export function IntegrationConfigPane() {
                       />
                       <p className="mt-1.5 text-xs text-gray-500">
                         Enter your Salesforce instance URL (e.g.,
-                        rattle.my.salesforce.com/)
+                        rattle.my.salesforce.com)
                       </p>
                     </div>
 
