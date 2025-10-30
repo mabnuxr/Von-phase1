@@ -322,11 +322,11 @@ export function IntegrationConfigPane() {
                           handleChange("instanceUrl", e.target.value)
                         }
                         className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                        placeholder="https://yourcompany.salesforce.com"
+                        placeholder="rattle.my.salesforce.com"
                       />
                       <p className="mt-1.5 text-xs text-gray-500">
                         Enter your Salesforce instance URL (e.g.,
-                        https://yourcompany.salesforce.com)
+                        rattle.my.salesforce.com)
                       </p>
                     </div>
 
@@ -366,11 +366,10 @@ export function IntegrationConfigPane() {
                         handleChange("gongInstanceUrl", e.target.value)
                       }
                       className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                      placeholder="https://yourcompany.gong.io"
+                      placeholder="gong"
                     />
                     <p className="mt-1.5 text-xs text-gray-500">
-                      Enter your Gong instance URL (e.g.,
-                      https://yourcompany.gong.io)
+                      Enter your Gong instance URL.
                     </p>
                   </div>
                 )}
