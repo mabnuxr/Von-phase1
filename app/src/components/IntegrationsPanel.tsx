@@ -363,13 +363,16 @@ export function IntegrationsPanel() {
                     | undefined;
                   const instanceUrl = config.instance_url as string | undefined;
 
+                  // Check if this integration is readonly (tenant-level owned by someone else)
+                  const isReadonly = backendIntegration?.readonly === true;
+
                   return (
                     <IntegrationCard
                       key={integration.id}
                       name={integration.name}
                       integrationLogoPath={integration.integrationLogoPath}
                       enabled={integration.enabled}
-                      disabled={isLoading}
+                      disabled={isLoading || isReadonly}
                       loadingText={isLoading ? "Authenticating" : undefined}
                       userOrTenant={accessLevel}
                       environment={
@@ -380,10 +383,17 @@ export function IntegrationsPanel() {
                             : undefined
                       }
                       instanceUrl={instanceUrl}
-                      onToggle={(enabled: boolean) =>
-                        handleToggle(integration.id, enabled)
+                      onToggle={
+                        isReadonly
+                          ? undefined
+                          : (enabled: boolean) =>
+                              handleToggle(integration.id, enabled)
                       }
-                      onEdit={() => handleEdit(integration.id)}
+                      onEdit={
+                        isReadonly
+                          ? undefined
+                          : () => handleEdit(integration.id)
+                      }
                     />
                   );
                 })}

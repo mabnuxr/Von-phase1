@@ -58,6 +58,8 @@ export interface IntegrationBackendResponse {
   sync_success_rate: number;
   authentication_status: AuthenticationStatus;
   last_authenticated_at: string | null;
+  is_owner: boolean;
+  readonly: boolean;
 }
 
 /**
@@ -92,6 +94,8 @@ export interface Integration {
   syncSuccessRate: number;
   authenticationStatus: AuthenticationStatus;
   lastAuthenticatedAt: string | null;
+  isOwner: boolean;
+  readonly: boolean;
 }
 
 /**
@@ -118,6 +122,8 @@ function transformIntegration(
     syncSuccessRate: backendIntegration.sync_success_rate,
     authenticationStatus: backendIntegration.authentication_status,
     lastAuthenticatedAt: backendIntegration.last_authenticated_at,
+    isOwner: backendIntegration.is_owner,
+    readonly: backendIntegration.readonly,
   };
 }
 
