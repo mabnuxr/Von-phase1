@@ -7,6 +7,7 @@ import {
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { integrationsService } from "../services";
+import type { IntegrationType } from "../services";
 import {
   OAUTH_POLLING_TIMEOUT_MS,
   OAUTH_POLLING_INTERVAL_MS,
@@ -388,6 +389,61 @@ export function useCancelAuthorization() {
     },
     onError: (error: Error) => {
       console.error("[useCancelAuthorization] Error:", error);
+    },
+  });
+}
+
+/**
+ * Create a new integration
+ */
+export function useCreateIntegration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      type: IntegrationType;
+      accessLevel: "tenant" | "user";
+      config: Record<string, unknown>;
+      name?: string;
+    }) => integrationsService.createIntegration(data),
+    onSuccess: () => {
+      // Invalidate integrations to refetch and show the new integration
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useCreateIntegration] Error:", error);
+      }
+    },
+  });
+}
+
+/**
+ * Update an existing integration
+ */
+export function useUpdateIntegration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      integrationId,
+      data,
+    }: {
+      integrationId: string;
+      data: {
+        accessLevel?: "tenant" | "user";
+        config?: Record<string, unknown>;
+        name?: string;
+      };
+    }) => integrationsService.updateIntegration(integrationId, data),
+    onSuccess: () => {
+      // Invalidate integrations to refetch and show the updated integration
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useUpdateIntegration] Error:", error);
+      }
     },
   });
 }

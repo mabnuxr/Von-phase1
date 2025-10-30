@@ -39,9 +39,10 @@ const Dashboard = () => {
   // Chat state management
   const { currentConversationId, setCurrentConversationId, messages } =
     useChatStore();
-  const conversationMessages = currentConversationId
-    ? messages[currentConversationId] || []
-    : [];
+  const conversationMessages = useMemo(
+    () => (currentConversationId ? messages[currentConversationId] || [] : []),
+    [currentConversationId, messages],
+  );
 
   // Initialize conversation (load latest or create new)
   const { isInitializing, error: initError } = useConversationInit();

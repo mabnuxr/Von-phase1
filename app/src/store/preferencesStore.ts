@@ -64,6 +64,18 @@ export interface ProcessConfigurationSettings {
   salesQuarter: "Fiscal" | "Calendar";
 }
 
+// Integration configuration
+export interface IntegrationConfig {
+  id?: string; // Integration ID for edit mode
+  accessLevel: "tenant" | "user";
+  // Salesforce specific
+  environmentType?: "development" | "production";
+  instanceUrl?: string;
+  apiVersion?: string;
+  // Gong specific
+  gongInstanceUrl?: string;
+}
+
 interface PreferencesState {
   // Tab state for defaults panel
   defaultsActiveTab: "email-categorization" | "process-configuration";
@@ -125,6 +137,20 @@ interface PreferencesState {
   removeBusinessStage: (stage: BusinessStage) => void;
   addCustomerStage: (stage: CustomerStage) => void;
   removeCustomerStage: (stage: CustomerStage) => void;
+
+  // Integrations UI state
+  integrationsActiveTab: "apps" | "active-integrations";
+  setIntegrationsActiveTab: (tab: "apps" | "active-integrations") => void;
+  configuringIntegrationId: string | null;
+  setConfiguringIntegration: (id: string | null) => void;
+
+  // Integration configuration data
+  integrationConfigs: Record<string, IntegrationConfig>;
+  updateIntegrationConfig: (
+    integrationId: string,
+    config: Partial<IntegrationConfig>,
+  ) => void;
+  clearIntegrationConfig: (integrationId: string) => void;
 }
 
 const usePreferencesStoreBase = create<PreferencesState>((set) => ({
@@ -385,6 +411,33 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
         ),
       },
     })),
+
+  // Integrations UI state
+  integrationsActiveTab: "apps",
+  setIntegrationsActiveTab: (tab) => set({ integrationsActiveTab: tab }),
+  configuringIntegrationId: null,
+  setConfiguringIntegration: (id) => set({ configuringIntegrationId: id }),
+
+  // Integration configuration data
+  integrationConfigs: {},
+  updateIntegrationConfig: (integrationId, config) =>
+    set((state) => ({
+      integrationConfigs: {
+        ...state.integrationConfigs,
+        [integrationId]: {
+          ...(state.integrationConfigs[integrationId] || {
+            accessLevel: "user",
+          }),
+          ...config,
+        },
+      },
+    })),
+  clearIntegrationConfig: (integrationId) =>
+    set((state) => {
+      const newConfigs = { ...state.integrationConfigs };
+      delete newConfigs[integrationId];
+      return { integrationConfigs: newConfigs };
+    }),
 }));
 
 const usePreferencesStore = createSelectors(usePreferencesStoreBase);

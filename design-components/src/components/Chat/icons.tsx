@@ -399,3 +399,113 @@ export const BrainIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) 
   </svg>
 ));
 BrainIcon.displayName = 'BrainIcon';
+
+// Edit Icon - For edit/configure actions
+export const EditIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+EditIcon.displayName = 'EditIcon';
+
+// Server Icon - For environment/deployment indicators
+export const ServerIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <rect
+      x="2"
+      y="2"
+      width="20"
+      height="8"
+      rx="2"
+      ry="2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <rect
+      x="2"
+      y="14"
+      width="20"
+      height="8"
+      rx="2"
+      ry="2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="6"
+      y1="6"
+      x2="6.01"
+      y2="6"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="6"
+      y1="18"
+      x2="6.01"
+      y2="18"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+ServerIcon.displayName = 'ServerIcon';
+
+// Globe Icon - For URLs and web links
+export const GlobeIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <circle cx="12" cy="12" r="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line
+      x1="2"
+      y1="12"
+      x2="22"
+      y2="12"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+GlobeIcon.displayName = 'GlobeIcon';

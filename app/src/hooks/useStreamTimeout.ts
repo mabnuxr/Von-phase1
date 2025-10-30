@@ -87,8 +87,9 @@ export function useStreamTimeout(
 
     // Cleanup on unmount
     return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer));
-      timersRef.current.clear();
+      const timers = timersRef.current;
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
     };
-  }, [messages, conversationId, timeoutMs, onTimeout]);
+  }, [messages, conversationId, timeoutMs, onTimeout, onForceComplete]);
 }

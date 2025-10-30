@@ -38,7 +38,7 @@ export function ProcessConfigurationTab() {
   };
 
   return (
-    <div className="px-6 pt-2 pb-6 space-y-6 max-w-4xl">
+    <div className=" px-6 pt-2 pb-6 space-y-6 max-w-4xl">
       {/* Business Stages Section */}
       <div className="space-y-4">
         <div>
