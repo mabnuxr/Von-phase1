@@ -8,6 +8,19 @@ import type {
 } from "../types/conversation";
 
 /**
+ * Response type for artifact retrieval
+ */
+export interface ArtifactResponse {
+  artifact_id: string;
+  tool_call_id: string;
+  tool_name: string;
+  artifact_type: string;
+  content: Record<string, unknown>;
+  size_bytes: number;
+  persisted_at: string;
+}
+
+/**
  * Service for managing conversations and messages
  * Uses ApiClient for consistent error handling and auth
  */
@@ -79,6 +92,20 @@ class ConversationsService {
   async deleteConversation(conversationId: string): Promise<void> {
     return apiClient.delete<void>(
       `/api/v1/chat/conversations/${conversationId}`,
+    );
+  }
+
+  /**
+   * Fetch artifact (tool call result) by ID
+   * Used for lazy loading of large tool results stored separately
+   */
+  async getArtifact(
+    conversationId: string,
+    messageId: string,
+    artifactId: string,
+  ): Promise<ArtifactResponse> {
+    return apiClient.get<ArtifactResponse>(
+      `/api/v1/chat/conversations/${conversationId}/messages/${messageId}/artifacts/${artifactId}`,
     );
   }
 }

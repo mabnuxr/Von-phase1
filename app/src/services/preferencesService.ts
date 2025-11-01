@@ -36,6 +36,7 @@ const DEFAULT_PROCESS_CONFIG: ProcessConfigurationSettings = {
   churnSignalField: "",
   renewalDetectionField: "",
   customerIdentificationField: "",
+  salesforceDescription: "",
   salesQuarter: "Fiscal",
 };
 

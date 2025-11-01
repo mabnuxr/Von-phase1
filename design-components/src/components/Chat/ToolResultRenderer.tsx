@@ -3,6 +3,10 @@ import { DataTable } from './DataTable';
 import { QueryBlock } from './QueryBlock';
 import { JsonBlock } from './JsonBlock';
 import { MetricsGrid } from './MetricsGrid';
+import { SchemaRenderer } from './SchemaRenderer';
+import { StatisticsRenderer } from './StatisticsRenderer';
+import { TableListRenderer } from './TableListRenderer';
+import { ValuesRenderer } from './ValuesRenderer';
 import type { ToolResult } from './types';
 
 export interface ToolResultRendererProps {
@@ -46,6 +50,30 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({ result }
     case 'metrics':
       // Render metrics grid
       return result.metrics ? <MetricsGrid metrics={result.metrics} /> : null;
+
+    case 'values':
+      // Render values with progress bars
+      return result.values ? (
+        <ValuesRenderer values={result.values} queries={result.queries} />
+      ) : null;
+
+    case 'schema':
+      // Render table schema
+      return result.schema ? (
+        <SchemaRenderer schema={result.schema} queries={result.queries} />
+      ) : null;
+
+    case 'statistics':
+      // Render statistics in metric cards
+      return result.statistics ? (
+        <StatisticsRenderer statistics={result.statistics} queries={result.queries} />
+      ) : null;
+
+    case 'table_list':
+      // Render list of tables
+      return result.tables ? (
+        <TableListRenderer tables={result.tables} queries={result.queries} />
+      ) : null;
 
     case 'json':
     default:

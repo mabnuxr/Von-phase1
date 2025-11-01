@@ -31,12 +31,13 @@ export type MessageStatus =
  */
 export interface Message {
   id: string;
+  runId: string;
   conversationId: string;
   messageType: "text" | "json" | "markdown";
   messageContent: string;
   role: "user" | "assistant";
   createdAt: string;
-  createdBy: string | null; // Optional - can be null if context not set
+  createdBy: string | null;
 }
 
 /**
@@ -57,7 +58,6 @@ export interface MessageWithStreaming extends Message {
 
   // Status tracking (from backend persistence)
   status?: MessageStatus;
-  runId?: string;
   lastStreamedAt?: string;
   errorMessage?: string;
 

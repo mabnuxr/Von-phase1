@@ -96,6 +96,53 @@ export const MAX_REPLAY_CACHE_SIZE = 1000 as const;
 export const STREAM_TIMEOUT_MS = 60000 as const; // 60 seconds
 
 // ============================================================================
+// Artifact Query Configuration Constants
+// ============================================================================
+
+/**
+ * Time in milliseconds that artifact data is considered fresh
+ * Artifacts are cached longer since they rarely change once created
+ */
+export const ARTIFACT_STALE_TIME = 3600000 as const; // 1 hour (60 * 60 * 1000)
+
+/**
+ * Garbage collection time in milliseconds for artifact data
+ * Determines how long unused artifact data stays in cache before cleanup
+ */
+export const ARTIFACT_GC_TIME = 7200000 as const; // 2 hours (2 * 60 * 60 * 1000)
+
+/**
+ * Number of retry attempts for failed artifact queries
+ * Uses exponential backoff between retries
+ */
+export const ARTIFACT_RETRY_COUNT = 3 as const;
+
+/**
+ * Maximum delay in milliseconds between artifact query retries
+ * Caps exponential backoff to prevent excessively long delays
+ */
+export const ARTIFACT_MAX_RETRY_DELAY = 30000 as const; // 30 seconds
+
+// ============================================================================
+// UI Text & Display Constants
+// ============================================================================
+
+/**
+ * Maximum length for error messages before truncation
+ * Applied to error displays in thinking blocks and tool call items
+ */
+export const ERROR_MESSAGE_TRUNCATE_LENGTH = 100 as const;
+
+// ============================================================================
+// UI Dimensions Constants
+// ============================================================================
+
+/**
+ * Default width for artifact side panel
+ */
+export const ARTIFACT_PANE_WIDTH = "480px" as const;
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -116,4 +163,10 @@ export const QUERY_CONSTANTS = {
   INFINITE_SCROLL_THRESHOLD,
   MAX_REPLAY_CACHE_SIZE,
   STREAM_TIMEOUT_MS,
+  ARTIFACT_STALE_TIME,
+  ARTIFACT_GC_TIME,
+  ARTIFACT_RETRY_COUNT,
+  ARTIFACT_MAX_RETRY_DELAY,
+  ERROR_MESSAGE_TRUNCATE_LENGTH,
+  ARTIFACT_PANE_WIDTH,
 } as const;

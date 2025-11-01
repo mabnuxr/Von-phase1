@@ -80,6 +80,15 @@ export interface Message {
    * Each step message contains its content and associated tool calls
    */
   stepMessages?: StepMessage[];
+  /**
+   * Message ID (for artifact fetching)
+   * Same as `id` but explicitly typed for clarity in artifact contexts
+   */
+  messageId?: string;
+  /**
+   * Conversation ID (for artifact fetching)
+   */
+  conversationId?: string;
 }
 
 export interface ChatSession {
@@ -268,6 +277,29 @@ export interface ToolCall {
   startTime?: number; // Timestamp when tool execution started
   endTime?: number; // Timestamp when tool execution completed
   parentMessageId: string;
+  /**
+   * Artifact metadata for tool results stored separately
+   * When present, the actual result content is stored as an artifact
+   * and should be fetched lazily from the artifacts API
+   */
+  artifact?: {
+    artifact_id: string;
+    artifact_type:
+      | 'table'
+      | 'json'
+      | 'text'
+      | 'values'
+      | 'metrics'
+      | 'schema'
+      | 'query'
+      | 'statistics'
+      | 'table_list';
+    size_bytes: number;
+    tool_name: string;
+    run_id: string; // LangGraph run_id that created this artifact
+    success?: boolean; // Tool execution success status
+    error?: string; // Error message if tool execution failed
+  };
 }
 
 export interface SchemaData {
@@ -457,4 +489,27 @@ export interface ChatProps {
    * @default 0 (show all messages)
    */
   showMessagesFromIndex?: number;
+
+  /**
+   * Hook for fetching artifact data
+   * Should be provided by the parent component (e.g., from app layer)
+   * Example: useArtifact from @revenue-os/app
+   */
+  useArtifactHook?: (
+    conversationId: string | null,
+    messageId: string | null,
+    artifactId: string | null
+  ) => {
+    data?: {
+      artifact_id: string;
+      tool_call_id: string;
+      tool_name: string;
+      artifact_type: string;
+      content: Record<string, unknown>;
+      size_bytes: number;
+      persisted_at: string;
+    };
+    isLoading: boolean;
+    error?: Error | null;
+  };
 }

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { MessageStatusBadge } from './MessageStatusBadge';
-import { ElegantToolBlock } from './ElegantToolBlock';
+import { ToolCallItem } from './ToolCallItem';
+import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 
 /**
  * Get user initials from name or email
@@ -126,6 +128,27 @@ export interface ChatMessageProps {
    * @default false
    */
   isCompressed?: boolean;
+
+  /**
+   * Message ID (for artifact fetching)
+   */
+  messageId?: string;
+
+  /**
+   * Conversation ID (for artifact fetching)
+   */
+  conversationId?: string;
+
+  /**
+   * Hook for fetching artifact data
+   * Should be provided by the parent component (e.g., from app layer)
+   * Example: useArtifact from @revenue-os/app
+   */
+  useArtifactHook?: (
+    conversationId: string | null,
+    messageId: string | null,
+    artifactId: string | null
+  ) => UseArtifactResult;
 }
 
 /**
@@ -145,9 +168,40 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   errorMessage,
   events: _events, // eslint-disable-line @typescript-eslint/no-unused-vars
   isCompressed: _isCompressed, // eslint-disable-line @typescript-eslint/no-unused-vars
+  messageId,
+  conversationId,
+  useArtifactHook,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
+
+  // State for artifact pane
+  const [openArtifact, setOpenArtifact] = useState<{
+    artifactId: string;
+    toolName: string;
+    artifactType: string;
+    runId: string; // Artifact's own run_id
+  } | null>(null);
+
+  // Handle artifact click from timeline
+  const handleArtifactClick = (
+    artifactId: string,
+    toolName: string,
+    artifactType: string,
+    runId: string
+  ) => {
+    console.log('[Artifact Click Debug]', {
+      artifactId,
+      toolName,
+      artifactType,
+      runId,
+      conversationId,
+      messageId,
+      hasHook: !!useArtifactHook,
+      willRender: !!(conversationId && messageId && useArtifactHook),
+    });
+    setOpenArtifact({ artifactId, toolName, artifactType, runId });
+  };
 
   return (
     <div className="w-full group font-sf">
@@ -204,7 +258,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                       {/* Render stepMessages if available (AGUI multi-step responses) */}
                       {stepMessages && stepMessages.length > 0 ? (
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                           {/* Always use same structure: ThinkingBlock for intermediate steps + final message */}
                           {stepMessages.length > 1 && (
                             <ThinkingBlock
@@ -212,38 +266,40 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               isStreaming={isStreaming}
                               status={status}
                             >
-                              <div className="space-y-4">
+                              <div className="ml-[-17px] space-y-0">
                                 {stepMessages.slice(0, -1).map((step, index) => (
-                                  <div key={step.message_id || index} className="space-y-3">
-                                    {/* Step content */}
+                                  <div key={step.message_id || index} className="relative">
+                                    {/* Text content as bullet point */}
                                     {step.content && (
-                                      <div
-                                        className={
-                                          isStreaming
-                                            ? 'prose markdown-body max-w-none'
-                                            : 'prose-sm markdown-body max-w-none'
-                                        }
-                                      >
-                                        <Streamdown
-                                          parseIncompleteMarkdown={isStreaming}
-                                          isAnimating={isStreaming}
-                                        >
-                                          {step.content}
-                                        </Streamdown>
+                                      <div className="flex items-start gap-3 pb-4">
+                                        {/* Bullet dot only (no vertical line) */}
+                                        <div className="flex-shrink-0 w-2 pt-2">
+                                          {/* Bullet dot */}
+                                          <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                        </div>
+
+                                        {/* Text content */}
+                                        <div className="flex-1 prose-sm markdown-body max-w-none">
+                                          <Streamdown
+                                            parseIncompleteMarkdown={isStreaming}
+                                            isAnimating={isStreaming}
+                                            controls={{ table: true }}
+                                          >
+                                            {step.content}
+                                          </Streamdown>
+                                        </div>
                                       </div>
                                     )}
 
-                                    {/* Tool calls for this step */}
+                                    {/* Tool calls below text - left-aligned with text, no dots */}
                                     {step.toolCalls && step.toolCalls.length > 0 && (
-                                      <div
-                                        className={
-                                          isStreaming
-                                            ? 'space-y-2'
-                                            : 'space-y-2 scale-95 origin-left'
-                                        }
-                                      >
-                                        {step.toolCalls.map((tool) => (
-                                          <ElegantToolBlock key={tool.id} toolCall={tool} />
+                                      <div className="ml-5 pb-4 space-y-2">
+                                        {step.toolCalls.map((toolCall) => (
+                                          <ToolCallItem
+                                            key={toolCall.id}
+                                            toolCall={toolCall}
+                                            onArtifactClick={handleArtifactClick}
+                                          />
                                         ))}
                                       </div>
                                     )}
@@ -260,10 +316,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               <div className="space-y-3">
                                 {/* Final step content */}
                                 {finalStep.content && (
-                                  <div className="prose markdown-body max-w-none">
+                                  <div className="prose-sm markdown-body max-w-none">
                                     <Streamdown
                                       parseIncompleteMarkdown={isStreaming}
                                       isAnimating={isStreaming}
+                                      controls={{ table: true }}
                                     >
                                       {finalStep.content}
                                     </Streamdown>
@@ -273,8 +330,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                 {/* Tool calls for final step */}
                                 {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
                                   <div className="space-y-2">
-                                    {finalStep.toolCalls.map((tool) => (
-                                      <ElegantToolBlock key={tool.id} toolCall={tool} />
+                                    {finalStep.toolCalls.map((toolCall) => (
+                                      <ToolCallItem
+                                        key={toolCall.id}
+                                        toolCall={toolCall}
+                                        onArtifactClick={handleArtifactClick}
+                                      />
                                     ))}
                                   </div>
                                 )}
@@ -289,6 +350,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             <Streamdown
                               parseIncompleteMarkdown={isStreaming}
                               isAnimating={isStreaming}
+                              controls={{ table: true }}
                             >
                               {content}
                             </Streamdown>
@@ -299,7 +361,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   ) : (
                     // User messages - simple rendering
                     <div className="prose markdown-body max-w-none">
-                      <Streamdown parseIncompleteMarkdown={false}>{content}</Streamdown>
+                      <Streamdown parseIncompleteMarkdown={false} controls={{ table: true }}>
+                        {content}
+                      </Streamdown>
                     </div>
                   )}
                 </div>
@@ -308,6 +372,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Artifact Pane - renders when user clicks on a tool call */}
+      {openArtifact && conversationId && useArtifactHook && (
+        <ArtifactPane
+          conversationId={conversationId}
+          runId={openArtifact.runId}
+          artifactId={openArtifact.artifactId}
+          toolName={openArtifact.toolName}
+          artifactType={openArtifact.artifactType}
+          onClose={() => setOpenArtifact(null)}
+          useArtifactHook={useArtifactHook}
+        />
+      )}
     </div>
   );
 };

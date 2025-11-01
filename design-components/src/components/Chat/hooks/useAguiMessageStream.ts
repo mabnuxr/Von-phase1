@@ -380,33 +380,66 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             // Parse result
             try {
               const resultJson = JSON.parse(e.content);
-              const parsedResult = parseToolResult(resultJson);
 
-              if (parsedResult) {
-                toolCall.result = parsedResult;
-                toolCall.status = 'success';
+              // Check if this is an artifact reference
+              if (resultJson._artifact) {
+                // Artifact-backed result - store metadata
+                toolCall.artifact = {
+                  artifact_id: resultJson._artifact.artifact_id,
+                  artifact_type: resultJson._artifact.artifact_type,
+                  size_bytes: resultJson._artifact.size_bytes,
+                  tool_name: resultJson._artifact.tool_name,
+                  run_id: resultJson._artifact.run_id, // Include run_id for artifact fetching
+                  success: resultJson._artifact.success, // Include tool execution success status
+                  error: resultJson._artifact.error, // Include error message if present
+                };
+                // No inline result - will be fetched lazily
+                toolCall.result = undefined;
+                // Set status based on tool execution success
+                toolCall.status = resultJson._artifact.success === false ? 'error' : 'success';
+                toolCall.endTime = Date.now();
+
+                state.toolCalls.set(e.tool_call_id, toolCall);
+
+                // Update streaming step messages
+                const stepMessagesArray = Array.from(state.stepMessages.values());
+                setStreamingStepMessages((prev) => {
+                  const next = new Map(prev);
+                  next.set(wrapper.run_id, stepMessagesArray);
+                  return next;
+                });
+
+                // No callback for artifact - content not available yet
               } else {
-                // parsedResult is null, meaning backend indicated failure
-                toolCall.status = 'error';
-              }
-              toolCall.endTime = Date.now(); // Track when tool completed
+                // Regular inline result (backward compatibility)
+                const parsedResult = parseToolResult(resultJson);
 
-              state.toolCalls.set(e.tool_call_id, toolCall);
+                if (parsedResult) {
+                  toolCall.result = parsedResult;
+                  toolCall.status = 'success';
+                } else {
+                  // parsedResult is null, meaning backend indicated failure
+                  toolCall.status = 'error';
+                }
+                toolCall.endTime = Date.now(); // Track when tool completed
 
-              // Update streaming step messages (tool call ref is already in step message)
-              const stepMessagesArray = Array.from(state.stepMessages.values());
-              setStreamingStepMessages((prev) => {
-                const next = new Map(prev);
-                next.set(wrapper.run_id, stepMessagesArray);
-                return next;
-              });
+                state.toolCalls.set(e.tool_call_id, toolCall);
 
-              if (parsedResult) {
-                eventsRef.current.onToolCallComplete?.(
-                  wrapper.run_id,
-                  e.tool_call_id,
-                  parsedResult
-                );
+                // Update streaming step messages (tool call ref is already in step message)
+                const stepMessagesArray = Array.from(state.stepMessages.values());
+                setStreamingStepMessages((prev) => {
+                  const next = new Map(prev);
+                  next.set(wrapper.run_id, stepMessagesArray);
+                  return next;
+                });
+
+                if (parsedResult) {
+                  eventsRef.current.onToolCallComplete?.(
+                    wrapper.run_id,
+                    e.tool_call_id,
+                    parsedResult
+                  );
+                }
               }
             } catch {
               console.warn('Tool result is not valid JSON, treating as error message:', e.content);

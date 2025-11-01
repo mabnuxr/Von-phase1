@@ -57,6 +57,7 @@ export const Chat: React.FC<ChatProps> = ({
   loadMoreRef,
   isFetchingMore = false,
   showMessagesFromIndex = 0,
+  useArtifactHook,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -486,6 +487,9 @@ export const Chat: React.FC<ChatProps> = ({
                     userEmail={userEmail}
                     status={message.status}
                     errorMessage={message.errorMessage}
+                    messageId={message.messageId || message.id}
+                    conversationId={message.conversationId || conversationId}
+                    useArtifactHook={useArtifactHook}
                   />
                 </motion.div>
               ))}

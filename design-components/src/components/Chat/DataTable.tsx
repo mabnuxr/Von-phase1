@@ -96,7 +96,7 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
  * DataTable component for displaying SQL query results
  * Uses rsuite Table for beautiful formatting
  */
-export const DataTable: React.FC<DataTableProps> = ({ data, queries, onViewQuery }) => {
+export const DataTable: React.FC<DataTableProps> = ({ data }) => {
   if (!data || !data.columns || !data.rows) {
     return <div className="text-sm text-gray-500 italic">No data available</div>;
   }
@@ -105,20 +105,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data, queries, onViewQuery
     <div className="overflow-hidden rounded-lg border border-gray-200 my-3">
       {/* Header with metadata */}
       <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex justify-between items-center">
-        <span className="text-xs text-gray-600 font-medium">
-          📊 {data.rowCount.toLocaleString()} row{data.rowCount !== 1 ? 's' : ''}
-          {!data.isComplete && (
-            <span className="text-gray-500 ml-1">(showing first {data.rows.length})</span>
-          )}
-        </span>
-        {queries && queries.length > 0 && onViewQuery && (
-          <button
-            onClick={onViewQuery}
-            className="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
-          >
-            View Query
-          </button>
-        )}
+        <span className="text-xs text-gray-600 font-medium">📊</span>
       </div>
 
       {/* Table */}

@@ -2,6 +2,9 @@
 @source '../node_modules/streamdown/dist/index.js';
 @import 'github-markdown-css/github-markdown-light.css';
 
+/* RSuite Table Styles */
+@import 'rsuite-table/dist/css/rsuite-table.css';
+
 /**
  * Tailwind v4 Theme Configuration
  * Custom design tokens for the design system
@@ -364,6 +367,14 @@
   padding-left: 1.5em;
 }
 
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
 .markdown-content li {
   margin-bottom: 0.25em;
 }
@@ -569,6 +580,14 @@ h6[data-streamdown='heading-6'] {
   margin-top: 0.5em;
   margin-bottom: 0.5em;
   padding-left: 1.5em;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
 }
 
 .markdown-body li {
@@ -786,17 +805,104 @@ tbody[data-streamdown='table-body'] tr:last-child td[data-streamdown='table-cell
 
 /**
  * Streamdown Table Controls
- * Hide the download button for markdown tables while keeping code copy buttons
+ * Hide the download button for markdown tables while keeping the copy button
  */
-/* Hide the download button (in relative div with download icon) */
-.prose div.relative:has(button[title="Download table"]),
-.markdown-content div.relative:has(button[title="Download table"]),
+/* Hide download button by title attribute */
 .prose button[title="Download table"],
+.prose-sm button[title="Download table"],
 .markdown-content button[title="Download table"],
-/* Hide any button with lucide-download icon near tables */
+.markdown-body button[title="Download table"],
+/* Hide download button by SVG class */
 .prose button:has(svg.lucide-download),
+.prose-sm button:has(svg.lucide-download),
 .markdown-content button:has(svg.lucide-download),
-.prose div.relative:has(svg.lucide-download),
-.markdown-content div.relative:has(svg.lucide-download) {
+.markdown-body button:has(svg.lucide-download),
+/* Hide parent container if it only contains download button */
+.prose div.relative:has(button[title="Download table"]):not(:has(button[title="Copy table"])),
+.prose-sm div.relative:has(button[title="Download table"]):not(:has(button[title="Copy table"])),
+.markdown-content div.relative:has(button[title="Download table"]):not(:has(button[title="Copy table"])),
+.markdown-body div.relative:has(button[title="Download table"]):not(:has(button[title="Copy table"])) {
   display: none !important;
+}
+
+/**
+ * RSuite Table Theme Overrides
+ * Custom styling to match Von AI brand and design system
+ */
+
+/* Base table styling with SF Pro font stack */
+.rs-table {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', Helvetica,
+    Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Table cell content padding and overflow */
+.rs-table-cell-content {
+  color: var(--color-text-primary);
+  padding: 10px 12px;
+}
+
+/* Subtle cell borders matching Von AI design */
+.rs-table-cell {
+  border-bottom-color: var(--color-border-light);
+}
+
+/* Header row styling */
+.rs-table-row-header {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.rs-table-row-header .rs-table-cell-content {
+  font-weight: 600;
+}
+
+/* Hover effect on table rows */
+.rs-table-hover .rs-table-body-row-wrapper .rs-table-row:hover {
+  background: var(--color-bg-hover);
+  transition: background 0.15s ease;
+}
+
+/* Scrollbar styling to match Von AI theme */
+.rs-table-scrollbar-handle {
+  background: var(--color-gray-300);
+  border-radius: 4px;
+}
+
+.rs-table-scrollbar-handle:hover {
+  background: var(--color-gray-500);
+}
+
+/* Remove default rsuite borders for cleaner look */
+.rs-table-bordered .rs-table-cell-group-fixed-left,
+.rs-table-bordered .rs-table-cell-group-fixed-right {
+  border-right-color: var(--color-border-light);
+}
+
+/* Alternate row coloring for better readability */
+.rs-table-row:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.rs-table-row:nth-child(odd) {
+  background-color: transparent;
+}
+
+/* Loading state styling */
+.rs-table-loader-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+}
+
+/* Empty state styling */
+.rs-table-body-info {
+  color: var(--color-text-secondary);
+  font-size: 14px;
 }

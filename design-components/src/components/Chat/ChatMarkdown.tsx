@@ -34,6 +34,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
         isAnimating={isStreaming}
         controls={{
           code: !isStreaming, // Only show code copy button when not streaming
+          table: true,
         }}
       >
         {content || ''}

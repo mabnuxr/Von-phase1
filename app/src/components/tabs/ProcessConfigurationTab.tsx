@@ -143,6 +143,29 @@ export function ProcessConfigurationTab() {
         />
       </div>
 
+      {/* Salesforce Description */}
+      <div>
+        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
+          Describe your salesforce
+          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
+            ?
+          </span>
+        </label>
+        <textarea
+          value={config.salesforceDescription}
+          onChange={(e) =>
+            updateConfig({ salesforceDescription: e.target.value })
+          }
+          placeholder="Describe your salesforce setup..."
+          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
+          style={{
+            fontFamily:
+              '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+          }}
+          rows={2}
+        />
+      </div>
+
       {/* Sales Quarter */}
       <div>
         <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">

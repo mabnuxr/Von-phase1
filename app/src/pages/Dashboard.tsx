@@ -17,6 +17,7 @@ import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import type { MessageWithStreaming } from "../types/conversation";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
+import { useArtifact } from "../hooks/useArtifact";
 // Import Message type from design-components (includes events field)
 import type {
   Message as ChatMessage,
@@ -218,6 +219,7 @@ const Dashboard = () => {
     // Preserve streaming metadata as optional fields
     const backendMessage: MessageWithStreaming = {
       id: chatMessage.id,
+      runId: chatMessage.id, // During streaming, id is the runId
       conversationId: currentConversationId,
       messageType: "text",
       messageContent: chatMessage.content,
@@ -362,6 +364,9 @@ const Dashboard = () => {
         errorMessage: streamingMsg.errorMessage,
         // Pass events array for event-driven rendering (for future use)
         events: streamingMsg.events,
+        // Add IDs for artifact fetching (use runId for artifact queries)
+        messageId: streamingMsg.runId,
+        conversationId: streamingMsg.conversationId,
       };
 
       return transformed;
@@ -531,6 +536,7 @@ const Dashboard = () => {
                 height="100%"
                 width="100%"
                 showMessagesFromIndex={showMessagesFromIndex}
+                useArtifactHook={useArtifact}
               />
             )}
           </div>
