@@ -135,7 +135,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           src={integrationLogoPath}
           alt={`${name} logo`}
           className="h-10 w-auto max-w-[120px] object-contain"
-        /> <img src="/Images/connection.svg" alt="connection" className="h-6 w-auto opacity-70" />
+        />{' '}
+        <img src="/Images/connection.svg" alt="connection" className="h-6 w-auto opacity-70" />
         <img
           src="/Images/vonlabs.png"
           alt="Von logo"

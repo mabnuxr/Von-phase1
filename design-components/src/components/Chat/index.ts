@@ -27,6 +27,10 @@ export type { ChatMarkdownProps } from './ChatMarkdown';
 export { ThinkingBlock } from './ThinkingBlock';
 export type { ThinkingBlockProps } from './ThinkingBlock';
 
+export { ArtifactPane } from './ArtifactPane';
+
+export { ToolCallItem } from './ToolCallItem';
+
 // Export hooks
 export { usePusherAuth } from './hooks/usePusherAuth';
 export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './hooks/usePusherAuth';

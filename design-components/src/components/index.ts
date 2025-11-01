@@ -55,6 +55,9 @@ export type { ContainerProps } from './Container';
 export { TabPill } from './TabPill';
 export type { TabPillProps } from './TabPill';
 
+export { SidePane } from './SidePane';
+export type { SidePaneProps } from './SidePane';
+
 // Typography Atoms
 // ----------------
 export { Text } from './Text';

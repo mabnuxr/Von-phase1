@@ -288,29 +288,35 @@ export function replayAguiEvents(
             try {
               const resultData = JSON.parse(event.content);
 
-              // Log the raw backend result for debugging (same as live streaming)
-              console.log("[Tool Result from Backend - Replay]", {
-                tool_call_id: event.tool_call_id,
-                tool_name: toolCall.name,
-                success: resultData.success,
-                has_error: !!resultData.error,
-                error: resultData.error,
-                result: resultData,
-              });
-
-              const parsedResult = parseToolResult(resultData);
-
-              if (parsedResult) {
-                toolCall.result = parsedResult;
-                toolCall.status = "success";
-                console.log("[Tool Result - Replay] Set status to SUCCESS", {
-                  tool_call_id: event.tool_call_id,
-                  tool_name: toolCall.name,
-                  status: toolCall.status,
-                });
+              // Check if this is an artifact reference
+              if (resultData._artifact) {
+                // Artifact-backed result - store metadata
+                toolCall.artifact = {
+                  artifact_id: resultData._artifact.artifact_id,
+                  artifact_type: resultData._artifact.artifact_type,
+                  size_bytes: resultData._artifact.size_bytes,
+                  tool_name: resultData._artifact.tool_name,
+                  run_id: resultData._artifact.run_id, // Include run_id for artifact fetching
+                  success: resultData._artifact.success, // Include tool execution success status
+                  error: resultData._artifact.error, // Include error message if present
+                };
+                // No inline result - will be fetched lazily
+                toolCall.result = undefined;
+                // Set status based on tool execution success
+                toolCall.status =
+                  resultData._artifact.success === false ? "error" : "success";
               } else {
-                // parsedResult is null, meaning backend indicated failure
-                toolCall.status = "error";
+                // Regular inline result (backward compatibility)
+
+                const parsedResult = parseToolResult(resultData);
+
+                if (parsedResult) {
+                  toolCall.result = parsedResult;
+                  toolCall.status = "success";
+                } else {
+                  // parsedResult is null, meaning backend indicated failure
+                  toolCall.status = "error";
+                }
               }
             } catch {
               // If result is not JSON, store raw string in 'raw' field

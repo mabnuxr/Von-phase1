@@ -132,7 +132,11 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
               ) : (
                 // Fallback to content string with Streamdown
                 <div className="text-sm text-gray-700 leading-relaxed prose prose-sm markdown-body max-w-none font-sf">
-                  <Streamdown parseIncompleteMarkdown={isStreaming} isAnimating={isStreaming}>
+                  <Streamdown
+                    parseIncompleteMarkdown={isStreaming}
+                    isAnimating={isStreaming}
+                    controls={{ table: true }}
+                  >
                     {content}
                   </Streamdown>
                 </div>
