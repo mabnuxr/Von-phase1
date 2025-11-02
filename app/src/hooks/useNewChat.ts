@@ -35,10 +35,8 @@ export function useNewChat() {
    */
   const createNewChat = useCallback(async () => {
     try {
-      // Get total count for numbering from first page
-      const firstPage = infiniteConversationsData?.pages[0];
-      const existingCount = firstPage?.pagination?.total || 0;
-      const title = generateConversationTitle(existingCount);
+      // Generate empty title - LLM will create title on first message
+      const title = generateConversationTitle();
 
       if (import.meta.env.DEV) {
         console.log(`[useNewChat] Creating: ${title}`);

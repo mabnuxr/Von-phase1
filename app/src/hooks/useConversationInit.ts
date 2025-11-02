@@ -43,7 +43,6 @@ export function useConversationInit() {
     // Get first page data
     const firstPage = infiniteConversationsData.pages[0];
     const conversations = firstPage.data;
-    const pagination = firstPage.pagination;
 
     if (conversations.length > 0) {
       // Use most recent conversation (index 0, sorted by updatedAt DESC)
@@ -58,7 +57,7 @@ export function useConversationInit() {
       }
     } else {
       // No conversations - create first one
-      initializeNewConversation(pagination.total);
+      initializeNewConversation();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -71,9 +70,9 @@ export function useConversationInit() {
   /**
    * Create first conversation for user
    */
-  async function initializeNewConversation(existingCount: number) {
+  async function initializeNewConversation() {
     try {
-      const title = generateConversationTitle(existingCount);
+      const title = generateConversationTitle();
 
       if (import.meta.env.DEV) {
         console.log(`[useConversationInit] Creating: ${title}`);
