@@ -14,7 +14,9 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
+import { getDisplayTitle } from "../lib/conversationUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
+import { useConversationTitleUpdate } from "../hooks/useConversationTitleUpdate";
 import type { MessageWithStreaming } from "../types/conversation";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { useArtifact } from "../hooks/useArtifact";
@@ -85,6 +87,15 @@ const Dashboard = () => {
   // Send message mutation
   const { mutate: sendMessage } = useSendMessage();
 
+  // Listen for conversation title updates via Pusher
+  const { updatedTitle, clearUpdatedTitle } = useConversationTitleUpdate(
+    currentConversationId,
+    import.meta.env.VITE_PUSHER_KEY || "",
+    import.meta.env.VITE_PUSHER_CLUSTER || "",
+    user?.tenantId,
+    user?.id,
+  );
+
   // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
@@ -95,6 +106,11 @@ const Dashboard = () => {
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
     useSidebarState();
 
+  // Track animated titles for smooth typing effect
+  const [animatedTitles, setAnimatedTitles] = useState<Map<string, string>>(
+    new Map(),
+  );
+
   // Message filtering state for ChatGPT-style visual clearing
   // Track which messages to show (index in messages array)
   // When user sends new message, we set this to current length to hide old messages
@@ -104,6 +120,58 @@ const Dashboard = () => {
   useEffect(() => {
     setShowMessagesFromIndex(0);
   }, [currentConversationId]);
+
+  // Handle title updates with typing animation
+  useEffect(() => {
+    if (!updatedTitle || !currentConversationId) return;
+
+    if (import.meta.env.DEV) {
+      console.log(
+        "[Dashboard] Title update received:",
+        updatedTitle,
+        "for conversation:",
+        currentConversationId,
+      );
+    }
+
+    // Use interval for typing animation instead of recursive setTimeout
+    let currentIndex = 0;
+    const targetTitle = updatedTitle;
+    let clearTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const interval = setInterval(() => {
+      if (currentIndex <= targetTitle.length) {
+        const partial = targetTitle.substring(0, currentIndex);
+        setAnimatedTitles((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(currentConversationId, partial);
+          return newMap;
+        });
+        currentIndex++;
+      } else {
+        // Animation complete
+        clearInterval(interval);
+
+        // Keep final title for 1 second before clearing
+        clearTimer = setTimeout(() => {
+          setAnimatedTitles((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(currentConversationId);
+            return newMap;
+          });
+          clearUpdatedTitle();
+        }, 1000);
+      }
+    }, 30); // 30ms per character for smooth typing
+
+    // CRITICAL: Cleanup interval and timer on unmount or dependency change
+    return () => {
+      clearInterval(interval);
+      if (clearTimer) {
+        clearTimeout(clearTimer);
+      }
+    };
+  }, [updatedTitle, currentConversationId, clearUpdatedTitle]);
 
   // Show/hide connection banner based on connection error state
   useEffect(() => {
@@ -406,11 +474,20 @@ const Dashboard = () => {
     infiniteConversationsData?.pages.flatMap((page) => page.data) || [];
 
   // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
-  const chatItems = allConversations.map((conv) => ({
-    id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
-    label: conv.title,
-    timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
-  }));
+  // Filter out conversations with empty titles (not yet named by LLM)
+  const chatItems = allConversations
+    .filter((conv) => conv.title && conv.title.trim() !== "")
+    .map((conv) => {
+      // Check if this conversation has an animated title in progress
+      const animatedTitle = animatedTitles.get(conv.conversationId);
+      const displayTitle = animatedTitle || getDisplayTitle(conv.title);
+
+      return {
+        id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
+        label: displayTitle, // Use animated title if available, otherwise use regular title
+        timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
+      };
+    });
 
   // Memoize pusherConfig to prevent unnecessary Pusher reconnections
   const pusherConfig = useMemo(

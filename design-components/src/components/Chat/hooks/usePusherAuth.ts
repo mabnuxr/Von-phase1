@@ -75,20 +75,16 @@ export function usePusherAuth(
     // Build standardized channel name: private-vonlabs-chat-{tenant_id}-{user_id}-{conversation_id}
     const channelName = `private-vonlabs-chat-${config.tenantId}-${config.userId}-${conversationId}`;
 
-    console.log(`[PUSHER] Will subscribe to channel: ${channelName}`);
-    console.log('[PUSHER] Channel params:', {
-      tenantId: config.tenantId,
-      userId: config.userId,
-      conversationId,
-      configChanged,
-      hasPusher: !!pusherRef.current,
-      hasChannel: !!channelRef.current,
-      currentChannel: channelRef.current?.name,
-    });
-
     try {
       // Get access token from localStorage
       const accessToken = localStorage.getItem('access_token');
+
+      // Validate token exists before proceeding
+      if (!accessToken || accessToken.trim() === '') {
+        console.warn('[usePusherAuth] No access token available - cannot authenticate Pusher');
+        setError(new Error('No access token available'));
+        return;
+      }
 
       if (import.meta.env.DEV) {
         console.log('[Pusher] Auth config:', {
@@ -117,7 +113,7 @@ export function usePusherAuth(
           // Add Authorization header to auth requests
           auth: {
             headers: {
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: `Bearer ${accessToken.trim()}`,
             },
           },
         });
