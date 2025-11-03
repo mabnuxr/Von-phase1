@@ -211,6 +211,8 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
 
           // Clear step messages from previous run
           state.stepMessages.clear();
+          state.toolCalls.clear();
+          state.toolCallArgs.clear();
 
           // Create the assistant message in the UI with run_id
           eventsRef.current.onMessageStart?.(wrapper.run_id);
@@ -497,18 +499,9 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
               next.delete(wrapper.run_id);
               return next;
             });
-            // NOTE: Don't delete stepMessages from React state - they need to persist
-            // for the final render. They'll be replaced on next RUN_STARTED.
-            // setStreamingStepMessages((prev) => {
-            //   const next = new Map(prev);
-            //   next.delete(wrapper.run_id);
-            //   return next;
-            // });
 
             // FIX: Clear all maps to prevent memory leaks
             state.messageContent.delete(wrapper.run_id);
-            state.toolCallArgs.clear(); // Clear accumulated args
-            state.toolCalls.clear(); // Clear tool calls map
             // NOTE: Don't clear stepMessages here - they need to persist for React rendering
             // They'll be cleared on the next RUN_STARTED
             state.currentRunId = null;

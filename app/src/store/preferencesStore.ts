@@ -428,7 +428,9 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
         ...state.integrationConfigs,
         [integrationId]: {
           ...(state.integrationConfigs[integrationId] || {
-            accessLevel: "user",
+            accessLevel: "tenant",
+            apiVersion: "v62.0",
+            environmentType: "production",
           }),
           ...config,
         },

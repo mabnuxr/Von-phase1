@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { motion } from 'framer-motion';
 
 export interface IconProps {
   className?: string;
@@ -570,3 +571,61 @@ export const PlusIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) =
   </svg>
 ));
 PlusIcon.displayName = 'PlusIcon';
+
+// SpinningCircles - 3D spinning circles for thinking/loading state
+// Two circles rotate on different axes (X and Y) creating a gyroscope effect
+export const SpinningCircles = memo<IconProps>(({ className = 'w-4 h-4' }) => (
+  <div
+    className={className}
+    style={{
+      perspective: '100px',
+      transformStyle: 'preserve-3d',
+    }}
+  >
+    <svg
+      className="w-4 h-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ transformStyle: 'preserve-3d' }}
+    >
+      {/* Circle rotating on X-axis (vertical tilt) */}
+      <motion.circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        animate={{
+          rotateX: [0, 360],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+        style={{ transformOrigin: 'center' }}
+      />
+      {/* Circle rotating on Y-axis (horizontal tilt) */}
+      <motion.circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="none"
+        animate={{
+          rotateY: [0, 360],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+        style={{ transformOrigin: 'center' }}
+      />
+    </svg>
+  </div>
+));
+SpinningCircles.displayName = 'SpinningCircles';

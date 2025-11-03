@@ -51,7 +51,9 @@ export function IntegrationConfigPane() {
 
   // Form state
   const [formData, setFormData] = useState<IntegrationConfig>({
-    accessLevel: "user",
+    accessLevel: "tenant",
+    apiVersion: "v62.0",
+    environmentType: "production",
   });
 
   // Validation errors state
@@ -64,7 +66,17 @@ export function IntegrationConfigPane() {
   useEffect(() => {
     if (configuringIntegrationId) {
       const existingConfig = integrationConfigs[configuringIntegrationId];
-      setFormData(existingConfig || { accessLevel: "user" });
+      // If existing config exists and has an ID (edit mode), use it
+      // Otherwise, always start fresh with tenant as default
+      if (existingConfig?.id) {
+        setFormData(existingConfig);
+      } else {
+        setFormData({
+          accessLevel: "tenant",
+          apiVersion: "v62.0",
+          environmentType: "production",
+        });
+      }
     }
   }, [configuringIntegrationId, integrationConfigs]);
 
@@ -74,7 +86,11 @@ export function IntegrationConfigPane() {
       clearIntegrationConfig(configuringIntegrationId);
     }
     setConfiguringIntegration(null);
-    setFormData({ accessLevel: "user" });
+    setFormData({
+      accessLevel: "tenant",
+      apiVersion: "v62.0",
+      environmentType: "production",
+    });
     setValidationErrors([]);
   };
 
@@ -338,15 +354,16 @@ export function IntegrationConfigPane() {
                       </label>
                       <input
                         type="text"
-                        value={formData.apiVersion || ""}
+                        value={formData.apiVersion || "v62.0"}
                         onChange={(e) =>
                           handleChange("apiVersion", e.target.value)
                         }
-                        className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
+                        className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
                         placeholder="v62.0"
+                        disabled={true}
                       />
                       <p className="mt-1.5 text-xs text-gray-500">
-                        Enter the Salesforce API version to use (e.g., v62.0)
+                        API version is currently fixed to v62.0
                       </p>
                     </div>
                   </>

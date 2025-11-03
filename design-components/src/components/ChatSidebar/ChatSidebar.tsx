@@ -221,7 +221,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   px-3 py-1.5 mx-0 my-0.5 text-sm cursor-pointer
                   transition-all duration-200 whitespace-nowrap overflow-hidden
                   text-ellipsis rounded-lg text-gray-900
-                  ${isSelected ? 'bg-gray-100 font-semibold' : 'bg-transparent hover:bg-gray-50 font-medium'}
+                  ${isSelected ? 'bg-gray-100 font-medium' : 'bg-transparent hover:bg-gray-50 font-normal'}
                 `}
                 onClick={() => onChatClick?.(item.id)}
               >
