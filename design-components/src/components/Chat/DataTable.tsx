@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Table } from 'rsuite';
 import type { TableData, QueryInfo } from './types';
 
@@ -97,6 +97,25 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
  * Uses rsuite Table for beautiful formatting
  */
 export const DataTable: React.FC<DataTableProps> = ({ data }) => {
+  // Memoize columns to prevent infinite re-render loop when parent resizes
+  // rsuite Table has internal state that gets confused when columns are recreated
+  const columns = useMemo(() => {
+    if (!data || !data.columns) return [];
+
+    return data.columns.map((col) => (
+      <Column key={col} flexGrow={1} minWidth={120} align="left">
+        <HeaderCell className="font-semibold text-gray-700 bg-gray-50 text-xs uppercase tracking-wide">
+          {col}
+        </HeaderCell>
+        <Cell dataKey={col}>
+          {(rowData: Record<string, unknown>) => (
+            <CellFormatter value={rowData[col]} columnName={col} />
+          )}
+        </Cell>
+      </Column>
+    ));
+  }, [data?.columns]);
+
   if (!data || !data.columns || !data.rows) {
     return <div className="text-sm text-gray-500 italic">No data available</div>;
   }
@@ -120,18 +139,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
           rowHeight={36}
           hover
         >
-          {data.columns.map((col) => (
-            <Column key={col} flexGrow={1} minWidth={120} align="left">
-              <HeaderCell className="font-semibold text-gray-700 bg-gray-50 text-xs uppercase tracking-wide">
-                {col}
-              </HeaderCell>
-              <Cell dataKey={col}>
-                {(rowData: Record<string, unknown>) => (
-                  <CellFormatter value={rowData[col]} columnName={col} />
-                )}
-              </Cell>
-            </Column>
-          ))}
+          {columns}
         </Table>
       </div>
     </div>

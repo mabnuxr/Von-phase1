@@ -49,7 +49,10 @@ export const SidePane: React.FC<SidePaneProps> = ({
   const [currentWidth, setCurrentWidth] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(storageKey);
-      return saved || width;
+      // Validate saved value before using it
+      if (saved && saved.trim() !== '' && !saved.includes('NaN')) {
+        return saved;
+      }
     }
     return width;
   });
@@ -82,7 +85,14 @@ export const SidePane: React.FC<SidePaneProps> = ({
   // Save width to localStorage when it changes
   useEffect(() => {
     if (typeof window !== 'undefined' && currentWidth !== width) {
-      localStorage.setItem(storageKey, currentWidth);
+      // Only save valid width values
+      if (currentWidth && !currentWidth.includes('NaN') && !currentWidth.includes('Infinity')) {
+        try {
+          localStorage.setItem(storageKey, currentWidth);
+        } catch (error) {
+          console.warn('Failed to save SidePane width to localStorage:', error);
+        }
+      }
     }
   }, [currentWidth, storageKey, width]);
 
@@ -94,8 +104,13 @@ export const SidePane: React.FC<SidePaneProps> = ({
     setIsDragging(true);
     dragStartX.current = e.clientX;
 
-    // Get current panel width in pixels
-    const currentWidthPx = panelRef.current?.offsetWidth || parseInt(currentWidth);
+    // Get current panel width in pixels - safely parse
+    let currentWidthPx = panelRef.current?.offsetWidth;
+    if (!currentWidthPx) {
+      // Fallback: extract numeric value from currentWidth string
+      const numericValue = parseInt(currentWidth.replace(/[^0-9]/g, ''), 10);
+      currentWidthPx = isNaN(numericValue) ? minWidth : numericValue;
+    }
     dragStartWidth.current = currentWidthPx;
   };
 
@@ -108,12 +123,23 @@ export const SidePane: React.FC<SidePaneProps> = ({
       const deltaX = dragStartX.current - e.clientX;
       const newWidthPx = dragStartWidth.current + deltaX;
 
-      // Calculate max width in pixels
-      const maxWidthPx = maxWidth === '90vw' ? window.innerWidth * 0.9 : parseInt(maxWidth);
+      // Calculate max width in pixels - safely parse
+      let maxWidthPx: number;
+      if (maxWidth === '90vw') {
+        maxWidthPx = window.innerWidth * 0.9;
+      } else {
+        // Extract numeric value safely
+        const numericValue = parseInt(maxWidth.replace(/[^0-9]/g, ''), 10);
+        maxWidthPx = isNaN(numericValue) ? window.innerWidth * 0.9 : numericValue;
+      }
 
-      // Enforce constraints
+      // Enforce constraints and ensure valid number
       const constrainedWidth = Math.max(minWidth, Math.min(newWidthPx, maxWidthPx));
-      setCurrentWidth(`${constrainedWidth}px`);
+
+      // Only update if we have a valid number
+      if (!isNaN(constrainedWidth) && isFinite(constrainedWidth)) {
+        setCurrentWidth(`${Math.round(constrainedWidth)}px`);
+      }
     };
 
     const handleMouseUp = () => {
