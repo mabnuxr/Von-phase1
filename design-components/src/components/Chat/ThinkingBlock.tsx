@@ -100,7 +100,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
             <div className="px-3 py-2 pt-0">
               {children ? (
                 // Render JSX children with enhanced visual styling for thinking content
-                <div className="bg-gray-50/40 rounded-lg border-l-2 border-gray-300/50 pl-3 py-2">
+                <div className="bg-gray-50/40 rounded-lg pl-3 py-2">
                   <div className="text-xs text-gray-600 leading-snug prose prose-xs markdown-body max-w-none font-sf">
                     {children}
                   </div>
