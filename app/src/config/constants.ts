@@ -93,7 +93,7 @@ export const MAX_REPLAY_CACHE_SIZE = 1000 as const;
  * Timeout duration in milliseconds while waiting for response
  * After this time, the response will be considered timed out
  */
-export const STREAM_TIMEOUT_MS = 180000 as const; // 180 seconds (3 minutes)
+export const STREAM_TIMEOUT_MS = 300000 as const; // 300 seconds (5 minutes)
 
 // ============================================================================
 // Artifact Query Configuration Constants

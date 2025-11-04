@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import createSelectors from "./createSelectors";
-import type { Message } from "../types/conversation";
+import type { MessageWithStreaming } from "../types/conversation";
 
 interface ChatState {
   // Conversation state
@@ -12,10 +12,16 @@ interface ChatState {
   setSidebarExpanded: (expand: boolean) => void;
 
   // Messages state - keyed by conversationId.
-  messages: Record<string, Message[]>;
-  setMessages: (conversationId: string, messages: Message[]) => void;
-  addMessage: (conversationId: string, message: Message) => void;
-  prependMessages: (conversationId: string, olderMessages: Message[]) => void;
+  messages: Record<string, MessageWithStreaming[]>;
+  setMessages: (
+    conversationId: string,
+    messages: MessageWithStreaming[],
+  ) => void;
+  addMessage: (conversationId: string, message: MessageWithStreaming) => void;
+  prependMessages: (
+    conversationId: string,
+    olderMessages: MessageWithStreaming[],
+  ) => void;
   clearMessages: (conversationId: string) => void;
 
   // Message loading state

@@ -257,42 +257,51 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {/* Render stepMessages if available (AGUI multi-step responses) */}
                       {stepMessages && stepMessages.length > 0 ? (
                         <div className="space-y-6">
-                          {/* Always use same structure: ThinkingBlock for intermediate steps + final message */}
-                          {stepMessages.length > 1 && (
+                          {/* STREAMING STRATEGY: Always show ThinkingBlock during streaming to prevent jitter */}
+                          {isStreaming ? (
+                            // While streaming: Show ALL steps in ThinkingBlock (no final message extracted)
                             <ThinkingBlock
                               key="thinking-block"
                               isStreaming={isStreaming}
                               status={status}
-                            >
-                              <div className="ml-[-17px] space-y-0">
-                                {stepMessages.slice(0, -1).map((step, index) => (
-                                  <div key={step.message_id || index} className="relative">
-                                    {/* Text content as bullet point */}
-                                    {step.content && (
-                                      <div className="flex items-start gap-3 pb-4">
-                                        {/* Bullet dot only (no vertical line) */}
-                                        <div className="flex-shrink-0 w-2 pt-2">
-                                          {/* Bullet dot */}
-                                          <div className="w-2 h-2 rounded-full bg-gray-400" />
-                                        </div>
+                              stepMessages={stepMessages}
+                              onArtifactClick={handleArtifactClick}
+                            />
+                          ) : (
+                            // After completion: Show intermediate steps in ThinkingBlock + final step outside
+                            <>
+                              {stepMessages.length > 1 && (
+                                <ThinkingBlock
+                                  key="thinking-block"
+                                  isStreaming={false}
+                                  status={status}
+                                  stepMessages={stepMessages.slice(0, -1)}
+                                  onArtifactClick={handleArtifactClick}
+                                />
+                              )}
 
-                                        {/* Text content */}
-                                        <div className="flex-1 prose-sm markdown-body max-w-none">
-                                          <Streamdown
-                                            parseIncompleteMarkdown={isStreaming}
-                                            isAnimating={isStreaming}
-                                            controls={{ table: true }}
-                                          >
-                                            {step.content}
-                                          </Streamdown>
-                                        </div>
+                              {/* Final Message - Rendered outside ThinkingBlock after completion */}
+                              {(() => {
+                                const finalStep = stepMessages[stepMessages.length - 1];
+                                return (
+                                  <div className="space-y-3">
+                                    {/* Final step content */}
+                                    {finalStep.content && (
+                                      <div className="prose-sm markdown-body max-w-none">
+                                        <Streamdown
+                                          parseIncompleteMarkdown={false}
+                                          isAnimating={false}
+                                          controls={{ table: true }}
+                                        >
+                                          {finalStep.content}
+                                        </Streamdown>
                                       </div>
                                     )}
 
-                                    {/* Tool calls below text - left-aligned with text, no dots */}
-                                    {step.toolCalls && step.toolCalls.length > 0 && (
-                                      <div className="ml-5 pb-4 space-y-2">
-                                        {step.toolCalls.map((toolCall) => (
+                                    {/* Tool calls for final step */}
+                                    {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
+                                      <div className="space-y-2">
+                                        {finalStep.toolCalls.map((toolCall) => (
                                           <ToolCallItem
                                             key={toolCall.id}
                                             toolCall={toolCall}
@@ -302,44 +311,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                       </div>
                                     )}
                                   </div>
-                                ))}
-                              </div>
-                            </ThinkingBlock>
+                                );
+                              })()}
+                            </>
                           )}
-
-                          {/* Final Message - Always rendered prominently outside ThinkingBlock */}
-                          {(() => {
-                            const finalStep = stepMessages[stepMessages.length - 1];
-                            return (
-                              <div className="space-y-3">
-                                {/* Final step content */}
-                                {finalStep.content && (
-                                  <div className="prose-sm markdown-body max-w-none">
-                                    <Streamdown
-                                      parseIncompleteMarkdown={isStreaming}
-                                      isAnimating={isStreaming}
-                                      controls={{ table: true }}
-                                    >
-                                      {finalStep.content}
-                                    </Streamdown>
-                                  </div>
-                                )}
-
-                                {/* Tool calls for final step */}
-                                {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
-                                  <div className="space-y-2">
-                                    {finalStep.toolCalls.map((toolCall) => (
-                                      <ToolCallItem
-                                        key={toolCall.id}
-                                        toolCall={toolCall}
-                                        onArtifactClick={handleArtifactClick}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
                         </div>
                       ) : (
                         /* Fallback: render plain content if no stepMessages */

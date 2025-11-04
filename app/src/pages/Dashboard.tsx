@@ -10,7 +10,7 @@ import { useSendMessage } from "../hooks/useSendMessage";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { startProviderLogout } from "../lib/authFlow";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
@@ -45,6 +45,13 @@ const Dashboard = () => {
   const conversationMessages = useMemo(
     () => (currentConversationId ? messages[currentConversationId] || [] : []),
     [currentConversationId, messages],
+  );
+
+  // Detect if current conversation has any streaming messages
+  // This prevents users from switching conversations during active streaming
+  const isCurrentlyStreaming = useMemo(
+    () => conversationMessages.some((msg) => msg.isStreaming),
+    [conversationMessages],
   );
 
   // Initialize conversation (load latest or create new)
@@ -328,21 +335,25 @@ const Dashboard = () => {
   };
 
   // Handle stream timeout - force clear state and refetch messages from backend
-  const handleStreamTimeout = async (messageId: string) => {
-    if (!currentConversationId) return;
+  // Wrapped in useCallback to prevent timer resets in useStreamTimeout
+  const handleStreamTimeout = useCallback(
+    async (messageId: string) => {
+      if (!currentConversationId) return;
 
-    // FIX: Force clear streaming state immediately (re-enables input)
-    // This ensures the UI is responsive even if backend is down
-    useChatStore
-      .getState()
-      .markMessageTimeout(currentConversationId, messageId);
+      // FIX: Force clear streaming state immediately (re-enables input)
+      // This ensures the UI is responsive even if backend is down
+      useChatStore
+        .getState()
+        .markMessageTimeout(currentConversationId, messageId);
 
-    // THEN refetch messages to get the latest status from backend
-    // Backend will have marked this message as TIMEOUT or soft-deleted it
-    if (refetchMessages) {
-      await refetchMessages();
-    }
-  };
+      // THEN refetch messages to get the latest status from backend
+      // Backend will have marked this message as TIMEOUT or soft-deleted it
+      if (refetchMessages) {
+        await refetchMessages();
+      }
+    },
+    [currentConversationId, refetchMessages],
+  );
 
   // Cache for replayed events to avoid reprocessing on every render
   // FIX: Add size limit to prevent unbounded memory growth
@@ -441,7 +452,20 @@ const Dashboard = () => {
     });
   }, [conversationMessages]);
 
-  // Client-side timeout detection (60 seconds)
+  // Force complete message handler for timeout
+  // Wrapped in useCallback to prevent timer resets in useStreamTimeout
+  const handleForceComplete = useCallback(
+    (messageId: string) => {
+      if (currentConversationId) {
+        useChatStore
+          .getState()
+          .forceCompleteMessage(currentConversationId, messageId);
+      }
+    },
+    [currentConversationId],
+  );
+
+  // Client-side timeout detection (5 minutes)
   // This triggers a refetch to get the latest status from backend
   // Use conversationMessages (MessageWithStreaming[]) instead of transformedMessages (Message[])
   useStreamTimeout(
@@ -450,14 +474,7 @@ const Dashboard = () => {
     {
       timeoutMs: STREAM_TIMEOUT_MS,
       onTimeout: handleStreamTimeout,
-      // FIX: Force-clear streaming state immediately on timeout
-      onForceComplete: (messageId) => {
-        if (currentConversationId) {
-          useChatStore
-            .getState()
-            .forceCompleteMessage(currentConversationId, messageId);
-        }
-      },
+      onForceComplete: handleForceComplete,
     },
   );
 
@@ -572,6 +589,7 @@ const Dashboard = () => {
               isFetchingMore={isFetchingNextPage}
               hasNextPage={!!hasNextPage}
               onLoadMore={() => fetchNextPage()}
+              disabled={isCurrentlyStreaming}
             />
           </div>
 

@@ -298,29 +298,6 @@ export const Chat: React.FC<ChatProps> = ({
       });
   }, [messages, isLoading, effectiveShowFromIndex]);
 
-  // FIX: Failsafe watchdog - Force re-enable input if stuck for >10s
-  useEffect(() => {
-    const streamingMessages = messages.filter((m) => m.isStreaming);
-    if (streamingMessages.length === 0) return;
-
-    // Set timer to force-complete after 10s (for debugging)
-    const timer = setTimeout(() => {
-      streamingMessages.forEach((msg) => {
-        // Force completion via parent callback
-        if (onPusherMessage && conversationId) {
-          onPusherMessage({
-            ...msg,
-            isStreaming: false,
-            status: 'timeout',
-            errorMessage: 'Message timed out',
-          } as Message);
-        }
-      });
-    }, 10000); // 10s for debugging (change to 65000 after fixing)
-
-    return () => clearTimeout(timer);
-  }, [messages, conversationId, onPusherMessage]);
-
   // Handle sending a message
   const handleSendMessage = useCallback(
     async (content: string) => {

@@ -16,7 +16,7 @@ interface ToolCallItemProps {
  *
  * Simple display for tool calls in the thinking block.
  * - No dots, no icons
- * - Shows "Query Executed" heading
+ * - Shows "Executing query..." while pending, "Query executed" when complete
  * - Blue if clickable (has artifact), red if error
  * - Shows "(failed)" indicator for errors
  * - Shows truncated error message below if present
@@ -26,8 +26,21 @@ export function ToolCallItem({ toolCall, onArtifactClick }: ToolCallItemProps) {
   const isError = toolCall.status === 'error' || toolCall.artifact?.success === false;
   const errorMessage = toolCall.artifact?.error || toolCall.result?.error;
 
-  // All tool calls display "Query Executed"
-  const headingText = 'Query Executed';
+  // Dynamic status text based on metadata presence
+  // Show "Executing query..." until metadata arrives from backend
+  const getDisplayText = () => {
+    // Show "Executing query..." until we have metadata from backend
+    // Metadata = artifact data OR inline result (not just status change)
+    const hasMetadata = toolCall.artifact || toolCall.result;
+
+    if (!hasMetadata && toolCall.status !== 'error') {
+      return 'Executing query...';
+    }
+
+    return 'Query executed';
+  };
+
+  const headingText = getDisplayText();
 
   // Determine color based on state
   const headingColor = isError ? 'text-red-600' : hasArtifact ? 'text-blue-600' : 'text-gray-900';
