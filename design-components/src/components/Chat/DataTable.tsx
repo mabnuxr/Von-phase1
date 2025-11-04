@@ -103,13 +103,13 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
     if (!data || !data.columns) return [];
 
     return data.columns.map((col) => (
-      <Column key={col} flexGrow={1} minWidth={120} align="left">
+      <Column key={col.name} flexGrow={1} minWidth={120} align="left" resizable={true}>
         <HeaderCell className="font-semibold text-gray-700 bg-gray-50 text-xs uppercase tracking-wide">
-          {col}
+          {col.display_name}
         </HeaderCell>
-        <Cell dataKey={col}>
+        <Cell dataKey={col.name}>
           {(rowData: Record<string, unknown>) => (
-            <CellFormatter value={rowData[col]} columnName={col} />
+            <CellFormatter value={rowData[col.name]} columnName={col.name} />
           )}
         </Cell>
       </Column>
