@@ -74,6 +74,13 @@ export interface ChatSidebarProps {
    * Callback to load more items
    */
   onLoadMore?: () => void;
+
+  /**
+   * Whether the sidebar is disabled (e.g., during streaming)
+   * When disabled, chat clicks and new chat button are prevented
+   * @default false
+   */
+  disabled?: boolean;
 }
 
 /**
@@ -106,6 +113,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isFetchingMore = false,
   hasNextPage = false,
   onLoadMore,
+  disabled = false,
 }) => {
   // Collapsed state - show minimal sidebar with toggle button
   if (isCollapsed) {
@@ -150,11 +158,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     >
       {/* New Chat Button */}
       <motion.button
-        className="w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-semibold cursor-pointer"
-        onClick={onNewChatClick}
-        whileHover={{ scale: 1.02, opacity: 0.9 }}
-        whileTap={{ scale: 0.98 }}
+        className={`w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-semibold transition-all duration-200 ${
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+        }`}
+        onClick={disabled ? undefined : onNewChatClick}
+        whileHover={disabled ? {} : { scale: 1.02, opacity: 0.9 }}
+        whileTap={disabled ? {} : { scale: 0.98 }}
         transition={{ duration: 0.2 }}
+        disabled={disabled}
+        title={disabled ? 'Please wait for the current response to complete' : 'Create a new chat'}
       >
         New Chat
         <svg
@@ -218,12 +230,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               <div
                 key={item.id}
                 className={`
-                  px-3 py-1.5 mx-0 my-0.5 text-sm cursor-pointer
+                  px-3 py-1.5 mx-0 my-0.5 text-sm text-gray-900
                   transition-all duration-200 whitespace-nowrap overflow-hidden
-                  text-ellipsis rounded-lg text-gray-900
-                  ${isSelected ? 'bg-gray-100 font-medium' : 'bg-transparent hover:bg-gray-50 font-normal'}
+                  text-ellipsis rounded-lg
+                  ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
+                  ${
+                    isSelected
+                      ? 'bg-gray-100 font-medium'
+                      : disabled
+                        ? 'bg-transparent font-normal'
+                        : 'bg-transparent hover:bg-gray-50 font-normal'
+                  }
                 `}
-                onClick={() => onChatClick?.(item.id)}
+                onClick={disabled ? undefined : () => onChatClick?.(item.id)}
+                title={disabled ? 'Please wait for the current response to complete' : item.label}
               >
                 {item.label}
               </div>
