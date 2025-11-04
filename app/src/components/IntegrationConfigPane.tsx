@@ -105,16 +105,6 @@ export function IntegrationConfigPane() {
       if (!formData.environmentType) {
         errors.push("Environment Type is required");
       }
-      if (!formData.instanceUrl || formData.instanceUrl.trim() === "") {
-        errors.push("Instance URL is required");
-      }
-      if (!formData.apiVersion || formData.apiVersion.trim() === "") {
-        errors.push("API Version is required");
-      }
-    } else if (configuringIntegrationId === "gong") {
-      if (!formData.gongInstanceUrl || formData.gongInstanceUrl.trim() === "") {
-        errors.push("Instance URL is required");
-      }
     }
 
     // If there are validation errors, display them and return
@@ -131,11 +121,7 @@ export function IntegrationConfigPane() {
       const config: Record<string, unknown> = {};
 
       if (configuringIntegrationId === "salesforce") {
-        config.instance_url = formData.instanceUrl;
         config.environment_type = formData.environmentType;
-        config.api_version = formData.apiVersion;
-      } else if (configuringIntegrationId === "gong") {
-        config.instance_url = formData.gongInstanceUrl;
       }
 
       if (isEditMode && formData.id) {
@@ -324,71 +310,7 @@ export function IntegrationConfigPane() {
                         />
                       </div>
                     </div>
-
-                    {/* Instance URL */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                        Instance URL
-                        <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.instanceUrl || ""}
-                        onChange={(e) =>
-                          handleChange("instanceUrl", e.target.value)
-                        }
-                        className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                        placeholder="rattle.my.salesforce.com"
-                      />
-                      <p className="mt-1.5 text-xs text-gray-500">
-                        Enter your Salesforce instance URL (e.g.,
-                        rattle.my.salesforce.com)
-                      </p>
-                    </div>
-
-                    {/* API Version */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                        API Version
-                        <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.apiVersion || "v62.0"}
-                        onChange={(e) =>
-                          handleChange("apiVersion", e.target.value)
-                        }
-                        className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
-                        placeholder="v62.0"
-                        disabled={true}
-                      />
-                      <p className="mt-1.5 text-xs text-gray-500">
-                        API version is currently fixed to v62.0
-                      </p>
-                    </div>
                   </>
-                )}
-
-                {/* Gong-specific fields */}
-                {configuringIntegrationId === "gong" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">
-                      Instance URL
-                      <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.gongInstanceUrl || ""}
-                      onChange={(e) =>
-                        handleChange("gongInstanceUrl", e.target.value)
-                      }
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                      placeholder="gong"
-                    />
-                    <p className="mt-1.5 text-xs text-gray-500">
-                      Enter your Gong instance URL.
-                    </p>
-                  </div>
                 )}
               </div>
             )}
