@@ -5,6 +5,7 @@ import { RadioButton, Banner } from "@vonlabs/design-components";
 import {
   useCreateIntegration,
   useUpdateIntegration,
+  useAuthorizeIntegration,
 } from "../hooks/useIntegrations";
 import type { IntegrationType } from "../services/integrationsService";
 
@@ -48,6 +49,7 @@ export function IntegrationConfigPane() {
   // React Query mutations
   const createMutation = useCreateIntegration();
   const updateMutation = useUpdateIntegration();
+  const authorizeMutation = useAuthorizeIntegration();
 
   // Form state
   const [formData, setFormData] = useState<IntegrationConfig>({
@@ -133,18 +135,45 @@ export function IntegrationConfigPane() {
             config,
           },
         });
+        // For updates, just close and navigate (don't re-authorize)
+        handleClose();
+        setIntegrationsActiveTab("active-integrations");
       } else {
         // Create new integration
-        await createMutation.mutateAsync({
+        const savedIntegration = await createMutation.mutateAsync({
           type: configuringIntegrationId.toUpperCase() as IntegrationType,
           accessLevel: formData.accessLevel,
           config,
         });
-      }
 
-      // Success: close pane and switch to Active Integrations tab
-      handleClose();
-      setIntegrationsActiveTab("active-integrations");
+        // Automatically trigger OAuth authorization for new integrations
+        try {
+          await authorizeMutation.mutateAsync(savedIntegration.id);
+          // OAuth initiated successfully - close pane and navigate
+          handleClose();
+          setIntegrationsActiveTab("active-integrations");
+        } catch (oauthError: unknown) {
+          // Handle OAuth-specific errors
+          const oauthErrorMessage =
+            oauthError &&
+            typeof oauthError === "object" &&
+            "message" in oauthError
+              ? (oauthError as { message: string }).message
+              : "Failed to initiate authorization. Please try again from Active Integrations.";
+
+          // Show error but still navigate (integration was saved successfully)
+          setValidationErrors([
+            "Integration saved successfully, but authorization failed to start: " +
+              oauthErrorMessage,
+          ]);
+
+          // Navigate after showing error for 2 seconds
+          setTimeout(() => {
+            handleClose();
+            setIntegrationsActiveTab("active-integrations");
+          }, 2000);
+        }
+      }
     } catch (error: unknown) {
       // Handle 409 Conflict errors (duplicate integration)
       if (error && typeof error === "object" && "response" in error) {
@@ -340,7 +369,9 @@ export function IntegrationConfigPane() {
                   onClick={handleClose}
                   className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                   disabled={
-                    createMutation.isPending || updateMutation.isPending
+                    createMutation.isPending ||
+                    updateMutation.isPending ||
+                    authorizeMutation.isPending
                   }
                 >
                   Cancel
@@ -348,15 +379,19 @@ export function IntegrationConfigPane() {
                 <button
                   onClick={handleSave}
                   disabled={
-                    createMutation.isPending || updateMutation.isPending
+                    createMutation.isPending ||
+                    updateMutation.isPending ||
+                    authorizeMutation.isPending
                   }
                   className="px-4 py-2 text-sm font-medium text-white bg-von-purple border border-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {createMutation.isPending || updateMutation.isPending
-                    ? "Saving..."
-                    : isEditMode
-                      ? "Update integration"
-                      : "Save integration"}
+                  {authorizeMutation.isPending
+                    ? "Authorizing..."
+                    : createMutation.isPending || updateMutation.isPending
+                      ? "Saving..."
+                      : isEditMode
+                        ? "Update integration"
+                        : "Save integration"}
                 </button>
               </div>
             </div>
