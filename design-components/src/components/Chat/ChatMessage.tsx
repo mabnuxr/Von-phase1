@@ -344,7 +344,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       ) : (
                         /* Fallback: render plain content if no stepMessages */
                         content && (
-                          <div className="prose markdown-body max-w-none">
+                          <div className="prose-sm markdown-body max-w-none">
                             <Streamdown
                               parseIncompleteMarkdown={isStreaming}
                               isAnimating={isStreaming}
@@ -358,7 +358,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </>
                   ) : (
                     // User messages - simple rendering
-                    <div className="prose markdown-body max-w-none">
+                    <div className="prose-sm markdown-body max-w-none">
                       <Streamdown parseIncompleteMarkdown={false} controls={{ table: true }}>
                         {content}
                       </Streamdown>

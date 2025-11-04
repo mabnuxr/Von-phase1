@@ -325,8 +325,13 @@ export interface ToolResult {
   error?: string;
 }
 
+export interface ColumnMetadata {
+  name: string;
+  display_name: string;
+}
+
 export interface TableData {
-  columns: string[];
+  columns: ColumnMetadata[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rows: Record<string, any>[];
   rowCount: number;

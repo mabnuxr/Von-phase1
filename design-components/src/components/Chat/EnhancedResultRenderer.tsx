@@ -171,7 +171,7 @@ const TableResultView = ({ result }: { result: ToolResult }) => {
                   key={i}
                   className="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider"
                 >
-                  {col}
+                  {col.display_name}
                 </th>
               ))}
             </tr>
@@ -187,7 +187,7 @@ const TableResultView = ({ result }: { result: ToolResult }) => {
               >
                 {table.columns.map((col, j) => (
                   <td key={j} className="px-4 py-2.5 text-sm text-gray-900">
-                    {formatCellValue(row[col])}
+                    {formatCellValue(row[col.name])}
                   </td>
                 ))}
               </motion.tr>

@@ -14,7 +14,7 @@ interface ValuesRendererProps {
  * Shows percentages and allows expanding to see all values.
  */
 export const ValuesRenderer: React.FC<ValuesRendererProps> = ({ values }) => {
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
 
   const displayValues = showAll ? values : values.slice(0, 5);
   const hasMore = values.length > 5;

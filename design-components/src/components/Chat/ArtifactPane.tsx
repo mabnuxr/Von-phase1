@@ -105,7 +105,7 @@ export function ArtifactPane({
   onClose,
   useArtifactHook,
 }: ArtifactPaneProps) {
-  const [activeTab, setActiveTab] = useState<'result' | 'sql'>('result');
+  const [activeTab, setActiveTab] = useState<'result' | 'query'>('result');
   const { data: artifact, isLoading, error } = useArtifactHook(conversationId, runId, artifactId);
 
   // Check if artifact represents a failed tool execution
@@ -153,7 +153,7 @@ export function ArtifactPane({
                         string,
                         unknown
                       >
-                    ).columns as string[]) || [],
+                    ).columns as import('./types').ColumnMetadata[]) || [],
                   rows:
                     ((
                       (artifact.content as Record<string, unknown>).sample as Record<
@@ -286,14 +286,14 @@ export function ArtifactPane({
             </button>
             {queries && queries.length > 0 && (
               <button
-                onClick={() => setActiveTab('sql')}
+                onClick={() => setActiveTab('query')}
                 className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === 'sql'
+                  activeTab === 'query'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                 }`}
               >
-                SQL
+                Query
               </button>
             )}
           </div>
@@ -307,7 +307,7 @@ export function ArtifactPane({
                 source={errorInfo.source}
               />
             )}
-            {activeTab === 'sql' && queries && (
+            {activeTab === 'query' && queries && (
               <div className="p-4">
                 <div className="space-y-4">
                   {queries.map((query: QueryInfo, index: number) => (
@@ -348,14 +348,14 @@ export function ArtifactPane({
             </button>
             {toolResult.queries && toolResult.queries.length > 0 && (
               <button
-                onClick={() => setActiveTab('sql')}
+                onClick={() => setActiveTab('query')}
                 className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                  activeTab === 'sql'
+                  activeTab === 'query'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                 }`}
               >
-                SQL
+                Query
               </button>
             )}
           </div>
@@ -363,7 +363,7 @@ export function ArtifactPane({
           {/* Tab Content */}
           <div className="flex-1 overflow-auto">
             {activeTab === 'result' && <ToolResultRenderer result={toolResult} />}
-            {activeTab === 'sql' && toolResult.queries && (
+            {activeTab === 'query' && toolResult.queries && (
               <div className="p-4">
                 <div className="space-y-4">
                   {toolResult.queries.map((query, index) => (
