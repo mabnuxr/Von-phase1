@@ -13,9 +13,15 @@ interface ChatState {
 
   // Messages state - keyed by conversationId.
   messages: Record<string, MessageWithStreaming[]>;
-  setMessages: (conversationId: string, messages: MessageWithStreaming[]) => void;
+  setMessages: (
+    conversationId: string,
+    messages: MessageWithStreaming[],
+  ) => void;
   addMessage: (conversationId: string, message: MessageWithStreaming) => void;
-  prependMessages: (conversationId: string, olderMessages: MessageWithStreaming[]) => void;
+  prependMessages: (
+    conversationId: string,
+    olderMessages: MessageWithStreaming[],
+  ) => void;
   clearMessages: (conversationId: string) => void;
 
   // Message loading state
