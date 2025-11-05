@@ -576,14 +576,13 @@ PlusIcon.displayName = 'PlusIcon';
 // Two circles rotate on different axes (X and Y) creating a gyroscope effect
 export const SpinningCircles = memo<IconProps>(({ className = 'w-4 h-4' }) => (
   <div
-    className={className}
     style={{
-      perspective: '100px',
+      perspective: '150px',
       transformStyle: 'preserve-3d',
     }}
   >
     <svg
-      className="w-4 h-4"
+      className={className}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -593,7 +592,7 @@ export const SpinningCircles = memo<IconProps>(({ className = 'w-4 h-4' }) => (
       <motion.circle
         cx="12"
         cy="12"
-        r="10"
+        r="8"
         stroke="currentColor"
         strokeWidth="2"
         fill="none"
@@ -611,7 +610,7 @@ export const SpinningCircles = memo<IconProps>(({ className = 'w-4 h-4' }) => (
       <motion.circle
         cx="12"
         cy="12"
-        r="10"
+        r="8"
         stroke="currentColor"
         strokeWidth="2"
         fill="none"

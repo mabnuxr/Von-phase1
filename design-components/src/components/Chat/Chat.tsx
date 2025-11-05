@@ -103,7 +103,7 @@ export const Chat: React.FC<ChatProps> = ({
     const handleScroll = () => {
       const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       // Within 50px of bottom → enable auto-scroll (ChatGPT uses tighter threshold)
-      shouldAutoScrollRef.current = distanceFromBottom < 50;
+      shouldAutoScrollRef.current = distanceFromBottom < 100;
     };
 
     el.addEventListener('scroll', handleScroll, { passive: true });

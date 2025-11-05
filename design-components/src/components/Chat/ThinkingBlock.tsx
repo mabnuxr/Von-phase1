@@ -137,9 +137,8 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
       >
         <div className="flex items-center justify-between flex-1 min-w-0 hover:opacity-80">
           <div className="flex items-center gap-2">
-            {isStreaming ? (
-              <SpinningCircles className="text-gray-500 group-hover:text-gray-700 transition-colors flex-shrink-0 ml-2" />
-            ) : (
+            {/* Chevron icon - shows when not streaming or when collapsed */}
+            {!isStreaming && (
               <motion.svg
                 className="w-4 h-4 text-gray-500 group-hover:text-gray-700 transition-colors flex-shrink-0 ml-2"
                 fill="none"
@@ -159,7 +158,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
 
             {/* Label */}
             {isStreaming ? (
-              <span className="text-sm font-medium relative inline-block">
+              <span className="text-sm font-medium relative inline-block ml-2">
                 <span
                   className="bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700"
                   style={{
@@ -247,6 +246,16 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Streaming indicator - appears below content only during streaming */}
+      {isStreaming && !prefersReducedMotion && (
+        <div className="w-full flex items-center gap-3 ml-3">
+          {/* Spinning circles */}
+          <div className="text-purple-500">
+            <SpinningCircles className="w-8 h-8" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
