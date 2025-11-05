@@ -28,7 +28,11 @@ interface ToolCallItemProps {
  * - Shows truncated error message below if present
  * - Shows incrementing timer during execution with purple shimmer animation
  */
-export function ToolCallItem({ toolCall, onArtifactClick, isStreaming = false }: ToolCallItemProps) {
+export function ToolCallItem({
+  toolCall,
+  onArtifactClick,
+  isStreaming = false,
+}: ToolCallItemProps) {
   const hasArtifact = Boolean(toolCall.artifact?.artifact_id);
   const isError = toolCall.status === 'error' || toolCall.artifact?.success === false;
   const errorMessage = toolCall.artifact?.error || toolCall.result?.error;
@@ -39,8 +43,7 @@ export function ToolCallItem({ toolCall, onArtifactClick, isStreaming = false }:
 
   // Check for reduced motion preference
   const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Dynamic status text based on metadata presence
   // Show "Executing query..." until metadata arrives from backend
@@ -118,13 +121,17 @@ export function ToolCallItem({ toolCall, onArtifactClick, isStreaming = false }:
         {/* Text with optional purple shimmer animation */}
         <h4
           className={`text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors ${
-            isExecuting ? 'bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700' : ''
+            isExecuting
+              ? 'bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700'
+              : ''
           }`}
           style={
             isExecuting
               ? {
                   backgroundSize: '250% 100%',
-                  animation: prefersReducedMotion ? undefined : 'thinkingShimmer 2.2s linear infinite',
+                  animation: prefersReducedMotion
+                    ? undefined
+                    : 'thinkingShimmer 2.2s linear infinite',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }
@@ -150,9 +157,7 @@ export function ToolCallItem({ toolCall, onArtifactClick, isStreaming = false }:
 
         {/* Timer on the right - only show during live streaming */}
         {isStreaming && toolCall.startTime && (
-          <span className="text-xs text-gray-500 font-medium ml-2">
-            {formatTime(elapsedMs)}
-          </span>
+          <span className="text-xs text-gray-500 font-medium ml-2">{formatTime(elapsedMs)}</span>
         )}
       </div>
 
