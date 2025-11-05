@@ -128,6 +128,7 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
                         key={toolCall.id}
                         toolCall={toolCall}
                         onArtifactClick={onArtifactClick}
+                        isStreaming={isStreaming}
                       />
                     ))}
                   </div>

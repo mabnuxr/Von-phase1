@@ -162,13 +162,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isReasoningStreaming = false,
   userName,
   userEmail,
-  toolCalls: _toolCalls, // eslint-disable-line @typescript-eslint/no-unused-vars
   stepMessages,
   status,
   errorMessage,
-  events: _events, // eslint-disable-line @typescript-eslint/no-unused-vars
-  isCompressed: _isCompressed, // eslint-disable-line @typescript-eslint/no-unused-vars
-  messageId,
   conversationId,
   useArtifactHook,
 }) => {
@@ -190,16 +186,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     artifactType: string,
     runId: string
   ) => {
-    console.log('[Artifact Click Debug]', {
-      artifactId,
-      toolName,
-      artifactType,
-      runId,
-      conversationId,
-      messageId,
-      hasHook: !!useArtifactHook,
-      willRender: !!(conversationId && messageId && useArtifactHook),
-    });
     setOpenArtifact({ artifactId, toolName, artifactType, runId });
   };
 
@@ -306,6 +292,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                             key={toolCall.id}
                                             toolCall={toolCall}
                                             onArtifactClick={handleArtifactClick}
+                                            isStreaming={false}
                                           />
                                         ))}
                                       </div>

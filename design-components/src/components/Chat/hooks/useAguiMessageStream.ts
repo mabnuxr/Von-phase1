@@ -330,6 +330,14 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             );
           }
 
+          // Update streaming step messages immediately to show tool call in UI
+          const stepMessagesArray = Array.from(state.stepMessages.values());
+          setStreamingStepMessages((prev) => {
+            const next = new Map(prev);
+            next.set(wrapper.run_id, stepMessagesArray);
+            return next;
+          });
+
           eventsRef.current.onToolCallStart?.(wrapper.run_id, toolCall);
           break;
         }

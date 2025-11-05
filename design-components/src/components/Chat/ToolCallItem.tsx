@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import type { ToolCall } from './types';
 import { ERROR_MESSAGE_TRUNCATE_LENGTH } from '../../constants';
 
@@ -9,6 +10,11 @@ interface ToolCallItemProps {
     artifactType: string,
     runId: string
   ) => void;
+  /**
+   * Whether the content is currently streaming (live)
+   * When false, we're replaying/displaying completed events
+   */
+  isStreaming?: boolean;
 }
 
 /**
@@ -20,11 +26,21 @@ interface ToolCallItemProps {
  * - Blue if clickable (has artifact), red if error
  * - Shows "(failed)" indicator for errors
  * - Shows truncated error message below if present
+ * - Shows incrementing timer during execution with purple shimmer animation
  */
-export function ToolCallItem({ toolCall, onArtifactClick }: ToolCallItemProps) {
+export function ToolCallItem({ toolCall, onArtifactClick, isStreaming = false }: ToolCallItemProps) {
   const hasArtifact = Boolean(toolCall.artifact?.artifact_id);
   const isError = toolCall.status === 'error' || toolCall.artifact?.success === false;
   const errorMessage = toolCall.artifact?.error || toolCall.result?.error;
+
+  // Timer state
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const timerIdRef = useRef<number | null>(null);
+
+  // Check for reduced motion preference
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Dynamic status text based on metadata presence
   // Show "Executing query..." until metadata arrives from backend
@@ -41,6 +57,43 @@ export function ToolCallItem({ toolCall, onArtifactClick }: ToolCallItemProps) {
   };
 
   const headingText = getDisplayText();
+  const isExecuting = headingText === 'Executing query...';
+
+  // Timer effect
+  useEffect(() => {
+    // Replay detection: If not streaming OR both times exist, show final time without animation
+    const isReplay = !isStreaming || (toolCall.startTime && toolCall.endTime);
+
+    if (isReplay && toolCall.startTime && toolCall.endTime) {
+      // REPLAY MODE: Calculate final time once, no animation
+      const finalTime = toolCall.endTime - toolCall.startTime;
+      setElapsedMs(finalTime);
+
+      // Clear any running timer
+      if (timerIdRef.current) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+    } else if (isExecuting && isStreaming && toolCall.startTime && !toolCall.endTime) {
+      // LIVE STREAMING MODE: Animate timer
+      timerIdRef.current = window.setInterval(() => {
+        const elapsed = Date.now() - toolCall.startTime!;
+        setElapsedMs(elapsed);
+      }, 100);
+
+      return () => {
+        if (timerIdRef.current) {
+          clearInterval(timerIdRef.current);
+          timerIdRef.current = null;
+        }
+      };
+    }
+  }, [isExecuting, isStreaming, toolCall.startTime, toolCall.endTime]);
+
+  // Format elapsed time
+  const formatTime = (ms: number): string => {
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
 
   // Determine color based on state
   const headingColor = isError ? 'text-red-600' : hasArtifact ? 'text-blue-600' : 'text-gray-900';
@@ -60,26 +113,48 @@ export function ToolCallItem({ toolCall, onArtifactClick }: ToolCallItemProps) {
 
   return (
     <div>
-      {/* Simple heading - no icon, no dot */}
-      <h4
-        className={`mt-2 mb-2 text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors`}
-        onClick={hasArtifact ? handleClick : undefined}
-        role={hasArtifact ? 'button' : undefined}
-        tabIndex={hasArtifact ? 0 : undefined}
-        onKeyDown={
-          hasArtifact
-            ? (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleClick();
+      {/* Flex layout: Text on left, timer on right */}
+      <div className="flex justify-between items-center mt-2 mb-2">
+        {/* Text with optional purple shimmer animation */}
+        <h4
+          className={`text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors ${
+            isExecuting ? 'bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700' : ''
+          }`}
+          style={
+            isExecuting
+              ? {
+                  backgroundSize: '250% 100%',
+                  animation: prefersReducedMotion ? undefined : 'thinkingShimmer 2.2s linear infinite',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
                 }
-              }
-            : undefined
-        }
-      >
-        {headingText}
-        {isError && <span className="text-xs ml-1">(failed)</span>}
-      </h4>
+              : undefined
+          }
+          onClick={hasArtifact ? handleClick : undefined}
+          role={hasArtifact ? 'button' : undefined}
+          tabIndex={hasArtifact ? 0 : undefined}
+          onKeyDown={
+            hasArtifact
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick();
+                  }
+                }
+              : undefined
+          }
+        >
+          {headingText}
+          {isError && <span className="text-xs ml-1">(failed)</span>}
+        </h4>
+
+        {/* Timer on the right - only show during live streaming */}
+        {isStreaming && toolCall.startTime && (
+          <span className="text-xs text-gray-500 font-medium ml-2">
+            {formatTime(elapsedMs)}
+          </span>
+        )}
+      </div>
 
       {/* Error message if present - truncated */}
       {isError && errorMessage && (
@@ -89,6 +164,15 @@ export function ToolCallItem({ toolCall, onArtifactClick }: ToolCallItemProps) {
             : errorMessage}
         </p>
       )}
+
+      {/* Keyframe animation for purple shimmer */}
+      <style>{`
+        @keyframes thinkingShimmer {
+          0% { background-position: -150% 0 }
+          50% { background-position: 50% 0 }
+          100% { background-position: 250% 0 }
+        }
+      `}</style>
     </div>
   );
 }
