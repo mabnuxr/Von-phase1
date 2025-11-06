@@ -123,6 +123,7 @@ export function useConversationInit(urlConversationId?: string) {
     urlConversationId,
     setCurrentConversationId,
     navigate,
+    createConversation,
   ]);
 
   return {

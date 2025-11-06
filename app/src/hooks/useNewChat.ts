@@ -63,7 +63,12 @@ export function useNewChat() {
       console.error("[useNewChat] Failed to create conversation:", err);
       throw err;
     }
-  }, [infiniteConversationsData, createConversation, navigate]);
+  }, [
+    infiniteConversationsData,
+    createConversation,
+    navigate,
+    setCurrentConversationId,
+  ]);
 
   return {
     createNewChat,
