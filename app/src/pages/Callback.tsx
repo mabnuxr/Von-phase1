@@ -75,7 +75,7 @@ export default function Callback() {
       if (import.meta.env.DEV) {
         logCurrentToken("after login");
       }
-      navigate("/dashboard", { replace: true });
+      navigate("/chat", { replace: true });
     } catch (error: unknown) {
       if (import.meta.env.DEV) {
         console.error("Token exchange failed:", error);
