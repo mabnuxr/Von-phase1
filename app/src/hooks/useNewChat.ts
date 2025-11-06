@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useCreateConversation } from "./useConversations";
 import useChatStore from "../store/chatStore";
@@ -10,12 +11,13 @@ import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
  *
  * Handles:
  * - Creating a new conversation with numbered title
- * - Setting it as the current conversation
+ * - Navigating to the new conversation URL
  * - Invalidating React Query cache to update sidebar
  *
  * @returns Object with createNewChat function and loading state
  */
 export function useNewChat() {
+  const navigate = useNavigate();
   const { setCurrentConversationId } = useChatStore();
 
   // Get current conversations data for title numbering
@@ -31,7 +33,7 @@ export function useNewChat() {
   } = useCreateConversation();
 
   /**
-   * Create a new chat conversation and switch to it
+   * Create a new chat conversation and navigate to it
    */
   const createNewChat = useCallback(async () => {
     try {
@@ -44,22 +46,29 @@ export function useNewChat() {
 
       // Create conversation
       const response = await createConversation(title);
-
-      // Switch to the new conversation (use UUID, not MongoDB ObjectId)
-      setCurrentConversationId(response.conversation.conversationId);
+      const newConversationId = response.conversation.conversationId;
 
       if (import.meta.env.DEV) {
-        console.log(
-          `[useNewChat] Created and switched to: ${response.conversation.conversationId}`,
-        );
+        console.log(`[useNewChat] Created: ${newConversationId}`);
       }
+
+      // Set conversation ID in store BEFORE navigating
+      setCurrentConversationId(newConversationId);
+
+      // Navigate to conversation with UUID
+      navigate(`/chat/${newConversationId}`);
 
       return response.conversation;
     } catch (err) {
       console.error("[useNewChat] Failed to create conversation:", err);
       throw err;
     }
-  }, [infiniteConversationsData, createConversation, setCurrentConversationId]);
+  }, [
+    infiniteConversationsData,
+    createConversation,
+    navigate,
+    setCurrentConversationId,
+  ]);
 
   return {
     createNewChat,

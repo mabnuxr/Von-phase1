@@ -21,8 +21,8 @@ export default function RootGate() {
     // Check if user already has a token
     const token = getAccessToken();
     if (token) {
-      // User is authenticated, go to dashboard
-      navigate("/dashboard", { replace: true });
+      // User is authenticated, go to chat
+      navigate("/chat", { replace: true });
     } else {
       // No token, redirect to ScaleKit auth
       const t = setTimeout(() => {

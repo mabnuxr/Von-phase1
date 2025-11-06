@@ -1,6 +1,6 @@
 import { authService } from "../services";
 import { useNewChat } from "../hooks/useNewChat";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import useChatStore from "../store/chatStore";
 import { useUser } from "../hooks/useUser";
 import { AvatarMenu } from "../components/AvatarMenu";
@@ -36,6 +36,9 @@ import {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { conversationId: urlConversationId } = useParams<{
+    conversationId?: string;
+  }>();
   useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
 
@@ -55,7 +58,8 @@ const Dashboard = () => {
   );
 
   // Initialize conversation (load latest or create new)
-  const { isInitializing, error: initError } = useConversationInit();
+  const { isInitializing, error: initError } =
+    useConversationInit(urlConversationId);
 
   // New chat creation
   const { createNewChat, isCreating: isCreatingNewChat } = useNewChat();
@@ -250,9 +254,16 @@ const Dashboard = () => {
     }
   };
 
+  // Sync URL param to Zustand store when URL changes
+  useEffect(() => {
+    if (urlConversationId && urlConversationId !== currentConversationId) {
+      setCurrentConversationId(urlConversationId);
+    }
+  }, [urlConversationId, currentConversationId, setCurrentConversationId]);
+
   // Chat handlers
   const handleChatClick = (conversationId: string) => {
-    setCurrentConversationId(conversationId);
+    navigate(`/chat/${conversationId}`);
   };
 
   const handleNewChatClick = async () => {
@@ -503,6 +514,7 @@ const Dashboard = () => {
         id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
         label: displayTitle, // Use animated title if available, otherwise use regular title
         timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
+        href: `/chat/${conv.conversationId}`, // Add href for proper link behavior
       };
     });
 
@@ -549,7 +561,7 @@ const Dashboard = () => {
             <TopBar
               logoSrc="/logo.gif"
               logoText="Von"
-              onLogoClick={() => navigate("/dashboard")}
+              onLogoClick={() => navigate("/chat")}
               showMenu={false}
               avatarLabel={avatarLabel}
               avatarSrc={avatarSrc}
