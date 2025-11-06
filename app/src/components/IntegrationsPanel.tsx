@@ -226,7 +226,7 @@ export function IntegrationsPanel() {
       instanceUrl: config.instance_url as string | undefined,
       apiVersion: config.api_version as string | undefined,
       // Gong fields
-      gongInstanceUrl:
+      gongApiBaseUrl:
         backendIntegration.type === "GONG"
           ? (config.instance_url as string | undefined)
           : undefined,

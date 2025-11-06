@@ -74,7 +74,7 @@ export interface IntegrationConfig {
   instanceUrl?: string;
   apiVersion?: string;
   // Gong specific
-  gongInstanceUrl?: string;
+  gongApiBaseUrl?: string;
 }
 
 interface PreferencesState {
