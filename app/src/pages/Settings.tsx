@@ -179,7 +179,7 @@ const Settings = () => {
           <TopBar
             logoSrc="/logo.gif"
             logoText="Von"
-            onLogoClick={() => navigate("/dashboard")}
+            onLogoClick={() => navigate("/chat")}
             showMenu={false}
             avatarLabel={avatarLabel}
             avatarSrc={avatarSrc}
