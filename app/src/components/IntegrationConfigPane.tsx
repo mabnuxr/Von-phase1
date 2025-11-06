@@ -367,7 +367,7 @@ export function IntegrationConfigPane() {
                       label="Tenant Level"
                       helperText="All users in your organization can access this integration"
                     />
-                    <RadioButton
+                    {/* <RadioButton
                       name="accessLevel"
                       value="user"
                       checked={formData.accessLevel === "user"}
@@ -376,7 +376,7 @@ export function IntegrationConfigPane() {
                       }
                       label="User Level"
                       helperText="Only you can access this integration"
-                    />
+                    /> */}
                   </div>
                 </div>
 
