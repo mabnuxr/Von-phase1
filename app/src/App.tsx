@@ -14,7 +14,8 @@ export default function App() {
         <Route path="/health" element={<Health />} />
         <Route path="/" element={<RootGate />} />
         <Route path="/callback" element={<Callback />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/chat" element={<Dashboard />} />
+        <Route path="/chat/:conversationId" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/auth/start" element={<AuthStart />} />

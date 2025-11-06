@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 export interface ChatItem {
   id: string;
   label: string;
+  href?: string;
 }
 
 export interface ChatSidebarProps {
@@ -115,6 +116,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onLoadMore,
   disabled = false,
 }) => {
+  const handleItemClick = (e: React.MouseEvent, itemId: string) => {
+    if (disabled) return;
+
+    // Allow default behavior for Cmd/Ctrl+Click, middle-click
+    if (e.metaKey || e.ctrlKey || e.button === 1) {
+      return; // Let the browser handle it (opens in new tab)
+    }
+
+    // Prevent default for normal click and use SPA navigation
+    e.preventDefault();
+    onChatClick?.(itemId);
+  };
   // Collapsed state - show minimal sidebar with toggle button
   if (isCollapsed) {
     return (
@@ -226,11 +239,41 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         <div className="h-full overflow-y-scroll overflow-x-hidden scrollbar-hide">
           {chatItems.map((item) => {
             const isSelected = item.id === selectedChatId;
+
+            // If href provided, use anchor tag for proper link behavior
+            if (item.href) {
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  className={`
+                    block px-3 py-1.5 mx-0 my-0.5 text-sm text-gray-900
+                    transition-all duration-200 whitespace-nowrap overflow-hidden
+                    text-ellipsis rounded-lg no-underline
+                    ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
+                    ${
+                      isSelected
+                        ? 'bg-gray-100 font-medium'
+                        : disabled
+                          ? 'bg-transparent font-normal'
+                          : 'bg-transparent hover:bg-gray-50 font-normal'
+                    }
+                  `}
+                  onClick={(e) => handleItemClick(e, item.id)}
+                  title={disabled ? 'Please wait for the current response to complete' : item.label}
+                  aria-disabled={disabled}
+                >
+                  {item.label}
+                </a>
+              );
+            }
+
+            // Fallback to div for backward compatibility
             return (
               <div
                 key={item.id}
                 className={`
-                  px-3 py-1.5 mx-0 my-0.5 text-sm text-gray-900
+                  block px-3 py-1.5 mx-0 my-0.5 text-sm text-gray-900
                   transition-all duration-200 whitespace-nowrap overflow-hidden
                   text-ellipsis rounded-lg
                   ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
