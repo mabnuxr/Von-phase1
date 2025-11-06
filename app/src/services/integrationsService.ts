@@ -60,6 +60,10 @@ export interface IntegrationBackendResponse {
   last_authenticated_at: string | null;
   is_owner: boolean;
   readonly: boolean;
+  // Credential metadata (NO actual credentials)
+  has_credentials?: boolean;
+  credentials_last_updated?: string | null;
+  requires_oauth?: boolean;
 }
 
 /**
@@ -96,6 +100,9 @@ export interface Integration {
   lastAuthenticatedAt: string | null;
   isOwner: boolean;
   readonly: boolean;
+  hasCredentials?: boolean;
+  credentialsLastUpdated?: string | null;
+  requiresOauth?: boolean;
 }
 
 /**
@@ -124,6 +131,9 @@ function transformIntegration(
     lastAuthenticatedAt: backendIntegration.last_authenticated_at,
     isOwner: backendIntegration.is_owner,
     readonly: backendIntegration.readonly,
+    hasCredentials: backendIntegration.has_credentials,
+    credentialsLastUpdated: backendIntegration.credentials_last_updated,
+    requiresOauth: backendIntegration.requires_oauth,
   };
 }
 
@@ -365,6 +375,8 @@ export class IntegrationsService {
     accessLevel: "tenant" | "user";
     config: Record<string, unknown>;
     name?: string;
+    accessKey?: string;
+    accessSecret?: string;
   }): Promise<Integration> {
     const response = await apiClient.post<IntegrationBackendResponse>(
       "/api/v1/integrations",
@@ -373,6 +385,8 @@ export class IntegrationsService {
         access_level: data.accessLevel,
         config: data.config,
         name: data.name,
+        access_key: data.accessKey,
+        access_secret: data.accessSecret,
       },
     );
     return transformIntegration(response);
@@ -405,6 +419,8 @@ export class IntegrationsService {
       accessLevel?: "tenant" | "user";
       config?: Record<string, unknown>;
       name?: string;
+      accessKey?: string;
+      accessSecret?: string;
     },
   ): Promise<Integration> {
     const response = await apiClient.patch<IntegrationBackendResponse>(
@@ -413,6 +429,8 @@ export class IntegrationsService {
         access_level: data.accessLevel,
         config: data.config,
         name: data.name,
+        access_key: data.accessKey,
+        access_secret: data.accessSecret,
       },
     );
     return transformIntegration(response);

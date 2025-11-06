@@ -405,6 +405,8 @@ export function useCreateIntegration() {
       accessLevel: "tenant" | "user";
       config: Record<string, unknown>;
       name?: string;
+      accessKey?: string;
+      accessSecret?: string;
     }) => integrationsService.createIntegration(data),
     onSuccess: () => {
       // Invalidate integrations to refetch and show the new integration
@@ -434,6 +436,8 @@ export function useUpdateIntegration() {
         accessLevel?: "tenant" | "user";
         config?: Record<string, unknown>;
         name?: string;
+        accessKey?: string;
+        accessSecret?: string;
       };
     }) => integrationsService.updateIntegration(integrationId, data),
     onSuccess: () => {
