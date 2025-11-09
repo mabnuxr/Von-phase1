@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ToolCall } from './types';
-import { ERROR_MESSAGE_TRUNCATE_LENGTH } from '../../constants';
 
 interface ToolCallItemProps {
   toolCall: ToolCall;
@@ -35,7 +34,6 @@ export function ToolCallItem({
 }: ToolCallItemProps) {
   const hasArtifact = Boolean(toolCall.artifact?.artifact_id);
   const isError = toolCall.status === 'error' || toolCall.artifact?.success === false;
-  const errorMessage = toolCall.artifact?.error || toolCall.result?.error;
 
   // Timer state
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -99,7 +97,7 @@ export function ToolCallItem({
   };
 
   // Determine color based on state
-  const headingColor = isError ? 'text-red-600' : hasArtifact ? 'text-blue-600' : 'text-gray-900';
+  const headingColor = isError ? 'text-gray-600' : hasArtifact ? 'text-blue-600' : 'text-gray-900';
 
   const clickableStyle = hasArtifact ? 'cursor-pointer hover:underline' : '';
 
@@ -120,7 +118,7 @@ export function ToolCallItem({
       <div className="flex justify-between items-center mt-2 mb-2">
         {/* Text with optional purple shimmer animation */}
         <h4
-          className={`text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors ${
+          className={`pl-4 text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors ${
             isExecuting
               ? 'bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700'
               : ''
@@ -157,18 +155,11 @@ export function ToolCallItem({
 
         {/* Timer on the right - only show during live streaming */}
         {isStreaming && toolCall.startTime && (
-          <span className="text-xs text-gray-500 font-medium ml-2">{formatTime(elapsedMs)}</span>
+          <span className="mr-4 text-xs text-gray-500 font-medium ml-2">
+            {formatTime(elapsedMs)}
+          </span>
         )}
       </div>
-
-      {/* Error message if present - truncated */}
-      {isError && errorMessage && (
-        <p className="text-xs text-red-600 mt-1">
-          {errorMessage.length > ERROR_MESSAGE_TRUNCATE_LENGTH
-            ? `${errorMessage.substring(0, ERROR_MESSAGE_TRUNCATE_LENGTH)}...`
-            : errorMessage}
-        </p>
-      )}
 
       {/* Keyframe animation for purple shimmer */}
       <style>{`

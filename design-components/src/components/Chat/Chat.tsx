@@ -8,6 +8,7 @@ import { usePusherAuth } from './hooks/usePusherAuth';
 import { useAguiMessageStream } from './hooks/useAguiMessageStream';
 import { sendMessage as apiSendMessage } from './utils/api';
 import { saveConversation, loadConversation } from './utils/localStorage';
+import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 
 // Export types from types.ts
 export type {
@@ -41,9 +42,6 @@ export const Chat: React.FC<ChatProps> = ({
   pusherConfig,
   messages: controlledMessages,
   onSendMessage,
-  onAddClick: _onAddClick, // eslint-disable-line @typescript-eslint/no-unused-vars
-  onRefreshClick: _onRefreshClick, // eslint-disable-line @typescript-eslint/no-unused-vars
-  onClose: _onClose, // eslint-disable-line @typescript-eslint/no-unused-vars
   onError,
   onPusherMessage,
   placeholder = 'Ask von anything',
@@ -66,6 +64,7 @@ export const Chat: React.FC<ChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const shouldAutoScrollRef = useRef(true);
+  const scrollOnNewUserMessage = useRef(false);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     // ChatGPT-style scroll: scroll to absolute bottom
@@ -101,9 +100,11 @@ export const Chat: React.FC<ChatProps> = ({
     if (!el) return;
 
     const handleScroll = () => {
+      if (scrollOnNewUserMessage.current) return;
+
       const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      // Within 50px of bottom → enable auto-scroll (ChatGPT uses tighter threshold)
-      shouldAutoScrollRef.current = distanceFromBottom < 100;
+      // Within threshold distance of bottom → enable auto-scroll
+      shouldAutoScrollRef.current = distanceFromBottom < AUTO_SCROLL_THRESHOLD_PX;
     };
 
     el.addEventListener('scroll', handleScroll, { passive: true });
@@ -302,8 +303,16 @@ export const Chat: React.FC<ChatProps> = ({
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (isControlled) {
-        // Controlled mode: just call the callback
+        //Scroll to the bottom before calling onSendMessage
+        shouldAutoScrollRef.current = true;
+        scrollOnNewUserMessage.current = true;
+
+        setTimeout(() => {
+          scrollOnNewUserMessage.current = false;
+        }, SCROLL_LOCK_DURATION_MS);
+
         onSendMessage?.(content);
+
         return;
       }
 
