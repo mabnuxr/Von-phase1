@@ -53,16 +53,10 @@ export function useSendMessage() {
           response.messageId,
         );
       }
-      // Backend emits Pusher events:
-      // - message.content: user's message appears in UI
-      // - message.content: assistant response appears in UI
-      // No need to manually update UI here - Pusher handles everything
     },
 
     onError: (error: Error) => {
       console.error("[useSendMessage] Error sending message:", error);
-      // No cleanup needed - message was never added to UI
-      // TODO: Show error toast to user
     },
   });
 }

@@ -30,7 +30,6 @@ import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
-  MAX_REPLAY_CACHE_SIZE,
   STREAM_TIMEOUT_MS,
 } from "../config/constants";
 
@@ -257,6 +256,7 @@ const Dashboard = () => {
   // Sync URL param to Zustand store when URL changes
   useEffect(() => {
     if (urlConversationId && urlConversationId !== currentConversationId) {
+      console.log("[Dashboard] Setting current conversation id to ", urlConversationId);
       setCurrentConversationId(urlConversationId);
     }
   }, [urlConversationId, currentConversationId, setCurrentConversationId]);
@@ -276,17 +276,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleSearchChange = (value: string) => {
-    // TODO: Implement search in next phase
-    console.log("Search:", value);
-  };
-
-  const handleChatError = (error: Error) => {
-    if (import.meta.env.DEV) {
-      console.error("[Dashboard] Chat error:", error);
-    }
-  };
-
   const handleSendMessage = (content: string) => {
     // Set the index to current message count to hide old messages
     // This creates the ChatGPT-style clean slate effect
@@ -297,51 +286,79 @@ const Dashboard = () => {
     sendMessage(content);
   };
 
-  // Handle Pusher messages from Chat component
-  const handlePusherMessage = (chatMessage: ChatMessage) => {
+  // Handle AGUI state updates from useAguiMessageStream hook
+  const handleAguiStateUpdate = (update: {
+    runId: string;
+    messageContent: string;
+    stepMessages: StepMessage[];
+    toolCalls: ToolCall[];
+    isStreaming: boolean;
+    status: 'created' | 'streaming' | 'completed' | 'failed';
+  }) => {
     if (!currentConversationId) return;
 
-    // Convert Chat component message format to backend message format
-    // Preserve streaming metadata as optional fields
+    console.log('[Dashboard] AGUI state update:', {
+      runId: update.runId,
+      contentLength: update.messageContent.length,
+      stepMessagesCount: update.stepMessages.length,
+      toolCallsCount: update.toolCalls.length,
+      isStreaming: update.isStreaming,
+      status: update.status,
+    });
+
+    // Direct AGUI state to backend message format (no transformation needed)
     const backendMessage: MessageWithStreaming = {
-      id: chatMessage.id,
-      runId: chatMessage.id, // During streaming, id is the runId
+      id: update.runId,
+      runId: update.runId,
       conversationId: currentConversationId,
       messageType: "text",
-      messageContent: chatMessage.content,
-      role: chatMessage.type,
-      createdAt:
-        chatMessage.timestamp?.toISOString() || new Date().toISOString(),
-      createdBy: chatMessage.type === "user" ? "current-user" : "assistant",
-      // Preserve streaming state
-      isStreaming: chatMessage.isStreaming,
-      isReasoningStreaming: chatMessage.isReasoningStreaming,
-      reasoningContent: chatMessage.reasoningContent,
-      events: chatMessage.events,
-      // Preserve AGUI streaming data
-      stepMessages: chatMessage.stepMessages as StepMessage[],
-      toolCalls: chatMessage.toolCalls as ToolCall[],
-      // FIX: Preserve status and error message
-      status: chatMessage.status,
-      errorMessage: chatMessage.errorMessage,
+      messageContent: update.messageContent,
+      role: "assistant",
+      createdAt: new Date().toISOString(),
+      createdBy: "assistant",
+      // AGUI streaming data
+      stepMessages: update.stepMessages,
+      toolCalls: update.toolCalls,
+      isStreaming: update.isStreaming,
+      status: update.status,
     };
 
-    // Add or update message in Zustand store
-    const currentMessages = messages[currentConversationId] || [];
-    const existingIndex = currentMessages.findIndex(
-      (m) => m.id === backendMessage.id,
-    );
+    // Use atomic upsert to prevent race conditions
+    useChatStore.getState().upsertMessage(currentConversationId, backendMessage);
+  };
 
-    if (existingIndex >= 0) {
-      // Update existing message (for streaming updates)
-      const updatedMessages = [...currentMessages];
-      updatedMessages[existingIndex] = backendMessage;
-      useChatStore
-        .getState()
-        .setMessages(currentConversationId, updatedMessages);
-    } else {
-      // Add new message
-      useChatStore.getState().addMessage(currentConversationId, backendMessage);
+  // Handle user message from Pusher (backend confirmation)
+  const handleUserMessage = (data: {
+    id: string;
+    conversationId: string;
+    messageContent: string;
+    messageType: string;
+    role: 'user';
+    createdAt: string;
+    createdBy: string;
+  }) => {
+    if (import.meta.env.DEV) {
+      console.log('[Dashboard] Received user_message event:', data);
+    }
+
+    // Add user message to store
+    const userMessage: MessageWithStreaming = {
+      id: data.id,
+      runId: data.id, // User messages don't have separate runId
+      conversationId: data.conversationId,
+      messageContent: data.messageContent,
+      messageType: data.messageType as 'text' | 'json' | 'markdown',
+      role: data.role,
+      createdAt: data.createdAt,
+      createdBy: data.createdBy,
+      isStreaming: false,
+      status: 'completed',
+    };
+
+    useChatStore.getState().upsertMessage(data.conversationId, userMessage);
+
+    if (import.meta.env.DEV) {
+      console.log('[Dashboard] Added user message to store:', data.id);
     }
   };
 
@@ -366,100 +383,50 @@ const Dashboard = () => {
     [currentConversationId, refetchMessages],
   );
 
-  // Cache for replayed events to avoid reprocessing on every render
-  // FIX: Add size limit to prevent unbounded memory growth
-  const replayCache = useRef<
-    Map<
-      string,
-      {
-        content: string;
-        stepMessages: StepMessage[];
-        toolCalls: ToolCall[];
-        timestamp: number; // Track insertion time for LRU eviction
-      }
-    >
-  >(new Map());
-
   // Transform backend messages to Chat component format
-  // Use useMemo to avoid recreating on every render
+  // Replay events if backend hasn't persisted stepMessages/toolCalls
   const transformedMessages: ChatMessage[] = useMemo(() => {
     return conversationMessages.map((msg) => {
       const streamingMsg = msg as MessageWithStreaming;
 
       // For fetched messages with events, replay them to reconstruct stepMessages and toolCalls
       let content = streamingMsg.messageContent;
-      let stepMessages = (streamingMsg as MessageWithStreaming).stepMessages;
-      let toolCalls = (streamingMsg as MessageWithStreaming).toolCalls;
+      let stepMessages = streamingMsg.stepMessages;
+      let toolCalls = streamingMsg.toolCalls;
 
       // If message has events but no stepMessages/toolCalls, replay the events
-      // Only replay for completed messages (not streaming) to avoid performance issues
       if (
         streamingMsg.events &&
         streamingMsg.events.length > 0 &&
         !streamingMsg.isStreaming &&
-        !stepMessages &&
-        !toolCalls
+        (!stepMessages || !toolCalls || !content)
       ) {
-        // Check cache first
-        const cacheKey = `${streamingMsg.id}-${streamingMsg.events.length}`;
-        let replayed = replayCache.current.get(cacheKey);
-
-        if (!replayed) {
-          // Not in cache, replay the events
-          const replayedData = replayAguiEvents(streamingMsg.events);
-          if (replayedData) {
-            replayed = {
-              ...replayedData,
-              timestamp: Date.now(), // Track insertion time
-            };
-            replayCache.current.set(cacheKey, replayed);
-
-            // FIX: Implement cache size limit with LRU eviction
-            if (replayCache.current.size > MAX_REPLAY_CACHE_SIZE) {
-              // Sort by timestamp (oldest first) and remove oldest 500 entries
-              const entries = Array.from(replayCache.current.entries()).sort(
-                (a, b) => a[1].timestamp - b[1].timestamp,
-              );
-
-              const toDelete = entries.slice(0, 500);
-              toDelete.forEach(([key]) => replayCache.current.delete(key));
-            }
-          }
-        }
-
-        if (replayed) {
-          content = replayed.content || content;
-          stepMessages = replayed.stepMessages;
-          toolCalls = replayed.toolCalls;
+        const replayedData = replayAguiEvents(streamingMsg.events);
+        if (replayedData) {
+          content = replayedData.content || content;
+          stepMessages = replayedData.stepMessages;
+          toolCalls = replayedData.toolCalls;
         }
       }
 
-      const transformed: ChatMessage = {
+      return {
         id: streamingMsg.id,
-        type:
-          streamingMsg.role === "user"
-            ? ("user" as const)
-            : ("assistant" as const),
+        type: streamingMsg.role === "user" ? ("user" as const) : ("assistant" as const),
         content,
         timestamp: new Date(streamingMsg.createdAt),
-        // Preserve streaming state if present
         isStreaming: streamingMsg.isStreaming || false,
         isReasoningStreaming: streamingMsg.isReasoningStreaming || false,
         reasoningContent: streamingMsg.reasoningContent,
-        // Include AGUI streaming data (for both live streams and fetched messages)
+        // AGUI data (from backend or replayed)
         toolCalls,
         stepMessages,
-        // Include status and error fields for persistence
         status: streamingMsg.status,
         errorMessage: streamingMsg.errorMessage,
-        // Pass events array for event-driven rendering (for future use)
         events: streamingMsg.events,
-        // Add IDs for artifact fetching (use runId for artifact queries)
+        // IDs for artifact fetching
         messageId: streamingMsg.runId,
         conversationId: streamingMsg.conversationId,
-      };
-
-      return transformed;
+      } as ChatMessage;
     });
   }, [conversationMessages]);
 
@@ -593,7 +560,6 @@ const Dashboard = () => {
               selectedChatId={currentConversationId || undefined}
               onChatClick={handleChatClick}
               onNewChatClick={handleNewChatClick}
-              onSearchChange={handleSearchChange}
               searchPlaceholder="Search conversations..."
               isCollapsed={isSidebarCollapsed}
               onToggleCollapse={toggleSidebar}
@@ -633,12 +599,12 @@ const Dashboard = () => {
                 }
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
-                onPusherMessage={handlePusherMessage}
+                onAguiStateUpdate={handleAguiStateUpdate}
+                onUserMessage={handleUserMessage}
                 isLoading={false}
                 loadMoreRef={loadMoreMessagesRef}
                 isFetchingMore={isFetchingNextMessagePage}
                 placeholder="Ask von anything"
-                onError={handleChatError}
                 variant="floating"
                 height="100%"
                 width="100%"

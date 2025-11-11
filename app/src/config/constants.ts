@@ -47,7 +47,7 @@ export const CONVERSATIONS_PAGE_LIMIT = 20 as const;
 /**
  * Default number of messages to fetch per page in infinite scroll
  */
-export const MESSAGES_PAGE_LIMIT = 50 as const;
+export const MESSAGES_PAGE_LIMIT = 10 as const;
 
 // ============================================================================
 // OAuth & Integration Polling Constants

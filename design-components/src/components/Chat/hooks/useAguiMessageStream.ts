@@ -14,19 +14,23 @@ import type {
   ToolCallResultEvent,
 } from '../types';
 
-export interface MessageStreamEvents {
-  onMessageStart?: (messageId: string) => void;
-  onMessageChunk?: (messageId: string, chunk: string) => void;
-  onMessageComplete?: (
-    messageId: string,
-    fullContent: string,
-    toolCalls?: ToolCall[],
-    stepMessages?: StepMessage[]
-  ) => void;
-  onMessageReceived?: (messageId: string, content: string, role: 'user' | 'assistant') => void;
-  onToolCallStart?: (messageId: string, toolCall: ToolCall) => void;
-  onToolCallComplete?: (messageId: string, toolCallId: string, result: ToolResult) => void;
-  onError?: (error: Error) => void;
+export interface AguiStateUpdate {
+  runId: string;
+  messageContent: string;
+  stepMessages: StepMessage[];
+  toolCalls: ToolCall[];
+  isStreaming: boolean;
+  status: 'created' | 'streaming' | 'completed' | 'failed';
+}
+
+export interface UserMessageData {
+  id: string;
+  conversationId: string;
+  messageContent: string;
+  messageType: string;
+  role: 'user';
+  createdAt: string;
+  createdBy: string;
 }
 
 interface StreamingState {
@@ -44,7 +48,11 @@ interface StreamingState {
  * Hook for handling AGUI streaming events from Pusher
  * Supports tool calls, multi-step responses, and intelligent result parsing
  */
-export function useAguiMessageStream(channel: Channel | null, events: MessageStreamEvents = {}) {
+export function useAguiMessageStream(
+  channel: Channel | null,
+  onStateUpdate?: (update: AguiStateUpdate) => void,
+  onUserMessage?: (data: UserMessageData) => void
+) {
   const [streamingMessages, setStreamingMessages] = useState<Map<string, string>>(new Map());
   const [streamingToolCalls, setStreamingToolCalls] = useState<Map<string, ToolCall[]>>(new Map());
   const [streamingStepMessages, setStreamingStepMessages] = useState<Map<string, StepMessage[]>>(
@@ -62,13 +70,38 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
     nextExpectedSequence: 1,
   });
 
-  const eventsRef = useRef(events);
   const seenMessageIds = useRef<Set<string>>(new Set());
 
-  // Update refs when events change
-  useEffect(() => {
-    eventsRef.current = events;
-  }, [events]);
+  // Helper: Emit state update to parent
+  const emitStateUpdate = (runId: string) => {
+    if (!onStateUpdate) {
+      console.warn('[useAguiMessageStream] No onStateUpdate callback provided');
+      return;
+    }
+
+    const state = stateRef.current;
+    const messageContent = state.messageContent.get(runId) || '';
+    const stepMessages = Array.from(state.stepMessages.values());
+    const toolCalls = Array.from(state.toolCalls.values());
+    const isStreaming = state.currentRunId === runId;
+
+    console.log('[useAguiMessageStream] Emitting state update:', {
+      runId,
+      contentLength: messageContent.length,
+      stepMessagesCount: stepMessages.length,
+      toolCallsCount: toolCalls.length,
+      isStreaming,
+    });
+
+    onStateUpdate({
+      runId,
+      messageContent,
+      stepMessages,
+      toolCalls,
+      isStreaming,
+      status: isStreaming ? 'streaming' : 'completed',
+    });
+  };
 
   // Helper: Parse tool result and detect type
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -214,8 +247,8 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
           state.toolCalls.clear();
           state.toolCallArgs.clear();
 
-          // Create the assistant message in the UI with run_id
-          eventsRef.current.onMessageStart?.(wrapper.run_id);
+          // Emit initial state update
+          emitStateUpdate(wrapper.run_id);
           break;
         }
 
@@ -259,10 +292,6 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
 
           // Use flushSync to force immediate synchronous updates for smooth streaming
           flushSync(() => {
-            // Send the chunk to the RUN (not the individual message block)
-            // The parent will render this in the appropriate place
-            eventsRef.current.onMessageChunk?.(state.currentRunId!, e.delta);
-
             // Update streaming state
             setStreamingMessages(new Map(state.messageContent));
 
@@ -273,6 +302,9 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
               next.set(wrapper.run_id, stepMessagesArray);
               return next;
             });
+
+            // Emit state update with current content
+            emitStateUpdate(wrapper.run_id);
           });
           break;
         }
@@ -338,7 +370,8 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             return next;
           });
 
-          eventsRef.current.onToolCallStart?.(wrapper.run_id, toolCall);
+          // Emit state update with new tool call
+          emitStateUpdate(wrapper.run_id);
           break;
         }
 
@@ -443,13 +476,8 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
                   return next;
                 });
 
-                if (parsedResult) {
-                  eventsRef.current.onToolCallComplete?.(
-                    wrapper.run_id,
-                    e.tool_call_id,
-                    parsedResult
-                  );
-                }
+                // Emit state update with tool result
+                emitStateUpdate(wrapper.run_id);
               }
             } catch {
               console.warn('Tool result is not valid JSON, treating as error message:', e.content);
@@ -477,19 +505,21 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
         }
 
         case 'RUN_FINISHED': {
-          // Finalize the run
-          const finalContent = state.messageContent.get(wrapper.run_id) || '';
-          const finalToolCalls = Array.from(state.toolCalls.values()).filter(
-            (tc) => tc.parentMessageId === state.currentMessageId
-          );
-          const finalStepMessages = Array.from(state.stepMessages.values());
+          // Emit final state update with completed status
+          if (onStateUpdate) {
+            const messageContent = state.messageContent.get(wrapper.run_id) || '';
+            const stepMessages = Array.from(state.stepMessages.values());
+            const toolCalls = Array.from(state.toolCalls.values());
 
-          eventsRef.current.onMessageComplete?.(
-            wrapper.run_id,
-            finalContent,
-            finalToolCalls.length > 0 ? finalToolCalls : undefined,
-            finalStepMessages.length > 0 ? finalStepMessages : undefined
-          );
+            onStateUpdate({
+              runId: wrapper.run_id,
+              messageContent,
+              stepMessages,
+              toolCalls,
+              isStreaming: false,
+              status: 'completed',
+            });
+          }
 
           // FIX: Clear event buffer immediately to prevent memory leak
           state.eventBuffer = [];
@@ -528,7 +558,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       }
     } catch (error) {
       console.error('Error processing AGUI event:', error);
-      eventsRef.current.onError?.(error as Error);
+      // Error handling removed - parent can monitor status field
     }
   };
 
@@ -619,24 +649,29 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       }
     } catch (error) {
       console.error('Error handling AGUI event:', error);
-      eventsRef.current.onError?.(error as Error);
+      // Error handling removed - parent can monitor status field
     }
   };
 
   // Handle user messages (non-streaming)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUserMessage = (data: any) => {
+    if (import.meta.env.DEV) {
+      console.log('[useAguiMessageStream] Received user_message event:', data);
+    }
+
     const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-    const { id, messageContent, content, role } = parsed;
-    const messageText = messageContent || content || '';
 
     // Prevent duplicate processing
-    if (seenMessageIds.current.has(id)) {
+    if (seenMessageIds.current.has(parsed.id)) {
       return;
     }
-    seenMessageIds.current.add(id);
+    seenMessageIds.current.add(parsed.id);
 
-    eventsRef.current.onMessageReceived?.(id, messageText, role as 'user' | 'assistant');
+    // Call parent callback if provided
+    if (onUserMessage) {
+      onUserMessage(parsed as UserMessageData);
+    }
   };
 
   useEffect(() => {
@@ -660,12 +695,6 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
     // User messages (non-streaming)
     channel.bind('user_message', handleUserMessage);
 
-    // Error handling
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    channel.bind('error', (data: any) => {
-      eventsRef.current.onError?.(new Error(data.error || 'Unknown error'));
-    });
-
     // Cleanup
     return () => {
       channel.unbind('agent.run_started', handleAguiEvent);
@@ -680,7 +709,6 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       channel.unbind('agent.step_finished', handleAguiEvent);
       channel.unbind('agent.run_finished', handleAguiEvent);
       channel.unbind('user_message', handleUserMessage);
-      channel.unbind('error');
     };
   }, [channel]);
 

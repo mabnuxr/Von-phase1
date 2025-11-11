@@ -24,7 +24,7 @@ export type {
   ChatProps,
 } from './types';
 
-import type { ChatProps, Message, ToolCall, StepMessage } from './types';
+import type { ChatProps, Message } from './types';
 
 /**
  * Chat component with optional Pusher real-time integration
@@ -43,7 +43,8 @@ export const Chat: React.FC<ChatProps> = ({
   messages: controlledMessages,
   onSendMessage,
   onError,
-  onPusherMessage,
+  onAguiStateUpdate,
+  onUserMessage,
   placeholder = 'Ask von anything',
   isLoading: controlledIsLoading = false,
   height = '600px',
@@ -125,131 +126,9 @@ export const Chat: React.FC<ChatProps> = ({
   }, [messages, scrollToBottom]);
 
   // Message streaming (only when channel is available)
-  const { streamingMessages, streamingToolCalls, streamingStepMessages } = useAguiMessageStream(
-    enableRealtime ? channel : null,
-    {
-      onMessageReceived: (messageId: string, content: string, role: 'user' | 'assistant') => {
-        // Handle immediate complete messages (user messages after POST, or assistant non-streaming)
-        const receivedMessage: Message = {
-          id: messageId,
-          type: role,
-          content,
-          isStreaming: false,
-          timestamp: new Date(),
-        };
-
-        if (isControlled) {
-          // In controlled mode, notify parent to add complete message
-          onPusherMessage?.(receivedMessage);
-        } else {
-          // In uncontrolled mode, add to internal state
-          setInternalMessages((prev) => [...prev, receivedMessage]);
-        }
-      },
-      onMessageStart: (messageId: string) => {
-        const newMessage: Message = {
-          id: messageId,
-          type: 'assistant',
-          content: '',
-          isStreaming: true,
-          isReasoningStreaming: true, // Show thinking block immediately
-          timestamp: new Date(),
-        };
-
-        if (isControlled) {
-          // In controlled mode, notify parent to add message
-          onPusherMessage?.(newMessage);
-        } else {
-          // In uncontrolled mode, update internal state
-          setInternalMessages((prev) => [...prev, newMessage]);
-        }
-      },
-      onMessageChunk: (messageId: string) => {
-        const content = streamingMessages.get(messageId) || '';
-        const toolCalls = streamingToolCalls.get(messageId) || [];
-        const stepMessages = streamingStepMessages.get(messageId) || [];
-
-        if (isControlled) {
-          // In controlled mode, notify parent to update message
-          onPusherMessage?.({
-            id: messageId,
-            type: 'assistant',
-            content,
-            toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-            stepMessages: stepMessages.length > 0 ? stepMessages : undefined,
-            isStreaming: true,
-            timestamp: new Date(),
-          });
-        } else {
-          // In uncontrolled mode, update internal state
-          setInternalMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId
-                ? {
-                    ...msg,
-                    content,
-                    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-                    stepMessages: stepMessages.length > 0 ? stepMessages : undefined,
-                  }
-                : msg
-            )
-          );
-        }
-      },
-      onMessageComplete: (
-        messageId: string,
-        fullContent: string,
-        toolCalls?: ToolCall[],
-        stepMessages?: StepMessage[]
-      ) => {
-        const completedMessage: Message = {
-          id: messageId,
-          type: 'assistant',
-          content: fullContent,
-          toolCalls,
-          stepMessages,
-          isStreaming: false,
-          status: 'completed',
-          timestamp: new Date(),
-        };
-
-        if (isControlled) {
-          // In controlled mode, notify parent of completed message
-          onPusherMessage?.(completedMessage);
-        } else {
-          // In uncontrolled mode, update internal state
-          setInternalMessages((prev) => {
-            const updatedMessages = prev.map((msg) =>
-              msg.id === messageId ? completedMessage : msg
-            );
-
-            // Save to localStorage
-            if (conversationId && userId) {
-              saveConversation(
-                conversationId,
-                {
-                  conversationId: conversationId,
-                  title: title,
-                  userId,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                },
-                updatedMessages
-              );
-            }
-
-            return updatedMessages;
-          });
-        }
-      },
-      onError: (error: Error) => {
-        onError?.(error);
-        if (!isControlled) {
-          setInternalIsLoading(false);
-        }
-      },
-    }
-  );
+  // Pass onAguiStateUpdate to hook for direct AGUI state updates
+  // Pass onUserMessage to hook for user message events
+  useAguiMessageStream(enableRealtime ? channel : null, onAguiStateUpdate, onUserMessage);
 
   // Load messages from localStorage on mount (real-time mode only)
   useEffect(() => {
