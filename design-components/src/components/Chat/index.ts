@@ -35,9 +35,6 @@ export { ToolCallItem } from './ToolCallItem';
 export { usePusherAuth } from './hooks/usePusherAuth';
 export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './hooks/usePusherAuth';
 
-export { useMessageStream } from './hooks/useMessageStream';
-export type { StreamMessage, MessageStreamEvents } from './hooks/useMessageStream';
-
 export { useAguiMessageStream } from './hooks/useAguiMessageStream';
 export type { AguiStateUpdate, UserMessageData } from './hooks/useAguiMessageStream';
 

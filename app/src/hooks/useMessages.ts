@@ -4,6 +4,7 @@ import { conversationsService } from "../services";
 import { conversationKeys } from "./useConversations";
 import useChatStore from "../store/chatStore";
 import { MESSAGES_STALE_TIME, MESSAGES_PAGE_LIMIT } from "../config/constants";
+import { replayAguiEvents } from "../utils/replayAguiEvents";
 
 /**
  * Hook to manage messages for a conversation
@@ -89,8 +90,30 @@ export function useMessages(
               .flatMap((page) => page.data),
           ];
 
+    // Replay events for streaming messages to reconstruct partial content
+    const messagesWithReplayedContent = allMessages.map((msg) => {
+      // EDGE CASE 1: First-time streaming (no events yet)
+      if (msg.isStreaming && (!msg.events || msg.events.length === 0)) {
+        return msg; // Return as-is, Pusher will fill content
+      }
+
+      // EDGE CASE 2: Refresh during streaming (has events from Redis)
+      if (msg.isStreaming && msg.events && msg.events.length > 0) {
+        const { content, stepMessages, toolCalls } = replayAguiEvents(msg.events);
+        return {
+          ...msg,
+          messageContent: content, // Pre-fill from Redis events
+          stepMessages,
+          toolCalls,
+        };
+      }
+
+      // EDGE CASE 3: Completed message (no replay needed)
+      return msg;
+    });
+
     // Update Zustand store with properly ordered messages
-    setMessages(conversationId, allMessages);
+    setMessages(conversationId, messagesWithReplayedContent);
 
     if (import.meta.env.DEV) {
       console.log(

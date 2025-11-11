@@ -125,10 +125,21 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [messages, scrollToBottom]);
 
+  // Get current streaming messages for initialization (refresh recovery)
+  const currentStreamingMessages = useMemo(() => {
+    return messages.filter((m) => m.isStreaming);
+  }, [messages]);
+
   // Message streaming (only when channel is available)
   // Pass onAguiStateUpdate to hook for direct AGUI state updates
   // Pass onUserMessage to hook for user message events
-  useAguiMessageStream(enableRealtime ? channel : null, onAguiStateUpdate, onUserMessage);
+  // Pass currentStreamingMessages for initialization after refresh
+  useAguiMessageStream(
+    enableRealtime ? channel : null,
+    onAguiStateUpdate,
+    onUserMessage,
+    currentStreamingMessages
+  );
 
   // Load messages from localStorage on mount (real-time mode only)
   useEffect(() => {

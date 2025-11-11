@@ -101,11 +101,18 @@ const useChatStoreBase = create<ChatState>((set) => ({
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
           ...message,
-          // Smart merge: prefer new value if non-empty, otherwise keep existing
+          // Smart merge: prefer longer content (handles both append and replay)
+          // This prevents regression when late events arrive out of order
           messageContent:
-            message.messageContent || existingMessage.messageContent,
+            (message.messageContent?.length || 0) >=
+            (existingMessage.messageContent?.length || 0)
+              ? message.messageContent
+              : existingMessage.messageContent,
           reasoningContent:
-            message.reasoningContent || existingMessage.reasoningContent,
+            (message.reasoningContent?.length || 0) >=
+            (existingMessage.reasoningContent?.length || 0)
+              ? message.reasoningContent
+              : existingMessage.reasoningContent,
           // Preserve arrays if new message has undefined or empty arrays
           events:
             message.events && message.events.length > 0

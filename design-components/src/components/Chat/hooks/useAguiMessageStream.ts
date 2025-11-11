@@ -12,6 +12,7 @@ import type {
   ToolCallStartEvent,
   ToolCallArgsEvent,
   ToolCallResultEvent,
+  Message,
 } from '../types';
 
 export interface AguiStateUpdate {
@@ -47,11 +48,17 @@ interface StreamingState {
 /**
  * Hook for handling AGUI streaming events from Pusher
  * Supports tool calls, multi-step responses, and intelligent result parsing
+ *
+ * @param channel - Pusher channel for real-time events
+ * @param onStateUpdate - Callback for state updates
+ * @param onUserMessage - Callback for user messages
+ * @param currentMessages - Current messages from store (for initialization after refresh)
  */
 export function useAguiMessageStream(
   channel: Channel | null,
   onStateUpdate?: (update: AguiStateUpdate) => void,
-  onUserMessage?: (data: UserMessageData) => void
+  onUserMessage?: (data: UserMessageData) => void,
+  currentMessages?: Message[]
 ) {
   const [streamingMessages, setStreamingMessages] = useState<Map<string, string>>(new Map());
   const [streamingToolCalls, setStreamingToolCalls] = useState<Map<string, ToolCall[]>>(new Map());
@@ -71,6 +78,43 @@ export function useAguiMessageStream(
   });
 
   const seenMessageIds = useRef<Set<string>>(new Set());
+
+  // Initialize streaming state from current messages (for refresh recovery)
+  // This runs once on mount to pre-populate state with partial content from fetched messages
+  useEffect(() => {
+    if (!currentMessages || currentMessages.length === 0) return;
+
+    currentMessages.forEach((msg) => {
+      // Only initialize streaming messages that have content
+      if (msg.isStreaming && msg.content) {
+        const runId = msg.messageId || msg.id;
+
+        // Pre-populate state Map with replayed content
+        stateRef.current.messageContent.set(runId, msg.content);
+
+        // Also populate stepMessages if available
+        if (msg.stepMessages) {
+          msg.stepMessages.forEach((step) => {
+            stateRef.current.stepMessages.set(step.message_id, step);
+          });
+        }
+
+        // Also populate toolCalls if available
+        if (msg.toolCalls) {
+          msg.toolCalls.forEach((tool) => {
+            stateRef.current.toolCalls.set(tool.id, tool);
+          });
+        }
+
+        if (import.meta.env.DEV) {
+          console.log(
+            `[useAguiMessageStream] Initialized streaming state for runId ${runId} with ${msg.content.length} characters`
+          );
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   // Helper: Emit state update to parent
   const emitStateUpdate = (runId: string) => {
