@@ -98,8 +98,6 @@ const useChatStoreBase = create<ChatState>((set) => ({
         // This prevents empty replayed events from overwriting complete data
         const existingMessage = existingMessages[existingIndex];
         
-        console.log("[upsertMessage] Existing Message ----> ",existingMessage);
-
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
           ...message,
@@ -131,7 +129,6 @@ const useChatStoreBase = create<ChatState>((set) => ({
           status: message.status || existingMessage.status,
         };
         
-        console.log("[upsertMessage] merged Message ----> ",mergedMessage);
 
 
         updatedConversationMessages = [...existingMessages];

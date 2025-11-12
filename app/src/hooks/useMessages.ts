@@ -99,7 +99,9 @@ export function useMessages(
 
       // EDGE CASE 2: Refresh during streaming (has events from Redis)
       if (msg.isStreaming && msg.events && msg.events.length > 0) {
-        const { content, stepMessages, toolCalls } = replayAguiEvents(msg.events);
+        const { content, stepMessages, toolCalls } = replayAguiEvents(
+          msg.events,
+        );
         return {
           ...msg,
           messageContent: content, // Pre-fill from Redis events

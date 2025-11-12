@@ -89,7 +89,10 @@ export function useAguiMessageStream(
     }
 
     if (import.meta.env.DEV) {
-      console.log('[useAguiMessageStream] Attempting initialization with messages:', currentMessages);
+      console.log(
+        '[useAguiMessageStream] Attempting initialization with messages:',
+        currentMessages
+      );
     }
 
     currentMessages.forEach((msg) => {
@@ -101,12 +104,19 @@ export function useAguiMessageStream(
         const runId = msg.id || msg.messageId;
 
         if (!runId) {
-          console.warn('[useAguiMessageStream] Message has no id or messageId, skipping initialization', msg);
+          console.warn(
+            '[useAguiMessageStream] Message has no id or messageId, skipping initialization',
+            msg
+          );
           return;
         }
 
         // Pre-populate state Map with replayed content
         stateRef.current.messageContent.set(runId, msg.content);
+
+        // CRITICAL: Set currentRunId so isStreaming detection works after reconnection
+        // This ensures the thinking indicator stays visible when streaming continues
+        stateRef.current.currentRunId = runId;
 
         // Also populate stepMessages if available
         if (msg.stepMessages) {
@@ -132,7 +142,7 @@ export function useAguiMessageStream(
     });
 
     hasInitialized.current = true;
-  }, [currentMessages]); 
+  }, [currentMessages]);
 
   // Helper: Emit state update to parent
   const emitStateUpdate = (runId: string) => {
@@ -145,7 +155,12 @@ export function useAguiMessageStream(
     const messageContent = state.messageContent.get(runId) || '';
     const stepMessages = Array.from(state.stepMessages.values());
     const toolCalls = Array.from(state.toolCalls.values());
-    const isStreaming = state.currentRunId === runId;
+
+    // More robust streaming detection: check if currentRunId matches OR we have active content
+    // This handles both live streaming and refresh recovery scenarios
+    const isStreaming =
+      state.currentRunId === runId ||
+      (state.messageContent.has(runId) && state.messageContent.get(runId) !== '');
 
     console.log('[useAguiMessageStream] Emitting state update:', {
       runId,
@@ -300,17 +315,17 @@ export function useAguiMessageStream(
     try {
       switch (event.type) {
         case 'RUN_STARTED': {
-          
+          // Clear previous run data to prevent cross-contamination between runs
+          // This ensures each new run starts with a clean slate
+          state.stepMessages.clear();
+          state.toolCalls.clear();
+          state.toolCallArgs.clear();
+
           state.currentRunId = wrapper.run_id;
 
+          // Initialize messageContent for this run if not already present (from refresh recovery)
           if (!state.messageContent.has(wrapper.run_id)) {
-            state.messageContent.set(wrapper.run_id, ''); 
-          }
-
-          if (state.stepMessages.size === 0) {
-            state.stepMessages.clear();
-            state.toolCalls.clear();
-            state.toolCallArgs.clear();
+            state.messageContent.set(wrapper.run_id, '');
           }
 
           emitStateUpdate(wrapper.run_id);
@@ -345,7 +360,8 @@ export function useAguiMessageStream(
 
           // Accumulate in the step message content
           // This preserves Redis-fetched content when streaming restarts after refresh
-          const currentStepContent = state.messageContent.get(e.message_id) || stepMsg?.content || '';
+          const currentStepContent =
+            state.messageContent.get(e.message_id) || stepMsg?.content || '';
           const newStepContent = currentStepContent + e.delta;
           state.messageContent.set(e.message_id, newStepContent);
 

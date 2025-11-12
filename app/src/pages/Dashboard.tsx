@@ -256,7 +256,10 @@ const Dashboard = () => {
   // Sync URL param to Zustand store when URL changes
   useEffect(() => {
     if (urlConversationId && urlConversationId !== currentConversationId) {
-      console.log("[Dashboard] Setting current conversation id to ", urlConversationId);
+      console.log(
+        "[Dashboard] Setting current conversation id to ",
+        urlConversationId,
+      );
       setCurrentConversationId(urlConversationId);
     }
   }, [urlConversationId, currentConversationId, setCurrentConversationId]);
@@ -293,7 +296,7 @@ const Dashboard = () => {
     stepMessages: StepMessage[];
     toolCalls: ToolCall[];
     isStreaming: boolean;
-    status: 'created' | 'streaming' | 'completed' | 'failed';
+    status: "created" | "streaming" | "completed" | "failed";
   }) => {
     if (!currentConversationId) return;
 
@@ -315,7 +318,9 @@ const Dashboard = () => {
     };
 
     // Use atomic upsert to prevent race conditions
-    useChatStore.getState().upsertMessage(currentConversationId, backendMessage);
+    useChatStore
+      .getState()
+      .upsertMessage(currentConversationId, backendMessage);
   };
 
   // Handle user message from Pusher (backend confirmation)
@@ -324,12 +329,12 @@ const Dashboard = () => {
     conversationId: string;
     messageContent: string;
     messageType: string;
-    role: 'user';
+    role: "user";
     createdAt: string;
     createdBy: string;
   }) => {
     if (import.meta.env.DEV) {
-      console.log('[Dashboard] Received user_message event:', data);
+      console.log("[Dashboard] Received user_message event:", data);
     }
 
     // Add user message to store
@@ -338,18 +343,18 @@ const Dashboard = () => {
       runId: data.id, // User messages don't have separate runId
       conversationId: data.conversationId,
       messageContent: data.messageContent,
-      messageType: data.messageType as 'text' | 'json' | 'markdown',
+      messageType: data.messageType as "text" | "json" | "markdown",
       role: data.role,
       createdAt: data.createdAt,
       createdBy: data.createdBy,
       isStreaming: false,
-      status: 'completed',
+      status: "completed",
     };
 
     useChatStore.getState().upsertMessage(data.conversationId, userMessage);
 
     if (import.meta.env.DEV) {
-      console.log('[Dashboard] Added user message to store:', data.id);
+      console.log("[Dashboard] Added user message to store:", data.id);
     }
   };
 
@@ -402,7 +407,10 @@ const Dashboard = () => {
 
       return {
         id: streamingMsg.id,
-        type: streamingMsg.role === "user" ? ("user" as const) : ("assistant" as const),
+        type:
+          streamingMsg.role === "user"
+            ? ("user" as const)
+            : ("assistant" as const),
         content,
         timestamp: new Date(streamingMsg.createdAt),
         isStreaming: streamingMsg.isStreaming || false,
