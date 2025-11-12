@@ -297,15 +297,6 @@ const Dashboard = () => {
   }) => {
     if (!currentConversationId) return;
 
-    console.log('[Dashboard] AGUI state update:', {
-      runId: update.runId,
-      contentLength: update.messageContent.length,
-      stepMessagesCount: update.stepMessages.length,
-      toolCallsCount: update.toolCalls.length,
-      isStreaming: update.isStreaming,
-      status: update.status,
-    });
-
     // Direct AGUI state to backend message format (no transformation needed)
     const backendMessage: MessageWithStreaming = {
       id: update.runId,

@@ -127,7 +127,7 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Get current streaming messages for initialization (refresh recovery)
   const currentStreamingMessages = useMemo(() => {
-    return messages.filter((m) => m.isStreaming);
+    return messages.filter((m) => m.isStreaming || m.status === 'streaming');
   }, [messages]);
 
   // Message streaming (only when channel is available)

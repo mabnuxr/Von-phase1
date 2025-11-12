@@ -78,16 +78,32 @@ export function useAguiMessageStream(
   });
 
   const seenMessageIds = useRef<Set<string>>(new Set());
+  const hasInitialized = useRef(false);
 
   // Initialize streaming state from current messages (for refresh recovery)
-  // This runs once on mount to pre-populate state with partial content from fetched messages
+  // This pre-populates state with partial content from fetched messages after browser refresh
   useEffect(() => {
-    if (!currentMessages || currentMessages.length === 0) return;
+    // Only initialize once when we have valid messages
+    if (hasInitialized.current || !currentMessages || currentMessages.length === 0) {
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.log('[useAguiMessageStream] Attempting initialization with messages:', currentMessages);
+    }
 
     currentMessages.forEach((msg) => {
-      // Only initialize streaming messages that have content
-      if (msg.isStreaming && msg.content) {
-        const runId = msg.messageId || msg.id;
+      // Check for streaming status OR isStreaming flag (backend uses status, frontend uses flag)
+      const shouldInitialize = (msg.isStreaming || msg.status === 'streaming') && msg.content;
+
+      if (shouldInitialize) {
+        // Use id as primary (always exists), messageId as fallback
+        const runId = msg.id || msg.messageId;
+
+        if (!runId) {
+          console.warn('[useAguiMessageStream] Message has no id or messageId, skipping initialization', msg);
+          return;
+        }
 
         // Pre-populate state Map with replayed content
         stateRef.current.messageContent.set(runId, msg.content);
@@ -96,6 +112,7 @@ export function useAguiMessageStream(
         if (msg.stepMessages) {
           msg.stepMessages.forEach((step) => {
             stateRef.current.stepMessages.set(step.message_id, step);
+            stateRef.current.messageContent.set(step.message_id, step.content);
           });
         }
 
@@ -108,13 +125,14 @@ export function useAguiMessageStream(
 
         if (import.meta.env.DEV) {
           console.log(
-            `[useAguiMessageStream] Initialized streaming state for runId ${runId} with ${msg.content.length} characters`
+            `[useAguiMessageStream] ✅ Initialized streaming state for runId ${runId} with ${msg.content.length} characters`
           );
         }
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+
+    hasInitialized.current = true;
+  }, [currentMessages]); 
 
   // Helper: Emit state update to parent
   const emitStateUpdate = (runId: string) => {
@@ -282,16 +300,19 @@ export function useAguiMessageStream(
     try {
       switch (event.type) {
         case 'RUN_STARTED': {
-          // Initialize new run - this creates THE ONE message for this entire run
+          
           state.currentRunId = wrapper.run_id;
-          state.messageContent.set(wrapper.run_id, ''); // Main message content
 
-          // Clear step messages from previous run
-          state.stepMessages.clear();
-          state.toolCalls.clear();
-          state.toolCallArgs.clear();
+          if (!state.messageContent.has(wrapper.run_id)) {
+            state.messageContent.set(wrapper.run_id, ''); 
+          }
 
-          // Emit initial state update
+          if (state.stepMessages.size === 0) {
+            state.stepMessages.clear();
+            state.toolCalls.clear();
+            state.toolCallArgs.clear();
+          }
+
           emitStateUpdate(wrapper.run_id);
           break;
         }
@@ -319,13 +340,16 @@ export function useAguiMessageStream(
         case 'TEXT_MESSAGE_CONTENT': {
           const e = event as TextMessageContentEvent;
 
+          // Get existing step message (may have content from Redis initialization)
+          const stepMsg = state.stepMessages.get(e.message_id);
+
           // Accumulate in the step message content
-          const currentStepContent = state.messageContent.get(e.message_id) || '';
+          // This preserves Redis-fetched content when streaming restarts after refresh
+          const currentStepContent = state.messageContent.get(e.message_id) || stepMsg?.content || '';
           const newStepContent = currentStepContent + e.delta;
           state.messageContent.set(e.message_id, newStepContent);
 
           // Update step message object
-          const stepMsg = state.stepMessages.get(e.message_id);
           if (stepMsg) {
             stepMsg.content = newStepContent;
           }

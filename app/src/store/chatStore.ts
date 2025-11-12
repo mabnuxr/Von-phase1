@@ -88,7 +88,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
     set((state) => {
       const existingMessages = state.messages[conversationId] || [];
       const existingIndex = existingMessages.findIndex(
-        (m) => m.id === message.id,
+        (m) => m.runId === message.id,
       );
 
       let updatedConversationMessages: MessageWithStreaming[];
@@ -97,6 +97,8 @@ const useChatStoreBase = create<ChatState>((set) => ({
         // UPDATE: Smart merge - only update fields with meaningful values
         // This prevents empty replayed events from overwriting complete data
         const existingMessage = existingMessages[existingIndex];
+        
+        console.log("[upsertMessage] Existing Message ----> ",existingMessage);
 
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
@@ -108,12 +110,6 @@ const useChatStoreBase = create<ChatState>((set) => ({
             (existingMessage.messageContent?.length || 0)
               ? message.messageContent
               : existingMessage.messageContent,
-          reasoningContent:
-            (message.reasoningContent?.length || 0) >=
-            (existingMessage.reasoningContent?.length || 0)
-              ? message.reasoningContent
-              : existingMessage.reasoningContent,
-          // Preserve arrays if new message has undefined or empty arrays
           events:
             message.events && message.events.length > 0
               ? message.events
@@ -131,13 +127,12 @@ const useChatStoreBase = create<ChatState>((set) => ({
             message.isStreaming !== undefined
               ? message.isStreaming
               : existingMessage.isStreaming,
-          isReasoningStreaming:
-            message.isReasoningStreaming !== undefined
-              ? message.isReasoningStreaming
-              : existingMessage.isReasoningStreaming,
           // Always update status (progresses forward)
           status: message.status || existingMessage.status,
         };
+        
+        console.log("[upsertMessage] merged Message ----> ",mergedMessage);
+
 
         updatedConversationMessages = [...existingMessages];
         updatedConversationMessages[existingIndex] = mergedMessage;
