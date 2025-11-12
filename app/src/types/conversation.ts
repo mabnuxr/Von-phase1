@@ -93,7 +93,8 @@ export interface PaginatedResponse<T> {
  * API response types
  */
 export type PaginatedConversationsResponse = PaginatedResponse<Conversation>;
-export type PaginatedMessagesResponse = PaginatedResponse<Message>;
+// Backend returns MessageWithStreaming (includes events, isStreaming, etc.)
+export type PaginatedMessagesResponse = PaginatedResponse<MessageWithStreaming>;
 
 export interface CreateConversationResponse {
   conversation: Conversation;

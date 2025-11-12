@@ -12,21 +12,26 @@ import type {
   ToolCallStartEvent,
   ToolCallArgsEvent,
   ToolCallResultEvent,
+  Message,
 } from '../types';
 
-export interface MessageStreamEvents {
-  onMessageStart?: (messageId: string) => void;
-  onMessageChunk?: (messageId: string, chunk: string) => void;
-  onMessageComplete?: (
-    messageId: string,
-    fullContent: string,
-    toolCalls?: ToolCall[],
-    stepMessages?: StepMessage[]
-  ) => void;
-  onMessageReceived?: (messageId: string, content: string, role: 'user' | 'assistant') => void;
-  onToolCallStart?: (messageId: string, toolCall: ToolCall) => void;
-  onToolCallComplete?: (messageId: string, toolCallId: string, result: ToolResult) => void;
-  onError?: (error: Error) => void;
+export interface AguiStateUpdate {
+  runId: string;
+  messageContent: string;
+  stepMessages: StepMessage[];
+  toolCalls: ToolCall[];
+  isStreaming: boolean;
+  status: 'created' | 'streaming' | 'completed' | 'failed';
+}
+
+export interface UserMessageData {
+  id: string;
+  conversationId: string;
+  messageContent: string;
+  messageType: string;
+  role: 'user';
+  createdAt: string;
+  createdBy: string;
 }
 
 interface StreamingState {
@@ -43,8 +48,18 @@ interface StreamingState {
 /**
  * Hook for handling AGUI streaming events from Pusher
  * Supports tool calls, multi-step responses, and intelligent result parsing
+ *
+ * @param channel - Pusher channel for real-time events
+ * @param onStateUpdate - Callback for state updates
+ * @param onUserMessage - Callback for user messages
+ * @param currentMessages - Current messages from store (for initialization after refresh)
  */
-export function useAguiMessageStream(channel: Channel | null, events: MessageStreamEvents = {}) {
+export function useAguiMessageStream(
+  channel: Channel | null,
+  onStateUpdate?: (update: AguiStateUpdate) => void,
+  onUserMessage?: (data: UserMessageData) => void,
+  currentMessages?: Message[]
+) {
   const [streamingMessages, setStreamingMessages] = useState<Map<string, string>>(new Map());
   const [streamingToolCalls, setStreamingToolCalls] = useState<Map<string, ToolCall[]>>(new Map());
   const [streamingStepMessages, setStreamingStepMessages] = useState<Map<string, StepMessage[]>>(
@@ -62,13 +77,108 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
     nextExpectedSequence: 1,
   });
 
-  const eventsRef = useRef(events);
   const seenMessageIds = useRef<Set<string>>(new Set());
+  const hasInitialized = useRef(false);
 
-  // Update refs when events change
+  // Initialize streaming state from current messages (for refresh recovery)
+  // This pre-populates state with partial content from fetched messages after browser refresh
   useEffect(() => {
-    eventsRef.current = events;
-  }, [events]);
+    // Only initialize once when we have valid messages
+    if (hasInitialized.current || !currentMessages || currentMessages.length === 0) {
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.log(
+        '[useAguiMessageStream] Attempting initialization with messages:',
+        currentMessages
+      );
+    }
+
+    currentMessages.forEach((msg) => {
+      // Check for streaming status OR isStreaming flag (backend uses status, frontend uses flag)
+      const shouldInitialize = (msg.isStreaming || msg.status === 'streaming') && msg.content;
+
+      if (shouldInitialize) {
+        // Use id as primary (always exists), messageId as fallback
+        const runId = msg.id || msg.messageId;
+
+        if (!runId) {
+          console.warn(
+            '[useAguiMessageStream] Message has no id or messageId, skipping initialization',
+            msg
+          );
+          return;
+        }
+
+        // Pre-populate state Map with replayed content
+        stateRef.current.messageContent.set(runId, msg.content);
+
+        // CRITICAL: Set currentRunId so isStreaming detection works after reconnection
+        // This ensures the thinking indicator stays visible when streaming continues
+        stateRef.current.currentRunId = runId;
+
+        // Also populate stepMessages if available
+        if (msg.stepMessages) {
+          msg.stepMessages.forEach((step) => {
+            stateRef.current.stepMessages.set(step.message_id, step);
+            stateRef.current.messageContent.set(step.message_id, step.content);
+          });
+        }
+
+        // Also populate toolCalls if available
+        if (msg.toolCalls) {
+          msg.toolCalls.forEach((tool) => {
+            stateRef.current.toolCalls.set(tool.id, tool);
+          });
+        }
+
+        if (import.meta.env.DEV) {
+          console.log(
+            `[useAguiMessageStream] ✅ Initialized streaming state for runId ${runId} with ${msg.content.length} characters`
+          );
+        }
+      }
+    });
+
+    hasInitialized.current = true;
+  }, [currentMessages]);
+
+  // Helper: Emit state update to parent
+  const emitStateUpdate = (runId: string) => {
+    if (!onStateUpdate) {
+      console.warn('[useAguiMessageStream] No onStateUpdate callback provided');
+      return;
+    }
+
+    const state = stateRef.current;
+    const messageContent = state.messageContent.get(runId) || '';
+    const stepMessages = Array.from(state.stepMessages.values());
+    const toolCalls = Array.from(state.toolCalls.values());
+
+    // More robust streaming detection: check if currentRunId matches OR we have active content
+    // This handles both live streaming and refresh recovery scenarios
+    const isStreaming =
+      state.currentRunId === runId ||
+      (state.messageContent.has(runId) && state.messageContent.get(runId) !== '');
+
+    console.log('[useAguiMessageStream] Emitting state update:', {
+      runId,
+      contentLength: messageContent.length,
+      stepMessagesCount: stepMessages.length,
+      toolCallsCount: toolCalls.length,
+      isStreaming,
+    });
+
+    onStateUpdate({
+      runId,
+      messageContent,
+      stepMessages,
+      toolCalls,
+      isStreaming,
+      status: isStreaming ? 'streaming' : 'completed',
+    });
+  };
 
   // Helper: Parse tool result and detect type
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,17 +315,20 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
     try {
       switch (event.type) {
         case 'RUN_STARTED': {
-          // Initialize new run - this creates THE ONE message for this entire run
-          state.currentRunId = wrapper.run_id;
-          state.messageContent.set(wrapper.run_id, ''); // Main message content
-
-          // Clear step messages from previous run
+          // Clear previous run data to prevent cross-contamination between runs
+          // This ensures each new run starts with a clean slate
           state.stepMessages.clear();
           state.toolCalls.clear();
           state.toolCallArgs.clear();
 
-          // Create the assistant message in the UI with run_id
-          eventsRef.current.onMessageStart?.(wrapper.run_id);
+          state.currentRunId = wrapper.run_id;
+
+          // Initialize messageContent for this run if not already present (from refresh recovery)
+          if (!state.messageContent.has(wrapper.run_id)) {
+            state.messageContent.set(wrapper.run_id, '');
+          }
+
+          emitStateUpdate(wrapper.run_id);
           break;
         }
 
@@ -242,13 +355,17 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
         case 'TEXT_MESSAGE_CONTENT': {
           const e = event as TextMessageContentEvent;
 
+          // Get existing step message (may have content from Redis initialization)
+          const stepMsg = state.stepMessages.get(e.message_id);
+
           // Accumulate in the step message content
-          const currentStepContent = state.messageContent.get(e.message_id) || '';
+          // This preserves Redis-fetched content when streaming restarts after refresh
+          const currentStepContent =
+            state.messageContent.get(e.message_id) || stepMsg?.content || '';
           const newStepContent = currentStepContent + e.delta;
           state.messageContent.set(e.message_id, newStepContent);
 
           // Update step message object
-          const stepMsg = state.stepMessages.get(e.message_id);
           if (stepMsg) {
             stepMsg.content = newStepContent;
           }
@@ -259,10 +376,6 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
 
           // Use flushSync to force immediate synchronous updates for smooth streaming
           flushSync(() => {
-            // Send the chunk to the RUN (not the individual message block)
-            // The parent will render this in the appropriate place
-            eventsRef.current.onMessageChunk?.(state.currentRunId!, e.delta);
-
             // Update streaming state
             setStreamingMessages(new Map(state.messageContent));
 
@@ -273,6 +386,9 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
               next.set(wrapper.run_id, stepMessagesArray);
               return next;
             });
+
+            // Emit state update with current content
+            emitStateUpdate(wrapper.run_id);
           });
           break;
         }
@@ -338,7 +454,8 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
             return next;
           });
 
-          eventsRef.current.onToolCallStart?.(wrapper.run_id, toolCall);
+          // Emit state update with new tool call
+          emitStateUpdate(wrapper.run_id);
           break;
         }
 
@@ -443,13 +560,8 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
                   return next;
                 });
 
-                if (parsedResult) {
-                  eventsRef.current.onToolCallComplete?.(
-                    wrapper.run_id,
-                    e.tool_call_id,
-                    parsedResult
-                  );
-                }
+                // Emit state update with tool result
+                emitStateUpdate(wrapper.run_id);
               }
             } catch {
               console.warn('Tool result is not valid JSON, treating as error message:', e.content);
@@ -477,19 +589,21 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
         }
 
         case 'RUN_FINISHED': {
-          // Finalize the run
-          const finalContent = state.messageContent.get(wrapper.run_id) || '';
-          const finalToolCalls = Array.from(state.toolCalls.values()).filter(
-            (tc) => tc.parentMessageId === state.currentMessageId
-          );
-          const finalStepMessages = Array.from(state.stepMessages.values());
+          // Emit final state update with completed status
+          if (onStateUpdate) {
+            const messageContent = state.messageContent.get(wrapper.run_id) || '';
+            const stepMessages = Array.from(state.stepMessages.values());
+            const toolCalls = Array.from(state.toolCalls.values());
 
-          eventsRef.current.onMessageComplete?.(
-            wrapper.run_id,
-            finalContent,
-            finalToolCalls.length > 0 ? finalToolCalls : undefined,
-            finalStepMessages.length > 0 ? finalStepMessages : undefined
-          );
+            onStateUpdate({
+              runId: wrapper.run_id,
+              messageContent,
+              stepMessages,
+              toolCalls,
+              isStreaming: false,
+              status: 'completed',
+            });
+          }
 
           // FIX: Clear event buffer immediately to prevent memory leak
           state.eventBuffer = [];
@@ -528,7 +642,7 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       }
     } catch (error) {
       console.error('Error processing AGUI event:', error);
-      eventsRef.current.onError?.(error as Error);
+      // Error handling removed - parent can monitor status field
     }
   };
 
@@ -619,24 +733,29 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       }
     } catch (error) {
       console.error('Error handling AGUI event:', error);
-      eventsRef.current.onError?.(error as Error);
+      // Error handling removed - parent can monitor status field
     }
   };
 
   // Handle user messages (non-streaming)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleUserMessage = (data: any) => {
+    if (import.meta.env.DEV) {
+      console.log('[useAguiMessageStream] Received user_message event:', data);
+    }
+
     const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-    const { id, messageContent, content, role } = parsed;
-    const messageText = messageContent || content || '';
 
     // Prevent duplicate processing
-    if (seenMessageIds.current.has(id)) {
+    if (seenMessageIds.current.has(parsed.id)) {
       return;
     }
-    seenMessageIds.current.add(id);
+    seenMessageIds.current.add(parsed.id);
 
-    eventsRef.current.onMessageReceived?.(id, messageText, role as 'user' | 'assistant');
+    // Call parent callback if provided
+    if (onUserMessage) {
+      onUserMessage(parsed as UserMessageData);
+    }
   };
 
   useEffect(() => {
@@ -660,12 +779,6 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
     // User messages (non-streaming)
     channel.bind('user_message', handleUserMessage);
 
-    // Error handling
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    channel.bind('error', (data: any) => {
-      eventsRef.current.onError?.(new Error(data.error || 'Unknown error'));
-    });
-
     // Cleanup
     return () => {
       channel.unbind('agent.run_started', handleAguiEvent);
@@ -680,7 +793,6 @@ export function useAguiMessageStream(channel: Channel | null, events: MessageStr
       channel.unbind('agent.step_finished', handleAguiEvent);
       channel.unbind('agent.run_finished', handleAguiEvent);
       channel.unbind('user_message', handleUserMessage);
-      channel.unbind('error');
     };
   }, [channel]);
 

@@ -10,7 +10,7 @@ export type {
   DashboardArtifact,
   PusherConfig,
   ApiEndpoints,
-} from './Chat';
+} from './types';
 
 export { ChatHeader } from './ChatHeader';
 export type { ChatHeaderProps } from './ChatHeader';
@@ -35,11 +35,8 @@ export { ToolCallItem } from './ToolCallItem';
 export { usePusherAuth } from './hooks/usePusherAuth';
 export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './hooks/usePusherAuth';
 
-export { useMessageStream } from './hooks/useMessageStream';
-export type { StreamMessage, MessageStreamEvents } from './hooks/useMessageStream';
-
 export { useAguiMessageStream } from './hooks/useAguiMessageStream';
-export type { MessageStreamEvents as AguiMessageStreamEvents } from './hooks/useAguiMessageStream';
+export type { AguiStateUpdate, UserMessageData } from './hooks/useAguiMessageStream';
 
 // Export tool call and result components
 export { DataTable } from './DataTable';

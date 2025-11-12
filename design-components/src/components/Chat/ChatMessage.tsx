@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
-import { MessageStatusBadge } from './MessageStatusBadge';
 import { ToolCallItem } from './ToolCallItem';
 import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 
@@ -164,7 +163,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   userEmail,
   stepMessages,
   status,
-  errorMessage,
   conversationId,
   useArtifactHook,
 }) => {
@@ -198,7 +196,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           ${
             isUser
               ? 'py-6 bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white'
-              : `pt-6 min-h-[460px] bg-white`
+              : `pt-6 min-h-[450px] bg-white`
           }
         `}
       >
@@ -220,8 +218,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs font-semibold">
                         AI
                       </div>
-                      {/* Status badge inline with avatar for assistant messages */}
-                      <MessageStatusBadge status={status} errorMessage={errorMessage} />
                     </>
                   )}
                 </div>

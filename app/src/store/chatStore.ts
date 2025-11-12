@@ -18,6 +18,10 @@ interface ChatState {
     messages: MessageWithStreaming[],
   ) => void;
   addMessage: (conversationId: string, message: MessageWithStreaming) => void;
+  upsertMessage: (
+    conversationId: string,
+    message: MessageWithStreaming,
+  ) => void;
   prependMessages: (
     conversationId: string,
     olderMessages: MessageWithStreaming[],
@@ -76,6 +80,66 @@ const useChatStoreBase = create<ChatState>((set) => ({
         messages: {
           ...state.messages,
           [conversationId]: [...existingMessages, message],
+        },
+      };
+    }),
+
+  upsertMessage: (conversationId, message) =>
+    set((state) => {
+      const existingMessages = state.messages[conversationId] || [];
+      const existingIndex = existingMessages.findIndex(
+        (m) => m.runId === message.id,
+      );
+
+      let updatedConversationMessages: MessageWithStreaming[];
+
+      if (existingIndex >= 0) {
+        // UPDATE: Smart merge - only update fields with meaningful values
+        // This prevents empty replayed events from overwriting complete data
+        const existingMessage = existingMessages[existingIndex];
+
+        const mergedMessage: MessageWithStreaming = {
+          ...existingMessage,
+          ...message,
+          // Smart merge: prefer longer content (handles both append and replay)
+          // This prevents regression when late events arrive out of order
+          messageContent:
+            (message.messageContent?.length || 0) >=
+            (existingMessage.messageContent?.length || 0)
+              ? message.messageContent
+              : existingMessage.messageContent,
+          events:
+            message.events && message.events.length > 0
+              ? message.events
+              : existingMessage.events,
+          stepMessages:
+            message.stepMessages && message.stepMessages.length > 0
+              ? message.stepMessages
+              : existingMessage.stepMessages,
+          toolCalls:
+            message.toolCalls && message.toolCalls.length > 0
+              ? message.toolCalls
+              : existingMessage.toolCalls,
+          // Always update streaming flags (they change from true -> false)
+          isStreaming:
+            message.isStreaming !== undefined
+              ? message.isStreaming
+              : existingMessage.isStreaming,
+          // Always update status (progresses forward)
+          status: message.status || existingMessage.status,
+        };
+
+        updatedConversationMessages = [...existingMessages];
+        updatedConversationMessages[existingIndex] = mergedMessage;
+      } else {
+        // INSERT: Add new message
+        updatedConversationMessages = [...existingMessages, message];
+      }
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: updatedConversationMessages,
         },
       };
     }),
