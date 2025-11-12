@@ -97,7 +97,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
         // UPDATE: Smart merge - only update fields with meaningful values
         // This prevents empty replayed events from overwriting complete data
         const existingMessage = existingMessages[existingIndex];
-        
+
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
           ...message,
@@ -128,8 +128,6 @@ const useChatStoreBase = create<ChatState>((set) => ({
           // Always update status (progresses forward)
           status: message.status || existingMessage.status,
         };
-        
-
 
         updatedConversationMessages = [...existingMessages];
         updatedConversationMessages[existingIndex] = mergedMessage;
