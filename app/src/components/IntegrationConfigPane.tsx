@@ -169,19 +169,37 @@ export function IntegrationConfigPane() {
       }
 
       if (isEditMode && formData.id) {
+        // Build update data
+        const updateData: {
+          accessLevel: "tenant" | "user";
+          config: Record<string, unknown>;
+          accessKey?: string;
+          accessSecret?: string;
+        } = {
+          accessLevel: formData.accessLevel,
+          config,
+        };
+
+        // Only send credentials if they were provided (to update them)
+        if (configuringIntegrationId === "gong") {
+          if (gongAccessKey) {
+            updateData.accessKey = gongAccessKey;
+          }
+          if (gongAccessSecret) {
+            updateData.accessSecret = gongAccessSecret;
+          }
+        } else if (configuringIntegrationId === "fathom") {
+          if (fathomApiKey) {
+            updateData.accessKey = fathomApiKey;
+          }
+        }
+
+        console.log("Updated Data ",updateData);
+
         // Update existing integration
         await updateMutation.mutateAsync({
           integrationId: formData.id,
-          data: {
-            accessLevel: formData.accessLevel,
-            config,
-            // Only send credentials if they were provided (to update them)
-            ...(gongAccessKey &&
-              gongAccessSecret && {
-                accessKey: gongAccessKey,
-                accessSecret: gongAccessSecret,
-              }),
-          },
+          data: updateData,
         });
         // For updates, just close and navigate (don't re-authorize)
         handleClose();
