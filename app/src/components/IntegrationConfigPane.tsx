@@ -194,8 +194,6 @@ export function IntegrationConfigPane() {
           }
         }
 
-        console.log("Updated Data ",updateData);
-
         // Update existing integration
         await updateMutation.mutateAsync({
           integrationId: formData.id,
