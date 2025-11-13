@@ -1,30 +1,8 @@
 import usePreferencesStore from "../store/preferencesStore";
+import { getAllIntegrations } from "../constants/integrationMetadata";
 
-interface AppConfig {
-  id: string;
-  name: string;
-  logoPath: string;
-  disabled?: boolean;
-}
-
-const apps: AppConfig[] = [
-  {
-    id: "salesforce",
-    name: "Salesforce",
-    logoPath: "/Images/salesforce.svg",
-  },
-  {
-    id: "gong",
-    name: "Gong",
-    logoPath: "/Images/gong.svg",
-  },
-  {
-    id: "hubspot",
-    name: "HubSpot",
-    logoPath: "/Images/hubspot.svg",
-    disabled: true,
-  },
-];
+// Get all integrations from centralized metadata
+const apps = getAllIntegrations();
 
 /**
  * AppsConfigPanel - Displays integration icons for configuration

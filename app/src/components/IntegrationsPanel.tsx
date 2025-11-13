@@ -17,6 +17,7 @@ import { IntegrationType, AuthenticationStatus } from "../services";
 import usePreferencesStore from "../store/preferencesStore";
 import { AppsConfigPanel } from "./AppsConfigPanel";
 import { IntegrationConfigPane } from "./IntegrationConfigPane";
+import { getIntegrationLogoPath } from "../constants/integrationMetadata";
 
 export interface Integration {
   id: string;
@@ -27,18 +28,6 @@ export interface Integration {
 
 export interface IntegrationsPanelProps {
   onIntegrationToggle?: (id: string, enabled: boolean) => void;
-}
-
-/**
- * Map integration type to logo path
- */
-function getIntegrationLogoPath(type: IntegrationType): string {
-  const logoMap: Record<IntegrationType, string> = {
-    [IntegrationType.SALESFORCE]: "/Images/salesforce.svg",
-    [IntegrationType.GONG]: "/Images/gong.svg",
-    [IntegrationType.HUBSPOT]: "/Images/hubspot.svg",
-  };
-  return logoMap[type] || "/Images/default-integration.svg";
 }
 
 /**

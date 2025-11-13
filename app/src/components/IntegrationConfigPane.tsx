@@ -9,30 +9,10 @@ import {
   useIntegrations,
 } from "../hooks/useIntegrations";
 import type { IntegrationType } from "../services/integrationsService";
+import { INTEGRATION_METADATA } from "../constants/integrationMetadata";
 
-interface IntegrationDetails {
-  id: string;
-  name: string;
-  logoPath: string;
-}
-
-const integrationDetails: Record<string, IntegrationDetails> = {
-  salesforce: {
-    id: "salesforce",
-    name: "Salesforce",
-    logoPath: "/Images/salesforce.svg",
-  },
-  gong: {
-    id: "gong",
-    name: "Gong",
-    logoPath: "/Images/gong.svg",
-  },
-  hubspot: {
-    id: "hubspot",
-    name: "HubSpot",
-    logoPath: "/Images/hubspot.svg",
-  },
-};
+// Use centralized integration metadata
+const integrationDetails = INTEGRATION_METADATA;
 
 export function IntegrationConfigPane() {
   const {
@@ -64,6 +44,9 @@ export function IntegrationConfigPane() {
   const [gongApiBaseUrl, setGongApiBaseUrl] = useState("");
   const [gongAccessKey, setGongAccessKey] = useState("");
   const [gongAccessSecret, setGongAccessSecret] = useState("");
+
+  // Fathom API key configuration state
+  const [fathomApiKey, setFathomApiKey] = useState("");
 
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -154,6 +137,15 @@ export function IntegrationConfigPane() {
       }
     }
 
+    if (configuringIntegrationId === "fathom") {
+      // Only require API key if no existing credentials
+      if (!hasExistingCredentials) {
+        if (!fathomApiKey) {
+          errors.push("API Key is required");
+        }
+      }
+    }
+
     // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -200,17 +192,24 @@ export function IntegrationConfigPane() {
           type: configuringIntegrationId.toUpperCase() as IntegrationType,
           accessLevel: formData.accessLevel,
           config,
-          // Pass Gong API credentials if present
+          // Pass API credentials if present
           accessKey:
-            configuringIntegrationId === "gong" ? gongAccessKey : undefined,
+            configuringIntegrationId === "gong"
+              ? gongAccessKey
+              : configuringIntegrationId === "fathom"
+                ? fathomApiKey
+                : undefined,
           accessSecret:
             configuringIntegrationId === "gong" ? gongAccessSecret : undefined,
         });
 
-        // Clear sensitive Gong credentials from state after creation
+        // Clear sensitive credentials from state after creation
         if (configuringIntegrationId === "gong") {
           setGongAccessKey("");
           setGongAccessSecret("");
+        }
+        if (configuringIntegrationId === "fathom") {
+          setFathomApiKey("");
         }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
@@ -513,6 +512,73 @@ export function IntegrationConfigPane() {
                       </svg>
                       <span>
                         Credentials are encrypted and transmitted securely.
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {/* Fathom-specific fields */}
+                {configuringIntegrationId === "fathom" && (
+                  <>
+                    {/* API Key */}
+                    <div className="fathom-input-wrapper">
+                      <Input
+                        type="password"
+                        label="API Key"
+                        value={fathomApiKey}
+                        onChange={(e) => setFathomApiKey(e.target.value)}
+                        placeholder={
+                          hasExistingCredentials
+                            ? "••••••••"
+                            : "Enter your Fathom API key"
+                        }
+                        helperText={
+                          hasExistingCredentials
+                            ? "Leave empty to keep existing API key"
+                            : "Your Fathom API key from the Fathom dashboard"
+                        }
+                        required={!hasExistingCredentials}
+                        fullWidth
+                      />
+                    </div>
+
+                    <style>{`
+                      .fathom-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+
+                    {/* Help Link */}
+                    <div className="text-sm text-gray-600">
+                      <span>Need help? </span>
+                      <a
+                        href="https://help.fathom.video/en/articles/6455506-api-access"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-von-purple hover:text-von-purple-600 underline font-medium"
+                      >
+                        Learn how to generate your Fathom API key
+                      </a>
+                    </div>
+
+                    {/* Security Notice */}
+                    <div className="text-xs text-gray-500 flex items-start gap-1.5">
+                      <svg
+                        className="size-3.5 shrink-0 mt-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                      <span>
+                        Your API key is encrypted and transmitted securely.
                       </span>
                     </div>
                   </>

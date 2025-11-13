@@ -36,7 +36,8 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     name: 'Salesforce',
-    integrationLogoPath: '/Images/salesforce.svg',
+    integrationLogoPath:
+      'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg',
     enabled: false,
     onToggle: (enabled) => console.log('Toggle changed:', enabled),
   },
@@ -45,7 +46,8 @@ export const Default: Story = {
 export const Enabled: Story = {
   args: {
     name: 'Salesforce',
-    integrationLogoPath: '/Images/salesforce.svg',
+    integrationLogoPath:
+      'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg',
     enabled: true,
     onToggle: (enabled) => console.log('Toggle changed:', enabled),
   },
@@ -54,7 +56,8 @@ export const Enabled: Story = {
 export const Disabled: Story = {
   args: {
     name: 'Salesforce',
-    integrationLogoPath: '/Images/salesforce.svg',
+    integrationLogoPath:
+      'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg',
     enabled: false,
     disabled: true,
   },
@@ -63,7 +66,8 @@ export const Disabled: Story = {
 export const WithConfirmation: Story = {
   args: {
     name: 'Salesforce',
-    integrationLogoPath: '/Images/salesforce.svg',
+    integrationLogoPath:
+      'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg',
     enabled: true,
     onToggle: (enabled) => console.log('Toggle changed:', enabled),
     onRequestDisableConfirmation: async () => {
@@ -78,13 +82,13 @@ export const Gallery: Story = {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 300px)', gap: '16px' }}>
         <IntegrationCard
           name="Salesforce"
-          integrationLogoPath="/Images/salesforce.svg"
+          integrationLogoPath="https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg"
           enabled={true}
           onToggle={(enabled) => console.log('Salesforce:', enabled)}
         />
         <IntegrationCard
           name="Gong"
-          integrationLogoPath="/Images/gong.svg"
+          integrationLogoPath="https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg"
           enabled={false}
           onToggle={(enabled) => console.log('Gong:', enabled)}
         />

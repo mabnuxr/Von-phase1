@@ -7,6 +7,7 @@ export const IntegrationType = {
   SALESFORCE: "SALESFORCE",
   GONG: "GONG",
   HUBSPOT: "HUBSPOT",
+  FATHOM: "FATHOM",
 } as const;
 
 export type IntegrationType =
