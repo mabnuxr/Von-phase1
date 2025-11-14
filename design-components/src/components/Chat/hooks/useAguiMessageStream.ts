@@ -164,14 +164,6 @@ export function useAguiMessageStream(
       state.currentRunId === runId ||
       (state.messageContent.has(runId) && state.messageContent.get(runId) !== '');
 
-    console.log('[useAguiMessageStream] Emitting state update:', {
-      runId,
-      contentLength: messageContent.length,
-      stepMessagesCount: stepMessages.length,
-      toolCallsCount: toolCalls.length,
-      isStreaming,
-    });
-
     onStateUpdate({
       runId,
       messageContent,
