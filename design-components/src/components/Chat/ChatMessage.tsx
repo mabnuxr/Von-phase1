@@ -227,6 +227,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* For assistant messages: render thinking block and content */}
                   {!isUser ? (
                     <>
+                      {isStreaming &&
+                        !content &&
+                        !reasoningContent &&
+                        (!stepMessages || stepMessages.length === 0) && (
+                          <ThinkingBlock content="" isStreaming={true} status="streaming" />
+                        )}
+
                       {/* Thinking Block - Show immediately when reasoning starts */}
                       {(isReasoningStreaming || reasoningContent) && (
                         <ThinkingBlock

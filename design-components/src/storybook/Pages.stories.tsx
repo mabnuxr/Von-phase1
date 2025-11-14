@@ -4,6 +4,7 @@ import { TopBar } from '../components/TopBar';
 import { ChatSidebar } from '../components/ChatSidebar';
 import { ChatConversation } from '../components/ChatConversation';
 import type { ConversationMessage } from '../components/ChatConversation';
+import { LOGO_URL } from '../constants';
 
 // Meta component for Pages
 const PagesDemo = () => <div>Pages - Actual Product Screens</div>;
@@ -133,7 +134,7 @@ export const ChatPage: Story = {
           }}
         >
           <TopBar
-            logoSrc="/logo.gif"
+            logoSrc={LOGO_URL}
             onLogoClick={() => console.log('Logo clicked')}
             showMenu={false}
           />

@@ -31,6 +31,7 @@ import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
   STREAM_TIMEOUT_MS,
+  LOGO_URL,
 } from "../config/constants";
 
 const Dashboard = () => {
@@ -47,13 +48,6 @@ const Dashboard = () => {
   const conversationMessages = useMemo(
     () => (currentConversationId ? messages[currentConversationId] || [] : []),
     [currentConversationId, messages],
-  );
-
-  // Detect if current conversation has any streaming messages
-  // This prevents users from switching conversations during active streaming
-  const isCurrentlyStreaming = useMemo(
-    () => conversationMessages.some((msg) => msg.isStreaming),
-    [conversationMessages],
   );
 
   // Initialize conversation (load latest or create new)
@@ -287,6 +281,18 @@ const Dashboard = () => {
       setShowMessagesFromIndex(currentMessages.length);
     }
     sendMessage(content);
+  };
+
+  const handleStop = () => {
+    // TODO: Implement actual stop/cancel stream API call
+    // For now, this is a placeholder that logs the action
+    if (import.meta.env.DEV) {
+      console.log("[Dashboard] Stop button clicked - stream cancel requested");
+    }
+    // Future implementation:
+    // - Call backend API to cancel the current streaming run
+    // - Backend should stop the agent execution
+    // - Pusher will send completion event
   };
 
   // Handle AGUI state updates from useAguiMessageStream hook
@@ -525,7 +531,7 @@ const Dashboard = () => {
         <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div ref={avatarButtonRef}>
             <TopBar
-              logoSrc="/logo.gif"
+              logoSrc={LOGO_URL}
               logoText="Von"
               onLogoClick={() => navigate("/chat")}
               showMenu={false}
@@ -566,7 +572,6 @@ const Dashboard = () => {
               isFetchingMore={isFetchingNextPage}
               hasNextPage={!!hasNextPage}
               onLoadMore={() => fetchNextPage()}
-              disabled={isCurrentlyStreaming}
             />
           </div>
 
@@ -598,6 +603,7 @@ const Dashboard = () => {
                 }
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
+                onStop={handleStop}
                 onAguiStateUpdate={handleAguiStateUpdate}
                 onUserMessage={handleUserMessage}
                 isLoading={false}

@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteConversations } from "./useInfiniteConversations";
-import { useCreateConversation } from "./useConversations";
+import { useCreateConversation, conversationKeys } from "./useConversations";
 import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
 import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
@@ -18,6 +19,7 @@ import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
  */
 export function useNewChat() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { setCurrentConversationId } = useChatStore();
 
   // Get current conversations data for title numbering
@@ -55,6 +57,10 @@ export function useNewChat() {
       // Set conversation ID in store BEFORE navigating
       setCurrentConversationId(newConversationId);
 
+      // Wait for cache to update before navigating
+      // This ensures useConversationInit validation passes on first try
+      await queryClient.refetchQueries({ queryKey: conversationKeys.lists() });
+
       // Navigate to conversation with UUID
       navigate(`/chat/${newConversationId}`);
 
@@ -68,6 +74,7 @@ export function useNewChat() {
     createConversation,
     navigate,
     setCurrentConversationId,
+    queryClient,
   ]);
 
   return {

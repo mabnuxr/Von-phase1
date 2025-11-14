@@ -143,6 +143,17 @@ export const ERROR_MESSAGE_TRUNCATE_LENGTH = 100 as const;
 export const ARTIFACT_PANE_WIDTH = "480px" as const;
 
 // ============================================================================
+// Asset URLs
+// ============================================================================
+
+/**
+ * Von Labs logo URL hosted on S3
+ * Used across the application for brand consistency
+ */
+export const LOGO_URL =
+  "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.gif" as const;
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -169,4 +180,5 @@ export const QUERY_CONSTANTS = {
   ARTIFACT_MAX_RETRY_DELAY,
   ERROR_MESSAGE_TRUNCATE_LENGTH,
   ARTIFACT_PANE_WIDTH,
+  LOGO_URL,
 } as const;

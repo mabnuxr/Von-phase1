@@ -399,6 +399,11 @@ export interface ChatProps {
   onSendMessage?: (message: string) => void;
 
   /**
+   * Callback when stop button is clicked during streaming
+   */
+  onStop?: () => void;
+
+  /**
    * Callback when the add button is clicked
    */
   onAddClick?: () => void;

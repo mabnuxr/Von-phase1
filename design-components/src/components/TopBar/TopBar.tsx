@@ -2,6 +2,7 @@ import React from 'react';
 import { TabPill } from '../TabPill';
 import { Avatar } from '../Avatar';
 import { spacing } from '../../theme';
+import { LOGO_URL } from '../../constants';
 
 export interface Tab {
   id: string;
@@ -88,7 +89,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onAvatarClick,
   showMenu = true,
   onMenuClick,
-  logoSrc = '/logo.gif',
+  logoSrc = LOGO_URL,
   logoText,
   onLogoClick,
 }) => {
