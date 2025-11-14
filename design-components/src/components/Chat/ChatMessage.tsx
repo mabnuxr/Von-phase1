@@ -1,4 +1,4 @@
-import {  useState } from 'react';
+import { useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
