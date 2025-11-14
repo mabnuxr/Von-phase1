@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Header } from '../components/Header';
+import { LOGO_URL } from '../constants';
 
 const meta = {
   title: 'Organisms/Header',
@@ -32,7 +33,7 @@ type Story = StoryObj<typeof meta>;
  */
 export const Default: Story = {
   args: {
-    logoSrc: '/logo.gif',
+    logoSrc: LOGO_URL,
     showMenu: false,
   },
 };
@@ -44,7 +45,7 @@ export const Default: Story = {
  */
 export const WithMenu: Story = {
   args: {
-    logoSrc: '/logo.gif',
+    logoSrc: LOGO_URL,
     showMenu: true,
   },
 };
@@ -56,7 +57,7 @@ export const WithMenu: Story = {
  */
 export const InPageContext: Story = {
   args: {
-    logoSrc: '/logo.gif',
+    logoSrc: LOGO_URL,
     showMenu: false,
   },
   decorators: [

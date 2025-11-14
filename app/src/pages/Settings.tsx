@@ -19,6 +19,7 @@ import FieldsPanel from "../components/FieldsPanel";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
+import { LOGO_URL } from "../config/constants";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -177,7 +178,7 @@ const Settings = () => {
       <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div ref={avatarButtonRef}>
           <TopBar
-            logoSrc="/logo.gif"
+            logoSrc={LOGO_URL}
             logoText="Von"
             onLogoClick={() => navigate("/chat")}
             showMenu={false}

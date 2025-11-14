@@ -164,6 +164,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   stepMessages,
   status,
   conversationId,
+  messageId,
   useArtifactHook,
 }) => {
   const isUser = type === 'user';
@@ -227,12 +228,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* For assistant messages: render thinking block and content */}
                   {!isUser ? (
                     <>
+                      {isStreaming &&
+                        !content &&
+                        !reasoningContent &&
+                        (!stepMessages || stepMessages.length === 0) && (
+                          <ThinkingBlock content="" isStreaming={true} status="streaming" />
+                        )}
+
                       {/* Thinking Block - Show immediately when reasoning starts */}
                       {(isReasoningStreaming || reasoningContent) && (
                         <ThinkingBlock
                           content={reasoningContent || ''}
                           isStreaming={isReasoningStreaming}
                           status={status}
+                          messageId={messageId}
                         />
                       )}
 
@@ -248,6 +257,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               status={status}
                               stepMessages={stepMessages}
                               onArtifactClick={handleArtifactClick}
+                              messageId={messageId}
                             />
                           ) : (
                             // After completion: Show intermediate steps in ThinkingBlock + final step outside
@@ -255,6 +265,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               {stepMessages.length > 1 && (
                                 <ThinkingBlock
                                   key="thinking-block"
+                                  messageId={messageId}
                                   isStreaming={false}
                                   status={status}
                                   stepMessages={stepMessages.slice(0, -1)}

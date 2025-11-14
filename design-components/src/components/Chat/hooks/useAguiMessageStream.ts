@@ -632,11 +632,6 @@ export function useAguiMessageStream(
           break;
         }
 
-        case 'STEP_STARTED':
-        case 'STEP_FINISHED':
-          // These are informational - we don't need to act on them
-          break;
-
         default:
           console.warn('Unknown AGUI event type:', event);
       }

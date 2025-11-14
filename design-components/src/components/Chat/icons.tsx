@@ -628,3 +628,41 @@ export const SpinningCircles = memo<IconProps>(({ className = 'w-4 h-4' }) => (
   </div>
 ));
 SpinningCircles.displayName = 'SpinningCircles';
+
+// Send Icon - Arrow up for sending messages
+export const SendIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <line
+      x1="12"
+      y1="19"
+      x2="12"
+      y2="5"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <polyline
+      points="5 12 12 5 19 12"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+SendIcon.displayName = 'SendIcon';
+
+// Stop Icon - Square for stopping stream generation
+export const StopIcon = memo<IconProps>(() => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <rect x="7.5" y="7.5" width="9" height="9" rx="1" fill="currentColor" />
+  </svg>
+));
+StopIcon.displayName = 'StopIcon';

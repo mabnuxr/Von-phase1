@@ -1,5 +1,8 @@
 import { create } from 'storybook/internal/theming';
 
+// Logo URL constant
+const LOGO_URL = 'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.gif';
+
 /**
  * Apple-inspired Storybook theme
  * Matches Apple's design system with clean aesthetics and SF Pro typography
@@ -11,7 +14,7 @@ export default create({
   brandTitle: 'Von Design System',
   brandUrl: '/',
   brandTarget: '_self',
-  brandImage: '/logo.gif', // Von animated logo
+  brandImage: LOGO_URL, // Von animated logo
 
   // Typography - Apple SF Pro
   fontBase: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',

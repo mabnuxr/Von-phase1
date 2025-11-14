@@ -8,6 +8,7 @@ import { Text } from '../components/Text';
 import { Heading } from '../components/Heading';
 import { Button } from '../components/Button';
 import { colors } from '../theme';
+import { LOGO_URL } from '../constants';
 
 // Meta component for Templates
 const TemplatesDemo = () => <div>Templates - Page Layouts</div>;
@@ -46,7 +47,7 @@ export const TwoPane: Story = {
     return (
       <Box style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
-        <Header logoSrc="/logo.gif" avatarFallback="JD" menuItems={menuItems} />
+        <Header logoSrc={LOGO_URL} avatarFallback="JD" menuItems={menuItems} />
 
         {/* Two-Pane Layout */}
         <Box style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -228,7 +229,7 @@ export const ThreePane: Story = {
     return (
       <Box style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
-        <Header logoSrc="/logo.gif" avatarFallback="JD" menuItems={menuItems} />
+        <Header logoSrc={LOGO_URL} avatarFallback="JD" menuItems={menuItems} />
 
         {/* Three-Pane Layout */}
         <Box style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

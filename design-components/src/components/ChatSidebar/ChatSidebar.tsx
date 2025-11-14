@@ -75,13 +75,6 @@ export interface ChatSidebarProps {
    * Callback to load more items
    */
   onLoadMore?: () => void;
-
-  /**
-   * Whether the sidebar is disabled (e.g., during streaming)
-   * When disabled, chat clicks and new chat button are prevented
-   * @default false
-   */
-  disabled?: boolean;
 }
 
 /**
@@ -114,14 +107,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isFetchingMore = false,
   hasNextPage = false,
   onLoadMore,
-  disabled = false,
 }) => {
   const handleItemClick = (e: React.MouseEvent, itemId: string) => {
-    if (disabled) return;
-
     // Allow default behavior for Cmd/Ctrl+Click, middle-click
     if (e.metaKey || e.ctrlKey || e.button === 1) {
-      return; // Let the browser handle it (opens in new tab)
+      return;
     }
 
     // Prevent default for normal click and use SPA navigation
@@ -171,15 +161,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     >
       {/* New Chat Button */}
       <motion.button
-        className={`w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-semibold transition-all duration-200 ${
-          disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+        className={`w-full py-2 px-2.5 mb-3 flex items-center justify-center gap-2 rounded-lg bg-[#1c1c1e] text-white text-[15px] font-semibold transition-all duration-200
+          cursor-pointer
         }`}
-        onClick={disabled ? undefined : onNewChatClick}
-        whileHover={disabled ? {} : { scale: 1.02, opacity: 0.9 }}
-        whileTap={disabled ? {} : { scale: 0.98 }}
+        onClick={onNewChatClick}
+        whileHover={{ scale: 1.02, opacity: 0.9 }}
+        whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.2 }}
-        disabled={disabled}
-        title={disabled ? 'Please wait for the current response to complete' : 'Create a new chat'}
+        title={'Create a new chat'}
       >
         New Chat
         <svg
@@ -249,19 +238,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   className={`
                     block px-3 py-1.5 mx-0 my-0.5 text-sm text-gray-900
                     transition-all duration-200 whitespace-nowrap overflow-hidden
-                    text-ellipsis rounded-lg no-underline
-                    ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
+                    text-ellipsis rounded-lg no-underline cursor-pointer
                     ${
                       isSelected
                         ? 'bg-gray-100 font-medium'
-                        : disabled
-                          ? 'bg-transparent font-normal'
-                          : 'bg-transparent hover:bg-gray-50 font-normal'
+                        : 'bg-transparent hover:bg-gray-50 font-normal'
                     }
                   `}
                   onClick={(e) => handleItemClick(e, item.id)}
-                  title={disabled ? 'Please wait for the current response to complete' : item.label}
-                  aria-disabled={disabled}
+                  title={item.label}
                 >
                   {item.label}
                 </a>
@@ -275,18 +260,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 className={`
                   block px-3 py-1.5 mx-0 my-0.5 text-sm text-gray-900
                   transition-all duration-200 whitespace-nowrap overflow-hidden
-                  text-ellipsis rounded-lg
-                  ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
+                  text-ellipsis rounded-lg cursor-pointer
                   ${
                     isSelected
                       ? 'bg-gray-100 font-medium'
-                      : disabled
-                        ? 'bg-transparent font-normal'
-                        : 'bg-transparent hover:bg-gray-50 font-normal'
+                      : 'bg-transparent hover:bg-gray-50 font-normal'
                   }
                 `}
-                onClick={disabled ? undefined : () => onChatClick?.(item.id)}
-                title={disabled ? 'Please wait for the current response to complete' : item.label}
+                onClick={() => onChatClick?.(item.id)}
+                title={item.label}
               >
                 {item.label}
               </div>

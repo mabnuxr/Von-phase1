@@ -1,5 +1,6 @@
 import React from 'react';
 import { spacing } from '../../theme';
+import { LOGO_URL } from '../../constants';
 
 export interface HeaderProps {
   /**
@@ -45,7 +46,7 @@ export interface HeaderProps {
  * ```
  */
 export const Header: React.FC<HeaderProps> = ({
-  logoSrc = '/logo.gif',
+  logoSrc = LOGO_URL,
   onLogoClick,
   showMenu = false,
   onMenuClick,

@@ -30,3 +30,14 @@ export const AUTO_SCROLL_THRESHOLD_PX = 50 as const;
 
 /** Duration (ms) to ignore scroll events after user sends message */
 export const SCROLL_LOCK_DURATION_MS = 1000 as const;
+
+// ============================================================================
+// Asset URLs
+// ============================================================================
+
+/**
+ * Von Labs logo URL hosted on S3
+ * Used across the application for brand consistency
+ */
+export const LOGO_URL =
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.gif' as const;
