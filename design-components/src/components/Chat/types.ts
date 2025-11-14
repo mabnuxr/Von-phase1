@@ -89,6 +89,10 @@ export interface Message {
    * Conversation ID (for artifact fetching)
    */
   conversationId?: string;
+  /**
+   * Whether the response was stopped by user
+   */
+  stoppedByUser?: boolean;
 }
 
 export interface ChatSession {
@@ -258,6 +262,7 @@ export interface RunFinishedEvent {
   run_id: string;
   result: {
     status: 'completed' | 'failed';
+    stopped_by_user?: boolean;
   };
 }
 
@@ -444,6 +449,11 @@ export interface ChatProps {
     createdAt: string;
     createdBy: string;
   }) => void;
+
+  /**
+   * Callback when stop streaming is requested
+   */
+  onStopStreaming?: (conversationId: string) => void;
 
   /**
    * Placeholder text for the input

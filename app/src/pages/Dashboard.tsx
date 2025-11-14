@@ -7,6 +7,7 @@ import { AvatarMenu } from "../components/AvatarMenu";
 import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useSendMessage } from "../hooks/useSendMessage";
+import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { startProviderLogout } from "../lib/authFlow";
@@ -90,6 +91,9 @@ const Dashboard = () => {
 
   // Send message mutation
   const { mutate: sendMessage } = useSendMessage();
+
+  // Stop streaming mutation
+  const { mutate: stopStreaming } = useStopStreaming();
 
   // Listen for conversation title updates via Pusher
   const { updatedTitle, clearUpdatedTitle } = useConversationTitleUpdate(
@@ -283,6 +287,22 @@ const Dashboard = () => {
     sendMessage(content);
   };
 
+  const handleStopStreaming = useCallback(
+    (conversationId: string) => {
+      stopStreaming(conversationId, {
+        onSuccess: () => {
+          if (import.meta.env.DEV) {
+            console.log("[Dashboard] Stop signal sent successfully");
+          }
+        },
+        onError: (error) => {
+          console.error("[Dashboard] Failed to stop streaming:", error);
+        },
+      });
+    },
+    [stopStreaming],
+  );
+
   // Handle AGUI state updates from useAguiMessageStream hook
   const handleAguiStateUpdate = (update: {
     runId: string;
@@ -291,6 +311,7 @@ const Dashboard = () => {
     toolCalls: ToolCall[];
     isStreaming: boolean;
     status: "created" | "streaming" | "completed" | "failed";
+    stoppedByUser?: boolean;
   }) => {
     if (!currentConversationId) return;
 
@@ -309,6 +330,7 @@ const Dashboard = () => {
       toolCalls: update.toolCalls,
       isStreaming: update.isStreaming,
       status: update.status,
+      stoppedByUser: update.stoppedByUser,
     };
 
     // Use atomic upsert to prevent race conditions
@@ -383,6 +405,7 @@ const Dashboard = () => {
       let content = streamingMsg.messageContent;
       let stepMessages = streamingMsg.stepMessages;
       let toolCalls = streamingMsg.toolCalls;
+      let stoppedByUser = streamingMsg.stoppedByUser;
 
       // If message has events but no stepMessages/toolCalls, replay the events
       if (
@@ -396,6 +419,7 @@ const Dashboard = () => {
           content = replayedData.content || content;
           stepMessages = replayedData.stepMessages;
           toolCalls = replayedData.toolCalls;
+          stoppedByUser = replayedData.stoppedByUser ?? stoppedByUser;
         }
       }
 
@@ -419,6 +443,7 @@ const Dashboard = () => {
         // IDs for artifact fetching
         messageId: streamingMsg.runId,
         conversationId: streamingMsg.conversationId,
+        stoppedByUser,
       } as ChatMessage;
     });
   }, [conversationMessages]);
@@ -591,6 +616,7 @@ const Dashboard = () => {
                 }
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
+                onStopStreaming={handleStopStreaming}
                 onAguiStateUpdate={handleAguiStateUpdate}
                 onUserMessage={handleUserMessage}
                 isLoading={false}
