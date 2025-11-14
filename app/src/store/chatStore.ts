@@ -94,20 +94,69 @@ const useChatStoreBase = create<ChatState>((set) => ({
       let updatedConversationMessages: MessageWithStreaming[];
 
       if (existingIndex >= 0) {
-        // UPDATE: Smart merge - only update fields with meaningful values
-        // This prevents empty replayed events from overwriting complete data
+        // UPDATE: Smart merge using event sequence numbers
+        // This prevents shorter content from overwriting longer content on refresh
         const existingMessage = existingMessages[existingIndex];
+
+        // Helper: Get highest sequence number from events array
+        const getMaxSequence = (events?: typeof message.events): number => {
+          if (!events || events.length === 0) return -1;
+          return Math.max(...events.map((e) => e.sequence));
+        };
+
+        // Helper: Get latest timestamp from events array
+        const getLatestTimestamp = (
+          events?: typeof message.events,
+        ): Date | null => {
+          if (!events || events.length === 0) return null;
+          const timestamps = events.map((e) => new Date(e.timestamp).getTime());
+          return new Date(Math.max(...timestamps));
+        };
+
+        // Determine which update is newer based on event sequences
+        const existingMaxSeq = getMaxSequence(existingMessage.events);
+        const newMaxSeq = getMaxSequence(message.events);
+
+        // If both have events, compare sequence numbers (most reliable)
+        let useNewContent = false;
+        if (existingMaxSeq >= 0 && newMaxSeq >= 0) {
+          // Compare by sequence number
+          useNewContent = newMaxSeq >= existingMaxSeq;
+        } else if (existingMaxSeq < 0 && newMaxSeq >= 0) {
+          // New message has events, existing doesn't - use new
+          useNewContent = true;
+        } else if (existingMaxSeq >= 0 && newMaxSeq < 0) {
+          // Existing has events, new doesn't - keep existing
+          useNewContent = false;
+        } else {
+          // Neither has events - fallback to timestamp comparison
+          const existingTime = getLatestTimestamp(existingMessage.events);
+          const newTime = getLatestTimestamp(message.events);
+
+          if (existingTime && newTime) {
+            useNewContent = newTime >= existingTime;
+          } else if (message.lastStreamedAt || existingMessage.lastStreamedAt) {
+            // Fallback to lastStreamedAt
+            const existingLastTime = existingMessage.lastStreamedAt
+              ? new Date(existingMessage.lastStreamedAt)
+              : new Date(existingMessage.createdAt);
+            const newLastTime = message.lastStreamedAt
+              ? new Date(message.lastStreamedAt)
+              : new Date(message.createdAt);
+            useNewContent = newLastTime >= existingLastTime;
+          } else {
+            // Final fallback: if same sequences, prefer new update
+            useNewContent = true;
+          }
+        }
 
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
           ...message,
-          // Smart merge: prefer longer content (handles both append and replay)
-          // This prevents regression when late events arrive out of order
-          messageContent:
-            (message.messageContent?.length || 0) >=
-            (existingMessage.messageContent?.length || 0)
-              ? message.messageContent
-              : existingMessage.messageContent,
+          // Use content from the update with higher sequence/timestamp
+          messageContent: useNewContent
+            ? message.messageContent
+            : existingMessage.messageContent,
           events:
             message.events && message.events.length > 0
               ? message.events

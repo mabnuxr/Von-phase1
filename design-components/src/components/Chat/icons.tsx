@@ -660,29 +660,9 @@ SendIcon.displayName = 'SendIcon';
 
 // Stop Icon - Square for stopping stream generation
 export const StopIcon = memo<IconProps>(() => (
-  <svg
-    width="28"
-    height="28"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle
-      cx="12"
-      cy="12"
-      r="11"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      fill="none"
-    />
-    <rect
-      x="7.5"
-      y="7.5"
-      width="9"
-      height="9"
-      rx="1"
-      fill="currentColor"
-    />
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <rect x="7.5" y="7.5" width="9" height="9" rx="1" fill="currentColor" />
   </svg>
 ));
 StopIcon.displayName = 'StopIcon';

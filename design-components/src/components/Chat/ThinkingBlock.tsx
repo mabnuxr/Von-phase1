@@ -5,6 +5,38 @@ import { SpinningCircles } from './icons';
 import { ChainOfThoughtTimeline } from './ChainOfThoughtTimeline';
 import type { StepMessage } from './types';
 
+// Extract CSS animation to global scope to prevent re-creation on every render
+// This fixes animation freeze issues after multiple page refreshes
+const THINKING_SHIMMER_STYLES = `
+  @keyframes thinkingShimmer {
+    0% { background-position: -150% 0 }
+    50% { background-position: 50% 0 }
+    100% { background-position: 250% 0 }
+  }
+  .sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+`;
+
+// Inject styles once at module level
+if (typeof document !== 'undefined') {
+  const styleId = 'thinking-shimmer-styles';
+  if (!document.getElementById(styleId)) {
+    const styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    styleElement.textContent = THINKING_SHIMMER_STYLES;
+    document.head.appendChild(styleElement);
+  }
+}
+
 export interface ThinkingBlockProps {
   /**
    * The reasoning/thinking content to display
@@ -44,6 +76,12 @@ export interface ThinkingBlockProps {
     artifactType: string,
     runId: string
   ) => void;
+
+  /**
+   * Unique identifier for this message (used for keying animations)
+   * Helps ensure animations properly reset on refresh
+   */
+  messageId?: string;
 }
 
 /**
@@ -66,6 +104,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   status,
   stepMessages,
   onArtifactClick,
+  messageId,
 }) => {
   // Stable state: always start expanded when mounted
   const [isExpanded, setIsExpanded] = useState(true);
@@ -80,12 +119,17 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const startTimeRef = useRef<number | null>(null);
   const timerIdRef = useRef<number | null>(null);
 
-  // Auto-collapse only when status becomes 'completed' (and user hasn't manually toggled)
+  // Auto-collapse when status becomes 'completed' AND not streaming
+  // Auto-expand when streaming starts (handles refresh recovery)
   useEffect(() => {
-    if (status === 'completed' && !userManuallyToggled) {
+    if (isStreaming && !userManuallyToggled) {
+      // Expand when streaming starts (fixes collapse on refresh)
+      setIsExpanded(true);
+    } else if (status === 'completed' && !isStreaming && !userManuallyToggled) {
+      // Only collapse when truly completed and not streaming
       setIsExpanded(false);
     }
-  }, [status, userManuallyToggled]);
+  }, [status, isStreaming, userManuallyToggled]);
 
   // Timer effect - tracks elapsed time and resets on new steps
   useEffect(() => {
@@ -176,16 +220,6 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                 <span className="sr-only" aria-live="polite">
                   Assistant is thinking
                 </span>
-
-                <style>{`
-                @keyframes thinkingShimmer {
-                  0% { background-position: -150% 0 }
-                  50% { background-position: 50% 0 }
-                  100% { background-position: 250% 0 }
-                }
-                /* small helper for sr-only if you don't have a tailwind sr-only util */
-                .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-              `}</style>
               </span>
             ) : (
               <span className="text-sm font-medium transition-colors text-gray-700 group-hover:text-gray-900">
@@ -250,9 +284,12 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
       {/* Streaming indicator - appears below content only during streaming */}
       {isStreaming && !prefersReducedMotion && (
         <div className="w-full flex items-center gap-3 ml-3">
-          {/* Spinning circles */}
+          {/* Spinning circles with unique key to force remount on refresh */}
           <div className="text-purple-500">
-            <SpinningCircles className="w-8 h-8" />
+            <SpinningCircles
+              key={`spinner-${messageId || 'default'}-${isStreaming}`}
+              className="w-8 h-8"
+            />
           </div>
         </div>
       )}
