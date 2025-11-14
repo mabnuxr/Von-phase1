@@ -16,6 +16,7 @@ interface ReplayResult {
   content: string;
   stepMessages: StepMessage[];
   toolCalls: ToolCall[];
+  stoppedByUser?: boolean;
 }
 
 /**
@@ -333,6 +334,21 @@ export function replayAguiEvents(
   // Convert maps to arrays
   result.stepMessages = Array.from(stepMessagesMap.values());
   result.toolCalls = Array.from(toolCallsMap.values());
+
+  // Force-complete all pending tool calls to stop animations
+  result.toolCalls.forEach((toolCall) => {
+    if (!toolCall.result && !toolCall.artifact && toolCall.status !== "error") {
+      toolCall.status = "success";
+      toolCall.endTime = toolCall.endTime || Date.now();
+    }
+  });
+
+  // Check if stopped by user from RUN_FINISHED event
+  const runFinishedEvent = events.find((e) => e.event.type === "RUN_FINISHED");
+  if (runFinishedEvent && runFinishedEvent.event.type === "RUN_FINISHED") {
+    result.stoppedByUser =
+      runFinishedEvent.event.result?.stopped_by_user || false;
+  }
 
   return result;
 }

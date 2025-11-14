@@ -108,6 +108,15 @@ class ConversationsService {
       `/api/v1/chat/conversations/${conversationId}/messages/${messageId}/artifacts/${artifactId}`,
     );
   }
+
+  /**
+   * Send stop signal to interrupt streaming
+   */
+  async stopStreaming(conversationId: string): Promise<{ success: boolean }> {
+    return apiClient.post<{ success: boolean }>(
+      `/api/v1/chat/conversations/${conversationId}/stop`,
+    );
+  }
 }
 
 // Singleton instance

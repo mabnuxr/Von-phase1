@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { SendIcon, StopIcon } from './icons';
 
 export interface ChatInputProps {
   /**
@@ -11,6 +12,11 @@ export interface ChatInputProps {
    * Callback when send/enter is pressed
    */
   onSend?: (message: string) => void;
+
+  /**
+   * Callback when stop button is clicked during streaming
+   */
+  onStop?: () => void;
 
   /**
    * Callback when Ask button is clicked
@@ -52,6 +58,7 @@ export interface ChatInputProps {
 export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = 'Ask von anything',
   onSend,
+  onStop,
   contextTag,
   disabled = false,
   isStreaming = false, // FIX: Default to false
@@ -80,7 +87,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      // Don't send message during streaming - user can prepare next question
+      if (!isStreaming) {
+        handleSend();
+      }
     }
   };
 
@@ -107,30 +117,41 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={disabled ? 'Waiting for response...' : placeholder}
-            disabled={disabled}
-            className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
+            placeholder={placeholder}
+            disabled={disabled && !isStreaming}
+            className="pl-4 flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
             style={{
               minHeight: '20px',
               maxHeight: '200px',
-              padding: '0',
               lineHeight: '1.5',
             }}
             rows={1}
           />
 
-          <button
-            className={`w-8 h-8 flex-shrink-0 rounded-full border-0 gradient-von-purple flex items-center justify-center text-white transition-all duration-150 ${
-              disabled || !message.trim()
-                ? 'cursor-not-allowed opacity-50'
-                : 'cursor-pointer hover:opacity-90 hover:shadow-lg'
-            }`}
-            onClick={handleSend}
-            disabled={disabled || !message.trim()}
-            aria-label="Send message"
-          >
-            ↑
-          </button>
+          {isStreaming ? (
+            // Stop button during streaming
+            <button
+              className="w-8 h-8 flex-shrink-0 rounded-full border-0 bg-white flex items-center justify-center text-von-purple transition-all duration-150 cursor-pointer hover:opacity-80"
+              onClick={onStop}
+              aria-label="Stop generating"
+            >
+              <StopIcon />
+            </button>
+          ) : (
+            // Send button when not streaming
+            <button
+              className={`w-8 h-8 flex-shrink-0 rounded-full border-0 gradient-von-purple flex items-center justify-center text-white transition-all duration-150 ${
+                disabled || !message.trim()
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer hover:opacity-90 hover:shadow-lg'
+              }`}
+              onClick={handleSend}
+              disabled={disabled || !message.trim()}
+              aria-label="Send message"
+            >
+              <SendIcon size={16} />
+            </button>
+          )}
         </div>
 
         <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">

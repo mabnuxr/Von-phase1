@@ -45,6 +45,7 @@ export const Chat: React.FC<ChatProps> = ({
   onError,
   onAguiStateUpdate,
   onUserMessage,
+  onStopStreaming,
   placeholder = 'Ask von anything',
   isLoading: controlledIsLoading = false,
   height = '600px',
@@ -189,6 +190,13 @@ export const Chat: React.FC<ChatProps> = ({
         return true;
       });
   }, [messages, isLoading, effectiveShowFromIndex]);
+
+  // Handle stop streaming
+  const handleStop = useCallback(() => {
+    if (conversationId && onStopStreaming) {
+      onStopStreaming(conversationId);
+    }
+  }, [conversationId, onStopStreaming]);
 
   // Handle sending a message
   const handleSendMessage = useCallback(
@@ -367,6 +375,7 @@ export const Chat: React.FC<ChatProps> = ({
                     messageId={message.messageId || message.id}
                     conversationId={message.conversationId || conversationId}
                     useArtifactHook={useArtifactHook}
+                    stoppedByUser={message.stoppedByUser}
                   />
                 </motion.div>
               ))}
@@ -384,6 +393,7 @@ export const Chat: React.FC<ChatProps> = ({
       <ChatInput
         placeholder={placeholder}
         onSend={handleSendMessage}
+        onStop={handleStop}
         disabled={
           isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
         }

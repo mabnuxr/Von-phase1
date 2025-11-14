@@ -67,6 +67,9 @@ export interface MessageWithStreaming extends Message {
   // AGUI streaming data (reconstructed from events or received during live streaming)
   stepMessages?: import("@vonlabs/design-components").StepMessage[];
   toolCalls?: import("@vonlabs/design-components").ToolCall[];
+
+  // User-stopped indicator
+  stoppedByUser?: boolean;
 }
 
 /**

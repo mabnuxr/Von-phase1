@@ -12,6 +12,7 @@ import type {
   ToolCallStartEvent,
   ToolCallArgsEvent,
   ToolCallResultEvent,
+  RunFinishedEvent,
   Message,
 } from '../types';
 
@@ -22,6 +23,7 @@ export interface AguiStateUpdate {
   toolCalls: ToolCall[];
   isStreaming: boolean;
   status: 'created' | 'streaming' | 'completed' | 'failed';
+  stoppedByUser?: boolean;
 }
 
 export interface UserMessageData {
@@ -589,6 +591,17 @@ export function useAguiMessageStream(
         }
 
         case 'RUN_FINISHED': {
+          const event = wrapper.event as RunFinishedEvent;
+          const stoppedByUser = event.result?.stopped_by_user || false;
+
+          // Force-complete all pending tool calls to stop animations
+          state.toolCalls.forEach((toolCall) => {
+            if (!toolCall.result && !toolCall.artifact && toolCall.status !== 'error') {
+              toolCall.status = 'success';
+              toolCall.endTime = toolCall.endTime || Date.now();
+            }
+          });
+
           // Emit final state update with completed status
           if (onStateUpdate) {
             const messageContent = state.messageContent.get(wrapper.run_id) || '';
@@ -602,6 +615,7 @@ export function useAguiMessageStream(
               toolCalls,
               isStreaming: false,
               status: 'completed',
+              stoppedByUser,
             });
           }
 
