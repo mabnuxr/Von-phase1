@@ -42,7 +42,6 @@ export const Chat: React.FC<ChatProps> = ({
   pusherConfig,
   messages: controlledMessages,
   onSendMessage,
-  onStop,
   onError,
   onAguiStateUpdate,
   onUserMessage,
@@ -385,7 +384,6 @@ export const Chat: React.FC<ChatProps> = ({
       <ChatInput
         placeholder={placeholder}
         onSend={handleSendMessage}
-        onStop={onStop}
         disabled={
           isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
         }

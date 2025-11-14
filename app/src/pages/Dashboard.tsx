@@ -283,18 +283,6 @@ const Dashboard = () => {
     sendMessage(content);
   };
 
-  const handleStop = () => {
-    // TODO: Implement actual stop/cancel stream API call
-    // For now, this is a placeholder that logs the action
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Stop button clicked - stream cancel requested");
-    }
-    // Future implementation:
-    // - Call backend API to cancel the current streaming run
-    // - Backend should stop the agent execution
-    // - Pusher will send completion event
-  };
-
   // Handle AGUI state updates from useAguiMessageStream hook
   const handleAguiStateUpdate = (update: {
     runId: string;
@@ -603,7 +591,6 @@ const Dashboard = () => {
                 }
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
-                onStop={handleStop}
                 onAguiStateUpdate={handleAguiStateUpdate}
                 onUserMessage={handleUserMessage}
                 isLoading={false}
