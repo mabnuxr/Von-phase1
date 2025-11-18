@@ -50,6 +50,16 @@ export interface ChatInputProps {
    * @default false
    */
   isStreaming?: boolean;
+
+  /**
+   * Controlled value for the input (makes component controlled)
+   */
+  value?: string;
+
+  /**
+   * Callback when input value changes (for controlled mode)
+   */
+  onChange?: (value: string) => void;
 }
 
 /**
@@ -62,9 +72,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   contextTag,
   disabled = false,
   isStreaming = false, // FIX: Default to false
+  value,
+  onChange,
 }) => {
-  const [message, setMessage] = useState('');
+  const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Determine if component is controlled
+  const isControlled = value !== undefined;
+  const message = isControlled ? value : internalMessage;
 
   // Auto-resize textarea
   useEffect(() => {
@@ -74,10 +90,23 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [message]);
 
+  const handleChange = (newValue: string) => {
+    if (isControlled) {
+      onChange?.(newValue);
+    } else {
+      setInternalMessage(newValue);
+    }
+  };
+
   const handleSend = () => {
     if (message.trim() && onSend) {
       onSend(message.trim());
-      setMessage('');
+      // Clear the input after sending
+      if (isControlled) {
+        onChange?.('');
+      } else {
+        setInternalMessage('');
+      }
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -115,7 +144,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <textarea
             ref={textareaRef}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled && !isStreaming}

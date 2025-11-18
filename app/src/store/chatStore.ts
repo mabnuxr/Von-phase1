@@ -15,16 +15,16 @@ interface ChatState {
   messages: Record<string, MessageWithStreaming[]>;
   setMessages: (
     conversationId: string,
-    messages: MessageWithStreaming[],
+    messages: MessageWithStreaming[]
   ) => void;
   addMessage: (conversationId: string, message: MessageWithStreaming) => void;
   upsertMessage: (
     conversationId: string,
-    message: MessageWithStreaming,
+    message: MessageWithStreaming
   ) => void;
   prependMessages: (
     conversationId: string,
-    olderMessages: MessageWithStreaming[],
+    olderMessages: MessageWithStreaming[]
   ) => void;
   clearMessages: (conversationId: string) => void;
 
@@ -88,7 +88,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
     set((state) => {
       const existingMessages = state.messages[conversationId] || [];
       const existingIndex = existingMessages.findIndex(
-        (m) => m.runId === message.id,
+        (m) => m.runId === message.id
       );
 
       let updatedConversationMessages: MessageWithStreaming[];
@@ -106,7 +106,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
 
         // Helper: Get latest timestamp from events array
         const getLatestTimestamp = (
-          events?: typeof message.events,
+          events?: typeof message.events
         ): Date | null => {
           if (!events || events.length === 0) return null;
           const timestamps = events.map((e) => new Date(e.timestamp).getTime());
@@ -176,6 +176,11 @@ const useChatStoreBase = create<ChatState>((set) => ({
               : existingMessage.isStreaming,
           // Always update status (progresses forward)
           status: message.status || existingMessage.status,
+          // Explicitly handle error fields - null means "clear this field"
+          errorMessage:
+            message.errorMessage !== undefined
+              ? message.errorMessage
+              : existingMessage.errorMessage,
         };
 
         updatedConversationMessages = [...existingMessages];
@@ -263,7 +268,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
           [conversationId]: messages.map((msg) =>
             msg.id === messageId
               ? { ...msg, isStreaming: false, status: "completed" as const }
-              : msg,
+              : msg
           ),
         },
       };
@@ -285,7 +290,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
                   status: "timeout" as const,
                   errorMessage: "Message timed out after 60 seconds",
                 }
-              : msg,
+              : msg
           ),
         },
       };

@@ -81,10 +81,16 @@ export interface Message {
    */
   stepMessages?: StepMessage[];
   /**
-   * Message ID (for artifact fetching)
+   * Message ID (for artifact fetching and API operations)
    * Same as `id` but explicitly typed for clarity in artifact contexts
    */
   messageId?: string;
+  /**
+   * Run ID from streaming session
+   * Separate from message ID - can differ especially during retries
+   * Used for tracking streaming sessions and live updates
+   */
+  runId?: string;
   /**
    * Conversation ID (for artifact fetching)
    */
@@ -454,6 +460,16 @@ export interface ChatProps {
    * Callback when stop streaming is requested
    */
   onStopStreaming?: (conversationId: string) => void;
+
+  /**
+   * External control for input value (for auto-populate on error)
+   */
+  inputValue?: string;
+
+  /**
+   * Callback when input value changes (for controlled mode)
+   */
+  onInputValueChange?: (value: string) => void;
 
   /**
    * Placeholder text for the input

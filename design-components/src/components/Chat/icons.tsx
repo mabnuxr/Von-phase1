@@ -666,3 +666,79 @@ export const StopIcon = memo<IconProps>(() => (
   </svg>
 ));
 StopIcon.displayName = 'StopIcon';
+
+// AlertCircle Icon - For error messages
+export const AlertCircleIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <circle cx="12" cy="12" r="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+));
+AlertCircleIcon.displayName = 'AlertCircleIcon';
+
+// AlertTriangle Icon - For warnings
+export const AlertTriangleIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line x1="12" y1="9" x2="12" y2="13" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+));
+AlertTriangleIcon.displayName = 'AlertTriangleIcon';
+
+// RotateCw Icon - For retry actions
+export const RotateCwIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <polyline points="23 4 23 10 17 10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M20.49 15a9 9 0 11-2.12-9.36L23 10"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+RotateCwIcon.displayName = 'RotateCwIcon';
+
+// X Icon - For close/dismiss actions
+export const XIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line x1="6" y1="6" x2="18" y2="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+));
+XIcon.displayName = 'XIcon';

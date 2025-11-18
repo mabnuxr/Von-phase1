@@ -24,6 +24,7 @@ export interface AguiStateUpdate {
   isStreaming: boolean;
   status: 'created' | 'streaming' | 'completed' | 'failed';
   stoppedByUser?: boolean;
+  errorMessage?: string;
 }
 
 export interface UserMessageData {
@@ -582,6 +583,22 @@ export function useAguiMessageStream(
           break;
         }
 
+        case 'STEP_STARTED': {
+          // Step started - just log for debugging, no UI updates needed
+          if (import.meta.env.DEV) {
+            console.log('[useAguiMessageStream] Step started:', wrapper.event);
+          }
+          break;
+        }
+
+        case 'STEP_FINISHED': {
+          // Step finished - just log for debugging, no UI updates needed
+          if (import.meta.env.DEV) {
+            console.log('[useAguiMessageStream] Step finished:', wrapper.event);
+          }
+          break;
+        }
+
         case 'RUN_FINISHED': {
           const event = wrapper.event as RunFinishedEvent;
           const stoppedByUser = event.result?.stopped_by_user || false;
@@ -628,8 +645,9 @@ export function useAguiMessageStream(
               return next;
             });
 
-            // FIX: Clear all maps to prevent memory leaks
-            state.messageContent.delete(wrapper.run_id);
+            // Keep messageContent to prevent race conditions with late events
+            // Memory will be cleaned up on component unmount or next RUN_STARTED
+            // state.messageContent.delete(wrapper.run_id);
             // NOTE: Don't clear stepMessages here - they need to persist for React rendering
             // They'll be cleared on the next RUN_STARTED
             state.currentRunId = null;
@@ -759,6 +777,48 @@ export function useAguiMessageStream(
     }
   };
 
+  // Handle error events
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleErrorEvent = (data: string | any) => {
+    try {
+      const errorData = typeof data === 'string' ? JSON.parse(data) : data;
+
+      const currentRunId = stateRef.current.currentRunId;
+
+      if (!currentRunId) {
+        return;
+      }
+
+      // Handle both snake_case (backend) and camelCase field names
+      const errorEvent = errorData.event || errorData;
+      const errorMessage = errorEvent.message || 'An error occurred';
+
+      // Emit state update with error status
+      if (onStateUpdate) {
+        const messageContent = stateRef.current.messageContent.get(currentRunId) || '';
+        const stepMessages = Array.from(stateRef.current.stepMessages.values());
+        const toolCalls = Array.from(stateRef.current.toolCalls.values());
+
+        const errorUpdate = {
+          runId: currentRunId,
+          messageContent,
+          stepMessages,
+          toolCalls,
+          isStreaming: false,
+          status: 'failed' as const,
+          errorMessage,
+        };
+
+        onStateUpdate(errorUpdate);
+      }
+
+      stateRef.current.currentRunId = null;
+      stateRef.current.currentMessageId = null;
+    } catch (error) {
+      console.error('Error handling run_error event:', error);
+    }
+  };
+
   useEffect(() => {
     if (!channel) {
       return;
@@ -780,6 +840,9 @@ export function useAguiMessageStream(
     // User messages (non-streaming)
     channel.bind('user_message', handleUserMessage);
 
+    // Error events
+    channel.bind('agent.run_error', handleErrorEvent);
+
     // Cleanup
     return () => {
       channel.unbind('agent.run_started', handleAguiEvent);
@@ -794,6 +857,7 @@ export function useAguiMessageStream(
       channel.unbind('agent.step_finished', handleAguiEvent);
       channel.unbind('agent.run_finished', handleAguiEvent);
       channel.unbind('user_message', handleUserMessage);
+      channel.unbind('agent.run_error', handleErrorEvent);
     };
   }, [channel]);
 

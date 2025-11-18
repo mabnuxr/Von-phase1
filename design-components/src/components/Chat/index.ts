@@ -31,6 +31,10 @@ export { ArtifactPane } from './ArtifactPane';
 
 export { ToolCallItem } from './ToolCallItem';
 
+// Export error components
+export { MessageAreaError } from './MessageAreaError';
+export type { MessageAreaErrorProps } from './MessageAreaError';
+
 // Export hooks
 export { usePusherAuth } from './hooks/usePusherAuth';
 export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './hooks/usePusherAuth';
