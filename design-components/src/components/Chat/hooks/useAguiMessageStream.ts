@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Channel } from 'pusher-js';
 import type {
@@ -24,6 +24,7 @@ export interface AguiStateUpdate {
   isStreaming: boolean;
   status: 'created' | 'streaming' | 'completed' | 'failed';
   stoppedByUser?: boolean;
+  errorMessage?: string;
 }
 
 export interface UserMessageData {
@@ -147,32 +148,35 @@ export function useAguiMessageStream(
   }, [currentMessages]);
 
   // Helper: Emit state update to parent
-  const emitStateUpdate = (runId: string) => {
-    if (!onStateUpdate) {
-      console.warn('[useAguiMessageStream] No onStateUpdate callback provided');
-      return;
-    }
+  const emitStateUpdate = useCallback(
+    (runId: string) => {
+      if (!onStateUpdate) {
+        console.warn('[useAguiMessageStream] No onStateUpdate callback provided');
+        return;
+      }
 
-    const state = stateRef.current;
-    const messageContent = state.messageContent.get(runId) || '';
-    const stepMessages = Array.from(state.stepMessages.values());
-    const toolCalls = Array.from(state.toolCalls.values());
+      const state = stateRef.current;
+      const messageContent = state.messageContent.get(runId) || '';
+      const stepMessages = Array.from(state.stepMessages.values());
+      const toolCalls = Array.from(state.toolCalls.values());
 
-    // More robust streaming detection: check if currentRunId matches OR we have active content
-    // This handles both live streaming and refresh recovery scenarios
-    const isStreaming =
-      state.currentRunId === runId ||
-      (state.messageContent.has(runId) && state.messageContent.get(runId) !== '');
+      // More robust streaming detection: check if currentRunId matches OR we have active content
+      // This handles both live streaming and refresh recovery scenarios
+      const isStreaming =
+        state.currentRunId === runId ||
+        (state.messageContent.has(runId) && state.messageContent.get(runId) !== '');
 
-    onStateUpdate({
-      runId,
-      messageContent,
-      stepMessages,
-      toolCalls,
-      isStreaming,
-      status: isStreaming ? 'streaming' : 'completed',
-    });
-  };
+      onStateUpdate({
+        runId,
+        messageContent,
+        stepMessages,
+        toolCalls,
+        isStreaming,
+        status: isStreaming ? 'streaming' : 'completed',
+      });
+    },
+    [onStateUpdate]
+  );
 
   // Helper: Parse tool result and detect type
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -302,272 +306,185 @@ export function useAguiMessageStream(
   };
 
   // Process a single AGUI event
-  const processEvent = (wrapper: AguiEventWrapper) => {
-    const state = stateRef.current;
-    const event = wrapper.event;
+  const processEvent = useCallback(
+    (wrapper: AguiEventWrapper) => {
+      const state = stateRef.current;
+      const event = wrapper.event;
 
-    try {
-      switch (event.type) {
-        case 'RUN_STARTED': {
-          // Clear previous run data to prevent cross-contamination between runs
-          // This ensures each new run starts with a clean slate
-          state.stepMessages.clear();
-          state.toolCalls.clear();
-          state.toolCallArgs.clear();
+      try {
+        switch (event.type) {
+          case 'RUN_STARTED': {
+            // Clear previous run data to prevent cross-contamination between runs
+            // This ensures each new run starts with a clean slate
+            state.stepMessages.clear();
+            state.toolCalls.clear();
+            state.toolCallArgs.clear();
 
-          state.currentRunId = wrapper.run_id;
+            state.currentRunId = wrapper.run_id;
 
-          // Initialize messageContent for this run if not already present (from refresh recovery)
-          if (!state.messageContent.has(wrapper.run_id)) {
-            state.messageContent.set(wrapper.run_id, '');
-          }
+            // Initialize messageContent for this run if not already present (from refresh recovery)
+            if (!state.messageContent.has(wrapper.run_id)) {
+              state.messageContent.set(wrapper.run_id, '');
+            }
 
-          emitStateUpdate(wrapper.run_id);
-          break;
-        }
-
-        case 'TEXT_MESSAGE_START': {
-          const e = event as TextMessageStartEvent;
-          state.currentMessageId = e.message_id;
-
-          // Initialize content for this text block (step message)
-          if (!state.messageContent.has(e.message_id)) {
-            state.messageContent.set(e.message_id, '');
-          }
-
-          // Create step message entry
-          if (!state.stepMessages.has(e.message_id)) {
-            state.stepMessages.set(e.message_id, {
-              message_id: e.message_id,
-              content: '',
-              toolCalls: [],
-            });
-          }
-          break;
-        }
-
-        case 'TEXT_MESSAGE_CONTENT': {
-          const e = event as TextMessageContentEvent;
-
-          // Get existing step message (may have content from Redis initialization)
-          const stepMsg = state.stepMessages.get(e.message_id);
-
-          // Accumulate in the step message content
-          // This preserves Redis-fetched content when streaming restarts after refresh
-          const currentStepContent =
-            state.messageContent.get(e.message_id) || stepMsg?.content || '';
-          const newStepContent = currentStepContent + e.delta;
-          state.messageContent.set(e.message_id, newStepContent);
-
-          // Update step message object
-          if (stepMsg) {
-            stepMsg.content = newStepContent;
-          }
-
-          // CRITICAL: Also accumulate under the run_id for the UI to access
-          const currentRunContent = state.messageContent.get(wrapper.run_id) || '';
-          state.messageContent.set(wrapper.run_id, currentRunContent + e.delta);
-
-          // Use flushSync to force immediate synchronous updates for smooth streaming
-          flushSync(() => {
-            // Update streaming state
-            setStreamingMessages(new Map(state.messageContent));
-
-            // Update streaming step messages
-            const stepMessagesArray = Array.from(state.stepMessages.values());
-            setStreamingStepMessages((prev) => {
-              const next = new Map(prev);
-              next.set(wrapper.run_id, stepMessagesArray);
-              return next;
-            });
-
-            // Emit state update with current content
             emitStateUpdate(wrapper.run_id);
-          });
-          break;
-        }
+            break;
+          }
 
-        case 'TEXT_MESSAGE_END': {
-          // Text block complete - content remains in messageContent
-          // We don't clear here because we might have multiple text blocks
-          break;
-        }
+          case 'TEXT_MESSAGE_START': {
+            const e = event as TextMessageStartEvent;
+            state.currentMessageId = e.message_id;
 
-        case 'TOOL_CALL_START': {
-          const e = event as ToolCallStartEvent;
+            // Initialize content for this text block (step message)
+            if (!state.messageContent.has(e.message_id)) {
+              state.messageContent.set(e.message_id, '');
+            }
 
-          // Create tool call object
-          const toolCall: ToolCall = {
-            id: e.tool_call_id,
-            name: e.tool_call_name,
-            arguments: {},
-            status: 'pending',
-            parentMessageId: e.parent_message_id,
-            startTime: Date.now(), // Track when tool started
-          };
-
-          state.toolCalls.set(e.tool_call_id, toolCall);
-          state.toolCallArgs.set(e.tool_call_id, '');
-
-          // Try to find parent step
-          let parentStep = state.stepMessages.get(e.parent_message_id);
-
-          if (!parentStep) {
-            // FIX: Create parent step if it doesn't exist
-            // This handles cases where TOOL_CALL_START arrives before TEXT_MESSAGE_START
-            if (e.parent_message_id) {
-              parentStep = {
-                message_id: e.parent_message_id,
+            // Create step message entry
+            if (!state.stepMessages.has(e.message_id)) {
+              state.stepMessages.set(e.message_id, {
+                message_id: e.message_id,
                 content: '',
                 toolCalls: [],
-              };
-              state.stepMessages.set(e.parent_message_id, parentStep);
-            } else {
-              // No parent_message_id, try last step as fallback
-              const allSteps = Array.from(state.stepMessages.values());
-              parentStep = allSteps[allSteps.length - 1];
+              });
             }
+            break;
           }
 
-          if (parentStep) {
-            if (!parentStep.toolCalls) {
-              parentStep.toolCalls = [];
+          case 'TEXT_MESSAGE_CONTENT': {
+            const e = event as TextMessageContentEvent;
+
+            // Get existing step message (may have content from Redis initialization)
+            const stepMsg = state.stepMessages.get(e.message_id);
+
+            // Accumulate in the step message content
+            // This preserves Redis-fetched content when streaming restarts after refresh
+            const currentStepContent =
+              state.messageContent.get(e.message_id) || stepMsg?.content || '';
+            const newStepContent = currentStepContent + e.delta;
+            state.messageContent.set(e.message_id, newStepContent);
+
+            // Update step message object
+            if (stepMsg) {
+              stepMsg.content = newStepContent;
             }
-            parentStep.toolCalls.push(toolCall);
-          } else {
-            console.warn(
-              '[useAguiMessageStream] No parent step found for tool call - this should not happen!'
-            );
+
+            // CRITICAL: Also accumulate under the run_id for the UI to access
+            const currentRunContent = state.messageContent.get(wrapper.run_id) || '';
+            state.messageContent.set(wrapper.run_id, currentRunContent + e.delta);
+
+            // Use flushSync to force immediate synchronous updates for smooth streaming
+            flushSync(() => {
+              // Update streaming state
+              setStreamingMessages(new Map(state.messageContent));
+
+              // Update streaming step messages
+              const stepMessagesArray = Array.from(state.stepMessages.values());
+              setStreamingStepMessages((prev) => {
+                const next = new Map(prev);
+                next.set(wrapper.run_id, stepMessagesArray);
+                return next;
+              });
+
+              // Emit state update with current content
+              emitStateUpdate(wrapper.run_id);
+            });
+            break;
           }
 
-          // Update streaming step messages immediately to show tool call in UI
-          const stepMessagesArray = Array.from(state.stepMessages.values());
-          setStreamingStepMessages((prev) => {
-            const next = new Map(prev);
-            next.set(wrapper.run_id, stepMessagesArray);
-            return next;
-          });
+          case 'TEXT_MESSAGE_END': {
+            // Text block complete - content remains in messageContent
+            // We don't clear here because we might have multiple text blocks
+            break;
+          }
 
-          // Emit state update with new tool call
-          emitStateUpdate(wrapper.run_id);
-          break;
-        }
+          case 'TOOL_CALL_START': {
+            const e = event as ToolCallStartEvent;
 
-        case 'TOOL_CALL_ARGS': {
-          const e = event as ToolCallArgsEvent;
+            // Create tool call object
+            const toolCall: ToolCall = {
+              id: e.tool_call_id,
+              name: e.tool_call_name,
+              arguments: {},
+              status: 'pending',
+              parentMessageId: e.parent_message_id,
+              startTime: Date.now(), // Track when tool started
+            };
 
-          // Accumulate JSON args (streaming)
-          const currentArgs = state.toolCallArgs.get(e.tool_call_id) || '';
-          state.toolCallArgs.set(e.tool_call_id, currentArgs + e.delta);
-          break;
-        }
-
-        case 'TOOL_CALL_END': {
-          const e = event;
-          const toolCall = state.toolCalls.get(e.tool_call_id);
-
-          if (toolCall) {
-            // Parse accumulated args
-            const argsJson = state.toolCallArgs.get(e.tool_call_id) || '{}';
-            try {
-              toolCall.arguments = JSON.parse(argsJson);
-            } catch (error) {
-              console.error('Error parsing tool args:', error);
-              toolCall.arguments = { raw: argsJson };
-            }
-
-            // Mark as success immediately (no intermediate "running" state)
-            // If TOOL_CALL_RESULT arrives later, it will override this
-            toolCall.status = 'success';
-            toolCall.endTime = Date.now();
             state.toolCalls.set(e.tool_call_id, toolCall);
+            state.toolCallArgs.set(e.tool_call_id, '');
 
-            // Update streaming step messages (tool call ref is already in step message)
+            // Try to find parent step
+            let parentStep = state.stepMessages.get(e.parent_message_id);
+
+            if (!parentStep) {
+              // FIX: Create parent step if it doesn't exist
+              // This handles cases where TOOL_CALL_START arrives before TEXT_MESSAGE_START
+              if (e.parent_message_id) {
+                parentStep = {
+                  message_id: e.parent_message_id,
+                  content: '',
+                  toolCalls: [],
+                };
+                state.stepMessages.set(e.parent_message_id, parentStep);
+              } else {
+                // No parent_message_id, try last step as fallback
+                const allSteps = Array.from(state.stepMessages.values());
+                parentStep = allSteps[allSteps.length - 1];
+              }
+            }
+
+            if (parentStep) {
+              if (!parentStep.toolCalls) {
+                parentStep.toolCalls = [];
+              }
+              parentStep.toolCalls.push(toolCall);
+            } else {
+              console.warn(
+                '[useAguiMessageStream] No parent step found for tool call - this should not happen!'
+              );
+            }
+
+            // Update streaming step messages immediately to show tool call in UI
             const stepMessagesArray = Array.from(state.stepMessages.values());
             setStreamingStepMessages((prev) => {
               const next = new Map(prev);
               next.set(wrapper.run_id, stepMessagesArray);
               return next;
             });
+
+            // Emit state update with new tool call
+            emitStateUpdate(wrapper.run_id);
+            break;
           }
-          break;
-        }
 
-        case 'TOOL_CALL_RESULT': {
-          const e = event as ToolCallResultEvent;
-          const toolCall = state.toolCalls.get(e.tool_call_id);
+          case 'TOOL_CALL_ARGS': {
+            const e = event as ToolCallArgsEvent;
 
-          if (toolCall) {
-            // Parse result
-            try {
-              const resultJson = JSON.parse(e.content);
+            // Accumulate JSON args (streaming)
+            const currentArgs = state.toolCallArgs.get(e.tool_call_id) || '';
+            state.toolCallArgs.set(e.tool_call_id, currentArgs + e.delta);
+            break;
+          }
 
-              // Check if this is an artifact reference
-              if (resultJson._artifact) {
-                // Artifact-backed result - store metadata
-                toolCall.artifact = {
-                  artifact_id: resultJson._artifact.artifact_id,
-                  artifact_type: resultJson._artifact.artifact_type,
-                  size_bytes: resultJson._artifact.size_bytes,
-                  tool_name: resultJson._artifact.tool_name,
-                  run_id: resultJson._artifact.run_id, // Include run_id for artifact fetching
-                  success: resultJson._artifact.success, // Include tool execution success status
-                  error: resultJson._artifact.error, // Include error message if present
-                };
-                // No inline result - will be fetched lazily
-                toolCall.result = undefined;
-                // Set status based on tool execution success
-                toolCall.status = resultJson._artifact.success === false ? 'error' : 'success';
-                toolCall.endTime = Date.now();
+          case 'TOOL_CALL_END': {
+            const e = event;
+            const toolCall = state.toolCalls.get(e.tool_call_id);
 
-                state.toolCalls.set(e.tool_call_id, toolCall);
-
-                // Update streaming step messages
-                const stepMessagesArray = Array.from(state.stepMessages.values());
-                setStreamingStepMessages((prev) => {
-                  const next = new Map(prev);
-                  next.set(wrapper.run_id, stepMessagesArray);
-                  return next;
-                });
-
-                // No callback for artifact - content not available yet
-              } else {
-                // Regular inline result (backward compatibility)
-                const parsedResult = parseToolResult(resultJson);
-
-                if (parsedResult) {
-                  toolCall.result = parsedResult;
-                  toolCall.status = 'success';
-                } else {
-                  // parsedResult is null, meaning backend indicated failure
-                  toolCall.status = 'error';
-                }
-                toolCall.endTime = Date.now(); // Track when tool completed
-
-                state.toolCalls.set(e.tool_call_id, toolCall);
-
-                // Update streaming step messages (tool call ref is already in step message)
-                const stepMessagesArray = Array.from(state.stepMessages.values());
-                setStreamingStepMessages((prev) => {
-                  const next = new Map(prev);
-                  next.set(wrapper.run_id, stepMessagesArray);
-                  return next;
-                });
-
-                // Emit state update with tool result
-                emitStateUpdate(wrapper.run_id);
+            if (toolCall) {
+              // Parse accumulated args
+              const argsJson = state.toolCallArgs.get(e.tool_call_id) || '{}';
+              try {
+                toolCall.arguments = JSON.parse(argsJson);
+              } catch (error) {
+                console.error('Error parsing tool args:', error);
+                toolCall.arguments = { raw: argsJson };
               }
-            } catch {
-              console.warn('Tool result is not valid JSON, treating as error message:', e.content);
 
-              // Handle non-JSON content as an error message
-              // Store the error text in raw field and mark as json type
-              toolCall.result = {
-                raw: { error: e.content || 'Unknown error occurred' },
-                type: 'json',
-              };
-              toolCall.status = 'error';
-              toolCall.endTime = Date.now(); // Track when tool completed with error
+              // Mark as success immediately (no intermediate "running" state)
+              // If TOOL_CALL_RESULT arrives later, it will override this
+              toolCall.status = 'success';
+              toolCall.endTime = Date.now();
               state.toolCalls.set(e.tool_call_id, toolCall);
 
               // Update streaming step messages (tool call ref is already in step message)
@@ -578,186 +495,345 @@ export function useAguiMessageStream(
                 return next;
               });
             }
+            break;
           }
-          break;
-        }
 
-        case 'RUN_FINISHED': {
-          const event = wrapper.event as RunFinishedEvent;
-          const stoppedByUser = event.result?.stopped_by_user || false;
+          case 'TOOL_CALL_RESULT': {
+            const e = event as ToolCallResultEvent;
+            const toolCall = state.toolCalls.get(e.tool_call_id);
 
-          // Force-complete all pending tool calls to stop animations
-          state.toolCalls.forEach((toolCall) => {
-            if (!toolCall.result && !toolCall.artifact && toolCall.status !== 'error') {
-              toolCall.status = 'success';
-              toolCall.endTime = toolCall.endTime || Date.now();
+            if (toolCall) {
+              // Parse result
+              try {
+                const resultJson = JSON.parse(e.content);
+
+                // Check if this is an artifact reference
+                if (resultJson._artifact) {
+                  // Artifact-backed result - store metadata
+                  toolCall.artifact = {
+                    artifact_id: resultJson._artifact.artifact_id,
+                    artifact_type: resultJson._artifact.artifact_type,
+                    size_bytes: resultJson._artifact.size_bytes,
+                    tool_name: resultJson._artifact.tool_name,
+                    run_id: resultJson._artifact.run_id, // Include run_id for artifact fetching
+                    success: resultJson._artifact.success, // Include tool execution success status
+                    error: resultJson._artifact.error, // Include error message if present
+                  };
+                  // No inline result - will be fetched lazily
+                  toolCall.result = undefined;
+                  // Set status based on tool execution success
+                  toolCall.status = resultJson._artifact.success === false ? 'error' : 'success';
+                  toolCall.endTime = Date.now();
+
+                  state.toolCalls.set(e.tool_call_id, toolCall);
+
+                  // Update streaming step messages
+                  const stepMessagesArray = Array.from(state.stepMessages.values());
+                  setStreamingStepMessages((prev) => {
+                    const next = new Map(prev);
+                    next.set(wrapper.run_id, stepMessagesArray);
+                    return next;
+                  });
+
+                  // No callback for artifact - content not available yet
+                } else {
+                  // Regular inline result (backward compatibility)
+                  const parsedResult = parseToolResult(resultJson);
+
+                  if (parsedResult) {
+                    toolCall.result = parsedResult;
+                    toolCall.status = 'success';
+                  } else {
+                    // parsedResult is null, meaning backend indicated failure
+                    toolCall.status = 'error';
+                  }
+                  toolCall.endTime = Date.now(); // Track when tool completed
+
+                  state.toolCalls.set(e.tool_call_id, toolCall);
+
+                  // Update streaming step messages (tool call ref is already in step message)
+                  const stepMessagesArray = Array.from(state.stepMessages.values());
+                  setStreamingStepMessages((prev) => {
+                    const next = new Map(prev);
+                    next.set(wrapper.run_id, stepMessagesArray);
+                    return next;
+                  });
+
+                  // Emit state update with tool result
+                  emitStateUpdate(wrapper.run_id);
+                }
+              } catch {
+                console.warn(
+                  'Tool result is not valid JSON, treating as error message:',
+                  e.content
+                );
+
+                // Handle non-JSON content as an error message
+                // Store the error text in raw field and mark as json type
+                toolCall.result = {
+                  raw: { error: e.content || 'Unknown error occurred' },
+                  type: 'json',
+                };
+                toolCall.status = 'error';
+                toolCall.endTime = Date.now(); // Track when tool completed with error
+                state.toolCalls.set(e.tool_call_id, toolCall);
+
+                // Update streaming step messages (tool call ref is already in step message)
+                const stepMessagesArray = Array.from(state.stepMessages.values());
+                setStreamingStepMessages((prev) => {
+                  const next = new Map(prev);
+                  next.set(wrapper.run_id, stepMessagesArray);
+                  return next;
+                });
+              }
             }
-          });
-
-          // Emit final state update with completed status
-          if (onStateUpdate) {
-            const messageContent = state.messageContent.get(wrapper.run_id) || '';
-            const stepMessages = Array.from(state.stepMessages.values());
-            const toolCalls = Array.from(state.toolCalls.values());
-
-            onStateUpdate({
-              runId: wrapper.run_id,
-              messageContent,
-              stepMessages,
-              toolCalls,
-              isStreaming: false,
-              status: 'completed',
-              stoppedByUser,
-            });
+            break;
           }
 
-          // FIX: Clear event buffer immediately to prevent memory leak
-          state.eventBuffer = [];
-          state.nextExpectedSequence = 1;
+          case 'STEP_STARTED': {
+            // Step started - just log for debugging, no UI updates needed
+            if (import.meta.env.DEV) {
+              console.log('[useAguiMessageStream] Step started:', wrapper.event);
+            }
+            break;
+          }
 
-          // Cleanup after short delay
-          setTimeout(() => {
-            setStreamingMessages((prev) => {
-              const next = new Map(prev);
-              next.delete(wrapper.run_id);
-              return next;
-            });
-            setStreamingToolCalls((prev) => {
-              const next = new Map(prev);
-              next.delete(wrapper.run_id);
-              return next;
+          case 'STEP_FINISHED': {
+            // Step finished - just log for debugging, no UI updates needed
+            if (import.meta.env.DEV) {
+              console.log('[useAguiMessageStream] Step finished:', wrapper.event);
+            }
+            break;
+          }
+
+          case 'RUN_FINISHED': {
+            const event = wrapper.event as RunFinishedEvent;
+            const stoppedByUser = event.result?.stopped_by_user || false;
+
+            // Force-complete all pending tool calls to stop animations
+            state.toolCalls.forEach((toolCall) => {
+              if (!toolCall.result && !toolCall.artifact && toolCall.status !== 'error') {
+                toolCall.status = 'success';
+                toolCall.endTime = toolCall.endTime || Date.now();
+              }
             });
 
-            // FIX: Clear all maps to prevent memory leaks
-            state.messageContent.delete(wrapper.run_id);
-            // NOTE: Don't clear stepMessages here - they need to persist for React rendering
-            // They'll be cleared on the next RUN_STARTED
-            state.currentRunId = null;
-            state.currentMessageId = null;
-          }, 100);
-          break;
+            // Emit final state update with completed status
+            if (onStateUpdate) {
+              const messageContent = state.messageContent.get(wrapper.run_id) || '';
+              const stepMessages = Array.from(state.stepMessages.values());
+              const toolCalls = Array.from(state.toolCalls.values());
+
+              onStateUpdate({
+                runId: wrapper.run_id,
+                messageContent,
+                stepMessages,
+                toolCalls,
+                isStreaming: false,
+                status: 'completed',
+                stoppedByUser,
+              });
+            }
+
+            // FIX: Clear event buffer immediately to prevent memory leak
+            state.eventBuffer = [];
+            state.nextExpectedSequence = 1;
+
+            // Cleanup after short delay
+            setTimeout(() => {
+              setStreamingMessages((prev) => {
+                const next = new Map(prev);
+                next.delete(wrapper.run_id);
+                return next;
+              });
+              setStreamingToolCalls((prev) => {
+                const next = new Map(prev);
+                next.delete(wrapper.run_id);
+                return next;
+              });
+
+              // Keep messageContent to prevent race conditions with late events
+              // Memory will be cleaned up on component unmount or next RUN_STARTED
+              // state.messageContent.delete(wrapper.run_id);
+              // NOTE: Don't clear stepMessages here - they need to persist for React rendering
+              // They'll be cleared on the next RUN_STARTED
+              state.currentRunId = null;
+              state.currentMessageId = null;
+            }, 100);
+            break;
+          }
+
+          default:
+            console.warn('Unknown AGUI event type:', event);
         }
-
-        default:
-          console.warn('Unknown AGUI event type:', event);
+      } catch (error) {
+        console.error('Error processing AGUI event:', error);
+        // Error handling removed - parent can monitor status field
       }
-    } catch (error) {
-      console.error('Error processing AGUI event:', error);
-      // Error handling removed - parent can monitor status field
-    }
-  };
+    },
+    [emitStateUpdate, setStreamingMessages, setStreamingStepMessages, setStreamingToolCalls]
+  );
 
   // Handle event with sequence ordering
-  const handleAguiEvent = (data: string | AguiEventWrapper) => {
-    try {
-      // Pusher may send data as a string or already-parsed object
-      const wrapper: AguiEventWrapper = typeof data === 'string' ? JSON.parse(data) : data;
-      const state = stateRef.current;
+  const handleAguiEvent = useCallback(
+    (data: string | AguiEventWrapper) => {
+      try {
+        // Pusher may send data as a string or already-parsed object
+        const wrapper: AguiEventWrapper = typeof data === 'string' ? JSON.parse(data) : data;
+        const state = stateRef.current;
 
-      // CRITICAL OPTIMIZATION: Process text and tool call events immediately
-      // TEXT_MESSAGE_START must be processed immediately to create the step before content arrives
-      // TEXT_MESSAGE_CONTENT must be processed immediately for smooth token-by-token streaming
-      // TOOL_CALL_* events must be processed immediately to show tool calls in real-time
-      // RUN_FINISHED must be processed immediately to re-enable the input without delay
-      // We can do this safely because these events are independent and order-insensitive
-      const immediateEvents = [
-        'TEXT_MESSAGE_START',
-        'TEXT_MESSAGE_CONTENT',
-        'TEXT_MESSAGE_END',
-        'TOOL_CALL_START',
-        'TOOL_CALL_ARGS',
-        'TOOL_CALL_END',
-        'TOOL_CALL_RESULT',
-        'RUN_FINISHED', // FIX: Process immediately to re-enable input
-      ];
+        // CRITICAL OPTIMIZATION: Process text and tool call events immediately
+        // TEXT_MESSAGE_START must be processed immediately to create the step before content arrives
+        // TEXT_MESSAGE_CONTENT must be processed immediately for smooth token-by-token streaming
+        // TOOL_CALL_* events must be processed immediately to show tool calls in real-time
+        // RUN_FINISHED must be processed immediately to re-enable the input without delay
+        // We can do this safely because these events are independent and order-insensitive
+        const immediateEvents = [
+          'TEXT_MESSAGE_START',
+          'TEXT_MESSAGE_CONTENT',
+          'TEXT_MESSAGE_END',
+          'TOOL_CALL_START',
+          'TOOL_CALL_ARGS',
+          'TOOL_CALL_END',
+          'TOOL_CALL_RESULT',
+          'RUN_FINISHED', // FIX: Process immediately to re-enable input
+        ];
 
-      if (immediateEvents.includes(wrapper.event.type)) {
-        processEvent(wrapper);
-        // Update sequence tracking - accept any sequence >= current
-        if (wrapper.sequence >= state.nextExpectedSequence) {
-          state.nextExpectedSequence = wrapper.sequence + 1;
+        if (immediateEvents.includes(wrapper.event.type)) {
+          processEvent(wrapper);
+          // Update sequence tracking - accept any sequence >= current
+          if (wrapper.sequence >= state.nextExpectedSequence) {
+            state.nextExpectedSequence = wrapper.sequence + 1;
+          }
+          return;
         }
-        return;
-      }
 
-      // For non-content events, use buffering to ensure correct order
-      // Add to buffer
-      state.eventBuffer.push(wrapper);
-      state.eventBuffer.sort((a, b) => a.sequence - b.sequence);
+        // For non-content events, use buffering to ensure correct order
+        // Add to buffer
+        state.eventBuffer.push(wrapper);
+        state.eventBuffer.sort((a, b) => a.sequence - b.sequence);
 
-      // Process events in order
-      while (
-        state.eventBuffer.length > 0 &&
-        state.eventBuffer[0].sequence <= state.nextExpectedSequence
-      ) {
-        const next = state.eventBuffer.shift()!;
-        processEvent(next);
-        // Advance to next sequence
-        if (next.sequence >= state.nextExpectedSequence) {
-          state.nextExpectedSequence = next.sequence + 1;
-        }
-      }
-
-      // Gap recovery: If we have buffered events but they're ahead of expected sequence
-      // This can happen if some events were lost or delayed
-      // Wait for a reasonable buffer before skipping (increased to 5 for stability)
-      if (state.eventBuffer.length > 5 && state.eventBuffer[0]) {
-        const firstBufferedSequence = state.eventBuffer[0].sequence;
-        const gap = firstBufferedSequence - state.nextExpectedSequence;
-
-        // Only skip if gap is significant (more than 3 events)
-        if (gap > 3) {
-          console.warn(
-            `Gap detected: waiting for ${state.nextExpectedSequence}, but buffer starts at ${firstBufferedSequence}. Skipping ${gap} events to recover.`
-          );
-
-          // Skip ahead to the first available event
-          state.nextExpectedSequence = firstBufferedSequence;
-
-          // Process all available events immediately
-          while (
-            state.eventBuffer.length > 0 &&
-            state.eventBuffer[0].sequence === state.nextExpectedSequence
-          ) {
-            const next = state.eventBuffer.shift()!;
-            processEvent(next);
-            state.nextExpectedSequence++;
+        // Process events in order
+        while (
+          state.eventBuffer.length > 0 &&
+          state.eventBuffer[0].sequence <= state.nextExpectedSequence
+        ) {
+          const next = state.eventBuffer.shift()!;
+          processEvent(next);
+          // Advance to next sequence
+          if (next.sequence >= state.nextExpectedSequence) {
+            state.nextExpectedSequence = next.sequence + 1;
           }
         }
-      }
 
-      // Debug log if buffer is growing significantly
-      if (state.eventBuffer.length > 10) {
-        console.warn(
-          `[STREAMING] Event buffer: ${state.eventBuffer.length} events waiting. Next expected: ${state.nextExpectedSequence}`
-        );
+        // Gap recovery: If we have buffered events but they're ahead of expected sequence
+        // This can happen if some events were lost or delayed
+        // Wait for a reasonable buffer before skipping (increased to 5 for stability)
+        if (state.eventBuffer.length > 5 && state.eventBuffer[0]) {
+          const firstBufferedSequence = state.eventBuffer[0].sequence;
+          const gap = firstBufferedSequence - state.nextExpectedSequence;
+
+          // Only skip if gap is significant (more than 3 events)
+          if (gap > 3) {
+            console.warn(
+              `Gap detected: waiting for ${state.nextExpectedSequence}, but buffer starts at ${firstBufferedSequence}. Skipping ${gap} events to recover.`
+            );
+
+            // Skip ahead to the first available event
+            state.nextExpectedSequence = firstBufferedSequence;
+
+            // Process all available events immediately
+            while (
+              state.eventBuffer.length > 0 &&
+              state.eventBuffer[0].sequence === state.nextExpectedSequence
+            ) {
+              const next = state.eventBuffer.shift()!;
+              processEvent(next);
+              state.nextExpectedSequence++;
+            }
+          }
+        }
+
+        // Debug log if buffer is growing significantly
+        if (state.eventBuffer.length > 10) {
+          console.warn(
+            `[STREAMING] Event buffer: ${state.eventBuffer.length} events waiting. Next expected: ${state.nextExpectedSequence}`
+          );
+        }
+      } catch (error) {
+        console.error('Error handling AGUI event:', error);
+        // Error handling removed - parent can monitor status field
       }
-    } catch (error) {
-      console.error('Error handling AGUI event:', error);
-      // Error handling removed - parent can monitor status field
-    }
-  };
+    },
+    [onStateUpdate, processEvent]
+  );
 
   // Handle user messages (non-streaming)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleUserMessage = (data: any) => {
-    if (import.meta.env.DEV) {
-      console.log('[useAguiMessageStream] Received user_message event:', data);
-    }
+  const handleUserMessage = useCallback(
+    (data: string | UserMessageData) => {
+      if (import.meta.env.DEV) {
+        console.log('[useAguiMessageStream] Received user_message event:', data);
+      }
 
-    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
 
-    // Prevent duplicate processing
-    if (seenMessageIds.current.has(parsed.id)) {
-      return;
-    }
-    seenMessageIds.current.add(parsed.id);
+      // Prevent duplicate processing
+      if (seenMessageIds.current.has(parsed.id)) {
+        return;
+      }
+      seenMessageIds.current.add(parsed.id);
 
-    // Call parent callback if provided
-    if (onUserMessage) {
-      onUserMessage(parsed as UserMessageData);
-    }
-  };
+      // Call parent callback if provided
+      if (onUserMessage) {
+        onUserMessage(parsed as UserMessageData);
+      }
+    },
+    [onUserMessage]
+  );
+
+  // Handle error events
+  const handleErrorEvent = useCallback(
+    (data: string | Record<string, unknown>) => {
+      try {
+        const errorData = typeof data === 'string' ? JSON.parse(data) : data;
+
+        const currentRunId = stateRef.current.currentRunId;
+
+        if (!currentRunId) {
+          return;
+        }
+
+        // Handle both snake_case (backend) and camelCase field names
+        const errorEvent = errorData.event || errorData;
+        const errorMessage = errorEvent.message || 'An error occurred';
+
+        // Emit state update with error status
+        if (onStateUpdate) {
+          const messageContent = stateRef.current.messageContent.get(currentRunId) || '';
+          const stepMessages = Array.from(stateRef.current.stepMessages.values());
+          const toolCalls = Array.from(stateRef.current.toolCalls.values());
+
+          const errorUpdate = {
+            runId: currentRunId,
+            messageContent,
+            stepMessages,
+            toolCalls,
+            isStreaming: false,
+            status: 'failed' as const,
+            errorMessage,
+          };
+
+          onStateUpdate(errorUpdate);
+        }
+
+        stateRef.current.currentRunId = null;
+        stateRef.current.currentMessageId = null;
+      } catch (error) {
+        console.error('Error handling run_error event:', error);
+      }
+    },
+    [onStateUpdate]
+  );
 
   useEffect(() => {
     if (!channel) {
@@ -780,6 +856,9 @@ export function useAguiMessageStream(
     // User messages (non-streaming)
     channel.bind('user_message', handleUserMessage);
 
+    // Error events
+    channel.bind('agent.run_error', handleErrorEvent);
+
     // Cleanup
     return () => {
       channel.unbind('agent.run_started', handleAguiEvent);
@@ -794,26 +873,29 @@ export function useAguiMessageStream(
       channel.unbind('agent.step_finished', handleAguiEvent);
       channel.unbind('agent.run_finished', handleAguiEvent);
       channel.unbind('user_message', handleUserMessage);
+      channel.unbind('agent.run_error', handleErrorEvent);
     };
-  }, [channel]);
+  }, [channel, handleAguiEvent, handleUserMessage, handleErrorEvent]);
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture ref values at effect start to use in cleanup
+    const seenMessageIdsSet = seenMessageIds.current;
+    const state = stateRef.current;
+
     return () => {
-      seenMessageIds.current.clear();
+      seenMessageIdsSet.clear();
       setStreamingMessages(new Map());
       setStreamingToolCalls(new Map());
       setStreamingStepMessages(new Map());
-      stateRef.current = {
-        currentRunId: null,
-        currentMessageId: null,
-        messageContent: new Map(),
-        stepMessages: new Map(),
-        toolCalls: new Map(),
-        toolCallArgs: new Map(),
-        eventBuffer: [],
-        nextExpectedSequence: 1,
-      };
+      state.currentRunId = null;
+      state.currentMessageId = null;
+      state.messageContent = new Map();
+      state.stepMessages = new Map();
+      state.toolCalls = new Map();
+      state.toolCallArgs = new Map();
+      state.eventBuffer = [];
+      state.nextExpectedSequence = 1;
     };
   }, []);
 

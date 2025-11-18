@@ -114,7 +114,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
         </Cell>
       </Column>
     ));
-  }, [data?.columns]);
+  }, [data]);
 
   if (!data || !data.columns || !data.rows) {
     return <div className="text-sm text-gray-500 italic">No data available</div>;

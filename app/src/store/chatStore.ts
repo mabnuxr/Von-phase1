@@ -176,6 +176,11 @@ const useChatStoreBase = create<ChatState>((set) => ({
               : existingMessage.isStreaming,
           // Always update status (progresses forward)
           status: message.status || existingMessage.status,
+          // Explicitly handle error fields - null means "clear this field"
+          errorMessage:
+            message.errorMessage !== undefined
+              ? message.errorMessage
+              : existingMessage.errorMessage,
         };
 
         updatedConversationMessages = [...existingMessages];

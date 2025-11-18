@@ -46,6 +46,8 @@ export const Chat: React.FC<ChatProps> = ({
   onAguiStateUpdate,
   onUserMessage,
   onStopStreaming,
+  inputValue: externalInputValue,
+  onInputValueChange,
   placeholder = 'Ask von anything',
   isLoading: controlledIsLoading = false,
   height = '600px',
@@ -64,6 +66,14 @@ export const Chat: React.FC<ChatProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Input value state - use external control if provided, otherwise internal
+  const [internalInputValue, setInternalInputValue] = useState('');
+  const isInputControlled = externalInputValue !== undefined;
+  const inputValue = isInputControlled ? externalInputValue : internalInputValue;
+  const setInputValue = isInputControlled
+    ? onInputValueChange || (() => {})
+    : setInternalInputValue;
 
   const shouldAutoScrollRef = useRef(true);
   const scrollOnNewUserMessage = useRef(false);
@@ -398,6 +408,8 @@ export const Chat: React.FC<ChatProps> = ({
           isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
         }
         isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+        value={inputValue}
+        onChange={setInputValue}
       />
     </div>
   );

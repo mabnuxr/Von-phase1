@@ -124,6 +124,12 @@ const Dashboard = () => {
   // When user sends new message, we set this to current length to hide old messages
   const [showMessagesFromIndex, setShowMessagesFromIndex] = useState<number>(0);
 
+  // Auto-populate input when error occurs
+  const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
+
+  // Track last user message for reliable error recovery
+  const lastUserMessageRef = useRef<string>("");
+
   // Reset message filtering when conversation changes
   useEffect(() => {
     setShowMessagesFromIndex(0);
@@ -278,6 +284,9 @@ const Dashboard = () => {
   };
 
   const handleSendMessage = (content: string) => {
+    // Track last user message for error recovery
+    lastUserMessageRef.current = content;
+
     // Set the index to current message count to hide old messages
     // This creates the ChatGPT-style clean slate effect
     if (currentConversationId) {
@@ -312,8 +321,21 @@ const Dashboard = () => {
     isStreaming: boolean;
     status: "created" | "streaming" | "completed" | "failed";
     stoppedByUser?: boolean;
+    errorMessage?: string;
   }) => {
     if (!currentConversationId) return;
+
+    // Auto-populate input when error occurs (with smooth delay)
+    if (update.status === "failed" && update.errorMessage) {
+      const userMessage = lastUserMessageRef.current;
+
+      if (userMessage) {
+        // Delay for subtle, intentional feel (400ms gives user time to process error)
+        setTimeout(() => {
+          setAutoPopulatedInput(userMessage);
+        }, 400);
+      }
+    }
 
     // Direct AGUI state to backend message format (no transformation needed)
     const backendMessage: MessageWithStreaming = {
@@ -331,6 +353,8 @@ const Dashboard = () => {
       isStreaming: update.isStreaming,
       status: update.status,
       stoppedByUser: update.stoppedByUser,
+      // Error handling data
+      errorMessage: update.errorMessage,
     };
 
     // Use atomic upsert to prevent race conditions
@@ -440,8 +464,9 @@ const Dashboard = () => {
         status: streamingMsg.status,
         errorMessage: streamingMsg.errorMessage,
         events: streamingMsg.events,
-        // IDs for artifact fetching
-        messageId: streamingMsg.runId,
+        // IDs for artifact fetching and retry operations
+        messageId: streamingMsg.id, // Use actual message ID for API calls
+        runId: streamingMsg.runId, // Preserve run ID separately
         conversationId: streamingMsg.conversationId,
         stoppedByUser,
       } as ChatMessage;
@@ -619,6 +644,8 @@ const Dashboard = () => {
                 onStopStreaming={handleStopStreaming}
                 onAguiStateUpdate={handleAguiStateUpdate}
                 onUserMessage={handleUserMessage}
+                inputValue={autoPopulatedInput}
+                onInputValueChange={setAutoPopulatedInput}
                 isLoading={false}
                 loadMoreRef={loadMoreMessagesRef}
                 isFetchingMore={isFetchingNextMessagePage}

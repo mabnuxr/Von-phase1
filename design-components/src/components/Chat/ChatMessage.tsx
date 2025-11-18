@@ -3,6 +3,7 @@ import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
 import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
+import { MessageAreaError } from './MessageAreaError';
 
 /**
  * Get user initials from name or email
@@ -168,6 +169,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   userEmail,
   stepMessages,
   status,
+  errorMessage,
   conversationId,
   messageId,
   useArtifactHook,
@@ -231,8 +233,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                 {/* Content Column */}
                 <div className="flex-1 min-w-0 -mt-0.5">
-                  {/* For assistant messages: render thinking block and content */}
-                  {!isUser ? (
+                  {/* For assistant messages: check for errors first */}
+                  {!isUser && status === 'failed' && errorMessage ? (
+                    <MessageAreaError message={errorMessage} />
+                  ) : !isUser ? (
                     <>
                       {isStreaming &&
                         !content &&
@@ -342,37 +346,47 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (
-                    <div className="flex items-center gap-1.5 mt-2 text-xs">
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="flex-shrink-0 text-purple-600"
-                      >
-                        <circle
-                          cx="7"
-                          cy="7"
-                          r="6"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
+                    <div className="max-w-fit flex items-start gap-3 py-3 px-4 bg-purple-50/50 border border-purple-100 rounded-lg">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
                           fill="none"
-                        />
-                        <path
-                          d="M7 4.5V4.5"
                           stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M7 6.5V10"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <span className="text-gray-600 italic">Response stopped by the user</span>
+                          className="text-purple-600"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <line
+                            x1="12"
+                            y1="8"
+                            x2="12"
+                            y2="8"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <line
+                            x1="12"
+                            y1="11"
+                            x2="12"
+                            y2="16"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-gray-800 font-sf leading-relaxed flex-1">
+                        Response stopped by the user
+                      </span>
                     </div>
                   )}
                 </div>
