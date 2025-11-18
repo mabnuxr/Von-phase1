@@ -71,7 +71,9 @@ export const Chat: React.FC<ChatProps> = ({
   const [internalInputValue, setInternalInputValue] = useState('');
   const isInputControlled = externalInputValue !== undefined;
   const inputValue = isInputControlled ? externalInputValue : internalInputValue;
-  const setInputValue = isInputControlled ? (onInputValueChange || (() => {})) : setInternalInputValue;
+  const setInputValue = isInputControlled
+    ? onInputValueChange || (() => {})
+    : setInternalInputValue;
 
   const shouldAutoScrollRef = useRef(true);
   const scrollOnNewUserMessage = useRef(false);

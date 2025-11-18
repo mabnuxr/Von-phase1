@@ -125,10 +125,10 @@ const Dashboard = () => {
   const [showMessagesFromIndex, setShowMessagesFromIndex] = useState<number>(0);
 
   // Auto-populate input when error occurs
-  const [autoPopulatedInput, setAutoPopulatedInput] = useState('');
+  const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
 
   // Track last user message for reliable error recovery
-  const lastUserMessageRef = useRef<string>('');
+  const lastUserMessageRef = useRef<string>("");
 
   // Reset message filtering when conversation changes
   useEffect(() => {
@@ -326,7 +326,7 @@ const Dashboard = () => {
     if (!currentConversationId) return;
 
     // Auto-populate input when error occurs (with smooth delay)
-    if (update.status === 'failed' && update.errorMessage) {
+    if (update.status === "failed" && update.errorMessage) {
       const userMessage = lastUserMessageRef.current;
 
       if (userMessage) {
@@ -356,13 +356,6 @@ const Dashboard = () => {
       // Error handling data
       errorMessage: update.errorMessage,
     };
-
-    console.log('🔴 [Dashboard] Calling upsertMessage with backendMessage:', {
-      id: backendMessage.id,
-      runId: backendMessage.runId,
-      status: backendMessage.status,
-      errorMessage: backendMessage.errorMessage,
-    });
 
     // Use atomic upsert to prevent race conditions
     useChatStore

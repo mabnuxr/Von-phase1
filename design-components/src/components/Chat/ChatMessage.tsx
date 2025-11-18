@@ -234,12 +234,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 {/* Content Column */}
                 <div className="flex-1 min-w-0 -mt-0.5">
                   {/* For assistant messages: check for errors first */}
-                  {!isUser &&
-                  status === 'failed' &&
-                  errorMessage ? (
-                    <MessageAreaError
-                      message={errorMessage}
-                    />
+                  {!isUser && status === 'failed' && errorMessage ? (
+                    <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
                     <>
                       {isStreaming &&
@@ -360,12 +356,37 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           stroke="currentColor"
                           className="text-purple-600"
                         >
-                          <circle cx="12" cy="12" r="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          <line x1="12" y1="8" x2="12" y2="8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          <line x1="12" y1="11" x2="12" y2="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <line
+                            x1="12"
+                            y1="8"
+                            x2="12"
+                            y2="8"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <line
+                            x1="12"
+                            y1="11"
+                            x2="12"
+                            y2="16"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                         </svg>
                       </div>
-                      <span className="text-sm text-gray-800 font-sf leading-relaxed flex-1">Response stopped by the user</span>
+                      <span className="text-sm text-gray-800 font-sf leading-relaxed flex-1">
+                        Response stopped by the user
+                      </span>
                     </div>
                   )}
                 </div>

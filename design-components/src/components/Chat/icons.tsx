@@ -678,8 +678,24 @@ export const AlertCircleIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 
     stroke="currentColor"
   >
     <circle cx="12" cy="12" r="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <line x1="12" y1="8" x2="12" y2="12" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line
+      x1="12"
+      y1="8"
+      x2="12"
+      y2="12"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="12"
+      y1="16"
+      x2="12.01"
+      y2="16"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 ));
 AlertCircleIcon.displayName = 'AlertCircleIcon';
@@ -700,8 +716,24 @@ export const AlertTriangleIcon = memo<IconProps>(({ className = 'w-4 h-4', size 
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <line x1="12" y1="9" x2="12" y2="13" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line
+      x1="12"
+      y1="9"
+      x2="12"
+      y2="13"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="12"
+      y1="17"
+      x2="12.01"
+      y2="17"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 ));
 AlertTriangleIcon.displayName = 'AlertTriangleIcon';
@@ -716,7 +748,12 @@ export const RotateCwIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 
     fill="none"
     stroke="currentColor"
   >
-    <polyline points="23 4 23 10 17 10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <polyline
+      points="23 4 23 10 17 10"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
     <path
       d="M20.49 15a9 9 0 11-2.12-9.36L23 10"
       strokeWidth="2"
@@ -737,8 +774,24 @@ export const XIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
     fill="none"
     stroke="currentColor"
   >
-    <line x1="18" y1="6" x2="6" y2="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <line x1="6" y1="6" x2="18" y2="18" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line
+      x1="18"
+      y1="6"
+      x2="6"
+      y2="18"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="6"
+      y1="6"
+      x2="18"
+      y2="18"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 ));
 XIcon.displayName = 'XIcon';

@@ -19,7 +19,7 @@ import {
  * @returns Infinite query result with flattened conversations
  */
 export function useInfiniteConversations(
-  limit: number = CONVERSATIONS_PAGE_LIMIT
+  limit: number = CONVERSATIONS_PAGE_LIMIT,
 ) {
   return useInfiniteQuery({
     queryKey: conversationKeys.lists(),

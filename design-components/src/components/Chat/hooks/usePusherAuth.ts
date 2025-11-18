@@ -197,6 +197,7 @@ export function usePusherAuth(
         channelRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     conversationId,
     config.key,
