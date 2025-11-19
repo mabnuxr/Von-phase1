@@ -10,6 +10,14 @@ export interface ChatEmptyStateProps {
    * Callback when example prompt is clicked
    */
   onPromptClick?: (prompt: string) => void;
+  /**
+   * Whether the example prompts are disabled
+   */
+  disabled?: boolean;
+  /**
+   * Callback when a disabled prompt is clicked
+   */
+  onDisabledClick?: () => void;
 }
 
 /**
@@ -22,6 +30,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
     'Generate a sales report',
   ],
   onPromptClick,
+  disabled = false,
+  onDisabledClick,
 }) => {
   return (
     <motion.div
@@ -97,13 +107,17 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         {examplePrompts.map((prompt, index) => (
           <motion.button
             key={prompt}
-            className="text-left px-5 py-4 rounded-xl bg-white border border-gray-200 shadow-sm text-base text-gray-700 font-medium hover:border-von-purple-light hover:bg-von-purple-light hover:shadow-md transition-all cursor-pointer"
+            className={`text-left px-5 py-4 rounded-xl bg-white border border-gray-200 shadow-sm text-base text-gray-700 font-medium transition-all ${
+              disabled
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:border-von-purple-light hover:bg-von-purple-light hover:shadow-md cursor-pointer'
+            }`}
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={{ opacity: disabled ? 0.5 : 1, x: 0 }}
             transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
-            whileHover={{ scale: 1.02, x: 4 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onPromptClick?.(prompt)}
+            whileHover={disabled ? {} : { scale: 1.02, x: 4 }}
+            whileTap={disabled ? {} : { scale: 0.98 }}
+            onClick={() => (disabled ? onDisabledClick?.() : onPromptClick?.(prompt))}
           >
             <span className="text-von-purple mr-2">→</span>
             {prompt}

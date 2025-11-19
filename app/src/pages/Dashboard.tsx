@@ -10,6 +10,7 @@ import { useSendMessage } from "../hooks/useSendMessage";
 import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
+import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -28,6 +29,7 @@ import type {
   StepMessage,
 } from "@vonlabs/design-components";
 import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
+import { motion } from "framer-motion";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
@@ -104,10 +106,17 @@ const Dashboard = () => {
     user?.id,
   );
 
+  // Check Salesforce connection status
+  const {
+    isConnected: isSalesforceConnected,
+    isAuthenticated: isSalesforceAuthenticated,
+  } = useSalesforceConnection();
+
   // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
+  const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const avatarButtonRef = useRef<HTMLDivElement>(null);
 
   // Sidebar collapse state
@@ -540,6 +549,43 @@ const Dashboard = () => {
     [user?.tenantId, user?.id],
   );
 
+  // Determine if Salesforce is properly connected
+  const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
+
+  // Create Salesforce connection banner
+  const salesforceBanner = useMemo(() => {
+    if (isSalesforceReady) {
+      return null;
+    }
+
+    return (
+      <motion.div
+        className="px-6 max-w-4xl mx-auto w-full"
+        animate={
+          shouldShakeBanner
+            ? {
+                x: [0, -10, 10, -10, 10, 0],
+                transition: { duration: 0.4 },
+              }
+            : {}
+        }
+        onAnimationComplete={() => setShouldShakeBanner(false)}
+      >
+        <div className="p-2 mt-2 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-xl">
+          <p className="pl-2 text-sm text-amber-800">
+            Salesforce integration not connected.
+          </p>
+          <a
+            href="/settings?tab=integrations"
+            className="pr-2 text-sm text-von-purple hover:text-von-purple-600 font-medium hover:scale-105"
+          >
+            Go to Integrations →
+          </a>
+        </div>
+      </motion.div>
+    );
+  }, [isSalesforceReady, shouldShakeBanner]);
+
   return (
     <div className="h-screen bg-[#f5f5f7] flex flex-col items-center overflow-hidden">
       {/* Connection Error Banner */}
@@ -655,6 +701,11 @@ const Dashboard = () => {
                 width="100%"
                 showMessagesFromIndex={showMessagesFromIndex}
                 useArtifactHook={useArtifact}
+                banner={salesforceBanner}
+                disableSubmit={!isSalesforceReady}
+                examplePromptsDisabled={!isSalesforceReady}
+                onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}
+                onInputWhileDisabled={() => setShouldShakeBanner(true)}
               />
             )}
           </div>

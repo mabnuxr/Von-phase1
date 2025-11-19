@@ -564,4 +564,33 @@ export interface ChatProps {
     isLoading: boolean;
     error?: Error | null;
   };
+
+  /**
+   * Banner element to show above the chat input
+   * Use this to show warnings or important messages to the user
+   */
+  banner?: React.ReactNode;
+
+  /**
+   * Disable message submission (send button and Enter key)
+   * Input field remains enabled for typing
+   * @default false
+   */
+  disableSubmit?: boolean;
+
+  /**
+   * Whether the example prompts in empty state are disabled
+   * @default false
+   */
+  examplePromptsDisabled?: boolean;
+
+  /**
+   * Callback when a disabled example prompt is clicked
+   */
+  onExamplePromptDisabledClick?: () => void;
+
+  /**
+   * Callback when user types in input while submit is disabled
+   */
+  onInputWhileDisabled?: () => void;
 }

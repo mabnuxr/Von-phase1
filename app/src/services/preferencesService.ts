@@ -38,6 +38,9 @@ const DEFAULT_PROCESS_CONFIG: ProcessConfigurationSettings = {
   customerIdentificationField: "",
   salesforceDescription: "",
   salesQuarter: "Fiscal",
+  keywords: "",
+  businessProcess: "",
+  companyDescription: "",
 };
 
 /**

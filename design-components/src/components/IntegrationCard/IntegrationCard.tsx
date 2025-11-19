@@ -131,20 +131,27 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
     >
       {/* Upper Section - Visual Connection Flow */}
       <div className="bg-white py-8 px-6 flex items-center justify-center gap-4 border-b border-gray-200">
+        {/* Integration Logo */}
         <img
           src={integrationLogoPath}
           alt={`${name} logo`}
-          className="h-10 w-auto max-w-[120px] object-contain"
-        />{' '}
-        <img
-          src="https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/connection.svg"
-          alt="connection"
-          className="h-6 w-auto opacity-70"
+          className="h-12 w-auto object-contain shrink-0"
         />
+
+        {/* Connection Icon */}
+        <div className="w-6 h-6 flex items-center justify-center shrink-0">
+          <img
+            src="https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/connection.svg"
+            alt="connection"
+            className="w-full h-full object-contain opacity-70"
+          />
+        </div>
+
+        {/* Von Logo */}
         <img
           src="https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.png"
           alt="Von logo"
-          className="h-10 w-auto max-w-[120px] object-contain"
+          className="h-12 w-auto object-contain shrink-0"
         />
       </div>
 

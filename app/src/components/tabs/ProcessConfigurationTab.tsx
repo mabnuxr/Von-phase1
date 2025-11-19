@@ -1,199 +1,503 @@
+import { useState, useEffect } from "react";
 import {
   MultiSelect,
   type MultiSelectOption,
+  Banner,
 } from "@vonlabs/design-components";
 import usePreferencesStore from "../../store/preferencesStore";
 import type {
   BusinessStage,
   CustomerStage,
+  ProcessConfigurationSettings,
 } from "../../store/preferencesStore";
 import { ChevronDownIcon } from "../icons";
+import { useUpdatePreferences } from "../../hooks/usePreferences";
+import { useOpportunityStages } from "../../hooks/useSalesforceStages";
 
 export function ProcessConfigurationTab() {
+  const { processConfiguration: storeConfig, updateProcessConfiguration } =
+    usePreferencesStore();
+
+  // Get tenant and user info for API call
+  const tenantId = localStorage.getItem("tenant_id") || "";
+  const userId = localStorage.getItem("user_id") || "";
+
+  // Hook for saving preferences
   const {
-    processConfiguration: config,
-    updateProcessConfiguration: updateConfig,
-  } = usePreferencesStore();
+    queueUpdate,
+    isSaving,
+    error: saveError,
+  } = useUpdatePreferences(tenantId, userId);
 
-  // Business stage options for multi-select
-  const businessStageOptions: MultiSelectOption[] = [
-    { value: "Prospect", label: "Prospect" },
-    { value: "Qualified", label: "Qualified" },
-    { value: "Technical Win", label: "Technical Win" },
-  ];
+  // Local form state (separate from store)
+  const [formData, setFormData] =
+    useState<ProcessConfigurationSettings>(storeConfig);
 
-  // Customer stage options for multi-select
-  const customerStageOptions: MultiSelectOption[] = [
-    { value: "New", label: "New" },
-    { value: "Internal Sync Complete", label: "Internal Sync Complete" },
-    { value: "All Contact Made", label: "All Contact Made" },
-  ];
+  // Track unsaved changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Validation errors
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  // Success message
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Initialize form data when store changes (only on mount or external changes)
+  useEffect(() => {
+    setFormData(storeConfig);
+  }, [storeConfig]);
+
+  // Track changes
+  useEffect(() => {
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(storeConfig);
+    setHasUnsavedChanges(hasChanges);
+  }, [formData, storeConfig]);
+
+  // Handle save errors
+  useEffect(() => {
+    if (saveError) {
+      setValidationErrors([
+        saveError.message || "Failed to save configuration. Please try again.",
+      ]);
+      setShowSuccess(false);
+    }
+  }, [saveError]);
+
+  // Fetch opportunity stages from Salesforce
+  const {
+    data: opportunityStages,
+    isLoading: isLoadingStages,
+    error: stagesError,
+    refetch: refetchStages,
+  } = useOpportunityStages();
+
+  // Business stage options for multi-select (dynamic from Salesforce)
+  const businessStageOptions: MultiSelectOption[] =
+    opportunityStages?.map((stage) => ({
+      value: stage.label,
+      label: stage.label,
+    })) || [];
+
+  // Customer stage options for multi-select (same as business stages - from Salesforce)
+  const customerStageOptions: MultiSelectOption[] =
+    opportunityStages?.map((stage) => ({
+      value: stage.label,
+      label: stage.label,
+    })) || [];
 
   const handleBusinessStagesChange = (selected: string[]) => {
-    updateConfig({ businessStages: selected as BusinessStage[] });
+    setFormData((prev) => ({
+      ...prev,
+      businessStages: selected as BusinessStage[],
+    }));
   };
 
   const handleCustomerStagesChange = (selected: string[]) => {
-    updateConfig({ customerStages: selected as CustomerStage[] });
+    setFormData((prev) => ({
+      ...prev,
+      customerStages: selected as CustomerStage[],
+    }));
+  };
+
+  const handleFieldChange = (
+    field: keyof ProcessConfigurationSettings,
+    value: string,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+
+    // Optional: Add validation rules if needed
+    // For now, all fields are optional
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleSave = () => {
+    // Clear previous messages
+    setValidationErrors([]);
+    setShowSuccess(false);
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    // Update store first (optimistic update)
+    updateProcessConfiguration(formData);
+
+    // Save to backend using queueUpdate
+    queueUpdate({
+      processConfiguration: formData,
+    });
+
+    // Show success message (optimistic)
+    setShowSuccess(true);
+    setHasUnsavedChanges(false);
+
+    // Hide success message after 3 seconds
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   return (
-    <div className=" px-6 pt-2 pb-6 space-y-6 max-w-4xl">
-      {/* Business Stages Section */}
-      <div className="space-y-4">
-        <div>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
-            What stage is qualified opportunity. What stages do you use and for
-            which business line (including renewals)
-            <span className="inline-flex items-center justify-center size-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
-              ?
-            </span>
-          </label>
+    <div className="flex flex-col h-full">
+      {/* Form Content - Scrollable */}
+      <div className="flex-1 overflow-y-scroll px-6">
+        {/* Heading with separator */}
+        <div className="pt-6 pb-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Process Configuration
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Configure your business processes and sales methodology
+          </p>
+        </div>
 
-          {/* Business Stages Multi-Select */}
-          <div className="mb-4">
-            <p className="text-xs text-gray-700 mb-2">Business stage</p>
-            <MultiSelect
-              options={businessStageOptions}
-              value={config.businessStages}
-              onChange={handleBusinessStagesChange}
-              placeholder="Select business stages..."
-              fullWidth
+        <div className="py-6 space-y-6">
+          {/* Success Banner */}
+          {showSuccess && (
+            <Banner
+              variant="success"
+              message="Configuration saved successfully!"
+              onClose={() => setShowSuccess(false)}
+              dismissible={true}
+            />
+          )}
+
+          {/* Error Banner */}
+          {validationErrors.length > 0 && (
+            <Banner
+              variant="error"
+              message={
+                validationErrors.length === 1
+                  ? validationErrors[0]
+                  : `Please fix the following errors:\n${validationErrors.map((e) => `• ${e}`).join("\n")}`
+              }
+              onClose={() => setValidationErrors([])}
+              dismissible={true}
+            />
+          )}
+
+          {/* Business Stages Section */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              What stage is qualified opportunity. What stages do you use and
+              for which business line (including renewals)
+              <span
+                className="inline-flex items-center justify-center size-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Select the stages that qualify as opportunities in your business process"
+              >
+                ?
+              </span>
+            </label>
+
+            {/* Business Stages Multi-Select */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-700">Business stage</p>
+                {stagesError && (
+                  <button
+                    onClick={() => refetchStages()}
+                    className="text-xs text-von-purple hover:text-von-purple-600 font-medium"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+              {stagesError ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800 mb-2">
+                    {stagesError.message.includes("not found") ||
+                    stagesError.message.includes("404")
+                      ? "Salesforce integration not connected."
+                      : stagesError.message.includes("not authenticated") ||
+                          stagesError.message.includes("401")
+                        ? "Salesforce integration needs reconnection."
+                        : "Failed to load opportunity stages from Salesforce."}
+                  </p>
+                  <a
+                    href="/settings?tab=integrations"
+                    className="text-sm text-von-purple hover:text-von-purple-600 font-medium"
+                  >
+                    Go to Integrations →
+                  </a>
+                </div>
+              ) : (
+                <MultiSelect
+                  options={businessStageOptions}
+                  value={formData.businessStages}
+                  onChange={handleBusinessStagesChange}
+                  placeholder={
+                    isLoadingStages
+                      ? "Loading stages from Salesforce..."
+                      : "Select business stages..."
+                  }
+                  disabled={isLoadingStages}
+                  fullWidth
+                />
+              )}
+            </div>
+
+            {/* Customer Stages Multi-Select */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-700">Customer stage</p>
+                {stagesError && (
+                  <button
+                    onClick={() => refetchStages()}
+                    className="text-xs text-von-purple hover:text-von-purple-600 font-medium"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+              {stagesError ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800 mb-2">
+                    {stagesError.message.includes("not found") ||
+                    stagesError.message.includes("404")
+                      ? "Salesforce integration not connected."
+                      : stagesError.message.includes("not authenticated") ||
+                          stagesError.message.includes("401")
+                        ? "Salesforce integration needs reconnection."
+                        : "Failed to load opportunity stages from Salesforce."}
+                  </p>
+                  <a
+                    href="/settings?tab=integrations"
+                    className="text-sm text-von-purple hover:text-von-purple-600 font-medium"
+                  >
+                    Go to Integrations →
+                  </a>
+                </div>
+              ) : (
+                <MultiSelect
+                  options={customerStageOptions}
+                  value={formData.customerStages}
+                  onChange={handleCustomerStagesChange}
+                  placeholder={
+                    isLoadingStages
+                      ? "Loading stages from Salesforce..."
+                      : "Select customer stages..."
+                  }
+                  disabled={isLoadingStages}
+                  fullWidth
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Churn Signal Field */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              How do you signify churn in Salesforce
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Describe how churn is identified in your Salesforce instance"
+              >
+                ?
+              </span>
+            </label>
+            <textarea
+              value={formData.churnSignalField}
+              onChange={(e) =>
+                handleFieldChange("churnSignalField", e.target.value)
+              }
+              placeholder="Opportunity type is partial churn or churn"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={2}
             />
           </div>
 
-          {/* Customer Stages Multi-Select */}
+          {/* Renewal Detection Field */}
           <div>
-            <p className="text-xs text-gray-700 mb-2">Customer stage</p>
-            <MultiSelect
-              options={customerStageOptions}
-              value={config.customerStages}
-              onChange={handleCustomerStagesChange}
-              placeholder="Select customer stages..."
-              fullWidth
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              How do we tell what is a renewal opportunity
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Describe how renewal opportunities are identified"
+              >
+                ?
+              </span>
+            </label>
+            <textarea
+              value={formData.renewalDetectionField}
+              onChange={(e) =>
+                handleFieldChange("renewalDetectionField", e.target.value)
+              }
+              placeholder='Either opportunity type contains the word "renewal" or the opportunity name contains the word "renewal"'
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={2}
+            />
+          </div>
+
+          {/* Customer Identification Field */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              How do you tell who is a customer?
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Describe how customers are identified in your system"
+              >
+                ?
+              </span>
+            </label>
+            <textarea
+              value={formData.customerIdentificationField}
+              onChange={(e) =>
+                handleFieldChange("customerIdentificationField", e.target.value)
+              }
+              placeholder='Account type field, on the account object, is "Customer"'
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={2}
+            />
+          </div>
+
+          {/* Sales Quarter */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              What is your sales quarter?
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Select whether you use fiscal or calendar quarters"
+              >
+                ?
+              </span>
+            </label>
+            <div className="relative">
+              <select
+                value={formData.salesQuarter}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    salesQuarter: e.target.value as "Fiscal" | "Calendar",
+                  }))
+                }
+                className="w-full px-3 py-2 pr-10 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent bg-white transition-all duration-200 cursor-pointer appearance-none hover:border-gray-300"
+                style={{
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+                }}
+              >
+                <option value="Fiscal">Fiscal</option>
+                <option value="Calendar">Calendar</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDownIcon className="size-4 text-gray-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Keywords */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              Keywords
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Enter comma-separated keywords for your business"
+              >
+                ?
+              </span>
+            </label>
+            <textarea
+              value={formData.keywords}
+              onChange={(e) => handleFieldChange("keywords", e.target.value)}
+              placeholder="Type comma separated keywords"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={3}
+            />
+          </div>
+
+          {/* Business Process */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              Business process
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Describe your business process and best practices"
+              >
+                ?
+              </span>
+            </label>
+            <textarea
+              value={formData.businessProcess}
+              onChange={(e) =>
+                handleFieldChange("businessProcess", e.target.value)
+              }
+              placeholder="1. When someone one is asking about a specific deal. Always use LIMIT 10 - And always give context about the latest deal&#10;&#10;2. While Grouping never use text fields. Especially for user grouping use Id fields never use string fields"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={4}
+            />
+          </div>
+
+          {/* Tell us more about your company */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              Tell us more about your company
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
+                title="Provide additional context about your company"
+              >
+                ?
+              </span>
+            </label>
+            <textarea
+              value={formData.companyDescription}
+              onChange={(e) =>
+                handleFieldChange("companyDescription", e.target.value)
+              }
+              placeholder="Tell us more about your company"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={3}
             />
           </div>
         </div>
       </div>
 
-      {/* Churn Signal Field */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
-          How do you signify churn in Salesforce
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
-            ?
-          </span>
-        </label>
-        <textarea
-          value={config.churnSignalField}
-          onChange={(e) => updateConfig({ churnSignalField: e.target.value })}
-          placeholder="Opportunity type is partial churn or churn"
-          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
-          style={{
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-          }}
-          rows={2}
-        />
-      </div>
-
-      {/* Renewal Detection Field */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
-          How do we let what is a renewal opportunity
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
-            ?
-          </span>
-        </label>
-        <textarea
-          value={config.renewalDetectionField}
-          onChange={(e) =>
-            updateConfig({ renewalDetectionField: e.target.value })
-          }
-          placeholder='Enter opportunity type contains word "renewal" or the opportunity name contains word "renewal"'
-          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
-          style={{
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-          }}
-          rows={2}
-        />
-      </div>
-
-      {/* Customer Identification Field */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
-          How do you let who is a customer?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
-            ?
-          </span>
-        </label>
-        <textarea
-          value={config.customerIdentificationField}
-          onChange={(e) =>
-            updateConfig({ customerIdentificationField: e.target.value })
-          }
-          placeholder='Account type field, on the account object, is "Customer"'
-          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
-          style={{
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-          }}
-          rows={2}
-        />
-      </div>
-
-      {/* Salesforce Description */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
-          Describe your salesforce
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
-            ?
-          </span>
-        </label>
-        <textarea
-          value={config.salesforceDescription}
-          onChange={(e) =>
-            updateConfig({ salesforceDescription: e.target.value })
-          }
-          placeholder="Describe your salesforce setup..."
-          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent resize-none transition-all duration-200 bg-white"
-          style={{
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-          }}
-          rows={2}
-        />
-      </div>
-
-      {/* Sales Quarter */}
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-2">
-          What is your sales quarter?
-          <span className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-100 text-von-purple rounded-full text-xs cursor-help">
-            ?
-          </span>
-        </label>
-        <div className="relative">
-          <select
-            value={config.salesQuarter}
-            onChange={(e) =>
-              updateConfig({
-                salesQuarter: e.target.value as "Fiscal" | "Calendar",
-              })
-            }
-            className="w-full px-3 py-2 pr-10 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200 cursor-pointer appearance-none"
-            style={{
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-            }}
+      {/* Footer Actions - Sticky */}
+      <div className="px-6 py-4 shrink-0 border-gray-200">
+        <div className="flex items-center justify-end gap-4">
+          {hasUnsavedChanges && (
+            <span className="text-sm text-amber-600 font-medium">
+              Unsaved changes
+            </span>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !hasUnsavedChanges}
+            className="px-5 py-2.5 text-sm font-medium text-white bg-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
-            <option value="Fiscal">Fiscal</option>
-            <option value="Calendar">Calendar</option>
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <ChevronDownIcon className="size-4 text-gray-600" />
-          </div>
+            {isSaving ? "Saving..." : "Save Configuration"}
+          </button>
         </div>
       </div>
     </div>

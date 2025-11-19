@@ -9,7 +9,10 @@ import {
   useIntegrations,
 } from "../hooks/useIntegrations";
 import type { IntegrationType } from "../services/integrationsService";
-import { INTEGRATION_METADATA } from "../constants/integrationMetadata";
+import {
+  INTEGRATION_METADATA,
+  getBackendIntegrationType,
+} from "../constants/integrationMetadata";
 
 // Use centralized integration metadata
 const integrationDetails = INTEGRATION_METADATA;
@@ -123,10 +126,6 @@ export function IntegrationConfigPane() {
     }
 
     if (configuringIntegrationId === "gong") {
-      if (!gongApiBaseUrl) {
-        errors.push("API Base URL is required");
-      }
-      // Only require credentials if they don't already exist (new integration or updating credentials)
       if (!hasExistingCredentials) {
         if (!gongAccessKey) {
           errors.push("Access Key is required");
@@ -205,7 +204,9 @@ export function IntegrationConfigPane() {
       } else {
         // Create new integration
         const savedIntegration = await createMutation.mutateAsync({
-          type: configuringIntegrationId.toUpperCase() as IntegrationType,
+          type: getBackendIntegrationType(
+            configuringIntegrationId,
+          ) as IntegrationType,
           accessLevel: formData.accessLevel,
           config,
           // Pass API credentials if present
@@ -263,19 +264,45 @@ export function IntegrationConfigPane() {
         }
       }
     } catch (error: unknown) {
+      console.error("[IntegrationConfigPane] Save error:", error);
+
       // Handle 409 Conflict errors (duplicate integration)
-      if (error && typeof error === "object" && "response" in error) {
-        const response = (
-          error as {
-            response?: { status?: number; data?: { detail?: string } };
-          }
-        ).response;
+      // Try multiple error structures that different libraries might use
+      if (error && typeof error === "object") {
+        // Check for HTTP response with status code
+        const response =
+          "response" in error
+            ? (
+                error as {
+                  response?: {
+                    status?: number;
+                    data?: { detail?: string; message?: string };
+                  };
+                }
+              ).response
+            : null;
+
         if (response?.status === 409) {
-          const detail = response.data?.detail;
+          const detail = response.data?.detail || response.data?.message;
           setValidationErrors([
-            detail || "This integration configuration already exists.",
+            detail ||
+              "A tenant-level integration of this type already exists. Please use the existing integration or contact your admin.",
           ]);
           return;
+        }
+
+        // Check for error message that contains duplicate info
+        if ("message" in error) {
+          const message = (error as { message: string }).message;
+          if (
+            message.toLowerCase().includes("duplicate") ||
+            message.includes("409")
+          ) {
+            setValidationErrors([
+              "A tenant-level integration of this type already exists. Please use the existing integration or contact your admin.",
+            ]);
+            return;
+          }
         }
       }
 
@@ -382,16 +409,6 @@ export function IntegrationConfigPane() {
                       label="Tenant Level"
                       helperText="All users in your organization can access this integration"
                     />
-                    {/* <RadioButton
-                      name="accessLevel"
-                      value="user"
-                      checked={formData.accessLevel === "user"}
-                      onChange={(e) =>
-                        handleChange("accessLevel", e.target.value)
-                      }
-                      label="User Level"
-                      helperText="Only you can access this integration"
-                    /> */}
                   </div>
                 </div>
 
@@ -407,12 +424,12 @@ export function IntegrationConfigPane() {
                       <div className="space-y-2">
                         <RadioButton
                           name="environmentType"
-                          value="development"
-                          checked={formData.environmentType === "development"}
+                          value="sandbox"
+                          checked={formData.environmentType === "sandbox"}
                           onChange={(e) =>
                             handleChange("environmentType", e.target.value)
                           }
-                          label="Development"
+                          label="Sandbox"
                           helperText="For sandbox and development environments"
                         />
                         <RadioButton
@@ -433,20 +450,6 @@ export function IntegrationConfigPane() {
                 {/* Gong-specific fields */}
                 {configuringIntegrationId === "gong" && (
                   <>
-                    {/* API Base URL */}
-                    <div className="gong-input-wrapper">
-                      <Input
-                        type="text"
-                        label="API Base URL"
-                        value={gongApiBaseUrl}
-                        onChange={(e) => setGongApiBaseUrl(e.target.value)}
-                        placeholder="https://us-24323.api.gong.io"
-                        helperText="Sample: https://us-24323.api.gong.io"
-                        required
-                        fullWidth
-                      />
-                    </div>
-
                     {/* Access Key */}
                     <div className="gong-input-wrapper">
                       <Input

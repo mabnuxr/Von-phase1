@@ -319,6 +319,92 @@ export const SidebarIcon = memo<IconProps>(({ className = "size-5" }) => (
 ));
 SidebarIcon.displayName = "SidebarIcon";
 
+// Process Icon - Used for process/workflow settings - Memoized
+export const ProcessIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M21.21 15.89A10 10 0 1 1 8 2.83"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M22 12A10 10 0 0 0 12 2v10z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+ProcessIcon.displayName = "ProcessIcon";
+
+// Email Icon - Used for email settings - Memoized
+export const EmailIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="m22 6-10 7L2 6"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+EmailIcon.displayName = "EmailIcon";
+
+// Team Icon - Used for team management settings - Memoized
+export const TeamIcon = memo<IconProps>(({ className = "size-5" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="9"
+      cy="7"
+      r="4"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M23 21v-2a4 4 0 0 0-3-3.87"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16 3.13a4 4 0 0 1 0 7.75"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+TeamIcon.displayName = "TeamIcon";
+
 // ChevronDown Icon - Used for dropdown indicators - Memoized
 export const ChevronDownIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
   <svg

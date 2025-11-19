@@ -17,7 +17,10 @@ import { IntegrationType, AuthenticationStatus } from "../services";
 import usePreferencesStore from "../store/preferencesStore";
 import { AppsConfigPanel } from "./AppsConfigPanel";
 import { IntegrationConfigPane } from "./IntegrationConfigPane";
-import { getIntegrationLogoPath } from "../constants/integrationMetadata";
+import {
+  getIntegrationLogoPath,
+  getIntegrationDisplayName,
+} from "../constants/integrationMetadata";
 
 export interface Integration {
   id: string;
@@ -118,7 +121,7 @@ export function IntegrationsPanel() {
           authenticationStatus: string;
         }) => ({
           id: backendIntegration.id,
-          name: backendIntegration.provider,
+          name: getIntegrationDisplayName(backendIntegration.type),
           integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
           enabled:
             backendIntegration.authenticationStatus ===
@@ -145,6 +148,8 @@ export function IntegrationsPanel() {
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
           setOauthError(error.message);
+          // Refetch integrations to get updated status from backend
+          refetch();
         },
       });
     } else {
@@ -209,7 +214,7 @@ export function IntegrationsPanel() {
         : "user") as "tenant" | "user",
       // Salesforce fields
       environmentType: config.environment_type as
-        | "development"
+        | "sandbox"
         | "production"
         | undefined,
       instanceUrl: config.instance_url as string | undefined,
@@ -364,7 +369,7 @@ export function IntegrationsPanel() {
                       loadingText={isLoading ? "Authenticating" : undefined}
                       userOrTenant={accessLevel}
                       environment={
-                        environmentType === "development"
+                        environmentType === "sandbox"
                           ? "dev"
                           : environmentType === "production"
                             ? "prod"

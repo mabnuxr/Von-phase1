@@ -38,22 +38,25 @@ export function useStreamTimeout(
   useEffect(() => {
     if (!conversationId) return;
 
+    // Capture ref value for cleanup
+    const timers = timersRef.current;
+
     // Find messages that are actively streaming
     const streamingMessages = messages.filter(
       (m) => m.isStreaming && m.status !== "failed",
     );
 
     // Clear timers for messages no longer streaming
-    timersRef.current.forEach((timer, msgId) => {
+    timers.forEach((timer, msgId) => {
       if (!streamingMessages.find((m) => m.id === msgId)) {
         clearTimeout(timer);
-        timersRef.current.delete(msgId);
+        timers.delete(msgId);
       }
     });
 
     // Set timers for actively streaming messages
     streamingMessages.forEach((msg) => {
-      if (timersRef.current.has(msg.id)) return; // Already tracking
+      if (timers.has(msg.id)) return; // Already tracking
 
       // Calculate time since last update
       const lastUpdate = msg.lastStreamedAt
@@ -79,15 +82,14 @@ export function useStreamTimeout(
         // THEN trigger refetch for authoritative state
         onTimeout(msg.id);
 
-        timersRef.current.delete(msg.id);
+        timers.delete(msg.id);
       }, remainingTime);
 
-      timersRef.current.set(msg.id, timer);
+      timers.set(msg.id, timer);
     });
 
     // Cleanup on unmount
     return () => {
-      const timers = timersRef.current;
       timers.forEach((timer) => clearTimeout(timer));
       timers.clear();
     };

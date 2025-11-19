@@ -8,6 +8,8 @@ export const IntegrationType = {
   GONG: "GONG",
   HUBSPOT: "HUBSPOT",
   FATHOM: "FATHOM",
+  GOOGLE_CALENDAR: "GOOGLE_CALENDAR",
+  ZOOM: "ZOOM",
 } as const;
 
 export type IntegrationType =

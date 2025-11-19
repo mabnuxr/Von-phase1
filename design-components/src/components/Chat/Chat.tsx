@@ -60,6 +60,11 @@ export const Chat: React.FC<ChatProps> = ({
   isFetchingMore = false,
   showMessagesFromIndex = 0,
   useArtifactHook,
+  banner,
+  disableSubmit = false,
+  examplePromptsDisabled = false,
+  onExamplePromptDisabledClick,
+  onInputWhileDisabled,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -350,6 +355,8 @@ export const Chat: React.FC<ChatProps> = ({
             onPromptClick={(prompt) => {
               handleSendMessage(prompt);
             }}
+            disabled={examplePromptsDisabled}
+            onDisabledClick={onExamplePromptDisabledClick}
           />
         ) : (
           <div className="flex flex-col">
@@ -400,6 +407,9 @@ export const Chat: React.FC<ChatProps> = ({
         <div ref={messagesEndRef} className="h-px" />
       </div>
 
+      {/* Banner above input (if provided) */}
+      {banner && <div className="px-3">{banner}</div>}
+
       <ChatInput
         placeholder={placeholder}
         onSend={handleSendMessage}
@@ -408,8 +418,10 @@ export const Chat: React.FC<ChatProps> = ({
           isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
         }
         isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+        disableSubmit={disableSubmit}
         value={inputValue}
         onChange={setInputValue}
+        onDisabledInput={onInputWhileDisabled}
       />
     </div>
   );
