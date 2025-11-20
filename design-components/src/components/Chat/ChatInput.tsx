@@ -52,6 +52,13 @@ export interface ChatInputProps {
   isStreaming?: boolean;
 
   /**
+   * Whether to disable message submission (send button and Enter key)
+   * Keeps the input field enabled for typing
+   * @default false
+   */
+  disableSubmit?: boolean;
+
+  /**
    * Controlled value for the input (makes component controlled)
    */
   value?: string;
@@ -60,6 +67,11 @@ export interface ChatInputProps {
    * Callback when input value changes (for controlled mode)
    */
   onChange?: (value: string) => void;
+
+  /**
+   * Callback when user tries to type while submit is disabled
+   */
+  onDisabledInput?: () => void;
 }
 
 /**
@@ -72,8 +84,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   contextTag,
   disabled = false,
   isStreaming = false, // FIX: Default to false
+  disableSubmit = false,
   value,
   onChange,
+  onDisabledInput,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -91,6 +105,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [message]);
 
   const handleChange = (newValue: string) => {
+    // Trigger callback if user is typing while submit is disabled
+    if (disableSubmit && newValue.length > message.length) {
+      onDisabledInput?.();
+    }
+
     if (isControlled) {
       onChange?.(newValue);
     } else {
@@ -99,6 +118,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleSend = () => {
+    // Don't send if submit is disabled
+    if (disableSubmit) {
+      return;
+    }
+
     if (message.trim() && onSend) {
       onSend(message.trim());
       // Clear the input after sending
@@ -116,8 +140,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      // Don't send message during streaming - user can prepare next question
-      if (!isStreaming) {
+      // Don't send message during streaming or if submit is disabled
+      if (!isStreaming && !disableSubmit) {
         handleSend();
       }
     }
@@ -170,12 +194,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             // Send button when not streaming
             <button
               className={`w-8 h-8 flex-shrink-0 rounded-full border-0 gradient-von-purple flex items-center justify-center text-white transition-all duration-150 ${
-                disabled || !message.trim()
+                disabled || disableSubmit || !message.trim()
                   ? 'cursor-not-allowed opacity-50'
                   : 'cursor-pointer hover:opacity-90 hover:shadow-lg'
               }`}
               onClick={handleSend}
-              disabled={disabled || !message.trim()}
+              disabled={disabled || disableSubmit || !message.trim()}
               aria-label="Send message"
             >
               <SendIcon size={16} />

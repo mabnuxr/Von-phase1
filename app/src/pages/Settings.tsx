@@ -8,23 +8,28 @@ import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import {
-  DefaultsIcon,
   FieldsIcon,
   IntegrationsIcon,
+  ProcessIcon,
+  EmailIcon,
+  TeamIcon,
 } from "../components/icons";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
-import DefaultsPanel from "../components/DefaultsPanel";
-import FieldsPanel from "../components/FieldsPanel";
+import { FieldsTab } from "../components/tabs/FieldsTab";
+import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
 import { LOGO_URL } from "../config/constants";
+import { ProcessConfigurationTab } from "../components/tabs/ProcessConfigurationTab";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 const Settings = () => {
   const navigate = useNavigate();
   useAuthCheck();
   const { user } = useUser();
+  const { isEmailCategorizationEnabled } = useFeatureFlag();
   const [selectedSettingId, setSelectedSettingId] = useState("integrations");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
@@ -136,34 +141,56 @@ const Settings = () => {
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  const settingsItems = [
-    {
-      id: "integrations",
-      label: "Integrations",
-      icon: <IntegrationsIcon />,
-    },
-    {
-      id: "fields",
-      label: "Salesforce Fields",
-      icon: <FieldsIcon />,
-    },
-    {
-      id: "defaults",
-      label: "Process Configuration",
-      icon: <DefaultsIcon />,
-    },
-  ];
+  const settingsItems = {
+    integrations: [
+      {
+        id: "integrations",
+        label: "Integrations",
+        icon: <IntegrationsIcon />,
+      },
+    ],
+    configurations: [
+      {
+        id: "process",
+        label: "Process",
+        icon: <ProcessIcon />,
+      },
+      {
+        id: "fields",
+        label: "Fields",
+        icon: <FieldsIcon />,
+      },
+      // Conditionally include Email tab based on feature flag
+      ...(isEmailCategorizationEnabled
+        ? [
+            {
+              id: "email",
+              label: "Email",
+              icon: <EmailIcon />,
+            },
+          ]
+        : []),
+    ],
+    team: [
+      {
+        id: "team",
+        label: "Manage Team",
+        icon: <TeamIcon />,
+      },
+    ],
+  };
 
   const renderContent = () => {
     switch (selectedSettingId) {
       case "integrations":
         return <IntegrationsPanel />;
       case "fields":
-        return <FieldsPanel />;
-      case "defaults":
-        return <DefaultsPanel />;
-      case "sales-process":
-      case "manager-agent":
+        return <FieldsTab />;
+      case "process":
+        return <ProcessConfigurationTab />;
+      case "email":
+        return <EmailCategorizationTab />;
+      case "team":
       default:
         return null;
     }
@@ -213,7 +240,7 @@ const Settings = () => {
         </div>
 
         {/* Right Pane - Content Area with rounded corners */}
-        <div className="flex-1 rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0 overflow-hidden">
+        <div className="flex-1 rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0">
           {renderContent()}
         </div>
       </div>

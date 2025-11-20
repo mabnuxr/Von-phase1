@@ -98,8 +98,6 @@ export function usePusherAuth(
       let pusher = pusherRef.current;
 
       if (!pusher || configChanged) {
-        console.log('[PUSHER] Creating new Pusher instance');
-
         // Disconnect old instance if it exists
         if (pusher) {
           pusher.disconnect();
@@ -128,8 +126,6 @@ export function usePusherAuth(
         }
 
         pusherRef.current = pusher;
-      } else {
-        console.log('[PUSHER] Reusing existing Pusher instance');
       }
 
       // Only bind connection events if this is a new Pusher instance
@@ -160,29 +156,20 @@ export function usePusherAuth(
 
       // Unsubscribe from old channel if switching conversations
       if (channelRef.current && channelRef.current.name !== channelName) {
-        console.log(`[PUSHER] Switching from ${channelRef.current.name} to ${channelName}`);
         pusher.unsubscribe(channelRef.current.name);
         channelRef.current = null;
       }
 
       // Subscribe to conversation-specific private channel if not already subscribed
       if (!channelRef.current) {
-        console.log(`[PUSHER] Subscribing to channel: ${channelName}`);
         const channel = pusher.subscribe(channelName);
         channelRef.current = channel;
 
-        // Handle subscription success
-        channel.bind('pusher:subscription_succeeded', () => {
-          console.log(`[PUSHER] ✅ Successfully subscribed to ${channelName}`);
-        });
-
         // Handle subscription error
         channel.bind('pusher:subscription_error', (status: unknown) => {
-          console.error(`[PUSHER] ❌ Subscription failed:`, status);
+          console.error(`[PUSHER] Subscription failed:`, status);
           setError(new Error(`Subscription failed: ${JSON.stringify(status)}`));
         });
-      } else {
-        console.log(`[PUSHER] Already subscribed to ${channelName}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to initialize Pusher'));
@@ -191,9 +178,7 @@ export function usePusherAuth(
     // Cleanup on unmount or when conversationId changes
     return () => {
       if (channelRef.current && pusherRef.current) {
-        const channelName = channelRef.current.name;
-        console.log(`[PUSHER] Cleanup: Unsubscribing from channel: ${channelName}`);
-        pusherRef.current.unsubscribe(channelName);
+        pusherRef.current.unsubscribe(channelRef.current.name);
         channelRef.current = null;
       }
     };
