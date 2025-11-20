@@ -211,8 +211,8 @@ export function ProcessConfigurationTab() {
                 )}
               </div>
               {stagesError ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800 mb-2">
+                <div className="p-3 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800 ">
                     {stagesError.message.includes("not found") ||
                     stagesError.message.includes("404")
                       ? "Salesforce integration not connected."
@@ -258,8 +258,8 @@ export function ProcessConfigurationTab() {
                 )}
               </div>
               {stagesError ? (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800 mb-2">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex flex-row justify-between">
+                  <p className="text-sm text-amber-800">
                     {stagesError.message.includes("not found") ||
                     stagesError.message.includes("404")
                       ? "Salesforce integration not connected."

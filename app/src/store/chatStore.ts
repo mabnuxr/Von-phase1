@@ -27,6 +27,7 @@ interface ChatState {
     olderMessages: MessageWithStreaming[],
   ) => void;
   clearMessages: (conversationId: string) => void;
+  clearAllMessagesExcept: (conversationId: string) => void;
 
   // Message loading state
   isLoadingMessages: boolean;
@@ -216,6 +217,17 @@ const useChatStoreBase = create<ChatState>((set) => ({
     set((state) => {
       const newMessages = { ...state.messages };
       delete newMessages[conversationId];
+      return { messages: newMessages };
+    }),
+
+  clearAllMessagesExcept: (keepConversationId) =>
+    set((state) => {
+      // Keep only the specified conversation's messages
+      // This prevents old messages from flashing during conversation switch
+      const newMessages: Record<string, MessageWithStreaming[]> = {};
+      if (state.messages[keepConversationId]) {
+        newMessages[keepConversationId] = state.messages[keepConversationId];
+      }
       return { messages: newMessages };
     }),
 
