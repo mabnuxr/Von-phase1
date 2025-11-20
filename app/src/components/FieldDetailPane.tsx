@@ -5,6 +5,7 @@ import usePreferencesStore, {
 import type { Field, VonIQField } from "../store/preferencesStore";
 import { Banner } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
+import { useOpportunityFields } from "../hooks/useSalesforceOpportunityFields";
 
 export function FieldDetailPane() {
   const {
@@ -17,6 +18,13 @@ export function FieldDetailPane() {
     updateUserDefinedVonIQField,
     addUserDefinedVonIQField,
   } = usePreferencesStore();
+
+  // Fetch Salesforce Opportunity fields for dropdown
+  const {
+    data: opportunityFields,
+    isLoading: isLoadingFields,
+    error: fieldsError,
+  } = useOpportunityFields();
 
   // Find the field being editing based on type
   const salesforceField =
@@ -53,7 +61,15 @@ export function FieldDetailPane() {
   // Initialize form data when field changes or when creating new VonIQ field
   useEffect(() => {
     if (field) {
-      setFormData(field);
+      // For Salesforce fields, ensure salesforceObject defaults to "Opportunity"
+      if (editingFieldType === "salesforce") {
+        setFormData({
+          ...field,
+          salesforceObject: (field as Field).salesforceObject || "Opportunity",
+        });
+      } else {
+        setFormData(field);
+      }
     } else if (isCreatingNewVonIQField) {
       // Initialize empty form for new VonIQ field
       setFormData({
@@ -64,7 +80,7 @@ export function FieldDetailPane() {
         type: "string",
       });
     }
-  }, [field, isCreatingNewVonIQField]);
+  }, [field, isCreatingNewVonIQField, editingFieldType]);
 
   const handleClose = () => {
     setEditingField(null);
@@ -80,9 +96,6 @@ export function FieldDetailPane() {
 
       // Validate Salesforce fields
       const sfData = formData as Partial<Field>;
-      if (!sfData.salesforceObject || sfData.salesforceObject.trim() === "") {
-        errors.push("Salesforce Object is required");
-      }
       if (
         !sfData.salesforceFieldName ||
         sfData.salesforceFieldName.trim() === ""
@@ -95,7 +108,11 @@ export function FieldDetailPane() {
         return;
       }
 
-      updateField(editingFieldId, sfData);
+      // Ensure salesforceObject is always "Opportunity"
+      updateField(editingFieldId, {
+        ...sfData,
+        salesforceObject: "Opportunity",
+      });
     } else if (editingFieldType === "voniq") {
       const voniqData = formData as Partial<VonIQField>;
 
@@ -216,6 +233,28 @@ export function FieldDetailPane() {
               {editingFieldType === "salesforce" ? (
                 <>
                   {/* Salesforce Field Form */}
+
+                  {/* Salesforce Connection Banner */}
+                  {fieldsError && (
+                    <div className="p-3 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-800">
+                        {fieldsError.message.includes("not found") ||
+                        fieldsError.message.includes("404")
+                          ? "Salesforce integration not connected."
+                          : fieldsError.message.includes("not authenticated") ||
+                              fieldsError.message.includes("401")
+                            ? "Salesforce integration needs reconnection."
+                            : "Failed to load Salesforce fields."}
+                      </p>
+                      <a
+                        href="/settings?tab=integrations"
+                        className="text-sm text-von-purple hover:text-von-purple-600 font-medium"
+                      >
+                        Go to Integrations →
+                      </a>
+                    </div>
+                  )}
+
                   {/* Name (Read-only) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
@@ -258,52 +297,60 @@ export function FieldDetailPane() {
                     </p>
                   </div>
 
-                  {/* Salesforce Object */}
+                  {/* Salesforce Object (Disabled, defaulted to Opportunity) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Salesforce Object
-                      <span className="text-red-500 ml-1">*</span>
                     </label>
                     <input
                       type="text"
-                      value={
-                        (formData as Partial<Field>).salesforceObject || ""
-                      }
-                      onChange={(e) =>
-                        handleChange("salesforceObject", e.target.value)
-                      }
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                      placeholder="Opportunity"
+                      value="Opportunity"
+                      disabled
+                      className="w-full px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed"
                     />
-                    <p className="mt-1.5 text-xs text-gray-500">
-                      The Salesforce object (e.g., Opportunity, Account,
-                      Contact)
-                    </p>
                   </div>
 
-                  {/* Salesforce Field Name */}
+                  {/* Salesforce Field Name (Dropdown) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Field Name
                       <span className="text-red-500 ml-1">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={
-                        (formData as Partial<Field>).salesforceFieldName || ""
-                      }
-                      onChange={(e) =>
-                        handleChange("salesforceFieldName", e.target.value)
-                      }
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                      placeholder={
-                        (field as Field)?.name === "Amount"
-                          ? "Amount"
-                          : "Competition__c"
-                      }
-                    />
+                    {isLoadingFields ? (
+                      <div className="w-full px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg bg-gray-50">
+                        Loading fields...
+                      </div>
+                    ) : fieldsError ? (
+                      <input
+                        type="text"
+                        value={
+                          (formData as Partial<Field>).salesforceFieldName || ""
+                        }
+                        disabled
+                        className="w-full px-3 py-2 text-sm text-gray-500 bg-gray-50 border border-gray-300 rounded-lg cursor-not-allowed"
+                        placeholder="Connect Salesforce to load fields"
+                      />
+                    ) : (
+                      <select
+                        value={
+                          (formData as Partial<Field>).salesforceFieldName || ""
+                        }
+                        onChange={(e) =>
+                          handleChange("salesforceFieldName", e.target.value)
+                        }
+                        className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
+                      >
+                        <option value="">Select a field...</option>
+                        {opportunityFields?.map((fieldName) => (
+                          <option key={fieldName} value={fieldName}>
+                            {fieldName}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <p className="mt-1.5 text-xs text-gray-500">
-                      The API name of the field (e.g., Amount, Competition__c)
+                      Select the Salesforce API field name from the Opportunity
+                      object
                     </p>
                   </div>
                 </>

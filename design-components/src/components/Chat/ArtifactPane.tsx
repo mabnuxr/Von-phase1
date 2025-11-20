@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ToolResultRenderer } from './ToolResultRenderer';
 import type { ToolResult, QueryInfo, MetricData, ValueData, StatisticsData } from './types';
 import { SidePane } from '../SidePane';
@@ -105,8 +105,26 @@ export function ArtifactPane({
   onClose,
   useArtifactHook,
 }: ArtifactPaneProps) {
-  const [activeTab, setActiveTab] = useState<'result' | 'query'>('result');
   const { data: artifact, isLoading, error } = useArtifactHook(conversationId, runId, artifactId);
+
+  // Determine if queries exist
+  const hasQueries =
+    artifact && !isLoading && !error
+      ? (((artifact.content as Record<string, unknown>)?.queries as QueryInfo[] | undefined)
+          ?.length ?? 0) > 0
+      : false;
+
+  // Set default tab to 'query' if queries exist, otherwise 'result'
+  const [activeTab, setActiveTab] = useState<'result' | 'query'>('query');
+
+  // Reset to default when artifact changes (e.g., different artifact opened)
+  useEffect(() => {
+    if (hasQueries) {
+      setActiveTab('query');
+    } else if (artifact && !isLoading) {
+      setActiveTab('result');
+    }
+  }, [artifact, hasQueries, isLoading]);
 
   // Check if artifact represents a failed tool execution
   const hasExecutionError = (artifact?.content as Record<string, unknown>)?.success === false;
@@ -274,16 +292,6 @@ export function ArtifactPane({
         <div className="flex flex-col h-full">
           {/* Tab Navigation */}
           <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('result')}
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === 'result'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-              }`}
-            >
-              Result
-            </button>
             {queries && queries.length > 0 && (
               <button
                 onClick={() => setActiveTab('query')}
@@ -296,6 +304,16 @@ export function ArtifactPane({
                 Query
               </button>
             )}
+            <button
+              onClick={() => setActiveTab('result')}
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'result'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              Result
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -336,16 +354,6 @@ export function ArtifactPane({
         <div className="flex flex-col h-full">
           {/* Tab Navigation */}
           <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('result')}
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === 'result'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-              }`}
-            >
-              Result
-            </button>
             {toolResult.queries && toolResult.queries.length > 0 && (
               <button
                 onClick={() => setActiveTab('query')}
@@ -358,6 +366,16 @@ export function ArtifactPane({
                 Query
               </button>
             )}
+            <button
+              onClick={() => setActiveTab('result')}
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === 'result'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+              }`}
+            >
+              Result
+            </button>
           </div>
 
           {/* Tab Content */}

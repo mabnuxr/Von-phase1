@@ -16,7 +16,7 @@ export default function FieldsPanel() {
   return (
     <div className="w-full h-full flex flex-col">
       {/* Fields List */}
-      <div className="flex-1 overflow-y-auto px-6 pt-2 pb-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="space-y-6">
           {/* Header Row with Description and Search */}
           <div className="flex flex-row items-baseline justify-between gap-4">
