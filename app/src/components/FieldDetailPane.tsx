@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import usePreferencesStore from "../store/preferencesStore";
+import usePreferencesStore, {
+  DEFAULT_VONIQ_FIELDS,
+} from "../store/preferencesStore";
 import type { Field, VonIQField } from "../store/preferencesStore";
 import { Banner } from "@vonlabs/design-components";
+import { Streamdown } from "streamdown";
 
 export function FieldDetailPane() {
   const {
@@ -15,7 +18,7 @@ export function FieldDetailPane() {
     addUserDefinedVonIQField,
   } = usePreferencesStore();
 
-  // Find the field being edited based on type
+  // Find the field being editing based on type
   const salesforceField =
     editingFieldType === "salesforce" && editingFieldId
       ? salesforceFields.find((f) => f.id === editingFieldId)
@@ -23,10 +26,19 @@ export function FieldDetailPane() {
 
   const voniqField =
     editingFieldType === "voniq" && editingFieldId
-      ? userDefinedVonIQFields.find((f) => f.id === editingFieldId)
+      ? userDefinedVonIQFields.find(
+          (f: VonIQField) => f.id === editingFieldId,
+        ) ||
+        DEFAULT_VONIQ_FIELDS.find((f: VonIQField) => f.id === editingFieldId)
       : null;
 
   const field = salesforceField || voniqField;
+
+  // Check if VonIQ field is a default (read-only) field
+  const isDefaultVonIQField =
+    editingFieldType === "voniq" && voniqField && !voniqField.isCustom
+      ? true
+      : false;
 
   // Check if we're creating a new VonIQ field (editingFieldId is null and type is voniq)
   const isCreatingNewVonIQField =
@@ -155,7 +167,11 @@ export function FieldDetailPane() {
           <div className="px-6 py-4 border-b border-gray-200 shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 m-0">
-                {isCreatingNewVonIQField ? "Add New VonIQ Field" : "Edit Field"}
+                {isCreatingNewVonIQField
+                  ? "Add New VonIQ Field"
+                  : isDefaultVonIQField
+                    ? "View Field"
+                    : "Edit Field"}
               </h2>
               <button
                 onClick={handleClose}
@@ -298,7 +314,9 @@ export function FieldDetailPane() {
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Display Name
-                      <span className="text-red-500 ml-1">*</span>
+                      {!isDefaultVonIQField && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </label>
                     <input
                       type="text"
@@ -309,7 +327,8 @@ export function FieldDetailPane() {
                       onChange={(e) =>
                         handleChange("sourceFieldDisplayName", e.target.value)
                       }
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
+                      disabled={isDefaultVonIQField}
+                      className={`w-full px-3 py-2 text-sm ${isDefaultVonIQField ? "text-gray-600 bg-gray-50 cursor-not-allowed" : "text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent"} border border-gray-300 rounded-lg transition-all duration-200`}
                       placeholder="Custom Field Display Name"
                     />
                   </div>
@@ -318,13 +337,16 @@ export function FieldDetailPane() {
                   <div>
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Field Name (API)
-                      <span className="text-red-500 ml-1">*</span>
+                      {!isDefaultVonIQField && (
+                        <span className="text-red-500 ml-1">*</span>
+                      )}
                     </label>
                     <input
                       type="text"
                       value={(formData as Partial<VonIQField>).name || ""}
                       onChange={(e) => handleChange("name", e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
+                      disabled={isDefaultVonIQField}
+                      className={`w-full px-3 py-2 text-sm ${isDefaultVonIQField ? "text-gray-600 bg-gray-50 cursor-not-allowed" : "text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent"} border border-gray-300 rounded-lg transition-all duration-200`}
                       placeholder="field_api_name"
                     />
                     <p className="mt-1.5 text-xs text-gray-500">
@@ -345,8 +367,9 @@ export function FieldDetailPane() {
                       onChange={(e) =>
                         handleChange("sourceFieldDescription", e.target.value)
                       }
+                      disabled={isDefaultVonIQField}
                       rows={3}
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200 resize-none"
+                      className={`w-full px-3 py-2 text-sm ${isDefaultVonIQField ? "text-gray-600 bg-gray-50 cursor-not-allowed" : "text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent"} border border-gray-300 rounded-lg transition-all duration-200 resize-none`}
                       placeholder="Describe what this field is for"
                     />
                   </div>
@@ -364,7 +387,8 @@ export function FieldDetailPane() {
                       onChange={(e) =>
                         handleChange("sourceFieldDataType", e.target.value)
                       }
-                      className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
+                      disabled={isDefaultVonIQField}
+                      className={`w-full px-3 py-2 text-sm ${isDefaultVonIQField ? "text-gray-600 bg-gray-50 cursor-not-allowed" : "text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent"} border border-gray-300 rounded-lg transition-all duration-200`}
                     >
                       <option value="Text">Text</option>
                       <option value="Picklist">Picklist</option>
@@ -374,6 +398,37 @@ export function FieldDetailPane() {
                       <option value="Date">Date</option>
                     </select>
                   </div>
+
+                  {/* Prompt - Only show if prompt exists */}
+                  {(formData as Partial<VonIQField>).prompt && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-1.5">
+                        Prompt
+                      </label>
+                      {isDefaultVonIQField ? (
+                        <div className="w-full px-3 py-2 text-sm text-gray-600 bg-gray-50 border border-gray-300 rounded-lg min-h-[200px] max-h-[400px] overflow-y-auto">
+                          <Streamdown>
+                            {(formData as Partial<VonIQField>).prompt || ""}
+                          </Streamdown>
+                        </div>
+                      ) : (
+                        <textarea
+                          value={(formData as Partial<VonIQField>).prompt || ""}
+                          onChange={(e) =>
+                            handleChange("prompt", e.target.value)
+                          }
+                          rows={10}
+                          className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200 resize-none font-mono"
+                          placeholder="Enter the prompt for this field (supports markdown)"
+                        />
+                      )}
+                      {!isDefaultVonIQField && (
+                        <p className="mt-1.5 text-xs text-gray-500">
+                          Markdown formatting is supported
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -386,14 +441,16 @@ export function FieldDetailPane() {
                 onClick={handleClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
               >
-                Cancel
+                {isDefaultVonIQField ? "Close" : "Cancel"}
               </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium text-white bg-von-purple border border-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200"
-              >
-                Save changes
-              </button>
+              {!isDefaultVonIQField && (
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 text-sm font-medium text-white bg-von-purple border border-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200"
+                >
+                  Save changes
+                </button>
+              )}
             </div>
           </div>
         </div>

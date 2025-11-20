@@ -139,11 +139,6 @@ const Dashboard = () => {
   // Track last user message for reliable error recovery
   const lastUserMessageRef = useRef<string>("");
 
-  // Reset message filtering when conversation changes
-  useEffect(() => {
-    setShowMessagesFromIndex(0);
-  }, [currentConversationId]);
-
   // Handle title updates with typing animation
   useEffect(() => {
     if (!updatedTitle || !currentConversationId) return;
@@ -266,13 +261,30 @@ const Dashboard = () => {
     }
   };
 
-  // Sync URL param to Zustand store when URL changes
+  // FIX: Consolidated conversation switching logic
+  // Single source of truth: URL param → Store update → Message reset
+  // This prevents race conditions and ensures clean transitions
   useEffect(() => {
     if (urlConversationId && urlConversationId !== currentConversationId) {
-      console.log(
-        "[Dashboard] Setting current conversation id to ",
-        urlConversationId,
-      );
+      if (import.meta.env.DEV) {
+        console.log(
+          "[Dashboard] Switching conversation:",
+          currentConversationId,
+          "→",
+          urlConversationId,
+        );
+      }
+
+      // Step 1: Reset UI state for clean transition
+      setShowMessagesFromIndex(0);
+
+      // Step 2: Clear old messages to prevent flash of wrong content
+      // Keep new conversation's messages if they already exist (from cache)
+      const { clearAllMessagesExcept } = useChatStore.getState();
+      clearAllMessagesExcept(urlConversationId);
+
+      // Step 3: Update current conversation ID
+      // This triggers useMessages to fetch messages for new conversation
       setCurrentConversationId(urlConversationId);
     }
   }, [urlConversationId, currentConversationId, setCurrentConversationId]);

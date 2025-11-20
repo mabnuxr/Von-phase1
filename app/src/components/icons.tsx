@@ -490,3 +490,29 @@ export const EditIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
   </svg>
 ));
 EditIcon.displayName = "EditIcon";
+
+// Eye Icon - Used for view/visibility buttons - Memoized
+export const EyeIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="12"
+      cy="12"
+      r="3"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+EyeIcon.displayName = "EyeIcon";

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useCreateConversation, conversationKeys } from "./useConversations";
-import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
 import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 
@@ -20,7 +19,6 @@ import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 export function useNewChat() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { setCurrentConversationId } = useChatStore();
 
   // Get current conversations data for title numbering
   const { data: infiniteConversationsData } = useInfiniteConversations(
@@ -54,28 +52,25 @@ export function useNewChat() {
         console.log(`[useNewChat] Created: ${newConversationId}`);
       }
 
-      // Set conversation ID in store BEFORE navigating
-      setCurrentConversationId(newConversationId);
-
       // Wait for cache to update before navigating
       // This ensures useConversationInit validation passes on first try
       await queryClient.refetchQueries({ queryKey: conversationKeys.lists() });
 
-      // Navigate to conversation with UUID
+      // FIX: Navigate FIRST, let Dashboard's useEffect sync the store
+      // This prevents race condition where Chat component sees mismatched
+      // currentConversationId (new) vs messages (old) during transition
       navigate(`/chat/${newConversationId}`);
+
+      // NOTE: Don't call setCurrentConversationId here
+      // Dashboard.tsx line 270-278 will update store when URL param changes
+      // This ensures clean, predictable state transition: URL → Store → Messages → UI
 
       return response.conversation;
     } catch (err) {
       console.error("[useNewChat] Failed to create conversation:", err);
       throw err;
     }
-  }, [
-    infiniteConversationsData,
-    createConversation,
-    navigate,
-    setCurrentConversationId,
-    queryClient,
-  ]);
+  }, [infiniteConversationsData, createConversation, navigate, queryClient]);
 
   return {
     createNewChat,
