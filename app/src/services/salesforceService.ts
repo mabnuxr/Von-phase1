@@ -75,13 +75,20 @@ class SalesforceService {
 
     // Transform Scalekit response to OpportunityStage array
     const records = response.data?.records || [];
-    return records.map((record: SalesforceRecord) => ({
-      id: String(record.Id),
-      label: String(record.MasterLabel),
-      sortOrder: Number(record.SortOrder),
-      isClosed: Boolean(record.IsClosed),
-      isWon: Boolean(record.IsWon),
-    }));
+    return records.map((record: SalesforceRecord) => {
+      if (!record.Id || !record.MasterLabel) {
+        throw new Error(
+          `Invalid Salesforce stage record: missing required fields (Id or MasterLabel)`,
+        );
+      }
+      return {
+        id: String(record.Id),
+        label: String(record.MasterLabel),
+        sortOrder: typeof record.SortOrder === "number" ? record.SortOrder : 0,
+        isClosed: Boolean(record.IsClosed),
+        isWon: Boolean(record.IsWon),
+      };
+    });
   }
 
   /**
@@ -111,9 +118,9 @@ class SalesforceService {
 
     // Transform Scalekit response to array of field names
     const records = response.data?.records || [];
-    return records.map((record: SalesforceRecord) =>
-      String(record.QualifiedApiName),
-    );
+    return records
+      .map((record: SalesforceRecord) => String(record.QualifiedApiName))
+      .filter((name) => name && name !== "null" && name !== "undefined");
   }
 }
 

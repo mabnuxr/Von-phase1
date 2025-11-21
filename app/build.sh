@@ -11,25 +11,51 @@ echo "NODE_ENV=$NODE_ENV"
 
 # Fetch secrets from AWS SSM Parameter Store
 echo "=== Fetching secrets from AWS SSM Parameter Store ==="
-SCALEKIT_CLIENT_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/scalekit/client-id" --region us-west-2 --query 'Parameter.Value' --output text)
-LAUNCHDARKLY_CLIENT_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/launchdarkly/client-side-id" --region us-west-2 --query 'Parameter.Value' --output text)
+
+if ! SCALEKIT_CLIENT_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/scalekit/client-id" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch SCALEKIT_CLIENT_ID from AWS SSM"
+  exit 1
+fi
+
+if ! SCALEKIT_ENVIRONMENT_URL=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/scalekit/environment-url" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch SCALEKIT_ENVIRONMENT_URL from AWS SSM"
+  exit 1
+fi
+
+if ! LAUNCHDARKLY_CLIENT_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/launchdarkly/client-side-id" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch LAUNCHDARKLY_CLIENT_ID from AWS SSM"
+  exit 1
+fi
+
+if ! PUSHER_KEY=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/pusher/key" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch PUSHER_KEY from AWS SSM"
+  exit 1
+fi
+
+if ! PUSHER_CLUSTER=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/pusher/cluster" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch PUSHER_CLUSTER from AWS SSM"
+  exit 1
+fi
 
 echo "Fetched SCALEKIT_CLIENT_ID: ${SCALEKIT_CLIENT_ID:0:10}..."
+echo "Fetched SCALEKIT_ENVIRONMENT_URL: ${SCALEKIT_ENVIRONMENT_URL:0:20}..."
 echo "Fetched LAUNCHDARKLY_CLIENT_ID: ${LAUNCHDARKLY_CLIENT_ID:0:10}..."
+echo "Fetched PUSHER_KEY: ${PUSHER_KEY:0:10}..."
+echo "Fetched PUSHER_CLUSTER: ${PUSHER_CLUSTER}"
 
 # Create .env file from environment variables set by App Runner
 echo "=== Creating .env file at workspace root ==="
 cat > .env << EOF
 VITE_SCALEKIT_CLIENT_ID=${SCALEKIT_CLIENT_ID}
+VITE_SCALEKIT_AUTH_BASE_URL=${SCALEKIT_ENVIRONMENT_URL}
 VITE_LAUNCHDARKLY_CLIENT_ID=${LAUNCHDARKLY_CLIENT_ID}
-VITE_SCALEKIT_AUTH_BASE_URL=https://auth.vonlabs.ai
 VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize
 VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token
 VITE_SCALEKIT_AUTH_LOGOUT_PATH=
 VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback
 VITE_API_BASE_URL=https://apiv2.vonlabs.ai
-VITE_PUSHER_KEY=58829a8a049e0cfc8bb6
-VITE_PUSHER_CLUSTER=us3
+VITE_PUSHER_KEY=${PUSHER_KEY}
+VITE_PUSHER_CLUSTER=${PUSHER_CLUSTER}
 VITE_PUSHER_AUTH_ENDPOINT=https://apiv2.vonlabs.ai/api/v1/pusher/auth
 EOF
 
