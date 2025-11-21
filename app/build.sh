@@ -13,9 +13,20 @@ echo "NODE_ENV=$NODE_ENV"
 if ! command -v aws &> /dev/null; then
   echo "=== AWS CLI not found, installing ==="
 
-  # Install dependencies
-  apt-get update -qq
-  apt-get install -y -qq curl unzip > /dev/null 2>&1
+  # Detect package manager and install dependencies
+  if command -v yum &> /dev/null; then
+    # Amazon Linux / RHEL / CentOS
+    echo "Detected yum package manager"
+    yum install -y curl unzip > /dev/null 2>&1
+  elif command -v apt-get &> /dev/null; then
+    # Debian / Ubuntu
+    echo "Detected apt-get package manager"
+    apt-get update -qq
+    apt-get install -y -qq curl unzip > /dev/null 2>&1
+  else
+    echo "ERROR: No supported package manager found (yum or apt-get)"
+    exit 1
+  fi
 
   # Download and install AWS CLI v2
   curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
