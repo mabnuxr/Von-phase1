@@ -9,6 +9,29 @@ echo "=== Environment Variables from App Runner ==="
 printenv | grep VITE_ || echo "No VITE_ variables found"
 echo "NODE_ENV=$NODE_ENV"
 
+# Check if AWS CLI is installed, install if missing
+if ! command -v aws &> /dev/null; then
+  echo "=== AWS CLI not found, installing ==="
+
+  # Install dependencies
+  apt-get update -qq
+  apt-get install -y -qq curl unzip > /dev/null 2>&1
+
+  # Download and install AWS CLI v2
+  curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip -q awscliv2.zip
+  ./aws/install > /dev/null 2>&1
+
+  # Cleanup
+  rm -rf awscliv2.zip aws
+
+  echo "=== AWS CLI installed successfully ==="
+fi
+
+# Verify AWS CLI installation
+echo "=== AWS CLI version ==="
+aws --version
+
 # Fetch secrets from AWS SSM Parameter Store
 echo "=== Fetching secrets from AWS SSM Parameter Store ==="
 
