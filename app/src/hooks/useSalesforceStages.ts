@@ -3,12 +3,17 @@ import {
   salesforceService,
   type OpportunityStage,
 } from "../services/salesforceService";
+import {
+  SALESFORCE_STAGES_STALE_TIME,
+  SALESFORCE_RETRY_COUNT,
+  SALESFORCE_REFETCH_ON_FOCUS,
+} from "../config/constants";
 
 /**
- * Query keys for Salesforce data
+ * Query keys for Salesforce data (via tools API)
  */
 export const salesforceKeys = {
-  all: ["salesforce"] as const,
+  all: ["tools", "salesforce"] as const,
   opportunityStages: () =>
     [...salesforceKeys.all, "opportunity-stages"] as const,
 };
@@ -38,8 +43,8 @@ export function useOpportunityStages() {
   return useQuery<OpportunityStage[], Error>({
     queryKey: salesforceKeys.opportunityStages(),
     queryFn: () => salesforceService.getOpportunityStages(),
-    staleTime: 5 * 60 * 1000, // 5 minutes - stages don't change frequently
-    retry: 1, // Only retry once on failure
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    staleTime: SALESFORCE_STAGES_STALE_TIME,
+    retry: SALESFORCE_RETRY_COUNT,
+    refetchOnWindowFocus: SALESFORCE_REFETCH_ON_FOCUS,
   });
 }

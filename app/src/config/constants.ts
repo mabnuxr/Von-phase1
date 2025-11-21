@@ -25,6 +25,23 @@ export const MESSAGES_STALE_TIME = 10000 as const; // 10 seconds
  */
 export const PREFERENCES_STALE_TIME = 300000 as const; // 5 minutes (5 * 60 * 1000)
 
+/**
+ * Time in milliseconds that Salesforce opportunity stages are considered fresh
+ * Stages don't change frequently, so cached for same duration as preferences
+ */
+export const SALESFORCE_STAGES_STALE_TIME = 300000 as const; // 5 minutes (5 * 60 * 1000)
+
+/**
+ * Number of retry attempts for failed Salesforce queries
+ */
+export const SALESFORCE_RETRY_COUNT = 1 as const;
+
+/**
+ * Whether to refetch Salesforce data when window regains focus
+ * Set to false since Salesforce data is relatively static
+ */
+export const SALESFORCE_REFETCH_ON_FOCUS = false as const;
+
 // ============================================================================
 // Debounce Constants
 // ============================================================================
@@ -165,6 +182,9 @@ export const QUERY_CONSTANTS = {
   CONVERSATIONS_STALE_TIME,
   MESSAGES_STALE_TIME,
   PREFERENCES_STALE_TIME,
+  SALESFORCE_STAGES_STALE_TIME,
+  SALESFORCE_RETRY_COUNT,
+  SALESFORCE_REFETCH_ON_FOCUS,
   PREFERENCES_DEBOUNCE_DELAY,
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
