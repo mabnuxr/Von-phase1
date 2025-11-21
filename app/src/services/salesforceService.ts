@@ -1,15 +1,5 @@
 import { apiClient } from "./apiClient";
-
-/**
- * Integration types matching backend enum
- */
-export const IntegrationType = {
-  SALESFORCE: "SALESFORCE",
-  GOOGLE_CALENDAR: "GOOGLE_CALENDAR",
-} as const;
-
-export type IntegrationType =
-  (typeof IntegrationType)[keyof typeof IntegrationType];
+import { IntegrationType } from "./integrationsService";
 
 /**
  * Salesforce Opportunity Stage interface

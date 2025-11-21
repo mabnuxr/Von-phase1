@@ -116,15 +116,30 @@ export function ArtifactPane({
 
   // Set default tab to 'query' if queries exist, otherwise 'result'
   const [activeTab, setActiveTab] = useState<'result' | 'query'>('query');
+  const [userChangedTab, setUserChangedTab] = useState(false);
 
   // Reset to default when artifact changes (e.g., different artifact opened)
+  // Only auto-switch tabs if user hasn't manually changed them
   useEffect(() => {
-    if (hasQueries) {
-      setActiveTab('query');
-    } else if (artifact && !isLoading) {
-      setActiveTab('result');
+    if (!userChangedTab) {
+      if (hasQueries) {
+        setActiveTab('query');
+      } else if (artifact && !isLoading) {
+        setActiveTab('result');
+      }
     }
-  }, [artifact, hasQueries, isLoading]);
+  }, [artifact, hasQueries, isLoading, userChangedTab]);
+
+  // Reset userChangedTab when artifactId changes (new artifact opened)
+  useEffect(() => {
+    setUserChangedTab(false);
+  }, [artifactId]);
+
+  // Handler for tab changes that tracks user interaction
+  const handleTabChange = (tab: 'result' | 'query') => {
+    setActiveTab(tab);
+    setUserChangedTab(true);
+  };
 
   // Check if artifact represents a failed tool execution
   const hasExecutionError = (artifact?.content as Record<string, unknown>)?.success === false;
@@ -294,7 +309,7 @@ export function ArtifactPane({
           <div className="flex border-b border-gray-200">
             {queries && queries.length > 0 && (
               <button
-                onClick={() => setActiveTab('query')}
+                onClick={() => handleTabChange('query')}
                 className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'query'
                     ? 'border-blue-500 text-blue-600'
@@ -305,7 +320,7 @@ export function ArtifactPane({
               </button>
             )}
             <button
-              onClick={() => setActiveTab('result')}
+              onClick={() => handleTabChange('result')}
               className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
                 activeTab === 'result'
                   ? 'border-blue-500 text-blue-600'
@@ -356,7 +371,7 @@ export function ArtifactPane({
           <div className="flex border-b border-gray-200">
             {toolResult.queries && toolResult.queries.length > 0 && (
               <button
-                onClick={() => setActiveTab('query')}
+                onClick={() => handleTabChange('query')}
                 className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'query'
                     ? 'border-blue-500 text-blue-600'
@@ -367,7 +382,7 @@ export function ArtifactPane({
               </button>
             )}
             <button
-              onClick={() => setActiveTab('result')}
+              onClick={() => handleTabChange('result')}
               className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
                 activeTab === 'result'
                   ? 'border-blue-500 text-blue-600'

@@ -26,6 +26,16 @@ export function FieldDetailPane() {
     error: fieldsError,
   } = useOpportunityFields();
 
+  // Clear salesforceFieldName when error occurs to prevent stale data
+  useEffect(() => {
+    if (fieldsError && editingFieldType === "salesforce") {
+      setFormData((prev) => ({
+        ...prev,
+        salesforceFieldName: "",
+      }));
+    }
+  }, [fieldsError, editingFieldType]);
+
   // Find the field being editing based on type
   const salesforceField =
     editingFieldType === "salesforce" && editingFieldId
@@ -161,6 +171,38 @@ export function FieldDetailPane() {
     }));
   };
 
+  /**
+   * Get user-friendly error message based on error type
+   */
+  const getSalesforceErrorMessage = (error: Error): string => {
+    const message = error.message.toLowerCase();
+    if (message.includes("not found") || message.includes("404")) {
+      return "Salesforce integration not connected.";
+    }
+    if (
+      message.includes("not authenticated") ||
+      message.includes("401") ||
+      message.includes("403") ||
+      message.includes("unauthorized")
+    ) {
+      return "Salesforce integration needs reconnection.";
+    }
+    if (
+      message.includes("timeout") ||
+      message.includes("503") ||
+      message.includes("service unavailable")
+    ) {
+      return "Salesforce is temporarily unavailable. Please try again.";
+    }
+    if (message.includes("500") || message.includes("internal server")) {
+      return "Salesforce server error. Please try again later.";
+    }
+    if (message.includes("network") || message.includes("fetch")) {
+      return "Network error. Please check your connection.";
+    }
+    return "Failed to load Salesforce fields.";
+  };
+
   const isPanelOpen = editingFieldId || isCreatingNewVonIQField;
 
   return (
@@ -238,13 +280,7 @@ export function FieldDetailPane() {
                   {fieldsError && (
                     <div className="p-3 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-sm text-amber-800">
-                        {fieldsError.message.includes("not found") ||
-                        fieldsError.message.includes("404")
-                          ? "Salesforce integration not connected."
-                          : fieldsError.message.includes("not authenticated") ||
-                              fieldsError.message.includes("401")
-                            ? "Salesforce integration needs reconnection."
-                            : "Failed to load Salesforce fields."}
+                        {getSalesforceErrorMessage(fieldsError)}
                       </p>
                       <a
                         href="/settings?tab=integrations"

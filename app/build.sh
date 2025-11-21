@@ -9,10 +9,19 @@ echo "=== Environment Variables from App Runner ==="
 printenv | grep VITE_ || echo "No VITE_ variables found"
 echo "NODE_ENV=$NODE_ENV"
 
+# Fetch secrets from AWS SSM Parameter Store
+echo "=== Fetching secrets from AWS SSM Parameter Store ==="
+SCALEKIT_CLIENT_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/scalekit/client-id" --region us-west-2 --query 'Parameter.Value' --output text)
+LAUNCHDARKLY_CLIENT_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/launchdarkly/client-side-id" --region us-west-2 --query 'Parameter.Value' --output text)
+
+echo "Fetched SCALEKIT_CLIENT_ID: ${SCALEKIT_CLIENT_ID:0:10}..."
+echo "Fetched LAUNCHDARKLY_CLIENT_ID: ${LAUNCHDARKLY_CLIENT_ID:0:10}..."
+
 # Create .env file from environment variables set by App Runner
 echo "=== Creating .env file at workspace root ==="
 cat > .env << EOF
-VITE_SCALEKIT_CLIENT_ID=prd_skc_89676802255028999
+VITE_SCALEKIT_CLIENT_ID=${SCALEKIT_CLIENT_ID}
+VITE_LAUNCHDARKLY_CLIENT_ID=${LAUNCHDARKLY_CLIENT_ID}
 VITE_SCALEKIT_AUTH_BASE_URL=https://auth.vonlabs.ai
 VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize
 VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token
