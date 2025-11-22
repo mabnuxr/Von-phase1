@@ -29,7 +29,7 @@ export interface Field {
   salesforceFieldName: string; // e.g., "Amount", "Competition__c"
 }
 
-// VonIQ Field (fetched from backend)
+// Von Field (fetched from backend)
 export interface VonIQField {
   id: string;
   name: string;
@@ -57,7 +57,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-competitor",
     name: "von_iq_competitor",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Competitor",
+    sourceFieldDisplayName: "Competitor",
     sourceFieldDescription:
       "Identifies which competitor (if any) the customer mentioned when comparing solutions.",
     sourceFieldDataType: "Picklist",
@@ -68,7 +68,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-how-is-competitor-viewed",
     name: "von_iq_how_is_the_competitor_viewed",
     type: "string",
-    sourceFieldDisplayName: "VonIQ How Is The Competitor Viewed",
+    sourceFieldDisplayName: "How Is The Competitor Viewed",
     sourceFieldDescription:
       "Describes how the customer perceives the competitor relative to your solution.",
     sourceFieldDataType: "Picklist",
@@ -84,7 +84,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-buyer-stage",
     name: "von_iq_buyer_stage",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Buyer Stage",
+    sourceFieldDisplayName: "Buyer Stage",
     sourceFieldDescription:
       "Indicates where the customer is in their buying journey from unaware to decision-ready.",
     sourceFieldDataType: "Picklist",
@@ -101,7 +101,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-severity-of-pain",
     name: "von_iq_severity_of_pain",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Severity Of Pain",
+    sourceFieldDisplayName: "Severity Of Pain",
     sourceFieldDescription:
       "Reflects how severe or urgent the customer's problem or pain point is.",
     sourceFieldDataType: "Picklist",
@@ -116,7 +116,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-budget-confirmed",
     name: "von_iq_budget_confirmed",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Budget Confirmed",
+    sourceFieldDisplayName: "Budget Confirmed",
     sourceFieldDescription:
       "Shows whether a budget for this project has been confirmed or allocated.",
     sourceFieldDataType: "Picklist",
@@ -132,7 +132,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-decisionmaking-authority",
     name: "von_iq_decisionmaking_authority",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Decisionmaking Authority",
+    sourceFieldDisplayName: "Decisionmaking Authority",
     sourceFieldDescription:
       "Indicates whether contact has been made with individuals who can make or influence the purchase decision.",
     sourceFieldDataType: "Picklist",
@@ -147,7 +147,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-champion-identified",
     name: "von_iq_champion_identified",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Champion Identified",
+    sourceFieldDisplayName: "Champion Identified",
     sourceFieldDescription:
       "Assesses if an internal advocate or champion has been identified within the prospect's organization.",
     sourceFieldDataType: "Picklist",
@@ -162,7 +162,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-economic-buyer",
     name: "von_iq_economic_buyer",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Economic Buyer",
+    sourceFieldDisplayName: "Economic Buyer",
     sourceFieldDescription:
       "Evaluates the relationship and engagement level with the person controlling budget approval.",
     sourceFieldDataType: "Picklist",
@@ -173,7 +173,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-decision-maker",
     name: "von_iq_decision_maker",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Decision Maker",
+    sourceFieldDisplayName: "Decision Maker",
     sourceFieldDescription:
       "Evaluates the relationship and engagement level with the final decision-maker.",
     sourceFieldDataType: "Picklist",
@@ -184,7 +184,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-decision-making-process",
     name: "von_iq_decision_making_process",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Decision Making Process",
+    sourceFieldDisplayName: "Decision Making Process",
     sourceFieldDescription:
       "Captures how well the seller understands and has documented the customer's internal decision-making process.",
     sourceFieldDataType: "Picklist",
@@ -200,7 +200,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-stakeholder-turnover",
     name: "von_iq_stakeholder_turnover",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Stakeholder Turnover",
+    sourceFieldDisplayName: "Stakeholder Turnover",
     sourceFieldDescription:
       "Flags whether key stakeholders have changed during the deal, potentially causing delays.",
     sourceFieldDataType: "Picklist",
@@ -211,7 +211,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-timeline-urgency",
     name: "von_iq_timeline_urgency",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Timeline Urgency",
+    sourceFieldDisplayName: "Timeline Urgency",
     sourceFieldDescription:
       "Indicates how clearly the customer has communicated their timeline or urgency.",
     sourceFieldDataType: "Picklist",
@@ -226,7 +226,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-stated-priority-level",
     name: "von_iq_stated_priority_level",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Stated Priority Level",
+    sourceFieldDisplayName: "Stated Priority Level",
     sourceFieldDescription:
       "Reflects how important or urgent the initiative is within the customer's organization.",
     sourceFieldDataType: "Picklist",
@@ -243,7 +243,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
     id: "voniq-next-step-scheduled",
     name: "von_iq_next_step_scheduled",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Next Step Scheduled",
+    sourceFieldDisplayName: "Next Step Scheduled",
     sourceFieldDescription:
       "Shows whether the next step in the sales process is clearly defined, unclear, or missing.",
     sourceFieldDataType: "Picklist",
@@ -262,7 +262,7 @@ Examples:
     id: "voniq-customer-ghosting",
     name: "von_iq_customer_ghosting",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Customer Ghosting",
+    sourceFieldDisplayName: "Customer Ghosting",
     sourceFieldDescription:
       "Describes how responsive the customer has been to the seller's outreach.",
     sourceFieldDataType: "Picklist",
@@ -285,7 +285,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
     id: "voniq-internal-leadership-involvement",
     name: "von_iq_internal_leadership_involvement",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Internal Leadership Involvement",
+    sourceFieldDisplayName: "Internal Leadership Involvement",
     sourceFieldDescription:
       "Indicates whether and at what level internal leadership has been involved in the deal.",
     sourceFieldDataType: "Picklist",
@@ -301,7 +301,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
     id: "voniq-how-did-seller-followup",
     name: "von_iq_how_did_our_seller_followup",
     type: "string",
-    sourceFieldDisplayName: "VonIQ How Did Our Seller Followup",
+    sourceFieldDisplayName: "How Did Our Seller Followup",
     sourceFieldDescription:
       "Evaluates how proactive and consistent the seller's follow-up efforts have been.",
     sourceFieldDataType: "Picklist",
@@ -316,7 +316,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
     id: "voniq-opportunity-qualification-depth",
     name: "von_iq_opportunity_qualification_depth",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Opportunity Qualification Depth",
+    sourceFieldDisplayName: "Opportunity Qualification Depth",
     sourceFieldDescription:
       "Measures how thoroughly the seller has qualified the opportunity across key MEDDICC areas.",
     sourceFieldDataType: "Picklist",
@@ -331,7 +331,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
     id: "voniq-summary",
     name: "von_iq_summary",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Summary",
+    sourceFieldDisplayName: "Summary",
     sourceFieldDescription:
       "Narrative summary of the overall deal context, capturing key business needs, buyer motivations, progress, and outstanding issues discussed across calls and emails.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -401,7 +401,7 @@ Create a comprehensive narrative summary that tells the complete story of this d
     id: "voniq-risk",
     name: "von_iq_risk",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Risk",
+    sourceFieldDisplayName: "Risk",
     sourceFieldDescription:
       "Consolidated list of major risks or blockers to the deal's success, each paired with supporting evidence and recommended next actions.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -528,7 +528,7 @@ Remember: Your job is to help sales teams WIN DEALS by identifying what could go
     id: "voniq-stakeholders",
     name: "von_iq_stakeholders",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Stakeholders",
+    sourceFieldDisplayName: "Stakeholders",
     sourceFieldDescription:
       "Structured profile of all key buyer-side contacts, detailing their roles, influence levels, stances, engagement history, and relationships.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -640,7 +640,7 @@ Create a comprehensive stakeholder map. Document every significant person involv
     id: "voniq-timeline",
     name: "von_iq_timeline",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Timeline",
+    sourceFieldDisplayName: "Timeline",
     sourceFieldDescription:
       "Chronological summary of deal milestones, meetings, and communication threads showing progression and timing of key events.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -754,7 +754,7 @@ Create a chronological timeline of significant interactions. Each entry should c
     id: "voniq-pain-why-anything-why-now",
     name: "von_iq_pain_why_anything_why_now",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Pain Why Anything Why Now",
+    sourceFieldDisplayName: "Pain Why Anything Why Now",
     sourceFieldDescription:
       'Analysis of the customer\'s core business pains, urgency drivers, and reasons for change, emphasizing "why anything" and "why now."',
     sourceFieldDataType: "LONG TEXT AREA",
@@ -915,7 +915,7 @@ Don't confuse what customer says about urgency with what their behavior demonstr
     id: "voniq-decision-criteria-and-process",
     name: "von_iq_decision_criteria_and_process",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Decision Criteria And Process",
+    sourceFieldDisplayName: "Decision Criteria And Process",
     sourceFieldDescription:
       "Documentation of how the buyer will decide — their formal evaluation criteria, approval steps, key stakeholders, and decision timeline.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -1102,7 +1102,7 @@ If you don't know something important about their decision process, explicitly n
     id: "voniq-competition-why-us",
     name: "von_iq_competition_why_us",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Competition Why Us",
+    sourceFieldDisplayName: "Competition Why Us",
     sourceFieldDescription:
       "Assessment of competitive landscape, summarizing rival vendors, customer perceptions, and reasons the prospect prefers or may choose your solution.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -1303,7 +1303,7 @@ Start with competitive summary (2-3 sentences on landscape), then details on eac
     id: "voniq-next-steps",
     name: "von_iq_next_steps",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Next Steps",
+    sourceFieldDisplayName: "Next Steps",
     sourceFieldDescription:
       "Enumerated list of agreed upcoming actions, owners, deadlines, and dependencies required to advance the deal toward close.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -1429,7 +1429,7 @@ RISKS TO MANAGE: ⚠️ Competitor X still in play - they're cheaper. Need to re
     id: "voniq-momentum",
     name: "von_iq_momentum",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Momentum",
+    sourceFieldDisplayName: "Momentum",
     sourceFieldDescription:
       "Evaluation of overall deal velocity and direction, highlighting engagement trends, stakeholder alignment, and whether momentum is increasing or stalling.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -1737,7 +1737,7 @@ Don't just say "momentum is good" - cite specific evidence, behaviors, and timel
     id: "voniq-open-action-items",
     name: "von_iq_open_action_items",
     type: "string",
-    sourceFieldDisplayName: "VonIQ Open Action Items",
+    sourceFieldDisplayName: "Open Action Items",
     sourceFieldDescription:
       "Current outstanding tasks for both seller and buyer teams, each with responsible owner, priority level, and completion status.",
     sourceFieldDataType: "LONG TEXT AREA",
@@ -1965,7 +1965,7 @@ Provide a scannable list organized by priority, with critical blockers at the to
     id: "voniq-is-available",
     name: "von_iq_is_available",
     type: "boolean",
-    sourceFieldDisplayName: "VonIQ Is Available",
+    sourceFieldDisplayName: "Is Available",
     sourceFieldDescription: "Indicates if we have VonIQ data available",
     sourceFieldDataType: "Checkbox",
     isCustom: false,

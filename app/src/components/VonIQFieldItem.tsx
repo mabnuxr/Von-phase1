@@ -1,6 +1,6 @@
 import usePreferencesStore from "../store/preferencesStore";
 import type { VonIQField } from "../store/preferencesStore";
-import { EyeIcon } from "./icons";
+import { EyeIcon, EditIcon } from "./icons";
 
 interface VonIQFieldItemProps {
   field: VonIQField;
@@ -16,7 +16,10 @@ export function VonIQFieldItem({ field, isUserDefined }: VonIQFieldItemProps) {
   };
 
   return (
-    <div className="p-2 rounded-lg border border-gray-200 bg-gray-50 transition-all duration-200 hover:border-gray-400">
+    <div
+      className="p-2 rounded-lg border border-gray-200 bg-gray-50 transition-all duration-200 hover:border-gray-400 cursor-pointer"
+      onClick={handleViewDetails}
+    >
       <div className="w-full px-4 py-2.5 flex items-center gap-3">
         {/* Field Info */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
@@ -30,14 +33,17 @@ export function VonIQFieldItem({ field, isUserDefined }: VonIQFieldItemProps) {
           )}
         </div>
 
-        {/* Eye Icon - View details button */}
-        <button
-          onClick={handleViewDetails}
-          className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors duration-200 hover:cursor-pointer"
+        {/* Icon - Integrated (not clickable separately) */}
+        <span
+          className="text-gray-400"
           title={isUserDefined ? "Edit field" : "View field"}
         >
-          <EyeIcon className="size-4" />
-        </button>
+          {isUserDefined ? (
+            <EditIcon className="size-4" />
+          ) : (
+            <EyeIcon className="size-4" />
+          )}
+        </span>
       </div>
     </div>
   );

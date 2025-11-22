@@ -38,6 +38,9 @@ export type { InputProps } from './Input';
 export { MultiSelect } from './MultiSelect';
 export type { MultiSelectProps, MultiSelectOption } from './MultiSelect';
 
+export { SingleSelect } from './SingleSelect';
+export type { SingleSelectProps, SingleSelectOption } from './SingleSelect';
+
 export { RadioButton } from './RadioButton';
 export type { RadioButtonProps } from './RadioButton';
 
