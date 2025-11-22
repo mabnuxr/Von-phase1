@@ -1,0 +1,17 @@
+node_modules
+app/node_modules
+design-components/node_modules
+app/dist
+design-components/dist
+.git
+.github
+*.log
+.env
+.env.local
+.env.*
+.DS_Store
+.vscode
+coverage
+tmp
+*.md
+!README.md

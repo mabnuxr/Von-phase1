@@ -1,0 +1,76 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'design-components/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-ecr.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 814314855241.dkr.ecr.us-west-2.amazonaws.com
+  ECR_REPOSITORY: revenue-os-frontend
+  IAM_ROLE_ARN: arn:aws:iam::814314855241:role/vonlabs-prod-github-actions-backend
+
+jobs:
+  build-and-push:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch secrets from SSM
+        id: ssm
+        run: |
+          echo "VITE_SCALEKIT_CLIENT_ID=$(aws ssm get-parameter --name /revenue-os/prod/scalekit/client-id --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_SCALEKIT_ENVIRONMENT_URL=$(aws ssm get-parameter --name /revenue-os/prod/scalekit/environment-url --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_LAUNCHDARKLY_CLIENT_ID=$(aws ssm get-parameter --name /revenue-os/prod/launchdarkly/client-side-id --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_PUSHER_KEY=$(aws ssm get-parameter --name /revenue-os/prod/pusher/key --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_PUSHER_CLUSTER=$(aws ssm get-parameter --name /revenue-os/prod/pusher/cluster --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        run: |
+          docker build \
+            --build-arg VITE_SCALEKIT_CLIENT_ID=${{ env.VITE_SCALEKIT_CLIENT_ID }} \
+            --build-arg VITE_SCALEKIT_ENVIRONMENT_URL=${{ env.VITE_SCALEKIT_ENVIRONMENT_URL }} \
+            --build-arg VITE_LAUNCHDARKLY_CLIENT_ID=${{ env.VITE_LAUNCHDARKLY_CLIENT_ID }} \
+            --build-arg VITE_PUSHER_KEY=${{ env.VITE_PUSHER_KEY }} \
+            --build-arg VITE_PUSHER_CLUSTER=${{ env.VITE_PUSHER_CLUSTER }} \
+            --build-arg VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize \
+            --build-arg VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token \
+            --build-arg VITE_SCALEKIT_AUTH_LOGOUT_PATH= \
+            --build-arg VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback \
+            --build-arg VITE_API_BASE_URL=https://apiv2.vonlabs.ai \
+            --build-arg VITE_PUSHER_AUTH_ENDPOINT=https://apiv2.vonlabs.ai/api/v1/pusher/auth \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:production \
+            -f app/Dockerfile .
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:production
+
+      - name: Output image URI
+        run: |
+          echo "### Docker Image Published 🐳" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** ${{ github.sha }}, production" >> $GITHUB_STEP_SUMMARY

@@ -1,8 +1,2 @@
-#!/bin/bash
-set -e
-
-# Navigate to workspace root
-cd ..
-
-# Start preview server
-npm run preview --workspace=app
+#!/bin/sh
+cd /app/app && npx vite --host 0.0.0.0
