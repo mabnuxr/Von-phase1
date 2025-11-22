@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { asyncWithLDProvider } from "launchdarkly-react-client-sdk";
+import { getUserContextFromToken } from "../lib/auth";
 
 interface LaunchDarklyProviderProps {
   children: ReactNode;
@@ -32,19 +33,21 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
       }
 
       try {
-        // Get user and tenant context from localStorage
-        const userId = localStorage.getItem("user_id") || "anonymous";
-        const tenantId = localStorage.getItem("tenant_id");
+        // Get user and tenant context by decoding JWT token
+        const userContext = getUserContextFromToken();
+        const userId = userContext?.userId || "anonymous";
+        const tenantId = userContext?.tenantId || null;
 
         // Build multi-context for LaunchDarkly
+        // Note: Using capital Tenant and User to match LaunchDarkly segment configuration
         const context = tenantId
           ? {
               kind: "multi",
-              user: {
-                key: userId,
-              },
-              tenant: {
+              Tenant: {
                 key: tenantId,
+              },
+              User: {
+                key: userId,
               },
             }
           : {

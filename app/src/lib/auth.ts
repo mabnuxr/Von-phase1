@@ -96,3 +96,56 @@ export function logCurrentToken(context: string) {
     }
   }
 }
+
+/**
+ * Decode JWT token payload without verification
+ * Note: This only decodes the payload, it does NOT verify the signature
+ */
+function decodeJWT(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = atob(parts[1]);
+    return JSON.parse(payload);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("[Auth] Failed to decode JWT:", error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Get user context (user_id and tenant_id) from the current access token
+ * Returns null if no token or decoding fails
+ */
+export function getUserContextFromToken(): {
+  userId: string;
+  tenantId: string | null;
+} | null {
+  const token = getAccessToken();
+  if (!token) return null;
+
+  const payload = decodeJWT(token);
+  if (!payload) return null;
+
+  if (import.meta.env.DEV) {
+    console.log("[Auth] JWT payload:", payload);
+  }
+
+  // Try common JWT claim names
+  const userId = (payload.sub as string) || (payload.user_id as string);
+  const tenantId =
+    (payload.xoid as string | undefined) ||
+    (payload.oid as string | undefined) ||
+    (payload.tenant_id as string | undefined) ||
+    (payload.org_id as string | undefined) ||
+    (payload.organization_id as string | undefined);
+
+  if (!userId) return null;
+
+  return {
+    userId,
+    tenantId: tenantId || null,
+  };
+}

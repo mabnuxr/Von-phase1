@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   MultiSelect,
   type MultiSelectOption,
+  SingleSelect,
   Banner,
 } from "@vonlabs/design-components";
 import usePreferencesStore from "../../store/preferencesStore";
@@ -10,7 +11,6 @@ import type {
   CustomerStage,
   ProcessConfigurationSettings,
 } from "../../store/preferencesStore";
-import { ChevronDownIcon } from "../icons";
 import { useUpdatePreferences } from "../../hooks/usePreferences";
 import { useOpportunityStages } from "../../hooks/useSalesforceStages";
 
@@ -187,14 +187,7 @@ export function ProcessConfigurationTab() {
           {/* Business Stages Section */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
-              What stage is qualified opportunity. What stages do you use and
-              for which business line (including renewals)
-              <span
-                className="inline-flex items-center justify-center size-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Select the stages that qualify as opportunities in your business process"
-              >
-                ?
-              </span>
+              Choose your business and customer stages
             </label>
 
             {/* Business Stages Multi-Select */}
@@ -295,13 +288,7 @@ export function ProcessConfigurationTab() {
           {/* Churn Signal Field */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
-              How do you signify churn in Salesforce
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Describe how churn is identified in your Salesforce instance"
-              >
-                ?
-              </span>
+              How do you signify churn in Salesforce?
             </label>
             <textarea
               value={formData.churnSignalField}
@@ -321,13 +308,7 @@ export function ProcessConfigurationTab() {
           {/* Renewal Detection Field */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
-              How do we tell what is a renewal opportunity
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Describe how renewal opportunities are identified"
-              >
-                ?
-              </span>
+              How do you mark a renewal opportunity?
             </label>
             <textarea
               value={formData.renewalDetectionField}
@@ -348,12 +329,6 @@ export function ProcessConfigurationTab() {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
               How do you tell who is a customer?
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Describe how customers are identified in your system"
-              >
-                ?
-              </span>
             </label>
             <textarea
               value={formData.customerIdentificationField}
@@ -374,58 +349,21 @@ export function ProcessConfigurationTab() {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
               What is your sales quarter?
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Select whether you use fiscal or calendar quarters"
-              >
-                ?
-              </span>
             </label>
-            <div className="relative">
-              <select
-                value={formData.salesQuarter}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    salesQuarter: e.target.value as "Fiscal" | "Calendar",
-                  }))
-                }
-                className="w-full px-3 py-2 pr-10 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent bg-white transition-all duration-200 cursor-pointer appearance-none hover:border-gray-300"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-                }}
-              >
-                <option value="Fiscal">Fiscal</option>
-                <option value="Calendar">Calendar</option>
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <ChevronDownIcon className="size-4 text-gray-600" />
-              </div>
-            </div>
-          </div>
-
-          {/* Keywords */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
-              Keywords
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Enter comma-separated keywords for your business"
-              >
-                ?
-              </span>
-            </label>
-            <textarea
-              value={formData.keywords}
-              onChange={(e) => handleFieldChange("keywords", e.target.value)}
-              placeholder="Type comma separated keywords"
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
-              style={{
-                fontFamily:
-                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-              }}
-              rows={3}
+            <SingleSelect
+              value={formData.salesQuarter}
+              onChange={(value: string) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  salesQuarter: value as "Fiscal" | "Calendar",
+                }))
+              }
+              options={[
+                { value: "Fiscal", label: "Fiscal" },
+                { value: "Calendar", label: "Calendar" },
+              ]}
+              fullWidth
+              showSearch={false}
             />
           </div>
 
@@ -433,12 +371,6 @@ export function ProcessConfigurationTab() {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
               Business process
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Describe your business process and best practices"
-              >
-                ?
-              </span>
             </label>
             <textarea
               value={formData.businessProcess}
@@ -459,12 +391,6 @@ export function ProcessConfigurationTab() {
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
               Tell us more about your company
-              <span
-                className="inline-flex items-center justify-center w-4 h-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
-                title="Provide additional context about your company"
-              >
-                ?
-              </span>
             </label>
             <textarea
               value={formData.companyDescription}
@@ -472,6 +398,24 @@ export function ProcessConfigurationTab() {
                 handleFieldChange("companyDescription", e.target.value)
               }
               placeholder="Tell us more about your company"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              }}
+              rows={3}
+            />
+          </div>
+
+          {/* Keywords */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+              Keywords
+            </label>
+            <textarea
+              value={formData.keywords}
+              onChange={(e) => handleFieldChange("keywords", e.target.value)}
+              placeholder="Type comma separated keywords"
               className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent resize-none transition-all duration-200 bg-white hover:border-gray-300"
               style={{
                 fontFamily:

@@ -3,7 +3,7 @@ import usePreferencesStore, {
   DEFAULT_VONIQ_FIELDS,
 } from "../store/preferencesStore";
 import type { Field, VonIQField } from "../store/preferencesStore";
-import { Banner } from "@vonlabs/design-components";
+import { Banner, SingleSelect } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import { useOpportunityFields } from "../hooks/useSalesforceOpportunityFields";
 
@@ -367,26 +367,26 @@ export function FieldDetailPane() {
                         placeholder="Connect Salesforce to load fields"
                       />
                     ) : (
-                      <select
+                      <SingleSelect
                         value={
                           (formData as Partial<Field>).salesforceFieldName || ""
                         }
-                        onChange={(e) =>
-                          handleChange("salesforceFieldName", e.target.value)
+                        onChange={(value: string) =>
+                          handleChange("salesforceFieldName", value)
                         }
-                        className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white transition-all duration-200"
-                      >
-                        <option value="">Select a field...</option>
-                        {opportunityFields?.map((fieldName) => (
-                          <option key={fieldName} value={fieldName}>
-                            {fieldName}
-                          </option>
-                        ))}
-                      </select>
+                        options={
+                          opportunityFields?.map((fieldName) => ({
+                            value: fieldName,
+                            label: fieldName,
+                          })) || []
+                        }
+                        placeholder="Select a field..."
+                        fullWidth
+                      />
                     )}
                     <p className="mt-1.5 text-xs text-gray-500">
-                      Select the Salesforce API field name from the Opportunity
-                      object
+                      Select the field name that corresponds to{" "}
+                      {(field as Field)?.name} from the Opportunity object.{" "}
                     </p>
                   </div>
                 </>
@@ -462,24 +462,25 @@ export function FieldDetailPane() {
                     <label className="block text-sm font-medium text-gray-900 mb-1.5">
                       Data Type
                     </label>
-                    <select
+                    <SingleSelect
                       value={
                         (formData as Partial<VonIQField>).sourceFieldDataType ||
                         "Text"
                       }
-                      onChange={(e) =>
-                        handleChange("sourceFieldDataType", e.target.value)
+                      onChange={(value: string) =>
+                        handleChange("sourceFieldDataType", value)
                       }
                       disabled={isDefaultVonIQField}
-                      className={`w-full px-3 py-2 text-sm ${isDefaultVonIQField ? "text-gray-600 bg-gray-50 cursor-not-allowed" : "text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent"} border border-gray-300 rounded-lg transition-all duration-200`}
-                    >
-                      <option value="Text">Text</option>
-                      <option value="Picklist">Picklist</option>
-                      <option value="LONG TEXT AREA">Long Text Area</option>
-                      <option value="Checkbox">Checkbox</option>
-                      <option value="Number">Number</option>
-                      <option value="Date">Date</option>
-                    </select>
+                      options={[
+                        { value: "Text", label: "Text" },
+                        { value: "Picklist", label: "Picklist" },
+                        { value: "LONG TEXT AREA", label: "Long Text Area" },
+                        { value: "Checkbox", label: "Checkbox" },
+                        { value: "Number", label: "Number" },
+                        { value: "Date", label: "Date" },
+                      ]}
+                      fullWidth
+                    />
                   </div>
 
                   {/* Prompt - Only show if prompt exists */}
