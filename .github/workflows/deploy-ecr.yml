@@ -39,7 +39,7 @@ jobs:
         id: ssm
         run: |
           echo "VITE_SCALEKIT_CLIENT_ID=$(aws ssm get-parameter --name /revenue-os/prod/scalekit/client-id --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
-          echo "VITE_SCALEKIT_ENVIRONMENT_URL=$(aws ssm get-parameter --name /revenue-os/prod/scalekit/environment-url --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_SCALEKIT_AUTH_BASE_URL=$(aws ssm get-parameter --name /revenue-os/prod/scalekit/environment-url --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_LAUNCHDARKLY_CLIENT_ID=$(aws ssm get-parameter --name /revenue-os/prod/launchdarkly/client-side-id --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_PUSHER_KEY=$(aws ssm get-parameter --name /revenue-os/prod/pusher/key --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_PUSHER_CLUSTER=$(aws ssm get-parameter --name /revenue-os/prod/pusher/cluster --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
@@ -52,7 +52,7 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_SCALEKIT_CLIENT_ID=${{ env.VITE_SCALEKIT_CLIENT_ID }} \
-            --build-arg VITE_SCALEKIT_ENVIRONMENT_URL=${{ env.VITE_SCALEKIT_ENVIRONMENT_URL }} \
+            --build-arg VITE_SCALEKIT_AUTH_BASE_URL=${{ env.VITE_SCALEKIT_AUTH_BASE_URL }} \
             --build-arg VITE_LAUNCHDARKLY_CLIENT_ID=${{ env.VITE_LAUNCHDARKLY_CLIENT_ID }} \
             --build-arg VITE_PUSHER_KEY=${{ env.VITE_PUSHER_KEY }} \
             --build-arg VITE_PUSHER_CLUSTER=${{ env.VITE_PUSHER_CLUSTER }} \
