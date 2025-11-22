@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: revenue-os-frontend-app
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/app/node_modules
+      - /app/design-components/node_modules
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    command: sh -c "npm run build:design && sh app/start.sh"
+
+  storybook:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: revenue-os-frontend-storybook
+    ports:
+      - "6006:6006"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/app/node_modules
+      - /app/design-components/node_modules
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    command: sh -c "npm run build:design && sh design-components/start.sh"
+
+networks:
+  default:
+    name: revenue-os-network-frontend

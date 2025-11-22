@@ -1,8 +1,2 @@
-#!/bin/bash
-set -e
-
-# Navigate to workspace root
-cd ..
-
-# Serve Storybook
-npx serve design-components/storybook-static
+#!/bin/sh
+cd /app/design-components && npx storybook dev -p 6006 --host 0.0.0.0
