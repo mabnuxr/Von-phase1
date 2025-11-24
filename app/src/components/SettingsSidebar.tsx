@@ -150,7 +150,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           )}
 
         {/* Team Section */}
-        {/* {settingsItems?.team && settingsItems.team.length > 0 && (
+        {settingsItems?.team && settingsItems.team.length > 0 && (
           <div>
             <h3 className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               Team
@@ -187,7 +187,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               })}
             </div>
           </div>
-        )} */}
+        )}
       </div>
     </div>
   );

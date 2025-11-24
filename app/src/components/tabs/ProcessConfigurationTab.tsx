@@ -147,9 +147,8 @@ export function ProcessConfigurationTab() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Form Content - Scrollable */}
-      <div className="flex-1 overflow-y-scroll px-6">
-        {/* Heading with separator */}
+      {/* Heading - Fixed */}
+      <div className="px-6">
         <div className="pt-6 pb-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
             Process Configuration
@@ -158,7 +157,10 @@ export function ProcessConfigurationTab() {
             Configure your business processes and sales methodology
           </p>
         </div>
+      </div>
 
+      {/* Form Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto settings-scrollbar px-6">
         <div className="py-6 space-y-6">
           {/* Success Banner */}
           {showSuccess && (

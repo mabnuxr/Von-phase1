@@ -1,0 +1,428 @@
+import { useState, useMemo, useRef, useEffect } from "react";
+import { SearchIcon, MoreVerticalIcon, TrashIcon } from "../icons";
+import { useTeamMembers, useRemoveTeamMember } from "../../hooks/useTeam";
+import { useUser } from "../../hooks/useUser";
+import usePreferencesStore from "../../store/preferencesStore";
+import { Banner } from "@vonlabs/design-components";
+
+export function ManageUsersTab() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    userId: string;
+    userName: string;
+  } | null>(null);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Get current user for tenant context
+  const { user } = useUser();
+  const activeTenant = user?.tenantId as string | undefined;
+
+  // Check if current user is admin
+  const isAdmin = user?.roles?.includes("Admin") ?? false;
+
+  // Fetch team members
+  const { data: teamMembers, isLoading, error } = useTeamMembers(activeTenant);
+
+  // Remove team member mutation
+  const removeMutation = useRemoveTeamMember(activeTenant);
+
+  // Access store to open add team member panel
+  const { setAddingTeamMember } = usePreferencesStore();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuUserId(null);
+      }
+    };
+
+    if (openMenuUserId) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [openMenuUserId]);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!teamMembers) return [];
+
+    if (!searchQuery.trim()) {
+      return teamMembers;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return teamMembers.filter(
+      (user) =>
+        user.firstName.toLowerCase().includes(query) ||
+        user.lastName.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        user.role.toLowerCase().includes(query),
+    );
+  }, [searchQuery, teamMembers]);
+
+  const handleAddTeamMemberClick = () => {
+    setAddingTeamMember(true);
+  };
+
+  const handleDeleteUser = (userId: string, userName: string) => {
+    // Show confirmation modal instead of browser alert
+    setDeleteConfirmation({ userId, userName });
+    setOpenMenuUserId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+
+    try {
+      await removeMutation.mutateAsync(deleteConfirmation.userId);
+      setDeleteConfirmation(null);
+      setShowSuccessBanner(true);
+    } catch (error) {
+      console.error("Failed to remove team member:", error);
+      setDeleteConfirmation(null);
+      // Error is already handled by the mutation's onError callback
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmation(null);
+  };
+
+  const toggleMenu = (userId: string) => {
+    setOpenMenuUserId(openMenuUserId === userId ? null : userId);
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header Section - Fixed */}
+      <div className="px-6 pt-6 border-b border-gray-200 shrink-0">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              {isLoading
+                ? "Loading team members..."
+                : "Add and manage team members"}
+            </p>
+          </div>
+          <div className="flex flex-row-reverse gap-4">
+            {isAdmin && (
+              <button
+                onClick={handleAddTeamMemberClick}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 hover:cursor-pointer transition-colors duration-200 shadow-sm"
+              >
+                Add Team Member
+              </button>
+            )}
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon className="w-4 h-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Name
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Email
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Role
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Joined
+                  </th>
+                  {isAdmin && (
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Action
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {[1, 2, 3].map((i) => (
+                  <tr key={i}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-5 bg-gray-200 rounded-full animate-pulse w-20"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <p className="text-sm text-red-600">
+              Failed to load team members. Please try again.
+            </p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && filteredUsers.length === 0 && (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <p className="text-sm text-gray-500">
+              {searchQuery
+                ? "No users found matching your search"
+                : "No team members yet"}
+            </p>
+          </div>
+        )}
+
+        {/* Data Table */}
+        {!isLoading && !error && filteredUsers.length > 0 && (
+          <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Name
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Email
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Role
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  >
+                    Joined
+                  </th>
+                  {isAdmin && (
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Action
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredUsers.map((member) => (
+                  <tr
+                    key={member.id}
+                    className="hover:bg-gray-50 transition-colors duration-150"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {member.firstName} {member.lastName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-700">
+                        {member.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
+                        {member.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">
+                        {formatDate(member.joinedDate)}
+                      </div>
+                    </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {/* Don't show delete option for current user */}
+                        {member.email !== user?.email && (
+                          <div className="relative">
+                            <button
+                              onClick={() => toggleMenu(member.id)}
+                              className="p-1 rounded-lg hover:bg-gray-200 transition-colors duration-150"
+                              aria-label="Open menu"
+                            >
+                              <MoreVerticalIcon className="w-5 h-5 text-gray-600" />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {openMenuUserId === member.id && (
+                              <div
+                                ref={menuRef}
+                                className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                              >
+                                <button
+                                  onClick={() =>
+                                    handleDeleteUser(
+                                      member.id,
+                                      `${member.firstName} ${member.lastName}`,
+                                    )
+                                  }
+                                  disabled={removeMutation.isPending}
+                                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                  {removeMutation.isPending
+                                    ? "Removing..."
+                                    : "Delete User"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Success Banner */}
+      {showSuccessBanner && (
+        <Banner
+          variant="success"
+          message="Team member removed successfully"
+          autoDismissMs={3000}
+          onClose={() => setShowSuccessBanner(false)}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center"
+            onClick={cancelDelete}
+          >
+            {/* Modal */}
+            <div
+              className="bg-white rounded-xl shadow-elevated p-6 max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                {/* Warning Icon */}
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Remove Team Member
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Are you sure you want to remove{" "}
+                    <span className="font-medium text-gray-900">
+                      {deleteConfirmation.userName}
+                    </span>{" "}
+                    from the team? This action cannot be undone.
+                  </p>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={cancelDelete}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      disabled={removeMutation.isPending}
+                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {removeMutation.isPending ? "Removing..." : "Remove"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

@@ -27,3 +27,7 @@ export { conversationsService } from "./conversationsService";
 // Preferences Service
 export { preferencesService } from "./preferencesService";
 export type { PreferencesData } from "./preferencesService";
+
+// Team Service
+export { teamService } from "./teamService";
+export type { TeamMember, Role, AddTeamMemberRequest } from "./teamService";

@@ -16,8 +16,8 @@ export default function FieldsPanel() {
   return (
     <div className="w-full h-full flex flex-col">
       {/* Fields List */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
-        <div className="space-y-6">
+      <div className="h-full w-full px-6 pb-6">
+        <div className="flex flex-col gap-6 h-full">
           {/* Header Row with Description and Search */}
           <div className="flex flex-row items-baseline justify-between gap-4">
             <div className="mb-4">
@@ -28,7 +28,7 @@ export default function FieldsPanel() {
                 Configure Salesforce object and field mappings for your org.
               </p>
             </div>
-            <div className="relative flex-1 max-w-md">
+            <div className="mt-2 relative flex-1 max-w-md">
               <input
                 type="text"
                 value={searchTerm}
@@ -52,17 +52,19 @@ export default function FieldsPanel() {
             </div>
           </div>
 
-          {/* Fields List */}
-          <div className="space-y-3">
-            {filteredFields.map((field: Field) => (
-              <FieldItem key={field.id} field={field} />
-            ))}
-            {filteredFields.length === 0 && (
-              <div className="text-sm text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
-                No fields found
-                {searchTerm && ` matching "${searchTerm}"`}
-              </div>
-            )}
+          <div className="flex-1 overflow-y-auto settings-scrollbar">
+            {/* Fields List */}
+            <div className="flex-1 space-y-3">
+              {filteredFields.map((field: Field) => (
+                <FieldItem key={field.id} field={field} />
+              ))}
+              {filteredFields.length === 0 && (
+                <div className="text-sm text-gray-500 text-center py-8 border border-dashed border-gray-300 rounded-lg">
+                  No fields found
+                  {searchTerm && ` matching "${searchTerm}"`}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

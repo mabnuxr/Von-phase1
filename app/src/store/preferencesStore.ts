@@ -2124,6 +2124,10 @@ interface PreferencesState {
   configuringIntegrationId: string | null;
   setConfiguringIntegration: (id: string | null) => void;
 
+  // Team management UI state
+  addingTeamMember: boolean;
+  setAddingTeamMember: (adding: boolean) => void;
+
   // Integration configuration data
   integrationConfigs: Record<string, IntegrationConfig>;
   updateIntegrationConfig: (
@@ -2482,6 +2486,10 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   setIntegrationsActiveTab: (tab) => set({ integrationsActiveTab: tab }),
   configuringIntegrationId: null,
   setConfiguringIntegration: (id) => set({ configuringIntegrationId: id }),
+
+  // Team management UI state
+  addingTeamMember: false,
+  setAddingTeamMember: (adding) => set({ addingTeamMember: adding }),
 
   // Integration configuration data
   integrationConfigs: {},

@@ -18,7 +18,9 @@ import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
+import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
+import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
 import { LOGO_URL } from "../config/constants";
@@ -191,6 +193,7 @@ const Settings = () => {
       case "email":
         return <EmailCategorizationTab />;
       case "team":
+        return <ManageUsersTab />;
       default:
         return null;
     }
@@ -200,6 +203,9 @@ const Settings = () => {
     <div className="h-screen bg-[#f5f5f7] flex flex-col">
       {/* Field Detail Pane - Global */}
       <FieldDetailPane />
+
+      {/* Add Team Member Pane - Global */}
+      <AddTeamMemberPane />
 
       {/* TopBar in White Rounded Container - Full Width */}
       <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
