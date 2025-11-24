@@ -130,7 +130,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       `}
     >
       {/* Upper Section - Visual Connection Flow */}
-      <div className="bg-white py-8 px-6 flex items-center justify-center gap-4 border-b border-gray-200">
+      <div className="bg-gray-50 py-8 px-6 flex items-center justify-center gap-4 border-b border-gray-200">
         {/* Integration Logo */}
         <img
           src={integrationLogoPath}

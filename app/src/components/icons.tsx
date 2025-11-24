@@ -516,3 +516,36 @@ export const EyeIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
   </svg>
 ));
 EyeIcon.displayName = "EyeIcon";
+
+// More Vertical Icon (Three dots) - Used for action menus - Memoized
+export const MoreVerticalIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <circle cx="12" cy="12" r="1" fill="currentColor" />
+    <circle cx="12" cy="5" r="1" fill="currentColor" />
+    <circle cx="12" cy="19" r="1" fill="currentColor" />
+  </svg>
+));
+MoreVerticalIcon.displayName = "MoreVerticalIcon";
+
+// Trash Icon - Used for delete actions - Memoized
+export const TrashIcon = memo<IconProps>(({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+TrashIcon.displayName = "TrashIcon";
