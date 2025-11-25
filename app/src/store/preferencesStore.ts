@@ -1,23 +1,11 @@
 import { create } from "zustand";
 import createSelectors from "./createSelectors";
 
-// Business stages as const object
-export const BusinessStage = {
-  PROSPECT: "Prospect",
-  QUALIFIED: "Qualified",
-  TECHNICAL_WIN: "Technical Win",
-} as const;
+// Business stages - dynamic from Salesforce
+export type BusinessStage = string;
 
-export type BusinessStage = (typeof BusinessStage)[keyof typeof BusinessStage];
-
-// Customer stages as const object
-export const CustomerStage = {
-  NEW: "New",
-  INTERNAL_SYNC_COMPLETE: "Internal Sync Complete",
-  ALL_CONTACT_MADE: "All Contact Made",
-} as const;
-
-export type CustomerStage = (typeof CustomerStage)[keyof typeof CustomerStage];
+// Customer stages - dynamic from Salesforce
+export type CustomerStage = string;
 
 // Field configuration (Salesforce fields)
 export interface Field {
