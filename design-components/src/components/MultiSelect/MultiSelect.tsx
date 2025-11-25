@@ -440,7 +440,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                       disabled={isDisabled}
                       onChange={() => {}}
                       style={checkboxStyles}
-                      onClick={(e) => e.stopPropagation()}
+                      readOnly
                     />
                     <span>{option.label}</span>
                   </div>
