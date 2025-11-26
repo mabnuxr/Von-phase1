@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { asyncWithLDProvider } from "launchdarkly-react-client-sdk";
+import Observability from "@launchdarkly/observability";
+import SessionReplay from "@launchdarkly/session-replay";
 import { getUserContextFromToken } from "../lib/auth";
 
 interface LaunchDarklyProviderProps {
@@ -59,8 +61,20 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
           clientSideID,
           context,
           options: {
-            bootstrap: "localStorage", // Cache flags in localStorage
-            streaming: true, // Enable streaming
+            bootstrap: "localStorage",
+            streaming: true,
+            plugins: [
+              new Observability({
+                tracingOrigins: true,
+                networkRecording: {
+                  enabled: true,
+                  recordHeadersAndBody: true,
+                },
+              }),
+              new SessionReplay({
+                privacySetting: "default",
+              }),
+            ],
           },
         });
 
