@@ -155,10 +155,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div style={containerStyles}>
       {/* Left Section */}
-      <div style={leftSectionStyles}>
-        {logoSrc && <img src={logoSrc} alt="Logo" style={logoStyles} onClick={onLogoClick} />}
+      <div style={leftSectionStyles} onClick={onLogoClick}>
+        {logoSrc && <img src={logoSrc} alt="Logo" style={logoStyles} />}
         {logoText && (
-          <span className="text-lg font-semibold text-[#1d1d1f] font-sf">{logoText}</span>
+          <span className="text-lg font-semibold text-[#1d1d1f] font-sf hover:cursor-pointer">
+            {logoText}
+          </span>
         )}
         {showMenu && (
           <button
