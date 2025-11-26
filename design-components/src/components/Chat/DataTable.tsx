@@ -79,6 +79,19 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
     );
   }
 
+  // Objects and Arrays - JSON stringify to avoid [object Object]
+  if (typeof value === 'object') {
+    const jsonStr = JSON.stringify(value);
+    if (jsonStr.length > 100) {
+      return (
+        <span className="text-gray-900 font-mono text-xs" title={jsonStr}>
+          {jsonStr.substring(0, 97)}...
+        </span>
+      );
+    }
+    return <span className="text-gray-900 font-mono text-xs">{jsonStr}</span>;
+  }
+
   // Strings - truncate if very long
   const strValue = String(value);
   if (strValue.length > 100) {

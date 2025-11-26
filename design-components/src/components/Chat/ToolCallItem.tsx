@@ -17,12 +17,45 @@ interface ToolCallItemProps {
 }
 
 /**
+ * Check if a tool call is an agent transfer (delegation) tool.
+ * These tools delegate work to sub-agents and have no meaningful result body.
+ */
+function isTransferTool(toolName: string): boolean {
+  return toolName.startsWith('transfer_to_');
+}
+
+/**
+ * Check if a tool call is a completion tool (returns control to supervisor).
+ */
+function isCompletionTool(toolName: string): boolean {
+  return toolName === 'complete_task';
+}
+
+/**
+ * Get a human-readable display name for transfer tools.
+ * Converts "transfer_to_rag_agent" to "RAG Agent"
+ */
+function getTransferAgentName(toolName: string): string {
+  const agentName = toolName.replace('transfer_to_', '');
+  return agentName
+    .split('_')
+    .map((word) => {
+      if (word.toLowerCase() === 'rag') return 'RAG';
+      if (word.toLowerCase() === 'crm') return 'CRM';
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+}
+
+/**
  * ToolCallItem Component
  *
  * Simple display for tool calls in the thinking block.
  * - No dots, no icons
  * - Shows "Executing query..." while pending, "Query executed" when complete
- * - Blue if clickable (has artifact), red if error
+ * - For transfer tools: Shows "Delegating to X Agent..." / "Delegated to X Agent"
+ * - For completion tools: Shows "Completing task..." / "Task completed"
+ * - Blue if clickable (has artifact), gray for transfer/completion tools, red if error
  * - Shows "(failed)" indicator for errors
  * - Shows truncated error message below if present
  * - Shows incrementing timer during execution with purple shimmer animation
@@ -32,7 +65,12 @@ export function ToolCallItem({
   onArtifactClick,
   isStreaming = false,
 }: ToolCallItemProps) {
-  const hasArtifact = Boolean(toolCall.artifact?.artifact_id);
+  // Check tool type
+  const isTransfer = isTransferTool(toolCall.name);
+  const isCompletion = isCompletionTool(toolCall.name);
+
+  // Transfer and completion tools don't have clickable artifacts
+  const hasArtifact = !isTransfer && !isCompletion && Boolean(toolCall.artifact?.artifact_id);
   const isError = toolCall.status === 'error' || toolCall.artifact?.success === false;
 
   // Timer state
@@ -43,22 +81,28 @@ export function ToolCallItem({
   const prefersReducedMotion =
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Dynamic status text based on metadata presence
-  // Show "Executing query..." until metadata arrives from backend
+  // Dynamic status text based on tool type and metadata presence
   const getDisplayText = () => {
-    // Show "Executing query..." until we have metadata from backend
-    // Metadata = artifact data OR inline result (not just status change)
     const hasMetadata = toolCall.artifact || toolCall.result;
+    const isExecuting = !hasMetadata && toolCall.status !== 'error';
 
-    if (!hasMetadata && toolCall.status !== 'error') {
-      return 'Executing query...';
+    // Transfer tools: "Delegating to X Agent..." / "Delegated to X Agent"
+    if (isTransfer) {
+      const agentName = getTransferAgentName(toolCall.name);
+      return isExecuting ? `Delegating to ${agentName}...` : `Delegated to ${agentName}`;
     }
 
-    return 'Query executed';
+    // Completion tools: "Completing task..." / "Task completed"
+    if (isCompletion) {
+      return isExecuting ? 'Completing task...' : 'Task completed';
+    }
+
+    // Default query tools
+    return isExecuting ? 'Executing query...' : 'Query executed';
   };
 
   const headingText = getDisplayText();
-  const isExecuting = headingText === 'Executing query...';
+  const isExecuting = headingText.endsWith('...');
 
   // Timer effect
   useEffect(() => {
@@ -97,7 +141,15 @@ export function ToolCallItem({
   };
 
   // Determine color based on state
-  const headingColor = isError ? 'text-gray-600' : hasArtifact ? 'text-blue-600' : 'text-gray-900';
+  // Transfer/completion tools are always gray (not clickable)
+  const headingColor =
+    isTransfer || isCompletion
+      ? 'text-gray-600'
+      : isError
+        ? 'text-gray-600'
+        : hasArtifact
+          ? 'text-blue-600'
+          : 'text-gray-900';
 
   const clickableStyle = hasArtifact ? 'cursor-pointer hover:underline' : '';
 
