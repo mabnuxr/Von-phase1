@@ -44,6 +44,7 @@ interface StreamingState {
   stepMessages: Map<string, StepMessage>; // message_id -> StepMessage
   toolCalls: Map<string, ToolCall>; // toolCallId -> ToolCall
   toolCallArgs: Map<string, string>; // toolCallId -> accumulated JSON args
+  processedSequences: Set<number>; // Tracks processed event sequences (for deduplication)
   eventBuffer: AguiEventWrapper[]; // Buffer for out-of-order events
   nextExpectedSequence: number;
 }
@@ -76,6 +77,7 @@ export function useAguiMessageStream(
     stepMessages: new Map(),
     toolCalls: new Map(),
     toolCallArgs: new Map(),
+    processedSequences: new Set(),
     eventBuffer: [],
     nextExpectedSequence: 1,
   });
@@ -319,6 +321,7 @@ export function useAguiMessageStream(
             state.stepMessages.clear();
             state.toolCalls.clear();
             state.toolCallArgs.clear();
+            state.processedSequences.clear();
 
             state.currentRunId = wrapper.run_id;
 
@@ -470,6 +473,21 @@ export function useAguiMessageStream(
           case 'TOOL_CALL_ARGS': {
             const e = event as ToolCallArgsEvent;
 
+            // Deduplicate: skip if this sequence was already processed
+            // This prevents JSON corruption when Redis-cached events are replayed alongside live Pusher events
+            if (state.processedSequences.has(wrapper.sequence)) {
+              break;
+            }
+            state.processedSequences.add(wrapper.sequence);
+
+            // Skip args for already-completed tool calls (prevents corruption on resume)
+            // During resume, mapper generates same tool_call_id (tc_1, tc_2...) which may collide
+            // with original run's IDs. If the tool call already finished, ignore new args.
+            const existingToolCall = state.toolCalls.get(e.tool_call_id);
+            if (existingToolCall && existingToolCall.status !== 'pending') {
+              break;
+            }
+
             // Accumulate JSON args (streaming)
             const currentArgs = state.toolCallArgs.get(e.tool_call_id) || '';
             state.toolCallArgs.set(e.tool_call_id, currentArgs + e.delta);
@@ -479,6 +497,11 @@ export function useAguiMessageStream(
           case 'TOOL_CALL_END': {
             const e = event;
             const toolCall = state.toolCalls.get(e.tool_call_id);
+
+            // Skip if tool call already completed (prevents re-processing on resume)
+            if (toolCall && toolCall.status !== 'pending') {
+              break;
+            }
 
             if (toolCall) {
               // Parse accumulated args
@@ -909,6 +932,7 @@ export function useAguiMessageStream(
       state.stepMessages = new Map();
       state.toolCalls = new Map();
       state.toolCallArgs = new Map();
+      state.processedSequences = new Set();
       state.eventBuffer = [];
       state.nextExpectedSequence = 1;
     };
