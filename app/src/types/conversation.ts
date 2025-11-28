@@ -56,6 +56,8 @@ export interface MessageWithStreaming extends Message {
   isReasoningStreaming?: boolean;
   reasoningContent?: string;
 
+  messageId?: string;
+
   // Status tracking (from backend persistence)
   status?: MessageStatus;
   lastStreamedAt?: string;

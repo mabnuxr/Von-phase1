@@ -82,6 +82,26 @@ export interface ThinkingBlockProps {
    * Helps ensure animations properly reset on refresh
    */
   messageId?: string;
+
+  /**
+   * Callback when user approves a Salesforce CRUD operation
+   */
+  onApprove?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Callback when user rejects a Salesforce CRUD operation
+   */
+  onReject?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Whether approval is being processed (loading state)
+   */
+  isApprovalProcessing?: boolean;
+
+  /**
+   * Run ID of the current streaming session (required for approval resume)
+   */
+  runId?: string;
 }
 
 /**
@@ -105,6 +125,10 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   stepMessages,
   onArtifactClick,
   messageId,
+  onApprove,
+  onReject,
+  isApprovalProcessing = false,
+  runId = '',
 }) => {
   // Stable state: always start expanded when mounted
   const [isExpanded, setIsExpanded] = useState(true);
@@ -255,6 +279,10 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                     stepMessages={stepMessages}
                     isStreaming={isStreaming}
                     onArtifactClick={onArtifactClick}
+                    onApprove={onApprove}
+                    onReject={onReject}
+                    isApprovalProcessing={isApprovalProcessing}
+                    runId={runId}
                   />
                 </div>
               ) : children ? (

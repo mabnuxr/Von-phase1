@@ -24,6 +24,26 @@ export interface ChainOfThoughtTimelineProps {
     artifactType: string,
     runId: string
   ) => void;
+
+  /**
+   * Callback when user approves a Salesforce CRUD operation
+   */
+  onApprove?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Callback when user rejects a Salesforce CRUD operation
+   */
+  onReject?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Whether approval is being processed (loading state)
+   */
+  isApprovalProcessing?: boolean;
+
+  /**
+   * Run ID of the current streaming session (required for approval resume)
+   */
+  runId?: string;
 }
 
 /**
@@ -34,6 +54,10 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
   stepMessages,
   isStreaming = false,
   onArtifactClick,
+  onApprove,
+  onReject,
+  isApprovalProcessing = false,
+  runId = '',
 }) => {
   // Animation variants for staggered reveal
   const containerVariants = {
@@ -129,6 +153,10 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
                         toolCall={toolCall}
                         onArtifactClick={onArtifactClick}
                         isStreaming={isStreaming}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        isApprovalProcessing={isApprovalProcessing}
+                        runId={runId}
                       />
                     ))}
                   </div>

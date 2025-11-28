@@ -154,6 +154,21 @@ export interface ChatMessageProps {
    * Whether the response was stopped by user
    */
   stoppedByUser?: boolean;
+
+  /**
+   * Callback when user approves a Salesforce CRUD operation
+   */
+  onApprove?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Callback when user rejects a Salesforce CRUD operation
+   */
+  onReject?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Run ID of the current streaming session (required for approval resume)
+   */
+  runId?: string;
 }
 
 /**
@@ -174,6 +189,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   messageId,
   useArtifactHook,
   stoppedByUser,
+  onApprove,
+  onReject,
+  runId = '',
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -268,6 +286,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               stepMessages={stepMessages}
                               onArtifactClick={handleArtifactClick}
                               messageId={messageId}
+                              onApprove={onApprove}
+                              onReject={onReject}
+                              runId={runId}
                             />
                           ) : (
                             // After completion: Show intermediate steps in ThinkingBlock + final step outside
@@ -280,6 +301,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                   status={status}
                                   stepMessages={stepMessages.slice(0, -1)}
                                   onArtifactClick={handleArtifactClick}
+                                  onApprove={onApprove}
+                                  onReject={onReject}
+                                  runId={runId}
                                 />
                               )}
 
@@ -310,6 +334,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                             toolCall={toolCall}
                                             onArtifactClick={handleArtifactClick}
                                             isStreaming={false}
+                                            onApprove={onApprove}
+                                            onReject={onReject}
+                                            runId={runId}
                                           />
                                         ))}
                                       </div>

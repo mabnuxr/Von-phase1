@@ -401,6 +401,11 @@ export function useAguiMessageStream(
           case 'TOOL_CALL_START': {
             const e = event as ToolCallStartEvent;
 
+            // Deduplicate: skip if tool call already exists (handles resume replays)
+            if (state.toolCalls.has(e.tool_call_id)) {
+              break;
+            }
+
             // Create tool call object
             const toolCall: ToolCall = {
               id: e.tool_call_id,
@@ -438,7 +443,11 @@ export function useAguiMessageStream(
               if (!parentStep.toolCalls) {
                 parentStep.toolCalls = [];
               }
-              parentStep.toolCalls.push(toolCall);
+              // Deduplicate: check if tool call already exists in parent step
+              const existingIndex = parentStep.toolCalls.findIndex((tc) => tc.id === toolCall.id);
+              if (existingIndex === -1) {
+                parentStep.toolCalls.push(toolCall);
+              }
             } else {
               console.warn(
                 '[useAguiMessageStream] No parent step found for tool call - this should not happen!'
@@ -671,7 +680,13 @@ export function useAguiMessageStream(
         // Error handling removed - parent can monitor status field
       }
     },
-    [emitStateUpdate, setStreamingMessages, setStreamingStepMessages, setStreamingToolCalls]
+    [
+      emitStateUpdate,
+      onStateUpdate,
+      setStreamingMessages,
+      setStreamingStepMessages,
+      setStreamingToolCalls,
+    ]
   );
 
   // Handle event with sequence ordering
@@ -765,7 +780,7 @@ export function useAguiMessageStream(
         // Error handling removed - parent can monitor status field
       }
     },
-    [onStateUpdate, processEvent]
+    [processEvent]
   );
 
   // Handle user messages (non-streaming)

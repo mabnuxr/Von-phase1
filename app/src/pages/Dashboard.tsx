@@ -28,7 +28,13 @@ import type {
   ToolCall,
   StepMessage,
 } from "@vonlabs/design-components";
-import { TopBar, ChatSidebar, Chat, Banner } from "@vonlabs/design-components";
+import {
+  TopBar,
+  ChatSidebar,
+  Chat,
+  Banner,
+  resumeConversation,
+} from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -336,6 +342,7 @@ const Dashboard = () => {
   // Handle AGUI state updates from useAguiMessageStream hook
   const handleAguiStateUpdate = (update: {
     runId: string;
+    messageId?: string;
     messageContent: string;
     stepMessages: StepMessage[];
     toolCalls: ToolCall[];
@@ -359,9 +366,12 @@ const Dashboard = () => {
     }
 
     // Direct AGUI state to backend message format (no transformation needed)
+    // IMPORTANT: id MUST be runId for upsert matching (m.runId === message.id)
+    // messageId (MongoDB ObjectId) is stored separately for API calls like resume
     const backendMessage: MessageWithStreaming = {
       id: update.runId,
       runId: update.runId,
+      messageId: update.messageId,
       conversationId: currentConversationId,
       messageType: "text",
       messageContent: update.messageContent,
@@ -718,6 +728,54 @@ const Dashboard = () => {
                 examplePromptsDisabled={!isSalesforceReady}
                 onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}
                 onInputWhileDisabled={() => setShouldShakeBanner(true)}
+                onApprove={async (toolCallId: string, runId: string) => {
+                  if (!currentConversationId) return;
+                  try {
+                    await resumeConversation(
+                      import.meta.env.VITE_API_BASE_URL,
+                      currentConversationId,
+                      true,
+                      runId,
+                    );
+                    if (import.meta.env.DEV) {
+                      console.log(
+                        "[Dashboard] Approval sent for tool:",
+                        toolCallId,
+                        "runId:",
+                        runId,
+                      );
+                    }
+                  } catch (error) {
+                    console.error(
+                      "[Dashboard] Failed to send approval:",
+                      error,
+                    );
+                  }
+                }}
+                onReject={async (toolCallId: string, runId: string) => {
+                  if (!currentConversationId) return;
+                  try {
+                    await resumeConversation(
+                      import.meta.env.VITE_API_BASE_URL,
+                      currentConversationId,
+                      false,
+                      runId,
+                    );
+                    if (import.meta.env.DEV) {
+                      console.log(
+                        "[Dashboard] Rejection sent for tool:",
+                        toolCallId,
+                        "runId:",
+                        runId,
+                      );
+                    }
+                  } catch (error) {
+                    console.error(
+                      "[Dashboard] Failed to send rejection:",
+                      error,
+                    );
+                  }
+                }}
               />
             )}
           </div>

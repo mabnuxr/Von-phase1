@@ -152,7 +152,7 @@ export { Header } from './Header';
 export type { HeaderProps } from './Header';
 
 // Chat Organism (uses: ChatHeader + ChatMessage + ChatInput, manages chat state & API)
-export { Chat } from './Chat';
+export { Chat, resumeConversation } from './Chat';
 export type { ChatProps, Message, FixedPosition } from './Chat';
 
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)

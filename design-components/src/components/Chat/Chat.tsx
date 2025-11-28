@@ -65,6 +65,8 @@ export const Chat: React.FC<ChatProps> = ({
   examplePromptsDisabled = false,
   onExamplePromptDisabledClick,
   onInputWhileDisabled,
+  onApprove,
+  onReject,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -393,6 +395,9 @@ export const Chat: React.FC<ChatProps> = ({
                     conversationId={message.conversationId || conversationId}
                     useArtifactHook={useArtifactHook}
                     stoppedByUser={message.stoppedByUser}
+                    onApprove={onApprove}
+                    onReject={onReject}
+                    runId={message.runId}
                   />
                 </motion.div>
               ))}
