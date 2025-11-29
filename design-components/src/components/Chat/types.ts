@@ -207,6 +207,7 @@ export interface RunStartedEvent {
   type: 'RUN_STARTED';
   thread_id: string;
   run_id: string;
+  message_id?: string; // MongoDB ObjectId of the message (for API calls like resume)
 }
 
 export interface StepStartedEvent {
@@ -364,6 +365,73 @@ export interface MetricData {
 export interface ValueData {
   value: string;
   count: number;
+}
+
+/**
+ * Salesforce CRUD Approval Types
+ * Used for the request_salesforce_approval tool
+ */
+
+/**
+ * Single operation in a Salesforce CRUD approval request
+ * Field names match backend API (approval_tools.py)
+ */
+export interface SalesforceOperation {
+  /** Type of operation: create, update, or delete */
+  operation: string;
+  /** Salesforce object type (e.g., Account, Contact, Opportunity) */
+  sobject_type: string;
+  /** Record ID (for update/delete operations) */
+  record_id?: string;
+  /** Record name for display (optional) */
+  record_name?: string;
+  /** Fields being changed with before/after values */
+  changes: Array<{
+    field: string;
+    before: string | number | boolean | null;
+    after: string | number | boolean | null;
+  }>;
+}
+
+/**
+ * Arguments for the request_salesforce_approval tool
+ */
+export interface ApprovalToolArgs {
+  /** Brief summary of the operation(s) */
+  summary: string;
+  /** List of operations to be performed */
+  operations: SalesforceOperation[];
+}
+
+/**
+ * Result from approval decision
+ */
+export interface ApprovalResult {
+  /** Whether the user approved the operation */
+  approved: boolean;
+  /** Optional message from the user */
+  message?: string;
+}
+
+/**
+ * Check if a tool call is the Salesforce approval tool
+ */
+export function isApprovalTool(toolName: string): boolean {
+  return toolName === 'request_salesforce_approval';
+}
+
+/**
+ * Parse approval tool arguments from a tool call
+ */
+export function parseApprovalArgs(args: Record<string, unknown>): ApprovalToolArgs | null {
+  try {
+    if (!args.summary || !args.operations || !Array.isArray(args.operations)) {
+      return null;
+    }
+    return args as unknown as ApprovalToolArgs;
+  } catch {
+    return null;
+  }
 }
 
 export interface ChatProps {
@@ -593,4 +661,18 @@ export interface ChatProps {
    * Callback when user types in input while submit is disabled
    */
   onInputWhileDisabled?: () => void;
+
+  /**
+   * Callback when user approves a Salesforce CRUD operation
+   * Called with the tool call ID and run ID for tracking and resuming the workflow
+   * Backend looks up the message by run_id, so messageId is not needed
+   */
+  onApprove?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Callback when user rejects a Salesforce CRUD operation
+   * Called with the tool call ID and run ID for tracking and resuming the workflow
+   * Backend looks up the message by run_id, so messageId is not needed
+   */
+  onReject?: (toolCallId: string, runId: string) => void;
 }

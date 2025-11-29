@@ -181,3 +181,53 @@ export async function updateConversationTitle(
 
   return response.json();
 }
+
+/**
+ * Resume response from the resume conversation endpoint
+ */
+export interface ResumeResponse {
+  status: string;
+  conversationId: string;
+  error?: string;
+}
+
+/**
+ * Resume an interrupted conversation with user's approval decision
+ *
+ * Used when the agent has paused execution (e.g., for Salesforce CRUD approval)
+ * and needs the user's approval or rejection to continue.
+ *
+ * @param apiBaseUrl - Base URL for the backend API
+ * @param conversationId - ID of the conversation to resume
+ * @param approved - Whether the user approved the pending operation
+ * @param runId - The run_id of the interrupted workflow to continue (backend looks up message by run_id)
+ * @param message - Optional message from the user about their decision
+ * @returns Promise with the resume status
+ */
+export async function resumeConversation(
+  apiBaseUrl: string,
+  conversationId: string,
+  approved: boolean,
+  runId: string,
+  message: string = ''
+): Promise<ResumeResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/v1/chat/conversations/${conversationId}/resume`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify({
+      approved,
+      message,
+      run_id: runId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to resume conversation: ${response.statusText} - ${errorText}`);
+  }
+
+  return response.json();
+}

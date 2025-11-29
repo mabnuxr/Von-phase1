@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import type { ToolCall } from './types';
+import type { ToolCall, ApprovalResult } from './types';
+import { isApprovalTool, parseApprovalArgs } from './types';
+import { ApprovalCard } from './ApprovalCard';
 
 interface ToolCallItemProps {
   toolCall: ToolCall;
@@ -14,6 +16,24 @@ interface ToolCallItemProps {
    * When false, we're replaying/displaying completed events
    */
   isStreaming?: boolean;
+  /**
+   * Callback when user approves a Salesforce CRUD operation
+   * Only used for request_salesforce_approval tool
+   */
+  onApprove?: (toolCallId: string, runId: string) => void;
+  /**
+   * Callback when user rejects a Salesforce CRUD operation
+   * Only used for request_salesforce_approval tool
+   */
+  onReject?: (toolCallId: string, runId: string) => void;
+  /**
+   * Whether approval is being processed (loading state)
+   */
+  isApprovalProcessing?: boolean;
+  /**
+   * Run ID of the current streaming session (required for approval resume)
+   */
+  runId?: string;
 }
 
 /**
@@ -64,18 +84,23 @@ export function ToolCallItem({
   toolCall,
   onArtifactClick,
   isStreaming = false,
+  onApprove,
+  onReject,
+  isApprovalProcessing = false,
+  runId = '',
 }: ToolCallItemProps) {
+  // Timer state - hooks must be called unconditionally at the top
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const timerIdRef = useRef<number | null>(null);
+
   // Check tool type
   const isTransfer = isTransferTool(toolCall.name);
   const isCompletion = isCompletionTool(toolCall.name);
+  const isApproval = isApprovalTool(toolCall.name);
 
   // Transfer and completion tools don't have clickable artifacts
   const hasArtifact = !isTransfer && !isCompletion && Boolean(toolCall.artifact?.artifact_id);
   const isError = toolCall.status === 'error' || toolCall.artifact?.success === false;
-
-  // Timer state
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const timerIdRef = useRef<number | null>(null);
 
   // Check for reduced motion preference
   const prefersReducedMotion =
@@ -84,28 +109,33 @@ export function ToolCallItem({
   // Dynamic status text based on tool type and metadata presence
   const getDisplayText = () => {
     const hasMetadata = toolCall.artifact || toolCall.result;
-    const isExecuting = !hasMetadata && toolCall.status !== 'error';
+    const isExecutingStatus = !hasMetadata && toolCall.status !== 'error';
 
     // Transfer tools: "Delegating to X Agent..." / "Delegated to X Agent"
     if (isTransfer) {
       const agentName = getTransferAgentName(toolCall.name);
-      return isExecuting ? `Delegating to ${agentName}...` : `Delegated to ${agentName}`;
+      return isExecutingStatus ? `Delegating to ${agentName}...` : `Delegated to ${agentName}`;
     }
 
     // Completion tools: "Completing task..." / "Task completed"
     if (isCompletion) {
-      return isExecuting ? 'Completing task...' : 'Task completed';
+      return isExecutingStatus ? 'Completing task...' : 'Task completed';
     }
 
     // Default query tools
-    return isExecuting ? 'Executing query...' : 'Query executed';
+    return isExecutingStatus ? 'Executing query...' : 'Query executed';
   };
 
   const headingText = getDisplayText();
   const isExecuting = headingText.endsWith('...');
 
-  // Timer effect
+  // Timer effect - must be called unconditionally before any early returns
   useEffect(() => {
+    // Skip timer logic for approval tools
+    if (isApproval) {
+      return;
+    }
+
     // Replay detection: If not streaming OR both times exist, show final time without animation
     const isReplay = !isStreaming || (toolCall.startTime && toolCall.endTime);
 
@@ -133,12 +163,57 @@ export function ToolCallItem({
         }
       };
     }
-  }, [isExecuting, isStreaming, toolCall.startTime, toolCall.endTime]);
+  }, [isApproval, isExecuting, isStreaming, toolCall.startTime, toolCall.endTime]);
 
   // Format elapsed time
   const formatTime = (ms: number): string => {
     return `${(ms / 1000).toFixed(1)}s`;
   };
+
+  // For approval tools, render the ApprovalCard instead
+  if (isApproval) {
+    const args = toolCall.args || toolCall.arguments || {};
+    const approvalArgs = parseApprovalArgs(args);
+
+    // Parse result if available (from tool call result)
+    let approvalResult: ApprovalResult | undefined;
+    if (toolCall.result?.raw) {
+      try {
+        const rawResult =
+          typeof toolCall.result.raw === 'string'
+            ? JSON.parse(toolCall.result.raw)
+            : toolCall.result.raw;
+        if (typeof rawResult.approved === 'boolean') {
+          approvalResult = {
+            approved: rawResult.approved,
+            message: rawResult.message,
+          };
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    // Determine if pending (no result yet)
+    // For approval tools, we show buttons if there's no approval result yet
+    // The tool status might not be 'pending'/'running' when LangGraph is interrupted
+    const isPending = !approvalResult;
+
+    if (approvalArgs) {
+      return (
+        <ApprovalCard
+          toolCallId={toolCall.id}
+          runId={runId}
+          args={approvalArgs}
+          isPending={isPending}
+          onApprove={onApprove || (() => {})}
+          onReject={onReject || (() => {})}
+          isProcessing={isApprovalProcessing}
+          result={approvalResult}
+        />
+      );
+    }
+  }
 
   // Determine color based on state
   // Transfer/completion tools are always gray (not clickable)

@@ -31,6 +31,9 @@ export { ArtifactPane } from './ArtifactPane';
 
 export { ToolCallItem } from './ToolCallItem';
 
+export { ApprovalCard } from './ApprovalCard';
+export type { ApprovalCardProps, SalesforceOperation, ApprovalToolArgs } from './ApprovalCard';
+
 // Export error components
 export { MessageAreaError } from './MessageAreaError';
 export type { MessageAreaErrorProps } from './MessageAreaError';
@@ -101,7 +104,12 @@ export type {
   QueryInfo,
   MetricData,
   StepMessage,
+  // Salesforce approval types
+  ApprovalResult,
 } from './types';
+
+// Export approval utility functions
+export { isApprovalTool, parseApprovalArgs } from './types';
 
 // Export API utilities
 export {
@@ -111,8 +119,14 @@ export {
   fetchUserConversations,
   deleteConversation as deleteConversationApi,
   updateConversationTitle,
+  resumeConversation,
 } from './utils/api';
-export type { ApiEndpoints as ApiEndpointsConfig, Conversation, ApiMessage } from './utils/api';
+export type {
+  ApiEndpoints as ApiEndpointsConfig,
+  Conversation,
+  ApiMessage,
+  ResumeResponse,
+} from './utils/api';
 
 // Export localStorage utilities
 export {
