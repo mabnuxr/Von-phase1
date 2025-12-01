@@ -7,6 +7,7 @@ import {
   EditIcon,
   PlusIcon,
   TrashIcon,
+  LoaderIcon,
 } from './icons';
 
 /**
@@ -187,13 +188,15 @@ const DeleteOperationCard: React.FC<{ operation: SalesforceOperation }> = ({ ope
       <TrashIcon className="text-gray-600" size={16} />
     </div>
     <div className="flex flex-col items-start">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Delete</span>
-        <span className="text-sm font-medium text-gray-900">{operation.sobject_type}</span>
-      </div>
+      {/* Record name first (more intuitive for users) */}
       {operation.record_name && (
-        <span className="text-xs text-gray-500">{operation.record_name}</span>
+        <span className="text-sm font-medium text-gray-900">{operation.record_name}</span>
       )}
+      {/* Action + object type below */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">Delete</span>
+        <span className="text-xs text-gray-500">{operation.sobject_type}</span>
+      </div>
     </div>
   </div>
 );
@@ -234,17 +237,19 @@ const OperationCard: React.FC<{
             <IconComponent className="text-gray-600" size={16} />
           </div>
           <div className="flex flex-col items-start">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                {style.label}
-              </span>
-              <span className="text-sm font-medium text-gray-900">{operation.sobject_type}</span>
-            </div>
+            {/* Record name first (more intuitive for users) */}
             {operation.record_name && (
-              <span className="text-xs text-gray-500 truncate max-w-[200px]">
+              <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
                 {operation.record_name}
               </span>
             )}
+            {/* Action + object type below */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {style.label}
+              </span>
+              <span className="text-xs text-gray-500">{operation.sobject_type}</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -296,6 +301,9 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
   // Track which operations are expanded (first one expanded by default)
   const [expandedOps, setExpandedOps] = useState<Set<number>>(new Set([0]));
 
+  // Track pending action for intermediate state (Approving.../Rejecting...)
+  const [pendingAction, setPendingAction] = useState<'approving' | 'rejecting' | null>(null);
+
   const toggleOperation = (index: number) => {
     setExpandedOps((prev) => {
       const newSet = new Set(prev);
@@ -308,10 +316,21 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
     });
   };
 
+  // Button click handlers - set intermediate state immediately
+  const handleApprove = () => {
+    setPendingAction('approving');
+    onApprove(toolCallId, runId);
+  };
+
+  const handleReject = () => {
+    setPendingAction('rejecting');
+    onReject(toolCallId, runId);
+  };
+
   // Determine card state
-  const isApproved = result?.approved === true;
-  const isRejected = result?.approved === false;
-  const showButtons = isPending && !result;
+  const isConfirmedApproved = result?.approved === true;
+  const isConfirmedRejected = result?.approved === false;
+  const showButtons = isPending && !result && !pendingAction;
 
   return (
     <motion.div
@@ -350,57 +369,54 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
           {showButtons ? (
             <div className="flex items-center justify-end gap-3">
               <button
-                onClick={() => onReject(toolCallId, runId)}
+                onClick={handleReject}
                 disabled={isProcessing}
-                className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Reject
               </button>
               <button
-                onClick={() => onApprove(toolCallId, runId)}
+                onClick={handleApprove}
                 disabled={isProcessing}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 hover:cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isProcessing ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          d="M21 12a9 9 0 11-6.219-8.56"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </motion.div>
-                    Processing...
-                  </>
-                ) : (
-                  'Approve'
-                )}
+                Approve
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {isApproved && (
+              {/* Intermediate state: Approving... */}
+              {pendingAction === 'approving' && !isConfirmedApproved && (
                 <>
-                  <CheckCircleIcon className="text-gray-600" size={16} />
-                  <span className="text-sm text-gray-600">Approved</span>
+                  <LoaderIcon className="text-amber-500 animate-spin" size={16} />
+                  <span className="text-sm font-medium text-amber-600">Approving...</span>
                 </>
               )}
-              {isRejected && (
+
+              {/* Intermediate state: Rejecting... */}
+              {pendingAction === 'rejecting' && !isConfirmedRejected && (
                 <>
-                  <XCircleIcon className="text-gray-600" size={16} />
-                  <span className="text-sm text-gray-600">Rejected</span>
+                  <LoaderIcon className="text-amber-500 animate-spin" size={16} />
+                  <span className="text-sm font-medium text-amber-600">Rejecting...</span>
                 </>
               )}
+
+              {/* Final state: Approved (green) */}
+              {isConfirmedApproved && (
+                <>
+                  <CheckCircleIcon className="text-green-600" size={16} />
+                  <span className="text-sm font-medium text-green-600">Approved</span>
+                </>
+              )}
+
+              {/* Final state: Rejected (red) */}
+              {isConfirmedRejected && (
+                <>
+                  <XCircleIcon className="text-red-600" size={16} />
+                  <span className="text-sm font-medium text-red-600">Rejected</span>
+                </>
+              )}
+
               {result?.message && (
                 <span className="text-xs text-gray-400 ml-1">— {result.message}</span>
               )}
