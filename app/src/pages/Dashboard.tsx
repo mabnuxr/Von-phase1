@@ -429,6 +429,26 @@ const Dashboard = () => {
     }
   };
 
+  // Helper to set streaming state on an existing message (for approval flow)
+  // IMPORTANT: Only updates isStreaming/status, NOT stepMessages
+  // This allows ApprovalCard's local pendingAction state to survive
+  function setMessageStreaming(runId: string) {
+    if (!currentConversationId) return;
+
+    const storeMessages =
+      useChatStore.getState().messages[currentConversationId] || [];
+    const existingMessage = storeMessages.find((m) => m.runId === runId);
+
+    if (!existingMessage) return;
+
+    // Update ONLY streaming state - don't touch stepMessages
+    useChatStore.getState().upsertMessage(currentConversationId, {
+      ...existingMessage,
+      isStreaming: true,
+      status: "streaming",
+    });
+  }
+
   // Handle stream timeout - force clear state and refetch messages from backend
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
   const handleStreamTimeout = useCallback(
@@ -730,6 +750,8 @@ const Dashboard = () => {
                 onInputWhileDisabled={() => setShouldShakeBanner(true)}
                 onApprove={async (toolCallId: string, runId: string) => {
                   if (!currentConversationId) return;
+                  // Start streaming optimistically so Thinking animation shows immediately
+                  setMessageStreaming(runId);
                   try {
                     await resumeConversation(
                       import.meta.env.VITE_API_BASE_URL,
@@ -754,6 +776,8 @@ const Dashboard = () => {
                 }}
                 onReject={async (toolCallId: string, runId: string) => {
                   if (!currentConversationId) return;
+                  // Start streaming optimistically so Thinking animation shows immediately
+                  setMessageStreaming(runId);
                   try {
                     await resumeConversation(
                       import.meta.env.VITE_API_BASE_URL,
