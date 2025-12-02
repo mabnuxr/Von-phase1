@@ -43,6 +43,7 @@ jobs:
           echo "VITE_LAUNCHDARKLY_CLIENT_ID=$(aws ssm get-parameter --name /revenue-os/prod/launchdarkly/client-side-id --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_PUSHER_KEY=$(aws ssm get-parameter --name /revenue-os/prod/pusher/key --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_PUSHER_CLUSTER=$(aws ssm get-parameter --name /revenue-os/prod/pusher/cluster --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_SENTRY_DSN=$(aws ssm get-parameter --name /revenue-os/prod/sentry/app-dsn --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -56,6 +57,8 @@ jobs:
             --build-arg VITE_LAUNCHDARKLY_CLIENT_ID=${{ env.VITE_LAUNCHDARKLY_CLIENT_ID }} \
             --build-arg VITE_PUSHER_KEY=${{ env.VITE_PUSHER_KEY }} \
             --build-arg VITE_PUSHER_CLUSTER=${{ env.VITE_PUSHER_CLUSTER }} \
+            --build-arg VITE_SENTRY_DSN=${{ env.VITE_SENTRY_DSN }} \
+            --build-arg VITE_APP_ENV=production \
             --build-arg VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=/oauth/authorize \
             --build-arg VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token \
             --build-arg VITE_SCALEKIT_AUTH_LOGOUT_PATH= \
