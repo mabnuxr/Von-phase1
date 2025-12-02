@@ -34,6 +34,11 @@ interface ToolCallItemProps {
    * Run ID of the current streaming session (required for approval resume)
    */
   runId?: string;
+  /**
+   * Whether this is the latest message in the conversation
+   * Used to control visibility of approval buttons
+   */
+  isLatestMessage?: boolean;
 }
 
 /**
@@ -84,6 +89,7 @@ export function ToolCallItem({
   toolCall,
   onArtifactClick,
   isStreaming = false,
+  isLatestMessage,
   onApprove,
   onReject,
   isApprovalProcessing = false,
@@ -206,6 +212,7 @@ export function ToolCallItem({
           runId={runId}
           args={approvalArgs}
           isPending={isPending}
+          isLatestMessage={isLatestMessage}
           onApprove={onApprove || (() => {})}
           onReject={onReject || (() => {})}
           isProcessing={isApprovalProcessing}

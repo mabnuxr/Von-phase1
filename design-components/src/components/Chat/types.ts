@@ -99,6 +99,11 @@ export interface Message {
    * Whether the response was stopped by user
    */
   stoppedByUser?: boolean;
+  /**
+   * Whether this is the latest message in the conversation
+   * Used to control visibility of approval buttons
+   */
+  isLatestMessage?: boolean;
 }
 
 export interface ChatSession {

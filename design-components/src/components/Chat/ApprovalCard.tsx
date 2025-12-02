@@ -64,6 +64,8 @@ export interface ApprovalCardProps {
     approved: boolean;
     message?: string;
   };
+  /** Whether this is the latest message in the conversation */
+  isLatestMessage?: boolean;
 }
 
 /**
@@ -297,6 +299,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
   onReject,
   isProcessing = false,
   result,
+  isLatestMessage,
 }) => {
   // Track which operations are expanded (first one expanded by default)
   const [expandedOps, setExpandedOps] = useState<Set<number>>(new Set([0]));
@@ -366,7 +369,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
 
         {/* Action buttons or result status */}
         <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-          {showButtons ? (
+          {showButtons && isLatestMessage ? (
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={handleReject}
@@ -382,6 +385,12 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
               >
                 Approve
               </button>
+            </div>
+          ) : showButtons && !isLatestMessage ? (
+            <div className="flex items-center">
+              <span className="text-sm text-gray-500 italic">
+                This approval request is no longer active
+              </span>
             </div>
           ) : (
             <div className="flex items-center gap-2">
