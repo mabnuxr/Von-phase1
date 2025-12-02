@@ -169,6 +169,12 @@ export interface ChatMessageProps {
    * Run ID of the current streaming session (required for approval resume)
    */
   runId?: string;
+
+  /**
+   * Whether this is the latest message in the conversation
+   * Used to control visibility of approval buttons
+   */
+  isLatestMessage?: boolean;
 }
 
 /**
@@ -189,6 +195,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   messageId,
   useArtifactHook,
   stoppedByUser,
+  isLatestMessage,
   onApprove,
   onReject,
   runId = '',
@@ -270,6 +277,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           isStreaming={isReasoningStreaming}
                           status={status}
                           messageId={messageId}
+                          isLatestMessage={isLatestMessage}
+                          onApprove={onApprove}
+                          onReject={onReject}
+                          runId={runId}
                         />
                       )}
 
@@ -286,6 +297,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               stepMessages={stepMessages}
                               onArtifactClick={handleArtifactClick}
                               messageId={messageId}
+                              isLatestMessage={isLatestMessage}
                               onApprove={onApprove}
                               onReject={onReject}
                               runId={runId}
@@ -301,6 +313,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                   status={status}
                                   stepMessages={stepMessages.slice(0, -1)}
                                   onArtifactClick={handleArtifactClick}
+                                  isLatestMessage={isLatestMessage}
                                   onApprove={onApprove}
                                   onReject={onReject}
                                   runId={runId}
@@ -334,6 +347,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                             toolCall={toolCall}
                                             onArtifactClick={handleArtifactClick}
                                             isStreaming={false}
+                                            isLatestMessage={isLatestMessage}
                                             onApprove={onApprove}
                                             onReject={onReject}
                                             runId={runId}

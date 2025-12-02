@@ -102,6 +102,12 @@ export interface ThinkingBlockProps {
    * Run ID of the current streaming session (required for approval resume)
    */
   runId?: string;
+
+  /**
+   * Whether this is the latest message in the conversation
+   * Used to control visibility of approval buttons
+   */
+  isLatestMessage?: boolean;
 }
 
 /**
@@ -125,6 +131,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   stepMessages,
   onArtifactClick,
   messageId,
+  isLatestMessage,
   onApprove,
   onReject,
   isApprovalProcessing = false,
@@ -279,6 +286,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                     stepMessages={stepMessages}
                     isStreaming={isStreaming}
                     onArtifactClick={onArtifactClick}
+                    isLatestMessage={isLatestMessage}
                     onApprove={onApprove}
                     onReject={onReject}
                     isApprovalProcessing={isApprovalProcessing}

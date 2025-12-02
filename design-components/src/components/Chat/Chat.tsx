@@ -187,7 +187,8 @@ export const Chat: React.FC<ChatProps> = ({
 
   // FIX: Memoize visible messages to avoid O(N) filtering on every render
   const visibleMessages = useMemo(() => {
-    return messages
+    // Filter messages first
+    const filtered = messages
       .map((message, index) => ({
         ...message,
         // Mark messages before showMessagesFromIndex as compressed
@@ -206,6 +207,12 @@ export const Chat: React.FC<ChatProps> = ({
         }
         return true;
       });
+
+    // Then mark the latest message
+    return filtered.map((message, visibleIndex) => ({
+      ...message,
+      isLatestMessage: visibleIndex === filtered.length - 1,
+    }));
   }, [messages, isLoading, effectiveShowFromIndex]);
 
   // Handle stop streaming
@@ -395,6 +402,7 @@ export const Chat: React.FC<ChatProps> = ({
                     conversationId={message.conversationId || conversationId}
                     useArtifactHook={useArtifactHook}
                     stoppedByUser={message.stoppedByUser}
+                    isLatestMessage={message.isLatestMessage}
                     onApprove={onApprove}
                     onReject={onReject}
                     runId={message.runId}
