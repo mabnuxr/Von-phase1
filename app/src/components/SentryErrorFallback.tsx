@@ -20,7 +20,13 @@ export function SentryErrorFallback({
       ? error.stack || error.message
       : typeof error === "string"
         ? error
-        : JSON.stringify(error, null, 2);
+        : (() => {
+            try {
+              return JSON.stringify(error, null, 2);
+            } catch {
+              return String(error); // Fallback for circular refs
+            }
+          })();
 
   useEffect(() => {
     if (import.meta.env.DEV) {
