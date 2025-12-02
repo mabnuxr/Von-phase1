@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import * as Sentry from "@sentry/react";
+import { LOGO_URL } from "../config/constants";
 
 interface SentryErrorFallbackProps {
   error: unknown;
@@ -47,14 +48,7 @@ export function SentryErrorFallback({
       <div className="w-full max-w-[600px] bg-white rounded-xl p-8 shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-center">
         {/* Von Logo */}
         <div className="mb-6 flex justify-center">
-          <img
-            src="/logo.gif"
-            alt="Von Logo"
-            className="h-16 w-auto"
-            onError={(e) => {
-              e.currentTarget.src = "/Images/vonlabs.png";
-            }}
-          />
+          <img src={LOGO_URL} alt="Von Logo" className="h-16 w-auto" />
         </div>
 
         {/* Error Icon */}
