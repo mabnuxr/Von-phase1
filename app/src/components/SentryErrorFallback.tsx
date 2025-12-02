@@ -14,8 +14,13 @@ export function SentryErrorFallback({
   eventId,
   resetError,
 }: SentryErrorFallbackProps) {
-  const errorMessage =
-    error instanceof Error ? error.message : "An unexpected error occurred";
+  // Handle all error types safely
+  const errorDetails =
+    error instanceof Error
+      ? error.stack || error.message
+      : typeof error === "string"
+        ? error
+        : JSON.stringify(error, null, 2);
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -67,9 +72,9 @@ export function SentryErrorFallback({
               Error Details (Development Only)
             </summary>
             <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-xl overflow-auto text-xs text-red-900 max-h-60">
-              <div className="font-semibold mb-2">Error Message:</div>
+              <div className="font-semibold mb-2">Error Details:</div>
               <pre className="mb-3 whitespace-pre-wrap font-mono">
-                {errorMessage}
+                {errorDetails}
               </pre>
               {componentStack && (
                 <>
