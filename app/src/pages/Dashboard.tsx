@@ -11,6 +11,7 @@ import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -116,6 +117,9 @@ const Dashboard = () => {
     isConnected: isSalesforceConnected,
     isAuthenticated: isSalesforceAuthenticated,
   } = useSalesforceConnection();
+
+  // Feature flags
+  const { isSlashCommandsEnabled } = useFeatureFlag();
 
   // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -743,6 +747,7 @@ const Dashboard = () => {
                 examplePromptsDisabled={!isSalesforceReady}
                 onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}
                 onInputWhileDisabled={() => setShouldShakeBanner(true)}
+                enableCommands={isSlashCommandsEnabled}
                 onApprove={async (toolCallId: string, runId: string) => {
                   if (!currentConversationId) return;
                   // Start streaming optimistically so Thinking animation shows immediately

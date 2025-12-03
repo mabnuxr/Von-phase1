@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChatInput } from './ChatInput';
+import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 
 export interface ChatEmptyStateProps {
   /**
@@ -27,6 +28,10 @@ export interface ChatEmptyStateProps {
    * Placeholder text for the input
    */
   placeholder?: string;
+  /**
+   * Enable slash commands feature
+   */
+  enableCommands?: boolean;
   /**
    * Optional banner to display above the input
    */
@@ -63,6 +68,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   disabled = false,
   onDisabledClick,
   placeholder = 'Ask von anything',
+  enableCommands = false,
   banner,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
@@ -156,13 +162,23 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.4 }}
       >
-        <ChatInput
-          placeholder={placeholder}
-          onSend={onSendMessage}
-          disabled={disabled}
-          disableSubmit={disabled}
-          onDisabledInput={onDisabledClick}
-        />
+        {enableCommands ? (
+          <ChatInputWithCommands
+            placeholder={placeholder}
+            onSend={onSendMessage}
+            disabled={disabled}
+            disableSubmit={disabled}
+            onDisabledInput={onDisabledClick}
+          />
+        ) : (
+          <ChatInput
+            placeholder={placeholder}
+            onSend={onSendMessage}
+            disabled={disabled}
+            disableSubmit={disabled}
+            onDisabledInput={onDisabledClick}
+          />
+        )}
       </motion.div>
 
       {/* Example Prompts - Horizontal Layout */}

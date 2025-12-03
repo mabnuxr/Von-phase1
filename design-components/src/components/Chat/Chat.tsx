@@ -9,6 +9,7 @@ import { useAguiMessageStream } from './hooks/useAguiMessageStream';
 import { sendMessage as apiSendMessage } from './utils/api';
 import { saveConversation, loadConversation } from './utils/localStorage';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
+import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 
 // Export types from types.ts
 export type {
@@ -67,6 +68,7 @@ export const Chat: React.FC<ChatProps> = ({
   onInputWhileDisabled,
   onApprove,
   onReject,
+  enableCommands = false,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -364,6 +366,7 @@ export const Chat: React.FC<ChatProps> = ({
             onSendMessage={handleSendMessage}
             disabled={examplePromptsDisabled}
             onDisabledClick={onExamplePromptDisabledClick}
+            enableCommands={enableCommands}
             banner={banner}
           />
         ) : (
@@ -423,21 +426,36 @@ export const Chat: React.FC<ChatProps> = ({
       {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
 
       {/* Only show bottom input when there are messages (not in empty state) */}
-      {messages.length > 0 && (
-        <ChatInput
-          placeholder={placeholder}
-          onSend={handleSendMessage}
-          onStop={handleStop}
-          disabled={
-            isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
-          }
-          isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
-          disableSubmit={disableSubmit}
-          value={inputValue}
-          onChange={setInputValue}
-          onDisabledInput={onInputWhileDisabled}
-        />
-      )}
+      {messages.length > 0 &&
+        (enableCommands ? (
+          <ChatInputWithCommands
+            placeholder={placeholder}
+            onSend={handleSendMessage}
+            onStop={handleStop}
+            disabled={
+              isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
+            }
+            isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+            disableSubmit={disableSubmit}
+            value={inputValue}
+            onChange={setInputValue}
+            onDisabledInput={onInputWhileDisabled}
+          />
+        ) : (
+          <ChatInput
+            placeholder={placeholder}
+            onSend={handleSendMessage}
+            onStop={handleStop}
+            disabled={
+              isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
+            }
+            isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+            disableSubmit={disableSubmit}
+            value={inputValue}
+            onChange={setInputValue}
+            onDisabledInput={onInputWhileDisabled}
+          />
+        ))}
     </div>
   );
 };

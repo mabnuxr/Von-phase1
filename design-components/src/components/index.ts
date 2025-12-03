@@ -178,3 +178,35 @@ export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
+
+// ============================================================================
+// COMMANDS (Self-contained slash commands feature)
+// ============================================================================
+export {
+  CommandsList,
+  CommandDrawer,
+  ManageCommandsDrawer,
+  ChatInputWithCommands,
+  useCommands,
+  DATA_SOURCE_LABELS,
+  ACTION_TYPE_LABELS,
+  CATEGORY_OPTIONS,
+  DEFAULT_COMMANDS,
+  getCommands,
+  saveCommands,
+  addCommand,
+  updateCommand,
+  deleteCommand,
+  getCommandById,
+  searchCommands,
+  getCommandsByCategory,
+  resetToDefaults,
+} from './Commands';
+export type {
+  Command,
+  CommandCategory,
+  DataSource,
+  ActionType,
+  CommandsState,
+  ChatInputWithCommandsProps,
+} from './Commands';

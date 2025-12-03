@@ -119,6 +119,15 @@ function formatElapsedTime(ms: number): string {
   return `${seconds.toFixed(1)}s`;
 }
 
+// Engaging messages shown when there's a delay in token arrival
+const ENGAGING_MESSAGES = [
+  'Contemplating, stand by...',
+  'Still working on it, stand by...',
+  'A bit longer, thanks for your patience...',
+  'Processing your request...',
+  'Almost there, hang tight...',
+];
+
 /**
  * Collapsible thinking block component inspired by Claude.ai
  * Displays the AI's reasoning process with elegant animations
@@ -150,14 +159,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const startTimeRef = useRef<number | null>(null);
   const timerIdRef = useRef<number | null>(null);
 
-  // Engaging messages state - shown when there's a delay in token arrival
-  const ENGAGING_MESSAGES = [
-    'Contemplating, stand by...',
-    'Still working on it, stand by...',
-    'A bit longer, thanks for your patience...',
-    'Processing your request...',
-    'Almost there, hang tight...',
-  ];
+  // Engaging messages state
   const [showEngagingMessage, setShowEngagingMessage] = useState(false);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const engagingMessageTimerRef = useRef<number | null>(null);
@@ -263,10 +265,10 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
       // Start timer to show engaging message after 2 seconds of no new data
       engagingMessageTimerRef.current = window.setTimeout(() => {
         setShowEngagingMessage(true);
-        // Start rotating messages every 8 seconds
+        // Start rotating messages every 3 seconds
         messageRotationTimerRef.current = window.setInterval(() => {
           setCurrentMessageIndex((prev) => (prev + 1) % ENGAGING_MESSAGES.length);
-        }, 8000);
+        }, 3000);
       }, 2000);
     }
 

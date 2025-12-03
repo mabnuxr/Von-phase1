@@ -1,10 +1,8 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useCreateConversation, conversationKeys } from "./useConversations";
 import { generateConversationTitle } from "../lib/conversationUtils";
-import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 
 /**
  * Hook for creating and switching to a new chat conversation
@@ -19,11 +17,6 @@ import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 export function useNewChat() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  // Get current conversations data for title numbering
-  const { data: infiniteConversationsData } = useInfiniteConversations(
-    CONVERSATIONS_PAGE_LIMIT,
-  );
 
   // Create conversation mutation
   const {
@@ -70,7 +63,7 @@ export function useNewChat() {
       console.error("[useNewChat] Failed to create conversation:", err);
       throw err;
     }
-  }, [infiniteConversationsData, createConversation, navigate, queryClient]);
+  }, [createConversation, navigate, queryClient]);
 
   return {
     createNewChat,
