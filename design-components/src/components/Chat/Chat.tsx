@@ -364,6 +364,7 @@ export const Chat: React.FC<ChatProps> = ({
             onSendMessage={handleSendMessage}
             disabled={examplePromptsDisabled}
             onDisabledClick={onExamplePromptDisabledClick}
+            banner={banner}
           />
         ) : (
           <div className="flex flex-col">

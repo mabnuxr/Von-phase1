@@ -27,6 +27,10 @@ export interface ChatEmptyStateProps {
    * Placeholder text for the input
    */
   placeholder?: string;
+  /**
+   * Optional banner to display above the input
+   */
+  banner?: React.ReactNode;
 }
 
 /**
@@ -59,6 +63,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   disabled = false,
   onDisabledClick,
   placeholder = 'Ask von anything',
+  banner,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -131,6 +136,18 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         </h2>
         <p className="text-3xl text-gray-600">How can I help you today?</p>
       </motion.div>
+
+      {/* Banner (if provided) */}
+      {banner && (
+        <motion.div
+          className="w-full max-w-3xl px-5"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.4 }}
+        >
+          {banner}
+        </motion.div>
+      )}
 
       {/* Input Field - Using ChatInput component */}
       <motion.div

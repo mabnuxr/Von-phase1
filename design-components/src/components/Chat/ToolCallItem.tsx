@@ -224,11 +224,12 @@ export function ToolCallItem({
 
   // Determine color based on state
   // Transfer/completion tools are always gray (not clickable)
+  // Error state also uses gray to keep it subtle
   const headingColor =
     isTransfer || isCompletion
       ? 'text-gray-600'
       : isError
-        ? 'text-red-400'
+        ? 'text-gray-600'
         : hasArtifact
           ? 'text-indigo-600'
           : 'text-gray-900';

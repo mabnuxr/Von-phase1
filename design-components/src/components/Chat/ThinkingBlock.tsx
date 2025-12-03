@@ -150,6 +150,19 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const startTimeRef = useRef<number | null>(null);
   const timerIdRef = useRef<number | null>(null);
 
+  // Engaging messages state - shown when there's a delay in token arrival
+  const ENGAGING_MESSAGES = [
+    'Contemplating, stand by...',
+    'Still working on it, stand by...',
+    'A bit longer, thanks for your patience...',
+    'Processing your request...',
+    'Almost there, hang tight...',
+  ];
+  const [showEngagingMessage, setShowEngagingMessage] = useState(false);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const engagingMessageTimerRef = useRef<number | null>(null);
+  const messageRotationTimerRef = useRef<number | null>(null);
+
   // Auto-collapse only when status becomes 'completed' (and user hasn't manually toggled)
   useEffect(() => {
     if (status === 'completed' && !userManuallyToggled) {
@@ -190,6 +203,85 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
     };
   }, [isStreaming, stepMessages?.length]);
 
+  // Engaging message effect - shows message when there's a delay in streaming response
+  // Uses a ref to track content changes and only show message after 2s of no new data
+  // Tracks: step count, direct content length, and last step's content length (for streaming updates)
+  const prevContentRef = useRef<{ steps: number; content: number; lastStepContent: number }>({
+    steps: stepMessages?.length || 0,
+    content: content?.length || 0,
+    lastStepContent: stepMessages?.[stepMessages?.length - 1]?.content?.length || 0,
+  });
+
+  // Get the content length of the last step message (this changes during streaming)
+  const lastStepContentLength = stepMessages?.[stepMessages?.length - 1]?.content?.length || 0;
+
+  useEffect(() => {
+    const currentSteps = stepMessages?.length || 0;
+    const currentContent = content?.length || 0;
+    const currentLastStepContent = lastStepContentLength;
+    const hasNewData =
+      currentSteps !== prevContentRef.current.steps ||
+      currentContent !== prevContentRef.current.content ||
+      currentLastStepContent !== prevContentRef.current.lastStepContent;
+
+    // Update prev ref
+    prevContentRef.current = {
+      steps: currentSteps,
+      content: currentContent,
+      lastStepContent: currentLastStepContent,
+    };
+
+    if (!isStreaming) {
+      // Clear timers and hide message when streaming stops
+      if (engagingMessageTimerRef.current !== null) {
+        clearTimeout(engagingMessageTimerRef.current);
+        engagingMessageTimerRef.current = null;
+      }
+      if (messageRotationTimerRef.current !== null) {
+        clearInterval(messageRotationTimerRef.current);
+        messageRotationTimerRef.current = null;
+      }
+      setShowEngagingMessage(false);
+      setCurrentMessageIndex(0);
+      return;
+    }
+
+    // If new data arrived, hide the message and restart the delay timer
+    if (hasNewData) {
+      setShowEngagingMessage(false);
+      setCurrentMessageIndex(0);
+
+      // Clear existing timers
+      if (engagingMessageTimerRef.current !== null) {
+        clearTimeout(engagingMessageTimerRef.current);
+      }
+      if (messageRotationTimerRef.current !== null) {
+        clearInterval(messageRotationTimerRef.current);
+        messageRotationTimerRef.current = null;
+      }
+
+      // Start timer to show engaging message after 2 seconds of no new data
+      engagingMessageTimerRef.current = window.setTimeout(() => {
+        setShowEngagingMessage(true);
+        // Start rotating messages every 8 seconds
+        messageRotationTimerRef.current = window.setInterval(() => {
+          setCurrentMessageIndex((prev) => (prev + 1) % ENGAGING_MESSAGES.length);
+        }, 8000);
+      }, 2000);
+    }
+
+    return () => {
+      if (engagingMessageTimerRef.current !== null) {
+        clearTimeout(engagingMessageTimerRef.current);
+        engagingMessageTimerRef.current = null;
+      }
+      if (messageRotationTimerRef.current !== null) {
+        clearInterval(messageRotationTimerRef.current);
+        messageRotationTimerRef.current = null;
+      }
+    };
+  }, [isStreaming, stepMessages?.length, content?.length, lastStepContentLength]);
+
   // Handle manual toggle by user
   const handleToggle = () => {
     setUserManuallyToggled(true);
@@ -226,33 +318,27 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
               </motion.svg>
             )}
 
-            {/* Spinner + Thinking label when streaming */}
+            {/* Thinking label */}
             {isStreaming ? (
-              <div className="flex items-center gap-2 ml-2">
-                <SpinningCircles
-                  key={`spinner-${messageId || 'default'}-${isStreaming}`}
-                  className="text-purple-500 flex-shrink-0 w-5 h-5"
-                />
-                <span className="text-sm font-medium relative inline-block">
-                  <span
-                    className="bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700"
-                    style={{
-                      backgroundSize: '250% 100%',
-                      animation: prefersReducedMotion
-                        ? undefined
-                        : 'thinkingShimmer 2.2s linear infinite',
-                      WebkitBackgroundClip: 'text',
-                    }}
-                  >
-                    Thinking
-                  </span>
-
-                  {/* accessible live region (hidden visually) */}
-                  <span className="sr-only" aria-live="polite">
-                    Assistant is thinking
-                  </span>
+              <span className="text-sm font-medium relative inline-block ml-2">
+                <span
+                  className="bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700"
+                  style={{
+                    backgroundSize: '250% 100%',
+                    animation: prefersReducedMotion
+                      ? undefined
+                      : 'thinkingShimmer 2.2s linear infinite',
+                    WebkitBackgroundClip: 'text',
+                  }}
+                >
+                  Thinking
                 </span>
-              </div>
+
+                {/* accessible live region (hidden visually) */}
+                <span className="sr-only" aria-live="polite">
+                  Assistant is thinking
+                </span>
+              </span>
             ) : (
               <span className="text-sm font-medium transition-colors text-gray-700 group-hover:text-gray-900">
                 Thought process
@@ -317,6 +403,39 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Streaming indicator - appears below content only during streaming */}
+      {isStreaming && !prefersReducedMotion && (
+        <div className="w-full flex items-center gap-3 ml-3">
+          {/* Spinning circles with unique key to force remount on refresh */}
+          <div className="text-purple-500">
+            <SpinningCircles
+              key={`spinner-${messageId || 'default'}-${isStreaming}`}
+              className="w-8 h-8"
+            />
+          </div>
+          {/* Engaging message - appears after 2s delay in streaming response */}
+          <AnimatePresence mode="wait">
+            {showEngagingMessage && (
+              <motion.span
+                key={currentMessageIndex}
+                className="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700"
+                style={{
+                  backgroundSize: '250% 100%',
+                  animation: 'thinkingShimmer 2.2s linear infinite',
+                  WebkitBackgroundClip: 'text',
+                }}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.3 }}
+              >
+                {ENGAGING_MESSAGES[currentMessageIndex]}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 };
