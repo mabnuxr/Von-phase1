@@ -145,7 +145,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const chatButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleChatsHover = (isHovering: boolean) => {
-    if (isHovering && chatButtonRef.current) {
+    if (isHovering) {
+      if (!chatButtonRef.current) return; // Prevent rendering with invalid position
       const rect = chatButtonRef.current.getBoundingClientRect();
       setDropdownPosition({
         top: rect.top,
