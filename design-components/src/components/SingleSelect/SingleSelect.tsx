@@ -209,13 +209,15 @@ export const SingleSelect: React.FC<SingleSelectProps> = ({
     padding: `${spacing[2]} ${spacing[3]}`,
     paddingRight: '36px', // Make room for chevron
     backgroundColor: disabled ? colors.neutral[200] : colors.common.white,
-    border: `1px solid ${error ? colors.error[500] : isOpen ? colors.primary[500] : 'rgba(0,0,0,0.15)'}`,
-    borderRadius: '6px',
+    border: `${isOpen ? '2px' : '1px'} solid ${error ? colors.error[500] : isOpen ? '#d1d5db' : '#e5e7eb'}`, // gray-300 / gray-200
+    borderRadius: '12px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex',
     alignItems: 'center',
     transition: 'all 0.2s ease',
-    boxShadow: isOpen ? `0 0 0 3px ${colors.primary[100]}` : '0 1px 2px rgba(0,0,0,0.04)',
+    boxShadow: isOpen
+      ? '0 0 0 4px #f3f4f6' // gray-100
+      : '0 1px 2px rgba(0,0,0,0.02)',
     outline: 'none',
     position: 'relative',
   };

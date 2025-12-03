@@ -1,8 +1,11 @@
 import React from 'react';
 import { TabPill } from '../TabPill';
-import { Avatar } from '../Avatar';
 import { spacing } from '../../theme';
-import { LOGO_URL } from '../../constants';
+import { PlusIcon } from '@phosphor-icons/react';
+import { MenuIcon } from '../Chat/icons';
+
+const VON_COMBINATION_MARK_URL =
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
 
 export interface Tab {
   id: string;
@@ -22,21 +25,6 @@ export interface TopBarProps {
   onTabClick?: (id: string) => void;
 
   /**
-   * Avatar label/initials
-   */
-  avatarLabel?: string;
-
-  /**
-   * Avatar image source
-   */
-  avatarSrc?: string;
-
-  /**
-   * Avatar click handler
-   */
-  onAvatarClick?: () => void;
-
-  /**
    * Show hamburger menu icon
    * @default true
    */
@@ -48,19 +36,25 @@ export interface TopBarProps {
   onMenuClick?: () => void;
 
   /**
-   * Logo source URL
-   */
-  logoSrc?: string;
-
-  /**
-   * Logo text to display next to the icon (e.g., "Von")
-   */
-  logoText?: string;
-
-  /**
    * Logo click handler
    */
   onLogoClick?: () => void;
+
+  /**
+   * New chat button click handler
+   */
+  onNewChatClick?: () => void;
+
+  /**
+   * Optional element to render before the logo (e.g., back button)
+   */
+  leftElement?: React.ReactNode;
+
+  /**
+   * Optional element to render on the right side (e.g., back button)
+   * Replaces the default "New Chat" button when provided
+   */
+  rightElement?: React.ReactNode;
 }
 
 /**
@@ -84,24 +78,21 @@ export interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({
   tabs = [],
   onTabClick,
-  avatarLabel,
-  avatarSrc,
-  onAvatarClick,
   showMenu = true,
   onMenuClick,
-  logoSrc = LOGO_URL,
-  logoText,
   onLogoClick,
+  onNewChatClick,
+  leftElement,
+  rightElement,
 }) => {
   const containerStyles: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '8px 12px',
+    padding: '8px 20px 8px 20px',
     gap: '12px',
     height: '52px',
-    backgroundColor: '#FFFFFF',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+    backgroundColor: 'transparent',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
   };
@@ -122,12 +113,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     justifyContent: 'center',
     borderRadius: '6px',
     transition: 'background-color 0.2s ease',
-  };
-
-  const logoStyles: React.CSSProperties = {
-    height: '36px',
-    width: 'auto',
-    cursor: onLogoClick ? 'pointer' : 'default',
   };
 
   const centerSectionStyles: React.CSSProperties = {
@@ -155,13 +140,17 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div style={containerStyles}>
       {/* Left Section */}
-      <div style={leftSectionStyles} onClick={onLogoClick}>
-        {logoSrc && <img src={logoSrc} alt="Logo" style={logoStyles} />}
-        {logoText && (
-          <span className="text-lg font-semibold text-[#1d1d1f] font-sf hover:cursor-pointer">
-            {logoText}
-          </span>
-        )}
+      <div style={leftSectionStyles}>
+        {leftElement}
+        {/* Von Combination Mark Logo */}
+        <img
+          src={VON_COMBINATION_MARK_URL}
+          alt="Von logo"
+          width={72}
+          height={28}
+          style={{ cursor: onLogoClick ? 'pointer' : 'default' }}
+          onClick={onLogoClick}
+        />
         {showMenu && (
           <button
             style={iconButtonStyles}
@@ -174,9 +163,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             }}
             aria-label="Menu"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M3 12h18M3 6h18M3 18h18" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <MenuIcon size={20} />
           </button>
         )}
       </div>
@@ -207,9 +194,18 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       )}
 
-      {/* Right Section */}
+      {/* Right Section - Custom element or New Chat Button */}
       <div style={rightSectionStyles}>
-        <Avatar src={avatarSrc} fallback={avatarLabel} size="medium" onClick={onAvatarClick} />
+        {rightElement ?? (
+          <button
+            className="h-8 px-3 flex items-center justify-center gap-1 rounded-lg bg-gray-900 text-white text-sm font-semibold transition-all duration-200 cursor-pointer hover:opacity-90"
+            onClick={onNewChatClick}
+            title="Create a new chat"
+          >
+            New Chat
+            <PlusIcon size={14} weight="bold" />
+          </button>
+        )}
       </div>
     </div>
   );

@@ -116,7 +116,6 @@ export function useConversationInit(urlConversationId?: string) {
         );
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     infiniteConversationsData,
     isLoadingConversations,

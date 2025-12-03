@@ -680,4 +680,12 @@ export interface ChatProps {
    * Backend looks up the message by run_id, so messageId is not needed
    */
   onReject?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Enable slash commands feature
+   * When enabled, typing '/' in the input will show a commands popover
+   * Commands are stored in localStorage and can be managed through UI
+   * @default false
+   */
+  enableCommands?: boolean;
 }

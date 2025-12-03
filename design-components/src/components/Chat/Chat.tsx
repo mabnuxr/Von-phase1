@@ -9,6 +9,7 @@ import { useAguiMessageStream } from './hooks/useAguiMessageStream';
 import { sendMessage as apiSendMessage } from './utils/api';
 import { saveConversation, loadConversation } from './utils/localStorage';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
+import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 
 // Export types from types.ts
 export type {
@@ -67,6 +68,7 @@ export const Chat: React.FC<ChatProps> = ({
   onInputWhileDisabled,
   onApprove,
   onReject,
+  enableCommands = false,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -310,11 +312,9 @@ export const Chat: React.FC<ChatProps> = ({
     'bg-white',
     'antialiased',
     'font-sf',
-    isFullPage
-      ? 'w-screen h-screen rounded-none border-none'
-      : `rounded-2xl border border-gray-200`,
-    isFixed && 'fixed z-[1000] shadow-[0_8px_24px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.08)]',
-    !isFixed && !isFullPage && 'shadow-[0_4px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]',
+    isFullPage ? 'w-screen h-screen rounded-none border-none' : `rounded-lg border border-gray-200`,
+    isFixed && 'fixed z-[1000] shadow-xs',
+    !isFixed && !isFullPage && 'shadow-xs',
     isFullPage && 'fixed inset-0 z-[999]',
   ]
     .filter(Boolean)
@@ -361,11 +361,13 @@ export const Chat: React.FC<ChatProps> = ({
         {/* Messages or Empty State */}
         {messages.length === 0 ? (
           <ChatEmptyState
-            onPromptClick={(prompt) => {
-              handleSendMessage(prompt);
-            }}
+            userName={userName}
+            placeholder={placeholder}
+            onSendMessage={handleSendMessage}
             disabled={examplePromptsDisabled}
             onDisabledClick={onExamplePromptDisabledClick}
+            enableCommands={enableCommands}
+            banner={banner}
           />
         ) : (
           <div className="flex flex-col">
@@ -420,22 +422,40 @@ export const Chat: React.FC<ChatProps> = ({
         <div ref={messagesEndRef} className="h-px" />
       </div>
 
-      {/* Banner above input (if provided) */}
-      {banner && <div className="px-3">{banner}</div>}
+      {/* Banner above input (if provided) - only show when there are messages */}
+      {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
 
-      <ChatInput
-        placeholder={placeholder}
-        onSend={handleSendMessage}
-        onStop={handleStop}
-        disabled={
-          isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
-        }
-        isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
-        disableSubmit={disableSubmit}
-        value={inputValue}
-        onChange={setInputValue}
-        onDisabledInput={onInputWhileDisabled}
-      />
+      {/* Only show bottom input when there are messages (not in empty state) */}
+      {messages.length > 0 &&
+        (enableCommands ? (
+          <ChatInputWithCommands
+            placeholder={placeholder}
+            onSend={handleSendMessage}
+            onStop={handleStop}
+            disabled={
+              isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
+            }
+            isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+            disableSubmit={disableSubmit}
+            value={inputValue}
+            onChange={setInputValue}
+            onDisabledInput={onInputWhileDisabled}
+          />
+        ) : (
+          <ChatInput
+            placeholder={placeholder}
+            onSend={handleSendMessage}
+            onStop={handleStop}
+            disabled={
+              isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
+            }
+            isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+            disableSubmit={disableSubmit}
+            value={inputValue}
+            onChange={setInputValue}
+            onDisabledInput={onInputWhileDisabled}
+          />
+        ))}
     </div>
   );
 };

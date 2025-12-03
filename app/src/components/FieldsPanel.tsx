@@ -16,25 +16,25 @@ export default function FieldsPanel() {
   return (
     <div className="w-full h-full flex flex-col">
       {/* Fields List */}
-      <div className="h-full w-full px-6 pb-6">
-        <div className="flex flex-col gap-6 h-full">
+      <div className="h-full w-full pb-6">
+        <div className="flex flex-col gap-6 h-full w-2xl mx-auto">
           {/* Header Row with Description and Search */}
-          <div className="flex flex-row items-baseline justify-between gap-4">
+          <div className="flex flex-col items-baseline justify-between">
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-1">
                 Salesforce Field Mappings
               </h3>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs font-medium text-gray-600">
                 Configure Salesforce object and field mappings for your org.
               </p>
             </div>
-            <div className="mt-2 relative flex-1 max-w-md">
+            <div className="relative mt-2 flex-1 w-full">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setFieldsSearchTerm(e.target.value)}
                 placeholder="Search fields..."
-                className="w-full px-4 py-2 pl-10 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple focus:border-transparent bg-white"
+                className="w-full px-4 py-2.5 pl-10 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               />
               <svg
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-gray-400"
@@ -54,7 +54,7 @@ export default function FieldsPanel() {
 
           <div className="flex-1 overflow-y-auto settings-scrollbar">
             {/* Fields List */}
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-2">
               {filteredFields.map((field: Field) => (
                 <FieldItem key={field.id} field={field} />
               ))}

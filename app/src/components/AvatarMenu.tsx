@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SettingsIcon, LogoutIcon } from "./icons";
+import { GearIcon, SignOutIcon } from "@phosphor-icons/react";
 
 export interface AvatarMenuProps {
   /**
@@ -92,10 +92,11 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
     };
   }, [isOpen, onClose]);
 
-  const menuTop = triggerRect ? `${triggerRect.bottom + 8}px` : "60px";
-  const menuRight = triggerRect
-    ? `${window.innerWidth - triggerRect.right}px`
-    : "16px";
+  // Position menu above the trigger, aligned to the left edge
+  const menuBottom = triggerRect
+    ? `${window.innerHeight - triggerRect.top}px`
+    : "60px";
+  const menuLeft = triggerRect ? `${triggerRect.left}px` : "16px";
 
   const handleItemClick = (callback?: () => void) => {
     callback?.();
@@ -108,10 +109,10 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
         <motion.div
           ref={menuRef}
           className="fixed bg-white border border-black/10 rounded-xl shadow-elevated min-w-[240px] z-[1000]"
-          style={{ top: menuTop, right: menuRight }}
-          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          style={{ bottom: menuBottom, left: menuLeft }}
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{
             duration: 0.2,
             ease: [0.16, 1, 0.3, 1],
@@ -138,7 +139,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
               onClick={() => handleItemClick(onSettingsClick)}
               whileTap={{ scale: 0.98 }}
             >
-              <SettingsIcon />
+              <GearIcon size={20} weight="duotone" className="text-gray-700" />
               Settings
             </motion.button>
 
@@ -147,7 +148,11 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
               onClick={() => handleItemClick(onLogoutClick)}
               whileTap={{ scale: 0.98 }}
             >
-              <LogoutIcon />
+              <SignOutIcon
+                size={20}
+                weight="regular"
+                className="text-gray-700"
+              />
               Logout
             </motion.button>
           </div>

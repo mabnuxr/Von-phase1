@@ -1,9 +1,9 @@
 import {
-  IntegrationCard,
   ConfirmationModal,
   Banner,
   Text,
   TabSwitcher,
+  IntegrationCard,
 } from "@vonlabs/design-components";
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
@@ -20,6 +20,7 @@ import { IntegrationConfigPane } from "./IntegrationConfigPane";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
+  getIntegrationById,
 } from "../constants/integrationMetadata";
 
 export interface Integration {
@@ -253,6 +254,12 @@ export function IntegrationsPanel() {
     cancelAuthorization,
   ]);
 
+  // Define tabs
+  const tabs = [
+    { id: "apps", label: "Configure new" },
+    { id: "active-integrations", label: "Connected" },
+  ];
+
   // Loading state
   if (isLoading) {
     return (
@@ -282,118 +289,134 @@ export function IntegrationsPanel() {
     );
   }
 
-  // Define tabs
-  const tabs = [
-    { id: "apps", label: "Add a new integration" },
-    { id: "active-integrations", label: "Saved Integrations" },
-  ];
-
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden">
-      {/* Tab Switcher */}
-      <div className="px-6 pt-6 pb-4 shrink-0">
-        <TabSwitcher
-          tabs={tabs}
-          activeTabId={integrationsActiveTab}
-          onTabClick={(id) =>
-            setIntegrationsActiveTab(id as "apps" | "active-integrations")
-          }
-        />
+    <div className="flex flex-col h-full p-2">
+      {/* Heading - Fixed */}
+      <div className="">
+        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Integrations</h2>
+          <p className="text-sm text-gray-600">
+            Connect and manage your external services
+          </p>
+        </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto">
-        {integrationsActiveTab === "apps" ? (
-          // Apps Tab - Configuration View (always visible)
-          <AppsConfigPanel />
-        ) : (
-          // Active Integrations Tab - Existing Grid View
-          <div className="px-6 py-6">
-            {/* OAuth Error Banner */}
-            {oauthError && (
-              <div className="mb-4">
-                <Banner
-                  variant="warning"
-                  message={oauthError}
-                  onClose={() => setOauthError(null)}
-                  dismissible={true}
-                />
-              </div>
-            )}
+      {/* Content - Scrollable */}
+      <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
+        <div className="pt-6 pb-12 space-y-6 w-2xl mx-auto">
+          {/* Tab Switcher */}
+          <TabSwitcher
+            tabs={tabs}
+            activeTabId={integrationsActiveTab}
+            onTabClick={(id) =>
+              setIntegrationsActiveTab(id as "apps" | "active-integrations")
+            }
+          />
 
-            {/* Empty state - only for Active Integrations tab */}
-            {!isLoading && (!integrationsData || integrations.length === 0) ? (
-              <div className="flex items-center justify-center min-h-[300px]">
-                <Text variant="body" color="secondary">
-                  No active integrations.
-                </Text>
-              </div>
-            ) : (
-              // Integrations Grid
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
-                {integrations.map((integration) => {
-                  const backendIntegration =
-                    integrationsData?.integrations.find(
-                      (i: { id: string }) => i.id === integration.id,
+          {/* Tab Content */}
+          {integrationsActiveTab === "apps" ? (
+            // Apps Tab - Configuration View (always visible)
+            <AppsConfigPanel />
+          ) : (
+            // Active Integrations Tab - Existing Grid View
+            <div className="">
+              {/* OAuth Error Banner */}
+              {oauthError && (
+                <div className="mb-4">
+                  <Banner
+                    variant="warning"
+                    message={oauthError}
+                    onClose={() => setOauthError(null)}
+                    dismissible={true}
+                  />
+                </div>
+              )}
+
+              {/* Empty state - only for Active Integrations tab */}
+              {!isLoading &&
+              (!integrationsData || integrations.length === 0) ? (
+                <div className="flex items-center justify-center min-h-[300px]">
+                  <Text variant="body" color="secondary">
+                    No active integrations.
+                  </Text>
+                </div>
+              ) : (
+                // Integrations List
+                <div className="bg-white overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
+                  {integrations.map((integration) => {
+                    const backendIntegration =
+                      integrationsData?.integrations.find(
+                        (i: { id: string }) => i.id === integration.id,
+                      );
+                    const isAuthenticating =
+                      backendIntegration?.authenticationStatus ===
+                      AuthenticationStatus.AUTHENTICATING;
+                    const isTimedOut = timedOutIntegrations.includes(
+                      integration.id,
                     );
-                  const isAuthenticating =
-                    backendIntegration?.authenticationStatus ===
-                    AuthenticationStatus.AUTHENTICATING;
-                  const isTimedOut = timedOutIntegrations.includes(
-                    integration.id,
-                  );
-                  const isLoading =
-                    loadingIntegrationId === integration.id ||
-                    (isAuthenticating && !isTimedOut);
+                    const isLoading =
+                      loadingIntegrationId === integration.id ||
+                      (isAuthenticating && !isTimedOut);
 
-                  // Extract config data
-                  const config = backendIntegration?.config || {};
-                  const accessLevel = backendIntegration?.accessLevel as
-                    | string
-                    | undefined;
-                  const environmentType = config.environment_type as
-                    | string
-                    | undefined;
-                  const instanceUrl = config.instance_url as string | undefined;
+                    // Extract config data
+                    const config = backendIntegration?.config || {};
+                    const accessLevel = backendIntegration?.accessLevel as
+                      | string
+                      | undefined;
+                    const environmentType = config.environment_type as
+                      | string
+                      | undefined;
+                    const instanceUrl = config.instance_url as
+                      | string
+                      | undefined;
 
-                  // Check if this integration is readonly (tenant-level owned by someone else)
-                  const isReadonly = backendIntegration?.readonly === true;
+                    // Check if this integration is readonly (tenant-level owned by someone else)
+                    const isReadonly = backendIntegration?.readonly === true;
 
-                  return (
-                    <IntegrationCard
-                      key={integration.id}
-                      name={integration.name}
-                      integrationLogoPath={integration.integrationLogoPath}
-                      enabled={integration.enabled}
-                      disabled={isLoading || isReadonly}
-                      loadingText={isLoading ? "Authenticating" : undefined}
-                      userOrTenant={accessLevel}
-                      environment={
-                        environmentType === "sandbox"
-                          ? "dev"
-                          : environmentType === "production"
-                            ? "prod"
-                            : undefined
-                      }
-                      instanceUrl={instanceUrl}
-                      onToggle={
-                        isReadonly
-                          ? undefined
-                          : (enabled: boolean) =>
-                              handleToggle(integration.id, enabled)
-                      }
-                      onEdit={
-                        isReadonly
-                          ? undefined
-                          : () => handleEdit(integration.id)
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                    // Get description from metadata
+                    const integrationKey =
+                      backendIntegration?.type?.toLowerCase();
+                    const metadata = integrationKey
+                      ? getIntegrationById(integrationKey)
+                      : undefined;
+
+                    return (
+                      <IntegrationCard
+                        key={integration.id}
+                        name={integration.name}
+                        description={metadata?.description}
+                        integrationLogoPath={integration.integrationLogoPath}
+                        enabled={integration.enabled}
+                        disabled={isLoading || isReadonly}
+                        loadingText={isLoading ? "Authenticating" : undefined}
+                        userOrTenant={accessLevel}
+                        environment={
+                          environmentType === "sandbox"
+                            ? "dev"
+                            : environmentType === "production"
+                              ? "prod"
+                              : undefined
+                        }
+                        instanceUrl={instanceUrl}
+                        onToggle={
+                          isReadonly
+                            ? undefined
+                            : (enabled: boolean) =>
+                                handleToggle(integration.id, enabled)
+                        }
+                        onEdit={
+                          isReadonly
+                            ? undefined
+                            : () => handleEdit(integration.id)
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Integration Config Pane - Globally available */}

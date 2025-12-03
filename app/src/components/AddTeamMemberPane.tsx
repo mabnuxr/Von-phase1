@@ -160,33 +160,33 @@ export function AddTeamMemberPane() {
 
       {/* Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[480px] bg-white shadow-elevated z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-[480px] p-2 z-50 transform transition-transform duration-300 ease-in-out ${
           addingTeamMember ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-xs">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 shrink-0">
+          <div className="px-5 py-3 border-b border-gray-200 shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 m-0">
                 Add Team Member
               </h2>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                 aria-label="Close panel"
               >
                 <svg
-                  className="w-5 h-5 text-gray-500"
+                  className="size-5"
+                  viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  viewBox="0 0 24 24"
                 >
                   <path
+                    d="M6 18L18 6M6 6l12 12"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
               </button>
@@ -214,12 +214,12 @@ export function AddTeamMemberPane() {
                 />
               )}
 
-              {/* Description */}
+              {/* Description
               <div>
                 <p className="text-sm text-gray-600">
                   Add a new team member to your organization.
                 </p>
-              </div>
+              </div> */}
 
               {/* First Name */}
               <div>
@@ -309,10 +309,10 @@ export function AddTeamMemberPane() {
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-200 shrink-0">
-            <div className="flex justify-end gap-3">
+            <div className="flex items-center justify-end gap-3">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               >
                 Cancel
               </button>
@@ -321,7 +321,7 @@ export function AddTeamMemberPane() {
                 disabled={
                   addMutation.isPending || rolesLoading || rolesNotInitialized
                 }
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 border rounded-lg hover:bg-gray-800 transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {addMutation.isPending ? "Adding..." : "Add Team Member"}
               </button>

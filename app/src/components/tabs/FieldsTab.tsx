@@ -12,23 +12,36 @@ export function FieldsTab() {
   ];
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden">
-      {/* Tab Switcher */}
-      <div className="px-6 pt-6 pb-4 shrink-0">
-        <TabSwitcher
-          tabs={tabs}
-          activeTabId={fieldsActiveTab}
-          onTabClick={(id) => setFieldsActiveTab(id as "salesforce" | "voniq")}
-        />
+    <div className="flex flex-col h-full p-2">
+      {/* Heading - Fixed */}
+      <div className="">
+        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Fields</h2>
+          <p className="text-sm text-gray-600">
+            Manage your VonIQ and Salesforce fields
+          </p>
+        </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto">
-        {fieldsActiveTab === "salesforce" ? (
-          <FieldsPanel />
-        ) : (
-          <VonIQFieldsPanel />
-        )}
+      {/* Content - Scrollable */}
+      <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
+        <div className="pt-6 pb-12 space-y-6 w-2xl mx-auto">
+          {/* Tab Switcher */}
+          <TabSwitcher
+            tabs={tabs}
+            activeTabId={fieldsActiveTab}
+            onTabClick={(id) =>
+              setFieldsActiveTab(id as "salesforce" | "voniq")
+            }
+          />
+
+          {/* Tab Content */}
+          {fieldsActiveTab === "salesforce" ? (
+            <FieldsPanel />
+          ) : (
+            <VonIQFieldsPanel />
+          )}
+        </div>
       </div>
     </div>
   );

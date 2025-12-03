@@ -108,29 +108,22 @@ export function ManageUsersTab() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header Section - Fixed */}
-      <div className="px-6 pt-6 border-b border-gray-200 shrink-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              {isLoading
-                ? "Loading team members..."
-                : "Add and manage team members"}
-            </p>
-          </div>
-          <div className="flex flex-row-reverse gap-4">
-            {isAdmin && (
-              <button
-                onClick={handleAddTeamMemberClick}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 hover:cursor-pointer transition-colors duration-200 shadow-sm"
-              >
-                Add Team Member
-              </button>
-            )}
-            {/* Search Input */}
-            <div className="relative">
+    <div className="flex flex-col h-full p-2">
+      {/* Heading - Fixed */}
+      <div className="">
+        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
+          <p className="text-sm text-gray-600">Add and manage team members</p>
+        </div>
+      </div>
+
+      {/* Content - Scrollable */}
+      <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
+        <div className="pt-6 pb-12 space-y-6 max-w-3xl mx-auto">
+          {/* Actions Row */}
+          <div className="flex items-center gap-4">
+            {/* Search Input - Full Width */}
+            <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SearchIcon className="w-4 h-4 text-gray-400" />
               </div>
@@ -139,212 +132,218 @@ export function ManageUsersTab() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+                className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               />
             </div>
+            {isAdmin && (
+              <button
+                onClick={handleAddTeamMemberClick}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm flex-shrink-0"
+              >
+                Add Team Member
+              </button>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Table Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        {/* Loading State */}
-        {isLoading && (
-          <div className="overflow-hidden border border-gray-200 rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Joined
-                  </th>
-                  {isAdmin && (
+          {/* Table Content */}
+          {/* Loading State */}
+          {isLoading && (
+            <div className="overflow-hidden border border-gray-200 rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
                     <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
                     >
-                      Action
+                      Name
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {[1, 2, 3].map((i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-5 bg-gray-200 rounded-full animate-pulse w-20"></div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <p className="text-sm text-red-600">
-              Failed to load team members. Please try again.
-            </p>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && !error && filteredUsers.length === 0 && (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <p className="text-sm text-gray-500">
-              {searchQuery
-                ? "No users found matching your search"
-                : "No team members yet"}
-            </p>
-          </div>
-        )}
-
-        {/* Data Table */}
-        {!isLoading && !error && filteredUsers.length > 0 && (
-          <div className="overflow-hidden border border-gray-200 rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Role
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
-                  >
-                    Joined
-                  </th>
-                  {isAdmin && (
                     <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
                     >
-                      Action
+                      Email
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((member) => (
-                  <tr
-                    key={member.id}
-                    className="hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {member.firstName} {member.lastName}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700">
-                        {member.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
-                        {member.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600">
-                        {formatDate(member.joinedDate)}
-                      </div>
-                    </td>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Role
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Joined
+                    </th>
                     {isAdmin && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {/* Don't show delete option for current user */}
-                        {member.email !== user?.email && (
-                          <div className="relative">
-                            <button
-                              onClick={() => toggleMenu(member.id)}
-                              className="p-1 rounded-lg hover:bg-gray-200 transition-colors duration-150"
-                              aria-label="Open menu"
-                            >
-                              <MoreVerticalIcon className="w-5 h-5 text-gray-600" />
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {openMenuUserId === member.id && (
-                              <div
-                                ref={menuRef}
-                                className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
-                              >
-                                <button
-                                  onClick={() =>
-                                    handleDeleteUser(
-                                      member.id,
-                                      `${member.firstName} ${member.lastName}`,
-                                    )
-                                  }
-                                  disabled={removeMutation.isPending}
-                                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                                >
-                                  <TrashIcon className="w-4 h-4" />
-                                  {removeMutation.isPending
-                                    ? "Removing..."
-                                    : "Delete User"}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      >
+                        Action
+                      </th>
                     )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {[1, 2, 3].map((i) => (
+                    <tr key={i}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-32"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-5 bg-gray-200 rounded-full animate-pulse w-20"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <p className="text-sm text-red-600">
+                Failed to load team members. Please try again.
+              </p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && !error && filteredUsers.length === 0 && (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <p className="text-sm text-gray-500">
+                {searchQuery
+                  ? "No users found matching your search"
+                  : "No team members yet"}
+              </p>
+            </div>
+          )}
+
+          {/* Data Table */}
+          {!isLoading && !error && filteredUsers.length > 0 && (
+            <div className="overflow-hidden border border-gray-200 rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Name
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Email
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Role
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
+                      Joined
+                    </th>
+                    {isAdmin && (
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      >
+                        Action
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.map((member) => (
+                    <tr
+                      key={member.id}
+                      className="hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {member.firstName} {member.lastName}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-700">
+                          {member.email}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
+                          {member.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600">
+                          {formatDate(member.joinedDate)}
+                        </div>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {/* Don't show delete option for current user */}
+                          {member.email !== user?.email && (
+                            <div className="relative">
+                              <button
+                                onClick={() => toggleMenu(member.id)}
+                                className="p-1 rounded-lg hover:bg-gray-200 transition-colors duration-150"
+                                aria-label="Open menu"
+                              >
+                                <MoreVerticalIcon className="w-5 h-5 text-gray-600" />
+                              </button>
+
+                              {/* Dropdown Menu */}
+                              {openMenuUserId === member.id && (
+                                <div
+                                  ref={menuRef}
+                                  className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                                >
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteUser(
+                                        member.id,
+                                        `${member.firstName} ${member.lastName}`,
+                                      )
+                                    }
+                                    disabled={removeMutation.isPending}
+                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                  >
+                                    <TrashIcon className="w-4 h-4" />
+                                    {removeMutation.isPending
+                                      ? "Removing..."
+                                      : "Delete User"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Success Banner */}

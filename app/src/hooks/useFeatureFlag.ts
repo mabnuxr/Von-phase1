@@ -6,6 +6,7 @@ import { useFlags } from "launchdarkly-react-client-sdk";
 export const FEATURE_FLAGS = {
   GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
+  SLASH_COMMANDS: "enableSlashCommands",
 } as const;
 
 /**
@@ -40,6 +41,11 @@ export function useFeatureFlag() {
      */
     isEmailCategorizationEnabled:
       flags[FEATURE_FLAGS.EMAIL_CATEGORIZATION] === true,
+
+    /**
+     * Controls whether Slash Commands feature is enabled in chat
+     */
+    isSlashCommandsEnabled: flags[FEATURE_FLAGS.SLASH_COMMANDS] === true,
 
     /**
      * Raw flags object for advanced usage

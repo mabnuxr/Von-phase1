@@ -1,128 +1,216 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { ChatInput } from './ChatInput';
+import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 
 export interface ChatEmptyStateProps {
+  /**
+   * User's first name for personalized greeting
+   */
+  userName?: string;
   /**
    * Optional example prompts to show
    */
   examplePrompts?: string[];
   /**
-   * Callback when example prompt is clicked
+   * Callback when a message is sent (from input or prompt click)
    */
-  onPromptClick?: (prompt: string) => void;
+  onSendMessage?: (message: string) => void;
   /**
-   * Whether the example prompts are disabled
+   * Whether the input/prompts are disabled
    */
   disabled?: boolean;
   /**
-   * Callback when a disabled prompt is clicked
+   * Callback when a disabled prompt/input is clicked
    */
   onDisabledClick?: () => void;
+  /**
+   * Placeholder text for the input
+   */
+  placeholder?: string;
+  /**
+   * Enable slash commands feature
+   */
+  enableCommands?: boolean;
+  /**
+   * Optional banner to display above the input
+   */
+  banner?: React.ReactNode;
 }
+
+/**
+ * Get greeting based on time of day
+ */
+const getTimeBasedGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) {
+    return 'Good morning';
+  } else if (hour >= 12 && hour < 17) {
+    return 'Good afternoon';
+  } else if (hour >= 17 && hour < 21) {
+    return 'Good evening';
+  } else {
+    return 'Good evening';
+  }
+};
 
 /**
  * Beautiful empty state for chat with animations
  */
 export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
+  userName,
   examplePrompts = [
-    'Show me my revenue forecast',
-    'What deals are at risk this quarter?',
-    'Generate a sales report',
+    'Show me my \n revenue forecast',
+    'What deals are \n at risk this quarter',
+    'Generate a \n sales report',
   ],
-  onPromptClick,
+  onSendMessage,
   disabled = false,
   onDisabledClick,
+  placeholder = 'Ask von anything',
+  enableCommands = false,
+  banner,
 }) => {
+  const greeting = useMemo(() => getTimeBasedGreeting(), []);
+  const displayName = userName || 'there';
+
+  const handlePromptClick = (prompt: string) => {
+    if (disabled) {
+      onDisabledClick?.();
+      return;
+    }
+    onSendMessage?.(prompt);
+  };
+
   return (
     <motion.div
-      className="flex flex-col items-center justify-start min-h-0 px-6 py-8 overflow-y-auto font-sf"
+      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-36 overflow-y-auto font-sf"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* Animated Icon */}
+      {/* Animated Icon - Von Logo */}
       <motion.div
-        className="mb-4"
+        className="mb-6"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
-        <motion.div
-          className="w-16 h-16 rounded-2xl gradient-von-purple flex items-center justify-center shadow-lg"
-          animate={{
-            boxShadow: [
-              '0 10px 30px rgba(128, 57, 233, 0.3)',
-              '0 15px 40px rgba(128, 57, 233, 0.4)',
-              '0 10px 30px rgba(128, 57, 233, 0.3)',
-            ],
-          }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 28 28"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <svg
-            className="w-8 h-8 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-        </motion.div>
+          <path
+            d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
+            fill="url(#paint0_radial_empty_state)"
+          />
+          <path
+            d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+            stroke="white"
+            strokeWidth="1.33"
+          />
+          <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+          <defs>
+            <radialGradient
+              id="paint0_radial_empty_state"
+              cx="0"
+              cy="0"
+              r="1"
+              gradientUnits="userSpaceOnUse"
+              gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
+            >
+              <stop stopColor="#FFF3EB" />
+              <stop offset="0.26" stopColor="#FF9042" />
+              <stop offset="1" stopColor="#854FFF" />
+            </radialGradient>
+          </defs>
+        </svg>
       </motion.div>
 
-      {/* Heading */}
-      <motion.h3
-        className="text-2xl font-bold text-gray-900 mb-3 tracking-tight"
+      {/* Personalized Greeting */}
+      <motion.div
+        className="text-center mb-6"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
       >
-        Start a conversation
-      </motion.h3>
+        <h2 className="text-3xl text-gray-900">
+          {greeting}, {displayName}
+        </h2>
+        <p className="text-3xl text-gray-600">How can I help you today?</p>
+      </motion.div>
 
-      {/* Subtitle */}
-      <motion.p
-        className="text-base text-gray-500 text-center mb-8 max-w-xl"
+      {/* Banner (if provided) */}
+      {banner && (
+        <motion.div
+          className="w-full max-w-3xl px-5"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.4 }}
+        >
+          {banner}
+        </motion.div>
+      )}
+
+      {/* Input Field - Using ChatInput component */}
+      <motion.div
+        className="w-full max-w-3xl mb-6"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.4 }}
       >
-        Ask me anything about your revenue, forecasts, or deals. I'm here to help!
-      </motion.p>
+        {enableCommands ? (
+          <ChatInputWithCommands
+            placeholder={placeholder}
+            onSend={onSendMessage}
+            disabled={disabled}
+            disableSubmit={disabled}
+            onDisabledInput={onDisabledClick}
+          />
+        ) : (
+          <ChatInput
+            placeholder={placeholder}
+            onSend={onSendMessage}
+            disabled={disabled}
+            disableSubmit={disabled}
+            onDisabledInput={onDisabledClick}
+          />
+        )}
+      </motion.div>
 
-      {/* Example Prompts */}
+      {/* Example Prompts - Horizontal Layout */}
       <motion.div
-        className="flex flex-col gap-3 w-full max-w-2xl"
+        className="w-full max-w-2xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.4 }}
       >
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
-          Try asking:
-        </p>
-        {examplePrompts.map((prompt, index) => (
-          <motion.button
-            key={prompt}
-            className={`text-left px-5 py-4 rounded-xl bg-white border border-gray-200 shadow-sm text-base text-gray-700 font-medium transition-all ${
-              disabled
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:border-von-purple-light hover:bg-von-purple-light hover:shadow-md cursor-pointer'
-            }`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: disabled ? 0.5 : 1, x: 0 }}
-            transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
-            whileHover={disabled ? {} : { scale: 1.02, x: 4 }}
-            whileTap={disabled ? {} : { scale: 0.98 }}
-            onClick={() => (disabled ? onDisabledClick?.() : onPromptClick?.(prompt))}
-          >
-            <span className="text-von-purple mr-2">→</span>
-            {prompt}
-          </motion.button>
-        ))}
+        {/* <p className="text-xs font-medium text-gray-400 uppercase tracking-wider text-center mb-4">
+          Or try asking
+        </p> */}
+        <div className="flex flex-row justify-center gap-3">
+          {examplePrompts.map((prompt, index) => (
+            <motion.button
+              key={prompt}
+              className={`px-4 py-2.5 shadow-xs rounded-xl w-full bg-white border border-gray-200 text-sm text-gray-700 font-medium transition-all whitespace-pre-line text-start ${
+                disabled
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:border-gray-300 hover:shadow-sm cursor-pointer'
+              }`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: disabled ? 0.5 : 1, y: 0 }}
+              transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
+              whileHover={disabled ? {} : { scale: 1.02 }}
+              whileTap={disabled ? {} : { scale: 0.98 }}
+              onClick={() => handlePromptClick(prompt)}
+            >
+              {prompt}
+            </motion.button>
+          ))}
+        </div>
       </motion.div>
     </motion.div>
   );
