@@ -834,3 +834,18 @@ export const TrashIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) 
   </svg>
 ));
 TrashIcon.displayName = 'TrashIcon';
+
+// Menu Icon - Hamburger menu for navigation
+export const MenuIcon = memo<IconProps>(({ className = 'w-5 h-5', size = 20 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path d="M3 12h18M3 6h18M3 18h18" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+));
+MenuIcon.displayName = 'MenuIcon';

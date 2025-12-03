@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { CopyIcon, PencilSimpleIcon } from '@phosphor-icons/react';
 
 export interface IntegrationCardProps {
   /**
@@ -178,29 +179,10 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
               title="Click to copy"
             >
               <span className="truncate max-w-[200px]">{instanceUrl}</span>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
+              <CopyIcon
+                size={12}
                 className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <path
-                  d="M13.3333 6H7.33333C6.59695 6 6 6.59695 6 7.33333V13.3333C6 14.0697 6.59695 14.6667 7.33333 14.6667H13.3333C14.0697 14.6667 14.6667 14.0697 14.6667 13.3333V7.33333C14.6667 6.59695 14.0697 6 13.3333 6Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M3.33333 10H2.66667C2.31304 10 1.97391 9.85952 1.72386 9.60947C1.47381 9.35943 1.33333 9.02029 1.33333 8.66667V2.66667C1.33333 2.31304 1.47381 1.97391 1.72386 1.72386C1.97391 1.47381 2.31304 1.33333 2.66667 1.33333H8.66667C9.02029 1.33333 9.35943 1.47381 9.60948 1.72386C9.85952 1.97391 10 2.31304 10 2.66667V3.33333"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              />
             </button>
           )}
         </div>
@@ -220,21 +202,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
             className="p-1.5 hover:bg-gray-100 rounded transition-colors cursor-pointer border-none bg-transparent"
             aria-label="Edit integration"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M11.334 2.00004C11.5091 1.82494 11.7169 1.68605 11.9457 1.59129C12.1745 1.49653 12.4197 1.44775 12.6673 1.44775C12.9149 1.44775 13.1601 1.49653 13.3889 1.59129C13.6177 1.68605 13.8256 1.82494 14.0007 2.00004C14.1758 2.17513 14.3147 2.383 14.4094 2.61178C14.5042 2.84055 14.553 3.08575 14.553 3.33337C14.553 3.58099 14.5042 3.82619 14.4094 4.05497C14.3147 4.28374 14.1758 4.49161 14.0007 4.66671L5.00065 13.6667L1.33398 14.6667L2.33398 11L11.334 2.00004Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <PencilSimpleIcon size={16} />
           </button>
         )}
 

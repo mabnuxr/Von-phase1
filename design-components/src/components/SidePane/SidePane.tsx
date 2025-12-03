@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { XIcon } from '@phosphor-icons/react';
 
 export interface SidePaneProps {
   isOpen: boolean;
@@ -207,19 +208,7 @@ export const SidePane: React.FC<SidePaneProps> = ({
                 className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                 aria-label="Close"
               >
-                <svg
-                  className="size-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <path
-                    d="M6 18L18 6M6 6l12 12"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <XIcon size={20} />
               </button>
             </div>
           </div>

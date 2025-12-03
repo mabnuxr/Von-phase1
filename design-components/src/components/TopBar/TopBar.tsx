@@ -2,6 +2,7 @@ import React from 'react';
 import { TabPill } from '../TabPill';
 import { spacing } from '../../theme';
 import { PlusIcon } from '@phosphor-icons/react';
+import { MenuIcon } from '../Chat/icons';
 
 const VON_COMBINATION_MARK_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
@@ -162,9 +163,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             }}
             aria-label="Menu"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M3 12h18M3 6h18M3 18h18" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+<MenuIcon size={20} />
           </button>
         )}
       </div>
