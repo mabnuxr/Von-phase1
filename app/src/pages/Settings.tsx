@@ -8,12 +8,13 @@ import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import {
-  FieldsIcon,
-  IntegrationsIcon,
-  ProcessIcon,
-  EmailIcon,
-  TeamIcon,
-} from "../components/icons";
+  GitCommitIcon,
+  TreeStructureIcon,
+  RowsIcon,
+  EnvelopeIcon,
+  UsersIcon,
+  ArrowLeftIcon,
+} from "@phosphor-icons/react";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
@@ -23,7 +24,6 @@ import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
-import { LOGO_URL } from "../config/constants";
 import { ProcessConfigurationTab } from "../components/tabs/ProcessConfigurationTab";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
@@ -35,7 +35,7 @@ const Settings = () => {
   const [selectedSettingId, setSelectedSettingId] = useState("integrations");
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
-  const avatarButtonRef = useRef<HTMLDivElement>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Get current user context for preferences
   const tenantId = user?.tenantId;
@@ -81,10 +81,8 @@ const Settings = () => {
   ]);
 
   // Handle avatar click
-  const handleAvatarClick = () => {
-    if (avatarButtonRef.current) {
-      setAvatarRect(avatarButtonRef.current.getBoundingClientRect());
-    }
+  const handleAvatarClick = (rect: DOMRect) => {
+    setAvatarRect(rect);
     setIsAvatarMenuOpen(true);
   };
 
@@ -148,19 +146,19 @@ const Settings = () => {
       {
         id: "integrations",
         label: "Integrations",
-        icon: <IntegrationsIcon />,
+        icon: <GitCommitIcon size={20} weight="duotone" />,
       },
     ],
     configurations: [
       {
         id: "process",
         label: "Process",
-        icon: <ProcessIcon />,
+        icon: <TreeStructureIcon size={20} weight="duotone" />,
       },
       {
         id: "fields",
         label: "Fields",
-        icon: <FieldsIcon />,
+        icon: <RowsIcon size={20} weight="duotone" />,
       },
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
@@ -168,7 +166,7 @@ const Settings = () => {
             {
               id: "email",
               label: "Email",
-              icon: <EmailIcon />,
+              icon: <EnvelopeIcon size={20} weight="duotone" />,
             },
           ]
         : []),
@@ -177,7 +175,7 @@ const Settings = () => {
       {
         id: "team",
         label: "Manage Team",
-        icon: <TeamIcon />,
+        icon: <UsersIcon size={20} weight="duotone" />,
       },
     ],
   };
@@ -200,54 +198,69 @@ const Settings = () => {
   };
 
   return (
-    <div className="h-screen bg-[#f5f5f7] flex flex-col">
+    <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
       {/* Field Detail Pane - Global */}
       <FieldDetailPane />
 
       {/* Add Team Member Pane - Global */}
       <AddTeamMemberPane />
 
-      {/* TopBar in White Rounded Container - Full Width */}
-      <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-        <div ref={avatarButtonRef}>
+      {/* Full-width container */}
+      <div className="w-full h-full flex flex-col overflow-hidden">
+        {/* TopBar with transparent background */}
+        <div className="bg-transparent">
           <TopBar
-            logoSrc={LOGO_URL}
-            logoText="Von"
             onLogoClick={() => navigate("/chat")}
             showMenu={false}
-            avatarLabel={avatarLabel}
-            avatarSrc={avatarSrc}
-            onAvatarClick={handleAvatarClick}
-          />
-        </div>
-      </div>
-
-      {/* Avatar Menu Dropdown */}
-      <AvatarMenu
-        userName={displayName}
-        userEmail={user?.email}
-        isOpen={isAvatarMenuOpen}
-        onClose={() => setIsAvatarMenuOpen(false)}
-        onSettingsClick={handleSettingsClick}
-        onLogoutClick={handleLogoutClick}
-        triggerRect={avatarRect}
-      />
-
-      {/* Full-width content container */}
-      <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
-        {/* Left Pane - SettingsSidebar with rounded corners */}
-        <div className="w-[280px] rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <SettingsSidebar
-            settingsItems={settingsItems}
-            selectedSettingId={selectedSettingId}
-            onSettingClick={(id: string) => setSelectedSettingId(id)}
-            width="100%"
+            leftElement={
+              <button
+                onClick={() => navigate("/chat")}
+                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Back to chat"
+              >
+                <ArrowLeftIcon size={20} weight="regular" className="text-gray-600" />
+              </button>
+            }
           />
         </div>
 
-        {/* Right Pane - Content Area with rounded corners */}
-        <div className="flex-1 rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] min-w-0">
-          {renderContent()}
+        {/* Avatar Menu Dropdown */}
+        <AvatarMenu
+          userName={displayName}
+          userEmail={user?.email}
+          isOpen={isAvatarMenuOpen}
+          onClose={() => setIsAvatarMenuOpen(false)}
+          onSettingsClick={handleSettingsClick}
+          onLogoutClick={handleLogoutClick}
+          triggerRect={avatarRect}
+        />
+
+        {/* Two-Pane Layout with Rounded Corners */}
+        <div className="flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0">
+          {/* Left Pane - SettingsSidebar with rounded corners */}
+          <div
+            className="h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
+            style={{ width: isSidebarCollapsed ? "56px" : "240px" }}
+          >
+            <SettingsSidebar
+              settingsItems={settingsItems}
+              selectedSettingId={selectedSettingId}
+              onSettingClick={(id: string) => setSelectedSettingId(id)}
+              width="100%"
+              isCollapsed={isSidebarCollapsed}
+              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              avatarSrc={avatarSrc}
+              avatarLabel={avatarLabel}
+              userName={displayName}
+              userEmail={user?.email}
+              onAvatarClick={handleAvatarClick}
+            />
+          </div>
+
+          {/* Right Pane - Content Area with rounded corners */}
+          <div className="flex-1 rounded-lg bg-white shadow-xs border border-gray-200 min-w-0">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>

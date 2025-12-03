@@ -110,20 +110,22 @@ export function EmailCategorizationTab() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Form Content - Scrollable */}
-      <div className="flex-1 overflow-y-scroll px-6">
-        {/* Heading with separator */}
-        <div className="pt-6 pb-4 border-b border-gray-200">
+    <div className="flex flex-col h-full p-2">
+      {/* Heading - Fixed */}
+      <div className="">
+        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
             Email Correspondence
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="text-sm text-gray-600">
             Configure how emails are identified and filtered in your CRM
           </p>
         </div>
+      </div>
 
-        <div className="py-6 space-y-6">
+      {/* Form Content - Scrollable */}
+      <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
+        <div className="pt-6 pb-12 space-y-6 w-2xl mx-auto">
           {/* Success Banner */}
           {showSuccess && (
             <Banner
@@ -150,7 +152,7 @@ export function EmailCategorizationTab() {
 
           {/* Which object are emails logged to? */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2 pl-1">
               Which object are emails logged to?
               <span
                 className="inline-flex items-center justify-center size-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
@@ -166,14 +168,14 @@ export function EmailCategorizationTab() {
                 handleFieldChange("emailObjectType", e.target.value)
               }
               placeholder="e.g., Task, Email, Activity"
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               required
             />
           </div>
 
           {/* Which field identifies the opportunity? */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2 pl-1">
               Which field identifies the opportunity?
               <span
                 className="inline-flex items-center justify-center size-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
@@ -189,14 +191,14 @@ export function EmailCategorizationTab() {
                 handleFieldChange("opportunityField", e.target.value)
               }
               placeholder="e.g., Related To ID, WhatId"
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               required
             />
           </div>
 
           {/* Which field identifies the account? */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2 pl-1">
               Which field identifies the account?
               <span
                 className="inline-flex items-center justify-center size-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
@@ -212,14 +214,14 @@ export function EmailCategorizationTab() {
                 handleFieldChange("accountField", e.target.value)
               }
               placeholder="e.g., Account ID, AccountId"
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               required
             />
           </div>
 
           {/* Which field identifies the email body? */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-800 mb-2 pl-1">
               Which field identifies the email body?
               <span
                 className="inline-flex items-center justify-center size-4 bg-von-purple-50 text-von-purple-700 rounded-full text-xs cursor-help"
@@ -235,7 +237,7 @@ export function EmailCategorizationTab() {
                 handleFieldChange("emailBodyField", e.target.value)
               }
               placeholder="e.g., Description, Body"
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               required
             />
           </div>
@@ -246,7 +248,7 @@ export function EmailCategorizationTab() {
       </div>
 
       {/* Footer Actions - Sticky */}
-      <div className="px-6 py-4 shrink-0 border-gray-200">
+      <div className="px-4 py-4 shrink-0 border-t border-gray-200">
         <div className="flex items-center justify-end gap-4">
           {hasUnsavedChanges && (
             <span className="text-sm text-amber-600 font-medium">
@@ -256,7 +258,7 @@ export function EmailCategorizationTab() {
           <button
             onClick={handleSave}
             disabled={isSaving || !hasUnsavedChanges}
-            className="px-5 py-2.5 text-sm font-medium text-white bg-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="cursor-pointer px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {isSaving ? "Saving..." : "Save"}
           </button>

@@ -107,11 +107,11 @@ export const RadioButton: React.FC<RadioButtonProps> = ({
   };
 
   const radioStyles: React.CSSProperties = {
-    width: '20px',
-    height: '20px',
+    width: '16px',
+    height: '16px',
     margin: 0,
     cursor: disabled ? 'not-allowed' : 'pointer',
-    accentColor: error ? semanticColors.border.error : '#8039e9', // von-purple
+    accentColor: error ? semanticColors.border.error : '#4f39f6', // von-purple
     WebkitAppearance: 'radio',
     MozAppearance: 'radio',
     appearance: 'auto',
@@ -124,7 +124,7 @@ export const RadioButton: React.FC<RadioButtonProps> = ({
 
   const labelStyles: React.CSSProperties = {
     display: 'block',
-    fontSize: fontSize.base.size,
+    fontSize: fontSize.sm.size,
     fontWeight: 500,
     color: error
       ? semanticColors.border.error
@@ -133,7 +133,7 @@ export const RadioButton: React.FC<RadioButtonProps> = ({
         : semanticColors.text.primary,
     fontFamily: fontFamily.sans,
     cursor: disabled ? 'not-allowed' : 'pointer',
-    lineHeight: fontSize.base.lineHeight,
+    lineHeight: fontSize.sm.lineHeight,
   };
 
   const helperTextStyles: React.CSSProperties = {

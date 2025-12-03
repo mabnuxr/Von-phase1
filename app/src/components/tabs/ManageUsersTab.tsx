@@ -108,29 +108,24 @@ export function ManageUsersTab() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header Section - Fixed */}
-      <div className="px-6 pt-6 border-b border-gray-200 shrink-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              {isLoading
-                ? "Loading team members..."
-                : "Add and manage team members"}
-            </p>
-          </div>
-          <div className="flex flex-row-reverse gap-4">
-            {isAdmin && (
-              <button
-                onClick={handleAddTeamMemberClick}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 hover:cursor-pointer transition-colors duration-200 shadow-sm"
-              >
-                Add Team Member
-              </button>
-            )}
-            {/* Search Input */}
-            <div className="relative">
+    <div className="flex flex-col h-full p-2">
+      {/* Heading - Fixed */}
+      <div className="">
+        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
+          <p className="text-sm text-gray-600">
+            Add and manage team members
+          </p>
+        </div>
+      </div>
+
+      {/* Content - Scrollable */}
+      <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
+        <div className="pt-6 pb-12 space-y-6 max-w-3xl mx-auto">
+          {/* Actions Row */}
+          <div className="flex items-center gap-4">
+            {/* Search Input - Full Width */}
+            <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <SearchIcon className="w-4 h-4 text-gray-400" />
               </div>
@@ -139,15 +134,20 @@ export function ManageUsersTab() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-von-purple-300 focus:border-transparent transition-all duration-200 bg-white hover:border-gray-300"
+                className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               />
             </div>
+            {isAdmin && (
+              <button
+                onClick={handleAddTeamMemberClick}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm flex-shrink-0"
+              >
+                Add Team Member
+              </button>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Table Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+          {/* Table Content */}
         {/* Loading State */}
         {isLoading && (
           <div className="overflow-hidden border border-gray-200 rounded-lg">
@@ -345,6 +345,7 @@ export function ManageUsersTab() {
             </table>
           </div>
         )}
+        </div>
       </div>
 
       {/* Success Banner */}

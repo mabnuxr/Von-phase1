@@ -6,6 +6,7 @@
 export interface IntegrationMetadata {
   id: string;
   name: string;
+  description: string;
   logoPath: string;
   disabled?: boolean;
   category: "CRM" | "Call Recorder" | "Other";
@@ -19,6 +20,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   salesforce: {
     id: "salesforce",
     name: "Salesforce",
+    description: "Sync opportunities, contacts, and accounts from Salesforce CRM",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg",
     category: "CRM",
@@ -26,6 +28,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   hubspot: {
     id: "hubspot",
     name: "HubSpot",
+    description: "Connect HubSpot to sync deals, contacts, and company data",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
@@ -34,6 +37,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   gong: {
     id: "gong",
     name: "Gong",
+    description: "Import call recordings and transcripts from Gong",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
@@ -41,6 +45,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   fathom: {
     id: "fathom",
     name: "Fathom",
+    description: "Sync meeting recordings and AI-generated summaries from Fathom",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/fathom.svg",
     category: "Call Recorder",
@@ -48,6 +53,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   zoom: {
     id: "zoom",
     name: "Zoom",
+    description: "Connect Zoom to import meeting recordings and transcripts",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/zoom.svg",
     category: "Call Recorder",
@@ -56,6 +62,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   googlecalendar: {
     id: "googlecalendar",
     name: "Google Calendar",
+    description: "Sync calendar events and meeting schedules from Google Calendar",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/googleCalender.svg",
     category: "Other",

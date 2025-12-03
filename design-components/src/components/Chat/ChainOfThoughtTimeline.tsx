@@ -130,7 +130,7 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
                 {!isLastStep && (
                   <motion.div
                     variants={lineVariants}
-                    className="w-[2px] bg-gray-300 flex-1"
+                    className="w-[1.5px] bg-gray-200 flex-1 rounded-full"
                     style={{ transformOrigin: 'top' }}
                   />
                 )}

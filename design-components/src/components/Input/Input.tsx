@@ -146,36 +146,38 @@ export const Input: React.FC<InputProps> = ({
     },
     medium: {
       padding: `${spacing[2]} ${spacing[3]}`,
-      fontSize: fontSize.base.size,
-      lineHeight: fontSize.base.lineHeight,
+      fontSize: fontSize.sm.size,
+      lineHeight: fontSize.sm.lineHeight,
     },
     large: {
       padding: `${spacing[3]} ${spacing[4]}`,
-      fontSize: fontSize.lg.size,
-      lineHeight: fontSize.lg.lineHeight,
+      fontSize: fontSize.sm.size,
+      lineHeight: fontSize.sm.lineHeight,
     },
   };
 
   // Determine border color based on state
   const getBorderColor = () => {
     if (error) return semanticColors.border.error;
-    if (isFocused) return semanticColors.border.focus;
+    if (isFocused) return '#d1d5db'; // gray-300
     if (disabled) return 'rgba(0,0,0,0.1)';
-    return 'rgba(0,0,0,0.15)';
+    return '#e5e7eb'; // gray-200
   };
 
   const inputStyles: React.CSSProperties = {
     fontFamily: fontFamily.sans,
     width: fullWidth ? '100%' : 'auto',
-    border: `1px solid ${getBorderColor()}`,
-    borderRadius: '6px',
+    border: `${isFocused ? '2px' : '1px'} solid ${getBorderColor()}`,
+    borderRadius: '12px',
     backgroundColor: disabled ? '#f5f5f7' : '#FFFFFF',
     color: disabled ? semanticColors.text.disabled : '#1d1d1f',
     cursor: disabled ? 'not-allowed' : 'text',
     outline: 'none',
     transition: 'all 0.2s ease',
     boxSizing: 'border-box',
-    boxShadow: isFocused ? '0 0 0 3px rgba(0,125,250,0.1)' : '0 1px 2px rgba(0,0,0,0.04)',
+    boxShadow: isFocused
+      ? '0 0 0 4px #f3f4f6' // gray-100
+      : '0 1px 2px rgba(0,0,0,0.02)',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
     ...sizeStyles[size],

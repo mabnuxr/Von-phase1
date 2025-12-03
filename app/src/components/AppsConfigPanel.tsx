@@ -2,6 +2,7 @@ import usePreferencesStore from "../store/preferencesStore";
 import { getAllIntegrations } from "../constants/integrationMetadata";
 import type { IntegrationMetadata } from "../constants/integrationMetadata";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { Button } from "@vonlabs/design-components";
 
 // Define category order for display
 const CATEGORY_ORDER: Array<"CRM" | "Call Recorder" | "Other"> = [
@@ -47,59 +48,74 @@ export function AppsConfigPanel() {
   );
 
   return (
-    <div className="px-6 py-6">
-      {CATEGORY_ORDER.map((category) => {
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      {CATEGORY_ORDER.map((category, categoryIndex) => {
         const categoryApps = appsByCategory[category];
         if (!categoryApps || categoryApps.length === 0) return null;
 
         return (
-          <div key={category} className="mb-6 last:mb-0">
+          <div key={category}>
             {/* Category Header */}
-            <h3 className="mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              {category}
-            </h3>
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {category}
+              </h3>
+            </div>
 
-            {/* App Grid */}
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 max-w-5xl">
-              {categoryApps.map((app) => (
-                <button
+            {/* App List */}
+            <div className="divide-y divide-gray-200">
+              {categoryApps.map((app, appIndex) => (
+                <div
                   key={app.id}
-                  onClick={() => handleAppClick(app.id, app.disabled)}
-                  disabled={app.disabled}
                   className={`
-                    group relative flex flex-col items-center justify-center
-                    ${app.id === "googlecalendar" ? "p-5" : "p-4"}
-                    rounded-lg border transition-all duration-300 ease-out
-                    ${
-                      app.disabled
-                        ? "opacity-40 cursor-not-allowed bg-gray-50 border-gray-200"
-                        : "cursor-pointer bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:-translate-y-1 active:translate-y-0"
-                    }
+                    flex items-center justify-between px-4 py-4
+                    ${app.disabled ? "opacity-50" : ""}
                   `}
                 >
-                  {/* App Icon */}
-                  <div className="w-10 h-10 mb-2 flex items-center justify-center">
-                    <img
-                      src={app.logoPath}
-                      alt={app.name}
-                      className="w-full h-full object-contain"
-                    />
+                  {/* Left side - Icon and Info */}
+                  <div className="flex items-center gap-4">
+                    {/* App Icon */}
+                    <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                      <img
+                        src={app.logoPath}
+                        alt={app.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+
+                    {/* App Name and Description */}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900">
+                        {app.name}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {app.description}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* App Name */}
-                  <span className="text-xs font-medium text-gray-900 text-center">
-                    {app.name}
-                  </span>
-
-                  {/* Coming Soon Badge for Disabled Apps */}
-                  {app.disabled && (
-                    <span className="mt-1.5 text-[10px] text-gray-500">
-                      Coming soon
-                    </span>
-                  )}
-                </button>
+                  {/* Right side - Connect Button or Coming Soon */}
+                  <div className="flex-shrink-0 ml-4">
+                    {app.disabled ? (
+                      <span className="text-sm text-gray-400">Coming soon</span>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="small"
+                        onClick={() => handleAppClick(app.id, app.disabled)}
+                      >
+                        Connect
+                      </Button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
+
+            {/* Add bottom border except for last category */}
+            {categoryIndex < CATEGORY_ORDER.filter(c => appsByCategory[c]?.length > 0).length - 1 && (
+              <div className="border-b border-gray-200" />
+            )}
           </div>
         );
       })}

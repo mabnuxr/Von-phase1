@@ -228,9 +228,9 @@ export function ToolCallItem({
     isTransfer || isCompletion
       ? 'text-gray-600'
       : isError
-        ? 'text-gray-600'
+        ? 'text-red-400'
         : hasArtifact
-          ? 'text-blue-600'
+          ? 'text-indigo-600'
           : 'text-gray-900';
 
   const clickableStyle = hasArtifact ? 'cursor-pointer hover:underline' : '';
@@ -252,7 +252,7 @@ export function ToolCallItem({
       <div className="flex justify-between items-center mt-2 mb-2">
         {/* Text with optional purple shimmer animation */}
         <h4
-          className={`pl-4 text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors ${
+          className={`pl-2 text-sm font-semibold ${headingColor} ${clickableStyle} transition-colors ${
             isExecuting
               ? 'bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700'
               : ''

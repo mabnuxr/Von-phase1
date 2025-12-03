@@ -217,13 +217,13 @@ export function FieldDetailPane() {
 
       {/* Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[480px] bg-white shadow-elevated z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-[480px] p-2 z-50 transform transition-transform duration-300 ease-in-out ${
           isPanelOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-xs">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 shrink-0">
+          <div className="px-5 py-3 border-b border-gray-200 shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 m-0">
                 {isCreatingNewVonIQField
@@ -234,7 +234,7 @@ export function FieldDetailPane() {
               </h2>
               <button
                 onClick={handleClose}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
               >
                 <svg
                   className="size-5"
@@ -278,13 +278,13 @@ export function FieldDetailPane() {
 
                   {/* Salesforce Connection Banner */}
                   {fieldsError && (
-                    <div className="p-3 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="px-3 py-2 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-xl">
                       <p className="text-sm text-amber-800">
                         {getSalesforceErrorMessage(fieldsError)}
                       </p>
                       <a
                         href="/settings?tab=integrations"
-                        className="text-sm text-von-purple hover:text-von-purple-600 font-medium"
+                        className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
                       >
                         Go to Integrations →
                       </a>
@@ -523,14 +523,14 @@ export function FieldDetailPane() {
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
               >
                 {isDefaultVonIQField ? "Close" : "Cancel"}
               </button>
               {!isDefaultVonIQField && (
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 text-sm font-medium text-white bg-von-purple border border-von-purple rounded-lg hover:bg-von-purple-600 transition-colors duration-200"
+                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors duration-200 cursor-pointer"
                 >
                   Save changes
                 </button>

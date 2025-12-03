@@ -40,7 +40,6 @@ import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
   STREAM_TIMEOUT_MS,
-  LOGO_URL,
 } from "../config/constants";
 
 const Dashboard = () => {
@@ -123,7 +122,6 @@ const Dashboard = () => {
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
-  const avatarButtonRef = useRef<HTMLDivElement>(null);
 
   // Sidebar collapse state
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
@@ -213,10 +211,8 @@ const Dashboard = () => {
   };
 
   // Handle avatar click
-  const handleAvatarClick = () => {
-    if (avatarButtonRef.current) {
-      setAvatarRect(avatarButtonRef.current.getBoundingClientRect());
-    }
+  const handleAvatarClick = (rect: DOMRect) => {
+    setAvatarRect(rect);
     setIsAvatarMenuOpen(true);
   };
 
@@ -629,7 +625,7 @@ const Dashboard = () => {
   }, [isSalesforceReady, shouldShakeBanner]);
 
   return (
-    <div className="h-screen bg-[#f5f5f7] flex flex-col items-center overflow-hidden">
+    <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
       {/* Connection Error Banner */}
       {showConnectionBanner && (
         <Banner
@@ -654,18 +650,12 @@ const Dashboard = () => {
       {/* Full-width container */}
       <div className="w-full h-full flex flex-col overflow-hidden">
         {/* TopBar in White Rounded Container */}
-        <div className="m-4 mb-2 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div ref={avatarButtonRef}>
-            <TopBar
-              logoSrc={LOGO_URL}
-              logoText="Von"
-              onLogoClick={() => navigate("/chat")}
-              showMenu={false}
-              avatarLabel={avatarLabel}
-              avatarSrc={avatarSrc}
-              onAvatarClick={handleAvatarClick}
-            />
-          </div>
+        <div className="bg-transparent">
+          <TopBar
+            onLogoClick={() => navigate("/chat")}
+            showMenu={false}
+            onNewChatClick={handleNewChatClick}
+          />
         </div>
 
         {/* Avatar Menu Dropdown */}
@@ -680,11 +670,11 @@ const Dashboard = () => {
         />
 
         {/* Two-Pane Layout with Rounded Corners */}
-        <div className="flex flex-1 px-4 pb-4 gap-2 overflow-hidden min-h-0">
+        <div className="flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0">
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
           <div
-            className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-xl overflow-hidden bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300"
-            style={{ width: isSidebarCollapsed ? "64px" : "280px" }}
+            className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
+            style={{ width: isSidebarCollapsed ? "64px" : "240px" }}
           >
             <ChatSidebar
               chatItems={chatItems}
@@ -698,6 +688,11 @@ const Dashboard = () => {
               isFetchingMore={isFetchingNextPage}
               hasNextPage={!!hasNextPage}
               onLoadMore={() => fetchNextPage()}
+              avatarSrc={avatarSrc}
+              avatarLabel={avatarLabel}
+              userName={displayName}
+              userEmail={user?.email}
+              onAvatarClick={handleAvatarClick}
             />
           </div>
 
@@ -706,7 +701,7 @@ const Dashboard = () => {
             {isInitializing ||
             isCreatingNewChat ||
             (isLoadingMessages && conversationMessages.length === 0) ? (
-              <div className="flex-1 flex items-center justify-center bg-white rounded-xl text-sm text-[#666]">
+              <div className="flex-1 flex items-center justify-center bg-white rounded-lg text-sm text-[#666]">
                 {isCreatingNewChat
                   ? "Creating new chat..."
                   : isLoadingMessages
@@ -717,7 +712,7 @@ const Dashboard = () => {
               <Chat
                 title="von AI"
                 userId={user?.id}
-                userName={user?.name || user?.firstName}
+                userName={user?.firstName || user?.name?.split(' ')[0]}
                 userEmail={user?.email}
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
                 pusherConfig={pusherConfig}

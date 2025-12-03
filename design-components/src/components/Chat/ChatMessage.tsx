@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
+import { InfoIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
@@ -211,6 +212,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     runId: string; // Artifact's own run_id
   } | null>(null);
 
+  // Ref and state for measuring user message height (for alignment)
+  const userMessageRef = useRef<HTMLDivElement>(null);
+  const [isSingleLine, setIsSingleLine] = useState(true);
+
+  // Measure user message height to determine alignment
+  useLayoutEffect(() => {
+    if (isUser && userMessageRef.current) {
+      // Single line threshold ~36px (accounts for line-height + padding)
+      const height = userMessageRef.current.offsetHeight;
+      setIsSingleLine(height <= 36);
+    }
+  }, [isUser, content]);
+
   // Handle artifact click from timeline
   const handleArtifactClick = (
     artifactId: string,
@@ -229,7 +243,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           w-full transition-all duration-300
           ${
             isUser
-              ? 'py-6 bg-gradient-to-br from-gray-50 via-gray-50/80 to-white hover:from-gray-100/50 hover:via-gray-50/90 hover:to-white'
+              ? 'py-6 bg-white hover:bg-gray-50'
               : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`
           }
         `}
@@ -240,17 +254,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             {/* Message layout */}
             <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
               {/* Horizontal layout: Avatar + Content (reversed for user) */}
-              <div className={`flex items-start gap-4 ${isUser ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-100 border border-gray-200 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}>
                 {/* Avatar and Status Badge */}
                 <div className="flex items-start gap-2 flex-shrink-0">
                   {isUser ? (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                       {userInitials}
                     </div>
                   ) : (
                     <>
-                      <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-white text-xs font-semibold">
-                        AI
+                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z" fill="url(#paint0_radial_chat_msg)"/>
+                          <path d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z" stroke="white" strokeWidth="1.33"/>
+                          <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33"/>
+                          <defs>
+                            <radialGradient id="paint0_radial_chat_msg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)">
+                              <stop stopColor="#FFF3EB"/>
+                              <stop offset="0.26" stopColor="#FF9042"/>
+                              <stop offset="1" stopColor="#854FFF"/>
+                            </radialGradient>
+                          </defs>
+                        </svg>
                       </div>
                     </>
                   )}
@@ -262,7 +287,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {!isUser && status === 'failed' && errorMessage ? (
                     <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
-                    <>
+                    <div>
                       {isStreaming &&
                         !content &&
                         !reasoningContent &&
@@ -286,10 +311,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                       {/* Render stepMessages if available (AGUI multi-step responses) */}
                       {stepMessages && stepMessages.length > 0 ? (
-                        <div className="space-y-6">
-                          {/* STREAMING STRATEGY: Always show ThinkingBlock during streaming to prevent jitter */}
+                        <div className="space-y-4">
+                          {/* STREAMING STRATEGY: Split intermediate steps from final output */}
                           {isStreaming ? (
-                            // While streaming: Show ALL steps in ThinkingBlock (no final message extracted)
+                            // While streaming: ALL steps go in ThinkingBlock (collapsed), summary shown in header
                             <ThinkingBlock
                               key="thinking-block"
                               isStreaming={isStreaming}
@@ -375,10 +400,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           </div>
                         )
                       )}
-                    </>
+
+                    </div>
                   ) : (
                     // User messages - simple rendering
-                    <div className="prose-sm markdown-body max-w-none">
+                    <div ref={userMessageRef} className="prose-sm markdown-body max-w-none text-right">
                       <Streamdown parseIncompleteMarkdown={false} controls={{ table: true }}>
                         {content}
                       </Streamdown>
@@ -387,43 +413,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (
-                    <div className="max-w-fit flex items-start gap-3 py-3 px-4 bg-purple-50/50 border border-purple-100 rounded-lg">
+                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
                       <div className="flex-shrink-0 mt-0.5">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          className="text-purple-600"
-                        >
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <line
-                            x1="12"
-                            y1="8"
-                            x2="12"
-                            y2="8"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <line
-                            x1="12"
-                            y1="11"
-                            x2="12"
-                            y2="16"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        <InfoIcon size={20} className="text-indigo-600" />
                       </div>
                       <span className="text-sm text-gray-800 font-sf leading-relaxed flex-1">
                         Response stopped by the user

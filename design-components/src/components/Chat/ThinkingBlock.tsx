@@ -150,17 +150,12 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const startTimeRef = useRef<number | null>(null);
   const timerIdRef = useRef<number | null>(null);
 
-  // Auto-collapse when status becomes 'completed' AND not streaming
-  // Auto-expand when streaming starts (handles refresh recovery)
+  // Auto-collapse only when status becomes 'completed' (and user hasn't manually toggled)
   useEffect(() => {
-    if (isStreaming && !userManuallyToggled) {
-      // Expand when streaming starts (fixes collapse on refresh)
-      setIsExpanded(true);
-    } else if (status === 'completed' && !isStreaming && !userManuallyToggled) {
-      // Only collapse when truly completed and not streaming
+    if (status === 'completed' && !userManuallyToggled) {
       setIsExpanded(false);
     }
-  }, [status, isStreaming, userManuallyToggled]);
+  }, [status, userManuallyToggled]);
 
   // Timer effect - tracks elapsed time and resets on new steps
   useEffect(() => {
@@ -212,7 +207,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
       >
         <div className="flex items-center justify-between flex-1 min-w-0 hover:opacity-80">
           <div className="flex items-center gap-2">
-            {/* Chevron icon - shows when not streaming or when collapsed */}
+            {/* Chevron - only show when not streaming */}
             {!isStreaming && (
               <motion.svg
                 className="w-4 h-4 text-gray-500 group-hover:text-gray-700 transition-colors flex-shrink-0 ml-2"
@@ -231,27 +226,33 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
               </motion.svg>
             )}
 
-            {/* Label */}
+            {/* Spinner + Thinking label when streaming */}
             {isStreaming ? (
-              <span className="text-sm font-medium relative inline-block ml-2">
-                <span
-                  className="bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700"
-                  style={{
-                    backgroundSize: '250% 100%',
-                    animation: prefersReducedMotion
-                      ? undefined
-                      : 'thinkingShimmer 2.2s linear infinite',
-                    WebkitBackgroundClip: 'text',
-                  }}
-                >
-                  Thinking
-                </span>
+              <div className="flex items-center gap-2 ml-2">
+                <SpinningCircles
+                  key={`spinner-${messageId || 'default'}-${isStreaming}`}
+                  className="text-purple-500 flex-shrink-0 w-5 h-5"
+                />
+                <span className="text-sm font-medium relative inline-block">
+                  <span
+                    className="bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700"
+                    style={{
+                      backgroundSize: '250% 100%',
+                      animation: prefersReducedMotion
+                        ? undefined
+                        : 'thinkingShimmer 2.2s linear infinite',
+                      WebkitBackgroundClip: 'text',
+                    }}
+                  >
+                    Thinking
+                  </span>
 
-                {/* accessible live region (hidden visually) */}
-                <span className="sr-only" aria-live="polite">
-                  Assistant is thinking
+                  {/* accessible live region (hidden visually) */}
+                  <span className="sr-only" aria-live="polite">
+                    Assistant is thinking
+                  </span>
                 </span>
-              </span>
+              </div>
             ) : (
               <span className="text-sm font-medium transition-colors text-gray-700 group-hover:text-gray-900">
                 Thought process
@@ -316,19 +317,6 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Streaming indicator - appears below content only during streaming */}
-      {isStreaming && !prefersReducedMotion && (
-        <div className="w-full flex items-center gap-3 ml-3">
-          {/* Spinning circles with unique key to force remount on refresh */}
-          <div className="text-purple-500">
-            <SpinningCircles
-              key={`spinner-${messageId || 'default'}-${isStreaming}`}
-              className="w-8 h-8"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

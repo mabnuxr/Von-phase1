@@ -168,10 +168,10 @@ export const SidePane: React.FC<SidePaneProps> = ({
         onClick={onClose}
       />
 
-      {/* Side Panel */}
+      {/* Side Panel Wrapper */}
       <div
         ref={panelRef}
-        className={`fixed right-0 top-0 h-full bg-white shadow-xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full pr-2 py-2 z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         } ${className} ${isDragging ? 'select-none' : ''}`}
         style={{
@@ -183,43 +183,53 @@ export const SidePane: React.FC<SidePaneProps> = ({
         {/* Resize handle - only visible on desktop when resizable */}
         {enableResize && (
           <div
-            className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-purple-600 transition-colors group z-10"
+            className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-indigo-600 transition-colors group z-10"
             onMouseDown={handleMouseDown}
           >
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-12 bg-gray-300 group-hover:bg-purple-600 transition-colors rounded-r" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-12 bg-gray-300 group-hover:bg-indigo-600 transition-colors rounded-r" />
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div className="flex-1">
-            {typeof title === 'string' ? (
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-            ) : (
-              title
-            )}
+        {/* Inner Container */}
+        <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-xs">
+          {/* Header */}
+          <div className="px-5 py-3 border-b border-gray-200 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                {typeof title === 'string' ? (
+                  <h2 className="text-lg font-semibold text-gray-900 m-0">{title}</h2>
+                ) : (
+                  title
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <svg
+                  className="size-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    d="M6 18L18 6M6 6l12 12"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
+
+          {/* Footer (optional) */}
+          {footer && <div className="px-6 py-4 border-t border-gray-200 shrink-0">{footer}</div>}
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
-
-        {/* Footer (optional) */}
-        {footer && <div className="border-t border-gray-200 px-6 py-4">{footer}</div>}
       </div>
     </>
   );
