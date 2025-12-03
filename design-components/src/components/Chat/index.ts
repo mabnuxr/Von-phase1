@@ -137,4 +137,3 @@ export {
   needsSync,
   getStorageInfo,
 } from './utils/localStorage';
-

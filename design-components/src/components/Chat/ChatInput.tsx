@@ -165,52 +165,53 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               : 'shadow-sm hover:shadow-md'
           }`}
           style={{
-            background: disabled && !isStreaming
-              ? '#e5e7eb'
-              : 'radial-gradient(198.27% 158.06% at 85.59% -18.75%, #FFF2E9 0%, #FF9E8C 26%, #BE9AF3 100%)',
+            background:
+              disabled && !isStreaming
+                ? '#e5e7eb'
+                : 'radial-gradient(198.27% 158.06% at 85.59% -18.75%, #FFF2E9 0%, #FF9E8C 26%, #BE9AF3 100%)',
           }}
         >
           <div className="flex items-center gap-2 bg-white rounded-[15px] px-3 py-2">
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => handleChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled && !isStreaming}
-            className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
-            style={{
-              minHeight: '20px',
-              maxHeight: '200px',
-              lineHeight: '1.5',
-            }}
-            rows={1}
-          />
+            <textarea
+              ref={textareaRef}
+              value={message}
+              onChange={(e) => handleChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={disabled && !isStreaming}
+              className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
+              style={{
+                minHeight: '20px',
+                maxHeight: '200px',
+                lineHeight: '1.5',
+              }}
+              rows={1}
+            />
 
-          {isStreaming ? (
-            // Stop button during streaming
-            <button
-              className="w-8 h-8 flex-shrink-0 rounded-full border-0 bg-white flex items-center justify-center text-gray-900 transition-all duration-150 cursor-pointer hover:opacity-80"
-              onClick={onStop}
-              aria-label="Stop generating"
-            >
-              <StopIcon />
-            </button>
-          ) : (
-            // Send button when not streaming
-            <button
-              className={`w-8 h-8 flex-shrink-0 rounded-full border-0 bg-gray-900 flex items-center justify-center text-white transition-all duration-150 ${
-                disabled || disableSubmit || !message.trim()
-                  ? 'cursor-not-allowed opacity-50'
-                  : 'cursor-pointer hover:bg-gray-800 hover:shadow-lg'
-              }`}
-              onClick={handleSend}
-              disabled={disabled || disableSubmit || !message.trim()}
-              aria-label="Send message"
-            >
-              <SendIcon size={16} />
-            </button>
-          )}
+            {isStreaming ? (
+              // Stop button during streaming
+              <button
+                className="w-8 h-8 flex-shrink-0 rounded-full border-0 bg-white flex items-center justify-center text-gray-900 transition-all duration-150 cursor-pointer hover:opacity-80"
+                onClick={onStop}
+                aria-label="Stop generating"
+              >
+                <StopIcon />
+              </button>
+            ) : (
+              // Send button when not streaming
+              <button
+                className={`w-8 h-8 flex-shrink-0 rounded-full border-0 bg-gray-900 flex items-center justify-center text-white transition-all duration-150 ${
+                  disabled || disableSubmit || !message.trim()
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer hover:bg-gray-800 hover:shadow-lg'
+                }`}
+                onClick={handleSend}
+                disabled={disabled || disableSubmit || !message.trim()}
+                aria-label="Send message"
+              >
+                <SendIcon size={16} />
+              </button>
+            )}
           </div>
         </div>
 

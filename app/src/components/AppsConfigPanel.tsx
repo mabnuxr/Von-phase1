@@ -64,7 +64,7 @@ export function AppsConfigPanel() {
 
             {/* App List */}
             <div className="divide-y divide-gray-200">
-              {categoryApps.map((app, appIndex) => (
+              {categoryApps.map((app) => (
                 <div
                   key={app.id}
                   className={`
@@ -113,9 +113,10 @@ export function AppsConfigPanel() {
             </div>
 
             {/* Add bottom border except for last category */}
-            {categoryIndex < CATEGORY_ORDER.filter(c => appsByCategory[c]?.length > 0).length - 1 && (
-              <div className="border-b border-gray-200" />
-            )}
+            {categoryIndex <
+              CATEGORY_ORDER.filter((c) => appsByCategory[c]?.length > 0)
+                .length -
+                1 && <div className="border-b border-gray-200" />}
           </div>
         );
       })}

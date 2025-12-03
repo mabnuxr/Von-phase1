@@ -294,9 +294,7 @@ export function IntegrationsPanel() {
       {/* Heading - Fixed */}
       <div className="">
         <div className="px-4 pt-4 pb-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            Integrations
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">Integrations</h2>
           <p className="text-sm text-gray-600">
             Connect and manage your external services
           </p>
@@ -335,7 +333,8 @@ export function IntegrationsPanel() {
               )}
 
               {/* Empty state - only for Active Integrations tab */}
-              {!isLoading && (!integrationsData || integrations.length === 0) ? (
+              {!isLoading &&
+              (!integrationsData || integrations.length === 0) ? (
                 <div className="flex items-center justify-center min-h-[300px]">
                   <Text variant="body" color="secondary">
                     No active integrations.
@@ -367,14 +366,19 @@ export function IntegrationsPanel() {
                     const environmentType = config.environment_type as
                       | string
                       | undefined;
-                    const instanceUrl = config.instance_url as string | undefined;
+                    const instanceUrl = config.instance_url as
+                      | string
+                      | undefined;
 
                     // Check if this integration is readonly (tenant-level owned by someone else)
                     const isReadonly = backendIntegration?.readonly === true;
 
                     // Get description from metadata
-                    const integrationKey = backendIntegration?.type?.toLowerCase();
-                    const metadata = integrationKey ? getIntegrationById(integrationKey) : undefined;
+                    const integrationKey =
+                      backendIntegration?.type?.toLowerCase();
+                    const metadata = integrationKey
+                      ? getIntegrationById(integrationKey)
+                      : undefined;
 
                     return (
                       <IntegrationCard

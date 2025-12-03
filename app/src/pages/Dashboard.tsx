@@ -712,7 +712,7 @@ const Dashboard = () => {
               <Chat
                 title="von AI"
                 userId={user?.id}
-                userName={user?.firstName || user?.name?.split(' ')[0]}
+                userName={user?.firstName || user?.name?.split(" ")[0]}
                 userEmail={user?.email}
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
                 pusherConfig={pusherConfig}

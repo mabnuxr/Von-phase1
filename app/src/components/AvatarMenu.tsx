@@ -148,7 +148,11 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
               onClick={() => handleItemClick(onLogoutClick)}
               whileTap={{ scale: 0.98 }}
             >
-              <SignOutIcon size={20} weight="regular" className="text-gray-700" />
+              <SignOutIcon
+                size={20}
+                weight="regular"
+                className="text-gray-700"
+              />
               Logout
             </motion.button>
           </div>

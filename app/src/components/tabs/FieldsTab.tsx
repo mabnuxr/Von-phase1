@@ -30,7 +30,9 @@ export function FieldsTab() {
           <TabSwitcher
             tabs={tabs}
             activeTabId={fieldsActiveTab}
-            onTabClick={(id) => setFieldsActiveTab(id as "salesforce" | "voniq")}
+            onTabClick={(id) =>
+              setFieldsActiveTab(id as "salesforce" | "voniq")
+            }
           />
 
           {/* Tab Content */}

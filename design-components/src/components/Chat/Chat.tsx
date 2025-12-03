@@ -310,9 +310,7 @@ export const Chat: React.FC<ChatProps> = ({
     'bg-white',
     'antialiased',
     'font-sf',
-    isFullPage
-      ? 'w-screen h-screen rounded-none border-none'
-      : `rounded-lg border border-gray-200`,
+    isFullPage ? 'w-screen h-screen rounded-none border-none' : `rounded-lg border border-gray-200`,
     isFixed && 'fixed z-[1000] shadow-xs',
     !isFixed && !isFullPage && 'shadow-xs',
     isFullPage && 'fixed inset-0 z-[999]',

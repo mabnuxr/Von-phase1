@@ -169,9 +169,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
               </span>
             )}
           </div>
-          {description && (
-            <span className="text-sm text-gray-500">{description}</span>
-          )}
+          {description && <span className="text-sm text-gray-500">{description}</span>}
           {instanceUrl && (
             <button
               onClick={handleCopyUrl}
@@ -191,9 +189,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       {/* Right side - Actions */}
       <div className="flex items-center gap-3 flex-shrink-0 ml-4">
         {/* Status indicator */}
-        {isLoading && (
-          <span className="text-sm text-von-purple font-medium">{loadingText}</span>
-        )}
+        {isLoading && <span className="text-sm text-von-purple font-medium">{loadingText}</span>}
 
         {/* Edit button */}
         {onEdit && (

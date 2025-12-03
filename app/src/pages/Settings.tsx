@@ -218,9 +218,14 @@ const Settings = () => {
                 className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                 title="Back to chat"
               >
-                <ArrowLeftIcon size={20} weight="regular" className="text-gray-600" />
+                <ArrowLeftIcon
+                  size={20}
+                  weight="regular"
+                  className="text-gray-600"
+                />
               </button>
             }
+            rightElement={<></>}
           />
         </div>
 
@@ -248,7 +253,9 @@ const Settings = () => {
               onSettingClick={(id: string) => setSelectedSettingId(id)}
               width="100%"
               isCollapsed={isSidebarCollapsed}
-              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              onToggleCollapse={() =>
+                setIsSidebarCollapsed(!isSidebarCollapsed)
+              }
               avatarSrc={avatarSrc}
               avatarLabel={avatarLabel}
               userName={displayName}

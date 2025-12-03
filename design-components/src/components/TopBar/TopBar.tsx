@@ -163,7 +163,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             }}
             aria-label="Menu"
           >
-<MenuIcon size={20} />
+            <MenuIcon size={20} />
           </button>
         )}
       </div>

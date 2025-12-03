@@ -121,7 +121,11 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             title="Expand sidebar"
           >
-            <SidebarSimpleIcon size={18} weight="regular" className="text-gray-500" />
+            <SidebarSimpleIcon
+              size={18}
+              weight="regular"
+              className="text-gray-500"
+            />
           </button>
         </div>
 
@@ -161,7 +165,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           <div className="pt-3 mt-auto border-t border-gray-200">
             <button
               className="w-full flex items-center justify-center p-1 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              onClick={(e) => onAvatarClick?.(e.currentTarget.getBoundingClientRect())}
+              onClick={(e) =>
+                onAvatarClick?.(e.currentTarget.getBoundingClientRect())
+              }
               title={userName || userEmail}
             >
               <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
@@ -201,7 +207,11 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           title="Collapse sidebar"
         >
-          <SidebarSimpleIcon size={16} weight="regular" className="text-gray-500" />
+          <SidebarSimpleIcon
+            size={16}
+            weight="regular"
+            className="text-gray-500"
+          />
         </button>
       </div>
 
@@ -326,7 +336,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <div className="pt-3 mt-auto border-t border-gray-200">
           <button
             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            onClick={(e) => onAvatarClick?.(e.currentTarget.getBoundingClientRect())}
+            onClick={(e) =>
+              onAvatarClick?.(e.currentTarget.getBoundingClientRect())
+            }
           >
             {/* Avatar */}
             <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">

@@ -29,4 +29,3 @@ export const MessageAreaError: React.FC<MessageAreaErrorProps> = ({ message }) =
 };
 
 export default MessageAreaError;
-
