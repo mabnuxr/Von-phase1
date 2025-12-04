@@ -569,8 +569,10 @@ const Dashboard = () => {
     : undefined;
 
   // Flatten paginated conversations data
-  const allConversations =
-    infiniteConversationsData?.pages.flatMap((page) => page.data) || [];
+  const allConversations = useMemo(
+    () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
+    [infiniteConversationsData?.pages],
+  );
 
   // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
   // Filter out conversations with empty titles (not yet named by LLM)
