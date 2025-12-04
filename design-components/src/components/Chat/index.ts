@@ -34,6 +34,9 @@ export { ToolCallItem } from './ToolCallItem';
 export { ApprovalCard } from './ApprovalCard';
 export type { ApprovalCardProps, SalesforceOperation, ApprovalToolArgs } from './ApprovalCard';
 
+export { MessageActions } from './MessageActions';
+export type { MessageActionsProps } from './MessageActions';
+
 // Export error components
 export { MessageAreaError } from './MessageAreaError';
 export type { MessageAreaErrorProps } from './MessageAreaError';

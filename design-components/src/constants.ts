@@ -41,3 +41,12 @@ export const SCROLL_LOCK_DURATION_MS = 1000 as const;
  */
 export const LOGO_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.gif' as const;
+
+// ============================================================================
+// External API URLs
+// ============================================================================
+
+/**
+ * Thesys C1 API base URL for dashboard generation
+ */
+export const THESYS_API_URL = 'https://api.thesys.dev/v1/embed' as const;

@@ -5,6 +5,7 @@ import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
 import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 import { MessageAreaError } from './MessageAreaError';
+import { MessageActions } from './MessageActions';
 
 /**
  * Get user initials from name or email
@@ -176,6 +177,18 @@ export interface ChatMessageProps {
    * Used to control visibility of approval buttons
    */
   isLatestMessage?: boolean;
+
+  /**
+   * Enable additional actions menu (three dots with convert to dashboard, etc.)
+   * Controlled by feature flag in parent component
+   * @default false
+   */
+  enableActions?: boolean;
+
+  /**
+   * Callback when convert to dashboard is clicked
+   */
+  onConvertToDashboard?: (messageId: string) => void;
 }
 
 /**
@@ -200,6 +213,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onApprove,
   onReject,
   runId = '',
+  enableActions = false,
+  onConvertToDashboard,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -451,6 +466,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         Response stopped by the user
                       </span>
                     </div>
+                  )}
+
+                  {/* Message Actions - show for completed/stopped assistant messages */}
+                  {!isUser && !isStreaming && (
+                    <MessageActions
+                      messageContent={
+                        stepMessages && stepMessages.length > 0
+                          ? stepMessages.map((s) => s.content).join('\n\n')
+                          : content
+                      }
+                      messageId={messageId || ''}
+                      enableActions={enableActions}
+                      onConvertToDashboard={onConvertToDashboard}
+                    />
                   )}
                 </div>
               </div>

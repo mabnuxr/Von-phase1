@@ -69,6 +69,8 @@ export const Chat: React.FC<ChatProps> = ({
   onApprove,
   onReject,
   enableCommands = false,
+  enableActions = false,
+  onConvertToDashboard,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -408,6 +410,8 @@ export const Chat: React.FC<ChatProps> = ({
                     onApprove={onApprove}
                     onReject={onReject}
                     runId={message.runId}
+                    enableActions={enableActions}
+                    onConvertToDashboard={onConvertToDashboard}
                   />
                 </motion.div>
               ))}

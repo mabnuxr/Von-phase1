@@ -7,6 +7,7 @@ export const FEATURE_FLAGS = {
   GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
+  ACTIONS: "enableDashboards",
 } as const;
 
 /**
@@ -46,6 +47,11 @@ export function useFeatureFlag() {
      * Controls whether Slash Commands feature is enabled in chat
      */
     isSlashCommandsEnabled: flags[FEATURE_FLAGS.SLASH_COMMANDS] === true,
+
+    /**
+     * Controls whether additional actions menu is enabled (convert to dashboard, etc.)
+     */
+    isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
 
     /**
      * Raw flags object for advanced usage

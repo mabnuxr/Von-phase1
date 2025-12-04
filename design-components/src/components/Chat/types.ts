@@ -688,4 +688,16 @@ export interface ChatProps {
    * @default false
    */
   enableCommands?: boolean;
+
+  /**
+   * Enable additional actions menu (three dots with convert to dashboard, etc.)
+   * Controlled by feature flag in parent component
+   * @default false
+   */
+  enableActions?: boolean;
+
+  /**
+   * Callback when convert to dashboard is clicked
+   */
+  onConvertToDashboard?: (messageId: string) => void;
 }
