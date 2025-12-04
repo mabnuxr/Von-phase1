@@ -9,7 +9,14 @@ export interface IntegrationMetadata {
   description: string;
   logoPath: string;
   disabled?: boolean;
-  category: "CRM" | "Call Recorder" | "Other";
+  category:
+    | "CRM"
+    | "Call Recorder"
+    | "Internal Documents"
+    | "Sales Engagement"
+    | "Data Warehouse"
+    | "Customer Support"
+    | "Other";
 }
 
 /**
@@ -70,6 +77,139 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/googleCalender.svg",
     category: "Other",
   },
+  // Call Recorder integrations
+  chorus: {
+    id: "chorus",
+    name: "Chorus",
+    description:
+      "Import call recordings and conversation intelligence from Chorus",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Chorus.svg",
+    category: "Call Recorder",
+    disabled: true,
+  },
+  claricopilot: {
+    id: "claricopilot",
+    name: "Clari Co-pilot",
+    description: "Sync call recordings and insights from Clari Co-pilot",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/ClariCopilot.svg",
+    category: "Call Recorder",
+    disabled: true,
+  },
+  attention: {
+    id: "attention",
+    name: "Attention",
+    description:
+      "Import AI-powered call insights and recordings from Attention",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
+    category: "Call Recorder",
+    disabled: true,
+  },
+  // Internal Documents integrations
+  highspot: {
+    id: "highspot",
+    name: "Highspot",
+    description: "Access sales enablement content and analytics from Highspot",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Highspot.svg",
+    category: "Internal Documents",
+    disabled: true,
+  },
+  seismic: {
+    id: "seismic",
+    name: "Seismic",
+    description: "Sync sales content and enablement materials from Seismic",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Seismic.svg",
+    category: "Internal Documents",
+    disabled: true,
+  },
+  confluence: {
+    id: "confluence",
+    name: "Confluence",
+    description: "Connect Confluence to access team documentation and wikis",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Confluence.svg",
+    category: "Internal Documents",
+    disabled: true,
+  },
+  guru: {
+    id: "guru",
+    name: "Guru",
+    description: "Access knowledge base and team wiki from Guru",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Guru.svg",
+    category: "Internal Documents",
+    disabled: true,
+  },
+  intercom: {
+    id: "intercom",
+    name: "Intercom",
+    description: "Import customer conversations and support data from Intercom",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Intercom.svg",
+    category: "Internal Documents",
+    disabled: true,
+  },
+  // Sales Engagement integrations
+  outreach: {
+    id: "outreach",
+    name: "Outreach",
+    description: "Sync sales sequences and engagement data from Outreach",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
+    category: "Sales Engagement",
+    disabled: true,
+  },
+  salesloft: {
+    id: "salesloft",
+    name: "Salesloft",
+    description: "Import cadences and sales engagement metrics from Salesloft",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
+    category: "Sales Engagement",
+    disabled: true,
+  },
+  // Data Warehouse integrations
+  snowflake: {
+    id: "snowflake",
+    name: "Snowflake",
+    description: "Connect to Snowflake data warehouse for advanced analytics",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Snowflake.svg",
+    category: "Data Warehouse",
+    disabled: true,
+  },
+  databricks: {
+    id: "databricks",
+    name: "Databricks",
+    description: "Integrate with Databricks for data lakehouse analytics",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Databricks.svg",
+    category: "Data Warehouse",
+    disabled: true,
+  },
+  // Customer Support integrations
+  zendesk: {
+    id: "zendesk",
+    name: "Zendesk",
+    description: "Sync support tickets and customer interactions from Zendesk",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Zendesk.svg",
+    category: "Customer Support",
+    disabled: true,
+  },
+  pylon: {
+    id: "pylon",
+    name: "Pylon",
+    description: "Import customer support data and insights from Pylon",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Pylon.png",
+    category: "Customer Support",
+    disabled: true,
+  },
 } as const;
 
 /**
@@ -101,6 +241,20 @@ export function getIntegrationLogoPath(type: string): string {
     GONG: "gong",
     FATHOM: "fathom",
     ZOOM: "zoom",
+    CHORUS: "chorus",
+    CLARI_COPILOT: "claricopilot",
+    ATTENTION: "attention",
+    HIGHSPOT: "highspot",
+    SEISMIC: "seismic",
+    CONFLUENCE: "confluence",
+    GURU: "guru",
+    INTERCOM: "intercom",
+    OUTREACH: "outreach",
+    SALESLOFT: "salesloft",
+    SNOWFLAKE: "snowflake",
+    DATABRICKS: "databricks",
+    ZENDESK: "zendesk",
+    PYLON: "pylon",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -124,6 +278,20 @@ export function getBackendIntegrationType(integrationId: string): string {
     fathom: "FATHOM",
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
+    chorus: "CHORUS",
+    claricopilot: "CLARI_COPILOT",
+    attention: "ATTENTION",
+    highspot: "HIGHSPOT",
+    seismic: "SEISMIC",
+    confluence: "CONFLUENCE",
+    guru: "GURU",
+    intercom: "INTERCOM",
+    outreach: "OUTREACH",
+    salesloft: "SALESLOFT",
+    snowflake: "SNOWFLAKE",
+    databricks: "DATABRICKS",
+    zendesk: "ZENDESK",
+    pylon: "PYLON",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -142,6 +310,20 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     GONG: "gong",
     FATHOM: "fathom",
     ZOOM: "zoom",
+    CHORUS: "chorus",
+    CLARI_COPILOT: "claricopilot",
+    ATTENTION: "attention",
+    HIGHSPOT: "highspot",
+    SEISMIC: "seismic",
+    CONFLUENCE: "confluence",
+    GURU: "guru",
+    INTERCOM: "intercom",
+    OUTREACH: "outreach",
+    SALESLOFT: "salesloft",
+    SNOWFLAKE: "snowflake",
+    DATABRICKS: "databricks",
+    ZENDESK: "zendesk",
+    PYLON: "pylon",
   };
 
   const integrationId =

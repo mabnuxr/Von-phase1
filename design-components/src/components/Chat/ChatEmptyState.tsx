@@ -62,7 +62,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   examplePrompts = [
     'Show me my \n revenue forecast',
     'What deals are \n at risk this quarter',
-    'Generate a \n sales report',
+    'Compare top & \n bottom sellers',
   ],
   onSendMessage,
   disabled = false,

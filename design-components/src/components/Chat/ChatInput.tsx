@@ -179,7 +179,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               disabled={disabled && !isStreaming}
-              className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-hidden disabled:cursor-not-allowed"
+              className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
               style={{
                 minHeight: '20px',
                 maxHeight: '200px',
