@@ -119,7 +119,7 @@ const Dashboard = () => {
   } = useSalesforceConnection();
 
   // Feature flags
-  const { isSlashCommandsEnabled } = useFeatureFlag();
+  const { isSlashCommandsEnabled, isActionsEnabled } = useFeatureFlag();
 
   // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -748,6 +748,7 @@ const Dashboard = () => {
                 onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}
                 onInputWhileDisabled={() => setShouldShakeBanner(true)}
                 enableCommands={isSlashCommandsEnabled}
+                enableActions={isActionsEnabled}
                 onApprove={async (toolCallId: string, runId: string) => {
                   if (!currentConversationId) return;
                   // Start streaming optimistically so Thinking animation shows immediately
