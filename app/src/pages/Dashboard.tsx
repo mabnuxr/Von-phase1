@@ -35,6 +35,7 @@ import {
   Chat,
   Banner,
   resumeConversation,
+  DashboardCanvas,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
@@ -126,6 +127,15 @@ const Dashboard = () => {
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
+
+  // Dashboard canvas state
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [dashboardMessageId, setDashboardMessageId] = useState<string | null>(
+    null,
+  );
+  const [dashboardMessageContent, setDashboardMessageContent] = useState<
+    string | null
+  >(null);
 
   // Sidebar collapse state
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
@@ -579,6 +589,42 @@ const Dashboard = () => {
       };
     });
 
+  // Handle convert to dashboard action
+  const handleConvertToDashboard = useCallback(
+    (messageId: string) => {
+      // Find the message content from transformedMessages
+      const message = transformedMessages.find((m) => m.id === messageId);
+      if (message && message.content) {
+        setDashboardMessageId(messageId);
+        setDashboardMessageContent(message.content);
+        setIsDashboardOpen(true);
+
+        if (import.meta.env.DEV) {
+          console.log(
+            "[Dashboard] Converting message to dashboard:",
+            messageId,
+          );
+        }
+      }
+    },
+    [transformedMessages],
+  );
+
+  // Handle closing the dashboard canvas
+  const handleCloseDashboard = useCallback(() => {
+    setIsDashboardOpen(false);
+    setDashboardMessageId(null);
+    setDashboardMessageContent(null);
+  }, []);
+
+  // Get conversation title for dashboard header
+  const currentConversationTitle = useMemo(() => {
+    const conversation = allConversations.find(
+      (conv) => conv.conversationId === currentConversationId,
+    );
+    return conversation?.title || "Dashboard";
+  }, [allConversations, currentConversationId]);
+
   // Memoize pusherConfig to prevent unnecessary Pusher reconnections
   const pusherConfig = useMemo(
     () => ({
@@ -700,8 +746,26 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Right Pane - Chat with rounded corners */}
-          <div className="flex-1 flex min-w-0">
+          {/* Dashboard Canvas - appears when converting message to dashboard */}
+          {isDashboardOpen && dashboardMessageId && dashboardMessageContent && (
+            <DashboardCanvas
+              title={currentConversationTitle}
+              messageContent={dashboardMessageContent}
+              messageId={dashboardMessageId}
+              isOpen={isDashboardOpen}
+              onClose={handleCloseDashboard}
+              thesysApiKey={import.meta.env.VITE_THESYS_API_KEY || ""}
+            />
+          )}
+
+          {/* Right Pane - Chat with rounded corners (shrinks when dashboard is open) */}
+          <motion.div
+            className="flex min-w-0"
+            animate={{
+              flex: isDashboardOpen ? "0 0 35%" : "1 1 auto",
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
             {isInitializing ||
             isCreatingNewChat ||
             (isLoadingMessages && conversationMessages.length === 0) ? (
@@ -801,9 +865,10 @@ const Dashboard = () => {
                     );
                   }
                 }}
+                onConvertToDashboard={handleConvertToDashboard}
               />
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

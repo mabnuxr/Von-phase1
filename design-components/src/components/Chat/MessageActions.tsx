@@ -12,7 +12,6 @@ import {
   DownloadSimpleIcon,
   ThumbsUpIcon,
   ThumbsDownIcon,
-  ShareNetworkIcon,
   DotsThreeIcon,
   ChartBarIcon,
 } from '@phosphor-icons/react';
@@ -286,11 +285,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         aria-pressed={feedback === 'dislike'}
       >
         <ThumbsDownIcon size={16} weight={feedback === 'dislike' ? 'fill' : 'regular'} />
-      </button>
-
-      {/* Share button */}
-      <button className={buttonClass} title="Share" aria-label="Share message">
-        <ShareNetworkIcon size={16} />
       </button>
 
       {/* More menu - only show when enableActions is true (controlled by feature flag) */}

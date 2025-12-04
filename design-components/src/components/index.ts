@@ -210,3 +210,9 @@ export type {
   CommandsState,
   ChatInputWithCommandsProps,
 } from './Commands';
+
+// ============================================================================
+// DASHBOARD CANVAS (Thesys-powered dashboard generation)
+// ============================================================================
+export { DashboardCanvas } from './DashboardCanvas';
+export type { DashboardCanvasProps } from './DashboardCanvas';
