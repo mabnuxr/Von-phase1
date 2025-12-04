@@ -147,7 +147,8 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
 
     // Create a hidden iframe for printing (stays on same page)
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position: fixed; top: 0; left: 0; width: 0; height: 0; border: none; visibility: hidden;';
+    iframe.style.cssText =
+      'position: fixed; top: 0; left: 0; width: 0; height: 0; border: none; visibility: hidden;';
     document.body.appendChild(iframe);
 
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -240,7 +241,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         title={copied ? 'Copied!' : 'CopyIcon'}
         aria-label={copied ? 'Copied!' : 'CopyIcon message'}
       >
-        {copied ? <CheckIcon size={16} className="text-green-500" weight="bold" /> : <CopyIcon size={16} />}
+        {copied ? (
+          <CheckIcon size={16} className="text-green-500" weight="bold" />
+        ) : (
+          <CopyIcon size={16} />
+        )}
       </button>
 
       {/* Download button */}
@@ -284,11 +289,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       </button>
 
       {/* Share button */}
-      <button
-        className={buttonClass}
-        title="Share"
-        aria-label="Share message"
-      >
+      <button className={buttonClass} title="Share" aria-label="Share message">
         <ShareNetworkIcon size={16} />
       </button>
 
