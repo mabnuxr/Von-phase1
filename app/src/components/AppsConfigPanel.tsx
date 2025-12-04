@@ -5,9 +5,21 @@ import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { Button } from "@vonlabs/design-components";
 
 // Define category order for display
-const CATEGORY_ORDER: Array<"CRM" | "Call Recorder" | "Other"> = [
+const CATEGORY_ORDER: Array<
+  | "CRM"
+  | "Call Recorder"
+  | "Internal Documents"
+  | "Sales Engagement"
+  | "Data Warehouse"
+  | "Customer Support"
+  | "Other"
+> = [
   "CRM",
   "Call Recorder",
+  "Internal Documents",
+  "Sales Engagement",
+  "Data Warehouse",
+  "Customer Support",
   "Other",
 ];
 
