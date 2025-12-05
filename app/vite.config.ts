@@ -17,5 +17,11 @@ export default defineConfig({
   },
   preview: {
     allowedHosts: ['app.vonlabs.ai']
+  },
+  optimizeDeps: {
+    include: [
+      '@thesysai/genui-sdk',
+      '@crayonai/react-ui',
+    ]
   }
 })
