@@ -3,7 +3,8 @@
  * Self-contained storage for slash commands
  */
 
-import { Command, DEFAULT_COMMANDS } from './types';
+import type { Command } from './types';
+import { DEFAULT_COMMANDS } from './types';
 
 const STORAGE_KEY = 'von-commands';
 

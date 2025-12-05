@@ -85,13 +85,10 @@ jobs:
 
       - name: Build design-components library
         run: npm run build:design
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build application
         run: npm run build:app
         env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
           NODE_ENV: production
           VITE_API_BASE_URL: https://apiv2.vonlabs.ai
           VITE_SCALEKIT_CLIENT_ID: ${{ secrets.VITE_SCALEKIT_CLIENT_ID }}
@@ -128,13 +125,10 @@ jobs:
 
       - name: Build design-components library
         run: npm run build:design
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build for production
         run: npm run build:app
         env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
           NODE_ENV: production
           VITE_API_BASE_URL: https://apiv2.vonlabs.ai
           VITE_SCALEKIT_CLIENT_ID: dummy_client_id

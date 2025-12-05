@@ -4,12 +4,13 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { ChatInput, ChatInputProps } from '../Chat/ChatInput';
+import type { ChatInputProps } from '../Chat/ChatInput';
+import { ChatInput } from '../Chat/ChatInput';
 import { CommandsList } from './CommandsList';
 import { CommandDrawer } from './CommandDrawer';
 import { ManageCommandsDrawer } from './ManageCommandsDrawer';
 import { useCommands } from './useCommands';
-import { Command } from './types';
+import type { Command } from './types';
 
 export interface ChatInputWithCommandsProps extends Omit<ChatInputProps, 'onSend'> {
   onSend?: (message: string) => void;

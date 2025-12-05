@@ -33,23 +33,38 @@
     "ci:lint": "npm run lint && npm run format:check",
     "ci:build": "npm run typecheck && npm run build && npm run build-storybook"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@crayonai/react-ui": "^0.9.5",
-    "@emotion/is-prop-valid": "^1.4.0",
-    "@phosphor-icons/react": "^2.1.10",
     "@thesysai/genui-sdk": "^0.7.4",
+    "framer-motion": "^12.0.0",
+    "rsuite": "^5.0.0",
+    "@phosphor-icons/react": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@crayonai/react-ui": {
+      "optional": true
+    },
+    "@thesysai/genui-sdk": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.23.24",
     "github-markdown-css": "^5.8.1",
     "marked": "^17.0.1",
     "pusher-js": "^8.4.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
-    "rsuite": "^5.70.2",
     "streamdown": "^1.4.0"
   },
   "devDependencies": {
+    "@crayonai/react-ui": "^0.9.5",
+    "@thesysai/genui-sdk": "^0.7.4",
+    "@phosphor-icons/react": "^2.1.10",
+    "framer-motion": "^12.23.24",
+    "rsuite": "^5.70.2",
     "@chromatic-com/storybook": "^4.1.1",
     "@eslint/js": "^9.33.0",
     "@storybook/addon-a11y": "^9.1.10",
