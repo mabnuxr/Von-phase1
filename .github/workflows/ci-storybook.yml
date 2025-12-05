@@ -83,8 +83,6 @@ jobs:
 
       - name: Build Storybook
         run: npm run build-storybook --workspace=design-components
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Upload Storybook artifacts
         uses: actions/upload-artifact@v4
@@ -143,8 +141,6 @@ jobs:
 
       - name: Build Storybook
         run: npm run build-storybook --workspace=design-components
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Run accessibility tests
         run: |

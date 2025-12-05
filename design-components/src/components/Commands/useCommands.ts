@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Command, CommandCategory } from './types';
+import type { Command, CommandCategory } from './types';
 import {
   getCommands,
   addCommand as storageAddCommand,

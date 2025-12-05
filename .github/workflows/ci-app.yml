@@ -85,8 +85,6 @@ jobs:
 
       - name: Build design-components library
         run: npm run build:design
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build application
         run: npm run build:app
@@ -128,8 +126,6 @@ jobs:
 
       - name: Build design-components library
         run: npm run build:design
-        env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build for production
         run: npm run build:app

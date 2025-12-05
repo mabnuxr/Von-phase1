@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { logger } from '../../config/env';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -32,9 +33,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Use environment-aware logger
-    import('../../config/env').then(({ logger }) => {
-      logger.error('ErrorBoundary caught an error:', error, errorInfo);
-    });
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
 
     // Here you would typically log to an error reporting service
     // Example: logErrorToService(error, errorInfo);

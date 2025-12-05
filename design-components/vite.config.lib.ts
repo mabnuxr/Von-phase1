@@ -19,7 +19,16 @@ export default defineConfig({
     },
     rollupOptions: {
       // Externalize deps that shouldn't be bundled into the library
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        '@thesysai/genui-sdk',
+        '@crayonai/react-ui',
+        'framer-motion',
+        'rsuite',
+        '@phosphor-icons/react',
+      ],
       output: {
         // Provide global variables for UMD build
         globals: {

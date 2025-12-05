@@ -1,9 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, SpinnerGap, WarningCircle } from '@phosphor-icons/react';
-import { C1Component, ThemeProvider } from '@thesysai/genui-sdk';
-import '@crayonai/react-ui/styles/index.css';
 import { THESYS_API_URL } from '../../constants';
+
+// Lazy load TheSys components to reduce initial bundle size
+const TheSysRenderer = React.lazy(() =>
+  Promise.all([import('@thesysai/genui-sdk'), import('@crayonai/react-ui/styles/index.css')]).then(
+    ([thesys]) => ({
+      default: ({ c1Response }: { c1Response: string }) => (
+        <thesys.ThemeProvider>
+          <thesys.C1Component c1Response={c1Response} isStreaming={false} />
+        </thesys.ThemeProvider>
+      ),
+    })
+  )
+);
 
 export interface DashboardCanvasProps {
   title: string;
@@ -180,9 +191,15 @@ Generate a single cohesive dashboard layout that presents all the information cl
 
             {/* Dashboard Content */}
             {c1Response && !isLoading && !error && (
-              <ThemeProvider>
-                <C1Component c1Response={c1Response} isStreaming={false} />
-              </ThemeProvider>
+              <Suspense
+                fallback={
+                  <div className="flex items-center justify-center h-full">
+                    <SpinnerGap size={32} className="text-indigo-500 animate-spin" />
+                  </div>
+                }
+              >
+                <TheSysRenderer c1Response={c1Response} />
+              </Suspense>
             )}
 
             {/* Empty State */}

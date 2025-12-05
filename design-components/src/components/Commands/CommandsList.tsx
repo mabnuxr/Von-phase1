@@ -5,7 +5,8 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Plus } from '@phosphor-icons/react';
-import { Command, CommandCategory, CATEGORY_OPTIONS } from './types';
+import type { Command, CommandCategory } from './types';
+import { CATEGORY_OPTIONS } from './types';
 
 interface CommandsListProps {
   commands: Command[];
