@@ -438,6 +438,21 @@ export class IntegrationsService {
     );
     return transformIntegration(response);
   }
+
+  /**
+   * Delete an integration (soft delete)
+   *
+   * @param integrationId - MongoDB integration ID
+   *
+   * @example
+   * ```ts
+   * await integrationsService.deleteIntegration("68e6f5da473f2e641e30622d");
+   * console.log("Integration deleted");
+   * ```
+   */
+  async deleteIntegration(integrationId: string): Promise<void> {
+    await apiClient.delete(`/api/v1/integrations/${integrationId}`);
+  }
 }
 
 // Export a default instance

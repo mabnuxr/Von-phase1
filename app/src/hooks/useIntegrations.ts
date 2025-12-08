@@ -451,3 +451,24 @@ export function useUpdateIntegration() {
     },
   });
 }
+
+/**
+ * Delete an integration (soft delete)
+ */
+export function useDeleteIntegration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (integrationId: string) =>
+      integrationsService.deleteIntegration(integrationId),
+    onSuccess: () => {
+      // Invalidate integrations to refetch and remove the deleted integration
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useDeleteIntegration] Error:", error);
+      }
+    },
+  });
+}

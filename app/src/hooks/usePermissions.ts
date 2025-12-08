@@ -1,6 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { permissionsService, Resource } from "../services";
 import type { ResourceType, ResourcePermissions } from "../services";
+import {
+  PERMISSIONS_STALE_TIME,
+  PERMISSIONS_GC_TIME,
+  PERMISSIONS_RETRY_COUNT,
+} from "../config/constants";
 
 /**
  * Query keys for permissions
@@ -32,7 +37,7 @@ export const permissionsKeys = {
  *       {perms?.create && <Button>Add Member</Button>}
  *       {perms?.delete && <Button>Remove Member</Button>}
  *     </div>
- *   );
+ *   );3
  * }
  * ```
  */
@@ -40,9 +45,9 @@ export function usePermissions(resource: ResourceType) {
   return useQuery({
     queryKey: permissionsKeys.resource(resource),
     queryFn: () => permissionsService.getPermissions(resource),
-    staleTime: 5 * 60 * 1000, // 5 minutes - permissions rarely change during session
-    gcTime: 10 * 60 * 1000, // 10 minutes cache
-    retry: 1, // Single retry on failure
+    staleTime: PERMISSIONS_STALE_TIME,
+    gcTime: PERMISSIONS_GC_TIME,
+    retry: PERMISSIONS_RETRY_COUNT,
   });
 }
 
