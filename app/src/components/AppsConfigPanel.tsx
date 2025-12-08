@@ -15,6 +15,7 @@ import { SegmentedControl } from "./SegmentedControl";
 // Define category order for display
 const CATEGORY_ORDER: Array<
   | "CRM"
+  | "Calendar"
   | "Call Recorder"
   | "Internal Documents"
   | "Sales Engagement"
@@ -23,6 +24,7 @@ const CATEGORY_ORDER: Array<
   | "Other"
 > = [
   "CRM",
+  "Calendar",
   "Call Recorder",
   "Internal Documents",
   "Sales Engagement",
