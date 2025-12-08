@@ -7,6 +7,8 @@ export interface IntegrationMetadata {
   id: string;
   name: string;
   description: string;
+  /** Optional personal description for user-level integrations */
+  personalDescription?: string;
   logoPath: string;
   disabled?: boolean;
   category:
@@ -27,8 +29,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   salesforce: {
     id: "salesforce",
     name: "Salesforce",
-    description:
-      "Sync opportunities, contacts, and accounts from Salesforce CRM",
+    description: "Sync opportunities, contacts, and accounts",
+    personalDescription: "Connect your Salesforce account",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg",
     category: "CRM",
@@ -36,7 +38,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   hubspot: {
     id: "hubspot",
     name: "HubSpot",
-    description: "Connect HubSpot to sync deals, contacts, and company data",
+    description: "Sync deals, contacts, and company data",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
@@ -45,7 +47,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   gong: {
     id: "gong",
     name: "Gong",
-    description: "Import call recordings and transcripts from Gong",
+    description: "Sync call recordings and transcripts",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
@@ -53,8 +55,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   fathom: {
     id: "fathom",
     name: "Fathom",
-    description:
-      "Sync meeting recordings and AI-generated summaries from Fathom",
+    description: "Sync meeting recordings and summaries",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/fathom.svg",
     category: "Call Recorder",
@@ -71,8 +72,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   googlecalendar: {
     id: "googlecalendar",
     name: "Google Calendar",
-    description:
-      "Sync calendar events and meeting schedules from Google Calendar",
+    description: "Sync your calendar events and meetings",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/googleCalender.svg",
     category: "Other",
@@ -331,4 +331,86 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
   const integration = INTEGRATION_METADATA[integrationId];
 
   return integration?.name || typeOrProvider;
+}
+
+/**
+ * Integration access modes - defines whether an integration can be org-level, user-level, or both
+ * - tenant: Org-level integration, shared with all team members
+ * - user: Personal integration, private to the user
+ */
+export type AccessLevel = "tenant" | "user";
+
+export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
+  // CRM - Salesforce can be both org and user level
+  salesforce: ["tenant", "user"],
+
+  // Call recorders - workspace only (shared recordings)
+  gong: ["tenant"],
+  fathom: ["tenant"],
+  zoom: ["tenant"],
+  chorus: ["tenant"],
+  claricopilot: ["tenant"],
+  attention: ["tenant"],
+
+  // Personal integrations - user-level only
+  hubspot: ["user"],
+  googlecalendar: ["user"],
+  highspot: ["user"],
+  seismic: ["user"],
+  confluence: ["user"],
+  guru: ["user"],
+  intercom: ["user"],
+  outreach: ["user"],
+  salesloft: ["user"],
+  snowflake: ["user"],
+  databricks: ["user"],
+  zendesk: ["user"],
+  pylon: ["user"],
+};
+
+/**
+ * Check if an integration can be configured at org level
+ */
+export function canBeOrgLevel(integrationId: string): boolean {
+  return INTEGRATION_ACCESS_MODES[integrationId]?.includes("tenant") ?? false;
+}
+
+/**
+ * Check if an integration can be configured at user level
+ */
+export function canBeUserLevel(integrationId: string): boolean {
+  return INTEGRATION_ACCESS_MODES[integrationId]?.includes("user") ?? false;
+}
+
+/**
+ * Get integrations that can be configured at org level
+ */
+export function getOrgLevelIntegrations(): IntegrationMetadata[] {
+  return getAllIntegrations().filter((i) => canBeOrgLevel(i.id));
+}
+
+/**
+ * Get integrations that can be configured at user level
+ */
+export function getUserLevelIntegrations(): IntegrationMetadata[] {
+  return getAllIntegrations().filter((i) => canBeUserLevel(i.id));
+}
+
+/**
+ * Get the appropriate description for an integration based on the section
+ * @param integrationId - The integration ID
+ * @param isPersonal - Whether this is for the personal section
+ * @returns The appropriate description
+ */
+export function getIntegrationDescription(
+  integrationId: string,
+  isPersonal: boolean,
+): string {
+  const integration = INTEGRATION_METADATA[integrationId];
+  if (!integration) return "";
+
+  if (isPersonal && integration.personalDescription) {
+    return integration.personalDescription;
+  }
+  return integration.description;
 }

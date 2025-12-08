@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { SearchIcon, MoreVerticalIcon, TrashIcon } from "../icons";
 import { useTeamMembers, useRemoveTeamMember } from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
+import { usePermissions, Resource } from "../../hooks/usePermissions";
 import usePreferencesStore from "../../store/preferencesStore";
 import { Banner } from "@vonlabs/design-components";
 
@@ -19,8 +20,12 @@ export function ManageUsersTab() {
   const { user } = useUser();
   const activeTenant = user?.tenantId as string | undefined;
 
-  // Check if current user is admin
-  const isAdmin = user?.roles?.includes("Admin") ?? false;
+  // Get permissions for team resource
+  const { data: teamPermissions } = usePermissions(Resource.TEAM);
+
+  // Check if user can create/delete team members
+  const canCreateTeamMember = teamPermissions?.create ?? false;
+  const canDeleteTeamMember = teamPermissions?.delete ?? false;
 
   // Fetch team members
   const { data: teamMembers, isLoading, error } = useTeamMembers(activeTenant);
@@ -135,7 +140,7 @@ export function ManageUsersTab() {
                 className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               />
             </div>
-            {isAdmin && (
+            {canCreateTeamMember && (
               <button
                 onClick={handleAddTeamMemberClick}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm flex-shrink-0"
@@ -176,7 +181,7 @@ export function ManageUsersTab() {
                     >
                       Joined
                     </th>
-                    {isAdmin && (
+                    {canDeleteTeamMember && (
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
@@ -261,7 +266,7 @@ export function ManageUsersTab() {
                     >
                       Joined
                     </th>
-                    {isAdmin && (
+                    {canDeleteTeamMember && (
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
@@ -297,7 +302,7 @@ export function ManageUsersTab() {
                           {formatDate(member.joinedDate)}
                         </div>
                       </td>
-                      {isAdmin && (
+                      {canDeleteTeamMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           {/* Don't show delete option for current user */}
                           {member.email !== user?.email && (

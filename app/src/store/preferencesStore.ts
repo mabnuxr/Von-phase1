@@ -2109,20 +2109,21 @@ interface PreferencesState {
   // Integrations UI state
   integrationsActiveTab: "apps" | "active-integrations";
   setIntegrationsActiveTab: (tab: "apps" | "active-integrations") => void;
-  configuringIntegrationId: string | null;
-  setConfiguringIntegration: (id: string | null) => void;
+
+  // Separate pane state for workspace and personal integrations
+  // This allows each pane to have isolated state and mount/unmount independently
+  configuringWorkspaceIntegration: string | null;
+  setConfiguringWorkspaceIntegration: (id: string | null) => void;
+  configuringPersonalIntegration: string | null;
+  setConfiguringPersonalIntegration: (id: string | null) => void;
+
+  // Edit mode integration data (passed when editing existing integrations)
+  editingIntegrationData: IntegrationConfig | null;
+  setEditingIntegrationData: (data: IntegrationConfig | null) => void;
 
   // Team management UI state
   addingTeamMember: boolean;
   setAddingTeamMember: (adding: boolean) => void;
-
-  // Integration configuration data
-  integrationConfigs: Record<string, IntegrationConfig>;
-  updateIntegrationConfig: (
-    integrationId: string,
-    config: Partial<IntegrationConfig>,
-  ) => void;
-  clearIntegrationConfig: (integrationId: string) => void;
 }
 
 const usePreferencesStoreBase = create<PreferencesState>((set) => ({
@@ -2472,35 +2473,22 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   // Integrations UI state
   integrationsActiveTab: "apps",
   setIntegrationsActiveTab: (tab) => set({ integrationsActiveTab: tab }),
-  configuringIntegrationId: null,
-  setConfiguringIntegration: (id) => set({ configuringIntegrationId: id }),
+
+  // Separate pane state for workspace and personal integrations
+  configuringWorkspaceIntegration: null,
+  setConfiguringWorkspaceIntegration: (id) =>
+    set({ configuringWorkspaceIntegration: id }),
+  configuringPersonalIntegration: null,
+  setConfiguringPersonalIntegration: (id) =>
+    set({ configuringPersonalIntegration: id }),
+
+  // Edit mode integration data
+  editingIntegrationData: null,
+  setEditingIntegrationData: (data) => set({ editingIntegrationData: data }),
 
   // Team management UI state
   addingTeamMember: false,
   setAddingTeamMember: (adding) => set({ addingTeamMember: adding }),
-
-  // Integration configuration data
-  integrationConfigs: {},
-  updateIntegrationConfig: (integrationId, config) =>
-    set((state) => ({
-      integrationConfigs: {
-        ...state.integrationConfigs,
-        [integrationId]: {
-          ...(state.integrationConfigs[integrationId] || {
-            accessLevel: "tenant",
-            apiVersion: "v62.0",
-            environmentType: "production",
-          }),
-          ...config,
-        },
-      },
-    })),
-  clearIntegrationConfig: (integrationId) =>
-    set((state) => {
-      const newConfigs = { ...state.integrationConfigs };
-      delete newConfigs[integrationId];
-      return { integrationConfigs: newConfigs };
-    }),
 }));
 
 const usePreferencesStore = createSelectors(usePreferencesStoreBase);

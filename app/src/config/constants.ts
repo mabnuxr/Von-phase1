@@ -113,6 +113,27 @@ export const MAX_REPLAY_CACHE_SIZE = 1000 as const;
 export const STREAM_TIMEOUT_MS = 300000 as const; // 300 seconds (5 minutes)
 
 // ============================================================================
+// Permissions Query Configuration Constants
+// ============================================================================
+
+/**
+ * Time in milliseconds that permissions data is considered fresh
+ * Permissions don't change frequently, cache for 5 minutes
+ */
+export const PERMISSIONS_STALE_TIME = 300000 as const; // 5 minutes (5 * 60 * 1000)
+
+/**
+ * Garbage collection time in milliseconds for permissions data
+ * Keep permissions in cache for 10 minutes after becoming inactive
+ */
+export const PERMISSIONS_GC_TIME = 600000 as const; // 10 minutes (10 * 60 * 1000)
+
+/**
+ * Number of retry attempts for failed permissions queries
+ */
+export const PERMISSIONS_RETRY_COUNT = 1 as const;
+
+// ============================================================================
 // Artifact Query Configuration Constants
 // ============================================================================
 
@@ -194,6 +215,9 @@ export const QUERY_CONSTANTS = {
   INFINITE_SCROLL_THRESHOLD,
   MAX_REPLAY_CACHE_SIZE,
   STREAM_TIMEOUT_MS,
+  PERMISSIONS_STALE_TIME,
+  PERMISSIONS_GC_TIME,
+  PERMISSIONS_RETRY_COUNT,
   ARTIFACT_STALE_TIME,
   ARTIFACT_GC_TIME,
   ARTIFACT_RETRY_COUNT,

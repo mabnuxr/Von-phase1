@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CopyIcon, PencilSimpleIcon } from '@phosphor-icons/react';
+import { CopyIcon, TrashSimpleIcon } from '@phosphor-icons/react';
 
 export interface IntegrationCardProps {
   /**
@@ -50,24 +50,14 @@ export interface IntegrationCardProps {
   loadingText?: string;
 
   /**
-   * Environment level - "dev" or "prod"
-   */
-  environment?: 'dev' | 'prod';
-
-  /**
-   * User or tenant name
-   */
-  userOrTenant?: string;
-
-  /**
    * Instance URL to display (copyable)
    */
   instanceUrl?: string;
 
   /**
-   * Callback when edit button is clicked
+   * Callback when delete button is clicked
    */
-  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 /**
@@ -96,10 +86,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   onRequestDisableConfirmation,
   disabled = false,
   loadingText,
-  environment,
-  userOrTenant,
   instanceUrl,
-  onEdit,
+  onDelete,
 }) => {
   const isLoading = !!loadingText;
 
@@ -150,25 +138,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
         {/* Name, Description, and Metadata */}
         <div className="flex flex-col">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-900">{name}</span>
-            {userOrTenant && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                {userOrTenant}
-              </span>
-            )}
-            {environment && (
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                  environment === 'prod'
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-orange-50 text-orange-700 border border-orange-200'
-                }`}
-              >
-                {environment}
-              </span>
-            )}
-          </div>
+          <span className="text-sm font-medium text-gray-900">{name}</span>
           {description && <span className="text-sm text-gray-500">{description}</span>}
           {instanceUrl && (
             <button
@@ -191,14 +161,14 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
         {/* Status indicator */}
         {isLoading && <span className="text-sm text-von-purple font-medium">{loadingText}</span>}
 
-        {/* Edit button */}
-        {onEdit && (
+        {/* Delete button */}
+        {onDelete && (
           <button
-            onClick={onEdit}
-            className="p-1.5 hover:bg-gray-100 rounded transition-colors cursor-pointer border-none bg-transparent"
-            aria-label="Edit integration"
+            onClick={onDelete}
+            className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600"
+            aria-label="Delete integration"
           >
-            <PencilSimpleIcon size={16} />
+            <TrashSimpleIcon size={16} />
           </button>
         )}
 
