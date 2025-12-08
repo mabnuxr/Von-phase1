@@ -18,6 +18,7 @@ export interface IntegrationMetadata {
     | "Sales Engagement"
     | "Data Warehouse"
     | "Customer Support"
+    | "Calendar"
     | "Other";
 }
 
@@ -75,7 +76,16 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Sync your calendar events and meetings",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/googleCalender.svg",
-    category: "Other",
+    category: "Calendar",
+  },
+  outlookcalendar: {
+    id: "outlookcalendar",
+    name: "Outlook Calendar",
+    description: "Sync your Outlook calendar events and meetings",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outlook.svg",
+    category: "Calendar",
+    disabled: true,
   },
   // Call Recorder integrations
   chorus: {
@@ -236,6 +246,7 @@ export function getIntegrationLogoPath(type: string): string {
   // Map backend type to frontend ID
   const typeMap: Record<string, string> = {
     GOOGLE_CALENDAR: "googlecalendar",
+    OUTLOOK_CALENDAR: "outlookcalendar",
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
@@ -278,6 +289,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     fathom: "FATHOM",
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
+    outlookcalendar: "OUTLOOK_CALENDAR",
     chorus: "CHORUS",
     claricopilot: "CLARI_COPILOT",
     attention: "ATTENTION",
@@ -305,6 +317,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
   // Map backend type to frontend ID first
   const typeMap: Record<string, string> = {
     GOOGLE_CALENDAR: "googlecalendar",
+    OUTLOOK_CALENDAR: "outlookcalendar",
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
@@ -355,6 +368,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   // Personal integrations - user-level only
   hubspot: ["user"],
   googlecalendar: ["user"],
+  outlookcalendar: ["user"],
   highspot: ["user"],
   seismic: ["user"],
   confluence: ["user"],
