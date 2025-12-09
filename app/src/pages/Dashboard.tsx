@@ -33,6 +33,7 @@ import {
   TopBar,
   ChatSidebar,
   Chat,
+  ChatSkeleton,
   Banner,
   resumeConversation,
   DashboardCanvas,
@@ -156,6 +157,38 @@ const Dashboard = () => {
 
   // Track last user message for reliable error recovery
   const lastUserMessageRef = useRef<string>("");
+
+  // Debounced loading state for smooth skeleton transitions
+  // This ensures skeleton shows for minimum 400ms to allow animations to play
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isActuallyLoading =
+    isInitializing ||
+    isCreatingNewChat ||
+    (isLoadingMessages && conversationMessages.length === 0);
+
+  useEffect(() => {
+    if (isActuallyLoading) {
+      // Show skeleton immediately when loading starts
+      if (skeletonTimerRef.current) {
+        clearTimeout(skeletonTimerRef.current);
+        skeletonTimerRef.current = null;
+      }
+      setShowSkeleton(true);
+    } else {
+      // Delay hiding skeleton for smooth transition (minimum 300ms display)
+      skeletonTimerRef.current = setTimeout(() => {
+        setShowSkeleton(false);
+      }, 300);
+    }
+
+    return () => {
+      if (skeletonTimerRef.current) {
+        clearTimeout(skeletonTimerRef.current);
+      }
+    };
+  }, [isActuallyLoading]);
 
   // Handle title updates with typing animation
   useEffect(() => {
@@ -732,7 +765,6 @@ const Dashboard = () => {
               chatItems={chatItems}
               selectedChatId={currentConversationId || undefined}
               onChatClick={handleChatClick}
-              onNewChatClick={handleNewChatClick}
               searchPlaceholder="Search conversations..."
               isCollapsed={isSidebarCollapsed}
               onToggleCollapse={toggleSidebar}
@@ -763,21 +795,14 @@ const Dashboard = () => {
           {/* Right Pane - Chat with rounded corners (shrinks when dashboard is open) */}
           <motion.div
             className="flex min-w-0"
+            initial={false}
             animate={{
               flex: isDashboardOpen ? "0 0 35%" : "1 1 auto",
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            {isInitializing ||
-            isCreatingNewChat ||
-            (isLoadingMessages && conversationMessages.length === 0) ? (
-              <div className="flex-1 flex items-center justify-center bg-white rounded-lg text-sm text-[#666]">
-                {isCreatingNewChat
-                  ? "Creating new chat..."
-                  : isLoadingMessages
-                    ? "Loading messages..."
-                    : "Loading chat..."}
-              </div>
+            {showSkeleton ? (
+              <ChatSkeleton messageCount={4} />
             ) : (
               <Chat
                 title="von AI"
