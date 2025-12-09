@@ -88,6 +88,9 @@ export { ChatTypingIndicator } from './Chat/ChatTypingIndicator';
 export { ChatMessageSkeleton } from './Chat/ChatMessageSkeleton';
 export type { ChatMessageSkeletonProps } from './Chat/ChatMessageSkeleton';
 
+export { ChatSkeleton } from './Chat/ChatSkeleton';
+export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
+
 // Icon Atoms
 // ----------
 export {

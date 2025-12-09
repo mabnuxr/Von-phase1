@@ -4,6 +4,7 @@ import { asyncWithLDProvider } from "launchdarkly-react-client-sdk";
 // import Observability from "@launchdarkly/observability";
 // import SessionReplay from "@launchdarkly/session-replay";
 import { getUserContextFromToken } from "../lib/auth";
+import { DashboardSkeleton } from "../components/DashboardSkeleton";
 
 interface LaunchDarklyProviderProps {
   children: ReactNode;
@@ -94,11 +95,7 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
 
   // Show loading state while initializing
   if (!LDProvider) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Show error state if initialization failed
