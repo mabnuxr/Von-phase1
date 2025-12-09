@@ -86,7 +86,7 @@ function IntegrationCardList({
     <div className="bg-white overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
       {integrations.map((integration) => {
         const backendIntegration = integrationsData?.integrations.find(
-          (i: { id: string }) => i.id === integration.id
+          (i: { id: string }) => i.id === integration.id,
         );
         const isAuthenticating =
           backendIntegration?.authenticationStatus ===
@@ -176,7 +176,7 @@ export function IntegrationsPanel() {
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
       )
       .map((i: { id: string }) => i.id) || [];
 
@@ -188,7 +188,7 @@ export function IntegrationsPanel() {
 
   // Track timeout warnings that have been shown
   const [shownTimeoutWarnings, setShownTimeoutWarnings] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Confirmation modal state (for disable and delete)
@@ -239,19 +239,19 @@ export function IntegrationsPanel() {
             backendIntegration.authenticationStatus ===
             AuthenticationStatus.AUTHENTICATED,
           accessLevel: backendIntegration.accessLevel,
-        })
+        }),
       ) || [],
-    [integrationsData]
+    [integrationsData],
   );
 
   // Split integrations by access level
   const orgIntegrations = useMemo(
     () => integrations.filter((i) => i.accessLevel === "tenant"),
-    [integrations]
+    [integrations],
   );
   const userIntegrations = useMemo(
     () => integrations.filter((i) => i.accessLevel === "user"),
-    [integrations]
+    [integrations],
   );
 
   // Segmented control state for Connected tab
@@ -357,7 +357,7 @@ export function IntegrationsPanel() {
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`
+            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`,
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
           cancelAuthorization.mutate(id);
