@@ -176,7 +176,14 @@ export function ToolCallItem({
         }
       };
     }
-  }, [isApproval, isGoogleCalendarApproval, isExecuting, isStreaming, toolCall.startTime, toolCall.endTime]);
+  }, [
+    isApproval,
+    isGoogleCalendarApproval,
+    isExecuting,
+    isStreaming,
+    toolCall.startTime,
+    toolCall.endTime,
+  ]);
 
   // Format elapsed time
   const formatTime = (ms: number): string => {

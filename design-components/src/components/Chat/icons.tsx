@@ -880,7 +880,15 @@ export const CalendarIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line
+      x1="8"
+      y1="2"
+      x2="8"
+      y2="6"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
     <line
       x1="3"
       y1="10"
@@ -995,12 +1003,7 @@ export const RepeatIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 })
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <path
-      d="M3 11V9a4 4 0 014-4h14"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <path d="M3 11V9a4 4 0 014-4h14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     <polyline
       points="7 23 3 19 7 15"
       strokeWidth="2"
