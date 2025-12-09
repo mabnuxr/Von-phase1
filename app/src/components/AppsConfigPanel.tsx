@@ -56,11 +56,11 @@ function IntegrationCategoryList({
       acc[app.category].push(app);
       return acc;
     },
-    {} as Record<string, IntegrationMetadata[]>,
+    {} as Record<string, IntegrationMetadata[]>
   );
 
   const nonEmptyCategories = CATEGORY_ORDER.filter(
-    (c) => appsByCategory[c]?.length > 0,
+    (c) => appsByCategory[c]?.length > 0
   );
 
   if (apps.length === 0) {
@@ -201,7 +201,7 @@ export function AppsConfigPanel() {
 
   // Segmented control state
   const [activeSection, setActiveSection] = useState<"workspace" | "personal">(
-    "personal",
+    "workspace"
   );
 
   return (
@@ -209,8 +209,8 @@ export function AppsConfigPanel() {
       {/* Segmented Control */}
       <SegmentedControl
         options={[
-          { value: "personal", label: "Personal" },
           { value: "workspace", label: "Workspace" },
+          { value: "personal", label: "Personal" },
         ]}
         value={activeSection}
         onChange={setActiveSection}
