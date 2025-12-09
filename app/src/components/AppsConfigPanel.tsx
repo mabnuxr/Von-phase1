@@ -201,7 +201,7 @@ export function AppsConfigPanel() {
 
   // Segmented control state
   const [activeSection, setActiveSection] = useState<"workspace" | "personal">(
-    "personal",
+    "workspace",
   );
 
   return (
@@ -209,8 +209,8 @@ export function AppsConfigPanel() {
       {/* Segmented Control */}
       <SegmentedControl
         options={[
-          { value: "personal", label: "Personal" },
           { value: "workspace", label: "Workspace" },
+          { value: "personal", label: "Personal" },
         ]}
         value={activeSection}
         onChange={setActiveSection}

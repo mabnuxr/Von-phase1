@@ -257,7 +257,7 @@ export function IntegrationsPanel() {
   // Segmented control state for Connected tab
   const [activeIntegrationsSection, setActiveIntegrationsSection] = useState<
     "workspace" | "personal"
-  >("personal");
+  >("workspace");
 
   const handleToggle = async (id: string, enabled: boolean) => {
     // Clear any previous errors
@@ -462,8 +462,8 @@ export function IntegrationsPanel() {
                   {/* Segmented Control */}
                   <SegmentedControl
                     options={[
-                      { value: "personal", label: "Personal" },
                       { value: "workspace", label: "Workspace" },
+                      { value: "personal", label: "Personal" },
                     ]}
                     value={activeIntegrationsSection}
                     onChange={setActiveIntegrationsSection}
