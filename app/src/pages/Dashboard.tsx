@@ -177,10 +177,10 @@ const Dashboard = () => {
       }
       setShowSkeleton(true);
     } else {
-      // Delay hiding skeleton for smooth transition (minimum 300ms display)
+      // Delay hiding skeleton for smooth transition (minimum 150ms display)
       skeletonTimerRef.current = setTimeout(() => {
         setShowSkeleton(false);
-      }, 300);
+      }, 150);
     }
 
     return () => {

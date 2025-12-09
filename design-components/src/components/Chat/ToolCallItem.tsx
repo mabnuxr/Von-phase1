@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ToolCall, ApprovalResult } from './types';
-import { isApprovalTool, parseApprovalArgs } from './types';
+import {
+  isApprovalTool,
+  parseApprovalArgs,
+  isGoogleCalendarApprovalTool,
+  parseGoogleCalendarApprovalArgs,
+} from './types';
 import { ApprovalCard } from './ApprovalCard';
+import { GoogleCalendarApprovalCard } from './GoogleCalendarApprovalCard';
 
 interface ToolCallItemProps {
   toolCall: ToolCall;
@@ -103,6 +109,7 @@ export function ToolCallItem({
   const isTransfer = isTransferTool(toolCall.name);
   const isCompletion = isCompletionTool(toolCall.name);
   const isApproval = isApprovalTool(toolCall.name);
+  const isGoogleCalendarApproval = isGoogleCalendarApprovalTool(toolCall.name);
 
   // Transfer and completion tools don't have clickable artifacts
   const hasArtifact = !isTransfer && !isCompletion && Boolean(toolCall.artifact?.artifact_id);
@@ -138,7 +145,7 @@ export function ToolCallItem({
   // Timer effect - must be called unconditionally before any early returns
   useEffect(() => {
     // Skip timer logic for approval tools
-    if (isApproval) {
+    if (isApproval || isGoogleCalendarApproval) {
       return;
     }
 
@@ -169,7 +176,14 @@ export function ToolCallItem({
         }
       };
     }
-  }, [isApproval, isExecuting, isStreaming, toolCall.startTime, toolCall.endTime]);
+  }, [
+    isApproval,
+    isGoogleCalendarApproval,
+    isExecuting,
+    isStreaming,
+    toolCall.startTime,
+    toolCall.endTime,
+  ]);
 
   // Format elapsed time
   const formatTime = (ms: number): string => {
@@ -211,6 +225,49 @@ export function ToolCallItem({
           toolCallId={toolCall.id}
           runId={runId}
           args={approvalArgs}
+          isPending={isPending}
+          isLatestMessage={isLatestMessage}
+          onApprove={onApprove || (() => {})}
+          onReject={onReject || (() => {})}
+          isProcessing={isApprovalProcessing}
+          result={approvalResult}
+        />
+      );
+    }
+  }
+
+  // For Google Calendar approval tools, render the GoogleCalendarApprovalCard
+  if (isGoogleCalendarApproval) {
+    const args = toolCall.args || toolCall.arguments || {};
+    const calendarApprovalArgs = parseGoogleCalendarApprovalArgs(args);
+
+    // Parse result if available (from tool call result)
+    let approvalResult: ApprovalResult | undefined;
+    if (toolCall.result?.raw) {
+      try {
+        const rawResult =
+          typeof toolCall.result.raw === 'string'
+            ? JSON.parse(toolCall.result.raw)
+            : toolCall.result.raw;
+        if (typeof rawResult.approved === 'boolean') {
+          approvalResult = {
+            approved: rawResult.approved,
+            message: rawResult.message,
+          };
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    const isPending = !approvalResult;
+
+    if (calendarApprovalArgs) {
+      return (
+        <GoogleCalendarApprovalCard
+          toolCallId={toolCall.id}
+          runId={runId}
+          args={calendarApprovalArgs}
           isPending={isPending}
           isLatestMessage={isLatestMessage}
           onApprove={onApprove || (() => {})}

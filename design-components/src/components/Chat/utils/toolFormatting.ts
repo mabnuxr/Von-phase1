@@ -10,6 +10,7 @@ import {
   TrendingUpIcon,
   CalculatorIcon,
   ToolIcon,
+  CalendarIcon,
 } from '../icons';
 
 // Friendly display names for tools
@@ -20,6 +21,10 @@ export const TOOL_DISPLAY_NAMES: Record<string, string> = {
   sql_analyze: 'Analyzed Data',
   search_documents: 'Searched Documents',
   calculate: 'Calculated',
+  // Google Calendar Tools
+  googlecalendar_create_event: 'Created Calendar Event',
+  googlecalendar_delete_event: 'Deleted Calendar Event',
+  request_google_calendar_approval: 'Calendar Approval Requested',
 };
 
 // Icons for different tool types - SVG components
@@ -30,6 +35,10 @@ export const TOOL_ICONS: Record<string, React.ComponentType<IconProps>> = {
   sql_analyze: TrendingUpIcon,
   search_documents: SearchIcon,
   calculate: CalculatorIcon,
+  // Google Calendar Tools
+  googlecalendar_create_event: CalendarIcon,
+  googlecalendar_delete_event: CalendarIcon,
+  request_google_calendar_approval: CalendarIcon,
 };
 
 /**

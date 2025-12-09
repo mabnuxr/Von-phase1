@@ -439,6 +439,90 @@ export function parseApprovalArgs(args: Record<string, unknown>): ApprovalToolAr
   }
 }
 
+/**
+ * Google Calendar Event Types
+ * Used for the request_google_calendar_approval tool
+ */
+
+/**
+ * Single operation in a Google Calendar approval request
+ */
+export interface GoogleCalendarOperation {
+  /** Type of operation: create or delete */
+  operation: 'create' | 'delete';
+  /** Google Calendar event ID (for delete operations) */
+  event_id?: string;
+  /** Event title/summary */
+  summary: string;
+  /** Event start time (ISO 8601 format) */
+  start_datetime: string;
+  /** Duration hours */
+  event_duration_hour?: string;
+  /** Duration minutes */
+  event_duration_minutes?: number;
+  /** Calendar ID (usually "primary") */
+  calendar_id?: string;
+  /** Event description */
+  description?: string;
+  /** Event location */
+  location?: string;
+  /** Comma-separated attendee emails */
+  attendees_emails?: string;
+  /** Timezone (e.g., "UTC") */
+  timezone?: string;
+  /** Whether to create a Google Meet link */
+  create_meeting_room?: boolean;
+  /** Event type (e.g., "default") */
+  event_type?: string;
+  /** Recurrence rule (e.g., "FREQ=DAILY;COUNT=5") */
+  recurrence?: string;
+  /** Whether guests can invite others */
+  guests_can_invite_others?: boolean;
+  /** Whether guests can modify the event */
+  guests_can_modify?: boolean;
+  /** Whether guests can see other guests */
+  guests_can_see_other_guests?: boolean;
+  /** Whether to send updates to attendees */
+  send_updates?: boolean;
+  /** Transparency: "opaque" or "transparent" */
+  transparency?: string;
+  /** Visibility: "default", "public", or "private" */
+  visibility?: string;
+}
+
+/**
+ * Arguments for the request_google_calendar_approval tool
+ */
+export interface GoogleCalendarApprovalToolArgs {
+  /** Brief summary of the operation(s) */
+  summary: string;
+  /** List of calendar operations to be performed */
+  operations: GoogleCalendarOperation[];
+}
+
+/**
+ * Check if a tool call is the Google Calendar approval tool
+ */
+export function isGoogleCalendarApprovalTool(toolName: string): boolean {
+  return toolName === 'request_google_calendar_approval';
+}
+
+/**
+ * Parse Google Calendar approval tool arguments from a tool call
+ */
+export function parseGoogleCalendarApprovalArgs(
+  args: Record<string, unknown>
+): GoogleCalendarApprovalToolArgs | null {
+  try {
+    if (!args.summary || !args.operations || !Array.isArray(args.operations)) {
+      return null;
+    }
+    return args as unknown as GoogleCalendarApprovalToolArgs;
+  } catch {
+    return null;
+  }
+}
+
 export interface ChatProps {
   /**
    * Title displayed in the chat header
