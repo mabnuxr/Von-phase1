@@ -23,7 +23,9 @@ export const TOOL_DISPLAY_NAMES: Record<string, string> = {
   calculate: 'Calculated',
   // Google Calendar Tools
   googlecalendar_create_event: 'Created Calendar Event',
+  googlecalendar_update_event: 'Updated Calendar Event',
   googlecalendar_delete_event: 'Deleted Calendar Event',
+  googlecalendar_list_events: 'Listed Calendar Events',
   request_google_calendar_approval: 'Calendar Approval Requested',
 };
 
@@ -37,7 +39,9 @@ export const TOOL_ICONS: Record<string, React.ComponentType<IconProps>> = {
   calculate: CalculatorIcon,
   // Google Calendar Tools
   googlecalendar_create_event: CalendarIcon,
+  googlecalendar_update_event: CalendarIcon,
   googlecalendar_delete_event: CalendarIcon,
+  googlecalendar_list_events: CalendarIcon,
   request_google_calendar_approval: CalendarIcon,
 };
 

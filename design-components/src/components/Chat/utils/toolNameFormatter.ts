@@ -32,7 +32,9 @@ const TOOL_NAME_MAP: Record<string, string> = {
 
   // Google Calendar Tools
   googlecalendar_create_event: 'Create Event',
+  googlecalendar_update_event: 'Update Event',
   googlecalendar_delete_event: 'Delete Event',
+  googlecalendar_list_events: 'List Events',
   request_google_calendar_approval: 'Calendar Approval',
 };
 

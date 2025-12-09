@@ -445,13 +445,27 @@ export function parseApprovalArgs(args: Record<string, unknown>): ApprovalToolAr
  */
 
 /**
+ * Change in a Google Calendar update operation
+ */
+export interface GoogleCalendarChange {
+  /** Field name that changed */
+  field: string;
+  /** Previous value */
+  before: string | number | boolean | null;
+  /** New value */
+  after: string | number | boolean | null;
+}
+
+/**
  * Single operation in a Google Calendar approval request
  */
 export interface GoogleCalendarOperation {
-  /** Type of operation: create or delete */
-  operation: 'create' | 'delete';
-  /** Google Calendar event ID (for delete operations) */
+  /** Type of operation: create, update, or delete */
+  operation: 'create' | 'update' | 'delete';
+  /** Google Calendar event ID (for update/delete operations) */
   event_id?: string;
+  /** Changes being made (for update operations) */
+  changes?: GoogleCalendarChange[];
   /** Event title/summary */
   summary: string;
   /** Event start time (ISO 8601 format) */

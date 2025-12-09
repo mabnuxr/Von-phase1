@@ -401,10 +401,10 @@ const Dashboard = () => {
       const userMessage = lastUserMessageRef.current;
 
       if (userMessage) {
-        // Delay for subtle, intentional feel (400ms gives user time to process error)
+        // Delay for subtle, intentional feel (200ms gives user time to process error)
         setTimeout(() => {
           setAutoPopulatedInput(userMessage);
-        }, 400);
+        }, 250);
       }
     }
 
