@@ -13,6 +13,7 @@ import {
   UsersIcon,
   VideoIcon,
   RepeatIcon,
+  EditIcon,
 } from './icons';
 import type { GoogleCalendarOperation, GoogleCalendarApprovalToolArgs } from './types';
 
@@ -233,6 +234,131 @@ const DeleteEventCard: React.FC<{ operation: GoogleCalendarOperation }> = ({ ope
 );
 
 /**
+ * Format field name to be more human-readable
+ */
+function formatFieldName(field: string): string {
+  const fieldMappings: Record<string, string> = {
+    summary: 'Title',
+    start_datetime: 'Start Time',
+    end_datetime: 'End Time',
+    description: 'Description',
+    location: 'Location',
+    attendees_emails: 'Attendees',
+    timezone: 'Timezone',
+    create_meeting_room: 'Google Meet',
+    recurrence: 'Recurrence',
+    event_duration_hour: 'Duration (hours)',
+    event_duration_minutes: 'Duration (minutes)',
+  };
+  return fieldMappings[field] || field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Format change value for display
+ */
+function formatChangeValue(value: string | number | boolean | null): string {
+  if (value === null || value === undefined) return '(empty)';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T/)) {
+    return formatDateTime(value);
+  }
+  return String(value);
+}
+
+/**
+ * Render content for UPDATE operation - shows before/after changes
+ */
+const UpdateEventContent: React.FC<{ operation: GoogleCalendarOperation }> = ({ operation }) => {
+  const changes = operation.changes || [];
+
+  if (changes.length === 0) {
+    return <div className="text-sm text-gray-500 italic">No changes specified</div>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {changes.map((change, idx) => (
+        <div key={idx} className="rounded-md border border-gray-100 bg-gray-50/50 p-3">
+          <div className="text-xs font-medium text-gray-500 mb-2">
+            {formatFieldName(change.field)}
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500 line-through">{formatChangeValue(change.before)}</span>
+            <span className="text-gray-400">→</span>
+            <span className="text-gray-900 font-medium">{formatChangeValue(change.after)}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/**
+ * Card for UPDATE operations with expandable changes
+ */
+const UpdateEventCard: React.FC<{
+  operation: GoogleCalendarOperation;
+  isExpanded: boolean;
+  onToggle: () => void;
+}> = ({ operation, isExpanded, onToggle }) => {
+  const changeCount = operation.changes?.length || 0;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      {/* Operation header */}
+      <button
+        onClick={onToggle}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 rounded-md bg-gray-100">
+            <EditIcon className="text-gray-600" size={16} />
+          </div>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+              {operation.summary}
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Update
+              </span>
+              <span className="text-xs text-gray-500">Event</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {changeCount > 0 && (
+            <span className="text-xs text-gray-400">
+              {changeCount} change{changeCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDownIcon className="text-gray-400" size={16} />
+          </motion.div>
+        </div>
+      </button>
+
+      {/* Expandable content */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 pt-1">
+              <UpdateEventContent operation={operation} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/**
  * Single operation card for CREATE events
  */
 const EventOperationCard: React.FC<{
@@ -373,6 +499,18 @@ export const GoogleCalendarApprovalCard: React.FC<GoogleCalendarApprovalCardProp
             if (operation.operation === 'delete') {
               return <DeleteEventCard key={index} operation={operation} />;
             }
+            // Use update card for update operations
+            if (operation.operation === 'update') {
+              return (
+                <UpdateEventCard
+                  key={index}
+                  operation={operation}
+                  isExpanded={expandedOps.has(index)}
+                  onToggle={() => toggleOperation(index)}
+                />
+              );
+            }
+            // Default to create card
             return (
               <EventOperationCard
                 key={index}
