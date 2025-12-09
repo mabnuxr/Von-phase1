@@ -849,3 +849,170 @@ export const MenuIcon = memo<IconProps>(({ className = 'w-5 h-5', size = 20 }) =
   </svg>
 ));
 MenuIcon.displayName = 'MenuIcon';
+
+// Calendar Icon - For calendar events
+export const CalendarIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="18"
+      rx="2"
+      ry="2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line
+      x1="16"
+      y1="2"
+      x2="16"
+      y2="6"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <line
+      x1="3"
+      y1="10"
+      x2="21"
+      y2="10"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+CalendarIcon.displayName = 'CalendarIcon';
+
+// MapPin Icon - For location display
+export const MapPinIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="10" r="3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+));
+MapPinIcon.displayName = 'MapPinIcon';
+
+// Users Icon - For attendees display
+export const UsersIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <path
+      d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="9" cy="7" r="4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M23 21v-2a4 4 0 00-3-3.87"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16 3.13a4 4 0 010 7.75"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+UsersIcon.displayName = 'UsersIcon';
+
+// Video Icon - For Google Meet / video calls
+export const VideoIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <polygon
+      points="23 7 16 12 23 17 23 7"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <rect
+      x="1"
+      y="5"
+      width="15"
+      height="14"
+      rx="2"
+      ry="2"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+VideoIcon.displayName = 'VideoIcon';
+
+// Repeat Icon - For recurrence display
+export const RepeatIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) => (
+  <svg
+    className={className}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+  >
+    <polyline
+      points="17 1 21 5 17 9"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M3 11V9a4 4 0 014-4h14"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <polyline
+      points="7 23 3 19 7 15"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M21 13v2a4 4 0 01-4 4H3"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+));
+RepeatIcon.displayName = 'RepeatIcon';

@@ -34,6 +34,9 @@ export { ToolCallItem } from './ToolCallItem';
 export { ApprovalCard } from './ApprovalCard';
 export type { ApprovalCardProps, SalesforceOperation, ApprovalToolArgs } from './ApprovalCard';
 
+export { GoogleCalendarApprovalCard } from './GoogleCalendarApprovalCard';
+export type { GoogleCalendarApprovalCardProps } from './GoogleCalendarApprovalCard';
+
 export { MessageActions } from './MessageActions';
 export type { MessageActionsProps } from './MessageActions';
 
@@ -82,6 +85,11 @@ export {
   TrendingUpIcon,
   HashIcon,
   DollarSignIcon,
+  CalendarIcon,
+  MapPinIcon,
+  UsersIcon,
+  VideoIcon,
+  RepeatIcon,
 } from './icons';
 export type { IconProps } from './icons';
 
@@ -109,10 +117,18 @@ export type {
   StepMessage,
   // Salesforce approval types
   ApprovalResult,
+  // Google Calendar approval types
+  GoogleCalendarOperation,
+  GoogleCalendarApprovalToolArgs,
 } from './types';
 
 // Export approval utility functions
-export { isApprovalTool, parseApprovalArgs } from './types';
+export {
+  isApprovalTool,
+  parseApprovalArgs,
+  isGoogleCalendarApprovalTool,
+  parseGoogleCalendarApprovalArgs,
+} from './types';
 
 // Export API utilities
 export {
