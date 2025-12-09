@@ -7,6 +7,20 @@ export type BusinessStage = string;
 // Customer stages - dynamic from Salesforce
 export type CustomerStage = string;
 
+// Org Context document
+export interface OrgContextDocument {
+  id: string;
+  title: string;
+  content: string; // TipTap JSON content stored as string
+}
+
+// Org Context settings
+export interface OrgContextSettings {
+  enabled: boolean;
+  documents: OrgContextDocument[];
+  selectedDocumentId: string;
+}
+
 // Field configuration (Salesforce fields)
 export interface Field {
   id: string;
@@ -2038,6 +2052,7 @@ interface PreferencesState {
     userDefinedVonIQFields?: VonIQField[];
     emailCategorization: EmailCategorizationSettings;
     processConfiguration: ProcessConfigurationSettings;
+    orgContext?: OrgContextSettings;
   }) => void;
 
   // Fields UI state
@@ -2124,6 +2139,13 @@ interface PreferencesState {
   // Team management UI state
   addingTeamMember: boolean;
   setAddingTeamMember: (adding: boolean) => void;
+
+  // Org Context settings
+  orgContext: OrgContextSettings;
+  setOrgContextEnabled: (enabled: boolean) => void;
+  setSelectedDocumentId: (id: string) => void;
+  updateDocumentContent: (id: string, content: string) => void;
+  updateOrgContext: (settings: Partial<OrgContextSettings>) => void;
 }
 
 const usePreferencesStoreBase = create<PreferencesState>((set) => ({
@@ -2168,6 +2190,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       userDefinedVonIQFields: data.userDefinedVonIQFields || [],
       emailCategorization: data.emailCategorization,
       processConfiguration: data.processConfiguration,
+      ...(data.orgContext && { orgContext: data.orgContext }),
     }),
 
   // Note: voniqFields (default fields) are fetched separately and not stored in the store
@@ -2489,6 +2512,95 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   // Team management UI state
   addingTeamMember: false,
   setAddingTeamMember: (adding) => set({ addingTeamMember: adding }),
+
+  // Org Context settings
+  orgContext: {
+    enabled: true,
+    selectedDocumentId: "revenue-deal-value",
+    documents: [
+      {
+        id: "revenue-deal-value",
+        title: "Revenue & Deal Value",
+        content: "",
+      },
+      {
+        id: "sales-motions",
+        title: "Sales Motions — Detailed Breakdown",
+        content: "",
+      },
+      {
+        id: "top-of-funnel",
+        title: "Top of Funnel / Lead Management",
+        content: "",
+      },
+      {
+        id: "customer-identification",
+        title: "Customer Identification & Lifecycle",
+        content: "",
+      },
+      {
+        id: "segmentation-firmographics",
+        title: "Segmentation & Firmographics",
+        content: "",
+      },
+      {
+        id: "ownership-team",
+        title: "Ownership & Team Structure",
+        content: "",
+      },
+      {
+        id: "products-pricing",
+        title: "Products, Pricing & Commercial Model",
+        content: "",
+      },
+      {
+        id: "quotes-contracts",
+        title: "Quotes & Contracts",
+        content: "",
+      },
+      {
+        id: "deal-outcomes",
+        title: "Deal Outcomes & Win/Loss Analysis",
+        content: "",
+      },
+      {
+        id: "forecasting-pipeline",
+        title: "Forecasting & Pipeline Management",
+        content: "",
+      },
+      {
+        id: "customer-health",
+        title: "Customer Health & Success",
+        content: "",
+      },
+      {
+        id: "activities-engagement",
+        title: "Activities & Engagement Tracking",
+        content: "",
+      },
+    ],
+  },
+  setOrgContextEnabled: (enabled) =>
+    set((state) => ({
+      orgContext: { ...state.orgContext, enabled },
+    })),
+  setSelectedDocumentId: (id) =>
+    set((state) => ({
+      orgContext: { ...state.orgContext, selectedDocumentId: id },
+    })),
+  updateDocumentContent: (id, content) =>
+    set((state) => ({
+      orgContext: {
+        ...state.orgContext,
+        documents: state.orgContext.documents.map((doc) =>
+          doc.id === id ? { ...doc, content } : doc,
+        ),
+      },
+    })),
+  updateOrgContext: (settings) =>
+    set((state) => ({
+      orgContext: { ...state.orgContext, ...settings },
+    })),
 }));
 
 const usePreferencesStore = createSelectors(usePreferencesStoreBase);

@@ -39,6 +39,10 @@ export interface ChatEmptyStateProps {
    * Optional banner to display above the input
    */
   banner?: React.ReactNode;
+  /**
+   * Optional banner to display at the very top of the empty state
+   */
+  topBanner?: React.ReactNode;
 }
 
 /**
@@ -68,6 +72,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   placeholder = 'Ask von anything',
   enableCommands = false,
   banner,
+  topBanner,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -147,11 +152,26 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-36 overflow-y-auto font-sf"
+      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-6 overflow-y-auto font-sf"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
     >
+      {/* Top Banner (if provided) - at very top */}
+      {topBanner && (
+        <motion.div
+          className="w-full max-w-3xl mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+        >
+          {topBanner}
+        </motion.div>
+      )}
+
+      {/* Spacer to push content down when no top banner */}
+      {!topBanner && <div className="pt-30" />}
+
       {/* Animated Icon - Von Logo */}
       <motion.div
         className="mb-6"
