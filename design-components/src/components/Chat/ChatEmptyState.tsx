@@ -81,7 +81,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   const [inputValue, setInputValue] = useState('');
 
   // Template state
-  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('Pipeline');
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('1:1 & Coaching');
   const templates = useMemo(
     () => DEFAULT_TEMPLATES.filter((tpl) => tpl.category === activeCategory),
     [activeCategory]
@@ -329,7 +329,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                 className={`
                   flex-shrink-0 w-48 px-4 py-2.5
                   shadow-xs rounded-xl bg-white border border-gray-200
-                  text-left transition-all
+                  text-left transition-all flex flex-col justify-start
                   ${
                     disabled
                       ? 'opacity-50 cursor-not-allowed'

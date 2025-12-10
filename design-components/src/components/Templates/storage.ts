@@ -63,16 +63,16 @@ export function getTemplateById(id: string): Template | null {
  * Get the active category from localStorage
  */
 export function getActiveCategory(): TemplateCategory {
-  if (typeof window === 'undefined') return 'Pipeline';
+  if (typeof window === 'undefined') return '1:1 & Coaching';
 
   try {
     const stored = localStorage.getItem(ACTIVE_CATEGORY_KEY);
     if (stored) {
       return stored as TemplateCategory;
     }
-    return 'Pipeline';
+    return '1:1 & Coaching';
   } catch {
-    return 'Pipeline';
+    return '1:1 & Coaching';
   }
 }
 

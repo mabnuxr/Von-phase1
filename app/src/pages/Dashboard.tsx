@@ -37,7 +37,6 @@ import {
   Banner,
   resumeConversation,
   DashboardCanvas,
-  OrgContextBanner,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
@@ -66,8 +65,8 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // Org context banner state
-  const [showOrgContextBanner, setShowOrgContextBanner] = useState(true);
+  // TODO: Re-enable org context banner state when feature is ready
+  // const [showOrgContextBanner, setShowOrgContextBanner] = useState(true);
 
   // New chat creation
   const { createNewChat, isCreating: isCreatingNewChat } = useNewChat();
@@ -838,14 +837,15 @@ const Dashboard = () => {
                 showMessagesFromIndex={showMessagesFromIndex}
                 useArtifactHook={useArtifact}
                 banner={salesforceBanner}
-                topBanner={
-                  showOrgContextBanner ? (
-                    <OrgContextBanner
-                      onViewOrgContext={() => navigate("/settings?tab=org-context")}
-                      onDismiss={() => setShowOrgContextBanner(false)}
-                    />
-                  ) : undefined
-                }
+                // TODO: Re-enable OrgContextBanner when feature is ready
+                // topBanner={
+                //   showOrgContextBanner ? (
+                //     <OrgContextBanner
+                //       onViewOrgContext={() => navigate("/settings?tab=org-context")}
+                //       onDismiss={() => setShowOrgContextBanner(false)}
+                //     />
+                //   ) : undefined
+                // }
                 disableSubmit={!isSalesforceReady}
                 examplePromptsDisabled={!isSalesforceReady}
                 onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}

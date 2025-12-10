@@ -22,7 +22,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
       className={`
         flex-shrink-0 w-48 px-4 py-2.5
         shadow-xs rounded-xl bg-white border border-gray-200
-        text-left transition-all
+        text-left transition-all flex flex-col justify-start
         ${
           disabled
             ? 'opacity-50 cursor-not-allowed'
