@@ -62,6 +62,7 @@ export const Chat: React.FC<ChatProps> = ({
   showMessagesFromIndex = 0,
   useArtifactHook,
   banner,
+  topBanner,
   disableSubmit = false,
   examplePromptsDisabled = false,
   onExamplePromptDisabledClick,
@@ -370,6 +371,7 @@ export const Chat: React.FC<ChatProps> = ({
             onDisabledClick={onExamplePromptDisabledClick}
             enableCommands={enableCommands}
             banner={banner}
+            topBanner={topBanner}
           />
         ) : (
           <div className="flex flex-col">

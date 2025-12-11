@@ -1,17 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { ChatInput } from './ChatInput';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
+import {
+  DEFAULT_TEMPLATES,
+  TEMPLATE_CATEGORIES,
+  type Template,
+  type TemplateCategory,
+} from '../Templates';
 
 export interface ChatEmptyStateProps {
   /**
    * User's first name for personalized greeting
    */
   userName?: string;
-  /**
-   * Optional example prompts to show
-   */
-  examplePrompts?: string[];
   /**
    * Callback when a message is sent (from input or prompt click)
    */
@@ -36,6 +39,10 @@ export interface ChatEmptyStateProps {
    * Optional banner to display above the input
    */
   banner?: React.ReactNode;
+  /**
+   * Optional banner to display at the very top of the empty state
+   */
+  topBanner?: React.ReactNode;
 }
 
 /**
@@ -59,36 +66,112 @@ const getTimeBasedGreeting = (): string => {
  */
 export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   userName,
-  examplePrompts = [
-    'Show me my \n revenue forecast',
-    'What deals are \n at risk this quarter',
-    'Compare top & \n bottom sellers',
-  ],
   onSendMessage,
   disabled = false,
   onDisabledClick,
   placeholder = 'Ask von anything',
   enableCommands = false,
   banner,
+  topBanner,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
 
-  const handlePromptClick = (prompt: string) => {
-    if (disabled) {
-      onDisabledClick?.();
-      return;
+  // Track input value for template filling
+  const [inputValue, setInputValue] = useState('');
+
+  // Template state
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('1:1 & Coaching');
+  const templates = useMemo(
+    () => DEFAULT_TEMPLATES.filter((tpl) => tpl.category === activeCategory),
+    [activeCategory]
+  );
+
+  // Scroll state for chevrons
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftChevron, setShowLeftChevron] = useState(false);
+  const [showRightChevron, setShowRightChevron] = useState(true);
+
+  const updateChevronVisibility = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    setShowLeftChevron(scrollLeft > 0);
+    setShowRightChevron(scrollLeft < scrollWidth - clientWidth - 1);
+  }, []);
+
+  useLayoutEffect(() => {
+    updateChevronVisibility();
+  }, [templates, updateChevronVisibility]);
+
+  const handleScroll = useCallback(() => {
+    updateChevronVisibility();
+  }, [updateChevronVisibility]);
+
+  const scrollBy = useCallback((direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    container.scrollBy({
+      left: direction === 'left' ? -200 : 200,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  const handleCategoryChange = useCallback((category: TemplateCategory) => {
+    setActiveCategory(category);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
     }
-    onSendMessage?.(prompt);
-  };
+    setShowLeftChevron(false);
+    setShowRightChevron(true);
+  }, []);
+
+  const handleTemplateClick = useCallback(
+    (template: Template) => {
+      if (disabled) {
+        onDisabledClick?.();
+        return;
+      }
+      // Fill the input with the template prompt
+      setInputValue(template.prompt);
+    },
+    [disabled, onDisabledClick]
+  );
+
+  const handleSend = useCallback(
+    (message: string) => {
+      onSendMessage?.(message);
+      setInputValue('');
+    },
+    [onSendMessage]
+  );
+
+  const handleInputChange = useCallback((value: string) => {
+    setInputValue(value);
+  }, []);
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-36 overflow-y-auto font-sf"
+      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-6 overflow-y-auto font-sf"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
     >
+      {/* Top Banner (if provided) - at very top */}
+      {topBanner && (
+        <motion.div
+          className="w-full max-w-3xl mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+        >
+          {topBanner}
+        </motion.div>
+      )}
+
+      {/* Spacer to push content down when no top banner */}
+      {!topBanner && <div className="pt-30" />}
+
       {/* Animated Icon - Von Logo */}
       <motion.div
         className="mb-6"
@@ -165,52 +248,128 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         {enableCommands ? (
           <ChatInputWithCommands
             placeholder={placeholder}
-            onSend={onSendMessage}
+            onSend={handleSend}
             disabled={disabled}
             disableSubmit={disabled}
             onDisabledInput={onDisabledClick}
+            value={inputValue}
+            onChange={handleInputChange}
+            hideDisclaimer
           />
         ) : (
           <ChatInput
             placeholder={placeholder}
-            onSend={onSendMessage}
+            onSend={handleSend}
             disabled={disabled}
             disableSubmit={disabled}
             onDisabledInput={onDisabledClick}
+            value={inputValue}
+            onChange={handleInputChange}
+            hideDisclaimer
           />
         )}
       </motion.div>
 
-      {/* Example Prompts - Horizontal Layout */}
+      {/* Templates Section */}
       <motion.div
-        className="w-full max-w-2xl"
-        initial={{ opacity: 0, y: 20 }}
+        className="w-full max-w-3xl"
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.4 }}
       >
-        {/* <p className="text-xs font-medium text-gray-400 uppercase tracking-wider text-center mb-4">
-          Or try asking
-        </p> */}
-        <div className="flex flex-row justify-center gap-3">
-          {examplePrompts.map((prompt, index) => (
-            <motion.button
-              key={prompt}
-              className={`px-4 py-2.5 shadow-xs rounded-xl w-full bg-white border border-gray-200 text-sm text-gray-700 font-medium transition-all whitespace-pre-line text-start ${
-                disabled
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:border-gray-300 hover:shadow-sm cursor-pointer'
-              }`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: disabled ? 0.5 : 1, y: 0 }}
-              transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
-              whileHover={disabled ? {} : { scale: 1.02 }}
-              whileTap={disabled ? {} : { scale: 0.98 }}
-              onClick={() => handlePromptClick(prompt)}
-            >
-              {prompt}
-            </motion.button>
-          ))}
+        {/* Category Pills */}
+        <div className="flex flex-wrap gap-2 justify-center mb-4">
+          {TEMPLATE_CATEGORIES.map((category) => {
+            const isActive = category === activeCategory;
+            return (
+              <button
+                key={category}
+                onClick={() => !disabled && handleCategoryChange(category)}
+                className={`
+                  px-3 py-1 text-xs font-medium rounded-full
+                  transition-all duration-200
+                  ${
+                    isActive
+                      ? 'bg-gray-100 border border-gray-100 shadow-sm text-gray-900'
+                      : 'bg-white border border-gray-100 text-gray-600 hover:border-gray-200'
+                  }
+                  ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+              >
+                {category}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Templates Carousel */}
+        <div className="relative">
+          {/* Left Chevron */}
+          {showLeftChevron && (
+            <button
+              onClick={() => scrollBy('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
+              aria-label="Scroll left"
+            >
+              <CaretLeft size={16} weight="bold" className="text-gray-600" />
+            </button>
+          )}
+
+          {/* Scrollable Container */}
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex gap-3 overflow-x-auto px-1 py-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => handleTemplateClick(template)}
+                className={`
+                  flex-shrink-0 w-48 px-4 py-2.5
+                  shadow-xs rounded-xl bg-white border border-gray-200
+                  text-left transition-all flex flex-col justify-start
+                  ${
+                    disabled
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:border-gray-300 hover:shadow-sm cursor-pointer'
+                  }
+                `}
+              >
+                <div className="text-sm font-medium text-gray-700 line-clamp-3">
+                  {template.prompt}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Right Chevron */}
+          {showRightChevron && templates.length > 3 && (
+            <button
+              onClick={() => scrollBy('right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
+              aria-label="Scroll right"
+            >
+              <CaretRight size={16} weight="bold" className="text-gray-600" />
+            </button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Spacer to push disclaimer to bottom */}
+      <div className="flex-1" />
+
+      {/* Disclaimer at bottom */}
+      <motion.div
+        className="w-full text-center pb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6, duration: 0.4 }}
+      >
+        <p className="text-xs text-gray-500">
+          Von AI may make mistakes. Please recheck all important information.
+        </p>
       </motion.div>
     </motion.div>
   );
