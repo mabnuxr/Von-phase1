@@ -347,7 +347,7 @@ export const DEFAULT_TEMPLATES: Template[] = [
   {
     id: 'tpl-reporting-6',
     category: 'Reporting & QBRs',
-    prompt: 'What\'s the story on why we missed target last month?',
+    prompt: "What's the story on why we missed target last month?",
   },
   {
     id: 'tpl-reporting-7',

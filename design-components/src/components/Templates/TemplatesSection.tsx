@@ -21,8 +21,8 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
   disabled = false,
 }) => {
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>('1:1 & Coaching');
-  const [templates, setTemplates] = useState<Template[]>(
-    () => DEFAULT_TEMPLATES.filter((tpl) => tpl.category === '1:1 & Coaching')
+  const [templates, setTemplates] = useState<Template[]>(() =>
+    DEFAULT_TEMPLATES.filter((tpl) => tpl.category === '1:1 & Coaching')
   );
 
   // Initialize from localStorage after mount (avoids SSR/hydration issues)

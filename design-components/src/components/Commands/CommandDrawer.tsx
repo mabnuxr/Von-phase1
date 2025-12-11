@@ -75,7 +75,9 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const [expandedDataSources, setExpandedDataSources] = useState<DataSource[]>([]);
 
   // Action type state
-  const [actionType, setActionType] = useState<ActionType | null>(editingCommand?.actionType || null);
+  const [actionType, setActionType] = useState<ActionType | null>(
+    editingCommand?.actionType || null
+  );
   const [expandedActionType, setExpandedActionType] = useState<ActionType | null>(null);
 
   // Salesforce fields state
@@ -273,9 +275,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 <React.Fragment key={s}>
                   <div
                     className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium transition-colors ${
-                      step >= s
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-100 text-gray-400'
+                      step >= s ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-400'
                     }`}
                   >
                     {step > s ? <Check size={14} weight="bold" /> : s}
@@ -301,7 +301,9 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   <h3 className="text-base font-semibold text-gray-900">
                     What are you trying to accomplish?
                   </h3>
-                  <p className="text-xs text-gray-500 mt-1">Describe the task you want to automate</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Describe the task you want to automate
+                  </p>
                 </div>
 
                 <div>
@@ -627,7 +629,9 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   <div className="w-10 h-10 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
                     <Check size={20} className="text-green-600" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900">Review your Quick Action</h3>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Review your Quick Action
+                  </h3>
                   <p className="text-xs text-gray-500 mt-1">
                     Check the generated prompt and configure privacy
                   </p>

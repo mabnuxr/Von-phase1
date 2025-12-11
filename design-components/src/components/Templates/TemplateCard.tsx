@@ -31,9 +31,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
       `}
       onClick={() => !disabled && onClick(template)}
     >
-      <div className="text-sm font-medium text-gray-700 line-clamp-3">
-        {template.prompt}
-      </div>
+      <div className="text-sm font-medium text-gray-700 line-clamp-3">{template.prompt}</div>
     </button>
   );
 };

@@ -66,8 +66,7 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   );
 
   // Position classes based on prop
-  const positionClasses =
-    position === 'above' ? 'bottom-full mb-1' : 'top-full mt-1';
+  const positionClasses = position === 'above' ? 'bottom-full mb-1' : 'top-full mt-1';
 
   return (
     <div
