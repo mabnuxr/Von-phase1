@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { X, Check, Lightning, CaretUp, CaretDown, MagnifyingGlass, Plus } from '@phosphor-icons/react';
+import { X, Check, Lightning, CaretUp, CaretDown, MagnifyingGlass } from '@phosphor-icons/react';
 import {
   type Command,
   type CommandCategory,

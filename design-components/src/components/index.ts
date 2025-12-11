@@ -245,9 +245,3 @@ export type {
 // ============================================================================
 export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
-
-// ============================================================================
-// ORG CONTEXT BANNER
-// ============================================================================
-export { OrgContextBanner } from './OrgContextBanner';
-export type { OrgContextBannerProps } from './OrgContextBanner';

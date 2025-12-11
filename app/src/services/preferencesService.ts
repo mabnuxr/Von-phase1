@@ -3,7 +3,6 @@ import type {
   Field,
   EmailCategorizationSettings,
   ProcessConfigurationSettings,
-  OrgContextSettings,
 } from "../store/preferencesStore";
 
 /**
@@ -25,7 +24,6 @@ export interface PreferencesData {
   salesforceFields: Field[];
   emailCategorization: EmailCategorizationSettings;
   processConfiguration: ProcessConfigurationSettings;
-  orgContext?: OrgContextSettings;
   updatedAt: string;
 }
 
@@ -72,7 +70,6 @@ function toBackendFormat(data: Partial<PreferencesData>) {
     salesforce_fields: data.salesforceFields,
     email_categorization: data.emailCategorization,
     process_configuration: data.processConfiguration,
-    org_context: data.orgContext,
   };
 }
 

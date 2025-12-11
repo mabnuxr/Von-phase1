@@ -65,9 +65,6 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // TODO: Re-enable org context banner state when feature is ready
-  // const [showOrgContextBanner, setShowOrgContextBanner] = useState(true);
-
   // New chat creation
   const { createNewChat, isCreating: isCreatingNewChat } = useNewChat();
 
@@ -837,15 +834,6 @@ const Dashboard = () => {
                 showMessagesFromIndex={showMessagesFromIndex}
                 useArtifactHook={useArtifact}
                 banner={salesforceBanner}
-                // TODO: Re-enable OrgContextBanner when feature is ready
-                // topBanner={
-                //   showOrgContextBanner ? (
-                //     <OrgContextBanner
-                //       onViewOrgContext={() => navigate("/settings?tab=org-context")}
-                //       onDismiss={() => setShowOrgContextBanner(false)}
-                //     />
-                //   ) : undefined
-                // }
                 disableSubmit={!isSalesforceReady}
                 examplePromptsDisabled={!isSalesforceReady}
                 onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}
