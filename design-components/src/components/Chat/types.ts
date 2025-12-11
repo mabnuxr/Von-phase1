@@ -743,6 +743,12 @@ export interface ChatProps {
   banner?: React.ReactNode;
 
   /**
+   * Top banner element to show at the very top of the empty state
+   * Use this for org context notification or similar announcements
+   */
+  topBanner?: React.ReactNode;
+
+  /**
    * Disable message submission (send button and Enter key)
    * Input field remains enabled for typing
    * @default false

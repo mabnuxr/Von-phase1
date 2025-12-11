@@ -215,6 +215,32 @@ export type {
 } from './Commands';
 
 // ============================================================================
+// TEMPLATES (Self-contained prompt templates feature)
+// ============================================================================
+export {
+  TemplatesSection,
+  CategoryPills,
+  TemplateCard,
+  TEMPLATE_CATEGORIES,
+  DEFAULT_TEMPLATES,
+  getTemplates,
+  saveTemplates,
+  getTemplatesByCategory,
+  getTemplateById,
+  getActiveCategory,
+  saveActiveCategory,
+  resetToDefaults as resetTemplatesToDefaults,
+} from './Templates';
+export type {
+  Template,
+  TemplateCategory,
+  TemplatesState,
+  TemplatesSectionProps,
+  CategoryPillsProps,
+  TemplateCardProps,
+} from './Templates';
+
+// ============================================================================
 // DASHBOARD CANVAS (Thesys-powered dashboard generation)
 // ============================================================================
 export { DashboardCanvas } from './DashboardCanvas';

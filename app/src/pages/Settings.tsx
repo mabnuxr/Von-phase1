@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { TopBar } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -29,10 +29,15 @@ import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
   const { isEmailCategorizationEnabled } = useFeatureFlag();
-  const [selectedSettingId, setSelectedSettingId] = useState("integrations");
+
+  // Get initial tab from URL query parameter or default to integrations
+  const tabFromUrl = searchParams.get("tab");
+  const initialTab = tabFromUrl || "integrations";
+  const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
