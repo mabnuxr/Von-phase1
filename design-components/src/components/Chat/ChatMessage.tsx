@@ -448,7 +448,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     // User messages - simple rendering
                     <div
                       ref={userMessageRef}
-                      className="prose-sm markdown-body max-w-none text-left"
+                      className="prose-sm markdown-body max-w-none text-right"
                     >
                       <Streamdown parseIncompleteMarkdown={false} controls={{ table: true }}>
                         {content}

@@ -9,46 +9,13 @@ export type DataSource = 'emails' | 'calls' | 'sfdc' | 'internal_docs';
 
 export type ActionType = 'update_salesforce' | 'text_output' | 'fill_doc' | 'gmail_draft';
 
-export type FillDocType = 'upload_on_chat' | 'upload_template';
-
-/**
- * Salesforce field configuration for Update Salesforce action
- */
-export interface SalesforceFieldConfig {
-  fieldName: string;
-  fieldLabel: string;
-  fieldType: string;
-}
-
-/**
- * Data source configuration with granular settings
- */
-export interface DataSourceConfig {
-  enabled: boolean;
-  instructions?: string;
-  folders?: string[]; // For internal_docs
-}
-
-/**
- * Fill a Doc action configuration
- */
-export interface FillDocConfig {
-  type: FillDocType;
-  templateFile?: File | null;
-  templateName?: string;
-}
-
 export interface Command {
   id: string;
   name: string;
   description: string;
   category: CommandCategory;
   dataSources: DataSource[];
-  dataSourceConfigs?: Record<DataSource, DataSourceConfig>;
   actionType: ActionType;
-  // Action-specific configurations
-  salesforceFields?: SalesforceFieldConfig[];
-  fillDocConfig?: FillDocConfig;
   prompt: string;
   isPublic: boolean;
   createdAt: string;
@@ -74,22 +41,7 @@ export const ACTION_TYPE_LABELS: Record<ActionType, { label: string; description
   gmail_draft: { label: 'Gmail Draft', description: 'Draft an email' },
 };
 
-export const FILL_DOC_TYPE_LABELS: Record<FillDocType, { label: string; description: string }> = {
-  upload_on_chat: { label: 'Upload on Chat', description: 'Fill existing document' },
-  upload_template: { label: 'Upload Template', description: 'Use blank template' },
-};
-
 export const CATEGORY_OPTIONS: CommandCategory[] = ['Sales', 'Research', 'Analysis', 'Custom'];
-
-/**
- * Internal docs folder options
- */
-export const INTERNAL_DOC_FOLDERS = [
-  'Sales Documents',
-  'Product Specs',
-  'Customer Research',
-  'Marketing Materials',
-] as const;
 
 // Default commands that come pre-loaded
 export const DEFAULT_COMMANDS: Command[] = [

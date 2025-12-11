@@ -14,25 +14,13 @@ export type { ChatInputWithCommandsProps } from './ChatInputWithCommands';
 export { useCommands } from './useCommands';
 
 // Types
-export type {
-  Command,
-  CommandCategory,
-  DataSource,
-  ActionType,
-  CommandsState,
-  FillDocType,
-  SalesforceFieldConfig,
-  DataSourceConfig,
-  FillDocConfig,
-} from './types';
+export type { Command, CommandCategory, DataSource, ActionType, CommandsState } from './types';
 
 export {
   DATA_SOURCE_LABELS,
   ACTION_TYPE_LABELS,
   CATEGORY_OPTIONS,
   DEFAULT_COMMANDS,
-  FILL_DOC_TYPE_LABELS,
-  INTERNAL_DOC_FOLDERS,
 } from './types';
 
 // Storage utilities
