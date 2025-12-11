@@ -72,12 +72,6 @@ export interface ChatInputProps {
    * Callback when user tries to type while submit is disabled
    */
   onDisabledInput?: () => void;
-
-  /**
-   * Hide the disclaimer text below the input
-   * @default false
-   */
-  hideDisclaimer?: boolean;
 }
 
 /**
@@ -94,7 +88,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   value,
   onChange,
   onDisabledInput,
-  hideDisclaimer = false,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -222,11 +215,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </div>
         </div>
 
-        {!hideDisclaimer && (
-          <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
-            Von AI may make mistakes. Please recheck all important information.
-          </div>
-        )}
+        <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+          Von AI may make mistakes. Please recheck all important information.
+        </div>
       </div>
     </div>
   );
