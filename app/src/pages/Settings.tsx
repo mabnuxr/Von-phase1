@@ -34,7 +34,8 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled } = useFeatureFlag();
+  const { isEmailCategorizationEnabled, isOrgContextEnabled } =
+    useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations
   const tabFromUrl = searchParams.get("tab");
@@ -167,11 +168,16 @@ const Settings = () => {
         label: "Fields",
         icon: <RowsIcon size={20} weight="duotone" />,
       },
-      {
-        id: "org-context",
-        label: "Org Context",
-        icon: <BrainIcon size={20} weight="duotone" />,
-      },
+      // Conditionally include Org Context tab based on feature flag
+      ...(isOrgContextEnabled
+        ? [
+            {
+              id: "org-context",
+              label: "Org Context",
+              icon: <BrainIcon size={20} weight="duotone" />,
+            },
+          ]
+        : []),
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
         ? [
