@@ -150,7 +150,7 @@ Pull from SFDC and Von IQ, calls and email (if required) to show:
 (5) Deals at risk of slipping with reasons.
 
 Format as a forecast brief — scannable with clear commit/upside/risk sections.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-forecast-2',
@@ -228,7 +228,7 @@ For each deal in commit, assess the risk of it not closing based on:
 Group deals into: Solid (high confidence), At Risk (warning signs), and Unlikely (should probably be moved out). Show the commit value that's solid vs. at risk.
 
 If I'm a manager, break this down by rep and suggest questions I should ask each rep about their at-risk deals in the forecast call.`,
-    isPopular: true,
+    isPopular: false,
   },
 
   // ============================================
@@ -247,7 +247,7 @@ For each deal, show:
 (4) Suggested next action to move it forward.
 
 Flag deals that may need to be re-qualified or removed from pipeline. Keep each deal to a 2-liner.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-pipeline-2',
@@ -262,7 +262,7 @@ Flag deals that may need to be re-qualified or removed from pipeline. Keep each 
 (5) Recent pipeline added vs. pipeline lost.
 
 Highlight the top concerns and what I should focus on. Format as a health scorecard with green/yellow/red indicators.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-pipeline-3',
@@ -292,7 +292,7 @@ Flag deals where:
 (5) Original pain or timeline no longer valid.
 
 For each flagged deal, give me a recommendation — remove, re-engage, or re-qualify and recommend which ones that you can move to closed lost as well.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-pipeline-5',
@@ -587,7 +587,7 @@ Based on this analysis, create a weighted scoring model with:
 (4) Which of my current open new business pipeline deals score highest using this model.
 
 Show me the open deals/accounts that I should prioritize and that may not be a fit.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-accounts-4',
@@ -648,7 +648,7 @@ For each win, summarize: what made it successful.
 For each loss, summarize: why we lost.
 
 Cross-reference with Calls for competitive mentions or key moments. Identify patterns — what's working and what's not. Format as a wins/losses briefing with actionable takeaways.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-reporting-3',
@@ -662,6 +662,6 @@ Pull from SFDC, Calls, and Emails for this month:
 (3) Pipeline touched or generated.
 
 Keep it scannable — I want to know in 30 seconds if I'm on track and what to fix.`,
-    isPopular: true,
+    isPopular: false,
   },
 ];
