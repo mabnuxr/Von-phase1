@@ -14,12 +14,14 @@ import {
   EnvelopeIcon,
   UsersIcon,
   ArrowLeftIcon,
+  BrainIcon,
 } from "@phosphor-icons/react";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
+import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
@@ -32,7 +34,8 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled } = useFeatureFlag();
+  const { isEmailCategorizationEnabled, isOrgContextEnabled } =
+    useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations
   const tabFromUrl = searchParams.get("tab");
@@ -165,6 +168,16 @@ const Settings = () => {
         label: "Fields",
         icon: <RowsIcon size={20} weight="duotone" />,
       },
+      // Conditionally include Org Context tab based on feature flag
+      ...(isOrgContextEnabled
+        ? [
+            {
+              id: "org-context",
+              label: "Org Context",
+              icon: <BrainIcon size={20} weight="duotone" />,
+            },
+          ]
+        : []),
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
         ? [
@@ -197,6 +210,8 @@ const Settings = () => {
         return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
+      case "org-context":
+        return <OrgContextTab />;
       default:
         return null;
     }

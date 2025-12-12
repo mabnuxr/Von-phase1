@@ -7,6 +7,7 @@ import App from "./App";
 import "./index.css";
 import { QueryProvider } from "./providers/QueryProvider";
 import { LaunchDarklyProvider } from "./providers/LaunchDarklyProvider";
+import { ToastProvider } from "./contexts/ToastContext";
 import { initSentry } from "./lib/sentry";
 import { SentryErrorFallback } from "./components/SentryErrorFallback";
 
@@ -18,7 +19,9 @@ const isSentryEnabled = import.meta.env.VITE_APP_ENV !== "development";
 const AppWithProviders = (
   <LaunchDarklyProvider>
     <QueryProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </QueryProvider>
   </LaunchDarklyProvider>
 );

@@ -8,6 +8,7 @@ export const FEATURE_FLAGS = {
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
+  ORG_CONTEXT: "enableOrgContext",
 } as const;
 
 /**
@@ -52,6 +53,11 @@ export function useFeatureFlag() {
      * Controls whether additional actions menu is enabled (convert to dashboard, etc.)
      */
     isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
+
+    /**
+     * Controls whether Org Context tab is visible in settings
+     */
+    isOrgContextEnabled: flags[FEATURE_FLAGS.ORG_CONTEXT] === true,
 
     /**
      * Raw flags object for advanced usage

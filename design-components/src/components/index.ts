@@ -27,6 +27,9 @@ export type { MenuProps, MenuItem } from './Menu';
 export { Banner } from './Banner';
 export type { BannerProps, BannerVariant, BannerAction } from './Banner';
 
+export { Toast } from './Toast';
+export type { ToastProps, ToastVariant, ToastAction } from './Toast';
+
 // Forms Atoms
 // -----------
 export { Button } from './Button';
@@ -213,32 +216,6 @@ export type {
   CommandsState,
   ChatInputWithCommandsProps,
 } from './Commands';
-
-// ============================================================================
-// TEMPLATES (Self-contained prompt templates feature)
-// ============================================================================
-export {
-  TemplatesSection,
-  CategoryPills,
-  TemplateCard,
-  TEMPLATE_CATEGORIES,
-  DEFAULT_TEMPLATES,
-  getTemplates,
-  saveTemplates,
-  getTemplatesByCategory,
-  getTemplateById,
-  getActiveCategory,
-  saveActiveCategory,
-  resetToDefaults as resetTemplatesToDefaults,
-} from './Templates';
-export type {
-  Template,
-  TemplateCategory,
-  TemplatesState,
-  TemplatesSectionProps,
-  CategoryPillsProps,
-  TemplateCardProps,
-} from './Templates';
 
 // ============================================================================
 // DASHBOARD CANVAS (Thesys-powered dashboard generation)

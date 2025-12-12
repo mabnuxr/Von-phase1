@@ -75,7 +75,7 @@ export function useStreamTimeout(
 
       // Set timer for remaining time
       const remainingTime = timeoutMs - timeSinceUpdate;
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         // FIX: Force clear streaming state immediately (re-enables input)
         onForceComplete?.(msg.id);
 
