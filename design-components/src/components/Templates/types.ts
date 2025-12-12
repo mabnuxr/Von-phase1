@@ -38,9 +38,10 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
 // Default templates organized by category for sales teams
 // Based on quick prompts for revenue operations workflows
 // Templates with isPopular: true will appear in both Popular and their main category
+// Popular templates are ordered by their index in the sheet
 export const DEFAULT_TEMPLATES: Template[] = [
   // ============================================
-  // COACHING TEMPLATES (formerly 1:1 & Coaching)
+  // COACHING TEMPLATES (1:1 & Coaching)
   // ============================================
   {
     id: 'tpl-coaching-1',
@@ -54,39 +55,10 @@ Create a rundown covering:
 (3) Key talking points or areas needing discussion.
 
 Use SFDC, Von IQ, Calls, and Emails for context. Keep each deal to a 2-liner max that's easy to consume and actionable.`,
-    isPopular: true,
+    isPopular: false,
   },
   {
     id: 'tpl-coaching-2',
-    category: 'Coaching',
-    shortPrompt: 'Show me coaching moments from my recent calls',
-    prompt: `Check my role. If I'm a manager, surface coaching moments from my team's calls in the last 7 days for new business deals. If I'm a rep, surface moments from my own calls where I could improve.
-
-Use Calls data to identify:
-(1) Objections that weren't handled well
-(2) Missed discovery questions
-(3) Pricing or competitor discussions that could have gone better
-(4) Positive moments to replicate.
-
-Provide specific call references with timestamps where possible. Keep each insight to a 2-liner with the call name and what to focus on.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-coaching-3',
-    category: 'Coaching',
-    shortPrompt: 'What talk tracks are working best for objections?',
-    prompt: `Search through Calls where objections (e.g., pricing, competitor, timing) were raised. Identify successful talk tracks where the objection was overcome and the deal progressed in SFDC.
-
-Pull 3-5 examples with:
-(1) The exact language or approach used
-(2) The rep who used it
-(3) The outcome.
-
-Format as a mini playbook I can reference or share with my team.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-coaching-4',
     category: 'Coaching',
     shortPrompt: "Give me a summary of {{rep_name}}'s performance this month",
     prompt: `Pull {{rep_name}}'s data from SFDC, Calls, and Emails for this month. Summarize:
@@ -98,10 +70,10 @@ Format as a mini playbook I can reference or share with my team.`,
 (5) Areas of strength and areas needing development.
 
 Keep it to a 1-page equivalent, scannable sections with 2-liners per insight.`,
-    isPopular: false,
+    isPopular: true,
   },
   {
-    id: 'tpl-coaching-5',
+    id: 'tpl-coaching-3',
     category: 'Coaching',
     shortPrompt: 'Which of my reps needs attention this week?',
     prompt: `Check my role to confirm I'm a manager. Analyze my team across SFDC, Von IQ, Calls, and Emails to identify which rep needs my attention most this week.
@@ -116,10 +88,39 @@ Rank my reps by urgency and give me a 2-liner on why each needs attention.`,
     isPopular: false,
   },
   {
+    id: 'tpl-coaching-4',
+    category: 'Coaching',
+    shortPrompt: 'Show me coaching moments from recent calls',
+    prompt: `Check my role. If I'm a manager, surface coaching moments from my team's calls in the last 7 days for new business deals. If I'm a rep, surface moments from my own calls where I could improve.
+
+Use Calls data to identify:
+(1) Objections that weren't handled well
+(2) Missed discovery questions
+(3) Pricing or competitor discussions that could have gone better
+(4) Positive moments to replicate.
+
+Provide specific call references with timestamps where possible. Keep each insight to a 2-liner with the call name and what to focus on.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-coaching-5',
+    category: 'Coaching',
+    shortPrompt: 'What talk tracks are working best for objections?',
+    prompt: `Check my role. Search through Calls for new business deals where objections (e.g., pricing, competitor, timing) were raised. Identify successful talk tracks where the objection was overcome and the deal progressed in SFDC.
+
+Pull 3-5 examples with:
+(1) The exact language or approach used
+(2) The rep who used it
+(3) The outcome.
+
+Format as a mini playbook I can reference or share with my team.`,
+    isPopular: false,
+  },
+  {
     id: 'tpl-coaching-6',
     category: 'Coaching',
     shortPrompt: 'How did {{rep_name}} handle their calls this week?',
-    prompt: `Pull all Calls for {{rep_name}} from this week.
+    prompt: `Pull all Calls for {{rep_name}} from this week for new business deals.
 
 Analyze:
 (1) Overall call quality and engagement
@@ -133,90 +134,13 @@ Cross-reference with SFDC to see if calls moved deals forward. Summarize with sp
   },
 
   // ============================================
-  // FORECAST TEMPLATES (formerly Forecasting)
+  // FORECAST TEMPLATES
   // ============================================
   {
     id: 'tpl-forecast-1',
     category: 'Forecast',
-    shortPrompt: 'Prep me for the forecast call',
-    prompt: `Help me prepare for my forecast call. Check my role — if I'm a leader, summarize my team's forecast; if I'm a rep, summarize my own.
-
-Pull from SFDC and Von IQ, calls and email (if required) to show:
-
-(1) Current commit vs. target with gap analysis
-(2) Deals that moved into or out of commit since last week
-(3) Key deals in commit and their risk level based on recent activity from Calls and Emails
-(4) Upside deals that could pull in and deals that were pushed out of the quarter
-(5) Deals at risk of slipping with reasons.
-
-Format as a forecast brief — scannable with clear commit/upside/risk sections.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-forecast-2',
-    category: 'Forecast',
-    shortPrompt: 'How confident should I be in my commit?',
-    prompt: `Analyze my commit deals (or my team's if I'm a manager) from SFDC with Von IQ scores, recent Calls, and Emails.
-
-For each commit deal, assess:
-(1) Last meaningful activity and recency
-(2) Stakeholder engagement — are multiple contacts involved?
-(3) Call sentiment and progression signals.
-
-Give me a confidence score and flag deals where commit may be at risk. Be direct about which deals I should be worried about.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-forecast-3',
-    category: 'Forecast',
     shortPrompt: 'Which commit deals should I be worried about?',
-    prompt: `Pull all deals in commit from SFDC and cross-reference with Von IQ health scores, recent Calls, and Emails.
-
-Flag deals where:
-(1) No activity in the last 7+ days
-(2) Champion has gone silent
-(3) Call sentiment was negative or stalled
-(4) Close date has already been pushed once
-(5) Missing key stakeholders or next steps
-(6) Other risks that you think are important to flag.
-
-For each flagged deal, give me a 2-liner on the risk and suggested action.`,
-    isPopular: true,
-  },
-  {
-    id: 'tpl-forecast-4',
-    category: 'Forecast',
-    shortPrompt: 'Show me upside deals that could pull into this quarter',
-    prompt: `Pull deals from SFDC that are in best case or pipeline but not commit. Use Von IQ scores and recent Calls/Emails to identify which have momentum:
-
-(1) Recent positive activity or engagement
-(2) Strong call sentiment
-(3) Shorter time in stage than average
-(4) Decision maker involvement.
-
-Rank by likelihood to pull in and give me a 2-liner per deal on what would need to happen to accelerate it.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-forecast-5',
-    category: 'Forecast',
-    shortPrompt: "What's my realistic landing zone for this quarter?",
-    prompt: `Analyze my forecast (or team's if I'm a manager) from SFDC.
-
-Build three scenarios:
-(1) Conservative — only highest-confidence commit deals
-(2) Expected — commit at historical close rate
-(3) Optimistic — commit plus likely upside.
-
-Use Von IQ, Calls, and Emails.
-Show the range and what would need to go right (or wrong) for each scenario.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-forecast-6',
-    category: 'Forecast',
-    shortPrompt: 'Which reps are forecasting too optimistically?',
-    prompt: `Pull the current commit from SFDC — show me the total commit number and the deals that make it up.
+    prompt: `Check my role. Pull the current new business commit from SFDC — show me the total commit number and the deals that make it up.
 
 For each deal in commit, assess the risk of it not closing based on:
 (1) Von IQ health score — flag anything below threshold
@@ -228,6 +152,200 @@ For each deal in commit, assess the risk of it not closing based on:
 Group deals into: Solid (high confidence), At Risk (warning signs), and Unlikely (should probably be moved out). Show the commit value that's solid vs. at risk.
 
 If I'm a manager, break this down by rep and suggest questions I should ask each rep about their at-risk deals in the forecast call.`,
+    isPopular: true,
+  },
+  {
+    id: 'tpl-forecast-2',
+    category: 'Forecast',
+    shortPrompt: "What's changed in the forecast since last week?",
+    prompt: `Check my role. Compare this week's forecast snapshot against last week from SFDC for new business deals.
+
+Show me:
+(1) Deals that moved into commit
+(2) Deals that moved out of commit with reasons
+(3) Deal amounts that changed (up or down)
+(4) New deals added to pipeline
+(5) Deals that closed or were lost.
+
+Use Von IQ and recent Calls/Emails to add context on why changes happened. Keep each change to a 2-liner with deal name, what changed, and why.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-forecast-3',
+    category: 'Forecast',
+    shortPrompt: 'Prep me for the forecast call',
+    prompt: `Help me prepare for my forecast call. Check my role — if I'm a leader, summarize my team's forecast; if I'm a rep, summarize my own. Focus on new business deals.
+
+Pull from SFDC and Von IQ, calls and email (if required) to show:
+(1) Current commit vs. target with gap analysis
+(2) Deals that moved into or out of commit since last week
+(3) Key deals in commit and their risk level based on recent activity from Calls and Emails
+(4) Upside deals that could pull in and deals that were pushed out of the quarter
+(5) Deals at risk of slipping with reasons.
+
+Format as a forecast brief — scannable with clear commit/upside/risk sections.`,
+    isPopular: true,
+  },
+  {
+    id: 'tpl-forecast-4',
+    category: 'Forecast',
+    shortPrompt: 'Show me upside deals that could pull in',
+    prompt: `Check my role. Pull new business deals from SFDC that are in best case or pipeline but not commit. Use Von IQ scores and recent Calls/Emails to identify which have momentum:
+
+(1) Recent positive activity or engagement
+(2) Strong call sentiment
+(3) Shorter time in stage than average
+(4) Decision maker involvement.
+
+Rank by likelihood to pull in and give me a 2-liner per deal on what would need to happen to accelerate it.`,
+    isPopular: false,
+  },
+
+  // ============================================
+  // DEALS TEMPLATES
+  // ============================================
+  {
+    id: 'tpl-deals-1',
+    category: 'Deals',
+    shortPrompt: 'Give me a rundown on my top deals this week',
+    prompt: `Check my role and pull my top new business deals (or team's if I'm a manager) from SFDC ranked by value and close date proximity.
+
+For each top deal show:
+(1) Current stage and Von IQ health score
+(2) Last activity from Calls and Emails
+(3) Key risks or blockers
+(4) Next steps and what's scheduled in GCal.
+
+Keep each deal to a 2-3 liner. Help me know where to focus my energy this week.`,
+    isPopular: true,
+  },
+  {
+    id: 'tpl-deals-2',
+    category: 'Deals',
+    shortPrompt: 'Which deals need attention this week?',
+    prompt: `Check my role. Pull my open new business deals (or team's if I'm a manager) from SFDC, Von IQ, Calls, and Emails. Categorize deals that need intervention into these buckets:
+
+Executive Alignment Required — Deals where exec involvement could accelerate or save the deal:
+(1) Large deal size
+(2) Economic buyer or C-level on their side not yet engaged
+(3) Stalled at late stage with no movement
+(4) Competitor exec is involved but ours isn't
+(5) Multi-stakeholder or committee decision pending.
+
+For each, suggest what type of exec involvement — intro email, joint call, dinner, escalation.
+
+Blockers to Resolve — Deals stuck due to specific obstacles:
+(1) Legal or procurement delays — waiting on redlines or approvals
+(2) Technical concerns or validation pending
+(3) Budget or pricing objection unresolved
+(4) Internal champion waiting on their leadership sign-off
+(5) Integration or security review in progress.
+
+For each, surface the blocker from Calls/Emails and suggest how to unblock.
+
+Re-engagement Needed — Deals going dark:
+(1) No activity in 7+ days despite close date within 14 days
+(2) Champion or key contact stopped responding
+(3) No next meeting in GCal
+(4) Von IQ score dropped from previous week.
+
+For each, suggest re-engagement tactics — multi-thread to another contact, try different channel, send value-add content, or involve exec.
+
+Monitor Closely — Deals with early warning signs but not critical yet:
+(1) Negative sentiment in recent call but deal still progressing
+(2) Close date pushed once already
+(3) Engagement slowing but not dead.
+
+Flag these so I keep an eye on them.
+
+For each deal, give me: Deal name, amount, current stage, the issue, and a specific 1-liner action. Prioritize by deal size and close date urgency.`,
+    isPopular: true,
+  },
+  {
+    id: 'tpl-deals-3',
+    category: 'Deals',
+    shortPrompt: "What's happening with {{deal_name}}?",
+    prompt: `Check my role. Deep dive on {{deal_name}}. Pull from SFDC for deal details, Von IQ for health assessment, Calls for recent conversations, and Emails for communication history.
+
+Tell me:
+(1) Current status and stage
+(2) Recent activity timeline
+(3) Key stakeholders and their engagement level
+(4) Risks or concerns surfaced in calls
+(5) What needs to happen next to move forward.
+
+Give me the full picture in a scannable format.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-deals-4',
+    category: 'Deals',
+    shortPrompt: 'What did prospects say about pricing this week?',
+    prompt: `Check my role. Search through this week's Calls for new business deals where pricing was discussed.
+
+Pull out:
+(1) Specific objections or concerns raised
+(2) Competitor pricing mentions
+(3) Budget constraints surfaced
+(4) How the conversation was handled — well or poorly
+(5) Deal names and stages where pricing came up.
+
+Help me understand if pricing is becoming a broader blocker and how we're handling it.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-deals-5',
+    category: 'Deals',
+    shortPrompt: "What's blocking my late-stage deals?",
+    prompt: `Check my role. Pull new business deals in late stages (negotiation, contract, etc.) from SFDC and analyze blockers from Calls, Emails, and Von IQ.
+
+Identify:
+(1) Legal or procurement delays
+(2) Stakeholder or approval issues
+(3) Technical concerns not yet resolved
+(4) Pricing or term negotiations
+(5) Competition still in play.
+
+For each deal, give me the specific blocker and suggested action to unblock.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-deals-6',
+    category: 'Deals',
+    shortPrompt: 'Help me prep for my meetings today',
+    prompt: `Check my role. Pull my GCal for today and identify all external meetings (exclude internal 1:1s and team meetings). For each meeting, match the attendees or account to SFDC.
+
+For each meeting, give me a brief covering:
+(1) Context — Account name, open opportunities, deal stage and value
+(2) Last interaction — Summary of the most recent Call or Email thread with this contact/account
+(3) Deal health — Von IQ score and any risk signals
+(4) Key topics likely to come up — Based on where we are in the sales cycle and recent conversation themes
+(5) Goal for this meeting — What should I aim to accomplish or move forward?
+
+Flag any meetings where:
+(1) There's no recent activity — I'm going in cold
+(2) The deal has risk signals I should address
+(3) New stakeholders are attending I haven't met before.
+
+Keep each meeting prep to a scannable 4-5 liner. Order by meeting time so I can prep sequentially through my day.
+
+If I'm a manager and have customer meetings, prep those. If I have internal deal reviews, prep me with the deal context instead.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-deals-7',
+    category: 'Deals',
+    shortPrompt: 'Show me deals I can accelerate this week',
+    prompt: `Check my role. Analyze my new business pipeline from SFDC and Von IQ to find deals with acceleration potential.
+
+Look for:
+(1) High Von IQ scores but not in late stage
+(2) Strong recent engagement in Calls and Emails
+(3) Champion pushing internally
+(4) Clear timeline or urgency
+(5) All stakeholders engaged.
+
+For each deal, suggest acceleration tactics — schedule demo, send proposal, bring in exec, etc.`,
     isPopular: false,
   },
 
@@ -237,23 +355,8 @@ If I'm a manager, break this down by rep and suggest questions I should ask each
   {
     id: 'tpl-pipeline-1',
     category: 'Pipeline',
-    shortPrompt: 'Show me deals that have been in the same stage for 2+ weeks',
-    prompt: `Pull from SFDC all deals (mine or my team's based on role) that haven't moved stage in 14+ days.
-
-For each deal, show:
-(1) Current stage and days in stage
-(2) Last activity from Calls and Emails
-(3) Von IQ health score
-(4) Suggested next action to move it forward.
-
-Flag deals that may need to be re-qualified or removed from pipeline. Keep each deal to a 2-liner.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-pipeline-2',
-    category: 'Pipeline',
     shortPrompt: 'How healthy is my pipeline right now?',
-    prompt: `Give me a pipeline health assessment. Pull from SFDC and Von IQ to analyze:
+    prompt: `Check my role. Give me a pipeline health assessment for new business deals. Pull from SFDC and Von IQ to analyze:
 
 (1) Total pipeline value and coverage ratio
 (2) Stage distribution — is it balanced?
@@ -262,13 +365,43 @@ Flag deals that may need to be re-qualified or removed from pipeline. Keep each 
 (5) Recent pipeline added vs. pipeline lost.
 
 Highlight the top concerns and what I should focus on. Format as a health scorecard with green/yellow/red indicators.`,
+    isPopular: true,
+  },
+  {
+    id: 'tpl-pipeline-2',
+    category: 'Pipeline',
+    shortPrompt: 'Where are deals getting stuck?',
+    prompt: `Check my role. Analyze my new business pipeline (or team's if I'm a manager) from SFDC for bottlenecks.
+
+Identify:
+(1) Stages with longest average time
+(2) Deals currently stuck longer than average in each stage
+(3) Common reasons for stalling — from Calls and Von IQ signals
+(4) Conversion rates by stage to find the leakiest points.
+
+Give me specific deals that need attention and suggested actions to unstick them.`,
     isPopular: false,
   },
   {
     id: 'tpl-pipeline-3',
     category: 'Pipeline',
-    shortPrompt: 'What pipeline did I generate this month?',
-    prompt: `Pull my activity from SFDC and show pipeline I created this month:
+    shortPrompt: 'Show me deals stuck in the same stage for 2+ weeks',
+    prompt: `Check my role. Pull from SFDC all new business deals (mine or my team's based on role) that haven't moved stage in 14+ days.
+
+For each deal, show:
+(1) Current stage and days in stage
+(2) Last activity from Calls and Emails
+(3) Von IQ health score
+(4) Suggested next action to move it forward.
+
+Flag deals that may need to be re-qualified or removed from pipeline. Keep each deal to a 2-liner.`,
+    isPopular: true,
+  },
+  {
+    id: 'tpl-pipeline-4',
+    category: 'Pipeline',
+    shortPrompt: 'What is the pipeline generated for the month?',
+    prompt: `Check my role. Pull my activity from SFDC and show new business pipeline I created this month:
 
 (1) New deals added with amounts and sources
 (2) Meetings that converted to opportunities
@@ -279,26 +412,10 @@ If I'm a manager, break this down by rep. Show both volume (number of deals) and
     isPopular: false,
   },
   {
-    id: 'tpl-pipeline-4',
-    category: 'Pipeline',
-    shortPrompt: 'Which deals should I remove from pipeline?',
-    prompt: `Analyze my pipeline from SFDC for deals that may no longer be viable.
-
-Flag deals where:
-(1) No activity in 30+ days despite outreach in Emails
-(2) Von IQ score is critically low
-(3) Contact has gone dark — no responses to calls or emails
-(4) Close date has been pushed multiple times
-(5) Original pain or timeline no longer valid.
-
-For each flagged deal, give me a recommendation — remove, re-engage, or re-qualify and recommend which ones that you can move to closed lost as well.`,
-    isPopular: false,
-  },
-  {
     id: 'tpl-pipeline-5',
     category: 'Pipeline',
     shortPrompt: 'Show me new deals that entered pipeline this week',
-    prompt: `Pull from SFDC all deals created in the last 7 days (mine or team's based on role).
+    prompt: `Check my role. Pull from SFDC all new business deals created in the last 7 days (mine or team's based on role).
 
 For each new deal, show:
 (1) Account name and deal size
@@ -313,8 +430,8 @@ Help me understand what's new and what needs immediate attention.`,
   {
     id: 'tpl-pipeline-6',
     category: 'Pipeline',
-    shortPrompt: 'Update next steps based on calls from the last 7 days',
-    prompt: `Pull my Calls from the last 7 days and match them to deals in SFDC.
+    shortPrompt: "Update next steps based on last week's calls",
+    prompt: `Check my role. Pull my Calls from the last 7 days for new business deals and match them to deals in SFDC.
 
 For each call, extract:
 (1) What the prospect committed to
@@ -333,174 +450,7 @@ For each deal, show: Deal name | What was agreed | What SFDC says | Recommended 
 Update SFDC with the corrected next steps, dates, and stage changes. Summarize what was updated.
 
 If I'm a manager, show this across my team and flag reps with the most mismatches.`,
-    isPopular: true,
-  },
-
-  // ============================================
-  // DEALS TEMPLATES
-  // ============================================
-  {
-    id: 'tpl-deals-1',
-    category: 'Deals',
-    shortPrompt: 'Give me a rundown on my top deals this week',
-    prompt: `Check my role and pull my top deals (or team's if I'm a manager) from SFDC ranked by value and close date proximity.
-
-For each top deal show:
-(1) Current stage and Von IQ health score
-(2) Last activity from Calls and Emails
-(3) Key risks or blockers
-(4) Next steps and what's scheduled in GCal.
-
-Keep each deal to a 2-3 liner. Help me know where to focus my energy this week.`,
-    isPopular: true,
-  },
-  {
-    id: 'tpl-deals-2',
-    category: 'Deals',
-    shortPrompt: "What's happening with the {{company_name}} deal?",
-    prompt: `Deep dive on {{company_name}}. Pull from SFDC for deal details, Von IQ for health assessment, Calls for recent conversations, and Emails for communication history.
-
-Tell me:
-(1) Current status and stage
-(2) Recent activity timeline
-(3) Key stakeholders and their engagement level
-(4) Risks or concerns surfaced in calls
-(5) What needs to happen next to move forward.
-
-Give me the full picture in a scannable format.`,
     isPopular: false,
-  },
-  {
-    id: 'tpl-deals-3',
-    category: 'Deals',
-    shortPrompt: 'Which deals need attention this week?',
-    prompt: `Pull my open deals (or team's if I'm a manager) from SFDC, Von IQ, Calls, and Emails. Categorize deals that need intervention into these buckets:
-
-🔴 Executive Alignment Required
-Deals where exec involvement could accelerate or save the deal:
-(1) Large deal size
-(2) Economic buyer or C-level on their side not yet engaged
-(3) Stalled at late stage with no movement
-(4) Competitor exec is involved but ours isn't
-(5) Multi-stakeholder or committee decision pending.
-
-For each, suggest what type of exec involvement — intro email, joint call, dinner, escalation.
-
-🟠 Blockers to Resolve
-Deals stuck due to specific obstacles:
-(1) Legal or procurement delays — waiting on redlines or approvals
-(2) Technical concerns or validation pending
-(3) Budget or pricing objection unresolved
-(4) Internal champion waiting on their leadership sign-off
-(5) Integration or security review in progress.
-
-For each, surface the blocker from Calls/Emails and suggest how to unblock.
-
-🟡 Re-engagement Needed
-Deals going dark:
-(1) No activity in 7+ days despite close date within 14 days
-(2) Champion or key contact stopped responding
-(3) No next meeting in GCal
-(4) Von IQ score dropped from previous week.
-
-For each, suggest re-engagement tactics — multi-thread to another contact, try different channel, send value-add content, or involve exec.
-
-🟢 Monitor Closely
-Deals with early warning signs but not critical yet:
-(1) Negative sentiment in recent call but deal still progressing
-(2) Close date pushed once already
-(3) Engagement slowing but not dead.
-
-Flag these so I keep an eye on them.
-
-For each deal, give me: Deal name, amount, current stage, the issue, and a specific 1-liner action. Prioritize by deal size and close date urgency.`,
-    isPopular: true,
-  },
-  {
-    id: 'tpl-deals-4',
-    category: 'Deals',
-    shortPrompt: 'Which deals are missing next steps?',
-    prompt: `Pull from SFDC all open deals (mine or team's based on role) that don't have a next step or next meeting scheduled. Cross-reference with GCal to confirm nothing is scheduled.
-
-For each deal, show:
-(1) Deal name and stage
-(2) Days since last activity
-(3) Last touchpoint from Calls or Emails
-(4) Suggested next action.
-
-These are deals at risk of going dark — help me prioritize outreach.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-deals-5',
-    category: 'Deals',
-    shortPrompt: 'What did prospects say about pricing this week?',
-    prompt: `Search through this week's Calls for pricing discussions.
-
-Pull out:
-(1) Specific objections or concerns raised
-(2) Competitor pricing mentions
-(3) Budget constraints surfaced
-(4) How the conversation was handled — well or poorly
-(5) Deal names and stages where pricing came up.
-
-Help me understand if pricing is becoming a broader blocker and how we're handling it.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-deals-6',
-    category: 'Deals',
-    shortPrompt: "What's blocking my late-stage deals from closing?",
-    prompt: `Pull deals in late stages (negotiation, contract, etc.) from SFDC and analyze blockers from Calls, Emails, and Von IQ.
-
-Identify:
-(1) Legal or procurement delays
-(2) Stakeholder or approval issues
-(3) Technical concerns not yet resolved
-(4) Pricing or term negotiations
-(5) Competition still in play.
-
-For each deal, give me the specific blocker and suggested action to unblock.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-deals-7',
-    category: 'Deals',
-    shortPrompt: 'Show me deals I can accelerate this week',
-    prompt: `Analyze my pipeline from SFDC and Von IQ to find deals with acceleration potential.
-
-Look for:
-(1) High Von IQ scores but not in late stage
-(2) Strong recent engagement in Calls and Emails
-(3) Champion pushing internally
-(4) Clear timeline or urgency
-(5) All stakeholders engaged.
-
-For each deal, suggest acceleration tactics — schedule demo, send proposal, bring in exec, etc.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-deals-8',
-    category: 'Deals',
-    shortPrompt: 'Help me prep for my meetings today',
-    prompt: `Pull my GCal for today and identify all external meetings (exclude internal 1:1s and team meetings). For each meeting, match the attendees or account to SFDC.
-
-For each meeting, give me a brief covering:
-(1) Context — Account name, open opportunities, deal stage and value
-(2) Last interaction — Summary of the most recent Call or Email thread with this contact/account
-(3) Deal health — Von IQ score and any risk signals
-(4) Key topics likely to come up — Based on where we are in the sales cycle and recent conversation themes
-(5) Goal for this meeting — What should I aim to accomplish or move forward?
-
-Flag any meetings where:
-(1) There's no recent activity — I'm going in cold
-(2) The deal has risk signals I should address
-(3) New stakeholders are attending I haven't met before.
-
-Keep each meeting prep to a scannable 4-5 liner. Order by meeting time so I can prep sequentially through my day.
-
-If I'm a manager and have customer meetings, prep those. If I have internal deal reviews, prep me with the deal context instead.`,
-    isPopular: true,
   },
 
   // ============================================
@@ -509,24 +459,8 @@ If I'm a manager and have customer meetings, prep those. If I have internal deal
   {
     id: 'tpl-accounts-1',
     category: 'Accounts',
-    shortPrompt: "What's the health of the {{account_name}} account?",
-    prompt: `Deep dive on {{account_name}}. Pull from SFDC for all relationship data, Calls for recent conversations, Emails for communication patterns, and Von IQ for deal health.
-
-Show me:
-(1) All open and recent closed opportunities
-(2) Key contacts and engagement levels
-(3) Recent sentiment from calls
-(4) Support or issues if any
-(5) Expansion or risk signals.
-
-Give me the full account picture.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-accounts-2',
-    category: 'Accounts',
     shortPrompt: 'Which accounts are at risk of churning?',
-    prompt: `Analyze my accounts from SFDC, Calls, and Emails for churn risk signals.
+    prompt: `Check my role. Analyze my accounts (or team's if I'm a manager) from SFDC, Calls, and Emails for churn risk signals. Focus on existing customers.
 
 Flag accounts with:
 (1) Declining engagement or contact frequency
@@ -539,75 +473,10 @@ For each at-risk account, give me the warning signs and suggested save plays.`,
     isPopular: true,
   },
   {
-    id: 'tpl-accounts-3',
-    category: 'Accounts',
-    shortPrompt: 'Account/Deal scoring model',
-    prompt: `Analyze my closed-won and closed-lost deals from SFDC over the last 12 months to identify patterns that predict account success. Build a scoring model based on:
-
-Firmographic Fit
-(1) Company size — which employee ranges convert best?
-(2) Industry — which verticals have highest win rates?
-(3) Geography — any regional patterns?
-(4) Tech stack or tools used if available
-(5) Funding stage or company maturity.
-
-Engagement Signals
-From Calls and Emails, identify what early engagement looks like in deals we won:
-(1) Response time to outreach
-(2) Number of stakeholders engaged in first 30 days
-(3) Meeting attendance and participation patterns
-(4) Inbound vs. outbound — which converts better?
-(5) Content or assets they engaged with.
-
-Relationship & Access
-(1) Seniority of first contact — does starting higher help?
-(2) Multi-threading depth — how many contacts before close?
-(3) Executive involvement — ours or theirs
-(4) Champion strength signals from call sentiment
-(5) Speed to economic buyer access.
-
-Buying Signals from Conversations
-Mine Calls for phrases or topics that appeared in won deals:
-(1) Timeline or urgency language
-(2) Pain acknowledgment depth
-(3) Budget discussions initiated by them
-(4) Competitive mentions — who were we beating?
-(5) Internal initiative or mandate references.
-
-Deal Characteristics
-(1) Average sales cycle by segment
-(2) Deal size correlation with win rate
-(3) Discount patterns — do we win more or less with discounts?
-(4) Product mix or use case fit.
-
-Based on this analysis, create a weighted scoring model with:
-(1) The top 10 attributes that predict success
-(2) Suggested point values for each attribute
-(3) Score thresholds — what score = hot, warm, cold?
-(4) Which of my current open new business pipeline deals score highest using this model.
-
-Show me the open deals/accounts that I should prioritize and that may not be a fit.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-accounts-4',
-    category: 'Accounts',
-    shortPrompt: 'Help me prepare for my meeting with {{account_name}}',
-    prompt: `I have a meeting with {{account_name}} coming up. Check my GCal for the meeting details. Pull from SFDC for account and opportunity context, Calls for recent conversation history, and Emails for communication thread.
-
-Prepare me with:
-(1) Account overview and our relationship status
-(2) Open opportunities and their status
-(3) Key points from recent conversations
-(4) Topics likely to come up
-(5) Goals I should have for this meeting.`,
-    isPopular: false,
-  },
-  {
-    id: 'tpl-accounts-5',
+    id: 'tpl-accounts-2',
     category: 'Accounts',
     shortPrompt: 'Which accounts are up for renewal soon?',
-    prompt: `Pull from SFDC all accounts with renewals in the next 90 days (mine or team's based on role).
+    prompt: `Check my role. Pull from SFDC all accounts with renewals in the next 90 days (mine or team's based on role).
 
 For each upcoming renewal, show:
 (1) Renewal date and contract value
@@ -619,6 +488,87 @@ For each upcoming renewal, show:
 Prioritize by value and risk.`,
     isPopular: false,
   },
+  {
+    id: 'tpl-accounts-3',
+    category: 'Accounts',
+    shortPrompt: "What's the health of {{account_name}}?",
+    prompt: `Check my role. Deep dive on {{account_name}}. Pull from SFDC for all relationship data, Calls for recent conversations, Emails for communication patterns, and Von IQ for deal health.
+
+Show me:
+(1) All open and recent closed opportunities (new business and renewals)
+(2) Key contacts and engagement levels
+(3) Recent sentiment from calls
+(4) Support or issues if any
+(5) Expansion or risk signals.
+
+Give me the full account picture.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-accounts-4',
+    category: 'Accounts',
+    shortPrompt: 'Build me an account scoring model',
+    prompt: `Check my role. Analyze my closed-won and closed-lost new business deals from SFDC over the last 12 months to identify patterns that predict account success. Build a scoring model based on:
+
+Firmographic Fit —
+(1) Company size — which employee ranges convert best?
+(2) Industry — which verticals have highest win rates?
+(3) Geography — any regional patterns?
+(4) Tech stack or tools used if available
+(5) Funding stage or company maturity.
+
+Engagement Signals —
+From Calls and Emails, identify what early engagement looks like in deals we won:
+(1) Response time to outreach
+(2) Number of stakeholders engaged in first 30 days
+(3) Meeting attendance and participation patterns
+(4) Inbound vs. outbound — which converts better?
+(5) Content or assets they engaged with.
+
+Relationship & Access —
+(1) Seniority of first contact — does starting higher help?
+(2) Multi-threading depth — how many contacts before close?
+(3) Executive involvement — ours or theirs
+(4) Champion strength signals from call sentiment
+(5) Speed to economic buyer access.
+
+Buying Signals from Conversations —
+Mine Calls for phrases or topics that appeared in won deals:
+(1) Timeline or urgency language
+(2) Pain acknowledgment depth
+(3) Budget discussions initiated by them
+(4) Competitive mentions — who were we beating?
+(5) Internal initiative or mandate references.
+
+Deal Characteristics —
+(1) Average sales cycle by segment
+(2) Deal size correlation with win rate
+(3) Discount patterns — do we win more or less with discounts?
+(4) Product mix or use case fit.
+
+Based on this analysis, create a weighted scoring model with:
+(1) The top 10 attributes that predict success
+(2) Suggested point values for each attribute
+(3) Score thresholds — what score = hot, warm, cold?
+(4) Which of my current open new Biz pipeline deals score highest using this model.
+
+Show me the open deals/accounts that I should prioritize and that may not be a fit.`,
+    isPopular: false,
+  },
+  {
+    id: 'tpl-accounts-5',
+    category: 'Accounts',
+    shortPrompt: 'Help me prepare for my meeting with {{account_name}}',
+    prompt: `I have a meeting with {{account_name}} coming up. Check my GCal for the meeting details. Pull from SFDC for account and opportunity context, Calls for recent conversation history, and Emails for communication thread.
+
+Prepare me with:
+(1) Account overview and our relationship status
+(2) Open opportunities and their status (new business and renewals)
+(3) Key points from recent conversations
+(4) Topics likely to come up
+(5) Goals I should have for this meeting.`,
+    isPopular: false,
+  },
 
   // ============================================
   // REPORTING & QBR TEMPLATES
@@ -627,7 +577,7 @@ Prioritize by value and risk.`,
     id: 'tpl-reporting-1',
     category: 'Reporting & QBR',
     shortPrompt: 'Give me a 2-minute pipeline summary',
-    prompt: `Prepare a brief pipeline summary I can share with leadership. Pull from SFDC and Von IQ to cover:
+    prompt: `Check my role. Prepare a brief new business pipeline summary I can share with leadership. Pull from SFDC and Von IQ to cover:
 
 (1) Total pipeline value and coverage ratio
 (2) Pipeline by stage
@@ -642,7 +592,7 @@ Keep it executive-level — high signal, no fluff, 2-minute verbal delivery leng
     id: 'tpl-reporting-2',
     category: 'Reporting & QBR',
     shortPrompt: 'What were my biggest wins and losses this quarter?',
-    prompt: `Pull from SFDC all deals closed (won and lost) this quarter (mine or team's based on role).
+    prompt: `Check my role. Pull from SFDC all new business deals closed (won and lost) this quarter (mine or team's based on role).
 
 For each win, summarize: what made it successful.
 For each loss, summarize: why we lost.
@@ -653,7 +603,7 @@ Cross-reference with Calls for competitive mentions or key moments. Identify pat
   {
     id: 'tpl-reporting-3',
     category: 'Reporting & QBR',
-    shortPrompt: 'Show me activity metrics this month',
+    shortPrompt: 'Show me our activity metrics',
     prompt: `Check my role. If I'm a rep, show my activity. If I'm a manager, show team activity broken down by rep.
 
 Pull from SFDC, Calls, and Emails for this month:
