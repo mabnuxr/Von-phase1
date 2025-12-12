@@ -113,8 +113,10 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   const scrollBy = useCallback((direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
     if (!container) return;
+    // Scroll 4 cards at once: 4 cards (w-48 = 192px each) + 3 gaps (gap-3 = 12px each) = 804px
+    const scrollAmount = 804;
     container.scrollBy({
-      left: direction === 'left' ? -200 : 200,
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
       behavior: 'smooth',
     });
   }, []);

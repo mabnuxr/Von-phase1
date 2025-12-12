@@ -258,7 +258,7 @@ export const DEFAULT_TEMPLATES: Template[] = [
     id: 'tpl-accounts-3',
     category: 'Accounts',
     shortPrompt: "What's the health of an Account?",
-    prompt: `Give me the full picture on {account_name} all the deals, key contacts, recent sentiment from calls, and any risk or expansion signals.`,
+    prompt: `Give me the full picture on {{account_name}} all the deals, key contacts, recent sentiment from calls, and any risk or expansion signals.`,
     isPopular: false,
   },
   {
