@@ -14,12 +14,19 @@ import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { getDisplayTitle } from "../lib/conversationUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
-import { useConversationTitleUpdate } from "../hooks/useConversationTitleUpdate";
+import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
+import {
+  UserChannelEvents,
+  type ConversationTitleUpdatedEvent,
+  type MemoryInsightCreatedEvent,
+} from "../types/userChannelEvents";
+import { useToast } from "../hooks/useToast";
 import type { MessageWithStreaming } from "../types/conversation";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { useArtifact } from "../hooks/useArtifact";
@@ -39,6 +46,7 @@ import {
   DashboardCanvas,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
+import { BrainIcon } from "@phosphor-icons/react";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
@@ -47,6 +55,7 @@ import {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
   }>();
@@ -105,14 +114,14 @@ const Dashboard = () => {
   // Stop streaming mutation
   const { mutate: stopStreaming } = useStopStreaming();
 
-  // Listen for conversation title updates via Pusher
-  const { updatedTitle, clearUpdatedTitle } = useConversationTitleUpdate(
-    currentConversationId,
-    import.meta.env.VITE_PUSHER_KEY || "",
-    import.meta.env.VITE_PUSHER_CLUSTER || "",
-    user?.tenantId,
-    user?.id,
-  );
+  // State for title update animation (received from user channel)
+  const [titleUpdate, setTitleUpdate] = useState<{
+    conversationId: string;
+    title: string;
+  } | null>(null);
+
+  // Get query client for cache invalidation
+  const queryClient = useQueryClient();
 
   // Check Salesforce connection status
   const {
@@ -190,22 +199,115 @@ const Dashboard = () => {
     };
   }, [isActuallyLoading]);
 
-  // Handle title updates with typing animation
+  // User channel for title updates (same pattern as conversation channel)
+  const { channel: userChannel } = useUserPusherChannel({
+    tenantId: user?.tenantId,
+    userId: user?.id,
+  });
+
+  // Subscribe to title updates on user channel
   useEffect(() => {
-    if (!updatedTitle || !currentConversationId) return;
+    if (!userChannel) return;
+
+    const handleTitleUpdate = (data: ConversationTitleUpdatedEvent) => {
+      if (import.meta.env.DEV) {
+        console.log(
+          "[Dashboard] Title update received via user channel:",
+          data.title,
+          "for conversation:",
+          data.conversationId,
+        );
+      }
+
+      // Update state to trigger animation
+      setTitleUpdate({
+        conversationId: data.conversationId,
+        title: data.title,
+      });
+
+      // Invalidate conversations cache to refetch with new title
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    };
 
     if (import.meta.env.DEV) {
       console.log(
-        "[Dashboard] Title update received:",
-        updatedTitle,
-        "for conversation:",
-        currentConversationId,
+        "[Dashboard] Binding to user channel event:",
+        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
       );
     }
 
+    userChannel.bind(
+      UserChannelEvents.CONVERSATION_TITLE_UPDATED,
+      handleTitleUpdate,
+    );
+
+    return () => {
+      userChannel.unbind(
+        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
+        handleTitleUpdate,
+      );
+    };
+  }, [userChannel, queryClient]);
+
+  // Subscribe to memory insight created events on user channel
+  useEffect(() => {
+    if (!userChannel) return;
+
+    const handleInsightCreated = (data: MemoryInsightCreatedEvent) => {
+      if (import.meta.env.DEV) {
+        console.log(
+          "[Dashboard] Memory insight created:",
+          data.key,
+          "id:",
+          data.id,
+          "notify:",
+          data.notify,
+        );
+      }
+
+      // Only show toast if notify flag is true
+      if (data.notify) {
+        showToast({
+          message: `New org context item: ${data.key}`,
+          variant: "info",
+          icon: <BrainIcon size={16} weight="duotone" />,
+          action: {
+            label: "View",
+            onClick: () => navigate("/settings?tab=org-context"),
+          },
+        });
+      }
+    };
+
+    if (import.meta.env.DEV) {
+      console.log(
+        "[Dashboard] Binding to user channel event:",
+        UserChannelEvents.MEMORY_INSIGHT_CREATED,
+      );
+    }
+
+    userChannel.bind(
+      UserChannelEvents.MEMORY_INSIGHT_CREATED,
+      handleInsightCreated,
+    );
+
+    return () => {
+      userChannel.unbind(
+        UserChannelEvents.MEMORY_INSIGHT_CREATED,
+        handleInsightCreated,
+      );
+    };
+  }, [userChannel, showToast, navigate]);
+
+  // Handle title updates with typing animation
+  useEffect(() => {
+    if (!titleUpdate) return;
+
+    const { conversationId, title } = titleUpdate;
+
     // Use interval for typing animation instead of recursive setTimeout
     let currentIndex = 0;
-    const targetTitle = updatedTitle;
+    const targetTitle = title;
     let clearTimer: ReturnType<typeof setTimeout> | null = null;
 
     const interval = setInterval(() => {
@@ -213,7 +315,7 @@ const Dashboard = () => {
         const partial = targetTitle.substring(0, currentIndex);
         setAnimatedTitles((prev) => {
           const newMap = new Map(prev);
-          newMap.set(currentConversationId, partial);
+          newMap.set(conversationId, partial);
           return newMap;
         });
         currentIndex++;
@@ -225,13 +327,13 @@ const Dashboard = () => {
         clearTimer = setTimeout(() => {
           setAnimatedTitles((prev) => {
             const newMap = new Map(prev);
-            newMap.delete(currentConversationId);
+            newMap.delete(conversationId);
             return newMap;
           });
-          clearUpdatedTitle();
+          setTitleUpdate(null);
         }, 1000);
       }
-    }, 30); // 30ms per character for smooth typing
+    }, 30);
 
     // CRITICAL: Cleanup interval and timer on unmount or dependency change
     return () => {
@@ -240,7 +342,7 @@ const Dashboard = () => {
         clearTimeout(clearTimer);
       }
     };
-  }, [updatedTitle, currentConversationId, clearUpdatedTitle]);
+  }, [titleUpdate]);
 
   // Show/hide connection banner based on connection error state
   useEffect(() => {

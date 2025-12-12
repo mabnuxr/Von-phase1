@@ -14,6 +14,7 @@ import {
   EnvelopeIcon,
   UsersIcon,
   ArrowLeftIcon,
+  BrainIcon,
 } from "@phosphor-icons/react";
 import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
@@ -164,6 +165,11 @@ const Settings = () => {
         id: "fields",
         label: "Fields",
         icon: <RowsIcon size={20} weight="duotone" />,
+      },
+      {
+        id: "org-context",
+        label: "Org Context",
+        icon: <BrainIcon size={20} weight="duotone" />,
       },
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
