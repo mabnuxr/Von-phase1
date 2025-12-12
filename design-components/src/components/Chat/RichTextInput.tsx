@@ -55,9 +55,7 @@ function renderHighlightedText(text: string): React.ReactNode[] {
   while ((match = regex.exec(text)) !== null) {
     // Add text before the placeholder
     if (match.index > lastIndex) {
-      parts.push(
-        <span key={`text-${idx}`}>{text.slice(lastIndex, match.index)}</span>
-      );
+      parts.push(<span key={`text-${idx}`}>{text.slice(lastIndex, match.index)}</span>);
     }
 
     // Add the highlighted placeholder
@@ -85,15 +83,7 @@ function renderHighlightedText(text: string): React.ReactNode[] {
 
 export const RichTextInput = forwardRef<RichTextInputRef, RichTextInputProps>(
   (
-    {
-      value,
-      onChange,
-      onKeyDown,
-      placeholder = '',
-      disabled = false,
-      className = '',
-      style,
-    },
+    { value, onChange, onKeyDown, placeholder = '', disabled = false, className = '', style },
     ref
   ) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
