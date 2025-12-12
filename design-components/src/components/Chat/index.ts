@@ -21,6 +21,9 @@ export type { ChatMessageProps } from './ChatMessage';
 export { ChatInput } from './ChatInput';
 export type { ChatInputProps } from './ChatInput';
 
+export { RichTextInput, hasPlaceholders } from './RichTextInput';
+export type { RichTextInputProps, RichTextInputRef } from './RichTextInput';
+
 export { ChatMarkdown } from './ChatMarkdown';
 export type { ChatMarkdownProps } from './ChatMarkdown';
 

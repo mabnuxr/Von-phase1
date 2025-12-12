@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, Star } from '@phosphor-icons/react';
 import { ChatInput } from './ChatInput';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import {
@@ -81,11 +81,13 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   const [inputValue, setInputValue] = useState('');
 
   // Template state
-  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('1:1 & Coaching');
-  const templates = useMemo(
-    () => DEFAULT_TEMPLATES.filter((tpl) => tpl.category === activeCategory),
-    [activeCategory]
-  );
+  const [activeCategory, setActiveCategory] = useState<TemplateCategory>('Popular');
+  const templates = useMemo(() => {
+    if (activeCategory === 'Popular') {
+      return DEFAULT_TEMPLATES.filter((tpl) => tpl.isPopular === true);
+    }
+    return DEFAULT_TEMPLATES.filter((tpl) => tpl.category === activeCategory);
+  }, [activeCategory]);
 
   // Scroll state for chevrons
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -281,13 +283,14 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {TEMPLATE_CATEGORIES.map((category) => {
             const isActive = category === activeCategory;
+            const isPopular = category === 'Popular';
             return (
               <button
                 key={category}
                 onClick={() => !disabled && handleCategoryChange(category)}
                 className={`
                   px-3 py-1 text-xs font-medium rounded-full
-                  transition-all duration-200
+                  transition-all duration-200 inline-flex items-center gap-1
                   ${
                     isActive
                       ? 'bg-gray-100 border border-gray-100 shadow-sm text-gray-900'
@@ -296,6 +299,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
+                {isPopular && <Star size={12} weight="fill" className="text-amber-500" />}
                 {category}
               </button>
             );
@@ -338,7 +342,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                 `}
               >
                 <div className="text-sm font-medium text-gray-700 line-clamp-3">
-                  {template.prompt}
+                  {template.shortPrompt}
                 </div>
               </button>
             ))}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SendIcon, StopIcon } from './icons';
+import { RichTextInput, hasPlaceholders } from './RichTextInput';
 
 export interface ChatInputProps {
   /**
@@ -89,7 +90,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onStop,
   contextTag,
   disabled = false,
-  isStreaming = false, // FIX: Default to false
+  isStreaming = false,
   disableSubmit = false,
   value,
   onChange,
@@ -102,6 +103,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   // Determine if component is controlled
   const isControlled = value !== undefined;
   const message = isControlled ? value : internalMessage;
+  const messageHasPlaceholders = hasPlaceholders(message);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -130,8 +132,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return;
     }
 
-    if (message.trim() && onSend) {
-      onSend(message.trim());
+    const messageToSend = message.trim();
+
+    if (messageToSend && onSend) {
+      onSend(messageToSend);
       // Clear the input after sending
       if (isControlled) {
         onChange?.('');
@@ -179,21 +183,41 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }}
         >
           <div className="flex items-center gap-2 bg-white rounded-[15px] px-3 py-2">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => handleChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              disabled={disabled && !isStreaming}
-              className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
-              style={{
-                minHeight: '20px',
-                maxHeight: '200px',
-                lineHeight: '1.5',
-              }}
-              rows={1}
-            />
+            {messageHasPlaceholders ? (
+              <RichTextInput
+                value={message}
+                onChange={handleChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && !isStreaming && !disableSubmit) {
+                    handleSend();
+                  }
+                }}
+                placeholder={placeholder}
+                disabled={disabled && !isStreaming}
+                className="flex-1 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
+                style={{
+                  minHeight: '20px',
+                  maxHeight: '200px',
+                  lineHeight: '1.5',
+                }}
+              />
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={message}
+                onChange={(e) => handleChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                disabled={disabled && !isStreaming}
+                className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
+                style={{
+                  minHeight: '20px',
+                  maxHeight: '200px',
+                  lineHeight: '1.5',
+                }}
+                rows={1}
+              />
+            )}
 
             {isStreaming ? (
               // Stop button during streaming
