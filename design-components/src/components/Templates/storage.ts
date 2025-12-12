@@ -45,9 +45,14 @@ export function saveTemplates(templates: Template[]): void {
 
 /**
  * Get templates by category
+ * For 'Popular' category, returns all templates with isPopular: true
+ * For other categories, returns templates matching that category
  */
 export function getTemplatesByCategory(category: TemplateCategory): Template[] {
   const templates = getTemplates();
+  if (category === 'Popular') {
+    return templates.filter((tpl) => tpl.isPopular === true);
+  }
   return templates.filter((tpl) => tpl.category === category);
 }
 
@@ -63,16 +68,16 @@ export function getTemplateById(id: string): Template | null {
  * Get the active category from localStorage
  */
 export function getActiveCategory(): TemplateCategory {
-  if (typeof window === 'undefined') return '1:1 & Coaching';
+  if (typeof window === 'undefined') return 'Popular';
 
   try {
     const stored = localStorage.getItem(ACTIVE_CATEGORY_KEY);
     if (stored) {
       return stored as TemplateCategory;
     }
-    return '1:1 & Coaching';
+    return 'Popular';
   } catch {
-    return '1:1 & Coaching';
+    return 'Popular';
   }
 }
 

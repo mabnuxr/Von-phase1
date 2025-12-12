@@ -445,14 +445,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
                     </div>
                   ) : (
-                    // User messages - simple rendering
+                    // User messages - simple rendering with preserved whitespace
                     <div
                       ref={userMessageRef}
-                      className="prose-sm markdown-body max-w-none text-left"
+                      className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap"
                     >
-                      <Streamdown parseIncompleteMarkdown={false} controls={{ table: true }}>
-                        {content}
-                      </Streamdown>
+                      {content}
                     </div>
                   )}
 
