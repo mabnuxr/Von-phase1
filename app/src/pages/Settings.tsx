@@ -21,6 +21,7 @@ import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
+import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
@@ -203,6 +204,8 @@ const Settings = () => {
         return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
+      case "org-context":
+        return <OrgContextTab />;
       default:
         return null;
     }
