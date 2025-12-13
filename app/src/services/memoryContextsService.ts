@@ -3,6 +3,7 @@ import type {
   MemoryContext,
   PaginatedMemoryContextsResponse,
   MemoryContextUpdateRequest,
+  MemoryContextCreateRequest,
 } from "../types/memoryContext";
 
 /**
@@ -40,6 +41,15 @@ class MemoryContextsService {
    */
   async deleteMemoryContext(id: string): Promise<void> {
     return apiClient.delete<void>(`/api/v1/memory-contexts/${id}`);
+  }
+
+  /**
+   * Create a new memory context
+   */
+  async createMemoryContext(
+    data: MemoryContextCreateRequest,
+  ): Promise<MemoryContext> {
+    return apiClient.post<MemoryContext>(`/api/v1/memory-contexts`, data);
   }
 }
 

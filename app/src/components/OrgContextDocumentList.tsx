@@ -1,11 +1,12 @@
 import { useRef, useCallback } from "react";
-import { FileTextIcon, SpinnerIcon } from "@phosphor-icons/react";
+import { FileTextIcon, SpinnerIcon, PlusIcon } from "@phosphor-icons/react";
 import type { MemoryContext } from "../types/memoryContext";
 
 interface OrgContextDocumentListProps {
   contexts: MemoryContext[];
   selectedContextId: string | null;
   onSelectContext: (id: string) => void;
+  onCreateClick: () => void;
   isLoading?: boolean;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
@@ -16,6 +17,7 @@ export function OrgContextDocumentList({
   contexts,
   selectedContextId,
   onSelectContext,
+  onCreateClick,
   isLoading,
   hasNextPage,
   isFetchingNextPage,
@@ -37,6 +39,24 @@ export function OrgContextDocumentList({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Header with title */}
+      <div className="px-3 py-3 border-b border-gray-100/80">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Memories
+        </span>
+      </div>
+
+      {/* Add new segment button - chat style */}
+      <div className="px-3 py-3">
+        <button
+          onClick={onCreateClick}
+          className="w-full h-[32px] flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
+        >
+          New Section
+          <PlusIcon size={14} weight="bold" />
+        </button>
+      </div>
+
       {/* List of contexts */}
       <div
         ref={scrollContainerRef}

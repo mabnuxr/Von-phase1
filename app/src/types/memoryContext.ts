@@ -40,3 +40,21 @@ export interface MemoryContextUpdateRequest {
   description?: string;
   value?: string;
 }
+
+/**
+ * Request body for creating a memory context
+ */
+export interface MemoryContextCreateRequest {
+  key: string;
+  description: string;
+  accessLevel?: "tenant" | "user";
+}
+
+/**
+ * Character limits for memory context fields
+ */
+export const MEMORY_CONTEXT_LIMITS = {
+  key: 50,
+  description: 150,
+  value: 1000,
+} as const;
