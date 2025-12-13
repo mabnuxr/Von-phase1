@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import {
   MDXEditor,
   headingsPlugin,
@@ -9,7 +9,6 @@ import {
   toolbarPlugin,
   markdownShortcutPlugin,
   BoldItalicUnderlineToggles,
-  BlockTypeSelect,
   InsertTable,
   ListsToggle,
   linkPlugin,
@@ -18,12 +17,14 @@ import {
   type MDXEditorMethods,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
+import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
 
 interface OrgContextEditorProps {
   content: string;
   onChange: (content: string) => void;
   isEditing: boolean;
   placeholder?: string;
+  contentKey?: string;
 }
 
 // Escape angle brackets to prevent MDX from treating them as JSX tags
@@ -41,30 +42,28 @@ export function OrgContextEditor({
   onChange,
   isEditing,
   placeholder = "Start typing...",
+  contentKey,
 }: OrgContextEditorProps) {
   const editorRef = useRef<MDXEditorMethods>(null);
 
   // Escape content for MDXEditor display
   const escapedContent = escapeAngleBrackets(content || "");
 
-  // Handle onChange to unescape before passing back
+  // Handle onChange to unescape before passing back, with character limit enforcement
   const handleChange = (value: string) => {
-    onChange(unescapeAngleBrackets(value));
-  };
-
-  // Update editor content when content prop changes externally
-  useEffect(() => {
-    if (editorRef.current) {
-      const currentMarkdown = editorRef.current.getMarkdown();
-      if (escapedContent !== currentMarkdown) {
-        editorRef.current.setMarkdown(escapedContent);
-      }
+    const unescapedValue = unescapeAngleBrackets(value);
+    // Trim to limit if exceeded rather than blocking
+    if (unescapedValue.length > MEMORY_CONTEXT_LIMITS.value) {
+      onChange(unescapedValue.slice(0, MEMORY_CONTEXT_LIMITS.value));
+    } else {
+      onChange(unescapedValue);
     }
-  }, [escapedContent]);
+  };
 
   return (
     <div className="flex flex-col h-full org-context-editor">
       <MDXEditor
+        key={contentKey}
         ref={editorRef}
         markdown={escapedContent}
         onChange={handleChange}
@@ -84,8 +83,6 @@ export function OrgContextEditor({
             toolbarContents: () =>
               isEditing ? (
                 <div className="flex items-center gap-1">
-                  <BlockTypeSelect />
-                  <div className="w-px h-4 bg-gray-200 mx-1" />
                   <BoldItalicUnderlineToggles />
                   <div className="w-px h-4 bg-gray-200 mx-1" />
                   <ListsToggle />
@@ -106,11 +103,15 @@ export function OrgContextEditor({
           height: 100%;
           display: flex;
           flex-direction: column;
+          border: none;
+          border-radius: 0.5rem;
+          background: white;
         }
 
         .org-context-editor .mdxeditor-root-contenteditable {
           flex: 1;
           overflow-y: auto;
+          border: none;
         }
 
         .org-context-editor [data-lexical-editor="true"] {
@@ -118,10 +119,9 @@ export function OrgContextEditor({
         }
 
         .org-context-editor .mdxeditor-toolbar {
-          background: white;
-          border-bottom: 1px solid #e5e7eb;
+          background: transparent;
+          border-bottom: none;
           padding: 0.5rem;
-          border-radius: 0.75rem 0.75rem 0 0;
           display: flex;
           justify-content: center;
         }

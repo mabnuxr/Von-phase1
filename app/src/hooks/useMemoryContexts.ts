@@ -5,7 +5,10 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { memoryContextsService } from "../services";
-import type { MemoryContextUpdateRequest } from "../types/memoryContext";
+import type {
+  MemoryContextUpdateRequest,
+  MemoryContextCreateRequest,
+} from "../types/memoryContext";
 
 /**
  * Query keys for memory contexts
@@ -70,9 +73,11 @@ export function useUpdateMemoryContext() {
       id: string;
       data: MemoryContextUpdateRequest;
     }) => memoryContextsService.updateMemoryContext(id, data),
-    onSuccess: () => {
-      // Invalidate all memory context queries to refetch
-      queryClient.invalidateQueries({ queryKey: memoryContextKeys.all });
+    onSuccess: async () => {
+      // Reset infinite queries to refetch from the beginning
+      await queryClient.resetQueries({
+        queryKey: memoryContextKeys.all,
+      });
     },
   });
 }
@@ -85,9 +90,29 @@ export function useDeleteMemoryContext() {
 
   return useMutation({
     mutationFn: (id: string) => memoryContextsService.deleteMemoryContext(id),
-    onSuccess: () => {
-      // Invalidate all memory context queries to refetch
-      queryClient.invalidateQueries({ queryKey: memoryContextKeys.all });
+    onSuccess: async () => {
+      // Reset infinite queries to refetch from the beginning
+      await queryClient.resetQueries({
+        queryKey: memoryContextKeys.all,
+      });
+    },
+  });
+}
+
+/**
+ * Create a new memory context
+ */
+export function useCreateMemoryContext() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: MemoryContextCreateRequest) =>
+      memoryContextsService.createMemoryContext(data),
+    onSuccess: async () => {
+      // Reset infinite queries to refetch from the beginning
+      await queryClient.resetQueries({
+        queryKey: memoryContextKeys.all,
+      });
     },
   });
 }
