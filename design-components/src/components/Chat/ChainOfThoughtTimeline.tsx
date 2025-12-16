@@ -154,19 +154,21 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
                 {/* Tool calls below text */}
                 {step.toolCalls && step.toolCalls.length > 0 && onArtifactClick && (
                   <div className="mt-2 space-y-2">
-                    {step.toolCalls.map((toolCall) => (
-                      <ToolCallItem
-                        key={toolCall.id}
-                        toolCall={toolCall}
-                        onArtifactClick={onArtifactClick}
-                        isStreaming={isStreaming}
-                        isLatestMessage={isLatestMessage}
-                        onApprove={onApprove}
-                        onReject={onReject}
-                        isApprovalProcessing={isApprovalProcessing}
-                        runId={runId}
-                      />
-                    ))}
+                    {step.toolCalls
+                      .filter((tc) => tc.status !== 'error')
+                      .map((toolCall) => (
+                        <ToolCallItem
+                          key={toolCall.id}
+                          toolCall={toolCall}
+                          onArtifactClick={onArtifactClick}
+                          isStreaming={isStreaming}
+                          isLatestMessage={isLatestMessage}
+                          onApprove={onApprove}
+                          onReject={onReject}
+                          isApprovalProcessing={isApprovalProcessing}
+                          runId={runId}
+                        />
+                      ))}
                   </div>
                 )}
               </div>
