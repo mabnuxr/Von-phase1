@@ -141,7 +141,7 @@ export function OrgContextTab() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Org Context</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Org Memory</h2>
           <div className="flex flex-row items-center gap-2">
             <div className="flex-shrink-0">
               <InfoIcon size={20} className="text-indigo-600" />
@@ -247,7 +247,7 @@ export function OrgContextTab() {
                     <div className="flex flex-col gap-5 h-full">
                       {/* Description */}
                       <div className="bg-gray-50/60 rounded-xl p-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                        <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
                           When should the agent use this?
                         </label>
                         <p className="text-sm text-gray-700">
@@ -257,7 +257,7 @@ export function OrgContextTab() {
 
                       {/* Memory Content */}
                       <div className="flex-1 flex flex-col min-h-0 bg-gray-50/60 rounded-xl p-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                        <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
                           Memory Content
                         </label>
                         <div className="flex-1 overflow-hidden">

@@ -11,7 +11,7 @@
  */
 export const UserChannelEvents = {
   CONVERSATION_TITLE_UPDATED: "conversation_title_updated",
-  MEMORY_INSIGHT_CREATED: "memory_insight_created",
+  MEMORY_CONTEXT_CREATED: "memory_context_created",
   // Future events:
   // ORG_MEMORY_UPDATED: "org_memory_updated",
   // NOTIFICATION: "notification",
@@ -30,13 +30,11 @@ export interface ConversationTitleUpdatedEvent {
 }
 
 /**
- * Sent when a new memory insight is extracted from user messages
+ * Sent when organizational memory is created/updated by the agent
  */
-export interface MemoryInsightCreatedEvent {
-  id: string;
+export interface MemoryContextCreatedEvent {
   key: string;
   createdAt: string;
-  notify: boolean;
 }
 
 /**

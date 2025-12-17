@@ -56,5 +56,5 @@ export interface MemoryContextCreateRequest {
 export const MEMORY_CONTEXT_LIMITS = {
   key: 50,
   description: 150,
-  value: 1000,
+  value: 5000,
 } as const;
