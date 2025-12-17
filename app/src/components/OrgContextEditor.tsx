@@ -17,7 +17,6 @@ import {
   type MDXEditorMethods,
 } from "@mdxeditor/editor";
 import "@mdxeditor/editor/style.css";
-import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
 
 interface OrgContextEditorProps {
   content: string;
@@ -49,15 +48,10 @@ export function OrgContextEditor({
   // Escape content for MDXEditor display
   const escapedContent = escapeAngleBrackets(content || "");
 
-  // Handle onChange to unescape before passing back, with character limit enforcement
+  // Handle onChange to unescape before passing back
   const handleChange = (value: string) => {
     const unescapedValue = unescapeAngleBrackets(value);
-    // Trim to limit if exceeded rather than blocking
-    if (unescapedValue.length > MEMORY_CONTEXT_LIMITS.value) {
-      onChange(unescapedValue.slice(0, MEMORY_CONTEXT_LIMITS.value));
-    } else {
-      onChange(unescapedValue);
-    }
+    onChange(unescapedValue);
   };
 
   return (

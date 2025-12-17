@@ -24,9 +24,7 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import {
   UserChannelEvents,
   type ConversationTitleUpdatedEvent,
-  type MemoryInsightCreatedEvent,
 } from "../types/userChannelEvents";
-import { useToast } from "../hooks/useToast";
 import type { MessageWithStreaming } from "../types/conversation";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { useArtifact } from "../hooks/useArtifact";
@@ -46,7 +44,6 @@ import {
   DashboardCanvas,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
-import { BrainIcon } from "@phosphor-icons/react";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
@@ -55,7 +52,6 @@ import {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
   }>();
@@ -248,56 +244,6 @@ const Dashboard = () => {
       );
     };
   }, [userChannel, queryClient]);
-
-  // Subscribe to memory insight created events on user channel
-  useEffect(() => {
-    if (!userChannel) return;
-
-    const handleInsightCreated = (data: MemoryInsightCreatedEvent) => {
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Memory insight created:",
-          data.key,
-          "id:",
-          data.id,
-          "notify:",
-          data.notify,
-        );
-      }
-
-      // Only show toast if notify flag is true
-      if (data.notify) {
-        showToast({
-          message: `New org context item: ${data.key}`,
-          variant: "info",
-          icon: <BrainIcon size={16} weight="duotone" />,
-          action: {
-            label: "View",
-            onClick: () => navigate("/settings?tab=org-context"),
-          },
-        });
-      }
-    };
-
-    if (import.meta.env.DEV) {
-      console.log(
-        "[Dashboard] Binding to user channel event:",
-        UserChannelEvents.MEMORY_INSIGHT_CREATED,
-      );
-    }
-
-    userChannel.bind(
-      UserChannelEvents.MEMORY_INSIGHT_CREATED,
-      handleInsightCreated,
-    );
-
-    return () => {
-      userChannel.unbind(
-        UserChannelEvents.MEMORY_INSIGHT_CREATED,
-        handleInsightCreated,
-      );
-    };
-  }, [userChannel, showToast, navigate]);
 
   // Handle title updates with typing animation
   useEffect(() => {

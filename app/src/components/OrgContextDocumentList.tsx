@@ -41,7 +41,7 @@ export function OrgContextDocumentList({
     <div className="flex flex-col h-full">
       {/* Header with title */}
       <div className="px-3 py-3 border-b border-gray-100/80">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-gray-500 tracking-wider">
           Memories
         </span>
       </div>

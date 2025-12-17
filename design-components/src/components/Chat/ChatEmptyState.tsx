@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CaretLeft, CaretRight, Star } from '@phosphor-icons/react';
+import { CaretLeftIcon, CaretRightIcon, StarIcon } from '@phosphor-icons/react';
 import { ChatInput } from './ChatInput';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import {
@@ -301,7 +301,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
-                {isPopular && <Star size={12} weight="fill" className="text-amber-500" />}
+                {isPopular && <StarIcon size={12} weight="fill" className="text-amber-500" />}
                 {category}
               </button>
             );
@@ -317,7 +317,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
               className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
               aria-label="Scroll left"
             >
-              <CaretLeft size={16} weight="bold" className="text-gray-600" />
+              <CaretLeftIcon size={16} weight="bold" className="text-gray-600" />
             </button>
           )}
 
@@ -357,7 +357,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
               className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
               aria-label="Scroll right"
             >
-              <CaretRight size={16} weight="bold" className="text-gray-600" />
+              <CaretRightIcon size={16} weight="bold" className="text-gray-600" />
             </button>
           )}
         </div>

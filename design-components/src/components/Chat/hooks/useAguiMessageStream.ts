@@ -293,6 +293,23 @@ export function useAguiMessageStream(
         };
       }
 
+      // Detect memory operations
+      if (resultJson.memory_operation && resultJson.key !== undefined) {
+        return {
+          raw: resultJson,
+          type: 'memory',
+          memory: {
+            operation: resultJson.memory_operation,
+            success: resultJson.success,
+            key: resultJson.key,
+            value: resultJson.value,
+            char_count: resultJson.char_count,
+            appended: resultJson.appended,
+            error: resultJson.error,
+          },
+        };
+      }
+
       // Fallback to JSON
       return {
         raw: resultJson,

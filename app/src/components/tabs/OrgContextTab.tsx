@@ -16,6 +16,8 @@ import { OrgContextDocumentList } from "../OrgContextDocumentList";
 import { OrgContextEditor } from "../OrgContextEditor";
 import { MemoryContextPane } from "../MemoryContextPane";
 import type { MemoryContext } from "../../types/memoryContext";
+import { useToast } from "../../hooks/useToast";
+import { ApiError } from "../../services/apiClient";
 
 export function OrgContextTab() {
   // Selection state
@@ -27,6 +29,9 @@ export function OrgContextTab() {
   const [isPaneOpen, setIsPaneOpen] = useState(false);
   const [paneMode, setPaneMode] = useState<"create" | "edit">("create");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Toast notifications
+  const { showToast } = useToast();
 
   // Fetch memory contexts with infinite scroll
   const {
@@ -89,36 +94,72 @@ export function OrgContextTab() {
     description: string;
     value: string;
   }) => {
-    if (paneMode === "create") {
-      // Create new memory
-      const newMemory = await createMutation.mutateAsync({
-        key: data.key,
-        description: data.description,
-        accessLevel: "tenant",
-      });
-
-      // If content was added, update it immediately
-      if (data.value.trim()) {
-        await updateMutation.mutateAsync({
-          id: newMemory.id,
-          data: { value: data.value },
-        });
-      }
-
-      setSelectedContextId(newMemory.id);
-    } else if (selectedContextId) {
-      // Update existing memory
-      await updateMutation.mutateAsync({
-        id: selectedContextId,
-        data: {
+    try {
+      if (paneMode === "create") {
+        // Create new memory with all fields including value in ONE call
+        const newMemory = await createMutation.mutateAsync({
           key: data.key,
           description: data.description,
           value: data.value,
-        },
-      });
-    }
+          accessLevel: "tenant",
+        });
 
-    setIsPaneOpen(false);
+        setSelectedContextId(newMemory.id);
+        showToast({
+          message: "Memory created successfully",
+          variant: "success",
+        });
+      } else if (selectedContextId) {
+        // Update existing memory
+        await updateMutation.mutateAsync({
+          id: selectedContextId,
+          data: {
+            key: data.key,
+            description: data.description,
+            value: data.value,
+          },
+        });
+        showToast({
+          message: "Memory updated successfully",
+          variant: "success",
+        });
+      }
+
+      setIsPaneOpen(false);
+    } catch (error) {
+      console.error("Failed to save memory:", error);
+
+      // Extract error message from API error
+      let errorMessage = "Failed to save memory. Please try again.";
+
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+
+        // Check for validation errors (422)
+        if (error.statusCode === 422 && error.response) {
+          const response = error.response as Record<string, unknown>;
+          if (response.detail && typeof response.detail === "string") {
+            errorMessage = response.detail;
+          } else if (Array.isArray(response.detail)) {
+            // Pydantic validation errors
+            const validationErrors = response.detail as Array<{
+              loc: string[];
+              msg: string;
+            }>;
+            errorMessage = validationErrors
+              .map((err) => `${err.loc.join(".")}: ${err.msg}`)
+              .join(", ");
+          }
+        }
+      }
+
+      showToast({
+        message: errorMessage,
+        variant: "error",
+      });
+
+      // Keep pane open so user can retry
+    }
   };
 
   // Handle delete click - open confirmation modal
@@ -131,9 +172,30 @@ export function OrgContextTab() {
   // Confirm delete action
   const confirmDelete = async () => {
     if (!selectedContextId) return;
-    await deleteMutation.mutateAsync(selectedContextId);
-    setSelectedContextId(null);
-    setIsDeleteModalOpen(false);
+
+    try {
+      await deleteMutation.mutateAsync(selectedContextId);
+      setSelectedContextId(null);
+      setIsDeleteModalOpen(false);
+      showToast({
+        message: "Memory deleted successfully",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Failed to delete memory:", error);
+
+      let errorMessage = "Failed to delete memory. Please try again.";
+      if (error instanceof ApiError) {
+        errorMessage = error.message;
+      }
+
+      showToast({
+        message: errorMessage,
+        variant: "error",
+      });
+
+      setIsDeleteModalOpen(false);
+    }
   };
 
   return (
@@ -141,7 +203,7 @@ export function OrgContextTab() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Org Context</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Org Memory</h2>
           <div className="flex flex-row items-center gap-2">
             <div className="flex-shrink-0">
               <InfoIcon size={20} className="text-indigo-600" />
@@ -247,7 +309,7 @@ export function OrgContextTab() {
                     <div className="flex flex-col gap-5 h-full">
                       {/* Description */}
                       <div className="bg-gray-50/60 rounded-xl p-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                        <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
                           When should the agent use this?
                         </label>
                         <p className="text-sm text-gray-700">
@@ -257,7 +319,7 @@ export function OrgContextTab() {
 
                       {/* Memory Content */}
                       <div className="flex-1 flex flex-col min-h-0 bg-gray-50/60 rounded-xl p-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">
+                        <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
                           Memory Content
                         </label>
                         <div className="flex-1 overflow-hidden">

@@ -9,16 +9,19 @@ import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
  */
 function CharacterBudget({ current, max }: { current: number; max: number }) {
   const percentage = (current / max) * 100;
-  const colorClass =
-    percentage >= 100
-      ? "text-red-500"
-      : percentage >= 80
-        ? "text-amber-500"
-        : "text-gray-400";
+  const isOver = current > max;
+  const overAmount = isOver ? current - max : 0;
+
+  const colorClass = isOver
+    ? "text-red-500 font-semibold"
+    : percentage >= 80
+      ? "text-amber-500"
+      : "text-gray-400";
 
   return (
     <span className={`text-xs ${colorClass}`}>
       {current}/{max}
+      {isOver && ` (${overAmount} over)`}
     </span>
   );
 }
@@ -84,7 +87,11 @@ export function MemoryContextPane({
   };
 
   const isValid =
-    editingKey.trim().length > 0 && editingDescription.trim().length > 0;
+    editingKey.trim().length > 0 &&
+    editingDescription.trim().length > 0 &&
+    editingKey.length <= MEMORY_CONTEXT_LIMITS.key &&
+    editingDescription.length <= MEMORY_CONTEXT_LIMITS.description &&
+    editingContent.length <= MEMORY_CONTEXT_LIMITS.value;
 
   const footer = (
     <div className="flex items-center justify-end gap-3">
@@ -97,6 +104,13 @@ export function MemoryContextPane({
       <button
         onClick={handleSave}
         disabled={!isValid || isSaving}
+        title={
+          !isValid &&
+          editingKey.trim().length > 0 &&
+          editingDescription.trim().length > 0
+            ? "One or more fields exceed character limits"
+            : undefined
+        }
         className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSaving
@@ -138,7 +152,6 @@ export function MemoryContextPane({
             type="text"
             value={editingKey}
             onChange={(e) => setEditingKey(e.target.value)}
-            maxLength={MEMORY_CONTEXT_LIMITS.key}
             className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
             placeholder="e.g., Pricing Structure"
           />
@@ -159,7 +172,6 @@ export function MemoryContextPane({
           <textarea
             value={editingDescription}
             onChange={(e) => setEditingDescription(e.target.value)}
-            maxLength={MEMORY_CONTEXT_LIMITS.description}
             rows={2}
             className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none"
             placeholder="e.g., When answering questions about pricing or discounts"

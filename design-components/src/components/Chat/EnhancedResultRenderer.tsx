@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ToolResult, ValueData } from './types';
+import { MemoryResultRenderer } from './MemoryResultRenderer';
 
 interface EnhancedResultRendererProps {
   result: ToolResult;
@@ -14,6 +15,7 @@ export const EnhancedResultRenderer: React.FC<EnhancedResultRendererProps> = ({ 
       {result.type === 'table' && <TableResultView result={result} />}
       {result.type === 'values' && <ValuesResultView result={result} />}
       {result.type === 'metrics' && <MetricsResultView result={result} />}
+      {result.type === 'memory' && <MemoryResultRenderer result={result} />}
       {result.type === 'json' && <JsonResultView result={result} />}
       {result.type === 'query' && result.queries && (
         <div className="text-xs text-gray-600">Query available</div>

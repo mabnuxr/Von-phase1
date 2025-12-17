@@ -173,7 +173,7 @@ const Settings = () => {
         ? [
             {
               id: "org-context",
-              label: "Context",
+              label: "Memory",
               icon: <BrainIcon size={20} weight="duotone" />,
             },
           ]

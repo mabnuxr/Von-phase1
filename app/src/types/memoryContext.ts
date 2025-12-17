@@ -47,6 +47,7 @@ export interface MemoryContextUpdateRequest {
 export interface MemoryContextCreateRequest {
   key: string;
   description: string;
+  value?: string;
   accessLevel?: "tenant" | "user";
 }
 
@@ -56,5 +57,5 @@ export interface MemoryContextCreateRequest {
 export const MEMORY_CONTEXT_LIMITS = {
   key: 50,
   description: 150,
-  value: 1000,
+  value: 5000,
 } as const;

@@ -331,7 +331,16 @@ export interface StatisticsData {
 export interface ToolResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any; // Raw JSON result from tool
-  type: 'table' | 'query' | 'metrics' | 'values' | 'json' | 'schema' | 'table_list' | 'statistics';
+  type:
+    | 'table'
+    | 'query'
+    | 'metrics'
+    | 'values'
+    | 'json'
+    | 'schema'
+    | 'table_list'
+    | 'statistics'
+    | 'memory';
   table?: TableData;
   queries?: QueryInfo[];
   metrics?: MetricData[];
@@ -339,6 +348,17 @@ export interface ToolResult {
   schema?: SchemaData;
   tables?: string[];
   statistics?: StatisticsData;
+  memory?: MemoryResultData;
+  error?: string;
+}
+
+export interface MemoryResultData {
+  operation: 'retrieve' | 'save' | 'update';
+  success: boolean;
+  key: string;
+  value?: string;
+  char_count?: number;
+  appended?: boolean;
   error?: string;
 }
 
