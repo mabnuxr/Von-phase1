@@ -47,6 +47,7 @@ export interface MemoryContextUpdateRequest {
 export interface MemoryContextCreateRequest {
   key: string;
   description: string;
+  value?: string;
   accessLevel?: "tenant" | "user";
 }
 
