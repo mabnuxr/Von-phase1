@@ -268,15 +268,19 @@ export function ArtifactPane({
           (artifact.content as Record<string, unknown>).memory_operation
             ? {
                 memory: {
-                  operation: (artifact.content as Record<string, unknown>)
-                    .memory_operation as 'retrieve' | 'save' | 'update',
+                  operation: (artifact.content as Record<string, unknown>).memory_operation as
+                    | 'retrieve'
+                    | 'save'
+                    | 'update',
                   success: (artifact.content as Record<string, unknown>).success as boolean,
                   key: (artifact.content as Record<string, unknown>).key as string,
                   value: (artifact.content as Record<string, unknown>).value as string | undefined,
-                  char_count: (artifact.content as Record<string, unknown>)
-                    .char_count as number | undefined,
-                  appended: (artifact.content as Record<string, unknown>)
-                    .appended as boolean | undefined,
+                  char_count: (artifact.content as Record<string, unknown>).char_count as
+                    | number
+                    | undefined,
+                  appended: (artifact.content as Record<string, unknown>).appended as
+                    | boolean
+                    | undefined,
                   error: (artifact.content as Record<string, unknown>).error as string | undefined,
                 },
               }
@@ -419,7 +423,9 @@ export function ArtifactPane({
             {toolResult.type === 'memory' && <ToolResultRenderer result={toolResult} />}
 
             {/* Other tools - show based on active tab */}
-            {toolResult.type !== 'memory' && activeTab === 'result' && <ToolResultRenderer result={toolResult} />}
+            {toolResult.type !== 'memory' && activeTab === 'result' && (
+              <ToolResultRenderer result={toolResult} />
+            )}
             {toolResult.type !== 'memory' && activeTab === 'query' && toolResult.queries && (
               <div className="p-4">
                 <div className="space-y-4">

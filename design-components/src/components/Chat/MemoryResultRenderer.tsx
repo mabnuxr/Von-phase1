@@ -28,9 +28,7 @@ export const MemoryResultRenderer: React.FC<MemoryResultRendererProps> = ({ resu
       {/* Header with operation type */}
       <div className="flex items-center gap-2 mb-3">
         <Brain className="text-purple-600" size={16} weight="duotone" />
-        <span className="text-sm font-medium text-gray-700">
-          {operationLabel} Memory
-        </span>
+        <span className="text-sm font-medium text-gray-700">{operationLabel} Memory</span>
         <Icon className={iconColor} size={14} weight="fill" />
       </div>
 
@@ -61,9 +59,7 @@ export const MemoryResultRenderer: React.FC<MemoryResultRendererProps> = ({ resu
       {success && operation !== 'retrieve' && char_count !== undefined && (
         <div className="pl-6">
           <div className="flex justify-end">
-            <span className="text-xs text-gray-500">
-              {char_count.toLocaleString()} characters
-            </span>
+            <span className="text-xs text-gray-500">{char_count.toLocaleString()} characters</span>
           </div>
         </div>
       )}
