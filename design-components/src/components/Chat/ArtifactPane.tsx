@@ -174,7 +174,8 @@ export function ArtifactPane({
             | 'statistics'
             | 'metrics'
             | 'query'
-            | 'table_list',
+            | 'table_list'
+            | 'memory',
           // Map artifact types to ToolResult structure
           ...(artifact.artifact_type === 'table' &&
           (artifact.content as Record<string, unknown>).sample
@@ -261,6 +262,23 @@ export function ArtifactPane({
                   ((artifact.content as Record<string, unknown>).all_objects as string[]) ||
                   [],
                 queries: (artifact.content as Record<string, unknown>).queries as QueryInfo[],
+              }
+            : {}),
+          ...(artifact.artifact_type === 'memory' &&
+          (artifact.content as Record<string, unknown>).memory_operation
+            ? {
+                memory: {
+                  operation: (artifact.content as Record<string, unknown>)
+                    .memory_operation as 'retrieve' | 'save' | 'update',
+                  success: (artifact.content as Record<string, unknown>).success as boolean,
+                  key: (artifact.content as Record<string, unknown>).key as string,
+                  value: (artifact.content as Record<string, unknown>).value as string | undefined,
+                  char_count: (artifact.content as Record<string, unknown>)
+                    .char_count as number | undefined,
+                  appended: (artifact.content as Record<string, unknown>)
+                    .appended as boolean | undefined,
+                  error: (artifact.content as Record<string, unknown>).error as string | undefined,
+                },
               }
             : {}),
         }
@@ -367,36 +385,42 @@ export function ArtifactPane({
       {/* Successful tool execution - show normal result */}
       {artifact && toolResult && !isLoading && !error && (
         <div className="flex flex-col h-full">
-          {/* Tab Navigation */}
-          <div className="flex border-b border-gray-200">
-            {toolResult.queries && toolResult.queries.length > 0 && (
+          {/* Tab Navigation - only show for non-memory tools */}
+          {toolResult.type !== 'memory' && (
+            <div className="flex border-b border-gray-200">
+              {toolResult.queries && toolResult.queries.length > 0 && (
+                <button
+                  onClick={() => handleTabChange('query')}
+                  className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors cursor-pointer ${
+                    activeTab === 'query'
+                      ? 'border-gray-600 text-gray-900'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
+                >
+                  Query
+                </button>
+              )}
               <button
-                onClick={() => handleTabChange('query')}
+                onClick={() => handleTabChange('result')}
                 className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors cursor-pointer ${
-                  activeTab === 'query'
+                  activeTab === 'result'
                     ? 'border-gray-600 text-gray-900'
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
                 }`}
               >
-                Query
+                Result
               </button>
-            )}
-            <button
-              onClick={() => handleTabChange('result')}
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors cursor-pointer ${
-                activeTab === 'result'
-                  ? 'border-gray-600 text-gray-900'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-              }`}
-            >
-              Result
-            </button>
-          </div>
+            </div>
+          )}
 
           {/* Tab Content */}
           <div className="flex-1 overflow-auto">
-            {activeTab === 'result' && <ToolResultRenderer result={toolResult} />}
-            {activeTab === 'query' && toolResult.queries && (
+            {/* Memory tools - always show result without tabs */}
+            {toolResult.type === 'memory' && <ToolResultRenderer result={toolResult} />}
+
+            {/* Other tools - show based on active tab */}
+            {toolResult.type !== 'memory' && activeTab === 'result' && <ToolResultRenderer result={toolResult} />}
+            {toolResult.type !== 'memory' && activeTab === 'query' && toolResult.queries && (
               <div className="p-4">
                 <div className="space-y-4">
                   {toolResult.queries.map((query, index) => (

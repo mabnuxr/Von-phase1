@@ -7,6 +7,7 @@ import { SchemaRenderer } from './SchemaRenderer';
 import { StatisticsRenderer } from './StatisticsRenderer';
 import { TableListRenderer } from './TableListRenderer';
 import { ValuesRenderer } from './ValuesRenderer';
+import { MemoryResultRenderer } from './MemoryResultRenderer';
 import type { ToolResult } from './types';
 
 export interface ToolResultRendererProps {
@@ -74,6 +75,10 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({ result }
       return result.tables ? (
         <TableListRenderer tables={result.tables} queries={result.queries} />
       ) : null;
+
+    case 'memory':
+      // Render memory operation results
+      return <MemoryResultRenderer result={result} />;
 
     case 'json':
     default:

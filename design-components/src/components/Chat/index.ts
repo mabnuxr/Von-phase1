@@ -70,6 +70,8 @@ export type { MetricsGridProps } from './MetricsGrid';
 export { ToolResultRenderer } from './ToolResultRenderer';
 export type { ToolResultRendererProps } from './ToolResultRenderer';
 
+export { MemoryResultRenderer } from './MemoryResultRenderer';
+
 export { ToolCallBlock } from './ToolCallBlock';
 export type { ToolCallBlockProps } from './ToolCallBlock';
 

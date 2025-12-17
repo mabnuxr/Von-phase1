@@ -11,6 +11,7 @@ import {
   CalculatorIcon,
   ToolIcon,
   CalendarIcon,
+  BrainIcon,
 } from '../icons';
 
 // Friendly display names for tools
@@ -27,6 +28,10 @@ export const TOOL_DISPLAY_NAMES: Record<string, string> = {
   googlecalendar_delete_event: 'Deleted Calendar Event',
   googlecalendar_list_events: 'Listed Calendar Events',
   request_google_calendar_approval: 'Calendar Approval Requested',
+  // Memory Tools
+  get_org_memory: 'Retrieved Memory',
+  save_org_memory: 'Saved to Memory',
+  update_org_memory: 'Updated Memory',
 };
 
 // Icons for different tool types - SVG components
@@ -43,6 +48,10 @@ export const TOOL_ICONS: Record<string, React.ComponentType<IconProps>> = {
   googlecalendar_delete_event: CalendarIcon,
   googlecalendar_list_events: CalendarIcon,
   request_google_calendar_approval: CalendarIcon,
+  // Memory Tools
+  get_org_memory: BrainIcon,
+  save_org_memory: BrainIcon,
+  update_org_memory: BrainIcon,
 };
 
 /**
@@ -84,6 +93,17 @@ export function generateToolSummary(toolName: string, args: Record<string, any>)
 
     case 'search_documents':
       return args.query ? `Searching for: "${args.query}"` : 'Searching documents';
+
+    case 'get_org_memory':
+      return args.key ? `Key: ${args.key}` : 'Retrieving memory';
+
+    case 'save_org_memory':
+      return args.key ? `Creating: ${args.key}` : 'Saving to memory';
+
+    case 'update_org_memory':
+      return args.key
+        ? `${args.append ? 'Appending to' : 'Updating'}: ${args.key}`
+        : 'Updating memory';
 
     default:
       // Generic fallback - show key: value pairs

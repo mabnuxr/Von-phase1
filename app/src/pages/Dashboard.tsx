@@ -24,9 +24,7 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import {
   UserChannelEvents,
   type ConversationTitleUpdatedEvent,
-  type MemoryContextCreatedEvent,
 } from "../types/userChannelEvents";
-import { useToast } from "../hooks/useToast";
 import type { MessageWithStreaming } from "../types/conversation";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { useArtifact } from "../hooks/useArtifact";
@@ -46,7 +44,6 @@ import {
   DashboardCanvas,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
-import { BrainIcon } from "@phosphor-icons/react";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
@@ -55,7 +52,6 @@ import {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { showToast } = useToast();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
   }>();
@@ -248,52 +244,6 @@ const Dashboard = () => {
       );
     };
   }, [userChannel, queryClient]);
-
-  // Subscribe to memory context created events on user channel
-  useEffect(() => {
-    if (!userChannel) return;
-
-    const handleMemoryContextCreated = (data: MemoryContextCreatedEvent) => {
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Memory context created:",
-          data.key,
-          "createdAt:",
-          data.createdAt,
-        );
-      }
-
-      // Always show toast notification when memory is saved
-      showToast({
-        message: `Memory saved: ${data.key}`,
-        variant: "success",
-        icon: <BrainIcon size={16} weight="duotone" />,
-        action: {
-          label: "View",
-          onClick: () => navigate("/settings?tab=org-context"),
-        },
-      });
-    };
-
-    if (import.meta.env.DEV) {
-      console.log(
-        "[Dashboard] Binding to user channel event:",
-        UserChannelEvents.MEMORY_CONTEXT_CREATED,
-      );
-    }
-
-    userChannel.bind(
-      UserChannelEvents.MEMORY_CONTEXT_CREATED,
-      handleMemoryContextCreated,
-    );
-
-    return () => {
-      userChannel.unbind(
-        UserChannelEvents.MEMORY_CONTEXT_CREATED,
-        handleMemoryContextCreated,
-      );
-    };
-  }, [userChannel, showToast, navigate]);
 
   // Handle title updates with typing animation
   useEffect(() => {

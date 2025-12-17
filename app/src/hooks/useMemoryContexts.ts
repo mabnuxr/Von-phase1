@@ -36,6 +36,7 @@ export function useMemoryContexts(
     queryFn: () =>
       memoryContextsService.getMemoryContexts(accessLevel, page, limit),
     staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -56,6 +57,7 @@ export function useInfiniteMemoryContexts(
         : undefined,
     initialPageParam: 1,
     staleTime: 60000,
+    refetchOnWindowFocus: true,
   });
 }
 
