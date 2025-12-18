@@ -41,7 +41,7 @@ export function OrgContextTab() {
   const { data, isLoading, error } = useMemoryContexts(
     "tenant",
     currentPage,
-    5,
+    10,
   );
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
@@ -333,7 +333,7 @@ export function OrgContextTab() {
                               className="text-indigo-600"
                             />
                             <span className="text-xs font-medium text-indigo-700">
-                              Default Context - Always included in conversations
+                              Default Memory
                             </span>
                           </div>
                         </div>
