@@ -4,6 +4,7 @@ import {
   BrainIcon,
   TrashIcon,
   InfoIcon,
+  LockKeyIcon,
 } from "@phosphor-icons/react";
 import { ConfirmationModal } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
@@ -109,13 +110,24 @@ export function OrgContextTab() {
         });
       } else if (selectedContextId) {
         // Update existing memory
+        // Don't send key field for default context (it's readonly)
+        const updateData: {
+          key?: string;
+          description: string;
+          value: string;
+        } = {
+          description: data.description,
+          value: data.value,
+        };
+
+        // Only include key if not a default context
+        if (!selectedContext?.isDefault) {
+          updateData.key = data.key;
+        }
+
         await updateMutation.mutateAsync({
           id: selectedContextId,
-          data: {
-            key: data.key,
-            description: data.description,
-            value: data.value,
-          },
+          data: updateData,
         });
         showToast({
           message: "Memory updated successfully",
@@ -290,9 +302,16 @@ export function OrgContextTab() {
                         </button>
                         <button
                           onClick={handleDeleteClick}
-                          disabled={deleteMutation.isPending}
-                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50"
-                          title="Delete"
+                          disabled={
+                            deleteMutation.isPending ||
+                            selectedContext?.isDefault
+                          }
+                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={
+                            selectedContext?.isDefault
+                              ? "Cannot delete default context"
+                              : "Delete"
+                          }
                         >
                           <TrashIcon size={16} weight="regular" />
                         </button>
@@ -305,6 +324,21 @@ export function OrgContextTab() {
                 <div className="flex-1 overflow-y-auto p-5">
                   {selectedContext ? (
                     <div className="flex flex-col gap-5 h-full">
+                      {/* Default Context Indicator */}
+                      {selectedContext.isDefault && (
+                        <div className="bg-indigo-50/60 rounded-xl p-3 border border-indigo-100">
+                          <div className="flex items-center gap-2">
+                            <LockKeyIcon
+                              size={16}
+                              className="text-indigo-600"
+                            />
+                            <span className="text-xs font-medium text-indigo-700">
+                              Default Context - Always included in conversations
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Description */}
                       <div className="bg-gray-50/60 rounded-xl p-4">
                         <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
