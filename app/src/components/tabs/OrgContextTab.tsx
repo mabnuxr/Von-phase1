@@ -37,7 +37,11 @@ export function OrgContextTab() {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch memory contexts with pagination
-  const { data, isLoading, error } = useMemoryContexts("tenant", currentPage, 5);
+  const { data, isLoading, error } = useMemoryContexts(
+    "tenant",
+    currentPage,
+    5,
+  );
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();

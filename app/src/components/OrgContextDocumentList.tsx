@@ -1,4 +1,9 @@
-import { FileTextIcon, PlusIcon, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import {
+  FileTextIcon,
+  PlusIcon,
+  CaretLeft,
+  CaretRight,
+} from "@phosphor-icons/react";
 import type { MemoryContext } from "../types/memoryContext";
 
 interface OrgContextDocumentListProps {
@@ -22,7 +27,6 @@ export function OrgContextDocumentList({
   totalPages,
   onPageChange,
 }: OrgContextDocumentListProps) {
-
   return (
     <div className="flex flex-col h-full">
       {/* Header with title */}
