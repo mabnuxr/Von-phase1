@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   PencilSimpleIcon,
   BrainIcon,
@@ -46,8 +46,8 @@ export function OrgContextTab() {
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
 
-  // Extract contexts and pagination info
-  const contexts = data?.data || [];
+  // Extract contexts and pagination info (memoized to prevent useEffect loop)
+  const contexts = useMemo(() => data?.data || [], [data?.data]);
   const pagination = data?.pagination;
 
   // Auto-select first context when data loads
