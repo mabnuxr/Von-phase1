@@ -6,6 +6,7 @@ import {
   InfoIcon,
 } from "@phosphor-icons/react";
 import { ConfirmationModal } from "@vonlabs/design-components";
+import { Streamdown } from "streamdown";
 import {
   useInfiniteMemoryContexts,
   useUpdateMemoryContext,
@@ -13,7 +14,6 @@ import {
   useCreateMemoryContext,
 } from "../../hooks/useMemoryContexts";
 import { OrgContextDocumentList } from "../OrgContextDocumentList";
-import { OrgContextEditor } from "../OrgContextEditor";
 import { MemoryContextPane } from "../MemoryContextPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
@@ -322,14 +322,12 @@ export function OrgContextTab() {
                         <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
                           Memory Content
                         </label>
-                        <div className="flex-1 overflow-hidden">
-                          <OrgContextEditor
-                            content={selectedContext.value || ""}
-                            onChange={() => {}}
-                            isEditing={false}
-                            placeholder="No content yet"
-                            contentKey={`${selectedContextId}-${selectedContext.updatedAt || selectedContext.createdAt}`}
-                          />
+                        <div className="flex-1 overflow-auto">
+                          <div className="prose prose-sm max-w-none text-sm [&>*]:text-sm [&>*]:leading-relaxed">
+                            <Streamdown parseIncompleteMarkdown={false}>
+                              {selectedContext.value || "No content yet"}
+                            </Streamdown>
+                          </div>
                         </div>
                       </div>
                     </div>
