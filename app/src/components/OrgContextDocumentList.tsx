@@ -3,6 +3,7 @@ import {
   PlusIcon,
   CaretLeft,
   CaretRight,
+  LockKeyIcon,
 } from "@phosphor-icons/react";
 import type { MemoryContext } from "../types/memoryContext";
 
@@ -62,6 +63,7 @@ export function OrgContextDocumentList({
             <div className="space-y-1">
               {contexts.map((ctx) => {
                 const isSelected = ctx.id === selectedContextId;
+                const isDefault = ctx.isDefault;
 
                 return (
                   <button
@@ -72,24 +74,40 @@ export function OrgContextDocumentList({
                       transition-all duration-200
                       ${
                         isSelected
-                          ? "bg-white shadow-sm shadow-indigo-100/50 ring-1 ring-indigo-100/50"
-                          : "hover:bg-white/70"
+                          ? isDefault
+                            ? "bg-indigo-50 shadow-sm shadow-indigo-200/50 ring-1 ring-indigo-200/50"
+                            : "bg-white shadow-sm shadow-indigo-100/50 ring-1 ring-indigo-100/50"
+                          : isDefault
+                            ? "bg-indigo-50/40 hover:bg-indigo-50/70"
+                            : "hover:bg-white/70"
                       }
                     `}
                   >
                     <div className="flex items-start gap-2.5">
-                      <FileTextIcon
-                        size={15}
-                        weight={isSelected ? "duotone" : "regular"}
-                        className={`flex-shrink-0 mt-0.5 transition-colors duration-200 ${
-                          isSelected ? "text-indigo-600" : "text-gray-500"
-                        }`}
-                      />
+                      {isDefault ? (
+                        <LockKeyIcon
+                          size={15}
+                          weight={isSelected ? "duotone" : "regular"}
+                          className={`flex-shrink-0 mt-0.5 transition-colors duration-200 ${
+                            isSelected ? "text-indigo-600" : "text-indigo-500"
+                          }`}
+                        />
+                      ) : (
+                        <FileTextIcon
+                          size={15}
+                          weight={isSelected ? "duotone" : "regular"}
+                          className={`flex-shrink-0 mt-0.5 transition-colors duration-200 ${
+                            isSelected ? "text-indigo-600" : "text-gray-500"
+                          }`}
+                        />
+                      )}
                       <span
                         className={`text-[13px] leading-snug line-clamp-2 transition-colors duration-200 ${
                           isSelected
                             ? "text-gray-800 font-medium"
-                            : "text-gray-600"
+                            : isDefault
+                              ? "text-indigo-700"
+                              : "text-gray-600"
                         }`}
                       >
                         {ctx.key}

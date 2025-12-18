@@ -53,6 +53,9 @@ export function MemoryContextPane({
   // Key to force MDX editor remount when context changes
   const [editorKey, setEditorKey] = useState(0);
 
+  // Check if editing a default context
+  const isDefault = mode === "edit" && context?.isDefault;
+
   // Reset form when pane opens or context changes
   useEffect(() => {
     if (isOpen) {
@@ -142,6 +145,11 @@ export function MemoryContextPane({
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-sm font-medium text-gray-700">
               Title <span className="text-red-500">*</span>
+              {isDefault && (
+                <span className="ml-2 text-xs text-indigo-600">
+                  (Read-only)
+                </span>
+              )}
             </label>
             <CharacterBudget
               current={editingKey.length}
@@ -152,9 +160,17 @@ export function MemoryContextPane({
             type="text"
             value={editingKey}
             onChange={(e) => setEditingKey(e.target.value)}
-            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
+            disabled={isDefault}
+            className={`w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all ${
+              isDefault ? "opacity-60 cursor-not-allowed bg-gray-50" : ""
+            }`}
             placeholder="e.g., Pricing Structure"
           />
+          {isDefault && (
+            <p className="mt-1.5 text-xs text-gray-500">
+              The title of the default context cannot be changed.
+            </p>
+          )}
         </div>
 
         {/* Description */}

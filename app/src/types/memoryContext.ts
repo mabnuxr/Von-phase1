@@ -7,6 +7,7 @@ export interface MemoryContext {
   key: string;
   description: string;
   value: string;
+  isDefault: boolean;
   createdAt: string;
   createdBy: string;
   updatedAt: string | null;
@@ -49,6 +50,7 @@ export interface MemoryContextCreateRequest {
   description: string;
   value?: string;
   accessLevel?: "tenant" | "user";
+  isDefault?: boolean;
 }
 
 /**
