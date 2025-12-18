@@ -20,8 +20,8 @@ function CharacterBudget({ current, max }: { current: number; max: number }) {
 
   return (
     <span className={`text-xs ${colorClass}`}>
-      {current}/{max}
-      {isOver && ` (${overAmount} over)`}
+      {current.toLocaleString()}/{max.toLocaleString()} characters
+      {isOver && ` (${overAmount.toLocaleString()} over)`}
     </span>
   );
 }
