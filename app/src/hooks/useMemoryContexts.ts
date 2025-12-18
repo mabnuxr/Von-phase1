@@ -45,7 +45,7 @@ export function useMemoryContexts(
  */
 export function useInfiniteMemoryContexts(
   accessLevel: "tenant" | "user" = "tenant",
-  limit: number = 10,
+  limit: number = 5,
 ) {
   return useInfiniteQuery({
     queryKey: memoryContextKeys.infinite(accessLevel),

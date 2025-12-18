@@ -1,5 +1,9 @@
-import { useRef, useCallback } from "react";
-import { FileTextIcon, SpinnerIcon, PlusIcon } from "@phosphor-icons/react";
+import {
+  FileTextIcon,
+  PlusIcon,
+  CaretLeft,
+  CaretRight,
+} from "@phosphor-icons/react";
 import type { MemoryContext } from "../types/memoryContext";
 
 interface OrgContextDocumentListProps {
@@ -8,9 +12,9 @@ interface OrgContextDocumentListProps {
   onSelectContext: (id: string) => void;
   onCreateClick: () => void;
   isLoading?: boolean;
-  hasNextPage?: boolean;
-  isFetchingNextPage?: boolean;
-  fetchNextPage?: () => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export function OrgContextDocumentList({
@@ -19,24 +23,10 @@ export function OrgContextDocumentList({
   onSelectContext,
   onCreateClick,
   isLoading,
-  hasNextPage,
-  isFetchingNextPage,
-  fetchNextPage,
+  currentPage,
+  totalPages,
+  onPageChange,
 }: OrgContextDocumentListProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container || !hasNextPage || isFetchingNextPage || !fetchNextPage)
-      return;
-
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    // Load more when within 100px of bottom
-    if (scrollHeight - scrollTop - clientHeight < 100) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   return (
     <div className="flex flex-col h-full">
       {/* Header with title */}
@@ -52,17 +42,13 @@ export function OrgContextDocumentList({
           onClick={onCreateClick}
           className="w-full h-[32px] flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
         >
-          New Section
+          New Memory
           <PlusIcon size={14} weight="bold" />
         </button>
       </div>
 
       {/* List of contexts */}
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto settings-scrollbar"
-      >
+      <div className="flex-1 overflow-y-auto settings-scrollbar">
         <div className="p-2">
           {isLoading && contexts.length === 0 ? (
             <div className="px-3 py-8 text-sm text-gray-400 text-center animate-pulse">
@@ -112,20 +98,39 @@ export function OrgContextDocumentList({
                   </button>
                 );
               })}
-
-              {/* Loading indicator for infinite scroll */}
-              {isFetchingNextPage && (
-                <div className="px-3 py-4 flex items-center justify-center">
-                  <SpinnerIcon
-                    size={16}
-                    className="animate-spin text-gray-400"
-                  />
-                </div>
-              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* iPhone-style Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="px-3 py-3 border-t border-gray-100/80">
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Previous page"
+              >
+                <CaretLeft size={16} weight="bold" />
+              </button>
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Next page"
+              >
+                <CaretRight size={16} weight="bold" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
