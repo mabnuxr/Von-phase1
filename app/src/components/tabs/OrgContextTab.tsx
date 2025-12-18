@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   PencilSimpleIcon,
   BrainIcon,
@@ -8,7 +8,7 @@ import {
 import { ConfirmationModal } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import {
-  useInfiniteMemoryContexts,
+  useMemoryContexts,
   useUpdateMemoryContext,
   useDeleteMemoryContext,
   useCreateMemoryContext,
@@ -33,24 +33,18 @@ export function OrgContextTab() {
   // Toast notifications
   const { showToast } = useToast();
 
-  // Fetch memory contexts with infinite scroll
-  const {
-    data,
-    isLoading,
-    error,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useInfiniteMemoryContexts("tenant", 10);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Fetch memory contexts with pagination
+  const { data, isLoading, error } = useMemoryContexts("tenant", currentPage, 5);
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
 
-  // Flatten all pages into a single array
-  const contexts = useMemo(() => {
-    if (!data?.pages) return [];
-    return data.pages.flatMap((page) => page.data);
-  }, [data?.pages]);
+  // Extract contexts and pagination info
+  const contexts = data?.data || [];
+  const pagination = data?.pagination;
 
   // Auto-select first context when data loads
   useEffect(() => {
@@ -268,9 +262,9 @@ export function OrgContextTab() {
                   onSelectContext={handleSelectContext}
                   onCreateClick={handleCreateClick}
                   isLoading={isLoading}
-                  hasNextPage={hasNextPage}
-                  isFetchingNextPage={isFetchingNextPage}
-                  fetchNextPage={fetchNextPage}
+                  currentPage={pagination?.page || 1}
+                  totalPages={pagination?.totalPages || 1}
+                  onPageChange={setCurrentPage}
                 />
               </div>
 
