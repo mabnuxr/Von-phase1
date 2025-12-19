@@ -62,7 +62,6 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
           clientSideID,
           context,
           options: {
-            bootstrap: "localStorage",
             streaming: true,
             plugins: [
               new Observability({
