@@ -42,9 +42,16 @@ declare module "@tiptap/core" {
   }
 }
 
+// Interface for markdown storage
+interface MarkdownStorage {
+  markdown: {
+    getMarkdown: () => string;
+  };
+}
+
 // Helper to get markdown from editor
 function getMarkdown(editor: Editor): string {
-  return (editor.storage as any).markdown.getMarkdown();
+  return (editor.storage as unknown as MarkdownStorage).markdown.getMarkdown();
 }
 
 export function OrgContextEditor({
@@ -92,7 +99,8 @@ export function OrgContextEditor({
     },
     editorProps: {
       attributes: {
-        class: "tiptap-editor prose prose-sm max-w-none min-h-[200px] focus:outline-none px-4 py-3",
+        class:
+          "tiptap-editor prose prose-sm max-w-none min-h-[200px] focus:outline-none px-4 py-3",
       },
     },
   });
@@ -158,16 +166,24 @@ export function OrgContextEditor({
 
           <div className="toolbar-group">
             <button
-              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-              className={editor.isActive("heading", { level: 1 }) ? "is-active" : ""}
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              }
+              className={
+                editor.isActive("heading", { level: 1 }) ? "is-active" : ""
+              }
               type="button"
               title="Heading 1"
             >
               <TextHOne size={16} weight="bold" />
             </button>
             <button
-              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-              className={editor.isActive("heading", { level: 2 }) ? "is-active" : ""}
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+              className={
+                editor.isActive("heading", { level: 2 }) ? "is-active" : ""
+              }
               type="button"
               title="Heading 2"
             >
