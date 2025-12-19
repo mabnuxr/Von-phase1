@@ -321,7 +321,7 @@ export function OrgContextTab() {
                 </div>
 
                 {/* Content Area - View Mode */}
-                <div className="flex-1 overflow-y-auto p-5">
+                <div className="flex-1 overflow-y-auto settings-scrollbar p-5">
                   {selectedContext ? (
                     <div className="flex flex-col gap-5 h-full">
                       {/* Default Context Indicator */}
@@ -354,7 +354,7 @@ export function OrgContextTab() {
                         <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
                           Memory Content
                         </label>
-                        <div className="flex-1 overflow-auto">
+                        <div className="flex-1 overflow-auto settings-scrollbar">
                           <div className="prose prose-sm max-w-none text-sm [&>*]:text-sm [&>*]:leading-relaxed">
                             <Streamdown parseIncompleteMarkdown={false}>
                               {selectedContext.value || "No content yet"}

@@ -1,22 +1,29 @@
-import { useRef } from "react";
+import { useEffect } from "react";
+import { useEditor, EditorContent, Editor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Underline from "@tiptap/extension-underline";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableCell } from "@tiptap/extension-table-cell";
+import Placeholder from "@tiptap/extension-placeholder";
+import { Markdown } from "tiptap-markdown";
 import {
-  MDXEditor,
-  headingsPlugin,
-  listsPlugin,
-  quotePlugin,
-  tablePlugin,
-  thematicBreakPlugin,
-  toolbarPlugin,
-  markdownShortcutPlugin,
-  BoldItalicUnderlineToggles,
-  InsertTable,
-  ListsToggle,
-  linkPlugin,
-  linkDialogPlugin,
-  CreateLink,
-  type MDXEditorMethods,
-} from "@mdxeditor/editor";
-import "@mdxeditor/editor/style.css";
+  TextB,
+  TextItalic,
+  TextStrikethrough,
+  TextUnderline,
+  ListBullets,
+  ListNumbers,
+  Quotes,
+  Code,
+  Table as TableIcon,
+  Minus,
+  TextHOne,
+  TextHTwo,
+} from "@phosphor-icons/react";
+import "./OrgContextEditor.css";
 
 interface OrgContextEditorProps {
   content: string;
@@ -26,14 +33,25 @@ interface OrgContextEditorProps {
   contentKey?: string;
 }
 
-// Escape angle brackets to prevent MDX from treating them as JSX tags
-function escapeAngleBrackets(text: string): string {
-  return text.replace(/</g, "\\<").replace(/>/g, "\\>");
+// Type extension for markdown storage
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    markdown: {
+      getMarkdown: () => ReturnType;
+    };
+  }
 }
 
-// Unescape angle brackets when returning content
-function unescapeAngleBrackets(text: string): string {
-  return text.replace(/\\</g, "<").replace(/\\>/g, ">");
+// Interface for markdown storage
+interface MarkdownStorage {
+  markdown: {
+    getMarkdown: () => string;
+  };
+}
+
+// Helper to get markdown from editor
+function getMarkdown(editor: Editor): string {
+  return (editor.storage as unknown as MarkdownStorage).markdown.getMarkdown();
 }
 
 export function OrgContextEditor({
@@ -43,178 +61,208 @@ export function OrgContextEditor({
   placeholder = "Start typing...",
   contentKey,
 }: OrgContextEditorProps) {
-  const editorRef = useRef<MDXEditorMethods>(null);
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "tiptap-link",
+        },
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      Placeholder.configure({
+        placeholder: placeholder,
+      }),
+      Markdown.configure({
+        html: true,
+        transformPastedText: true,
+        transformCopiedText: true,
+      }),
+    ],
+    content: content,
+    editable: isEditing,
+    onUpdate: ({ editor }) => {
+      // Get markdown content from the editor
+      const markdown = getMarkdown(editor);
+      onChange(markdown);
+    },
+    editorProps: {
+      attributes: {
+        class:
+          "tiptap-editor prose prose-sm max-w-none min-h-[200px] focus:outline-none px-4 py-3",
+      },
+    },
+  });
 
-  // Escape content for MDXEditor display
-  const escapedContent = escapeAngleBrackets(content || "");
+  // Update editor content when content prop changes
+  useEffect(() => {
+    if (editor && content !== getMarkdown(editor)) {
+      editor.commands.setContent(content);
+    }
+  }, [content, contentKey, editor]);
 
-  // Handle onChange to unescape before passing back
-  const handleChange = (value: string) => {
-    const unescapedValue = unescapeAngleBrackets(value);
-    onChange(unescapedValue);
-  };
+  // Update editable state when isEditing changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(isEditing);
+    }
+  }, [isEditing, editor]);
+
+  if (!editor) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-full org-context-editor">
-      <MDXEditor
-        key={contentKey}
-        ref={editorRef}
-        markdown={escapedContent}
-        onChange={handleChange}
-        readOnly={!isEditing}
-        placeholder={placeholder}
-        contentEditableClassName="prose prose-sm max-w-none min-h-[200px] focus:outline-none px-4 py-3"
-        plugins={[
-          headingsPlugin({ allowedHeadingLevels: [1, 2, 3] }),
-          listsPlugin(),
-          quotePlugin(),
-          tablePlugin(),
-          thematicBreakPlugin(),
-          linkPlugin(),
-          linkDialogPlugin(),
-          markdownShortcutPlugin(),
-          toolbarPlugin({
-            toolbarContents: () =>
-              isEditing ? (
-                <div className="flex items-center gap-1">
-                  <BoldItalicUnderlineToggles />
-                  <div className="w-px h-4 bg-gray-200 mx-1" />
-                  <ListsToggle />
-                  <div className="w-px h-4 bg-gray-200 mx-1" />
-                  <InsertTable />
-                  <CreateLink />
-                </div>
-              ) : null,
-          }),
-        ]}
-      />
+      {isEditing && (
+        <div className="tiptap-toolbar">
+          <div className="toolbar-group">
+            <button
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              className={editor.isActive("bold") ? "is-active" : ""}
+              type="button"
+              title="Bold (Ctrl+B)"
+            >
+              <TextB size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              className={editor.isActive("italic") ? "is-active" : ""}
+              type="button"
+              title="Italic (Ctrl+I)"
+            >
+              <TextItalic size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              className={editor.isActive("underline") ? "is-active" : ""}
+              type="button"
+              title="Underline (Ctrl+U)"
+            >
+              <TextUnderline size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              className={editor.isActive("strike") ? "is-active" : ""}
+              type="button"
+              title="Strikethrough"
+            >
+              <TextStrikethrough size={16} weight="bold" />
+            </button>
+          </div>
 
-      {/* Custom styles for MDXEditor */}
-      <style>{`
-        .org-context-editor .mdxeditor {
-          font-size: 0.8125rem;
-          line-height: 1.5;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          border: none;
-          border-radius: 0.5rem;
-          background: white;
-        }
+          <div className="toolbar-divider" />
 
-        .org-context-editor .mdxeditor-root-contenteditable {
-          flex: 1;
-          overflow-y: auto;
-          border: none;
-        }
+          <div className="toolbar-group">
+            <button
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 1 }).run()
+              }
+              className={
+                editor.isActive("heading", { level: 1 }) ? "is-active" : ""
+              }
+              type="button"
+              title="Heading 1"
+            >
+              <TextHOne size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 2 }).run()
+              }
+              className={
+                editor.isActive("heading", { level: 2 }) ? "is-active" : ""
+              }
+              type="button"
+              title="Heading 2"
+            >
+              <TextHTwo size={16} weight="bold" />
+            </button>
+          </div>
 
-        .org-context-editor [data-lexical-editor="true"] {
-          min-height: 200px;
-        }
+          <div className="toolbar-divider" />
 
-        .org-context-editor .mdxeditor-toolbar {
-          background: transparent;
-          border-bottom: none;
-          padding: 0.5rem;
-          display: flex;
-          justify-content: center;
-        }
+          <div className="toolbar-group">
+            <button
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              className={editor.isActive("bulletList") ? "is-active" : ""}
+              type="button"
+              title="Bullet List"
+            >
+              <ListBullets size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              className={editor.isActive("orderedList") ? "is-active" : ""}
+              type="button"
+              title="Numbered List"
+            >
+              <ListNumbers size={16} weight="bold" />
+            </button>
+          </div>
 
-        .org-context-editor .mdxeditor p {
-          margin: 0.375rem 0;
-        }
+          <div className="toolbar-divider" />
 
-        .org-context-editor .mdxeditor h1 {
-          font-size: 1.125rem;
-          font-weight: 700;
-          margin-top: 1rem;
-          margin-bottom: 0.5rem;
-        }
+          <div className="toolbar-group">
+            <button
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              className={editor.isActive("blockquote") ? "is-active" : ""}
+              type="button"
+              title="Blockquote"
+            >
+              <Quotes size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+              className={editor.isActive("codeBlock") ? "is-active" : ""}
+              type="button"
+              title="Code Block"
+            >
+              <Code size={16} weight="bold" />
+            </button>
+          </div>
 
-        .org-context-editor .mdxeditor h2 {
-          font-size: 1rem;
-          font-weight: 600;
-          margin-top: 1.25rem;
-          margin-bottom: 0.5rem;
-        }
+          <div className="toolbar-divider" />
 
-        .org-context-editor .mdxeditor h3 {
-          font-size: 0.9375rem;
-          font-weight: 600;
-          margin-top: 0.75rem;
-          margin-bottom: 0.375rem;
-        }
+          <div className="toolbar-group">
+            <button
+              onClick={() =>
+                editor
+                  .chain()
+                  .focus()
+                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                  .run()
+              }
+              type="button"
+              title="Insert Table"
+            >
+              <TableIcon size={16} weight="bold" />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().setHorizontalRule().run()}
+              type="button"
+              title="Horizontal Rule"
+            >
+              <Minus size={16} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
 
-        .org-context-editor .mdxeditor ul {
-          padding-left: 1.25rem;
-          margin: 0.375rem 0;
-          list-style-type: disc;
-        }
-
-        .org-context-editor .mdxeditor ol {
-          padding-left: 1.25rem;
-          margin: 0.375rem 0;
-          list-style-type: decimal;
-        }
-
-        .org-context-editor .mdxeditor li {
-          margin: 0.125rem 0;
-          display: list-item;
-        }
-
-        .org-context-editor .mdxeditor blockquote {
-          border-left: 2px solid #e5e7eb;
-          margin: 0.5rem 0;
-          padding-left: 0.75rem;
-          color: #6b7280;
-          font-size: 0.8125rem;
-        }
-
-        .org-context-editor .mdxeditor table {
-          border-collapse: collapse;
-          margin: 0.75rem 0;
-          width: 100%;
-          font-size: 0.75rem;
-        }
-
-        .org-context-editor .mdxeditor td,
-        .org-context-editor .mdxeditor th {
-          border: 1px solid #e5e7eb;
-          padding: 0.375rem 0.5rem;
-          text-align: left;
-        }
-
-        .org-context-editor .mdxeditor th {
-          background-color: #f9fafb;
-          font-weight: 600;
-        }
-
-        .org-context-editor .mdxeditor a {
-          color: #4f46e5;
-          text-decoration: underline;
-        }
-
-        .org-context-editor .mdxeditor code {
-          background-color: #f3f4f6;
-          border-radius: 0.25rem;
-          color: #111827;
-          font-family: monospace;
-          font-size: 0.75rem;
-          padding: 0.125rem 0.25rem;
-        }
-
-        /* Placeholder styles */
-        .org-context-editor .mdxeditor [data-placeholder]::before {
-          color: #adb5bd;
-          content: attr(data-placeholder);
-          pointer-events: none;
-        }
-
-        /* Read-only mode styles */
-        .org-context-editor .mdxeditor[data-readonly="true"] [data-lexical-editor="true"] {
-          cursor: default;
-        }
-      `}</style>
+      <div className="tiptap-editor-wrapper">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
