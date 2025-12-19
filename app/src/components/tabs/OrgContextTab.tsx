@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   PencilSimpleIcon,
   BrainIcon,
@@ -36,12 +36,13 @@ export function OrgContextTab() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const prevPageRef = useRef(currentPage);
 
   // Fetch memory contexts with pagination
   const { data, isLoading, error } = useMemoryContexts(
     "tenant",
     currentPage,
-    10,
+    20,
   );
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
@@ -51,12 +52,35 @@ export function OrgContextTab() {
   const contexts = useMemo(() => data?.data || [], [data?.data]);
   const pagination = data?.pagination;
 
-  // Auto-select first context when data loads
+  // Auto-select first context when data loads or page changes
   useEffect(() => {
-    if (contexts.length > 0 && !selectedContextId) {
-      setSelectedContextId(contexts[0].id);
+    const pageChanged = prevPageRef.current !== currentPage;
+
+    if (contexts.length > 0) {
+      // Select first context if:
+      // 1. No context is selected, OR
+      // 2. Page has changed
+      if (!selectedContextId || pageChanged) {
+        setSelectedContextId(contexts[0].id);
+      }
     }
-  }, [contexts, selectedContextId]);
+
+    // Update previous page reference
+    prevPageRef.current = currentPage;
+  }, [contexts, selectedContextId, currentPage]);
+
+  // Auto-navigate to previous page if current page is empty and not the first page
+  useEffect(() => {
+    if (
+      !isLoading &&
+      contexts.length === 0 &&
+      currentPage > 1 &&
+      pagination?.totalPages !== undefined &&
+      currentPage > pagination.totalPages
+    ) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [contexts.length, currentPage, isLoading, pagination?.totalPages]);
 
   // Get selected context
   const selectedContext = contexts.find(
