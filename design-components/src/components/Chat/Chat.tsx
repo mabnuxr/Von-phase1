@@ -10,6 +10,9 @@ import { sendMessage as apiSendMessage } from './utils/api';
 import { saveConversation, loadConversation } from './utils/localStorage';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
+import { DragDropOverlay } from './FileAttachment';
+import type { FileAttachment } from './FileAttachment';
+import type { MessageFileAttachment } from './types';
 
 // Export types from types.ts
 export type {
@@ -72,12 +75,19 @@ export const Chat: React.FC<ChatProps> = ({
   enableCommands = false,
   enableActions = false,
   onConvertToDashboard,
+  enableFileUpload = false,
+  onFileError,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  // Drag-drop state for file upload overlay
+  const [isDragActive, setIsDragActive] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // Input value state - use external control if provided, otherwise internal
   const [internalInputValue, setInternalInputValue] = useState('');
@@ -227,9 +237,80 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [conversationId, onStopStreaming]);
 
+  // Drag-drop handlers for file upload overlay
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      if (!enableFileUpload) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current++;
+      if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        setIsDragActive(true);
+      }
+    },
+    [enableFileUpload]
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent) => {
+      if (!enableFileUpload) return;
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounterRef.current--;
+      if (dragCounterRef.current === 0) {
+        setIsDragActive(false);
+      }
+    },
+    [enableFileUpload]
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      if (!enableFileUpload) return;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [enableFileUpload]
+  );
+
+  // Store dropped files to pass to ChatInput
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      if (!enableFileUpload) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragActive(false);
+      dragCounterRef.current = 0;
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        setDroppedFiles(Array.from(e.dataTransfer.files));
+        e.dataTransfer.clearData();
+      }
+    },
+    [enableFileUpload]
+  );
+
+  // Clear dropped files after they've been processed
+  const handleDroppedFilesProcessed = useCallback(() => {
+    setDroppedFiles([]);
+  }, []);
+
   // Handle sending a message
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments?: FileAttachment[]) => {
+      // Convert FileAttachment[] to MessageFileAttachment[] (strip the file object)
+      const messageAttachments = attachments?.map((a) => ({
+        id: a.id,
+        name: a.name,
+        size: a.size,
+        type: a.type,
+        extension: a.extension,
+        category: a.category,
+        previewUrl: a.previewUrl,
+      }));
+
       if (isControlled) {
         //Scroll to the bottom before calling onSendMessage
         shouldAutoScrollRef.current = true;
@@ -239,7 +320,7 @@ export const Chat: React.FC<ChatProps> = ({
           scrollOnNewUserMessage.current = false;
         }, SCROLL_LOCK_DURATION_MS);
 
-        onSendMessage?.(content);
+        onSendMessage?.(content, messageAttachments);
 
         return;
       }
@@ -331,7 +412,18 @@ export const Chat: React.FC<ChatProps> = ({
   };
 
   return (
-    <div className={containerClassName} style={containerStyles}>
+    <div
+      ref={dropZoneRef}
+      className={`${containerClassName} relative`}
+      style={containerStyles}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag-drop overlay */}
+      {enableFileUpload && <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />}
+
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
@@ -372,6 +464,10 @@ export const Chat: React.FC<ChatProps> = ({
             enableCommands={enableCommands}
             banner={banner}
             topBanner={topBanner}
+            enableFileUpload={enableFileUpload}
+            onFileError={onFileError}
+            droppedFiles={droppedFiles}
+            onDroppedFilesProcessed={handleDroppedFilesProcessed}
           />
         ) : (
           <div className="flex flex-col">
@@ -392,6 +488,7 @@ export const Chat: React.FC<ChatProps> = ({
                   <ChatMessage
                     type={message.type}
                     content={message.content}
+                    attachments={message.attachments}
                     reasoningContent={message.reasoningContent}
                     timestamp={message.timestamp}
                     activeTab={message.activeTab}
@@ -436,7 +533,7 @@ export const Chat: React.FC<ChatProps> = ({
         (enableCommands ? (
           <ChatInputWithCommands
             placeholder={placeholder}
-            onSend={handleSendMessage}
+            onSend={(msg) => handleSendMessage(msg)}
             onStop={handleStop}
             disabled={
               isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
@@ -460,6 +557,10 @@ export const Chat: React.FC<ChatProps> = ({
             value={inputValue}
             onChange={setInputValue}
             onDisabledInput={onInputWhileDisabled}
+            enableFileUpload={enableFileUpload}
+            onFileError={onFileError}
+            droppedFiles={droppedFiles}
+            onDroppedFilesProcessed={handleDroppedFilesProcessed}
           />
         ))}
     </div>

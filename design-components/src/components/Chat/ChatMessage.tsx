@@ -6,6 +6,8 @@ import { ToolCallItem } from './ToolCallItem';
 import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
+import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
+import type { MessageFileAttachment } from './types';
 
 /**
  * Get user initials from name or email
@@ -48,6 +50,11 @@ export interface ChatMessageProps {
    * Message content
    */
   content: string;
+
+  /**
+   * File attachments for user messages
+   */
+  attachments?: MessageFileAttachment[];
 
   /**
    * Thought content (for assistant messages)
@@ -197,6 +204,7 @@ export interface ChatMessageProps {
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
+  attachments,
   reasoningContent,
   isStreaming = false,
   isReasoningStreaming = false,
@@ -445,12 +453,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
                     </div>
                   ) : (
-                    // User messages - simple rendering with preserved whitespace
-                    <div
-                      ref={userMessageRef}
-                      className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap"
-                    >
-                      {content}
+                    // User messages - with file attachments and text
+                    <div ref={userMessageRef}>
+                      {/* File attachments shown above text */}
+                      {attachments && attachments.length > 0 && (
+                        <MessageFilePreview attachments={attachments} />
+                      )}
+                      {/* Text content */}
+                      {content && (
+                        <div className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap">
+                          {content}
+                        </div>
+                      )}
                     </div>
                   )}
 
