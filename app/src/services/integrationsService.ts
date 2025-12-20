@@ -380,6 +380,10 @@ export class IntegrationsService {
     name?: string;
     accessKey?: string;
     accessSecret?: string;
+    // Semantic credential fields
+    username?: string;
+    password?: string;
+    apiKey?: string;
   }): Promise<Integration> {
     const response = await apiClient.post<IntegrationBackendResponse>(
       "/api/v1/integrations",
@@ -390,6 +394,9 @@ export class IntegrationsService {
         name: data.name,
         access_key: data.accessKey,
         access_secret: data.accessSecret,
+        username: data.username,
+        password: data.password,
+        api_key: data.apiKey,
       },
     );
     return transformIntegration(response);
@@ -424,6 +431,10 @@ export class IntegrationsService {
       name?: string;
       accessKey?: string;
       accessSecret?: string;
+      // Semantic credential fields
+      username?: string;
+      password?: string;
+      apiKey?: string;
     },
   ): Promise<Integration> {
     const response = await apiClient.patch<IntegrationBackendResponse>(
@@ -434,6 +445,9 @@ export class IntegrationsService {
         name: data.name,
         access_key: data.accessKey,
         access_secret: data.accessSecret,
+        username: data.username,
+        password: data.password,
+        api_key: data.apiKey,
       },
     );
     return transformIntegration(response);

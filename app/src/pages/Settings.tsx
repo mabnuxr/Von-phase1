@@ -24,7 +24,7 @@ import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
-import { usePreferences, useUpdatePreferences } from "../hooks/usePreferences";
+import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
 import { ProcessConfigurationTab } from "../components/tabs/ProcessConfigurationTab";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -34,13 +34,25 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled, isOrgContextEnabled } =
-    useFeatureFlag();
+  const { isEmailCategorizationEnabled } = useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations
   const tabFromUrl = searchParams.get("tab");
   const initialTab = tabFromUrl || "integrations";
   const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
+
+  // Set default tab in URL if not present
+  useEffect(() => {
+    if (!tabFromUrl) {
+      navigate(`/settings?tab=integrations`, { replace: true });
+    }
+  }, [tabFromUrl, navigate]);
+
+  // Update URL when tab changes
+  const handleTabChange = (tabId: string) => {
+    setSelectedSettingId(tabId);
+    navigate(`/settings?tab=${tabId}`, { replace: true });
+  };
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -54,13 +66,7 @@ const Settings = () => {
 
   // Fetch preferences with scoped query key
   const { data: preferencesData } = usePreferences(tenantId, userId);
-  const { queueUpdate } = useUpdatePreferences(tenantId, userId);
-  const {
-    syncFromServer,
-    salesforceFields,
-    emailCategorization,
-    processConfiguration,
-  } = usePreferencesStore();
+  const { syncFromServer } = usePreferencesStore();
 
   // Sync server data to Zustand store on load (only once)
   useEffect(() => {
@@ -69,24 +75,6 @@ const Settings = () => {
       hasInitialLoadRef.current = true;
     }
   }, [preferencesData, syncFromServer]);
-
-  // Auto-save whenever store changes (debounced)
-  // Only save after initial load to prevent saving default values
-  useEffect(() => {
-    // Only queue update after initial data has been loaded from server
-    if (hasInitialLoadRef.current) {
-      queueUpdate({
-        salesforceFields,
-        emailCategorization,
-        processConfiguration,
-      });
-    }
-  }, [
-    salesforceFields,
-    emailCategorization,
-    processConfiguration,
-    queueUpdate,
-  ]);
 
   // Handle avatar click
   const handleAvatarClick = (rect: DOMRect) => {
@@ -168,16 +156,11 @@ const Settings = () => {
         label: "Fields",
         icon: <RowsIcon size={20} weight="duotone" />,
       },
-      // Conditionally include Org Context tab based on feature flag
-      ...(isOrgContextEnabled
-        ? [
-            {
-              id: "org-context",
-              label: "Memory",
-              icon: <BrainIcon size={20} weight="duotone" />,
-            },
-          ]
-        : []),
+      {
+        id: "org-memory",
+        label: "Memory",
+        icon: <BrainIcon size={20} weight="duotone" />,
+      },
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
         ? [
@@ -210,7 +193,7 @@ const Settings = () => {
         return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
-      case "org-context":
+      case "org-memory":
         return <OrgContextTab />;
       default:
         return null;
@@ -270,7 +253,7 @@ const Settings = () => {
             <SettingsSidebar
               settingsItems={settingsItems}
               selectedSettingId={selectedSettingId}
-              onSettingClick={(id: string) => setSelectedSettingId(id)}
+              onSettingClick={handleTabChange}
               width="100%"
               isCollapsed={isSidebarCollapsed}
               onToggleCollapse={() =>

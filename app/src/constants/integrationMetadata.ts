@@ -96,7 +96,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Chorus.svg",
     category: "Call Recorder",
-    disabled: true,
   },
   claricopilot: {
     id: "claricopilot",
@@ -105,7 +104,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/ClariCopilot.svg",
     category: "Call Recorder",
-    disabled: true,
   },
   attention: {
     id: "attention",
@@ -115,7 +113,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
     category: "Call Recorder",
-    disabled: true,
   },
   // Internal Documents integrations
   highspot: {
