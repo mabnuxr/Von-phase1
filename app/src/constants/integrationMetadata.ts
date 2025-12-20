@@ -230,7 +230,7 @@ export function getAllIntegrations(): IntegrationMetadata[] {
  * Get integration metadata by ID
  */
 export function getIntegrationById(
-  id: string
+  id: string,
 ): IntegrationMetadata | undefined {
   return INTEGRATION_METADATA[id];
 }
@@ -415,7 +415,7 @@ export function getUserLevelIntegrations(): IntegrationMetadata[] {
  */
 export function getIntegrationDescription(
   integrationId: string,
-  isPersonal: boolean
+  isPersonal: boolean,
 ): string {
   const integration = INTEGRATION_METADATA[integrationId];
   if (!integration) return "";

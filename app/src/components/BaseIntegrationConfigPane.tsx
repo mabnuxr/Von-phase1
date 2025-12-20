@@ -251,8 +251,7 @@ export function BaseIntegrationConfigPane({
               : integrationId === "fathom"
                 ? fathomApiKey
                 : undefined,
-          accessSecret:
-            integrationId === "gong" ? gongAccessSecret : undefined,
+          accessSecret: integrationId === "gong" ? gongAccessSecret : undefined,
           // Semantic credentials for Basic Auth and specific integrations
           username: integrationId === "chorus" ? chorusUsername : undefined,
           password:
