@@ -44,44 +44,48 @@ export function useAuthorizeIntegration() {
       const data =
         await integrationsService.authorizeIntegration(integrationId);
 
-      // Open OAuth URL in new tab
-      const oauthWindow = window.open(data.authorizationUrl, "_blank");
+      // Only open OAuth URL for OAuth integrations (non-OAuth integrations return empty authorizationUrl)
+      if (data.authorizationUrl && data.authorizationUrl.trim() !== "") {
+        // Open OAuth URL in new tab
+        const oauthWindow = window.open(data.authorizationUrl, "_blank");
 
-      // Check if popup was blocked - multiple detection methods
-      if (!oauthWindow) {
-        throw new Error("POPUP_BLOCKED");
-      }
-
-      // Check if window is actually open after a brief delay
-      // Some browsers allow the window.open() call but close it immediately
-      await new Promise<void>((resolve) =>
-        setTimeout(resolve, OAUTH_POPUP_CHECK_DELAY_MS),
-      );
-
-      if (oauthWindow.closed) {
-        throw new Error("POPUP_BLOCKED");
-      }
-
-      // Additional check: try to access window properties
-      // If blocked, this will either throw or return null/undefined
-      try {
-        // This will throw if popup was blocked by stricter blockers
-        if (!oauthWindow.location) {
+        // Check if popup was blocked - multiple detection methods
+        if (!oauthWindow) {
           throw new Error("POPUP_BLOCKED");
         }
-      } catch (e) {
-        // Some browsers throw when accessing .location on blocked popups
-        // Check if it's a security error (indicates blocked popup)
-        if (
-          e instanceof Error &&
-          (e.name === "SecurityError" || e.message.includes("cross-origin"))
-        ) {
-          // This is actually okay - cross-origin restriction means popup opened successfully
-          // The popup is on a different domain (OAuth provider)
-        } else {
+
+        // Check if window is actually open after a brief delay
+        // Some browsers allow the window.open() call but close it immediately
+        await new Promise<void>((resolve) =>
+          setTimeout(resolve, OAUTH_POPUP_CHECK_DELAY_MS),
+        );
+
+        if (oauthWindow.closed) {
           throw new Error("POPUP_BLOCKED");
         }
+
+        // Additional check: try to access window properties
+        // If blocked, this will either throw or return null/undefined
+        try {
+          // This will throw if popup was blocked by stricter blockers
+          if (!oauthWindow.location) {
+            throw new Error("POPUP_BLOCKED");
+          }
+        } catch (e) {
+          // Some browsers throw when accessing .location on blocked popups
+          // Check if it's a security error (indicates blocked popup)
+          if (
+            e instanceof Error &&
+            (e.name === "SecurityError" || e.message.includes("cross-origin"))
+          ) {
+            // This is actually okay - cross-origin restriction means popup opened successfully
+            // The popup is on a different domain (OAuth provider)
+          } else {
+            throw new Error("POPUP_BLOCKED");
+          }
+        }
       }
+      // Non-OAuth integrations: no popup needed, backend already set status to AUTHENTICATED
 
       return data;
     },
@@ -407,6 +411,10 @@ export function useCreateIntegration() {
       name?: string;
       accessKey?: string;
       accessSecret?: string;
+      // Semantic credential fields
+      username?: string;
+      password?: string;
+      apiKey?: string;
     }) => integrationsService.createIntegration(data),
     onSuccess: () => {
       // Invalidate integrations to refetch and show the new integration
@@ -438,6 +446,10 @@ export function useUpdateIntegration() {
         name?: string;
         accessKey?: string;
         accessSecret?: string;
+        // Semantic credential fields
+        username?: string;
+        password?: string;
+        apiKey?: string;
       };
     }) => integrationsService.updateIntegration(integrationId, data),
     onSuccess: () => {

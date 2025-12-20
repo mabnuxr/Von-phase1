@@ -96,7 +96,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Chorus.svg",
     category: "Call Recorder",
-    disabled: true,
   },
   claricopilot: {
     id: "claricopilot",
@@ -105,7 +104,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/ClariCopilot.svg",
     category: "Call Recorder",
-    disabled: true,
   },
   attention: {
     id: "attention",
@@ -115,7 +113,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
     category: "Call Recorder",
-    disabled: true,
   },
   // Internal Documents integrations
   highspot: {
@@ -233,7 +230,7 @@ export function getAllIntegrations(): IntegrationMetadata[] {
  * Get integration metadata by ID
  */
 export function getIntegrationById(
-  id: string,
+  id: string
 ): IntegrationMetadata | undefined {
   return INTEGRATION_METADATA[id];
 }
@@ -418,7 +415,7 @@ export function getUserLevelIntegrations(): IntegrationMetadata[] {
  */
 export function getIntegrationDescription(
   integrationId: string,
-  isPersonal: boolean,
+  isPersonal: boolean
 ): string {
   const integration = INTEGRATION_METADATA[integrationId];
   if (!integration) return "";
