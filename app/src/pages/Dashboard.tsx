@@ -714,7 +714,7 @@ const Dashboard = () => {
     () => ({
       key: import.meta.env.VITE_PUSHER_KEY || "",
       cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-      authEndpoint: `/api/v1/pusher/auth`,
+      authEndpoint: `${config.apiBaseUrl}/api/v1/pusher/auth`,
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
