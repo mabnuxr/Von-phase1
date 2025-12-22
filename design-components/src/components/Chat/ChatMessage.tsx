@@ -359,7 +359,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           {isStreaming ? (
                             // While streaming: ALL steps go in ThinkingBlock (collapsed), summary shown in header
                             <ThinkingBlock
-                              key="thinking-block"
+                              key={`thinking-block-${stepMessages.length}-${stepMessages[stepMessages.length - 1]?.content?.length || 0}`}
                               isStreaming={isStreaming}
                               status={status}
                               stepMessages={stepMessages}

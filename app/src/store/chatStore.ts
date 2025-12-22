@@ -102,20 +102,6 @@ const useChatStoreBase = create<ChatState>((set) => ({
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
           ...message,
-          // If message has events, always use the replayed content from events
-          // Otherwise use message fields (with fallback to existing)
-          messageContent: message.events && message.events.length > 0
-            ? message.messageContent
-            : (message.messageContent || existingMessage.messageContent),
-          stepMessages: message.events && message.events.length > 0
-            ? message.stepMessages
-            : (message.stepMessages || existingMessage.stepMessages),
-          toolCalls: message.events && message.events.length > 0
-            ? message.toolCalls
-            : (message.toolCalls || existingMessage.toolCalls),
-          events: message.events && message.events.length > 0
-            ? message.events
-            : existingMessage.events,
           // Always update streaming flags
           isStreaming:
             message.isStreaming !== undefined
