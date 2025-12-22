@@ -1,5 +1,4 @@
 import { authService } from "../services";
-import { config } from "../config";
 import { useNewChat } from "../hooks/useNewChat";
 import { useNavigate, useParams } from "react-router-dom";
 import useChatStore from "../store/chatStore";
@@ -714,7 +713,7 @@ const Dashboard = () => {
     () => ({
       key: import.meta.env.VITE_PUSHER_KEY || "",
       cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-      authEndpoint: `/api/v1/pusher/auth`,
+      authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
@@ -858,7 +857,7 @@ const Dashboard = () => {
                 userId={user?.id}
                 userName={user?.firstName || user?.name?.split(" ")[0]}
                 userEmail={user?.email}
-                apiBaseUrl={config.apiBaseUrl}
+                apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
                 pusherConfig={pusherConfig}
                 conversationId={currentConversationId || undefined}
                 enableRealtime={
@@ -895,7 +894,7 @@ const Dashboard = () => {
                   setMessageStreaming(runId);
                   try {
                     await resumeConversation(
-                      config.apiBaseUrl,
+                      import.meta.env.VITE_API_BASE_URL,
                       currentConversationId,
                       true,
                       runId,
@@ -921,7 +920,7 @@ const Dashboard = () => {
                   setMessageStreaming(runId);
                   try {
                     await resumeConversation(
-                      config.apiBaseUrl,
+                      import.meta.env.VITE_API_BASE_URL,
                       currentConversationId,
                       false,
                       runId,

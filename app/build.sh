@@ -90,6 +90,7 @@ VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback
 VITE_API_BASE_URL=https://apiv2.vonlabs.ai
 VITE_PUSHER_KEY=${PUSHER_KEY}
 VITE_PUSHER_CLUSTER=${PUSHER_CLUSTER}
+VITE_PUSHER_AUTH_ENDPOINT=https://apiv2.vonlabs.ai/api/v1/pusher/auth
 EOF
 
 echo "=== .env file contents ==="
