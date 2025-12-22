@@ -466,11 +466,20 @@ const Dashboard = () => {
 
       if (!existingMessage) return;
 
-      // Update ONLY streaming state - don't touch stepMessages
+      // Update ONLY streaming flags - let Pusher events handle content updates
+      // This allows the natural event reconciliation system to work without interference
       useChatStore.getState().upsertMessage(currentConversationId, {
-        ...existingMessage,
+        id: existingMessage.id,
+        runId: existingMessage.runId,
+        conversationId: existingMessage.conversationId,
+        messageType: existingMessage.messageType,
+        messageContent: existingMessage.messageContent,
+        role: existingMessage.role,
+        createdAt: existingMessage.createdAt,
+        createdBy: existingMessage.createdBy,
         isStreaming: true,
         status: "streaming",
+        lastStreamedAt: new Date().toISOString(),
       });
     },
     [currentConversationId],

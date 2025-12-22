@@ -90,8 +90,12 @@ export function useConversationPusherChannel(
           toolCalls: replayed.toolCalls,
           events: updatedEvents,
           isStreaming,
+          // Only set isReasoningStreaming if there's reasoning content (avoid double thinking blocks)
+          isReasoningStreaming:
+            existingMessage?.reasoningContent && isStreaming ? true : undefined,
           status,
           stoppedByUser: replayed.stoppedByUser,
+          lastStreamedAt: new Date().toISOString(), // Track last update time
         };
 
         // CRITICAL: Use flushSync for smooth streaming
