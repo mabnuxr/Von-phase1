@@ -3,7 +3,7 @@ export const config = {
   // In development, use the Vite proxy (/api) to avoid CORS issues
   // In production, use the full API URL from environment variable
   apiBaseUrl: import.meta.env.DEV
-    ? '' // Use relative URLs in development (proxy will handle routing)
+    ? "" // Use relative URLs in development (proxy will handle routing)
     : (import.meta.env.VITE_API_BASE_URL as string),
 
   // ScaleKit OAuth configuration
