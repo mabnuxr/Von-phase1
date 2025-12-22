@@ -65,6 +65,7 @@ jobs:
             --build-arg VITE_SCALEKIT_AUTH_LOGOUT_PATH= \
             --build-arg VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback \
             --build-arg VITE_API_BASE_URL=https://apiv2.vonlabs.ai \
+            --build-arg VITE_PUSHER_AUTH_ENDPOINT=https://apiv2.vonlabs.ai/api/v1/pusher/auth \
             --build-arg VITE_THESYS_API_KEY=${{ env.VITE_THESYS_API_KEY }} \
             -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
             -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:production \
