@@ -64,7 +64,7 @@ export function useUserPusherChannel(
       // Initialize Pusher
       const pusher = new Pusher(pusherKey, {
         cluster: pusherCluster,
-        authEndpoint: `${import.meta.env.VITE_API_BASE_URL}/api/v1/pusher/auth`,
+        authEndpoint: `/api/v1/pusher/auth`,
         forceTLS: true,
         auth: {
           headers: {
