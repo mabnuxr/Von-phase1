@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Pusher, { type Channel } from "pusher-js";
 import { getAccessToken } from "../lib/auth";
+import { config as appConfig } from "../config";
 
 interface UseUserPusherChannelConfig {
   tenantId?: string;
@@ -64,7 +65,7 @@ export function useUserPusherChannel(
       // Initialize Pusher
       const pusher = new Pusher(pusherKey, {
         cluster: pusherCluster,
-        authEndpoint: `${import.meta.env.VITE_API_BASE_URL}/api/v1/pusher/auth`,
+        authEndpoint: `${appConfig.apiBaseUrl}/api/v1/pusher/auth`,
         forceTLS: true,
         auth: {
           headers: {
