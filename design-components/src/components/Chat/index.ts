@@ -47,13 +47,6 @@ export type { MessageActionsProps } from './MessageActions';
 export { MessageAreaError } from './MessageAreaError';
 export type { MessageAreaErrorProps } from './MessageAreaError';
 
-// Export hooks
-export { usePusherAuth } from './hooks/usePusherAuth';
-export type { PusherConfig as PusherAuthConfig, UsePusherAuthReturn } from './hooks/usePusherAuth';
-
-export { useAguiMessageStream } from './hooks/useAguiMessageStream';
-export type { AguiStateUpdate, UserMessageData } from './hooks/useAguiMessageStream';
-
 // Export tool call and result components
 export { DataTable } from './DataTable';
 export type { DataTableProps } from './DataTable';
