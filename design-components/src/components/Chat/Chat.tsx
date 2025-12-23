@@ -4,10 +4,6 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { ChatEmptyState } from './ChatEmptyState';
 import { ChatTypingIndicator } from './ChatTypingIndicator';
-import { usePusherAuth } from './hooks/usePusherAuth';
-import { useAguiMessageStream } from './hooks/useAguiMessageStream';
-import { sendMessage as apiSendMessage } from './utils/api';
-import { saveConversation, loadConversation } from './utils/localStorage';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 
@@ -25,27 +21,17 @@ export type {
   ChatProps,
 } from './types';
 
-import type { ChatProps, Message } from './types';
+import type { ChatProps } from './types';
 
 /**
- * Chat component with optional Pusher real-time integration
- *
- * Can be used in two modes:
- * 1. UI-only mode: Pass messages prop and handle onSendMessage callback
- * 2. Real-time mode: Set enableRealtime=true and provide userId, apiBaseUrl, pusherConfig
+ * Chat component - pure rendering component
+ * Receives messages as props and handles UI interactions
  */
 export const Chat: React.FC<ChatProps> = ({
-  title = 'Chat',
-  userId,
   userName,
   userEmail,
-  apiBaseUrl,
-  pusherConfig,
   messages: controlledMessages,
   onSendMessage,
-  onError,
-  onAguiStateUpdate,
-  onUserMessage,
   onStopStreaming,
   inputValue: externalInputValue,
   onInputValueChange,
@@ -55,8 +41,6 @@ export const Chat: React.FC<ChatProps> = ({
   width = '400px',
   variant = 'floating',
   fixedPosition = { bottom: '24px', right: '24px' },
-  enableRealtime = false,
-  conversationId,
   loadMoreRef,
   isFetchingMore = false,
   showMessagesFromIndex = 0,
@@ -104,20 +88,10 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, []);
 
-  // Internal state for real-time mode
-  const [internalMessages, setInternalMessages] = useState<Message[]>([]);
-  const [internalIsLoading, setInternalIsLoading] = useState(false);
-
-  // Determine if we're in controlled or uncontrolled mode
-  const isControlled = controlledMessages !== undefined;
-  const messages = isControlled ? controlledMessages : internalMessages;
-  const isLoading = isControlled ? controlledIsLoading : internalIsLoading;
-
-  // Pusher integration (only when enableRealtime is true)
-  const { channel, error: pusherError } = usePusherAuth(
-    enableRealtime && conversationId ? conversationId : null,
-    enableRealtime && pusherConfig ? pusherConfig : { key: '', cluster: '' }
-  );
+  // Chat now always receives messages as prop (controlled mode only)
+  // Wrap in useMemo to prevent unnecessary re-renders when controlledMessages is undefined
+  const messages = useMemo(() => controlledMessages || [], [controlledMessages]);
+  const isLoading = controlledIsLoading;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -147,45 +121,6 @@ export const Chat: React.FC<ChatProps> = ({
       scrollToBottom(isStreaming ? 'smooth' : 'smooth');
     }
   }, [messages, scrollToBottom]);
-
-  // Get current streaming messages for initialization (refresh recovery)
-  const currentStreamingMessages = useMemo(() => {
-    const streaming = messages.filter((m) => m.isStreaming || m.status === 'streaming');
-    return streaming.length > 0 ? [streaming[streaming.length - 1]] : [];
-  }, [messages]);
-
-  // Message streaming (only when channel is available)
-  // Pass onAguiStateUpdate to hook for direct AGUI state updates
-  // Pass onUserMessage to hook for user message events
-  // Pass currentStreamingMessages for initialization after refresh
-  useAguiMessageStream(
-    enableRealtime ? channel : null,
-    onAguiStateUpdate,
-    onUserMessage,
-    currentStreamingMessages
-  );
-
-  // Load messages from localStorage on mount (real-time mode only)
-  useEffect(() => {
-    if (enableRealtime && conversationId && !isControlled) {
-      const stored = loadConversation(conversationId);
-      if (stored) {
-        setInternalMessages(stored.messages);
-
-        // Scroll to bottom after loading messages
-        setTimeout(() => {
-          scrollToBottom('auto');
-        }, 100);
-      }
-    }
-  }, [conversationId, enableRealtime, isControlled, scrollToBottom]);
-
-  // Handle Pusher errors
-  useEffect(() => {
-    if (pusherError) {
-      onError?.(pusherError);
-    }
-  }, [pusherError, onError]);
 
   // Determine effective showFromIndex (use prop)
   const effectiveShowFromIndex = showMessagesFromIndex || 0;
@@ -222,89 +157,29 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Handle stop streaming
   const handleStop = useCallback(() => {
+    // Get conversationId from the last message if available
+    const lastMessage = messages[messages.length - 1];
+    const conversationId = lastMessage?.conversationId;
+
     if (conversationId && onStopStreaming) {
       onStopStreaming(conversationId);
     }
-  }, [conversationId, onStopStreaming]);
+  }, [messages, onStopStreaming]);
 
   // Handle sending a message
   const handleSendMessage = useCallback(
     async (content: string) => {
-      if (isControlled) {
-        //Scroll to the bottom before calling onSendMessage
-        shouldAutoScrollRef.current = true;
-        scrollOnNewUserMessage.current = true;
+      // Scroll to the bottom before calling onSendMessage
+      shouldAutoScrollRef.current = true;
+      scrollOnNewUserMessage.current = true;
 
-        setTimeout(() => {
-          scrollOnNewUserMessage.current = false;
-        }, SCROLL_LOCK_DURATION_MS);
+      setTimeout(() => {
+        scrollOnNewUserMessage.current = false;
+      }, SCROLL_LOCK_DURATION_MS);
 
-        onSendMessage?.(content);
-
-        return;
-      }
-
-      // Uncontrolled mode with real-time integration
-      if (!enableRealtime || !apiBaseUrl || !conversationId || !userId) {
-        onError?.(new Error('Real-time mode requires apiBaseUrl, conversationId, and userId'));
-        return;
-      }
-
-      try {
-        setInternalIsLoading(true);
-
-        // Add user message optimistically
-        const userMessage: Message = {
-          id: `temp-${Date.now()}`,
-          type: 'user',
-          content,
-          timestamp: new Date(),
-        };
-
-        setInternalMessages((prev) => [...prev, userMessage]);
-
-        // Force scroll to bottom when user sends a message
-        setTimeout(() => {
-          scrollToBottom('smooth');
-        }, 50);
-
-        // Send to API
-        const response = await apiSendMessage(apiBaseUrl, conversationId, content, userId);
-
-        // Update with real ID from server
-        setInternalMessages((prev) =>
-          prev.map((msg) => (msg.id === userMessage.id ? { ...msg, id: response.id } : msg))
-        );
-
-        // Save to localStorage
-        saveConversation(
-          conversationId,
-          {
-            conversationId: conversationId,
-            title,
-            userId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          [...messages, { ...userMessage, id: response.id }]
-        );
-      } catch (error) {
-        onError?.(error instanceof Error ? error : new Error('Failed to send message'));
-        setInternalIsLoading(false);
-      }
+      onSendMessage?.(content);
     },
-    [
-      isControlled,
-      onSendMessage,
-      enableRealtime,
-      apiBaseUrl,
-      conversationId,
-      userId,
-      title,
-      messages,
-      onError,
-      scrollToBottom,
-    ]
+    [onSendMessage]
   );
 
   // Generate container class names based on variant
@@ -405,7 +280,7 @@ export const Chat: React.FC<ChatProps> = ({
                     status={message.status}
                     errorMessage={message.errorMessage}
                     messageId={message.messageId || message.id}
-                    conversationId={message.conversationId || conversationId}
+                    conversationId={message.conversationId}
                     useArtifactHook={useArtifactHook}
                     stoppedByUser={message.stoppedByUser}
                     isLatestMessage={message.isLatestMessage}

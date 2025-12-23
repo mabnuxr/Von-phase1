@@ -6,6 +6,13 @@ export const config = {
     ? "" // Use relative URLs in development (proxy will handle routing)
     : (import.meta.env.VITE_API_BASE_URL as string),
 
+  // Pusher configuration
+  pusherKey: import.meta.env.VITE_PUSHER_KEY as string,
+  pusherCluster: import.meta.env.VITE_PUSHER_CLUSTER as string,
+  pusherAuthEndpoint: import.meta.env.DEV
+    ? "/api/v1/pusher/auth"
+    : `${import.meta.env.VITE_API_BASE_URL}/api/v1/pusher/auth`,
+
   // ScaleKit OAuth configuration
   scalekitClientId: import.meta.env.VITE_SCALEKIT_CLIENT_ID as string,
   scalekitAuthBaseUrl: import.meta.env.VITE_SCALEKIT_AUTH_BASE_URL as string,

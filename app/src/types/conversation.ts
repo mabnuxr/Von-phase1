@@ -41,6 +41,21 @@ export interface Message {
 }
 
 /**
+ * User message data from Pusher
+ * Subset of Message interface for user messages received via websocket
+ */
+export type PusherUserMessageData = Pick<
+  Message,
+  | "id"
+  | "conversationId"
+  | "messageContent"
+  | "messageType"
+  | "role"
+  | "createdAt"
+  | "createdBy"
+>;
+
+/**
  * AG-UI Event Wrapper (imported and re-exported from design-components)
  * Matches PusherEnvelope format from backend
  */

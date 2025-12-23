@@ -165,11 +165,23 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const engagingMessageTimerRef = useRef<number | null>(null);
   const messageRotationTimerRef = useRef<number | null>(null);
 
-  // Auto-collapse only when status becomes 'completed' (and user hasn't manually toggled)
+  // Track previous status to detect approval scenario
+  const prevStatusRef = useRef(status);
+
+  // Auto-collapse and re-expand logic
   useEffect(() => {
-    if (status === 'completed' && !userManuallyToggled) {
+    // Auto-collapse only when completing for the first time
+    // Don't collapse if we're going from completed → streaming (approval resume)
+    if (status === 'completed' && prevStatusRef.current !== 'completed' && !userManuallyToggled) {
       setIsExpanded(false);
     }
+
+    // Re-expand if we transition from completed back to streaming (approval scenario)
+    if (status === 'streaming' && prevStatusRef.current === 'completed' && !userManuallyToggled) {
+      setIsExpanded(true);
+    }
+
+    prevStatusRef.current = status;
   }, [status, userManuallyToggled]);
 
   // Timer effect - tracks elapsed time and resets on new steps
@@ -282,7 +294,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
         messageRotationTimerRef.current = null;
       }
     };
-  }, [isStreaming, stepMessages?.length, content?.length, lastStepContentLength]);
+  }, [isStreaming, stepMessages, content, lastStepContentLength]);
 
   // Handle manual toggle by user
   const handleToggle = () => {
