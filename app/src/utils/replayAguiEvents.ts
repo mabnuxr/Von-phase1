@@ -208,6 +208,10 @@ export function replayAguiEvents(
         break;
       }
 
+      // TOOL_CALL_START: Create tool call or reuse existing one
+      // During resume flows, LangGraph may emit TOOL_CALL_START events for tool calls
+      // that were already started in the original run (due to checkpoint replay).
+      // We deduplicate by tool_call_id to prevent duplicate approval cards in the UI.
       case "TOOL_CALL_START": {
         if (event.tool_call_id && event.tool_call_name) {
           const toolCall: ToolCall = {
@@ -246,7 +250,27 @@ export function replayAguiEvents(
             if (!parentStep.toolCalls) {
               parentStep.toolCalls = [];
             }
-            parentStep.toolCalls.push(toolCall);
+
+            // FIX: Deduplication check by tool_call_id
+            // During resume, LangGraph replays TOOL_CALL_START events for already-seen tools
+            // Check if this tool call already exists in the parent step's toolCalls array
+            const existingToolCallIndex = parentStep.toolCalls.findIndex(
+              (tc) => tc.id === event.tool_call_id,
+            );
+
+            if (existingToolCallIndex === -1) {
+              // Tool call doesn't exist yet, add it normally
+              parentStep.toolCalls.push(toolCall);
+            } else {
+              // Tool call already exists (duplicate from resume flow)
+              // Update the map reference to point to the existing one in the array
+              // This ensures subsequent events (TOOL_CALL_ARGS, TOOL_CALL_END, TOOL_CALL_RESULT)
+              // update the correct object that's already in the UI
+              toolCallsMap.set(
+                event.tool_call_id,
+                parentStep.toolCalls[existingToolCallIndex],
+              );
+            }
           }
         }
         break;
