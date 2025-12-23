@@ -294,7 +294,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
         messageRotationTimerRef.current = null;
       }
     };
-  }, [isStreaming, stepMessages, content]);
+  }, [isStreaming, stepMessages, content, lastStepContentLength]);
 
   // Handle manual toggle by user
   const handleToggle = () => {
