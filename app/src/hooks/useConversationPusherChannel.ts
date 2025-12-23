@@ -208,11 +208,7 @@ export function useConversationPusherChannel(
 
   // Pusher connection management
   useEffect(() => {
-    if (
-      !config.conversationId ||
-      !config.tenantId ||
-      !config.userId
-    ) {
+    if (!config.conversationId || !config.tenantId || !config.userId) {
       if (import.meta.env.DEV) {
         console.log("[useConversationPusherChannel] Missing required config:", {
           hasConversationId: !!config.conversationId,
