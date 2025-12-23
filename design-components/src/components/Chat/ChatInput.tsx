@@ -6,6 +6,8 @@ import { FilePreview } from './FileAttachment/FilePreview';
 import { useFileUpload } from './FileAttachment/useFileUpload';
 import { getAcceptString } from './FileAttachment/types';
 import type { FileAttachment } from './FileAttachment/types';
+import { ModeToggle } from '../DashboardBuilder';
+import type { BuildMode } from '../DashboardBuilder';
 
 export interface ChatInputProps {
   /**
@@ -107,6 +109,22 @@ export interface ChatInputProps {
    * Callback when dropped files have been processed
    */
   onDroppedFilesProcessed?: () => void;
+
+  /**
+   * Show mode toggle (Ask/Build) in the input
+   * @default false
+   */
+  showModeToggle?: boolean;
+
+  /**
+   * Current mode (ask or build)
+   */
+  mode?: BuildMode;
+
+  /**
+   * Callback when mode changes
+   */
+  onModeChange?: (mode: BuildMode) => void;
 }
 
 /**
@@ -128,6 +146,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onFileError,
   droppedFiles,
   onDroppedFilesProcessed,
+  showModeToggle = false,
+  mode = 'ask',
+  onModeChange,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -312,6 +333,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     aria-hidden="true"
                   />
                 </>
+              )}
+
+              {/* Mode toggle (Ask/Build) */}
+              {showModeToggle && (
+                <ModeToggle
+                  mode={mode}
+                  onModeChange={onModeChange || (() => {})}
+                  size="sm"
+                />
               )}
 
               {/* Text input */}

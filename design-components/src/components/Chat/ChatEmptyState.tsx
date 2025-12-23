@@ -9,6 +9,7 @@ import {
   type Template,
   type TemplateCategory,
 } from '../Templates';
+import type { BuildMode } from '../DashboardBuilder';
 
 export interface ChatEmptyStateProps {
   /**
@@ -59,6 +60,18 @@ export interface ChatEmptyStateProps {
    * Callback when dropped files have been processed
    */
   onDroppedFilesProcessed?: () => void;
+  /**
+   * Show mode toggle (Ask/Build) in the input
+   */
+  showModeToggle?: boolean;
+  /**
+   * Current mode (ask or build)
+   */
+  mode?: BuildMode;
+  /**
+   * Callback when mode changes
+   */
+  onModeChange?: (mode: BuildMode) => void;
 }
 
 /**
@@ -93,6 +106,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onFileError,
   droppedFiles,
   onDroppedFilesProcessed,
+  showModeToggle = false,
+  mode = 'ask',
+  onModeChange,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -294,6 +310,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             onFileError={onFileError}
             droppedFiles={droppedFiles}
             onDroppedFilesProcessed={onDroppedFilesProcessed}
+            showModeToggle={showModeToggle}
+            mode={mode}
+            onModeChange={onModeChange}
           />
         )}
       </motion.div>

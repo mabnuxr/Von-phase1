@@ -222,3 +222,58 @@ export type {
 // ============================================================================
 export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
+
+// ============================================================================
+// DASHBOARD BUILDER (3-Pane / Build Mode interactive prototype)
+// ============================================================================
+export {
+  // Main Demo
+  DashboardBuilderDemo,
+  // Layouts
+  ThreePaneLayout,
+  BuildModeLayout,
+  // Components
+  ModeToggle,
+  ThinkingProcess,
+  ProgressTimeline,
+  DataExplorer,
+  DashboardCanvas as BuilderDashboardCanvas,
+  ChartWidget,
+  TableWidget,
+  TableViewer,
+  BuildChat,
+  // Mock Data
+  mockDataTables,
+  mockDashboard,
+  mockChatMessages,
+  mockThinkingSteps,
+  mockProgressSteps,
+} from './DashboardBuilder';
+export type {
+  DashboardBuilderDemoProps,
+  ThreePaneLayoutProps,
+  BuildModeLayoutProps,
+  ModeToggleProps,
+  ThinkingProcessProps,
+  ProgressTimelineProps,
+  DataExplorerProps,
+  DashboardCanvasProps as BuilderDashboardCanvasProps,
+  ChartWidgetProps,
+  TableWidgetProps,
+  TableViewerProps,
+  BuildChatProps,
+  // Types
+  BuildMode,
+  BuildPhase,
+  ThinkingStep,
+  ProgressStep,
+  DataColumn,
+  DataTable,
+  ChartConfig,
+  DashboardWidget,
+  MetricConfig,
+  Dashboard,
+  DashboardFilter,
+  ChatMessage as BuilderChatMessage,
+  DataViewTab,
+} from './DashboardBuilder';
