@@ -88,9 +88,16 @@ const useChatStoreBase = create<ChatState>((set) => ({
   upsertMessage: (conversationId, message) =>
     set((state) => {
       const existingMessages = state.messages[conversationId] || [];
-      const existingIndex = existingMessages.findIndex(
+
+      // Try to find existing message by runId first (works for assistant messages)
+      let existingIndex = existingMessages.findIndex(
         (m) => m.runId === message.id,
       );
+
+      // Fallback: For user messages, also check by message id
+      if (existingIndex < 0 && message.role === "user") {
+        existingIndex = existingMessages.findIndex((m) => m.id === message.id);
+      }
 
       let updatedConversationMessages: MessageWithStreaming[];
 

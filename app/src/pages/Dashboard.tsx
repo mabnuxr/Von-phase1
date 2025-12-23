@@ -453,38 +453,6 @@ const Dashboard = () => {
     }
   }, [currentConversationId, storeMessages]);
 
-  // Helper to set streaming state on an existing message (for approval flow)
-  // IMPORTANT: Only updates isStreaming/status, NOT stepMessages
-  // This allows ApprovalCard's local pendingAction state to survive
-  const setMessageStreaming = useCallback(
-    (runId: string) => {
-      if (!currentConversationId) return;
-
-      const storeMessages =
-        useChatStore.getState().messages[currentConversationId] || [];
-      const existingMessage = storeMessages.find((m) => m.runId === runId);
-
-      if (!existingMessage) return;
-
-      // Update ONLY streaming flags - let Pusher events handle content updates
-      // This allows the natural event reconciliation system to work without interference
-      useChatStore.getState().upsertMessage(currentConversationId, {
-        id: existingMessage.id,
-        runId: existingMessage.runId,
-        conversationId: existingMessage.conversationId,
-        messageType: existingMessage.messageType,
-        messageContent: existingMessage.messageContent,
-        role: existingMessage.role,
-        createdAt: existingMessage.createdAt,
-        createdBy: existingMessage.createdBy,
-        isStreaming: true,
-        status: "streaming",
-        lastStreamedAt: new Date().toISOString(),
-      });
-    },
-    [currentConversationId],
-  );
-
   // Handle stream timeout - force clear state and refetch messages from backend
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
   const handleStreamTimeout = useCallback(
@@ -645,10 +613,9 @@ const Dashboard = () => {
         runId,
         currentConversationId,
         import.meta.env.VITE_API_BASE_URL,
-        setMessageStreaming,
       );
     },
-    [currentConversationId, setMessageStreaming],
+    [currentConversationId],
   );
 
   // Tool rejection handler
@@ -660,10 +627,9 @@ const Dashboard = () => {
         runId,
         currentConversationId,
         import.meta.env.VITE_API_BASE_URL,
-        setMessageStreaming,
       );
     },
-    [currentConversationId, setMessageStreaming],
+    [currentConversationId],
   );
 
   // Create Salesforce connection banner

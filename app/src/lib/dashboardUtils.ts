@@ -94,17 +94,14 @@ export function transformConversationsToChatItems(
 
 /**
  * Handle approval of a tool call request
- * Sets message to streaming state and calls resumeConversation API
+ * Calls resumeConversation API - state updates come from Pusher events
  */
 export async function handleToolApproval(
   toolCallId: string,
   runId: string,
   conversationId: string,
   apiBaseUrl: string,
-  setMessageStreaming: (runId: string) => void,
 ): Promise<void> {
-  // Start streaming optimistically so Thinking animation shows immediately
-  setMessageStreaming(runId);
   try {
     await resumeConversation(apiBaseUrl, conversationId, true, runId);
     if (import.meta.env.DEV) {
@@ -122,17 +119,14 @@ export async function handleToolApproval(
 
 /**
  * Handle rejection of a tool call request
- * Sets message to streaming state and calls resumeConversation API
+ * Calls resumeConversation API - state updates come from Pusher events
  */
 export async function handleToolRejection(
   toolCallId: string,
   runId: string,
   conversationId: string,
   apiBaseUrl: string,
-  setMessageStreaming: (runId: string) => void,
 ): Promise<void> {
-  // Start streaming optimistically so Thinking animation shows immediately
-  setMessageStreaming(runId);
   try {
     await resumeConversation(apiBaseUrl, conversationId, false, runId);
     if (import.meta.env.DEV) {
