@@ -7,7 +7,6 @@ import {
   EditIcon,
   PlusIcon,
   TrashIcon,
-  LoaderIcon,
 } from './icons';
 
 /**
@@ -304,9 +303,6 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
   // Track which operations are expanded (first one expanded by default)
   const [expandedOps, setExpandedOps] = useState<Set<number>>(new Set([0]));
 
-  // Track pending action for intermediate state (Approving.../Rejecting...)
-  const [pendingAction, setPendingAction] = useState<'approving' | 'rejecting' | null>(null);
-
   const toggleOperation = (index: number) => {
     setExpandedOps((prev) => {
       const newSet = new Set(prev);
@@ -319,21 +315,10 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
     });
   };
 
-  // Button click handlers - set intermediate state immediately
-  const handleApprove = () => {
-    setPendingAction('approving');
-    onApprove(toolCallId, runId);
-  };
-
-  const handleReject = () => {
-    setPendingAction('rejecting');
-    onReject(toolCallId, runId);
-  };
-
   // Determine card state
   const isConfirmedApproved = result?.approved === true;
   const isConfirmedRejected = result?.approved === false;
-  const showButtons = isPending && !result && !pendingAction;
+  const showButtons = isPending && !result;
 
   return (
     <motion.div
@@ -372,14 +357,14 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
           {showButtons && isLatestMessage ? (
             <div className="flex items-center justify-end gap-3">
               <button
-                onClick={handleReject}
+                onClick={() => onReject(toolCallId, runId)}
                 disabled={isProcessing}
                 className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Reject
               </button>
               <button
-                onClick={handleApprove}
+                onClick={() => onApprove(toolCallId, runId)}
                 disabled={isProcessing}
                 className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 hover:cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -394,22 +379,6 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {/* Intermediate state: Approving... */}
-              {pendingAction === 'approving' && !isConfirmedApproved && (
-                <>
-                  <LoaderIcon className="text-amber-500 animate-spin" size={16} />
-                  <span className="text-sm font-medium text-amber-600">Approving...</span>
-                </>
-              )}
-
-              {/* Intermediate state: Rejecting... */}
-              {pendingAction === 'rejecting' && !isConfirmedRejected && (
-                <>
-                  <LoaderIcon className="text-amber-500 animate-spin" size={16} />
-                  <span className="text-sm font-medium text-amber-600">Rejecting...</span>
-                </>
-              )}
-
               {/* Final state: Approved (green) */}
               {isConfirmedApproved && (
                 <>
