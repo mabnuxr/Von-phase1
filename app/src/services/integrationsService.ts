@@ -47,6 +47,7 @@ export interface IntegrationBackendResponse {
   id: string;
   tenant_id: string;
   tenant_name: string;
+  user_id?: string;
   type: IntegrationType;
   name: string;
   description: string | null;
@@ -87,6 +88,7 @@ export interface Integration {
   id: string;
   tenantId: string;
   tenantName: string;
+  userId?: string;
   type: IntegrationType;
   name: string;
   description: string | null;
@@ -118,6 +120,7 @@ function transformIntegration(
     id: backendIntegration.id,
     tenantId: backendIntegration.tenant_id,
     tenantName: backendIntegration.tenant_name,
+    userId: backendIntegration.user_id,
     type: backendIntegration.type,
     name: backendIntegration.name,
     description: backendIntegration.description,

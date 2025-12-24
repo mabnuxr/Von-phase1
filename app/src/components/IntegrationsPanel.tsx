@@ -33,10 +33,96 @@ export interface Integration {
   integrationLogoPath: string;
   enabled: boolean;
   accessLevel: string;
+  userId?: string;
+  tenantId?: string;
 }
 
 export interface IntegrationsPanelProps {
   onIntegrationToggle?: (id: string, enabled: boolean) => void;
+}
+
+/**
+ * Single integration card with permissions check
+ */
+function IntegrationCardItem({
+  integration,
+  integrationsData,
+  loadingIntegrationId,
+  timedOutIntegrations,
+  onToggle,
+  onDelete,
+}: {
+  integration: Integration;
+  integrationsData:
+    | {
+        integrations: {
+          id: string;
+          type: string;
+          authenticationStatus: string;
+          config: Record<string, unknown>;
+          accessLevel: string;
+          readonly: boolean;
+        }[];
+      }
+    | undefined;
+  loadingIntegrationId: string | null;
+  timedOutIntegrations: string[];
+  onToggle: (id: string, enabled: boolean) => void;
+  onDelete: (id: string) => void;
+}) {
+  const backendIntegration = integrationsData?.integrations.find(
+    (i: { id: string }) => i.id === integration.id,
+  );
+  const isAuthenticating =
+    backendIntegration?.authenticationStatus ===
+    AuthenticationStatus.AUTHENTICATING;
+  const isTimedOut = timedOutIntegrations.includes(integration.id);
+  const isLoading =
+    loadingIntegrationId === integration.id ||
+    (isAuthenticating && !isTimedOut);
+
+  // Extract config data
+  const config = backendIntegration?.config || {};
+  const instanceUrl = config.instance_url as string | undefined;
+
+  // Get description from metadata
+  const integrationKey = backendIntegration?.type?.toLowerCase();
+  const metadata = integrationKey
+    ? getIntegrationById(integrationKey)
+    : undefined;
+
+  // Check permissions for this specific integration
+  const { data: integrationPermissions } = usePermissions(
+    Resource.INTEGRATION,
+    {
+      access_level: integration.accessLevel,
+      owner_id: integration.userId,
+      tenant_id: integration.tenantId,
+    },
+  );
+
+  const hasUpdatePermission = integrationPermissions?.update ?? false;
+  const hasDeletePermission = integrationPermissions?.delete ?? false;
+
+  return (
+    <IntegrationCard
+      name={integration.name}
+      description={metadata?.description}
+      integrationLogoPath={integration.integrationLogoPath}
+      enabled={integration.enabled}
+      disabled={isLoading || !hasUpdatePermission}
+      loadingText={isLoading ? "Authenticating" : undefined}
+      instanceUrl={instanceUrl}
+      onToggle={
+        hasUpdatePermission
+          ? (enabled: boolean) => onToggle(integration.id, enabled)
+          : undefined
+      }
+      onDelete={
+        hasDeletePermission ? () => onDelete(integration.id) : undefined
+      }
+    />
+  );
 }
 
 /**
@@ -49,9 +135,6 @@ function IntegrationCardList({
   timedOutIntegrations,
   onToggle,
   onDelete,
-  canUpdate,
-  canDelete,
-  isPersonal,
 }: {
   integrations: Integration[];
   integrationsData:
@@ -70,8 +153,6 @@ function IntegrationCardList({
   timedOutIntegrations: string[];
   onToggle: (id: string, enabled: boolean) => void;
   onDelete: (id: string) => void;
-  canUpdate: boolean;
-  canDelete: boolean;
   isPersonal: boolean;
 }) {
   if (integrations.length === 0) {
@@ -84,55 +165,17 @@ function IntegrationCardList({
 
   return (
     <div className="bg-white overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
-      {integrations.map((integration) => {
-        const backendIntegration = integrationsData?.integrations.find(
-          (i: { id: string }) => i.id === integration.id,
-        );
-        const isAuthenticating =
-          backendIntegration?.authenticationStatus ===
-          AuthenticationStatus.AUTHENTICATING;
-        const isTimedOut = timedOutIntegrations.includes(integration.id);
-        const isLoading =
-          loadingIntegrationId === integration.id ||
-          (isAuthenticating && !isTimedOut);
-
-        // Extract config data
-        const config = backendIntegration?.config || {};
-        const instanceUrl = config.instance_url as string | undefined;
-
-        // Get description from metadata
-        const integrationKey = backendIntegration?.type?.toLowerCase();
-        const metadata = integrationKey
-          ? getIntegrationById(integrationKey)
-          : undefined;
-
-        // Permission-based access control
-        // Personal integrations: user always has full control
-        // Workspace integrations: use permissions from API
-        const hasUpdatePermission = isPersonal || canUpdate;
-        const hasDeletePermission = isPersonal || canDelete;
-
-        return (
-          <IntegrationCard
-            key={integration.id}
-            name={integration.name}
-            description={metadata?.description}
-            integrationLogoPath={integration.integrationLogoPath}
-            enabled={integration.enabled}
-            disabled={isLoading || !hasUpdatePermission}
-            loadingText={isLoading ? "Authenticating" : undefined}
-            instanceUrl={instanceUrl}
-            onToggle={
-              hasUpdatePermission
-                ? (enabled: boolean) => onToggle(integration.id, enabled)
-                : undefined
-            }
-            onDelete={
-              hasDeletePermission ? () => onDelete(integration.id) : undefined
-            }
-          />
-        );
-      })}
+      {integrations.map((integration) => (
+        <IntegrationCardItem
+          key={integration.id}
+          integration={integration}
+          integrationsData={integrationsData}
+          loadingIntegrationId={loadingIntegrationId}
+          timedOutIntegrations={timedOutIntegrations}
+          onToggle={onToggle}
+          onDelete={onDelete}
+        />
+      ))}
     </div>
   );
 }
@@ -165,11 +208,8 @@ export function IntegrationsPanel() {
   // Delete integration mutation
   const deleteIntegration = useDeleteIntegration();
 
-  // Permissions for workspace integrations
-  const { data: integrationPermissions } = usePermissions(Resource.INTEGRATION);
-
-  const canUpdateWorkspaceIntegration = integrationPermissions?.update ?? false;
-  const canDeleteWorkspaceIntegration = integrationPermissions?.delete ?? false;
+  // Note: Permissions are now checked per-integration in the card component
+  // The old workspace-wide permission check is removed in favor of instance-specific checks
 
   // Track authenticating integrations for polling
   const authenticatingIds =
@@ -225,20 +265,24 @@ export function IntegrationsPanel() {
   const integrations: Integration[] = useMemo(
     () =>
       integrationsData?.integrations.map(
-        (backendIntegration: {
+        (integration: {
           id: string;
           provider: string;
           type: IntegrationType;
           authenticationStatus: string;
           accessLevel: string;
+          userId?: string;
+          tenantId?: string;
         }) => ({
-          id: backendIntegration.id,
-          name: getIntegrationDisplayName(backendIntegration.type),
-          integrationLogoPath: getIntegrationLogoPath(backendIntegration.type),
+          id: integration.id,
+          name: getIntegrationDisplayName(integration.type),
+          integrationLogoPath: getIntegrationLogoPath(integration.type),
           enabled:
-            backendIntegration.authenticationStatus ===
+            integration.authenticationStatus ===
             AuthenticationStatus.AUTHENTICATED,
-          accessLevel: backendIntegration.accessLevel,
+          accessLevel: integration.accessLevel,
+          userId: integration.userId,
+          tenantId: integration.tenantId,
         }),
       ) || [],
     [integrationsData],
@@ -472,7 +516,8 @@ export function IntegrationsPanel() {
                   {/* Helper text for sections */}
                   {activeIntegrationsSection === "workspace" ? (
                     <p className="text-xs text-gray-500 px-1">
-                      Workspace integrations can only be managed by admins.
+                      Workspace integrations are shared across your
+                      organization. You can only manage integrations you create.
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500 px-1">
@@ -489,8 +534,6 @@ export function IntegrationsPanel() {
                       timedOutIntegrations={timedOutIntegrations}
                       onToggle={handleToggle}
                       onDelete={handleDelete}
-                      canUpdate={canUpdateWorkspaceIntegration}
-                      canDelete={canDeleteWorkspaceIntegration}
                       isPersonal={false}
                     />
                   ) : (
@@ -501,8 +544,6 @@ export function IntegrationsPanel() {
                       timedOutIntegrations={timedOutIntegrations}
                       onToggle={handleToggle}
                       onDelete={handleDelete}
-                      canUpdate={true}
-                      canDelete={true}
                       isPersonal={true}
                     />
                   )}

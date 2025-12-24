@@ -26,18 +26,34 @@ export interface ResourcePermissions {
 }
 
 /**
+ * Attributes for resource permission evaluation
+ */
+export interface ResourceAttributes {
+  access_level?: string;
+  owner_id?: string;
+  tenant_id?: string;
+  is_protected?: boolean;
+  [key: string]: string | boolean | undefined;
+}
+
+/**
  * Service for fetching user permissions from the backend
  */
 class PermissionsService {
   /**
-   * Get permissions for a specific resource type
+   * Get permissions for a specific resource instance
    *
    * @param resource - Resource type to get permissions for
+   * @param resourceAttributes - Optional resource attributes (access_level, owner_id, etc.)
    * @returns Permissions object with CRUD actions
    */
-  async getPermissions(resource: ResourceType): Promise<ResourcePermissions> {
-    const response = await apiClient.get<ResourcePermissions>(
+  async getPermissions(
+    resource: ResourceType,
+    resourceAttributes?: ResourceAttributes,
+  ): Promise<ResourcePermissions> {
+    const response = await apiClient.post<ResourcePermissions>(
       `/api/v1/permissions/${resource}`,
+      { resource_attributes: resourceAttributes },
     );
     return response;
   }

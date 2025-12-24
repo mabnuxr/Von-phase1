@@ -8,7 +8,6 @@ import {
 } from "../constants/integrationMetadata";
 import type { IntegrationMetadata } from "../constants/integrationMetadata";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { usePermissions, Resource } from "../hooks/usePermissions";
 import { Button } from "@vonlabs/design-components";
 import { SegmentedControl } from "./SegmentedControl";
 
@@ -172,10 +171,6 @@ export function AppsConfigPanel() {
   } = usePreferencesStore();
   const { isGoogleCalendarEnabled } = useFeatureFlag();
 
-  // Check if user can create org-level integrations
-  const { data: integrationPermissions } = usePermissions(Resource.INTEGRATION);
-  const canCreateOrgIntegration = integrationPermissions?.create ?? false;
-
   const handleConnect = (appId: string, accessLevel: "tenant" | "user") => {
     // Open the appropriate pane based on access level
     // Each pane manages its own state and unmounts when closed
@@ -219,7 +214,8 @@ export function AppsConfigPanel() {
       {/* Helper text for sections */}
       {activeSection === "workspace" ? (
         <p className="text-xs text-gray-500 px-1">
-          Workspace integrations can only be managed by admins.
+          Workspace integrations are shared across your organization. You can
+          only manage integrations you create.
         </p>
       ) : (
         <p className="text-xs text-gray-500 px-1">
@@ -232,9 +228,6 @@ export function AppsConfigPanel() {
         <IntegrationCategoryList
           apps={orgApps}
           onConnect={(appId) => handleConnect(appId, "tenant")}
-          disabledReason={
-            !canCreateOrgIntegration ? "Admin access required" : undefined
-          }
           isPersonal={false}
         />
       ) : (

@@ -34,7 +34,11 @@ export type { TeamMember, Role, AddTeamMemberRequest } from "./teamService";
 
 // Permissions Service
 export { permissionsService, Resource } from "./permissionsService";
-export type { ResourceType, ResourcePermissions } from "./permissionsService";
+export type {
+  ResourceType,
+  ResourcePermissions,
+  ResourceAttributes,
+} from "./permissionsService";
 
 // Memory Contexts Service
 export { memoryContextsService } from "./memoryContextsService";
