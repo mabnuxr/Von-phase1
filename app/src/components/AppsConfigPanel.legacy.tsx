@@ -9,7 +9,7 @@ import {
 import type { IntegrationMetadata } from "../constants/integrationMetadata";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { Button } from "@vonlabs/design-components";
-import { SegmentedControl } from "./SegmentedControl";
+import { SegmentedControl } from "./SegmentedControl.legacy";
 
 // Define category order for display
 const CATEGORY_ORDER: Array<
@@ -38,12 +38,10 @@ const CATEGORY_ORDER: Array<
 function IntegrationCategoryList({
   apps,
   onConnect,
-  disabledReason,
   isPersonal = false,
 }: {
   apps: IntegrationMetadata[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
-  disabledReason?: string;
   isPersonal?: boolean;
 }) {
   // Group apps by category
@@ -88,7 +86,7 @@ function IntegrationCategoryList({
             {/* App List */}
             <div className="divide-y divide-gray-200">
               {categoryApps.map((app) => {
-                const isDisabled = app.disabled || !!disabledReason;
+                const isDisabled = app.disabled;
                 return (
                   <div
                     key={app.id}
@@ -124,10 +122,6 @@ function IntegrationCategoryList({
                       {app.disabled ? (
                         <span className="text-sm text-gray-400">
                           Coming soon
-                        </span>
-                      ) : disabledReason ? (
-                        <span className="text-sm text-gray-400">
-                          {disabledReason}
                         </span>
                       ) : (
                         <Button
@@ -214,8 +208,7 @@ export function AppsConfigPanel() {
       {/* Helper text for sections */}
       {activeSection === "workspace" ? (
         <p className="text-xs text-gray-500 px-1">
-          Workspace integrations are shared across your organization. You can
-          only manage integrations you create.
+          Workspace integrations can only be managed by admins.
         </p>
       ) : (
         <p className="text-xs text-gray-500 px-1">

@@ -8,6 +8,7 @@ export const FEATURE_FLAGS = {
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
+  SIMPLIFIED_INTEGRATIONS: "enableSimplifiedIntegrations",
 } as const;
 
 /**
@@ -52,6 +53,13 @@ export function useFeatureFlag() {
      * Controls whether additional actions menu is enabled (convert to dashboard, etc.)
      */
     isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
+
+    /**
+     * Controls whether new simplified integrations UI is shown
+     * (unified list with dual-level chips vs tab-based UI with pills)
+     */
+    isSimplifiedIntegrationsEnabled:
+      flags[FEATURE_FLAGS.SIMPLIFIED_INTEGRATIONS] === true,
 
     /**
      * Raw flags object for advanced usage
