@@ -146,8 +146,8 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   isApprovalProcessing = false,
   runId = '',
 }) => {
-  // Stable state: always start expanded when mounted
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Start expanded if streaming, collapsed if already completed
+  const [isExpanded, setIsExpanded] = useState(() => status !== 'completed');
   const [userManuallyToggled, setUserManuallyToggled] = useState(false);
   const prefersReducedMotion =
     typeof window !== 'undefined' &&
@@ -165,8 +165,8 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   const engagingMessageTimerRef = useRef<number | null>(null);
   const messageRotationTimerRef = useRef<number | null>(null);
 
-  // Track previous status to detect approval scenario
-  const prevStatusRef = useRef(status);
+  // Track previous status to detect transitions (initialize as undefined to detect first change)
+  const prevStatusRef = useRef<typeof status | undefined>(undefined);
 
   // Auto-collapse and re-expand logic
   useEffect(() => {
