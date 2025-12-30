@@ -3,29 +3,29 @@ import {
   Banner,
   Text,
   TabSwitcher,
-  IntegrationCard,
 } from "@vonlabs/design-components";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { SegmentedControl } from "./SegmentedControl";
 import {
   useIntegrations,
   useAuthorizeIntegration,
-  useCheckAllAuthStatuses,
   useRevokeIntegration,
-  useCancelAuthorization,
+  useCheckAllAuthStatuses,
   useDeleteIntegration,
 } from "../hooks/useIntegrations";
-import { usePermissions } from "../hooks/usePermissions";
 import { IntegrationType, AuthenticationStatus, Resource } from "../services";
 import usePreferencesStore from "../store/preferencesStore";
-import { AppsConfigPanel } from "./AppsConfigPanel";
 import { WorkspaceIntegrationPane } from "./WorkspaceIntegrationPane";
 import { PersonalIntegrationPane } from "./PersonalIntegrationPane";
+import { IntegrationsList } from "./IntegrationsList";
+import { IntegrationCardList } from "./IntegrationCardList.legacy";
+import { AppsConfigPanel } from "./AppsConfigPanel.legacy";
+import { SegmentedControl } from "./SegmentedControl.legacy";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
-  getIntegrationById,
 } from "../constants/integrationMetadata";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { usePermissions } from "../hooks/usePermissions";
 
 export interface Integration {
   id: string;
@@ -35,6 +35,11 @@ export interface Integration {
   accessLevel: string;
   userId?: string;
   tenantId?: string;
+  type: string;
+  ownerFirstName?: string;
+  ownerLastName?: string;
+  authenticationStatus: string;
+  isConfigured?: boolean;
 }
 
 export interface IntegrationsPanelProps {
@@ -42,151 +47,33 @@ export interface IntegrationsPanelProps {
 }
 
 /**
- * Single integration card with permissions check
- */
-function IntegrationCardItem({
-  integration,
-  integrationsData,
-  loadingIntegrationId,
-  timedOutIntegrations,
-  onToggle,
-  onDelete,
-}: {
-  integration: Integration;
-  integrationsData:
-    | {
-        integrations: {
-          id: string;
-          type: string;
-          authenticationStatus: string;
-          config: Record<string, unknown>;
-          accessLevel: string;
-          readonly: boolean;
-        }[];
-      }
-    | undefined;
-  loadingIntegrationId: string | null;
-  timedOutIntegrations: string[];
-  onToggle: (id: string, enabled: boolean) => void;
-  onDelete: (id: string) => void;
-}) {
-  const backendIntegration = integrationsData?.integrations.find(
-    (i: { id: string }) => i.id === integration.id,
-  );
-  const isAuthenticating =
-    backendIntegration?.authenticationStatus ===
-    AuthenticationStatus.AUTHENTICATING;
-  const isTimedOut = timedOutIntegrations.includes(integration.id);
-  const isLoading =
-    loadingIntegrationId === integration.id ||
-    (isAuthenticating && !isTimedOut);
-
-  // Extract config data
-  const config = backendIntegration?.config || {};
-  const instanceUrl = config.instance_url as string | undefined;
-
-  // Get description from metadata
-  const integrationKey = backendIntegration?.type?.toLowerCase();
-  const metadata = integrationKey
-    ? getIntegrationById(integrationKey)
-    : undefined;
-
-  // Check permissions for this specific integration
-  const { data: integrationPermissions } = usePermissions(
-    Resource.INTEGRATION,
-    {
-      access_level: integration.accessLevel,
-      owner_id: integration.userId,
-      tenant_id: integration.tenantId,
-    },
-  );
-
-  const hasUpdatePermission = integrationPermissions?.update ?? false;
-  const hasDeletePermission = integrationPermissions?.delete ?? false;
-
-  return (
-    <IntegrationCard
-      name={integration.name}
-      description={metadata?.description}
-      integrationLogoPath={integration.integrationLogoPath}
-      enabled={integration.enabled}
-      disabled={isLoading || !hasUpdatePermission}
-      loadingText={isLoading ? "Authenticating" : undefined}
-      instanceUrl={instanceUrl}
-      onToggle={
-        hasUpdatePermission
-          ? (enabled: boolean) => onToggle(integration.id, enabled)
-          : undefined
-      }
-      onDelete={
-        hasDeletePermission ? () => onDelete(integration.id) : undefined
-      }
-    />
-  );
-}
-
-/**
- * Renders a list of integration cards
- */
-function IntegrationCardList({
-  integrations,
-  integrationsData,
-  loadingIntegrationId,
-  timedOutIntegrations,
-  onToggle,
-  onDelete,
-}: {
-  integrations: Integration[];
-  integrationsData:
-    | {
-        integrations: {
-          id: string;
-          type: string;
-          authenticationStatus: string;
-          config: Record<string, unknown>;
-          accessLevel: string;
-          readonly: boolean;
-        }[];
-      }
-    | undefined;
-  loadingIntegrationId: string | null;
-  timedOutIntegrations: string[];
-  onToggle: (id: string, enabled: boolean) => void;
-  onDelete: (id: string) => void;
-  isPersonal: boolean;
-}) {
-  if (integrations.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        No integrations configured
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
-      {integrations.map((integration) => (
-        <IntegrationCardItem
-          key={integration.id}
-          integration={integration}
-          integrationsData={integrationsData}
-          loadingIntegrationId={loadingIntegrationId}
-          timedOutIntegrations={timedOutIntegrations}
-          onToggle={onToggle}
-          onDelete={onDelete}
-        />
-      ))}
-    </div>
-  );
-}
-
-/**
  * IntegrationsPanel - Displays and manages integrations with React Query
+ *
+ * Supports two UI modes controlled by feature flag:
+ * - Flag ON: New unified IntegrationsList with dual-level chips
+ * - Flag OFF: Old tab-based UI with IntegrationCardList and pills
  */
 export function IntegrationsPanel() {
-  // Tab state from preferences store
-  const { integrationsActiveTab, setIntegrationsActiveTab } =
-    usePreferencesStore();
+  // Feature flag to toggle between old and new UI
+  const { isSimplifiedIntegrationsEnabled } = useFeatureFlag();
+
+  // Get config pane setters and tab state from preferences store
+  const {
+    integrationsActiveTab,
+    setIntegrationsActiveTab,
+    setConfiguringWorkspaceIntegration,
+    setConfiguringPersonalIntegration,
+    loadingIntegrationId,
+    setLoadingIntegrationId,
+  } = usePreferencesStore();
+
+  // Permissions for workspace integrations (used in old flow)
+  const { data: integrationPermissions } = usePermissions(Resource.INTEGRATION);
+
+  // Local state for nested SegmentedControl in Connected tab (old flow)
+  const [activeIntegrationsSection, setActiveIntegrationsSection] = useState<
+    "workspace" | "personal"
+  >("workspace");
 
   // Fetch integrations with React Query
   const {
@@ -196,14 +83,9 @@ export function IntegrationsPanel() {
     refetch,
   } = useIntegrations();
 
-  // OAuth authorization mutation
+  // OAuth mutations
   const authorizeIntegration = useAuthorizeIntegration();
-
-  // OAuth revocation mutation
   const revokeIntegration = useRevokeIntegration();
-
-  // OAuth cancellation mutation
-  const cancelAuthorization = useCancelAuthorization();
 
   // Delete integration mutation
   const deleteIntegration = useDeleteIntegration();
@@ -212,13 +94,19 @@ export function IntegrationsPanel() {
   // The old workspace-wide permission check is removed in favor of instance-specific checks
 
   // Track authenticating integrations for polling
-  const authenticatingIds =
+  // Include loadingIntegrationId since backend may return AUTHENTICATED prematurely
+  const authenticatingIdsFromBackend =
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
           i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
       )
       .map((i: { id: string }) => i.id) || [];
+
+  // Combine backend authenticating IDs with frontend loading ID
+  const authenticatingIds = loadingIntegrationId
+    ? [...new Set([...authenticatingIdsFromBackend, loadingIntegrationId])]
+    : authenticatingIdsFromBackend;
 
   // Poll all authenticating integrations concurrently
   const { timedOutIntegrations } = useCheckAllAuthStatuses(authenticatingIds);
@@ -231,25 +119,20 @@ export function IntegrationsPanel() {
     new Set(),
   );
 
-  // Confirmation modal state (for disable and delete)
+  // Confirmation modal state (for delete and disable)
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     integrationName: string;
-    action: "disable" | "delete";
+    action: "delete" | "disable";
     resolver?: (value: boolean) => void;
   }>({
     isOpen: false,
     integrationName: "",
-    action: "disable",
+    action: "delete",
   });
 
   // Ref to track pending resolver for cleanup
   const pendingResolverRef = useRef<((value: boolean) => void) | null>(null);
-
-  // Track which integration is currently loading
-  const [loadingIntegrationId, setLoadingIntegrationId] = useState<
-    string | null
-  >(null);
 
   // Cleanup pending resolver on unmount to prevent memory leaks
   useEffect(() => {
@@ -273,6 +156,9 @@ export function IntegrationsPanel() {
           accessLevel: string;
           userId?: string;
           tenantId?: string;
+          ownerFirstName?: string;
+          ownerLastName?: string;
+          isConfigured?: boolean;
         }) => ({
           id: integration.id,
           name: getIntegrationDisplayName(integration.type),
@@ -283,31 +169,45 @@ export function IntegrationsPanel() {
           accessLevel: integration.accessLevel,
           userId: integration.userId,
           tenantId: integration.tenantId,
+          type: integration.type,
+          ownerFirstName: integration.ownerFirstName,
+          ownerLastName: integration.ownerLastName,
+          authenticationStatus: integration.authenticationStatus,
+          isConfigured: integration.isConfigured,
         }),
       ) || [],
     [integrationsData],
   );
 
-  // Split integrations by access level
-  const orgIntegrations = useMemo(
+  // Split integrations by access level for old flow
+  const workspaceIntegrations = useMemo(
     () => integrations.filter((i) => i.accessLevel === "tenant"),
     [integrations],
   );
-  const userIntegrations = useMemo(
+
+  const personalIntegrations = useMemo(
     () => integrations.filter((i) => i.accessLevel === "user"),
     [integrations],
   );
 
-  // Segmented control state for Connected tab
-  const [activeIntegrationsSection, setActiveIntegrationsSection] = useState<
-    "workspace" | "personal"
-  >("workspace");
+  const handleModalConfirm = () => {
+    modalState.resolver?.(true);
+    pendingResolverRef.current = null;
+    setModalState({ isOpen: false, integrationName: "", action: "delete" });
+  };
+
+  const handleModalCancel = () => {
+    modalState.resolver?.(false);
+    pendingResolverRef.current = null;
+    setModalState({ isOpen: false, integrationName: "", action: "delete" });
+  };
 
   const handleToggle = async (id: string, enabled: boolean) => {
     // Clear any previous errors
     setOauthError(null);
 
     if (enabled) {
+      // Clear timeout warning for this integration
       setShownTimeoutWarnings((prev) => {
         const newSet = new Set(prev);
         newSet.delete(id);
@@ -325,6 +225,7 @@ export function IntegrationsPanel() {
         },
       });
     } else {
+      // Disable flow - show confirmation modal
       const confirmed = await new Promise<boolean>((resolve) => {
         const integration = integrations.find((i) => i.id === id);
         pendingResolverRef.current = resolve;
@@ -342,9 +243,7 @@ export function IntegrationsPanel() {
       if (confirmed) {
         setLoadingIntegrationId(id);
         revokeIntegration.mutate(id, {
-          onSuccess: () => {
-            setLoadingIntegrationId(null);
-          },
+          onSuccess: () => setLoadingIntegrationId(null),
           onError: (error: Error) => {
             setLoadingIntegrationId(null);
             setOauthError(`Failed to revoke integration: ${error.message}`);
@@ -352,18 +251,6 @@ export function IntegrationsPanel() {
         });
       }
     }
-  };
-
-  const handleModalConfirm = () => {
-    modalState.resolver?.(true);
-    pendingResolverRef.current = null;
-    setModalState({ isOpen: false, integrationName: "", action: "disable" });
-  };
-
-  const handleModalCancel = () => {
-    modalState.resolver?.(false);
-    pendingResolverRef.current = null;
-    setModalState({ isOpen: false, integrationName: "", action: "disable" });
   };
 
   const handleDelete = async (id: string) => {
@@ -395,16 +282,26 @@ export function IntegrationsPanel() {
     }
   };
 
+  const handleConnect = (appId: string, accessLevel: "tenant" | "user") => {
+    if (accessLevel === "tenant") {
+      setConfiguringWorkspaceIntegration(appId);
+    } else {
+      setConfiguringPersonalIntegration(appId);
+    }
+  };
+
   useEffect(() => {
     timedOutIntegrations.forEach((id) => {
       if (!shownTimeoutWarnings.has(id)) {
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`,
+            `Authentication for ${integration.name} timed out. Please try again.`,
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
-          cancelAuthorization.mutate(id);
+          // Delete the integration so user can start fresh (avoids "record already exists" error)
+          deleteIntegration.mutate(id);
+          setLoadingIntegrationId(null);
         }
       }
     });
@@ -412,14 +309,23 @@ export function IntegrationsPanel() {
     timedOutIntegrations,
     shownTimeoutWarnings,
     integrations,
-    cancelAuthorization,
+    deleteIntegration,
+    setLoadingIntegrationId,
   ]);
 
-  // Define tabs
-  const tabs = [
-    { id: "apps", label: "Configure new" },
-    { id: "active-integrations", label: "Connected" },
-  ];
+  // Clear loadingIntegrationId when integration is successfully authenticated
+  useEffect(() => {
+    if (loadingIntegrationId) {
+      const integration = integrationsData?.integrations.find(
+        (i: { id: string }) => i.id === loadingIntegrationId,
+      );
+      if (
+        integration?.authenticationStatus === AuthenticationStatus.AUTHENTICATED
+      ) {
+        setLoadingIntegrationId(null);
+      }
+    }
+  }, [integrationsData, loadingIntegrationId, setLoadingIntegrationId]);
 
   // Loading state
   if (isLoading) {
@@ -465,22 +371,33 @@ export function IntegrationsPanel() {
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
         <div className="pt-6 pb-12 space-y-6 w-2xl mx-auto">
-          {/* Tab Switcher */}
-          <TabSwitcher
-            tabs={tabs}
-            activeTabId={integrationsActiveTab}
-            onTabClick={(id) =>
-              setIntegrationsActiveTab(id as "apps" | "active-integrations")
-            }
-          />
-
-          {/* Tab Content */}
-          {integrationsActiveTab === "apps" ? (
-            // Apps Tab - Configuration View (always visible)
-            <AppsConfigPanel />
+          {/* Conditional Rendering Based on Feature Flag */}
+          {isSimplifiedIntegrationsEnabled ? (
+            /* NEW FLOW: Unified Integrations List */
+            <>
+              {/* OAuth Error Banner */}
+              {oauthError && (
+                <div className="mb-4">
+                  <Banner
+                    variant="warning"
+                    message={oauthError}
+                    onClose={() => setOauthError(null)}
+                    dismissible={true}
+                  />
+                </div>
+              )}
+              <IntegrationsList
+                integrations={integrations}
+                integrationsData={integrationsData}
+                loadingIntegrationId={loadingIntegrationId}
+                timedOutIntegrations={timedOutIntegrations}
+                onConnect={handleConnect}
+                onDelete={handleDelete}
+              />
+            </>
           ) : (
-            // Active Integrations Tab - Two Sections View
-            <div className="space-y-8">
+            /* OLD FLOW: Two-level tab structure */
+            <div className="space-y-6">
               {/* OAuth Error Banner */}
               {oauthError && (
                 <div className="mb-4">
@@ -493,17 +410,26 @@ export function IntegrationsPanel() {
                 </div>
               )}
 
-              {/* Empty state - only show if no integrations at all */}
-              {!isLoading &&
-              (!integrationsData || integrations.length === 0) ? (
-                <div className="flex items-center justify-center min-h-[300px]">
-                  <Text variant="body" color="secondary">
-                    No active integrations.
-                  </Text>
-                </div>
+              {/* Top-level TabSwitcher: Configure new / Connected */}
+              <TabSwitcher
+                tabs={[
+                  { id: "apps", label: "Configure new" },
+                  { id: "active-integrations", label: "Connected" },
+                ]}
+                activeTabId={integrationsActiveTab}
+                onTabClick={(id) =>
+                  setIntegrationsActiveTab(id as "apps" | "active-integrations")
+                }
+              />
+
+              {/* Tab Content */}
+              {integrationsActiveTab === "apps" ? (
+                // Configure new tab - AppsConfigPanel only
+                <AppsConfigPanel />
               ) : (
+                // Connected tab - IntegrationCardList with SegmentedControl
                 <div className="space-y-2">
-                  {/* Segmented Control */}
+                  {/* SegmentedControl for Workspace/Personal */}
                   <SegmentedControl
                     options={[
                       { value: "workspace", label: "Workspace" },
@@ -513,11 +439,10 @@ export function IntegrationsPanel() {
                     onChange={setActiveIntegrationsSection}
                   />
 
-                  {/* Helper text for sections */}
+                  {/* Helper text */}
                   {activeIntegrationsSection === "workspace" ? (
                     <p className="text-xs text-gray-500 px-1">
-                      Workspace integrations are shared across your
-                      organization. You can only manage integrations you create.
+                      Workspace integrations can only be managed by admins.
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500 px-1">
@@ -528,22 +453,26 @@ export function IntegrationsPanel() {
                   {/* Integration List */}
                   {activeIntegrationsSection === "workspace" ? (
                     <IntegrationCardList
-                      integrations={orgIntegrations}
+                      integrations={workspaceIntegrations}
                       integrationsData={integrationsData}
                       loadingIntegrationId={loadingIntegrationId}
                       timedOutIntegrations={timedOutIntegrations}
                       onToggle={handleToggle}
                       onDelete={handleDelete}
+                      canUpdate={integrationPermissions?.update ?? false}
+                      canDelete={integrationPermissions?.delete ?? false}
                       isPersonal={false}
                     />
                   ) : (
                     <IntegrationCardList
-                      integrations={userIntegrations}
+                      integrations={personalIntegrations}
                       integrationsData={integrationsData}
                       loadingIntegrationId={loadingIntegrationId}
                       timedOutIntegrations={timedOutIntegrations}
                       onToggle={handleToggle}
                       onDelete={handleDelete}
+                      canUpdate={true}
+                      canDelete={true}
                       isPersonal={true}
                     />
                   )}
@@ -558,7 +487,7 @@ export function IntegrationsPanel() {
       <WorkspaceIntegrationPane />
       <PersonalIntegrationPane />
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Delete or Disable */}
       <ConfirmationModal
         isOpen={modalState.isOpen}
         title={

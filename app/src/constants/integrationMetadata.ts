@@ -307,6 +307,38 @@ export function getBackendIntegrationType(integrationId: string): string {
 }
 
 /**
+ * Map backend integration type to frontend integration ID
+ * Handles special cases like GOOGLE_CALENDAR -> googlecalendar
+ */
+export function getFrontendIntegrationId(backendType: string): string {
+  const typeMap: Record<string, string> = {
+    SALESFORCE: "salesforce",
+    HUBSPOT: "hubspot",
+    GONG: "gong",
+    FATHOM: "fathom",
+    ZOOM: "zoom",
+    GOOGLE_CALENDAR: "googlecalendar",
+    OUTLOOK_CALENDAR: "outlookcalendar",
+    CHORUS: "chorus",
+    CLARI_COPILOT: "claricopilot",
+    ATTENTION: "attention",
+    HIGHSPOT: "highspot",
+    SEISMIC: "seismic",
+    CONFLUENCE: "confluence",
+    GURU: "guru",
+    INTERCOM: "intercom",
+    OUTREACH: "outreach",
+    SALESLOFT: "salesloft",
+    SNOWFLAKE: "snowflake",
+    DATABRICKS: "databricks",
+    ZENDESK: "zendesk",
+    PYLON: "pylon",
+  };
+
+  return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
+}
+
+/**
  * Get user-friendly display name for an integration
  * Maps backend types/provider names to readable labels
  */

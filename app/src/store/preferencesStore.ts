@@ -2117,6 +2117,10 @@ interface PreferencesState {
   configuringPersonalIntegration: string | null;
   setConfiguringPersonalIntegration: (id: string | null) => void;
 
+  // Loading state for OAuth authorization (shared between toggle and sidepanel flows)
+  loadingIntegrationId: string | null;
+  setLoadingIntegrationId: (id: string | null) => void;
+
   // Edit mode integration data (passed when editing existing integrations)
   editingIntegrationData: IntegrationConfig | null;
   setEditingIntegrationData: (data: IntegrationConfig | null) => void;
@@ -2481,6 +2485,10 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   configuringPersonalIntegration: null,
   setConfiguringPersonalIntegration: (id) =>
     set({ configuringPersonalIntegration: id }),
+
+  // Loading state for OAuth authorization
+  loadingIntegrationId: null,
+  setLoadingIntegrationId: (id) => set({ loadingIntegrationId: id }),
 
   // Edit mode integration data
   editingIntegrationData: null,
