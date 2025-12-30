@@ -88,6 +88,7 @@ interface IntegrationItemProps {
     connectedInstances: Integration[];
     isConnected: boolean;
   };
+  allIntegrations: Integration[];
   integrationsData: IntegrationsListProps["integrationsData"];
   loadingIntegrationId: string | null;
   timedOutIntegrations: string[];
@@ -172,6 +173,7 @@ function IntegrationItem({
       (personalIsAuthenticating && !personalIsTimedOut));
 
   // Case 1: Not connected at all - show as available
+  // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
   if (!isConnected) {
     return (
       <IntegrationCard
@@ -204,22 +206,26 @@ function IntegrationItem({
     const instanceUrl = workspaceBackendIntegration?.config
       ?.instance_url as string;
 
+    // Remove "connected" chip while authenticating
+    const isLoading = workspaceIsLoading || personalIsLoading;
+    const chips: Array<"workspace" | "personal" | "connected"> = isLoading
+      ? ["workspace", "personal"]
+      : ["workspace", "personal", "connected"];
+
     return (
       <IntegrationCard
         name={workspace.name}
         description={item.description}
         integrationLogoPath={workspace.integrationLogoPath}
-        chips={["workspace", "personal", "connected"]}
+        chips={chips}
         modifiedBy={modifiedBy}
         instanceUrl={instanceUrl}
         onDelete={
           personalPerms?.delete ? () => onDelete(personal.id) : undefined
         }
         canDelete={personalPerms?.delete ?? false}
-        disabled={!!workspaceIsLoading || !!personalIsLoading}
-        loadingText={
-          workspaceIsLoading || personalIsLoading ? "Authenticating" : undefined
-        }
+        disabled={!!isLoading}
+        loadingText={isLoading ? "Authenticating" : undefined}
       />
     );
   }
@@ -255,10 +261,15 @@ function IntegrationItem({
     //   - Owner sees both workspace and personal chips
     //   - Non-owner sees only workspace chip
     // For workspace-only integrations: Always show only workspace chip
+    // Remove "connected" chip while authenticating
     const chips: Array<"workspace" | "personal" | "connected"> =
-      isOwner && canConnectPersonal
-        ? ["workspace", "personal", "connected"]
-        : ["workspace", "connected"];
+      workspaceIsLoading
+        ? isOwner && canConnectPersonal
+          ? ["workspace", "personal"]
+          : ["workspace"]
+        : isOwner && canConnectPersonal
+          ? ["workspace", "personal", "connected"]
+          : ["workspace", "connected"];
 
     return (
       <div>
@@ -295,12 +306,17 @@ function IntegrationItem({
     const instanceUrl = personalBackendIntegration?.config
       ?.instance_url as string;
 
+    // Remove "connected" chip while authenticating
+    const chips: Array<"personal" | "connected"> = personalIsLoading
+      ? ["personal"]
+      : ["personal", "connected"];
+
     return (
       <IntegrationCard
         name={personal.name}
         description={item.personalDescription || item.description}
         integrationLogoPath={personal.integrationLogoPath}
-        chips={["personal", "connected"]}
+        chips={chips}
         instanceUrl={instanceUrl}
         onDelete={
           personalPerms?.delete ? () => onDelete(personal.id) : undefined
@@ -332,9 +348,16 @@ export function IntegrationsList({
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {
     return allApps.map((app) => {
-      const connectedInstances = integrations.filter(
-        (i) => getFrontendIntegrationId(i.type) === app.id,
-      );
+      // Only include integrations that are authenticated OR currently authenticating
+      // This ensures failed/timed-out OAuth attempts show as "available" again
+      const connectedInstances = integrations.filter((i) => {
+        if (getFrontendIntegrationId(i.type) !== app.id) return false;
+        // Include if authenticated OR currently authenticating
+        return (
+          i.enabled ||
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
+        );
+      });
       return {
         ...app,
         connectedInstances,
@@ -379,6 +402,7 @@ export function IntegrationsList({
                 <IntegrationItem
                   key={item.id}
                   item={item}
+                  allIntegrations={integrations}
                   integrationsData={integrationsData}
                   loadingIntegrationId={loadingIntegrationId}
                   timedOutIntegrations={timedOutIntegrations}

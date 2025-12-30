@@ -194,6 +194,9 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
   // Per-instance polling start times (no shared module state)
   const pollingStartTimesRef = useRef<Map<string, number>>(new Map());
 
+  // Track previous authenticating IDs to detect new additions
+  const prevAuthenticatingIdsRef = useRef<string[]>([]);
+
   // Initialize polling timers for new authenticating integrations
   useEffect(() => {
     authenticatingIds.forEach((id) => {
@@ -251,6 +254,9 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
     queryKey: ["auth-status", id],
     queryFn: () => integrationsService.checkAuthStatus(id),
     enabled: true,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always" as const,
     refetchInterval: (query: Query<AuthStatusResponse>) => {
       const data = query.state.data;
 
@@ -279,6 +285,24 @@ export function useCheckAllAuthStatuses(authenticatingIds: string[]) {
   }));
 
   const results = useQueries({ queries });
+
+  // Force fetch when NEW IDs are added (not on every render)
+  // This ensures polling starts immediately when a new integration begins OAuth
+  useEffect(() => {
+    const prevIds = prevAuthenticatingIdsRef.current;
+    const newIds = activeAuthenticatingIds.filter(
+      (id) => !prevIds.includes(id),
+    );
+
+    if (newIds.length > 0) {
+      // New IDs added - force immediate fetch to start polling
+      newIds.forEach((id) => {
+        queryClient.refetchQueries({ queryKey: ["auth-status", id] });
+      });
+    }
+
+    prevAuthenticatingIdsRef.current = activeAuthenticatingIds;
+  }, [activeAuthenticatingIds, queryClient]);
 
   // Extract status string for stable dependency
   const resultsStatusKey = results

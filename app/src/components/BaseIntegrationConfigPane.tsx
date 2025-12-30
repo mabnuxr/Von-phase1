@@ -11,7 +11,7 @@ import {
   INTEGRATION_METADATA,
   getBackendIntegrationType,
 } from "../constants/integrationMetadata";
-import { InfoIcon } from "./icons";
+import usePreferencesStore from "../store/preferencesStore";
 
 // Use centralized integration metadata
 const integrationDetails = INTEGRATION_METADATA;
@@ -37,6 +37,9 @@ export function BaseIntegrationConfigPane({
   // Note: setIntegrationsActiveTab removed - no longer using tabs
 
   const integration = integrationDetails[integrationId];
+
+  // Get loading state setter from store
+  const { setLoadingIntegrationId } = usePreferencesStore();
 
   // React Query mutations and data
   const createMutation = useCreateIntegration();
@@ -290,9 +293,14 @@ export function BaseIntegrationConfigPane({
         if (savedIntegration.requiresOauth === true) {
           try {
             await authorizeMutation.mutateAsync(savedIntegration.id);
+            // Set loading state AFTER authorize completes to start polling with correct status
+            setLoadingIntegrationId(savedIntegration.id);
             // OAuth initiated successfully - close pane
             handleClose();
           } catch (oauthError: unknown) {
+            // Clear loading state on error
+            setLoadingIntegrationId(null);
+
             // Handle OAuth-specific errors
             const oauthErrorMessage =
               oauthError &&
@@ -425,31 +433,6 @@ export function BaseIntegrationConfigPane({
           {/* Form Content */}
           <div className="flex-1 overflow-y-auto settings-scrollbar px-6 py-4">
             <div className="space-y-6">
-              {/* Workspace Integration Banner */}
-              {accessLevel === "tenant" && (
-                <div className="rounded-lg border p-3 bg-purple-50 border-purple-200">
-                  <div className="flex items-center gap-2">
-                    <InfoIcon className="w-4 h-4 text-purple-600 shrink-0" />
-                    <p className="text-sm text-purple-700">
-                      This integration will be shared with your entire
-                      workspace.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Personal Integration Banner */}
-              {accessLevel === "user" && (
-                <div className="rounded-lg border p-3 bg-blue-50 border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <InfoIcon className="w-4 h-4 text-blue-600 shrink-0" />
-                    <p className="text-sm text-blue-700">
-                      Personal integration, private to your account.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* OAuth Authentication Info - for OAuth integrations */}
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar") && (

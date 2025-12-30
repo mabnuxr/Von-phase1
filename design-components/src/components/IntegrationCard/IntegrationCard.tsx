@@ -226,7 +226,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           onToggle && !disabled ? (
             <button
               onClick={() => onToggle(true)}
-              className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors hover:cursor-pointer"
             >
               Connect
             </button>

@@ -7,8 +7,9 @@ import {
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
   useIntegrations,
+  useAuthorizeIntegration,
+  useRevokeIntegration,
   useCheckAllAuthStatuses,
-  useCancelAuthorization,
   useDeleteIntegration,
 } from "../hooks/useIntegrations";
 import { IntegrationType, AuthenticationStatus, Resource } from "../services";
@@ -37,6 +38,8 @@ export interface Integration {
   type: string;
   ownerFirstName?: string;
   ownerLastName?: string;
+  authenticationStatus: string;
+  isConfigured?: boolean;
 }
 
 export interface IntegrationsPanelProps {
@@ -60,6 +63,8 @@ export function IntegrationsPanel() {
     setIntegrationsActiveTab,
     setConfiguringWorkspaceIntegration,
     setConfiguringPersonalIntegration,
+    loadingIntegrationId,
+    setLoadingIntegrationId,
   } = usePreferencesStore();
 
   // Permissions for workspace integrations (used in old flow)
@@ -78,8 +83,9 @@ export function IntegrationsPanel() {
     refetch,
   } = useIntegrations();
 
-  // OAuth cancellation mutation
-  const cancelAuthorization = useCancelAuthorization();
+  // OAuth mutations
+  const authorizeIntegration = useAuthorizeIntegration();
+  const revokeIntegration = useRevokeIntegration();
 
   // Delete integration mutation
   const deleteIntegration = useDeleteIntegration();
@@ -88,13 +94,19 @@ export function IntegrationsPanel() {
   // The old workspace-wide permission check is removed in favor of instance-specific checks
 
   // Track authenticating integrations for polling
-  const authenticatingIds =
+  // Include loadingIntegrationId since backend may return AUTHENTICATED prematurely
+  const authenticatingIdsFromBackend =
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
           i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
       )
       .map((i: { id: string }) => i.id) || [];
+
+  // Combine backend authenticating IDs with frontend loading ID
+  const authenticatingIds = loadingIntegrationId
+    ? [...new Set([...authenticatingIdsFromBackend, loadingIntegrationId])]
+    : authenticatingIdsFromBackend;
 
   // Poll all authenticating integrations concurrently
   const { timedOutIntegrations } = useCheckAllAuthStatuses(authenticatingIds);
@@ -107,23 +119,20 @@ export function IntegrationsPanel() {
     new Set(),
   );
 
-  // Confirmation modal state (for delete only)
+  // Confirmation modal state (for delete and disable)
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     integrationName: string;
+    action: "delete" | "disable";
     resolver?: (value: boolean) => void;
   }>({
     isOpen: false,
     integrationName: "",
+    action: "delete",
   });
 
   // Ref to track pending resolver for cleanup
   const pendingResolverRef = useRef<((value: boolean) => void) | null>(null);
-
-  // Track which integration is currently loading
-  const [loadingIntegrationId, setLoadingIntegrationId] = useState<
-    string | null
-  >(null);
 
   // Cleanup pending resolver on unmount to prevent memory leaks
   useEffect(() => {
@@ -149,6 +158,7 @@ export function IntegrationsPanel() {
           tenantId?: string;
           ownerFirstName?: string;
           ownerLastName?: string;
+          isConfigured?: boolean;
         }) => ({
           id: integration.id,
           name: getIntegrationDisplayName(integration.type),
@@ -162,6 +172,8 @@ export function IntegrationsPanel() {
           type: integration.type,
           ownerFirstName: integration.ownerFirstName,
           ownerLastName: integration.ownerLastName,
+          authenticationStatus: integration.authenticationStatus,
+          isConfigured: integration.isConfigured,
         }),
       ) || [],
     [integrationsData],
@@ -181,20 +193,64 @@ export function IntegrationsPanel() {
   const handleModalConfirm = () => {
     modalState.resolver?.(true);
     pendingResolverRef.current = null;
-    setModalState({ isOpen: false, integrationName: "" });
+    setModalState({ isOpen: false, integrationName: "", action: "delete" });
   };
 
   const handleModalCancel = () => {
     modalState.resolver?.(false);
     pendingResolverRef.current = null;
-    setModalState({ isOpen: false, integrationName: "" });
+    setModalState({ isOpen: false, integrationName: "", action: "delete" });
   };
 
-  const handleToggle = (id: string, enabled: boolean) => {
-    // Old flow uses toggle for enable/disable
-    // For now, this is a no-op since we removed the toggle functionality
-    // Kept for compatibility with IntegrationCardList component
-    console.log(`Toggle integration ${id} to ${enabled}`);
+  const handleToggle = async (id: string, enabled: boolean) => {
+    // Clear any previous errors
+    setOauthError(null);
+
+    if (enabled) {
+      // Clear timeout warning for this integration
+      setShownTimeoutWarnings((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+
+      setLoadingIntegrationId(id);
+      authorizeIntegration.mutate(id, {
+        onSuccess: () => setLoadingIntegrationId(null),
+        onError: (error: Error) => {
+          setLoadingIntegrationId(null);
+          setOauthError(error.message);
+          // Refetch integrations to get updated status from backend
+          refetch();
+        },
+      });
+    } else {
+      // Disable flow - show confirmation modal
+      const confirmed = await new Promise<boolean>((resolve) => {
+        const integration = integrations.find((i) => i.id === id);
+        pendingResolverRef.current = resolve;
+        setModalState({
+          isOpen: true,
+          integrationName: integration?.name || "this integration",
+          action: "disable",
+          resolver: resolve,
+        });
+      });
+
+      // Clear resolver after promise completes
+      pendingResolverRef.current = null;
+
+      if (confirmed) {
+        setLoadingIntegrationId(id);
+        revokeIntegration.mutate(id, {
+          onSuccess: () => setLoadingIntegrationId(null),
+          onError: (error: Error) => {
+            setLoadingIntegrationId(null);
+            setOauthError(`Failed to revoke integration: ${error.message}`);
+          },
+        });
+      }
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -205,6 +261,7 @@ export function IntegrationsPanel() {
       setModalState({
         isOpen: true,
         integrationName: integration?.name || "this integration",
+        action: "delete",
         resolver: resolve,
       });
     });
@@ -239,10 +296,12 @@ export function IntegrationsPanel() {
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. The popup may have been closed or authentication was not completed. Please try enabling it again.`,
+            `Authentication for ${integration.name} timed out. Please try again.`,
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
-          cancelAuthorization.mutate(id);
+          // Delete the integration so user can start fresh (avoids "record already exists" error)
+          deleteIntegration.mutate(id);
+          setLoadingIntegrationId(null);
         }
       }
     });
@@ -250,8 +309,23 @@ export function IntegrationsPanel() {
     timedOutIntegrations,
     shownTimeoutWarnings,
     integrations,
-    cancelAuthorization,
+    deleteIntegration,
+    setLoadingIntegrationId,
   ]);
+
+  // Clear loadingIntegrationId when integration is successfully authenticated
+  useEffect(() => {
+    if (loadingIntegrationId) {
+      const integration = integrationsData?.integrations.find(
+        (i: { id: string }) => i.id === loadingIntegrationId,
+      );
+      if (
+        integration?.authenticationStatus === AuthenticationStatus.AUTHENTICATED
+      ) {
+        setLoadingIntegrationId(null);
+      }
+    }
+  }, [integrationsData, loadingIntegrationId, setLoadingIntegrationId]);
 
   // Loading state
   if (isLoading) {
@@ -413,12 +487,16 @@ export function IntegrationsPanel() {
       <WorkspaceIntegrationPane />
       <PersonalIntegrationPane />
 
-      {/* Confirmation Modal - Delete only */}
+      {/* Confirmation Modal - Delete or Disable */}
       <ConfirmationModal
         isOpen={modalState.isOpen}
-        title="Delete Integration"
-        message={`Are you sure you want to delete ${modalState.integrationName}? This will permanently remove the integration and you'll need to set it up again.`}
-        confirmText="Delete"
+        title={modalState.action === "delete" ? "Delete Integration" : "Disable Integration"}
+        message={
+          modalState.action === "delete"
+            ? `Are you sure you want to delete ${modalState.integrationName}? This will permanently remove the integration and you'll need to set it up again.`
+            : `Are you sure you want to disable ${modalState.integrationName}? This will revoke access and you'll need to re-authenticate to enable it again.`
+        }
+        confirmText={modalState.action === "delete" ? "Delete" : "Disable"}
         cancelText="Cancel"
         onConfirm={handleModalConfirm}
         onCancel={handleModalCancel}
