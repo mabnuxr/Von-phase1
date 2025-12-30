@@ -490,7 +490,11 @@ export function IntegrationsPanel() {
       {/* Confirmation Modal - Delete or Disable */}
       <ConfirmationModal
         isOpen={modalState.isOpen}
-        title={modalState.action === "delete" ? "Delete Integration" : "Disable Integration"}
+        title={
+          modalState.action === "delete"
+            ? "Delete Integration"
+            : "Disable Integration"
+        }
         message={
           modalState.action === "delete"
             ? `Are you sure you want to delete ${modalState.integrationName}? This will permanently remove the integration and you'll need to set it up again.`
