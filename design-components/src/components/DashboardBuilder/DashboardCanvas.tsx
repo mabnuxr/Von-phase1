@@ -133,35 +133,35 @@ const MetricCard: React.FC<{
 
   const getTrendIcon = () => {
     if (config.changeType === 'positive') {
-      return <TrendUp size={14} weight="duotone" className="text-green-500" />;
+      return <TrendUp size={14} weight="duotone" className="text-emerald-600" />;
     }
     if (config.changeType === 'negative') {
-      return <TrendDown size={14} weight="duotone" className="text-red-500" />;
+      return <TrendDown size={14} weight="duotone" className="text-red-600" />;
     }
     return <Minus size={14} weight="duotone" className="text-gray-400" />;
   };
 
   const getTrendColor = () => {
-    if (config.changeType === 'positive') return 'text-green-600';
+    if (config.changeType === 'positive') return 'text-emerald-600';
     if (config.changeType === 'negative') return 'text-red-600';
     return 'text-gray-500';
   };
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.01 }}
       onClick={onClick}
-      className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow relative group"
+      className="bg-white rounded-xl border border-gray-100 p-4 cursor-pointer hover:border-gray-200 hover:shadow-sm transition-all duration-150 relative group"
     >
       {/* Delete menu button - only visible on hover */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
         <div className="relative">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+            className="p-1 text-white bg-gray-800 hover:bg-gray-900 rounded-md transition-colors cursor-pointer"
           >
             <DotsThree size={14} weight="bold" />
           </button>
@@ -176,10 +176,11 @@ const MetricCard: React.FC<{
                   }}
                 />
                 <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.1 }}
+                  className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5"
                 >
                   <button
                     onClick={(e) => {
@@ -187,9 +188,9 @@ const MetricCard: React.FC<{
                       setShowMenu(false);
                       onDelete?.();
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[13px] text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                   >
-                    <Trash size={14} weight="duotone" />
+                    <Trash size={14} />
                     Delete
                   </button>
                 </motion.div>
@@ -203,11 +204,11 @@ const MetricCard: React.FC<{
         {config.label}
       </p>
       <div className="flex items-end justify-between">
-        <p className="text-2xl font-semibold text-gray-900">{config.value}</p>
+        <p className="text-2xl font-semibold text-gray-900 tabular-nums">{config.value}</p>
         {config.change !== undefined && (
           <div className={`flex items-center gap-1 ${getTrendColor()}`}>
             {getTrendIcon()}
-            <span className="text-xs font-medium">
+            <span className="text-xs font-medium tabular-nums">
               {config.change > 0 ? '+' : ''}
               {config.change}%
             </span>
@@ -233,58 +234,60 @@ const ExpandedWidgetModal: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-8"
       onClick={onClose}
     >
       {/* Backdrop with blur */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
       {/* Modal */}
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.15 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-5xl bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">{config.title}</h2>
+            <h2 className="text-sm font-medium text-gray-900">{config.title}</h2>
             {config.subtitle && (
-              <p className="text-sm text-gray-500">{config.subtitle}</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">{config.subtitle}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           >
-            <X size={20} weight="bold" />
+            <X size={18} weight="bold" />
           </button>
         </div>
 
         {/* Content with chart and underlying data */}
-        <div className="p-6">
+        <div className="p-5">
           {/* Chart at top */}
-          <div className="mb-6">
+          <div className="mb-5">
             <ChartWidget widget={widget} />
           </div>
 
           {/* Glass effect divider */}
-          <div className="relative py-4">
+          <div className="relative py-3">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-gray-100" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white px-4 text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center gap-2">
-                <TableIcon size={14} weight="duotone" />
+              <span className="bg-white px-3 text-[11px] font-medium text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                <TableIcon size={12} weight="duotone" />
                 Underlying Data
               </span>
             </div>
           </div>
 
           {/* Underlying data table with glass effect */}
-          <div className="relative rounded-xl overflow-hidden">
+          <div className="relative rounded-xl overflow-hidden border border-gray-100">
             {/* Glass overlay effect */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-white/40 backdrop-blur-[2px] pointer-events-none z-10" style={{ top: -1, height: 20 }} />
 
@@ -300,11 +303,11 @@ const ExpandedWidgetModal: React.FC<{
                 {Object.keys(data[0] || {}).map((key) => (
                   <Column key={key} width={120} flexGrow={key === 'accountName' ? 1 : 0}>
                     <HeaderCell>
-                      <span className="text-xs font-medium text-gray-600">{key}</span>
+                      <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{key}</span>
                     </HeaderCell>
                     <Cell dataKey={key}>
                       {(rowData: Record<string, unknown>) => (
-                        <span className="text-sm text-gray-900">{String(rowData[key])}</span>
+                        <span className="text-[13px] text-gray-900">{String(rowData[key])}</span>
                       )}
                     </Cell>
                   </Column>
@@ -335,23 +338,25 @@ const EditWidgetModal: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-8"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.15 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-white rounded-xl shadow-2xl"
+        className="relative w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-100"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Edit Widget</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-medium text-gray-900">Edit Widget</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           >
             <X size={18} weight="bold" />
           </button>
@@ -359,21 +364,21 @@ const EditWidgetModal: React.FC<{
 
         <div className="p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Chart Type</label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Chart Type</label>
             <select
               value={chartType}
               onChange={(e) => setChartType(e.target.value as ChartConfig['type'])}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
             >
               <option value="bar">Bar Chart</option>
               <option value="line">Line Chart</option>
@@ -384,8 +389,8 @@ const EditWidgetModal: React.FC<{
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Data Source</label>
-            <select className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Data Source</label>
+            <select className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer">
               <option value="tbl-accounts-at-risk">Accounts at Risk</option>
               <option value="tbl-engagement-timeline">Engagement Timeline</option>
               <option value="tbl-risk-by-region">Risk by Region</option>
@@ -394,10 +399,10 @@ const EditWidgetModal: React.FC<{
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200">
+        <div className="flex items-center gap-2 px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -406,7 +411,7 @@ const EditWidgetModal: React.FC<{
               onSave({ ...config, title, type: chartType });
               onClose();
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer"
+            className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
           >
             Save Changes
           </button>
@@ -428,91 +433,96 @@ const FilterPopover: React.FC<{
   const [riskLevel, setRiskLevel] = useState('all');
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="absolute right-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-4"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-semibold text-gray-900">Filters</span>
-        <button
-          onClick={onClose}
-          className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
-        >
-          <X size={14} weight="bold" />
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Date Range</label>
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.15 }}
+        className="absolute right-0 top-full mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <span className="text-xs font-medium text-gray-700">Filters</span>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
           >
-            <option value="last_7_days">Last 7 days</option>
-            <option value="last_30_days">Last 30 days</option>
-            <option value="last_90_days">Last 90 days</option>
-            <option value="this_year">This year</option>
-            <option value="custom">Custom range</option>
-          </select>
+            <X size={14} weight="bold" />
+          </button>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Region</label>
-          <select
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
-          >
-            <option value="all">All Regions</option>
-            <option value="north_america">North America</option>
-            <option value="europe">Europe</option>
-            <option value="apac">APAC</option>
-            <option value="latam">LATAM</option>
-          </select>
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Date Range</label>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+            >
+              <option value="last_7_days">Last 7 days</option>
+              <option value="last_30_days">Last 30 days</option>
+              <option value="last_90_days">Last 90 days</option>
+              <option value="this_year">This year</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Region</label>
+            <select
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+            >
+              <option value="all">All Regions</option>
+              <option value="north_america">North America</option>
+              <option value="europe">Europe</option>
+              <option value="apac">APAC</option>
+              <option value="latam">LATAM</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Risk Level</label>
+            <select
+              value={riskLevel}
+              onChange={(e) => setRiskLevel(e.target.value)}
+              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+            >
+              <option value="all">All Levels</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Risk Level</label>
-          <select
-            value={riskLevel}
-            onChange={(e) => setRiskLevel(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100">
+          <button
+            onClick={() => {
+              setDateRange('last_30_days');
+              setRegion('all');
+              setRiskLevel('all');
+            }}
+            className="flex-1 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
-            <option value="all">All Levels</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
+            Reset
+          </button>
+          <button
+            onClick={() => {
+              onApply({ dateRange, region, riskLevel });
+              onClose();
+            }}
+            className="flex-1 py-2 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+          >
+            Apply
+          </button>
         </div>
-      </div>
-
-      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
-        <button
-          onClick={() => {
-            setDateRange('last_30_days');
-            setRegion('all');
-            setRiskLevel('all');
-          }}
-          className="flex-1 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg cursor-pointer"
-        >
-          Reset
-        </button>
-        <button
-          onClick={() => {
-            onApply({ dateRange, region, riskLevel });
-            onClose();
-          }}
-          className="flex-1 py-1.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer"
-        >
-          Apply Filters
-        </button>
-      </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 };
 
@@ -556,23 +566,24 @@ const SharePopover: React.FC<{
   return (
     <>
       {/* Backdrop to close popover */}
-      <div
-        className="fixed inset-0 z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40" onClick={onClose} />
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className="absolute right-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.15 }}
+        className="absolute right-0 top-full mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <ShareNetwork size={16} weight="duotone" className="text-gray-600" />
-            <span className="text-sm font-semibold text-gray-900">Share Dashboard</span>
+            <ShareNetwork size={14} weight="duotone" className="text-gray-500" />
+            <span className="text-xs font-medium text-gray-700">Share Dashboard</span>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer">
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+          >
             <X size={14} weight="bold" />
           </button>
         </div>
@@ -580,7 +591,7 @@ const SharePopover: React.FC<{
         <div className="p-4 space-y-4">
           {/* Update Frequency */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1.5">
               <Clock size={14} weight="duotone" className="text-gray-500" />
               <label className="text-xs font-medium text-gray-700">Update Frequency</label>
             </div>
@@ -606,7 +617,7 @@ const SharePopover: React.FC<{
 
           {/* Public Link Section */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1.5">
               <Link size={14} weight="duotone" className="text-gray-500" />
               <label className="text-xs font-medium text-gray-700">Public Link</label>
             </div>
@@ -614,21 +625,21 @@ const SharePopover: React.FC<{
             {!linkGenerated ? (
               <button
                 onClick={handleGenerateLink}
-                className="w-full py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2 text-[13px] font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
                 <Link size={14} weight="duotone" />
                 Generate Public Link
               </button>
             ) : (
               <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0 px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                <div className="flex-1 min-w-0 px-2.5 py-2 bg-gray-50 border border-gray-100 rounded-lg">
                   <p className="text-[11px] text-gray-600 truncate">{publicLink}</p>
                 </div>
                 <button
                   onClick={handleCopyLink}
                   className={`flex-shrink-0 p-2 rounded-lg transition-colors cursor-pointer ${
                     copied
-                      ? 'bg-green-100 text-green-600'
+                      ? 'bg-emerald-100 text-emerald-600'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -646,7 +657,7 @@ const SharePopover: React.FC<{
 
           {/* Recipients Section */}
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1.5">
               <UserPlus size={14} weight="duotone" className="text-gray-500" />
               <label className="text-xs font-medium text-gray-700">Add Recipients</label>
             </div>
@@ -658,12 +669,12 @@ const SharePopover: React.FC<{
                 onChange={(e) => setNewRecipient(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddRecipient()}
                 placeholder="Enter email"
-                className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                className="flex-1 min-w-0 px-2.5 py-1.5 text-[13px] text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
               />
               <button
                 onClick={handleAddRecipient}
                 disabled={!newRecipient || !newRecipient.includes('@')}
-                className="flex-shrink-0 px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-shrink-0 px-2.5 py-1.5 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add
               </button>
@@ -675,12 +686,12 @@ const SharePopover: React.FC<{
                 {recipients.map((email) => (
                   <div
                     key={email}
-                    className="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between px-2.5 py-1.5 bg-gray-50 border border-gray-100 rounded-lg"
                   >
-                    <span className="text-xs text-gray-700 truncate">{email}</span>
+                    <span className="text-[13px] text-gray-700 truncate">{email}</span>
                     <button
                       onClick={() => handleRemoveRecipient(email)}
-                      className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 cursor-pointer"
+                      className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                     >
                       <X size={12} weight="bold" />
                     </button>
@@ -698,10 +709,10 @@ const SharePopover: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -711,7 +722,7 @@ const SharePopover: React.FC<{
               onClose();
             }}
             disabled={!linkGenerated && recipients.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PaperPlaneTilt size={12} weight="duotone" />
             {recipients.length > 0 ? `Send (${recipients.length})` : 'Share'}
@@ -734,58 +745,60 @@ const MetricDetailModal: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-8"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.15 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl"
+        className="relative w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-100"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{config.label}</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-medium text-gray-900">{config.label}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           >
             <X size={18} weight="bold" />
           </button>
         </div>
 
         <div className="p-5">
-          <div className="text-center mb-6">
-            <p className="text-4xl font-bold text-gray-900">{config.value}</p>
+          <div className="text-center mb-5">
+            <p className="text-3xl font-semibold text-gray-900 tabular-nums">{config.value}</p>
             {config.change !== undefined && (
-              <p className={`text-sm font-medium mt-1 ${config.changeType === 'positive' ? 'text-green-600' : config.changeType === 'negative' ? 'text-red-600' : 'text-gray-500'}`}>
+              <p className={`text-[13px] font-medium mt-1 tabular-nums ${config.changeType === 'positive' ? 'text-emerald-600' : config.changeType === 'negative' ? 'text-red-600' : 'text-gray-500'}`}>
                 {config.change > 0 ? '+' : ''}{config.change}% vs last period
               </p>
             )}
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Previous Period</span>
-              <span className="text-sm font-medium text-gray-900">
+          <div className="space-y-0 border border-gray-100 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50">
+              <span className="text-[13px] text-gray-600">Previous Period</span>
+              <span className="text-[13px] font-medium text-gray-900 tabular-nums">
                 {config.value ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 0.85).toFixed(1)}M` : '-'}
               </span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">YoY Change</span>
-              <span className="text-sm font-medium text-green-600">+12%</span>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <span className="text-[13px] text-gray-600">YoY Change</span>
+              <span className="text-[13px] font-medium text-emerald-600 tabular-nums">+12%</span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">Target</span>
-              <span className="text-sm font-medium text-gray-900">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+              <span className="text-[13px] text-gray-600">Target</span>
+              <span className="text-[13px] font-medium text-gray-900 tabular-nums">
                 {config.value ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 1.1).toFixed(1)}M` : '-'}
               </span>
             </div>
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-gray-600">Progress</span>
-              <span className="text-sm font-medium text-gray-900">85%</span>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+              <span className="text-[13px] text-gray-600">Progress</span>
+              <span className="text-[13px] font-medium text-gray-900 tabular-nums">85%</span>
             </div>
           </div>
         </div>
@@ -948,30 +961,32 @@ const ConfigureWidgetModal: React.FC<{
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-8"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.15 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-white rounded-xl shadow-2xl"
+        className="relative w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-100"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-              <Icon size={18} weight="duotone" className="text-gray-600" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
+              <Icon size={18} weight="duotone" className="text-gray-700" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-sm font-medium text-gray-900">
               Configure {isMetric ? 'Metric' : isTable ? 'Table' : 'Chart'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           >
             <X size={18} weight="bold" />
           </button>
@@ -981,46 +996,46 @@ const ConfigureWidgetModal: React.FC<{
           {isMetric ? (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Metric Label</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Metric Label</label>
                 <input
                   type="text"
                   value={metricLabel}
                   onChange={(e) => setMetricLabel(e.target.value)}
                   placeholder="e.g., Total Revenue"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Value</label>
                 <input
                   type="text"
                   value={metricValue}
                   onChange={(e) => setMetricValue(e.target.value)}
                   placeholder="e.g., $1.2M"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 />
               </div>
             </>
           ) : (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Title</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={`Enter ${isTable ? 'table' : 'chart'} title`}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 />
               </div>
 
               {!isTable && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Chart Type</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Chart Type</label>
                   <select
                     value={chartType}
                     onChange={(e) => setChartType(e.target.value as ChartConfig['type'])}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
                   >
                     <option value="bar">Bar Chart</option>
                     <option value="line">Line Chart</option>
@@ -1033,12 +1048,12 @@ const ConfigureWidgetModal: React.FC<{
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data Source</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">Data Source</label>
                 <select
                   value={selectedTableId}
                   onChange={(e) => handleTableChange(e.target.value)}
                   disabled={!!dragItem.tableId}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 disabled:bg-gray-50 disabled:text-gray-500"
+                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   {dataTables.map((table) => (
                     <option key={table.id} value={table.id}>
@@ -1052,11 +1067,11 @@ const ConfigureWidgetModal: React.FC<{
               {!isTable && selectedTable && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">X-Axis (Categories)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">X-Axis (Categories)</label>
                     <select
                       value={xAxis}
                       onChange={(e) => setXAxis(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                      className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
                     >
                       {stringColumns.map((col) => (
                         <option key={col.key} value={col.key}>
@@ -1067,11 +1082,11 @@ const ConfigureWidgetModal: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Y-Axis (Values)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Y-Axis (Values)</label>
                     <select
                       value={yAxis}
                       onChange={(e) => setYAxis(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+                      className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
                     >
                       {numericColumns.map((col) => (
                         <option key={col.key} value={col.key}>
@@ -1084,10 +1099,10 @@ const ConfigureWidgetModal: React.FC<{
                   {(chartType === 'bar' || chartType === 'column' || chartType === 'line' || chartType === 'area') &&
                     numericColumns.length > 1 && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5">
                           Data Series (select multiple)
                         </label>
-                        <div className="space-y-1.5 max-h-32 overflow-y-auto p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto p-2.5 bg-gray-50 rounded-lg border border-gray-100">
                           {numericColumns.map((col) => (
                             <label key={col.key} className="flex items-center gap-2 cursor-pointer">
                               <input
@@ -1100,9 +1115,9 @@ const ConfigureWidgetModal: React.FC<{
                                     setSelectedSeries(selectedSeries.filter((s) => s !== col.key));
                                   }
                                 }}
-                                className="rounded border-gray-300 text-gray-900 focus:ring-gray-300"
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                               />
-                              <span className="text-sm text-gray-700">{col.label}</span>
+                              <span className="text-[13px] text-gray-700">{col.label}</span>
                             </label>
                           ))}
                         </div>
@@ -1114,16 +1129,16 @@ const ConfigureWidgetModal: React.FC<{
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200">
+        <div className="flex items-center gap-2 px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg cursor-pointer"
+            className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg cursor-pointer"
+            className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
           >
             Add to Dashboard
           </button>
@@ -1193,15 +1208,15 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   const tables = dashboard.widgets.filter((w) => w.type === 'table');
 
   return (
-    <div className="h-full flex flex-col bg-[#fbfbfd]">
+    <div className="h-full flex flex-col bg-gray-50/50">
       {/* Header */}
-      <div className="h-14 flex items-center justify-between px-4 bg-white border-b border-gray-200">
+      <div className="h-14 flex items-center justify-between px-4 bg-white border-b border-gray-100">
         <div className="flex items-center gap-3">
-          {/* View Mode Toggle */}
+          {/* View Mode Toggle
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => onViewModeChange?.('data')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 cursor-pointer ${
                 viewMode === 'data'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1211,7 +1226,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
             </button>
             <button
               onClick={() => onViewModeChange?.('dashboard')}
-              className={`px-3 py-1 text-sm font-medium rounded-md transition-all cursor-pointer ${
+              className={`px-3 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 cursor-pointer ${
                 viewMode === 'dashboard'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1219,11 +1234,11 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
             >
               Dashboard
             </button>
-          </div>
+          </div> */}
 
-          <div className="h-4 w-px bg-gray-200" />
+          {/* <div className="h-4 w-px bg-gray-200" /> */}
 
-          <h1 className="text-sm font-medium text-gray-900">{dashboard.title}</h1>
+          <h1 className="text-[13px] font-medium text-gray-900">{dashboard.title}</h1>
         </div>
 
         {/* Actions */}
@@ -1233,16 +1248,16 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
               setShowFilterPopover(!showFilterPopover);
               setShowSharePopover(false);
             }}
-            className="flex items-center gap-1 text-xs px-2 py-1.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-[13px] px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
           >
-            <Funnel size={12} weight="duotone" />
+            <Funnel size={14} weight="duotone" className="text-gray-500" />
             Filter
           </button>
           <button
             onClick={onExport}
-            className="flex items-center gap-1 text-xs px-2 py-1.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-[13px] px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
           >
-            <Download size={12} weight="duotone" />
+            <Download size={14} weight="duotone" className="text-gray-500" />
             Export
           </button>
           <button
@@ -1250,9 +1265,9 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
               setShowSharePopover(!showSharePopover);
               setShowFilterPopover(false);
             }}
-            className="flex items-center gap-1 text-xs px-2 py-1.5 bg-white hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-[13px] px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
           >
-            <ShareNetwork size={12} weight="duotone" />
+            <ShareNetwork size={14} weight="duotone" className="text-gray-500" />
             Share
           </button>
 

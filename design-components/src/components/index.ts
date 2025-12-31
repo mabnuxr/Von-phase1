@@ -277,3 +277,15 @@ export type {
   ChatMessage as BuilderChatMessage,
   DataViewTab,
 } from './DashboardBuilder';
+
+// ============================================================================
+// POPUPS (Popovers, Modals, Overlays)
+// ============================================================================
+export { ProfilePopover } from './popups';
+export type { ProfilePopoverProps } from './popups';
+
+// ============================================================================
+// CHAT PANE (3-Pane Layout Chat Interface)
+// ============================================================================
+export { ChatPane, ChatPaneHeader } from './ChatPane';
+export type { ChatPaneProps, ChatPaneHeaderProps, ReferenceContext } from './ChatPane';

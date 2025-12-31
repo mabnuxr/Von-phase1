@@ -272,13 +272,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         `}
       >
         {/* Centered container */}
-        <div className="px-8">
+        <div className="px-2">
           <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
             {/* Message layout */}
             <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
               {/* Horizontal layout: Avatar + Content (reversed for user) */}
               <div
-                className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-100 border border-gray-200 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
+                className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-50 border border-gray-100 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
               >
                 {/* Avatar and Status Badge */}
                 <div className="flex items-start gap-2 flex-shrink-0">

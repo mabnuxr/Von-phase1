@@ -185,3 +185,7 @@ export type {
   UseFileUploadOptions,
   UseFileUploadReturn,
 } from './FileAttachment';
+
+// Export StandardChatInput
+export { StandardChatInput } from './StandardChatInput';
+export type { StandardChatInputProps } from './StandardChatInput';

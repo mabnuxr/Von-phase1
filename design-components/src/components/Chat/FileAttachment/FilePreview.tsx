@@ -23,6 +23,13 @@ export interface FilePreviewProps {
   removable?: boolean;
   /** Size variant */
   size?: 'small' | 'medium';
+  /**
+   * Style variant
+   * - 'default': Colored background based on file category
+   * - 'minimal': White background with gray border, colored badge/icon only
+   * @default 'default'
+   */
+  variant?: 'default' | 'minimal';
 }
 
 /**
@@ -118,6 +125,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   onRemove,
   removable = true,
   size = 'medium',
+  variant = 'default',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const isImage = attachment.category === 'image';
@@ -173,15 +181,18 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   }
 
   // Non-image file preview - rectangular box
+  const isMinimal = variant === 'minimal';
+  const containerBg = isMinimal ? 'bg-white' : getCategoryColor(attachment.category);
+
   return (
     <div
-      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 ${getCategoryColor(attachment.category)} flex-shrink-0 group min-w-[180px] max-w-[220px]`}
+      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 ${containerBg} flex-shrink-0 group min-w-[180px] max-w-[220px]`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* File icon */}
       <div
-        className={`flex-shrink-0 w-10 h-10 rounded-lg bg-white flex items-center justify-center ${getCategoryIconColor(attachment.category)}`}
+        className={`flex-shrink-0 w-10 h-10 rounded-lg ${isMinimal ? 'bg-gray-50' : 'bg-white'} flex items-center justify-center ${getCategoryIconColor(attachment.category)}`}
       >
         <IconComponent size={iconSize} weight="duotone" />
       </div>
