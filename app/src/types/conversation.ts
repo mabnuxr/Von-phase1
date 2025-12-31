@@ -41,7 +41,7 @@ export interface Message {
 }
 
 /**
- * User message data from Pusher
+ * User message data from Pusher (legacy non-chunked format)
  * Subset of Message interface for user messages received via websocket
  */
 export type PusherUserMessageData = Pick<
@@ -54,6 +54,33 @@ export type PusherUserMessageData = Pick<
   | "createdAt"
   | "createdBy"
 >;
+
+/**
+ * Chunked user message events for large messages
+ * Used when message content exceeds Pusher's size limit (~10KB)
+ */
+
+/** Event: user_message.start - Initializes a chunked message */
+export interface PusherUserMessageStartData {
+  id: string;
+  conversationId: string;
+  messageType: string;
+  role: "user";
+  createdAt: string;
+  createdBy: string | null;
+}
+
+/** Event: user_message.content - Content chunk with sequence number */
+export interface PusherUserMessageContentData {
+  id: string;
+  sequence: number;
+  delta: string;
+}
+
+/** Event: user_message.end - Signals end of chunked message */
+export interface PusherUserMessageEndData {
+  id: string;
+}
 
 /**
  * AG-UI Event Wrapper (imported and re-exported from design-components)
