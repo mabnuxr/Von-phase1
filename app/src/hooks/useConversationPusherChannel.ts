@@ -7,6 +7,9 @@ import type { AguiEventWrapper } from "@vonlabs/design-components";
 import type {
   MessageWithStreaming,
   PusherUserMessageData,
+  PusherUserMessageStartData,
+  PusherUserMessageContentData,
+  PusherUserMessageEndData,
 } from "../types/conversation";
 import useChatStore from "../store/chatStore";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
@@ -38,6 +41,22 @@ export function useConversationPusherChannel(
   const channelRef = useRef<Channel | null>(null);
   const prevConfigRef = useRef<UseConversationPusherChannelConfig | null>(null);
   const connectionEventsBound = useRef(false);
+
+  // Track in-progress chunked user messages: messageId -> { chunks, metadata }
+  const userMessageChunksRef = useRef<
+    Map<
+      string,
+      {
+        chunks: Array<{ sequence: number; delta: string }>;
+        metadata: {
+          conversationId: string;
+          messageType: string;
+          createdAt: string;
+          createdBy: string | null;
+        };
+      }
+    >
+  >(new Map());
 
   // Processes AGUI events: deduplicates by run_id + sequence, appends to events array, replays all events to reconstruct state
   const handleAguiEvent = useCallback(
@@ -235,6 +254,106 @@ export function useConversationPusherChannel(
     [config.conversationId],
   );
 
+  // Handler for user_message.start - initializes chunked message accumulator
+  const handleUserMessageStart = useCallback(
+    (data: string | PusherUserMessageStartData) => {
+      if (import.meta.env.DEV) {
+        console.log(
+          "[useConversationPusherChannel] Received user_message.start:",
+          data,
+        );
+      }
+
+      const parsed: PusherUserMessageStartData =
+        typeof data === "string" ? JSON.parse(data) : data;
+
+      if (parsed.conversationId !== config.conversationId) {
+        console.warn(
+          "[useConversationPusherChannel] user_message.start for different conversation, ignoring",
+        );
+        return;
+      }
+
+      userMessageChunksRef.current.set(parsed.id, {
+        chunks: [],
+        metadata: {
+          conversationId: parsed.conversationId,
+          messageType: parsed.messageType,
+          createdAt: parsed.createdAt,
+          createdBy: parsed.createdBy,
+        },
+      });
+    },
+    [config.conversationId],
+  );
+
+  // Handler for user_message.content - accumulates content chunks
+  const handleUserMessageContent = useCallback(
+    (data: string | PusherUserMessageContentData) => {
+      if (import.meta.env.DEV) {
+        console.log(
+          "[useConversationPusherChannel] Received user_message.content:",
+          data,
+        );
+      }
+
+      const parsed: PusherUserMessageContentData =
+        typeof data === "string" ? JSON.parse(data) : data;
+
+      const entry = userMessageChunksRef.current.get(parsed.id);
+      if (entry) {
+        entry.chunks.push({ sequence: parsed.sequence, delta: parsed.delta });
+      }
+    },
+    [],
+  );
+
+  // Handler for user_message.end - reconstructs and emits final message
+  const handleUserMessageEnd = useCallback(
+    (data: string | PusherUserMessageEndData) => {
+      if (import.meta.env.DEV) {
+        console.log(
+          "[useConversationPusherChannel] Received user_message.end:",
+          data,
+        );
+      }
+
+      const parsed: PusherUserMessageEndData =
+        typeof data === "string" ? JSON.parse(data) : data;
+
+      const entry = userMessageChunksRef.current.get(parsed.id);
+
+      if (entry) {
+        // Sort by sequence and join chunks
+        const sortedChunks = entry.chunks.sort(
+          (a, b) => a.sequence - b.sequence,
+        );
+        const messageContent = sortedChunks.map((c) => c.delta).join("");
+
+        const userMessage: MessageWithStreaming = {
+          id: parsed.id,
+          runId: parsed.id,
+          conversationId: entry.metadata.conversationId,
+          messageContent,
+          messageType: entry.metadata.messageType as "text",
+          role: "user",
+          createdAt: entry.metadata.createdAt,
+          createdBy: entry.metadata.createdBy,
+          isStreaming: false,
+          status: "completed",
+        };
+
+        useChatStore
+          .getState()
+          .upsertMessage(entry.metadata.conversationId, userMessage);
+
+        // Cleanup
+        userMessageChunksRef.current.delete(parsed.id);
+      }
+    },
+    [],
+  );
+
   // Pusher connection management
   useEffect(() => {
     if (!config.conversationId || !config.tenantId || !config.userId) {
@@ -374,8 +493,13 @@ export function useConversationPusherChannel(
         channel.bind("agent.step_finished", handleAguiEvent);
         channel.bind("agent.run_finished", handleAguiEvent);
 
-        // User messages
+        // User messages (legacy non-chunked)
         channel.bind("user_message", handleUserMessage);
+
+        // User messages (chunked for large messages)
+        channel.bind("user_message.start", handleUserMessageStart);
+        channel.bind("user_message.content", handleUserMessageContent);
+        channel.bind("user_message.end", handleUserMessageEnd);
 
         // Error events
         channel.bind("agent.run_error", handleErrorEvent);
@@ -404,7 +528,15 @@ export function useConversationPusherChannel(
         channelRef.current = null;
       }
     };
-  }, [config, handleAguiEvent, handleUserMessage, handleErrorEvent]);
+  }, [
+    config,
+    handleAguiEvent,
+    handleUserMessage,
+    handleUserMessageStart,
+    handleUserMessageContent,
+    handleUserMessageEnd,
+    handleErrorEvent,
+  ]);
 
   return {
     isConnected,

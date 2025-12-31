@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Streamdown } from 'streamdown';
-import { CopyIcon, CheckCircleIcon, ChevronDownIcon } from './icons';
 
 export interface JsonBlockProps {
   /**
@@ -19,52 +18,14 @@ export interface JsonBlockProps {
  * JsonBlock component for displaying formatted JSON with syntax highlighting
  * Uses Streamdown for beautiful code highlighting
  */
-export const JsonBlock: React.FC<JsonBlockProps> = ({ data, label = 'JSON Response' }) => {
+export const JsonBlock: React.FC<JsonBlockProps> = ({ data }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const jsonString = JSON.stringify(data, null, 2);
   const isLarge = jsonString.length > 500;
 
-  const copyJson = () => {
-    navigator.clipboard.writeText(jsonString);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="my-3 rounded-lg border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex justify-between items-center">
-        <span className="text-xs font-medium text-gray-600">{label}</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={copyJson}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            title="Copy JSON"
-          >
-            {copied ? (
-              <CheckCircleIcon className="w-3.5 h-3.5 text-green-600" />
-            ) : (
-              <CopyIcon className="w-3.5 h-3.5 text-gray-500" />
-            )}
-          </button>
-          {isLarge && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
-              title={isExpanded ? 'Collapse' : 'Expand'}
-            >
-              <ChevronDownIcon
-                className={`w-4 h-4 text-gray-400 transition-transform ${
-                  isExpanded ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          )}
-        </div>
-      </div>
-
+    <div className="my-3 overflow-hidden">
       {/* JSON content */}
       <div className={isLarge && !isExpanded ? 'relative' : ''}>
         <div className={isLarge && !isExpanded ? 'max-h-48 overflow-hidden' : ''}>
