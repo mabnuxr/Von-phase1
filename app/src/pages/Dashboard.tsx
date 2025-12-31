@@ -1,7 +1,11 @@
 import { authService } from "../services";
 import { config } from "../config";
-import { useNewChat } from "../hooks/useNewChat";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  useCreateConversation,
+  conversationKeys,
+} from "../hooks/useConversations";
+import { generateConversationTitle } from "../lib/conversationUtils";
 import useChatStore from "../store/chatStore";
 import { useUser } from "../hooks/useUser";
 import { AvatarMenu } from "../components/AvatarMenu";
@@ -72,8 +76,14 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // New chat creation
-  const { createNewChat, isCreating: isCreatingNewChat } = useNewChat();
+  // New chat creation mutation
+  const { mutateAsync: createConversation } = useCreateConversation();
+
+  // Track new chat creation state (instant feedback + target tracking)
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [pendingConversationId, setPendingConversationId] = useState<
+    string | null
+  >(null);
 
   // Fetch conversations with infinite scroll for sidebar
   const {
@@ -165,37 +175,12 @@ const Dashboard = () => {
   // Track last user message for reliable error recovery
   const lastUserMessageRef = useRef<string>("");
 
-  // Debounced loading state for smooth skeleton transitions
-  // This ensures skeleton shows for minimum 400ms to allow animations to play
-  const [showSkeleton, setShowSkeleton] = useState(true);
-  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const isActuallyLoading =
+  // Simplified loading state - deterministic, no timers
+  const isLoading =
+    isCreatingChat ||
+    pendingConversationId !== null ||
     isInitializing ||
-    isCreatingNewChat ||
     (isLoadingMessages && conversationMessages.length === 0);
-
-  useEffect(() => {
-    if (isActuallyLoading) {
-      // Show skeleton immediately when loading starts
-      if (skeletonTimerRef.current) {
-        clearTimeout(skeletonTimerRef.current);
-        skeletonTimerRef.current = null;
-      }
-      setShowSkeleton(true);
-    } else {
-      // Delay hiding skeleton for smooth transition (minimum 150ms display)
-      skeletonTimerRef.current = setTimeout(() => {
-        setShowSkeleton(false);
-      }, 150);
-    }
-
-    return () => {
-      if (skeletonTimerRef.current) {
-        clearTimeout(skeletonTimerRef.current);
-      }
-    };
-  }, [isActuallyLoading]);
 
   // User channel for title updates (same pattern as conversation channel)
   const { channel: userChannel } = useUserPusherChannel({
@@ -388,18 +373,39 @@ const Dashboard = () => {
     }
   }, [urlConversationId, currentConversationId, setCurrentConversationId]);
 
+  // Clear loading states when we arrive at the target conversation
+  useEffect(() => {
+    if (
+      pendingConversationId &&
+      currentConversationId === pendingConversationId
+    ) {
+      setIsCreatingChat(false);
+      setPendingConversationId(null);
+    }
+  }, [currentConversationId, pendingConversationId]);
+
   // Chat handlers
   const handleChatClick = (conversationId: string) => {
     navigate(`/chat/${conversationId}`);
   };
 
   const handleNewChatClick = async () => {
+    setIsCreatingChat(true); // Instant skeleton
     try {
-      await createNewChat();
+      const title = generateConversationTitle();
+      const response = await createConversation(title);
+      const newId = response.conversation.conversationId;
+      setPendingConversationId(newId); // Track target
+      await queryClient.refetchQueries({
+        queryKey: conversationKeys.lists(),
+      });
+      navigate(`/chat/${newId}`);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error("[Dashboard] Failed to create new chat:", error);
+        console.error("[Dashboard] Failed to create conversation:", error);
       }
+      setIsCreatingChat(false);
+      setPendingConversationId(null);
     }
   };
 
@@ -733,7 +739,7 @@ const Dashboard = () => {
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            {showSkeleton ? (
+            {isLoading ? (
               <ChatSkeleton messageCount={4} />
             ) : (
               <Chat
