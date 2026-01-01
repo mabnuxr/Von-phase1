@@ -250,49 +250,36 @@ export const Chat: React.FC<ChatProps> = ({
           />
         ) : (
           <div className="flex flex-col">
-            <AnimatePresence initial={false}>
-              {visibleMessages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  layout={false}
-                  initial={false}
-                  animate={false}
-                  exit={{ opacity: 0, y: -20, height: 0 }}
-                  transition={{
-                    duration: 0.3,
-                    ease: 'easeInOut',
-                  }}
-                  className="mb-4"
-                >
-                  <ChatMessage
-                    type={message.type}
-                    content={message.content}
-                    reasoningContent={message.reasoningContent}
-                    timestamp={message.timestamp}
-                    activeTab={message.activeTab}
-                    isLoading={false}
-                    isStreaming={message.isStreaming}
-                    isReasoningStreaming={message.isReasoningStreaming}
-                    toolCalls={message.toolCalls}
-                    stepMessages={message.stepMessages}
-                    userName={userName}
-                    userEmail={userEmail}
-                    status={message.status}
-                    errorMessage={message.errorMessage}
-                    messageId={message.messageId || message.id}
-                    conversationId={message.conversationId}
-                    useArtifactHook={useArtifactHook}
-                    stoppedByUser={message.stoppedByUser}
-                    isLatestMessage={message.isLatestMessage}
-                    onApprove={onApprove}
-                    onReject={onReject}
-                    runId={message.runId}
-                    enableActions={enableActions}
-                    onConvertToDashboard={onConvertToDashboard}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {visibleMessages.map((message) => (
+              <div key={message.id} className="mb-4">
+                <ChatMessage
+                  type={message.type}
+                  content={message.content}
+                  reasoningContent={message.reasoningContent}
+                  timestamp={message.timestamp}
+                  activeTab={message.activeTab}
+                  isLoading={false}
+                  isStreaming={message.isStreaming}
+                  isReasoningStreaming={message.isReasoningStreaming}
+                  toolCalls={message.toolCalls}
+                  stepMessages={message.stepMessages}
+                  userName={userName}
+                  userEmail={userEmail}
+                  status={message.status}
+                  errorMessage={message.errorMessage}
+                  messageId={message.messageId || message.id}
+                  conversationId={message.conversationId}
+                  useArtifactHook={useArtifactHook}
+                  stoppedByUser={message.stoppedByUser}
+                  isLatestMessage={message.isLatestMessage}
+                  onApprove={onApprove}
+                  onReject={onReject}
+                  runId={message.runId}
+                  enableActions={enableActions}
+                  onConvertToDashboard={onConvertToDashboard}
+                />
+              </div>
+            ))}
           </div>
         )}
 
