@@ -403,6 +403,82 @@ export const ActionButtonGroup: React.FC<ActionButtonGroupProps> = ({
 };
 
 // ============================================================================
+// TransparentButton - Button with transparent background, fill on hover
+// Used inside SelectionPopover for menu options
+// ============================================================================
+
+export interface TransparentButtonProps extends Omit<BaseButtonProps, 'fullWidth'> {
+  /**
+   * Icon to display before the text
+   */
+  icon?: React.ReactNode;
+  /**
+   * Whether the item is in an "active" or "selected" state
+   * @default false
+   */
+  active?: boolean;
+  /**
+   * Right-side content (e.g., checkmark icon for selected state)
+   */
+  rightContent?: React.ReactNode;
+  /**
+   * Variant for styling
+   * @default 'default'
+   */
+  variant?: 'default' | 'danger';
+}
+
+/**
+ * TransparentButton - Button with transparent background and fill on hover
+ *
+ * Used for menu items in SelectionPopover and similar dropdown contexts.
+ * Supports active state and danger variant for destructive actions.
+ */
+export const TransparentButton: React.FC<TransparentButtonProps> = ({
+  children,
+  onClick,
+  disabled = false,
+  type = 'button',
+  className = '',
+  icon,
+  active = false,
+  rightContent,
+  variant = 'default',
+}) => {
+  const baseClasses = 'w-full rounded-xl flex items-center justify-between px-3 py-2 text-[13px] transition-colors cursor-pointer text-left';
+
+  const variantClasses = {
+    default: active
+      ? 'bg-green-50 text-green-800'
+      : 'text-gray-900 bg-transparent hover:bg-gray-50',
+    danger: 'text-red-600 bg-transparent hover:bg-red-50',
+  };
+
+  // Default icon color classes (apply to icon wrapper)
+  const iconColorClass = variant === 'danger' ? '' : (active ? 'text-green-600' : 'text-gray-800');
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        ${baseClasses}
+        ${variantClasses[variant]}
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${className}
+      `}
+    >
+      <div className="flex items-center gap-2.5">
+        {icon && <span className={iconColorClass}>{icon}</span>}
+        {children}
+      </div>
+      {rightContent}
+    </button>
+  );
+};
+
+// ============================================================================
 // Legacy exports for backward compatibility
 // These will be removed in a future version
 // ============================================================================

@@ -103,8 +103,8 @@ const ChatSidebarWrapper = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedId, setSelectedId] = useState('chat-1');
   const [folders, setFolders] = useState([
-    { id: 'folder-1', label: 'Q4 Analysis', isExpanded: true },
-    { id: 'folder-2', label: 'Executive Reports', isExpanded: false },
+    { id: 'folder-1', label: 'Q4 Analysis', isExpanded: true, type: 'chat' as const },
+    { id: 'folder-2', label: 'Executive Reports', isExpanded: false, type: 'dashboard' as const },
   ]);
 
   const items = [
@@ -114,18 +114,23 @@ const ChatSidebarWrapper = () => {
     { id: 'chat-3', label: 'Revenue Forecast', type: 'chat' as const },
     { id: 'chat-4', label: 'Top Performers Analysis', type: 'chat' as const },
 
-    // Dashboards - Mine
+    // Dashboards - Private (mine, not shared)
     { id: 'dash-1', label: 'Sales Overview', type: 'dashboard' as const, ownership: 'mine' as const },
     { id: 'dash-2', label: 'My Team Performance', type: 'dashboard' as const, ownership: 'mine' as const },
 
-    // Dashboards - Shared (org-wide)
-    { id: 'dash-3', label: 'Company KPIs', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'Sarah Chen' },
-    { id: 'dash-4', label: 'Regional Breakdown', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'Mike Johnson' },
+    // Dashboards - Shared by you (created by you and shared with others)
+    { id: 'dash-3', label: 'Q4 Pipeline Dashboard', type: 'dashboard' as const, ownership: 'shared_by_me' as const },
+    { id: 'dash-4', label: 'Weekly Sales Report', type: 'dashboard' as const, ownership: 'shared_by_me' as const },
+
+    // Dashboards - Org-wide (shared by someone else)
+    { id: 'dash-5', label: 'Company KPIs', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'Sarah Chen' },
+    { id: 'dash-6', label: 'Regional Breakdown', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'Mike Johnson' },
 
     // Items in folders
     { id: 'chat-5', label: 'Q4 Projections', type: 'chat' as const, folderId: 'folder-1' },
-    { id: 'dash-5', label: 'Q4 Executive Summary', type: 'dashboard' as const, ownership: 'mine' as const, folderId: 'folder-1' },
-    { id: 'dash-6', label: 'Board Deck Data', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'CEO', folderId: 'folder-2' },
+    { id: 'dash-7', label: 'Q4 Executive Summary', type: 'dashboard' as const, ownership: 'mine' as const, folderId: 'folder-2' },
+    { id: 'dash-8', label: 'Team Metrics', type: 'dashboard' as const, ownership: 'shared_by_me' as const, folderId: 'folder-2' },
+    { id: 'dash-9', label: 'Board Deck Data', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'CEO', folderId: 'folder-2' },
   ];
 
   return (
@@ -153,7 +158,8 @@ const ChatSidebarWrapper = () => {
         }}
         onNewChatClick={() => console.log('New Chat clicked')}
         onNewDashboardClick={() => console.log('New Dashboard clicked')}
-        onNewFolderClick={() => console.log('New Folder clicked')}
+        onNewChatFolderClick={() => console.log('New Chat Folder clicked')}
+        onNewDashboardFolderClick={() => console.log('New Dashboard Folder clicked')}
         onRenameItem={(id, type) => console.log('Rename:', id, type)}
         onDeleteItem={(id, type) => console.log('Delete:', id, type)}
         onFolderToggle={(folderId, isExpanded) => {
@@ -164,7 +170,6 @@ const ChatSidebarWrapper = () => {
         userName="John Doe"
         userEmail="john@example.com"
         avatarLabel="JD"
-        onAvatarClick={(rect) => console.log('Avatar clicked', rect)}
         hasNextPage={true}
         onLoadMore={() => console.log('Load more')}
       />

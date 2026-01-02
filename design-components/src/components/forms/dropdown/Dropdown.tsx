@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export interface DropdownOption {
   value: string;
   label: string;
+  icon?: React.ReactNode;
 }
 
 export interface DropdownProps {
@@ -12,6 +13,10 @@ export interface DropdownProps {
    * Label for the dropdown
    */
   label?: string;
+  /**
+   * Additional class name for the label
+   */
+  labelClassName?: string;
   /**
    * Options to display
    */
@@ -48,6 +53,7 @@ export interface DropdownProps {
 
 export const Dropdown: React.FC<DropdownProps> = ({
   label,
+  labelClassName,
   options,
   value,
   placeholder = 'Select...',
@@ -122,7 +128,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`} ref={containerRef}>
       {label && (
-        <label className="text-xs font-medium text-gray-700">
+        <label className={labelClassName || "text-xs font-medium text-gray-700"}>
           {label}
         </label>
       )}
@@ -148,7 +154,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}
           `}
         >
-          <span className={selectedOption ? 'text-gray-900' : 'text-gray-400'}>
+          <span className={`flex items-center gap-2 ${selectedOption ? 'text-gray-900' : 'text-gray-400'}`}>
+            {selectedOption?.icon && <span className="flex-shrink-0 text-gray-700">{selectedOption.icon}</span>}
             {selectedOption?.label || placeholder}
           </span>
           <CaretDown
@@ -167,7 +174,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+              className="absolute z-[200] w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
             >
               <div className="max-h-48 overflow-y-auto py-1">
                 {options.length === 0 ? (
@@ -191,7 +198,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
                           }
                         `}
                       >
-                        <span className="truncate">{option.label}</span>
+                        <span className="flex items-center gap-2 truncate">
+                          {option.icon && <span className="flex-shrink-0 text-gray-700">{option.icon}</span>}
+                          {option.label}
+                        </span>
                         {isSelected && (
                           <Check size={14} weight="bold" className="text-gray-700 flex-shrink-0" />
                         )}

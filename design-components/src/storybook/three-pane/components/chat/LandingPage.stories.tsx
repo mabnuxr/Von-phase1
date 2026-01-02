@@ -188,7 +188,7 @@ export const LandingPage: Story = {
       },
     ];
 
-    const sampleFolders = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false }];
+    const sampleFolders = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false, type: 'chat' as const }];
 
     return (
       <div className="flex flex-col h-full">
@@ -230,7 +230,8 @@ export const LandingPage: Story = {
               onItemClick={(id) => setSelectedId(id)}
               onNewChatClick={() => console.log('New Chat')}
               onNewDashboardClick={() => console.log('New Dashboard')}
-              onNewFolderClick={() => console.log('New Folder')}
+              onNewChatFolderClick={() => console.log('New Chat Folder')}
+              onNewDashboardFolderClick={() => console.log('New Dashboard Folder')}
               onRenameItem={(id) => console.log('Rename:', id)}
               onDeleteItem={(id) => console.log('Delete:', id)}
               onFolderToggle={() => {}}

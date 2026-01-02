@@ -124,7 +124,7 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
       },
     ];
 
-    const sampleFolders = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false }];
+    const sampleFolders = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false, type: 'chat' as const }];
 
     // Data tables for Pane1
     const dataTables: DataTable[] = mockDataTables;
@@ -243,7 +243,8 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
               onItemClick={(id) => setSelectedItemId(id)}
               onNewChatClick={() => console.log('New Chat')}
               onNewDashboardClick={() => console.log('New Dashboard')}
-              onNewFolderClick={() => console.log('New Folder')}
+              onNewChatFolderClick={() => console.log('New Chat Folder')}
+              onNewDashboardFolderClick={() => console.log('New Dashboard Folder')}
               onRenameItem={(id, type, newName) => console.log('Rename:', id, type, newName)}
               onDeleteItem={(id, type) => console.log('Delete:', id, type)}
               onFolderToggle={() => {}}

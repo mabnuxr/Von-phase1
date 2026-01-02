@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { PlusIcon, MicrophoneIcon, ChartBar, Table, FileText, X } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PlusIcon, MicrophoneIcon, ChartBar, Table, FileText, X, XIcon, UploadSimpleIcon, AtomIcon, CheckIcon } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 import { Toggle } from '../../forms/toggle';
 import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
+import { ContextMenu, type ContextMenuItem } from '../../popups';
 import type { StandardChatInputProps, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
 
@@ -15,13 +17,13 @@ import type { BuildMode } from '../../DashboardBuilder/types';
 function getReferenceIcon(type: ReferenceContext['type']) {
   switch (type) {
     case 'dashboard':
-      return <ChartBar size={14} weight="regular" className="text-gray-500" />;
+      return <ChartBar size={14} weight="regular" className="text-gray-800" />;
     case 'report':
-      return <Table size={14} weight="regular" className="text-gray-500" />;
+      return <Table size={14} weight="regular" className="text-gray-800" />;
     case 'document':
-      return <FileText size={14} weight="regular" className="text-gray-500" />;
+      return <FileText size={14} weight="regular" className="text-gray-800" />;
     default:
-      return <ChartBar size={14} weight="regular" className="text-gray-500" />;
+      return <ChartBar size={14} weight="regular" className="text-gray-800" />;
   }
 }
 
@@ -45,6 +47,77 @@ const MODE_OPTIONS = [
   { value: 'ask' as BuildMode, label: 'Ask' },
   { value: 'build' as BuildMode, label: 'Build' },
 ];
+
+/**
+ * PlusButtonMenu - Plus button with context menu for upload and deep research options
+ */
+interface PlusButtonMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onOpen: () => void;
+  onUpload: () => void;
+  onDeepResearch: () => void;
+  isDeepResearch: boolean;
+  disabled?: boolean;
+}
+
+const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
+  isOpen,
+  onClose,
+  onOpen,
+  onUpload,
+  onDeepResearch,
+  isDeepResearch,
+  disabled = false,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const items: ContextMenuItem[] = [
+    {
+      id: 'upload',
+      label: 'Upload files and photos',
+      icon: <UploadSimpleIcon size={16} />,
+    },
+    {
+      id: 'deep-research',
+      label: 'Deep research',
+      icon: <AtomIcon size={16} />,
+      active: isDeepResearch,
+      rightContent: isDeepResearch ? <CheckIcon size={14} weight="bold" className="text-green-600" /> : undefined,
+    },
+  ];
+
+  const handleItemClick = (item: ContextMenuItem) => {
+    if (item.id === 'upload') {
+      onUpload();
+    } else if (item.id === 'deep-research') {
+      onDeepResearch();
+    }
+    onClose();
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <SecondaryIconButton
+        icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
+        onClick={onOpen}
+        disabled={disabled}
+        title="More options"
+        className="w-8.5 h-8.5 rounded-xl"
+      />
+
+      <ContextMenu
+        isOpen={isOpen}
+        onClose={onClose}
+        items={items}
+        anchorRef={containerRef}
+        position="top-start"
+        width={208}
+        onItemClick={handleItemClick}
+      />
+    </div>
+  );
+};
 
 /**
  * StandardChatInput - A standardized chat input component
@@ -79,6 +152,9 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onRemoveReference,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
+  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+  const [isResearchTagHovered, setIsResearchTagHovered] = useState(false);
+  const [isDeepResearch, setIsDeepResearch] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // File upload hook for uncontrolled mode
@@ -198,15 +274,34 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
 
   const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
 
+  const handlePlusButtonClick = useCallback(() => {
+    setIsPlusMenuOpen(true);
+  }, []);
+
+  const handleUploadFilesClick = useCallback(() => {
+    setIsPlusMenuOpen(false);
+    openFilePicker();
+  }, [openFilePicker]);
+
+  const handleDeepResearchClick = useCallback(() => {
+    setIsPlusMenuOpen(false);
+    setIsDeepResearch(true);
+  }, []);
+
+  const handleCancelDeepResearch = useCallback(() => {
+    setIsDeepResearch(false);
+  }, []);
+
   return (
     <div className="w-full antialiased font-sf">
       <div className="max-w-3xl mx-auto">
         {/* Reference tag - shown above the input when a reference is set */}
         {referenceContext && (
-          <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-gray-50 border border-gray-100 rounded-lg">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
+            <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
+            <div className="flex items-center gap-1.5">
               {getReferenceIcon(referenceContext.type)}
-              <span className="text-[13px] text-gray-700">
+              <span className="text-[13px] text-gray-900">
                 {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
               </span>
             </div>
@@ -215,8 +310,10 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                 icon={<X size={12} weight="bold" />}
                 onClick={onRemoveReference}
                 title="Remove reference"
+                className="text-gray-800"
               />
             )}
+          </div>
           </div>
         )}
 
@@ -275,14 +372,41 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
             <div className="flex items-center justify-between px-3 pb-3">
               {/* Left side - Plus button and Mode toggle */}
               <div className="flex items-center gap-2">
-                {/* Plus button - direct file upload */}
-                <SecondaryIconButton
-                  icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
-                  onClick={openFilePicker}
+                {/* Plus button - opens menu with options */}
+                <PlusButtonMenu
+                  isOpen={isPlusMenuOpen}
+                  onClose={() => setIsPlusMenuOpen(false)}
+                  onOpen={handlePlusButtonClick}
+                  onUpload={handleUploadFilesClick}
+                  onDeepResearch={isDeepResearch ? handleCancelDeepResearch : handleDeepResearchClick}
+                  isDeepResearch={isDeepResearch}
                   disabled={disabled && !isStreaming}
-                  title="Attach files"
-                  className="w-8.5 h-8.5 rounded-xl"
                 />
+
+                {/* Research tag - shown when deep research mode is active */}
+                <AnimatePresence>
+                  {isDeepResearch && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 border border-gray-100 hover:bg-gray-50 text-[13px] font-medium rounded-xl transition-colors cursor-pointer"
+                      onClick={handleCancelDeepResearch}
+                      onMouseEnter={() => setIsResearchTagHovered(true)}
+                      onMouseLeave={() => setIsResearchTagHovered(false)}
+                      title="Click to cancel deep research"
+                    >
+                      {isResearchTagHovered ? (
+                        <XIcon size={14} weight="bold" className="text-gray-800" />
+                      ) : (
+                        <AtomIcon size={14} weight="regular" className="text-gray-800" />
+                      )}
+                      Research
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -294,12 +418,12 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                 />
 
                 {/* Mode toggle (Ask/Build) using forms Toggle component */}
-                <Toggle
+                {/* <Toggle
                   options={MODE_OPTIONS}
                   value={mode}
                   onChange={(newMode) => onModeChange?.(newMode)}
                   disabled={disabled}
-                />
+                /> */}
               </div>
 
               {/* Right side - Voice and Send buttons */}

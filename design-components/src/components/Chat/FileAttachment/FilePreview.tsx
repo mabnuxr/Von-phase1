@@ -186,7 +186,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
 
   return (
     <div
-      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 ${containerBg} flex-shrink-0 group min-w-[180px] max-w-[220px]`}
+      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 ${containerBg} flex-shrink-0 group min-w-[180px] max-w-[220px]`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

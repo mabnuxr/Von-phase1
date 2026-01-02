@@ -7,6 +7,10 @@ export interface TextInputProps
    */
   label?: string;
   /**
+   * Additional class name for the label
+   */
+  labelClassName?: string;
+  /**
    * Helper text shown below the input
    */
   helperText?: string;
@@ -17,7 +21,7 @@ export interface TextInputProps
 }
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-  ({ label, helperText, error, className = '', id, ...props }, ref) => {
+  ({ label, labelClassName, helperText, error, className = '', id, ...props }, ref) => {
     const inputId = id || `text-input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
@@ -25,7 +29,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-medium text-gray-700"
+            className={labelClassName || "text-xs font-medium text-gray-700"}
           >
             {label}
           </label>

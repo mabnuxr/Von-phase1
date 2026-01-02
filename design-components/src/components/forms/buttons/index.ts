@@ -12,6 +12,7 @@ export {
   PillButton,
   AddButton,
   ActionButtonGroup,
+  TransparentButton,
 } from './ActionButtons';
 export type {
   HeroButtonProps,
@@ -22,6 +23,7 @@ export type {
   PillButtonProps,
   AddButtonProps,
   ActionButtonGroupProps,
+  TransparentButtonProps,
 } from './ActionButtons';
 
 // Legacy action button exports (deprecated - will be removed in future versions)

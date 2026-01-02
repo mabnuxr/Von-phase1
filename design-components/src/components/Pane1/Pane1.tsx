@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChartBar,
   ChartLine,
@@ -8,12 +9,26 @@ import {
   Table,
   MagnifyingGlass,
   ArrowLeft,
+  TreeStructureIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  DotsThreeIcon,
+  PencilSimpleIcon,
+  TrashIcon,
+  Users,
+  Buildings,
+  Lock,
 } from '@phosphor-icons/react';
 import { TextInput } from '../forms/input';
 import { Select } from '../forms/dropdown';
 import { FilterRow } from '../forms/filter';
 import { Toggle } from '../forms/toggle';
-import { AddButton, PrimaryButton, GhostButton, TertiaryIconButton } from '../forms/buttons';
+import { AddButton, PrimaryButton, SecondaryButton, GhostButton, TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
+import { ContextMenu, DeleteConfirmationPopup, NewReportModal, type ContextMenuItem, type NewReportConfig } from '../popups';
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface ChartComponent {
   id: string;
@@ -27,6 +42,15 @@ export interface TableItem {
   columnCount?: number;
   /** Fields/columns available in this report for filtering */
   fields?: { value: string; label: string }[];
+}
+
+export interface SubtableItem {
+  id: string;
+  label: string;
+  /** Whether this subtable section is expanded */
+  isExpanded?: boolean;
+  /** Child subtables (supports up to 3 levels deep) */
+  children?: SubtableItem[];
 }
 
 export interface ComponentConfig {
@@ -69,9 +93,29 @@ export interface Pane1Props {
   onComponentClick?: (component: ChartComponent) => void;
 
   /**
-   * Called when a data source is clicked
+   * Hierarchical subtables data (supports up to 3 levels)
    */
-  onDataSourceClick?: (id: string) => void;
+  subtables?: SubtableItem[];
+
+  /**
+   * Called when a subtable is clicked
+   */
+  onSubtableClick?: (id: string) => void;
+
+  /**
+   * Called when a subtable is toggled (expanded/collapsed)
+   */
+  onSubtableToggle?: (id: string, isExpanded: boolean) => void;
+
+  /**
+   * Called when a subtable is renamed
+   */
+  onSubtableRename?: (id: string, newName: string) => void;
+
+  /**
+   * Called when a subtable is deleted
+   */
+  onSubtableDelete?: (id: string) => void;
 
   /**
    * Initial active tab
@@ -98,6 +142,11 @@ export interface Pane1Props {
    * Called when selected component changes
    */
   onSelectedComponentChange?: (component: ChartComponent | null) => void;
+
+  /**
+   * Called when a new report is created
+   */
+  onCreateReport?: (config: NewReportConfig) => void;
 }
 
 const iconMap = {
@@ -137,6 +186,305 @@ const defaultDataSources: TableItem[] = [
   { id: '6', label: 'Support Ticket Trends', columnCount: 4, fields: defaultFields },
 ];
 
+const defaultSubtables: SubtableItem[] = [
+  {
+    id: 'revenue-summary',
+    label: 'Revenue Summary',
+    isExpanded: true,
+    children: [
+      {
+        id: 'revenue-by-region',
+        label: 'Revenue by Region',
+        children: [
+          { id: 'revenue-region-americas', label: 'Americas Breakdown' },
+          { id: 'revenue-region-emea', label: 'EMEA Breakdown' },
+          { id: 'revenue-region-apac', label: 'APAC Breakdown' },
+        ],
+      },
+      {
+        id: 'revenue-by-product',
+        label: 'Revenue by Product',
+        children: [
+          { id: 'revenue-product-enterprise', label: 'Enterprise Tier' },
+          { id: 'revenue-product-growth', label: 'Growth Tier' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'pipeline-analysis',
+    label: 'Pipeline Analysis',
+    isExpanded: false,
+    children: [
+      { id: 'pipeline-by-stage', label: 'By Stage' },
+      { id: 'pipeline-by-owner', label: 'By Owner' },
+      { id: 'pipeline-velocity', label: 'Velocity Metrics' },
+    ],
+  },
+  {
+    id: 'customer-health',
+    label: 'Customer Health',
+    isExpanded: false,
+    children: [
+      {
+        id: 'health-risk-scores',
+        label: 'Risk Scores',
+        children: [
+          { id: 'health-risk-high', label: 'High Risk' },
+          { id: 'health-risk-medium', label: 'Medium Risk' },
+        ],
+      },
+      { id: 'health-nps-trends', label: 'NPS Trends' },
+    ],
+  },
+];
+
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+/** Count total items in a subtable hierarchy */
+const countSubtableItems = (items: SubtableItem[]): number => {
+  return items.reduce((count, item) => {
+    return count + 1 + (item.children ? countSubtableItems(item.children) : 0);
+  }, 0);
+};
+
+// Context menu items for subtables
+const getSubtableContextMenuItems = (): ContextMenuItem[] => [
+  { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
+  { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' },
+];
+
+interface SubtableRowProps {
+  item: SubtableItem;
+  level: number;
+  isSelected?: boolean;
+  isEditing?: boolean;
+  isMenuOpen?: boolean;
+  onClick: () => void;
+  onToggle: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onSaveEdit?: (newName: string) => void;
+  onCancelEdit?: () => void;
+}
+
+const SubtableRow: React.FC<SubtableRowProps> = ({
+  item,
+  level,
+  isSelected = false,
+  isEditing = false,
+  isMenuOpen = false,
+  onClick,
+  onToggle,
+  onContextMenu,
+  onSaveEdit,
+  onCancelEdit,
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [editValue, setEditValue] = useState(item.label);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const hasChildren = item.children && item.children.length > 0;
+  const showButton = (isHovered || isMenuOpen) && !isEditing;
+
+  // Focus input when entering edit mode
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  // Reset edit value when item label changes or editing starts
+  useEffect(() => {
+    setEditValue(item.label);
+  }, [item.label, isEditing]);
+
+  const handleSave = () => {
+    const trimmedValue = editValue.trim();
+    if (trimmedValue && trimmedValue !== item.label) {
+      onSaveEdit?.(trimmedValue);
+    } else {
+      onCancelEdit?.();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancelEdit?.();
+    }
+  };
+
+  const childCount = item.children ? countSubtableItems(item.children) : 0;
+
+  return (
+    <div
+      className={`
+        group relative flex items-center gap-2 px-2 py-1 rounded-lg text-[13px]
+        transition-colors duration-150
+        ${!hasChildren ? 'pl-6' : ''}
+        ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
+      `}
+      onClick={isEditing ? undefined : onClick}
+      onContextMenu={isEditing ? undefined : onContextMenu}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title={isEditing ? undefined : item.label}
+    >
+      {/* Expand/Collapse Caret for parent items (only show if has children) */}
+      {hasChildren && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className="flex-shrink-0 p-0.5 hover:bg-gray-100 rounded transition-colors"
+        >
+          {item.isExpanded ? (
+            <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
+          ) : (
+            <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
+          )}
+        </button>
+      )}
+
+      {/* Branch icon for subtables (not for top-level parent tables) */}
+      {level > 0 && (
+        <TreeStructureIcon size={16} weight="regular" className="text-gray-600 flex-shrink-0" />
+      )}
+
+      {/* Table icon for top-level parent tables */}
+      {level === 0 && (
+        <Table size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
+      )}
+
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <>
+          <span className="flex-1 text-[13px] truncate text-gray-900">
+            {item.label}
+          </span>
+
+          {/* Child count badge */}
+          {hasChildren && (
+            <span className="text-[11px] font-mono text-gray-500">
+              [{childCount}]
+            </span>
+          )}
+
+          {/* More options button - shows on hover or when menu is open */}
+          <PrimaryIconButton
+            icon={<DotsThreeIcon size={16} weight="bold" />}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu(e)}
+            visible={showButton}
+            size="small"
+            className="absolute right-1"
+          />
+        </>
+      )}
+    </div>
+  );
+};
+
+interface SubtableSectionProps {
+  items: SubtableItem[];
+  level?: number;
+  selectedId?: string | null;
+  editingId?: string | null;
+  menuOpenId?: string | null;
+  expandedIds: Set<string>;
+  onItemClick: (id: string) => void;
+  onToggle: (id: string) => void;
+  onContextMenu: (e: React.MouseEvent, item: SubtableItem) => void;
+  onSaveEdit: (item: SubtableItem, newName: string) => void;
+  onCancelEdit: () => void;
+}
+
+const SubtableSection: React.FC<SubtableSectionProps> = ({
+  items,
+  level = 0,
+  selectedId,
+  editingId,
+  menuOpenId,
+  expandedIds,
+  onItemClick,
+  onToggle,
+  onContextMenu,
+  onSaveEdit,
+  onCancelEdit,
+}) => {
+  return (
+    <div className={level > 0 ? 'pl-2 border-l border-gray-200 ml-4' : ''}>
+      {items.map((item) => {
+        const isExpanded = expandedIds.has(item.id);
+        const hasChildren = item.children && item.children.length > 0;
+
+        return (
+          <div key={item.id} className="mb-0.5">
+            <SubtableRow
+              item={{ ...item, isExpanded }}
+              level={level}
+              isSelected={selectedId === item.id}
+              isEditing={editingId === item.id}
+              isMenuOpen={menuOpenId === item.id}
+              onClick={() => onItemClick(item.id)}
+              onToggle={() => onToggle(item.id)}
+              onContextMenu={(e) => onContextMenu(e, item)}
+              onSaveEdit={(newName) => onSaveEdit(item, newName)}
+              onCancelEdit={onCancelEdit}
+            />
+
+            {/* Render children if expanded */}
+            <AnimatePresence>
+              {hasChildren && isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden"
+                >
+                  <SubtableSection
+                    items={item.children!}
+                    level={level + 1}
+                    selectedId={selectedId}
+                    editingId={editingId}
+                    menuOpenId={menuOpenId}
+                    expandedIds={expandedIds}
+                    onItemClick={onItemClick}
+                    onToggle={onToggle}
+                    onContextMenu={onContextMenu}
+                    onSaveEdit={onSaveEdit}
+                    onCancelEdit={onCancelEdit}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
 /**
  * Pane1 - Dashboard Builder Side Panel
  *
@@ -147,18 +495,62 @@ const defaultDataSources: TableItem[] = [
 export const Pane1: React.FC<Pane1Props> = ({
   chartComponents = defaultChartComponents,
   dataSources = defaultDataSources,
+  subtables = defaultSubtables,
   searchPlaceholder,
   onDragStart,
   onComponentClick,
-  onDataSourceClick,
+  onSubtableClick,
+  onSubtableToggle,
+  onSubtableRename,
+  onSubtableDelete,
   defaultTab = 'dashboard',
   onSaveConfig,
   onDiscardConfig,
   selectedComponent: controlledSelectedComponent,
   onSelectedComponentChange,
+  onCreateReport,
 }) => {
   const [activeTab, setActiveTab] = useState<'data' | 'dashboard'>(defaultTab);
   const [searchValue, setSearchValue] = useState('');
+
+  // New Report Modal state
+  const [isNewReportModalOpen, setIsNewReportModalOpen] = useState(false);
+
+  // Subtables section expansion state
+  const [isSubtablesExpanded, setIsSubtablesExpanded] = useState(true);
+
+  // Subtables state management
+  const [selectedSubtableId, setSelectedSubtableId] = useState<string | null>(null);
+  const [editingSubtableId, setEditingSubtableId] = useState<string | null>(null);
+  const [expandedSubtableIds, setExpandedSubtableIds] = useState<Set<string>>(() => {
+    // Initialize with items that have isExpanded: true
+    const initialExpanded = new Set<string>();
+    const collectExpanded = (items: SubtableItem[]) => {
+      items.forEach((item) => {
+        if (item.isExpanded) {
+          initialExpanded.add(item.id);
+        }
+        if (item.children) {
+          collectExpanded(item.children);
+        }
+      });
+    };
+    collectExpanded(subtables);
+    return initialExpanded;
+  });
+
+  // Context menu state for subtables
+  const [subtableContextMenu, setSubtableContextMenu] = useState<{
+    isOpen: boolean;
+    position: { top: number; left: number };
+    item: SubtableItem | null;
+  }>({ isOpen: false, position: { top: 0, left: 0 }, item: null });
+
+  // Delete confirmation state for reports
+  const [reportDeleteConfirmation, setReportDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    item: SubtableItem | null;
+  }>({ isOpen: false, item: null });
 
   // Internal state for selected component (uncontrolled mode)
   const [internalSelectedComponent, setInternalSelectedComponent] = useState<ChartComponent | null>(null);
@@ -185,10 +577,6 @@ export const Pane1: React.FC<Pane1Props> = ({
     operator: string;
     value: string;
   }>>([]);
-
-  const filteredDataSources = dataSources.filter((d) =>
-    d.label.toLowerCase().includes(searchValue.toLowerCase())
-  );
 
   // Get fields for the selected report
   const selectedReport = dataSources.find((d) => d.id === configReportId);
@@ -305,7 +693,7 @@ export const Pane1: React.FC<Pane1Props> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {configFilters.map((filter, index) => (
+                {configFilters.map((filter) => (
                   <FilterRow
                     key={filter.id}
                     fields={availableFields}
@@ -390,7 +778,7 @@ export const Pane1: React.FC<Pane1Props> = ({
                       draggable
                       onDragStart={() => onDragStart?.(component)}
                       onClick={() => handleComponentSelect(component)}
-                      className="flex flex-row items-center justify-center gap-1.5 px-3 py-3 bg-white rounded-xl border border-gray-100 cursor-pointer hover:border-gray-200 hover:border-dashed hover:shadow-lg hover:shadow-gray-100 transition-all duration-200 active:scale-[0.98]"
+                      className="flex flex-row items-center justify-center gap-1.5 px-3 py-3 bg-white rounded-xl border border-gray-100 cursor-grab hover:border-gray-200 hover:border-dashed hover:shadow-lg hover:shadow-gray-100 transition-all duration-200 active:scale-[0.98]"
                     >
                       <div className="p-2 bg-gray-50 rounded-lg">
                       <IconComponent size={18} weight="regular" className="text-gray-800" />
@@ -403,27 +791,128 @@ export const Pane1: React.FC<Pane1Props> = ({
             </div>
           </>
         ) : (
-          /* Reports View */
-          <div className="mb-1">
-            <div className="px-2 py-1.5">
-              <span className="text-xs font-medium text-gray-700">
-                Reports
-              </span>
+          /* Data View - Reports */
+          <>
+            {/* New Report Button */}
+            <div className="mb-3 px-1">
+              <SecondaryButton onClick={() => setIsNewReportModalOpen(true)} fullWidth>
+                New Report
+              </SecondaryButton>
             </div>
 
-            <div className="flex flex-col">
-              {filteredDataSources.map((source) => (
+            {/* Reports Section */}
+            <div className="mb-1">
+              <div className="flex items-center justify-between px-2 py-1.5">
                 <button
-                  key={source.id}
-                  onClick={() => onDataSourceClick?.(source.id)}
-                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors duration-150 cursor-pointer text-left"
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-700 hover:text-gray-800 transition-colors cursor-pointer"
+                  onClick={() => setIsSubtablesExpanded(!isSubtablesExpanded)}
                 >
-                  <Table size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
-                  <span className="flex-1 text-[13px] text-gray-900 truncate">{source.label}</span>
+                  <span>Reports</span>
+                  <span className="text-[11px] font-mono text-gray-500">
+                    [{countSubtableItems(subtables)}]
+                  </span>
+                  {isSubtablesExpanded ? (
+                    <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
+                  ) : (
+                    <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
+                  )}
                 </button>
-              ))}
+              </div>
+
+              <AnimatePresence>
+                {isSubtablesExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="overflow-hidden"
+                  >
+                    <SubtableSection
+                      items={subtables}
+                      level={0}
+                      selectedId={selectedSubtableId}
+                      editingId={editingSubtableId}
+                      menuOpenId={subtableContextMenu.isOpen ? subtableContextMenu.item?.id : null}
+                      expandedIds={expandedSubtableIds}
+                      onItemClick={(id) => {
+                        setSelectedSubtableId(id);
+                        onSubtableClick?.(id);
+                      }}
+                      onToggle={(id) => {
+                        setExpandedSubtableIds((prev) => {
+                          const next = new Set(prev);
+                          const isExpanded = next.has(id);
+                          if (isExpanded) {
+                            next.delete(id);
+                          } else {
+                            next.add(id);
+                          }
+                          onSubtableToggle?.(id, !isExpanded);
+                          return next;
+                        });
+                      }}
+                      onContextMenu={(e, item) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSubtableContextMenu({
+                          isOpen: true,
+                          position: { top: e.clientY, left: e.clientX + 8 },
+                          item,
+                        });
+                      }}
+                      onSaveEdit={(item, newName) => {
+                        onSubtableRename?.(item.id, newName);
+                        setEditingSubtableId(null);
+                      }}
+                      onCancelEdit={() => setEditingSubtableId(null)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
+
+            {/* Context Menu for Reports */}
+            <ContextMenu
+              isOpen={subtableContextMenu.isOpen}
+              onClose={() => setSubtableContextMenu({ ...subtableContextMenu, isOpen: false })}
+              items={getSubtableContextMenuItems()}
+              fixedPosition={subtableContextMenu.position}
+              width={128}
+              onItemClick={(item) => {
+                if (item.id === 'rename' && subtableContextMenu.item) {
+                  setEditingSubtableId(subtableContextMenu.item.id);
+                } else if (item.id === 'delete' && subtableContextMenu.item) {
+                  setReportDeleteConfirmation({ isOpen: true, item: subtableContextMenu.item });
+                }
+                setSubtableContextMenu({ ...subtableContextMenu, isOpen: false });
+              }}
+            />
+
+            {/* Delete Confirmation Popup for Reports */}
+            <DeleteConfirmationPopup
+              isOpen={reportDeleteConfirmation.isOpen}
+              itemLabel={reportDeleteConfirmation.item?.label || ''}
+              itemType="report"
+              onConfirm={() => {
+                if (reportDeleteConfirmation.item) {
+                  onSubtableDelete?.(reportDeleteConfirmation.item.id);
+                }
+                setReportDeleteConfirmation({ isOpen: false, item: null });
+              }}
+              onCancel={() => setReportDeleteConfirmation({ isOpen: false, item: null })}
+            />
+
+            {/* New Report Modal */}
+            <NewReportModal
+              isOpen={isNewReportModalOpen}
+              onConfirm={(config) => {
+                onCreateReport?.(config);
+                setIsNewReportModalOpen(false);
+              }}
+              onCancel={() => setIsNewReportModalOpen(false)}
+            />
+          </>
         )}
       </div>
     </div>
