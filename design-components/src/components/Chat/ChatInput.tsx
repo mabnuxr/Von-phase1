@@ -1,6 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { PlusIcon } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from './icons';
 import { RichTextInput, hasPlaceholders } from './RichTextInput';
+import { FilePreview } from './FileAttachment/FilePreview';
+import { useFileUpload } from './FileAttachment/useFileUpload';
+import { getAcceptString } from './FileAttachment/types';
+import type { FileAttachment } from './FileAttachment/types';
+import { ModeToggle } from '../DashboardBuilder';
+import type { BuildMode } from '../DashboardBuilder';
 
 export interface ChatInputProps {
   /**
@@ -11,8 +18,9 @@ export interface ChatInputProps {
 
   /**
    * Callback when send/enter is pressed
+   * Now includes optional file attachments
    */
-  onSend?: (message: string) => void;
+  onSend?: (message: string, attachments?: FileAttachment[]) => void;
 
   /**
    * Callback when stop button is clicked during streaming
@@ -79,10 +87,48 @@ export interface ChatInputProps {
    * @default false
    */
   hideDisclaimer?: boolean;
+
+  /**
+   * Enable file attachment functionality
+   * @default false
+   */
+  enableFileUpload?: boolean;
+
+  /**
+   * Callback when a file validation error occurs
+   */
+  onFileError?: (error: string, message: string) => void;
+
+  /**
+   * Files dropped via drag-and-drop (from parent component)
+   * These will be added to attachments when provided
+   */
+  droppedFiles?: File[];
+
+  /**
+   * Callback when dropped files have been processed
+   */
+  onDroppedFilesProcessed?: () => void;
+
+  /**
+   * Show mode toggle (Ask/Build) in the input
+   * @default false
+   */
+  showModeToggle?: boolean;
+
+  /**
+   * Current mode (ask or build)
+   */
+  mode?: BuildMode;
+
+  /**
+   * Callback when mode changes
+   */
+  onModeChange?: (mode: BuildMode) => void;
 }
 
 /**
- * Chat input component with simple textarea
+ * Chat input component with simple textarea and optional file attachments
  */
 export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = 'Ask von anything',
@@ -96,14 +142,38 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onChange,
   onDisabledInput,
   hideDisclaimer = false,
+  enableFileUpload = false,
+  onFileError,
+  droppedFiles,
+  onDroppedFilesProcessed,
+  showModeToggle = false,
+  mode = 'ask',
+  onModeChange,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // File upload hook
+  const { attachments, addFiles, removeFile, clearFiles, openFilePicker, fileInputRef } =
+    useFileUpload({
+      onError: (error, message) => {
+        onFileError?.(error, message);
+      },
+    });
+
+  // Handle dropped files from parent (drag-drop overlay)
+  useEffect(() => {
+    if (droppedFiles && droppedFiles.length > 0 && enableFileUpload) {
+      addFiles(droppedFiles);
+      onDroppedFilesProcessed?.();
+    }
+  }, [droppedFiles, enableFileUpload, addFiles, onDroppedFilesProcessed]);
 
   // Determine if component is controlled
   const isControlled = value !== undefined;
   const message = isControlled ? value : internalMessage;
   const messageHasPlaceholders = hasPlaceholders(message);
+  const hasAttachments = attachments.length > 0;
 
   // Auto-resize textarea
   useEffect(() => {
@@ -113,50 +183,80 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [message]);
 
-  const handleChange = (newValue: string) => {
-    // Trigger callback if user is typing while submit is disabled
-    if (disableSubmit && newValue.length > message.length) {
-      onDisabledInput?.();
-    }
+  const handleChange = useCallback(
+    (newValue: string) => {
+      // Trigger callback if user is typing while submit is disabled
+      if (disableSubmit && newValue.length > message.length) {
+        onDisabledInput?.();
+      }
 
-    if (isControlled) {
-      onChange?.(newValue);
-    } else {
-      setInternalMessage(newValue);
-    }
-  };
+      if (isControlled) {
+        onChange?.(newValue);
+      } else {
+        setInternalMessage(newValue);
+      }
+    },
+    [disableSubmit, message.length, onDisabledInput, isControlled, onChange]
+  );
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     // Don't send if submit is disabled
     if (disableSubmit) {
       return;
     }
 
     const messageToSend = message.trim();
+    const hasContent = messageToSend || hasAttachments;
 
-    if (messageToSend && onSend) {
-      onSend(messageToSend);
-      // Clear the input after sending
+    if (hasContent && onSend) {
+      onSend(messageToSend, hasAttachments ? attachments : undefined);
+      // Clear the input and attachments after sending
       if (isControlled) {
         onChange?.('');
       } else {
         setInternalMessage('');
       }
+      clearFiles();
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
     }
-  };
+  }, [
+    disableSubmit,
+    message,
+    hasAttachments,
+    onSend,
+    attachments,
+    isControlled,
+    onChange,
+    clearFiles,
+  ]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      // Don't send message during streaming or if submit is disabled
-      if (!isStreaming && !disableSubmit) {
-        handleSend();
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        // Don't send message during streaming or if submit is disabled
+        if (!isStreaming && !disableSubmit) {
+          handleSend();
+        }
       }
-    }
-  };
+    },
+    [isStreaming, disableSubmit, handleSend]
+  );
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        addFiles(e.target.files);
+        // Reset input so the same file can be selected again
+        e.target.value = '';
+      }
+    },
+    [addFiles]
+  );
+
+  const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
 
   return (
     <div className="ml-2 p-3 bg-white antialiased font-sf">
@@ -182,67 +282,121 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 : 'radial-gradient(198.27% 158.06% at 85.59% -18.75%, #FFF2E9 0%, #FF9E8C 26%, #BE9AF3 100%)',
           }}
         >
-          <div className="flex items-center gap-2 bg-white rounded-[15px] px-3 py-2">
-            {messageHasPlaceholders ? (
-              <RichTextInput
-                value={message}
-                onChange={handleChange}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && !isStreaming && !disableSubmit) {
-                    handleSend();
-                  }
-                }}
-                placeholder={placeholder}
-                disabled={disabled && !isStreaming}
-                className="flex-1 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
-                style={{
-                  minHeight: '20px',
-                  maxHeight: '200px',
-                  lineHeight: '1.5',
-                }}
-              />
-            ) : (
-              <textarea
-                ref={textareaRef}
-                value={message}
-                onChange={(e) => handleChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={placeholder}
-                disabled={disabled && !isStreaming}
-                className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
-                style={{
-                  minHeight: '20px',
-                  maxHeight: '200px',
-                  lineHeight: '1.5',
-                }}
-                rows={1}
-              />
+          <div className="flex flex-col bg-white rounded-[15px]">
+            {/* File previews - shown above the input when files are attached */}
+            {hasAttachments && (
+              <div className="px-3 pt-3 pb-2 border-b border-gray-100">
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((attachment) => (
+                    <FilePreview
+                      key={attachment.id}
+                      attachment={attachment}
+                      onRemove={removeFile}
+                      removable={!disabled}
+                      size="medium"
+                    />
+                  ))}
+                </div>
+              </div>
             )}
 
-            {isStreaming ? (
-              // Stop button during streaming
-              <button
-                className="w-8 h-8 flex-shrink-0 rounded-full border-0 bg-white flex items-center justify-center text-gray-900 transition-all duration-150 cursor-pointer hover:opacity-80"
-                onClick={onStop}
-                aria-label="Stop generating"
-              >
-                <StopIcon />
-              </button>
-            ) : (
-              // Send button when not streaming
-              <button
-                className={`w-8 h-8 flex-shrink-0 rounded-full border-0 bg-gray-900 flex items-center justify-center text-white transition-all duration-150 ${
-                  disabled || disableSubmit || !message.trim()
-                    ? 'cursor-not-allowed opacity-50'
-                    : 'cursor-pointer hover:bg-gray-800 hover:shadow-lg'
-                }`}
-                onClick={handleSend}
-                disabled={disabled || disableSubmit || !message.trim()}
-                aria-label="Send message"
-              >
-                <SendIcon size={16} />
-              </button>
-            )}
+            {/* Input row */}
+            <div className="flex items-center gap-2 px-3 py-2">
+              {/* File attachment button */}
+              {enableFileUpload && (
+                <>
+                  <button
+                    onClick={openFilePicker}
+                    disabled={disabled && !isStreaming}
+                    className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center transition-all duration-150 border ${
+                      disabled && !isStreaming
+                        ? 'cursor-not-allowed opacity-50 bg-white border-gray-200 text-gray-400'
+                        : 'cursor-pointer bg-white border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-700'
+                    }`}
+                    aria-label="Attach files"
+                  >
+                    <PlusIcon size={18} weight="bold" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept={getAcceptString()}
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    aria-hidden="true"
+                  />
+                </>
+              )}
+
+              {/* Mode toggle (Ask/Build) */}
+              {showModeToggle && (
+                <ModeToggle mode={mode} onModeChange={onModeChange || (() => {})} size="sm" />
+              )}
+
+              {/* Text input */}
+              {messageHasPlaceholders ? (
+                <RichTextInput
+                  value={message}
+                  onChange={handleChange}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !isStreaming && !disableSubmit) {
+                      handleSend();
+                    }
+                  }}
+                  placeholder={placeholder}
+                  disabled={disabled && !isStreaming}
+                  className="flex-1 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
+                  style={{
+                    minHeight: '20px',
+                    maxHeight: '200px',
+                    lineHeight: '1.5',
+                  }}
+                />
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  value={message}
+                  onChange={(e) => handleChange(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  disabled={disabled && !isStreaming}
+                  className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
+                  style={{
+                    minHeight: '20px',
+                    maxHeight: '200px',
+                    lineHeight: '1.5',
+                  }}
+                  rows={1}
+                />
+              )}
+
+              {/* Send/Stop button */}
+              {isStreaming ? (
+                // Stop button during streaming
+                <button
+                  className="w-8 h-8 flex-shrink-0 rounded-full border-0 bg-white flex items-center justify-center text-gray-900 transition-all duration-150 cursor-pointer hover:opacity-80"
+                  onClick={onStop}
+                  aria-label="Stop generating"
+                >
+                  <StopIcon />
+                </button>
+              ) : (
+                // Send button when not streaming
+                <button
+                  className={`w-8 h-8 flex-shrink-0 rounded-full border-0 bg-gray-900 flex items-center justify-center text-white transition-all duration-150 ${
+                    !canSend
+                      ? 'cursor-not-allowed opacity-50'
+                      : 'cursor-pointer hover:bg-gray-800 hover:shadow-lg'
+                  }`}
+                  onClick={handleSend}
+                  disabled={!canSend}
+                  aria-label="Send message"
+                >
+                  <SendIcon size={16} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

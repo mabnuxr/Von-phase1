@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { TabPill } from '../TabPill';
 import { spacing } from '../../theme';
-import { PlusIcon } from '@phosphor-icons/react';
 import { MenuIcon } from '../Chat/icons';
+import { ProfilePopover } from '../popups';
 
 const VON_COMBINATION_MARK_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
@@ -51,10 +51,50 @@ export interface TopBarProps {
   leftElement?: React.ReactNode;
 
   /**
-   * Optional element to render on the right side (e.g., back button)
-   * Replaces the default "New Chat" button when provided
+   * Optional element to render on the right side
+   * Replaces the default user avatar when provided
    */
   rightElement?: React.ReactNode;
+
+  /**
+   * User's display name
+   */
+  userName?: string;
+
+  /**
+   * User's email address
+   */
+  userEmail?: string;
+
+  /**
+   * Avatar image URL
+   */
+  avatarSrc?: string;
+
+  /**
+   * Avatar initials/label (shown when no image)
+   */
+  avatarLabel?: string;
+
+  /**
+   * Callback when profile is clicked in popover
+   */
+  onProfileClick?: () => void;
+
+  /**
+   * Callback when settings is clicked in popover
+   */
+  onSettingsClick?: () => void;
+
+  /**
+   * Callback when help is clicked in popover
+   */
+  onHelpClick?: () => void;
+
+  /**
+   * Callback when sign out is clicked in popover
+   */
+  onSignOutClick?: () => void;
 }
 
 /**
@@ -81,17 +121,40 @@ export const TopBar: React.FC<TopBarProps> = ({
   showMenu = true,
   onMenuClick,
   onLogoClick,
-  onNewChatClick,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onNewChatClick: _onNewChatClick,
   leftElement,
   rightElement,
+  userName,
+  userEmail,
+  avatarSrc,
+  avatarLabel,
+  onProfileClick,
+  onSettingsClick,
+  onHelpClick,
+  onSignOutClick,
 }) => {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const avatarButtonRef = useRef<HTMLButtonElement>(null);
+  const [popoverPosition, setPopoverPosition] = useState({ top: 0, right: 0 });
+
+  const handleAvatarClick = () => {
+    if (avatarButtonRef.current) {
+      const rect = avatarButtonRef.current.getBoundingClientRect();
+      setPopoverPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsProfileOpen(!isProfileOpen);
+  };
   const containerStyles: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '8px 20px 8px 20px',
     gap: '12px',
-    height: '52px',
+    height: '42px',
     backgroundColor: 'transparent',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
@@ -146,8 +209,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         <img
           src={VON_COMBINATION_MARK_URL}
           alt="Von logo"
-          width={72}
-          height={28}
+          width={64}
+          height={24}
           style={{ cursor: onLogoClick ? 'pointer' : 'default' }}
           onClick={onLogoClick}
         />
@@ -194,19 +257,45 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
       )}
 
-      {/* Right Section - Custom element or New Chat Button */}
+      {/* Right Section - Custom element or User Avatar */}
       <div style={rightSectionStyles}>
-        {rightElement ?? (
-          <button
-            className="h-8 px-3 flex items-center justify-center gap-1 rounded-lg bg-gray-900 text-white text-sm font-semibold transition-all duration-200 cursor-pointer hover:opacity-90"
-            onClick={onNewChatClick}
-            title="Create a new chat"
-          >
-            New Chat
-            <PlusIcon size={14} weight="bold" />
-          </button>
-        )}
+        {rightElement ??
+          ((userName || userEmail || avatarLabel) && (
+            <button
+              ref={avatarButtonRef}
+              onClick={handleAvatarClick}
+              className="w-7 h-7 rounded-xl flex-shrink-0 overflow-hidden cursor-pointer hover:ring-2 hover:ring-gray-200 transition-all"
+              title={userName || userEmail}
+            >
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt={userName || 'User avatar'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-[12px] font-semibold">
+                  {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+              )}
+            </button>
+          ))}
       </div>
+
+      {/* Profile Popover */}
+      <ProfilePopover
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        userName={userName}
+        userEmail={userEmail}
+        avatarSrc={avatarSrc}
+        avatarLabel={avatarLabel}
+        position={popoverPosition}
+        onProfileClick={onProfileClick}
+        onSettingsClick={onSettingsClick}
+        onHelpClick={onHelpClick}
+        onSignOutClick={onSignOutClick}
+      />
     </div>
   );
 };
