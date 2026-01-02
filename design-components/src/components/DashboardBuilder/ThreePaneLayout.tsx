@@ -85,11 +85,6 @@ export interface ThreePaneLayoutProps {
    * User's email
    */
   userEmail?: string;
-
-  /**
-   * Callback when avatar is clicked
-   */
-  onAvatarClick?: (rect: DOMRect) => void;
 }
 
 /**
@@ -115,7 +110,6 @@ export const ThreePaneLayout: React.FC<ThreePaneLayoutProps> = ({
   avatarLabel,
   userDisplayName,
   userEmail,
-  onAvatarClick,
 }) => {
   const [internalCollapsed, setInternalCollapsed] = useState(isSidebarCollapsed);
 

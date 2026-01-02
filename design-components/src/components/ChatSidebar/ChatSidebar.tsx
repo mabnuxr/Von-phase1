@@ -689,7 +689,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   const selectedItemId = selectedItemIdProp ?? selectedChatId;
 
-  const onItemClick = onItemClickProp ?? (onChatClick ? (id: string, _type: ItemType) => onChatClick(id) : undefined);
+  const onItemClick = onItemClickProp ?? (onChatClick ? (id: string) => onChatClick(id) : undefined);
   const [searchValue, setSearchValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
