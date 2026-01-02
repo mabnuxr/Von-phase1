@@ -377,6 +377,7 @@ const Pane3WithReferenceWrapper = () => {
         conversationName="Build with Von"
         messages={sampleMessages}
         referenceContext={reference}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onRemoveReference={() => setReference(undefined as any)}
         onNewChat={() => console.log('New chat clicked')}
         onViewHistory={() => console.log('View history clicked')}

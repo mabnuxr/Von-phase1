@@ -52,16 +52,18 @@ const formatCellValue = (value: unknown, column: DataColumn): string => {
   if (value === null || value === undefined) return '-';
 
   switch (column.type) {
-    case 'currency':
+    case 'currency': {
       const numVal = Number(value);
       if (numVal >= 1000000) return `$${(numVal / 1000000).toFixed(2)}M`;
       if (numVal >= 1000) return `$${(numVal / 1000).toFixed(0)}K`;
       return `$${numVal.toLocaleString()}`;
+    }
 
-    case 'percentage':
+    case 'percentage': {
       const pctVal = Number(value);
       if (pctVal <= 1) return `${(pctVal * 100).toFixed(0)}%`;
       return `${pctVal.toFixed(0)}%`;
+    }
 
     case 'number':
       return Number(value).toLocaleString();

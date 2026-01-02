@@ -18,7 +18,6 @@ import { FinalizationOverlay } from './FinalizationOverlay';
 import { ThinkingProcess } from '../ThinkingProcess';
 import { usePrototypeOrchestrator } from './usePrototypeOrchestrator';
 import { mockDataTables, mockDashboard } from '../mockData';
-import type { DataViewTab } from '../types';
 
 // Von logo for collapsed sidebar
 const VonLogoMini: React.FC = () => (

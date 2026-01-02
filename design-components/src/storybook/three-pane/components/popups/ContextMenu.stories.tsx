@@ -249,6 +249,7 @@ export const PositionVariants: Story = {
               onClose={() => setOpenPosition(null)}
               items={items}
               anchorRef={refs[pos]}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               position={pos as any}
               width={120}
               onItemClick={() => setOpenPosition(null)}

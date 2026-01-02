@@ -200,7 +200,7 @@ export function usePrototypeOrchestrator() {
     }, (time += 800));
 
     // Dashboard thinking steps
-    dashboardThinkingSteps.forEach((step, i) => {
+    dashboardThinkingSteps.forEach((step) => {
       addTimeout(() => {
         updateThinkingStep(step.id, 'in-progress');
       }, (time += 400));

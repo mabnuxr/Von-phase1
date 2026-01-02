@@ -8,8 +8,6 @@ import {
   TrendDown,
   Minus,
   X,
-  ArrowsOut,
-  PencilSimple,
   Table as TableIcon,
   Plus,
   ChartBar,
@@ -1153,9 +1151,12 @@ const ConfigureWidgetModal: React.FC<{
  */
 export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   dashboard,
-  viewMode,
-  onViewModeChange,
-  onShare,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  viewMode: _viewMode,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onViewModeChange: _onViewModeChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onShare: _onShare,
   onFilter,
   onExport,
   isLoading = false,

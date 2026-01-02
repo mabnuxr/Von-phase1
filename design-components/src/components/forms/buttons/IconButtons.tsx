@@ -94,7 +94,7 @@ export const IconButton: React.FC<IconButtonProps> = ({
 // SidebarToggleButton - Toggle button for expanding/collapsing sidebar
 // ============================================================================
 
-export interface SidebarToggleButtonProps extends BaseIconButtonProps {}
+export type SidebarToggleButtonProps = BaseIconButtonProps;
 
 /**
  * SidebarToggleButton - Button for toggling sidebar collapse state
@@ -123,7 +123,7 @@ export const SidebarToggleButton: React.FC<SidebarToggleButtonProps> = ({
 // CollapseAllButton - Button with border for collapsing all sections
 // ============================================================================
 
-export interface CollapseAllButtonProps extends BaseIconButtonProps {}
+export type CollapseAllButtonProps = BaseIconButtonProps;
 
 /**
  * CollapseAllButton - Bordered button for collapse all action
@@ -339,7 +339,7 @@ export const TertiaryIconButton: React.FC<TertiaryIconButtonProps> = ({
 // BackButton - Arrow button for navigation back
 // ============================================================================
 
-export interface BackButtonProps extends BaseIconButtonProps {}
+export type BackButtonProps = BaseIconButtonProps;
 
 /**
  * BackButton - Ghost button for navigation back

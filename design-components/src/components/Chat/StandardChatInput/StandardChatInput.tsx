@@ -5,11 +5,9 @@ import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
-import { Toggle } from '../../forms/toggle';
 import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../../popups';
 import type { StandardChatInputProps, ReferenceContext } from './types';
-import type { BuildMode } from '../../DashboardBuilder/types';
 
 /**
  * Get icon for reference type
@@ -43,10 +41,6 @@ function getReferenceLabel(type: ReferenceContext['type']) {
   }
 }
 
-const MODE_OPTIONS = [
-  { value: 'ask' as BuildMode, label: 'Ask' },
-  { value: 'build' as BuildMode, label: 'Build' },
-];
 
 /**
  * PlusButtonMenu - Plus button with context menu for upload and deep research options
@@ -141,8 +135,10 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onChange,
   onVoiceInput,
   isRecording = false,
-  mode = 'ask',
-  onModeChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  mode: _mode = 'ask',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onModeChange: _onModeChange,
   attachments: controlledAttachments,
   onRemoveAttachment,
   droppedFiles,

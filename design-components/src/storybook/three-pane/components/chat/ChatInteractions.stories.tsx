@@ -1,6 +1,6 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { ChatMessage } from '../../../../components/Chat/ChatMessage';
-import type { Message, StepMessage, ToolCall } from '../../../../components/Chat/types';
+import type { StepMessage } from '../../../../components/Chat/types';
 
 /**
  * ChatInteractionsDecorator - Wraps stories in a container that mimics the chat area

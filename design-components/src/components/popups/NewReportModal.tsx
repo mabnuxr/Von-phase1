@@ -399,8 +399,9 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
     return columns;
   };
 
-  // Get related objects for selected primary source
-  const relatedObjects = primarySource ? (availableRelatedObjects[primarySource] || []) : [];
+  // Get related objects for selected primary source (used in step 2 rendering)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _relatedObjects = primarySource ? (availableRelatedObjects[primarySource] || []) : [];
 
   // Get related objects for a specific source
   const getRelatedObjectsForSource = (sourceId: string) => {
@@ -500,7 +501,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
           </div>
         );
 
-      case 3:
+      case 3: {
         const columnGroups = getAvailableColumnsForStep3();
         return (
           <div className="space-y-4">
@@ -532,6 +533,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
             </button>
           </div>
         );
+      }
 
       default:
         return null;

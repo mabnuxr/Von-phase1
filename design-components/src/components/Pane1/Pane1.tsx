@@ -15,9 +15,6 @@ import {
   DotsThreeIcon,
   PencilSimpleIcon,
   TrashIcon,
-  Users,
-  Buildings,
-  Lock,
 } from '@phosphor-icons/react';
 import { TextInput } from '../forms/input';
 import { Select } from '../forms/dropdown';

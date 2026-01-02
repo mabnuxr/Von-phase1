@@ -143,7 +143,7 @@ export const HeroIconButton: React.FC<HeroIconButtonProps> = ({
 // Used for primary actions within forms and dialogs
 // ============================================================================
 
-export interface PrimaryButtonProps extends BaseButtonProps {}
+export type PrimaryButtonProps = BaseButtonProps;
 
 /**
  * PrimaryButton - Dark solid action button
@@ -182,7 +182,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
 // Used for secondary actions that need visibility but less emphasis
 // ============================================================================
 
-export interface SecondaryButtonProps extends BaseButtonProps {}
+export type SecondaryButtonProps = BaseButtonProps;
 
 /**
  * SecondaryButton - Outlined button with transparent background
@@ -221,7 +221,7 @@ export const SecondaryButton: React.FC<SecondaryButtonProps> = ({
 // Used for cancel/dismiss actions or tertiary actions
 // ============================================================================
 
-export interface GhostButtonProps extends BaseButtonProps {}
+export type GhostButtonProps = BaseButtonProps;
 
 /**
  * GhostButton - Subtle button with gray background

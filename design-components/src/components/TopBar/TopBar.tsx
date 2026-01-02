@@ -121,7 +121,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   showMenu = true,
   onMenuClick,
   onLogoClick,
-  onNewChatClick,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onNewChatClick: _onNewChatClick,
   leftElement,
   rightElement,
   userName,

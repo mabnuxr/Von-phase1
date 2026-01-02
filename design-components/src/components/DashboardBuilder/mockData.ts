@@ -4,7 +4,6 @@
 import type {
   DataTable,
   Dashboard,
-  DashboardWidget,
   ChatMessage,
   ThinkingStep,
   ProgressStep,
