@@ -9,7 +9,6 @@ import {
   type Template,
   type TemplateCategory,
 } from '../Templates';
-import type { BuildMode } from '../DashboardBuilder';
 
 export interface ChatEmptyStateProps {
   /**
@@ -44,34 +43,6 @@ export interface ChatEmptyStateProps {
    * Optional banner to display at the very top of the empty state
    */
   topBanner?: React.ReactNode;
-  /**
-   * Enable file upload/attachment functionality
-   */
-  enableFileUpload?: boolean;
-  /**
-   * Callback when a file validation error occurs
-   */
-  onFileError?: (error: string, message: string) => void;
-  /**
-   * Files dropped via drag-and-drop (from parent Chat component)
-   */
-  droppedFiles?: File[];
-  /**
-   * Callback when dropped files have been processed
-   */
-  onDroppedFilesProcessed?: () => void;
-  /**
-   * Show mode toggle (Ask/Build) in the input
-   */
-  showModeToggle?: boolean;
-  /**
-   * Current mode (ask or build)
-   */
-  mode?: BuildMode;
-  /**
-   * Callback when mode changes
-   */
-  onModeChange?: (mode: BuildMode) => void;
 }
 
 /**
@@ -102,13 +73,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   enableCommands = false,
   banner,
   topBanner,
-  enableFileUpload = false,
-  onFileError,
-  droppedFiles,
-  onDroppedFilesProcessed,
-  showModeToggle = false,
-  mode = 'ask',
-  onModeChange,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -306,13 +270,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             value={inputValue}
             onChange={handleInputChange}
             hideDisclaimer
-            enableFileUpload={enableFileUpload}
-            onFileError={onFileError}
-            droppedFiles={droppedFiles}
-            onDroppedFilesProcessed={onDroppedFilesProcessed}
-            showModeToggle={showModeToggle}
-            mode={mode}
-            onModeChange={onModeChange}
           />
         )}
       </motion.div>

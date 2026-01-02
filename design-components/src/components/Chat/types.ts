@@ -12,35 +12,10 @@ export interface StepMessage {
   toolCalls?: ToolCall[];
 }
 
-/**
- * Serializable file attachment for messages (without File object)
- * Used for displaying attachments in sent messages
- */
-export interface MessageFileAttachment {
-  /** Unique identifier for the attachment */
-  id: string;
-  /** File name */
-  name: string;
-  /** File size in bytes */
-  size: number;
-  /** MIME type */
-  type: string;
-  /** File extension (e.g., 'PDF', 'XLSX') */
-  extension: string;
-  /** File category */
-  category: 'document' | 'spreadsheet' | 'presentation' | 'text' | 'image';
-  /** Preview URL for images (data URL or blob URL) */
-  previewUrl?: string;
-}
-
 export interface Message {
   id: string;
   type: 'user' | 'assistant';
   content: string;
-  /**
-   * File attachments for user messages
-   */
-  attachments?: MessageFileAttachment[];
   /**
    * Thought content for assistant messages (separate from main content)
    */
@@ -622,9 +597,8 @@ export interface ChatProps {
 
   /**
    * Callback when a new message is sent
-   * Includes optional file attachments when enableFileUpload is true
    */
-  onSendMessage?: (message: string, attachments?: MessageFileAttachment[]) => void;
+  onSendMessage?: (message: string) => void;
 
   /**
    * Callback when the add button is clicked
@@ -837,17 +811,4 @@ export interface ChatProps {
    * Callback when convert to dashboard is clicked
    */
   onConvertToDashboard?: (messageId: string) => void;
-
-  /**
-   * Enable file upload/attachment functionality
-   * When enabled, shows a + button in the chat input to attach files
-   * @default false
-   */
-  enableFileUpload?: boolean;
-
-  /**
-   * Callback when a file validation error occurs
-   * Use this to show toast notifications for errors
-   */
-  onFileError?: (error: string, message: string) => void;
 }

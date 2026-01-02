@@ -179,14 +179,7 @@ export type { TopBarProps, Tab } from './TopBar';
 
 // ChatSidebar Organism (uses: Search + List, manages chat history)
 export { ChatSidebar } from './ChatSidebar';
-export type {
-  ChatSidebarProps,
-  ChatItem,
-  SidebarItem,
-  ItemType,
-  OwnershipType,
-  Folder,
-} from './ChatSidebar';
+export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
 
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';
@@ -229,70 +222,3 @@ export type {
 // ============================================================================
 export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
-
-// ============================================================================
-// DASHBOARD BUILDER (3-Pane / Build Mode interactive prototype)
-// ============================================================================
-export {
-  // Main Demo
-  DashboardBuilderDemo,
-  // Layouts
-  ThreePaneLayout,
-  BuildModeLayout,
-  // Components
-  ModeToggle,
-  ThinkingProcess,
-  ProgressTimeline,
-  DataExplorer,
-  DashboardCanvas as BuilderDashboardCanvas,
-  ChartWidget,
-  TableWidget,
-  TableViewer,
-  BuildChat,
-  // Mock Data
-  mockDataTables,
-  mockDashboard,
-  mockChatMessages,
-  mockThinkingSteps,
-  mockProgressSteps,
-} from './DashboardBuilder';
-export type {
-  DashboardBuilderDemoProps,
-  ThreePaneLayoutProps,
-  BuildModeLayoutProps,
-  ModeToggleProps,
-  ThinkingProcessProps,
-  ProgressTimelineProps,
-  DataExplorerProps,
-  DashboardCanvasProps as BuilderDashboardCanvasProps,
-  ChartWidgetProps,
-  TableWidgetProps,
-  TableViewerProps,
-  BuildChatProps,
-  // Types
-  BuildMode,
-  BuildPhase,
-  ThinkingStep,
-  ProgressStep,
-  DataColumn,
-  DataTable,
-  ChartConfig,
-  DashboardWidget,
-  MetricConfig,
-  Dashboard,
-  DashboardFilter,
-  ChatMessage as BuilderChatMessage,
-  DataViewTab,
-} from './DashboardBuilder';
-
-// ============================================================================
-// POPUPS (Popovers, Modals, Overlays)
-// ============================================================================
-export { ProfilePopover } from './popups';
-export type { ProfilePopoverProps } from './popups';
-
-// ============================================================================
-// CHAT PANE (3-Pane Layout Chat Interface)
-// ============================================================================
-export { ChatPane, ChatPaneHeader } from './ChatPane';
-export type { ChatPaneProps, ChatPaneHeaderProps, ReferenceContext } from './ChatPane';
