@@ -8,7 +8,6 @@ import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constan
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import { DragDropOverlay } from './FileAttachment';
 import type { FileAttachment } from './FileAttachment';
-import type { MessageFileAttachment } from './types';
 
 // Export types from types.ts
 export type {
@@ -250,68 +249,15 @@ export const Chat: React.FC<ChatProps> = ({
         previewUrl: a.previewUrl,
       }));
 
-      if (isControlled) {
-        //Scroll to the bottom before calling onSendMessage
-        shouldAutoScrollRef.current = true;
-        scrollOnNewUserMessage.current = true;
+      // Scroll to the bottom before calling onSendMessage
+      shouldAutoScrollRef.current = true;
+      scrollOnNewUserMessage.current = true;
 
-        setTimeout(() => {
-          scrollOnNewUserMessage.current = false;
-        }, SCROLL_LOCK_DURATION_MS);
+      setTimeout(() => {
+        scrollOnNewUserMessage.current = false;
+      }, SCROLL_LOCK_DURATION_MS);
 
-        onSendMessage?.(content, messageAttachments);
-
-        return;
-      }
-
-      // Uncontrolled mode with real-time integration
-      if (!enableRealtime || !apiBaseUrl || !conversationId || !userId) {
-        onError?.(new Error('Real-time mode requires apiBaseUrl, conversationId, and userId'));
-        return;
-      }
-
-      try {
-        setInternalIsLoading(true);
-
-        // Add user message optimistically
-        const userMessage: Message = {
-          id: `temp-${Date.now()}`,
-          type: 'user',
-          content,
-          timestamp: new Date(),
-        };
-
-        setInternalMessages((prev) => [...prev, userMessage]);
-
-        // Force scroll to bottom when user sends a message
-        setTimeout(() => {
-          scrollToBottom('smooth');
-        }, 50);
-
-        // Send to API
-        const response = await apiSendMessage(apiBaseUrl, conversationId, content, userId);
-
-        // Update with real ID from server
-        setInternalMessages((prev) =>
-          prev.map((msg) => (msg.id === userMessage.id ? { ...msg, id: response.id } : msg))
-        );
-
-        // Save to localStorage
-        saveConversation(
-          conversationId,
-          {
-            conversationId: conversationId,
-            title,
-            userId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          [...messages, { ...userMessage, id: response.id }]
-        );
-      } catch (error) {
-        onError?.(error instanceof Error ? error : new Error('Failed to send message'));
-        setInternalIsLoading(false);
-      }
+      onSendMessage?.(content, messageAttachments);
     },
     [onSendMessage]
   );
@@ -430,7 +376,7 @@ export const Chat: React.FC<ChatProps> = ({
                     status={message.status}
                     errorMessage={message.errorMessage}
                     messageId={message.messageId || message.id}
-                    conversationId={message.conversationId || conversationId}
+                    conversationId={message.conversationId}
                     useArtifactHook={useArtifactHook}
                     stoppedByUser={message.stoppedByUser}
                     isLatestMessage={message.isLatestMessage}
