@@ -2,7 +2,6 @@ export { Chat } from './Chat';
 export type {
   ChatProps,
   Message,
-  MessageFileAttachment,
   FixedPosition,
   ChatSession,
   ChatUser,
@@ -155,30 +154,3 @@ export {
   needsSync,
   getStorageInfo,
 } from './utils/localStorage';
-
-// Export file attachment components and utilities
-export {
-  FilePreview,
-  MessageFilePreview,
-  DragDropOverlay,
-  useFileUpload,
-  getAcceptString,
-  formatFileSize,
-  FILE_SIZE_LIMIT_MB,
-  FILE_SIZE_LIMIT_BYTES,
-  MAX_FILES,
-  SUPPORTED_FILE_TYPES,
-} from './FileAttachment';
-export type {
-  FileAttachment,
-  FileCategory,
-  FilePreviewProps,
-  MessageFilePreviewProps,
-  DragDropOverlayProps,
-  UseFileUploadOptions,
-  UseFileUploadReturn,
-} from './FileAttachment';
-
-// Export StandardChatInput
-export { StandardChatInput } from './StandardChatInput';
-export type { StandardChatInputProps } from './StandardChatInput';

@@ -1,158 +1,50 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChatTextIcon,
-  SidebarSimpleIcon,
-  FolderSimpleIcon,
-  CaretDownIcon,
-  CaretRightIcon,
-  DotsThreeIcon,
-  PencilSimpleIcon,
-  TrashIcon,
-  BuildingOfficeIcon,
-  UserSquareIcon,
-  MagnifyingGlassIcon,
-  PlusIcon,
-  ArrowsInLineVerticalIcon,
-  CaretUpDownIcon,
-  UsersIcon,
-} from '@phosphor-icons/react';
-import {
-  PrimaryButton,
-  GhostButton,
-  AddButton,
-  PrimaryIconButton,
-  SecondaryIconButton,
-  TertiaryIconButton,
-} from '../forms/buttons';
-import {
-  ProfilePopover,
-  ContextMenu,
-  DeleteConfirmationPopup,
-  NewDashboardModal,
-  type ContextMenuItem,
-  type NewDashboardConfig,
-  type SalesforceDashboard,
-} from '../popups';
+import { ChatTextIcon, SidebarSimpleIcon } from '@phosphor-icons/react';
 
-const VON_COMBINATION_MARK_URL =
-  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export type ItemType = 'chat' | 'dashboard';
-export type OwnershipType = 'mine' | 'shared' | 'shared_by_me';
-
-/**
- * Legacy ChatItem type for backward compatibility with the app.
- * @deprecated Use SidebarItem instead for new code.
- */
 export interface ChatItem {
   id: string;
   label: string;
   href?: string;
-  timestamp?: string;
-}
-
-export interface SidebarItem {
-  id: string;
-  label: string;
-  type: ItemType;
-  href?: string;
-  /** For dashboards: indicates if created by current user or shared */
-  ownership?: OwnershipType;
-  /** Owner name if shared */
-  ownerName?: string;
-  /** Folder ID this item belongs to (null for root level) */
-  folderId?: string | null;
-}
-
-export interface Folder {
-  id: string;
-  label: string;
-  /** Whether folder is expanded */
-  isExpanded?: boolean;
-  /** Type of items this folder contains */
-  type: 'chat' | 'dashboard';
 }
 
 export interface ChatSidebarProps {
   /**
-   * List of items (chats and dashboards) to display
+   * List of chat items to display
    */
-  items?: SidebarItem[];
+  chatItems?: ChatItem[];
 
   /**
-   * List of folders
+   * Selected chat ID
    */
-  folders?: Folder[];
+  selectedChatId?: string;
 
   /**
-   * Selected item ID
+   * Chat item click handler
    */
-  selectedItemId?: string;
+  onChatClick?: (id: string) => void;
 
   /**
-   * Item click handler
-   */
-  onItemClick?: (id: string, type: ItemType) => void;
-
-  /**
-   * New chat button click handler (AI-assisted)
+   * New chat button click handler
    */
   onNewChatClick?: () => void;
-
-  /**
-   * Available Salesforce dashboards for recreation
-   */
-  salesforceDashboards?: SalesforceDashboard[];
-
-  /**
-   * Called when a new dashboard is created from the modal
-   */
-  onCreateDashboard?: (config: NewDashboardConfig) => void;
-
-  /**
-   * New folder button click handler for chats
-   */
-  onNewChatFolderClick?: () => void;
-
-  /**
-   * New folder button click handler for dashboards
-   */
-  onNewDashboardFolderClick?: () => void;
-
-  /**
-   * Rename item handler - called when user confirms the new name
-   */
-  onRenameItem?: (id: string, type: ItemType, newName: string) => void;
-
-  /**
-   * Delete item handler - called when user confirms deletion
-   */
-  onDeleteItem?: (id: string, type: ItemType) => void;
-
-  /**
-   * Folder toggle handler
-   */
-  onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
-
-  /**
-   * Rename folder handler - called when user confirms the new name
-   */
-  onRenameFolder?: (folderId: string, newName: string) => void;
-
-  /**
-   * Delete folder handler - called when user confirms deletion
-   */
-  onDeleteFolder?: (folderId: string) => void;
 
   /**
    * Search input change handler
    */
   onSearchChange?: (value: string) => void;
+
+  /**
+   * Search placeholder text
+   * @default 'Search Chats'
+   */
+  searchPlaceholder?: string;
+
+  /**
+   * Width of the sidebar
+   * @default '200px'
+   */
+  width?: string;
 
   /**
    * Whether the sidebar is collapsed
@@ -167,6 +59,7 @@ export interface ChatSidebarProps {
 
   /**
    * Ref for infinite scroll trigger element
+   * Attach this to a div at the bottom of the list for infinite scroll
    */
   loadMoreRef?: React.RefObject<HTMLDivElement | null>;
 
@@ -186,26 +79,6 @@ export interface ChatSidebarProps {
   onLoadMore?: () => void;
 
   /**
-   * Callback when collapse all button is clicked
-   */
-  onCollapseAllClick?: () => void;
-
-  /**
-   * Logo click handler
-   */
-  onLogoClick?: () => void;
-
-  /**
-   * User's display name
-   */
-  userName?: string;
-
-  /**
-   * User's email address
-   */
-  userEmail?: string;
-
-  /**
    * Avatar image URL
    */
   avatarSrc?: string;
@@ -216,737 +89,105 @@ export interface ChatSidebarProps {
   avatarLabel?: string;
 
   /**
-   * Callback when profile is clicked in popover
+   * User's display name
    */
-  onProfileClick?: () => void;
+  userName?: string;
 
   /**
-   * Callback when settings is clicked in popover
+   * User's email
    */
-  onSettingsClick?: () => void;
+  userEmail?: string;
 
   /**
-   * Callback when help is clicked in popover
-   */
-  onHelpClick?: () => void;
-
-  /**
-   * Callback when sign out is clicked in popover
-   */
-  onSignOutClick?: () => void;
-
-  // ============================================================================
-  // Legacy Props (for backward compatibility with app)
-  // ============================================================================
-
-  /**
-   * @deprecated Use `items` instead. Legacy chat items array.
-   */
-  chatItems?: ChatItem[];
-
-  /**
-   * @deprecated Use `selectedItemId` instead. Legacy selected chat ID.
-   */
-  selectedChatId?: string;
-
-  /**
-   * @deprecated Use `onItemClick` instead. Legacy chat click handler.
-   */
-  onChatClick?: (id: string) => void;
-
-  /**
-   * @deprecated Search placeholder text (now hardcoded).
-   */
-  searchPlaceholder?: string;
-
-  /**
-   * @deprecated Legacy avatar click handler for external menu.
-   * Use the built-in profile popover callbacks instead.
+   * Callback when avatar is clicked
+   * Receives the DOMRect of the clicked button for positioning menus
    */
   onAvatarClick?: (rect: DOMRect) => void;
 }
 
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-// Context menu items for sidebar items
-const getContextMenuItems = (): ContextMenuItem[] => [
-  { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
-  { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' },
-];
-
-interface SectionHeaderProps {
-  label: string;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onAdd?: () => void;
-  addButtonLabel?: string;
-  count?: number;
-}
-
-const SectionHeader: React.FC<SectionHeaderProps> = ({
-  label,
-  isExpanded,
-  onToggle,
-  onAdd,
-  addButtonLabel = 'Add new',
-  count,
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <div
-      className="flex items-center justify-between px-2 py-1.5 group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <button
-        className=" flex items-center justify-between text-xs font-medium text-gray-700 hover:text-gray-800 transition-colors cursor-pointer"
-        onClick={onToggle}
-      >
-        <span>{label}</span>
-        <div className="flex items-center gap-1.5">
-          {count !== undefined && (
-            <span className="pl-0.5 text-[11px] text-gray-700 font-mono normal-case -mb-0.5">
-              [{count}]
-            </span>
-          )}
-          {isExpanded ? (
-            <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
-          ) : (
-            <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
-          )}
-        </div>
-      </button>
-      {onAdd && (
-        <div className={`transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-          <AddButton
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-          >
-            {addButtonLabel}
-          </AddButton>
-        </div>
-      )}
-    </div>
-  );
-};
-
-interface SidebarItemRowProps {
-  item: SidebarItem;
-  isSelected: boolean;
-  onClick: () => void;
-  onContextMenu: (e: React.MouseEvent) => void;
-  showIcon?: boolean;
-  isMenuOpen?: boolean;
-  isEditing?: boolean;
-  onSaveEdit?: (newName: string) => void;
-  onCancelEdit?: () => void;
-}
-
-const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
-  item,
-  isSelected,
-  onClick,
-  onContextMenu,
-  showIcon = false,
-  isMenuOpen = false,
-  isEditing = false,
-  onSaveEdit,
-  onCancelEdit,
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [editValue, setEditValue] = useState(item.label);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const showButton = (isHovered || isMenuOpen) && !isEditing;
-
-  // Focus input when entering edit mode
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  // Reset edit value when item label changes or editing starts
-  useEffect(() => {
-    setEditValue(item.label);
-  }, [item.label, isEditing]);
-
-  const handleSave = () => {
-    const trimmedValue = editValue.trim();
-    if (trimmedValue && trimmedValue !== item.label) {
-      onSaveEdit?.(trimmedValue);
-    } else {
-      onCancelEdit?.();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancelEdit?.();
-    }
-  };
-
-  const content = (
-    <div
-      className={`
-        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-[13px]
-        transition-colors duration-150
-        ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
-      `}
-      onClick={isEditing ? undefined : onClick}
-      onContextMenu={isEditing ? undefined : onContextMenu}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      title={isEditing ? undefined : item.label}
-    >
-      {/* Icon - show type/ownership icon before the name */}
-      {showIcon &&
-        (item.type === 'dashboard' ? (
-          // Dashboard: show ownership icon (building for org-wide, users for shared by you, user for personal)
-          <span
-            className="flex-shrink-0"
-            title={
-              item.ownership === 'shared'
-                ? `Shared by ${item.ownerName || 'someone'}`
-                : item.ownership === 'shared_by_me'
-                  ? 'Shared by you'
-                  : 'Private'
-            }
-          >
-            {item.ownership === 'shared' ? (
-              <BuildingOfficeIcon size={16} weight="regular" className="text-gray-700" />
-            ) : item.ownership === 'shared_by_me' ? (
-              <UsersIcon size={16} weight="regular" className="text-gray-700" />
-            ) : (
-              <UserSquareIcon size={16} weight="regular" className="text-gray-700" />
-            )}
-          </span>
-        ) : (
-          // Chat: show chat icon
-          <ChatTextIcon size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
-        ))}
-
-      {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleSave}
-          className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        <>
-          <span
-            className={`flex-1 text-[13px] truncate ${
-              isSelected ? 'text-gray-900' : 'text-gray-900'
-            }`}
-          >
-            {item.label}
-          </span>
-
-          {/* More options button - shows on hover or when menu is open */}
-          <PrimaryIconButton
-            icon={<DotsThreeIcon size={16} weight="bold" />}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu(e)}
-            visible={showButton}
-            size="small"
-            className="absolute right-1"
-          />
-        </>
-      )}
-    </div>
-  );
-
-  if (item.href && !isEditing) {
-    return (
-      <a href={item.href} className="block no-underline">
-        {content}
-      </a>
-    );
-  }
-
-  return content;
-};
-
-interface FolderSectionProps {
-  folder: Folder;
-  items: SidebarItem[];
-  selectedItemId?: string;
-  menuOpenItemId?: string | null;
-  editingItemId?: string | null;
-  /** Whether the folder itself is being edited */
-  isFolderEditing?: boolean;
-  /** Whether the folder context menu is open */
-  isFolderMenuOpen?: boolean;
-  onItemClick: (id: string, type: ItemType) => void;
-  onItemContextMenu: (e: React.MouseEvent, item: SidebarItem) => void;
-  onToggle: (isExpanded: boolean) => void;
-  onSaveEdit?: (item: SidebarItem, newName: string) => void;
-  onCancelEdit?: () => void;
-  /** Context menu handler for folder */
-  onFolderContextMenu?: (e: React.MouseEvent) => void;
-  /** Save folder rename */
-  onSaveFolderEdit?: (newName: string) => void;
-  /** Cancel folder rename */
-  onCancelFolderEdit?: () => void;
-}
-
-const FolderSection: React.FC<FolderSectionProps> = ({
-  folder,
-  items,
-  selectedItemId,
-  menuOpenItemId,
-  editingItemId,
-  isFolderEditing = false,
-  isFolderMenuOpen = false,
-  onItemClick,
-  onItemContextMenu,
-  onToggle,
-  onSaveEdit,
-  onCancelEdit,
-  onFolderContextMenu,
-  onSaveFolderEdit,
-  onCancelFolderEdit,
-}) => {
-  const isExpanded = folder.isExpanded ?? true;
-  const [isHovered, setIsHovered] = useState(false);
-  const [editValue, setEditValue] = useState(folder.label);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const showButton = (isHovered || isFolderMenuOpen) && !isFolderEditing;
-
-  // Focus input when entering edit mode
-  useEffect(() => {
-    if (isFolderEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isFolderEditing]);
-
-  // Reset edit value when folder label changes or editing starts
-  useEffect(() => {
-    setEditValue(folder.label);
-  }, [folder.label, isFolderEditing]);
-
-  const handleSave = () => {
-    const trimmedValue = editValue.trim();
-    if (trimmedValue && trimmedValue !== folder.label) {
-      onSaveFolderEdit?.(trimmedValue);
-    } else {
-      onCancelFolderEdit?.();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancelFolderEdit?.();
-    }
-  };
-
-  return (
-    <div className="mb-1">
-      <div
-        className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-[13px] text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-        onClick={isFolderEditing ? undefined : () => onToggle(!isExpanded)}
-        onContextMenu={isFolderEditing ? undefined : onFolderContextMenu}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <FolderSimpleIcon
-            size={16}
-            weight="regular"
-            className="text-gray-800 mb-[1px] flex-shrink-0"
-          />
-          {isFolderEditing ? (
-            <input
-              ref={inputRef}
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleSave}
-              className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <>
-              <span className="text-left truncate">{folder.label}</span>
-              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">
-                ({items.length})
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* More options button - shows on hover or when menu is open */}
-        {!isFolderEditing && (
-          <PrimaryIconButton
-            icon={<DotsThreeIcon size={16} weight="bold" />}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation();
-              onFolderContextMenu?.(e);
-            }}
-            visible={showButton}
-            size="small"
-          />
-        )}
-      </div>
-
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden pl-2 border-l border-gray-200 ml-4"
-          >
-            {items.map((item) => (
-              <SidebarItemRow
-                key={item.id}
-                item={item}
-                isSelected={item.id === selectedItemId}
-                onClick={() => onItemClick(item.id, item.type)}
-                onContextMenu={(e) => onItemContextMenu(e, item)}
-                showIcon={true}
-                isMenuOpen={menuOpenItemId === item.id}
-                isEditing={editingItemId === item.id}
-                onSaveEdit={(newName) => onSaveEdit?.(item, newName)}
-                onCancelEdit={onCancelEdit}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// ============================================================================
-// Main Component
-// ============================================================================
-
 /**
- * ChatSidebar - Left sidebar for chats and dashboards
+ * ChatSidebar - Left sidebar for chat history
  *
- * Displays a hierarchical list of chats and dashboards organized in folders.
- * Shows ownership indicators for shared dashboards (org-wide vs private).
- * Supports rename and delete operations via context menu.
+ * Displays a list of past chats with search functionality and new chat button.
+ * Clean, minimal design with white background.
+ *
+ * @example
+ * ```tsx
+ * <ChatSidebar
+ *   chatItems={[
+ *     { id: '1', label: 'Team Review' },
+ *     { id: '2', label: 'Forecast Q3' }
+ *   ]}
+ *   selectedChatId="1"
+ *   onChatClick={(id) => console.log(id)}
+ *   onNewChatClick={() => console.log('New chat')}
+ * />
+ * ```
  */
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
-  items: itemsProp,
-  folders = [],
-  selectedItemId: selectedItemIdProp,
-  onItemClick: onItemClickProp,
-  onNewChatClick,
-  salesforceDashboards = [],
-  onCreateDashboard,
-  onNewChatFolderClick,
-  onNewDashboardFolderClick,
-  onRenameItem,
-  onDeleteItem,
-  onFolderToggle,
-  onRenameFolder,
-  onDeleteFolder,
+  chatItems = [],
+  selectedChatId,
+  onChatClick,
   isCollapsed = false,
   onToggleCollapse,
   loadMoreRef,
   isFetchingMore = false,
   hasNextPage = false,
   onLoadMore,
-  onCollapseAllClick,
-  onLogoClick,
-  userName,
-  userEmail,
   avatarSrc,
   avatarLabel,
-  onProfileClick,
-  onSettingsClick,
-  onHelpClick,
-  onSignOutClick,
-  // Legacy props for backward compatibility
-  chatItems,
-  selectedChatId,
-  onChatClick,
-  searchPlaceholder = 'Search...',
+  userName,
+  userEmail,
   onAvatarClick,
 }) => {
-  // ============================================================================
-  // Backward Compatibility: Transform legacy props to new API
-  // ============================================================================
-
-  // Use new API if provided, otherwise fall back to legacy API
-  const items: SidebarItem[] =
-    itemsProp ??
-    (chatItems || []).map((item) => ({
-      ...item,
-      type: 'chat' as ItemType,
-    }));
-
-  const selectedItemId = selectedItemIdProp ?? selectedChatId;
-
-  const onItemClick =
-    onItemClickProp ?? (onChatClick ? (id: string) => onChatClick(id) : undefined);
-  const [searchValue, setSearchValue] = useState('');
-  const [contextMenu, setContextMenu] = useState<{
-    isOpen: boolean;
-    position: { top: number; left: number };
-    item: SidebarItem | null;
-  }>({ isOpen: false, position: { top: 0, left: 0 }, item: null });
-
-  // Inline editing state
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-
-  // Delete confirmation state (for items)
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    isOpen: boolean;
-    item: SidebarItem | null;
-  }>({ isOpen: false, item: null });
-
-  // Folder context menu state
-  const [folderContextMenu, setFolderContextMenu] = useState<{
-    isOpen: boolean;
-    position: { top: number; left: number };
-    folder: Folder | null;
-  }>({ isOpen: false, position: { top: 0, left: 0 }, folder: null });
-
-  // Folder editing state
-  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-
-  // Delete confirmation state (for folders)
-  const [folderDeleteConfirmation, setFolderDeleteConfirmation] = useState<{
-    isOpen: boolean;
-    folder: Folder | null;
-  }>({ isOpen: false, folder: null });
-
-  // Section expansion states
-  const [isChatsExpanded, setIsChatsExpanded] = useState(true);
-  const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(true);
-
-  // New dashboard modal state
-  const [isNewDashboardModalOpen, setIsNewDashboardModalOpen] = useState(false);
-
-  const chatButtonRef = useRef<HTMLButtonElement>(null);
   const [isChatsHovered, setIsChatsHovered] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-
-  // Profile popover state
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const avatarButtonRef = useRef<HTMLButtonElement>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{
-    top?: number;
-    bottom?: number;
-    left?: number;
-    right?: number;
-  }>({ bottom: 0, left: 0 });
-
-  const handleAvatarClick = () => {
-    if (avatarButtonRef.current) {
-      const rect = avatarButtonRef.current.getBoundingClientRect();
-
-      // Legacy: Call external avatar click handler if provided
-      if (onAvatarClick) {
-        onAvatarClick(rect);
-        return; // Don't open internal popover when using legacy handler
-      }
-
-      // Position popover above the avatar button, opening towards the top
-      setPopoverPosition({
-        bottom: window.innerHeight - rect.top + 8,
-        left: rect.right + 8,
-      });
-    }
-    setIsProfileOpen(!isProfileOpen);
-  };
-
-  // Handle collapse all - collapses all sections
-  const handleCollapseAll = () => {
-    setIsChatsExpanded(false);
-    setIsDashboardsExpanded(false);
-    // Also collapse all folders
-    folders.forEach((folder) => {
-      if (folder.isExpanded) {
-        onFolderToggle?.(folder.id, false);
-      }
-    });
-    onCollapseAllClick?.();
-  };
-
-  // Filter items based on search
-  const filteredItems = items.filter((item) =>
-    item.label.toLowerCase().includes(searchValue.toLowerCase())
-  );
-
-  // Separate folders by type
-  const chatFolders = folders.filter((folder) => folder.type === 'chat');
-  const dashboardFolders = folders.filter((folder) => folder.type === 'dashboard');
-
-  // Separate items by folder
-  const rootItems = filteredItems.filter((item) => !item.folderId);
-  const itemsByFolder = folders.reduce(
-    (acc, folder) => {
-      acc[folder.id] = filteredItems.filter((item) => item.folderId === folder.id);
-      return acc;
-    },
-    {} as Record<string, SidebarItem[]>
-  );
-
-  // Separate root items by type
-  const rootChats = rootItems.filter((item) => item.type === 'chat');
-  const rootDashboards = rootItems.filter((item) => item.type === 'dashboard');
-
-  // Count total items in each section (root + folders)
-  const totalChats = filteredItems.filter((item) => item.type === 'chat').length;
-  const totalDashboards = filteredItems.filter((item) => item.type === 'dashboard').length;
-
-  const handleContextMenu = (e: React.MouseEvent, item: SidebarItem) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({
-      isOpen: true,
-      position: { top: e.clientY, left: e.clientX + 8 },
-      item,
-    });
-  };
+  const chatButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleChatsHover = (isHovering: boolean) => {
-    if (isHovering && chatButtonRef.current) {
+    if (isHovering) {
+      if (!chatButtonRef.current) return; // Prevent rendering with invalid position
       const rect = chatButtonRef.current.getBoundingClientRect();
       setDropdownPosition({
         top: rect.top,
-        left: rect.right + 8,
+        left: rect.right + 8, // 8px gap
       });
     }
     setIsChatsHovered(isHovering);
   };
 
-  // Handle starting rename edit mode
-  const handleStartRename = (item: SidebarItem) => {
-    setEditingItemId(item.id);
-  };
-
-  // Handle saving the rename
-  const handleSaveRename = (item: SidebarItem, newName: string) => {
-    onRenameItem?.(item.id, item.type, newName);
-    setEditingItemId(null);
-  };
-
-  // Handle canceling the rename
-  const handleCancelRename = () => {
-    setEditingItemId(null);
-  };
-
-  // Handle showing delete confirmation
-  const handleShowDeleteConfirmation = (item: SidebarItem) => {
-    setDeleteConfirmation({ isOpen: true, item });
-  };
-
-  // Handle confirming delete
-  const handleConfirmDelete = () => {
-    if (deleteConfirmation.item) {
-      onDeleteItem?.(deleteConfirmation.item.id, deleteConfirmation.item.type);
+  const handleItemClick = (e: React.MouseEvent, itemId: string) => {
+    // Allow default behavior for Cmd/Ctrl+Click, middle-click
+    if (e.metaKey || e.ctrlKey || e.button === 1) {
+      return;
     }
-    setDeleteConfirmation({ isOpen: false, item: null });
-  };
 
-  // Handle canceling delete
-  const handleCancelDelete = () => {
-    setDeleteConfirmation({ isOpen: false, item: null });
-  };
-
-  // ============================================================================
-  // Folder Handlers
-  // ============================================================================
-
-  // Handle folder context menu
-  const handleFolderContextMenu = (e: React.MouseEvent, folder: Folder) => {
+    // Prevent default for normal click and use SPA navigation
     e.preventDefault();
-    e.stopPropagation();
-    setFolderContextMenu({
-      isOpen: true,
-      position: { top: e.clientY, left: e.clientX + 8 },
-      folder,
-    });
+    onChatClick?.(itemId);
   };
 
-  // Handle starting folder rename edit mode
-  const handleStartFolderRename = (folder: Folder) => {
-    setEditingFolderId(folder.id);
-  };
-
-  // Handle saving the folder rename
-  const handleSaveFolderRename = (folder: Folder, newName: string) => {
-    onRenameFolder?.(folder.id, newName);
-    setEditingFolderId(null);
-  };
-
-  // Handle canceling the folder rename
-  const handleCancelFolderRename = () => {
-    setEditingFolderId(null);
-  };
-
-  // Handle showing folder delete confirmation
-  const handleShowFolderDeleteConfirmation = (folder: Folder) => {
-    setFolderDeleteConfirmation({ isOpen: true, folder });
-  };
-
-  // Handle confirming folder delete
-  const handleConfirmFolderDelete = () => {
-    if (folderDeleteConfirmation.folder) {
-      onDeleteFolder?.(folderDeleteConfirmation.folder.id);
-    }
-    setFolderDeleteConfirmation({ isOpen: false, folder: null });
-  };
-
-  // Handle canceling folder delete
-  const handleCancelFolderDelete = () => {
-    setFolderDeleteConfirmation({ isOpen: false, folder: null });
-  };
-
-  // ============================================================================
-  // Collapsed State
-  // ============================================================================
+  // Collapsed state - show minimal sidebar with toggle button and chat icon with hover dropdown
   if (isCollapsed) {
     return (
-      <div className="px-2 py-3 h-full w-full bg-transparent flex text-[13px] flex-col antialiased font-sf">
-        {/* Collapsed Header - Logo placeholder and Expand button */}
-        <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-100 mb-2">
-          <TertiaryIconButton
-            icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
+      <div className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col antialiased font-sf">
+        {/* Collapsed Header - Toggle button */}
+        <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-200 mb-2">
+          <button
             onClick={onToggleCollapse}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
             title="Expand sidebar"
-          />
+          >
+            <SidebarSimpleIcon size={18} weight="regular" className="text-gray-500" />
+          </button>
         </div>
 
-        {/* Collapsed Menu */}
+        {/* Collapsed Menu - Chat icon with hover dropdown */}
         <div className="flex-1 px-1">
           <div className="flex flex-col items-center gap-1">
-            {/* New Button */}
-            <PrimaryIconButton
-              icon={<PlusIcon size={16} weight="bold" />}
-              onClick={onNewChatClick}
-              title="New Chat"
-            />
-
-            {/* Chats Icon with Hover Dropdown */}
+            {/* Chat Icon with Hover Dropdown */}
             <div
-              className="relative mt-2"
+              className="relative"
               onMouseEnter={() => handleChatsHover(true)}
               onMouseLeave={() => handleChatsHover(false)}
             >
@@ -955,17 +196,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 className={`
                   flex items-center justify-center w-8 h-8
                   rounded-lg border-0 cursor-pointer
-                  transition-all duration-150
-                  ${isChatsHovered ? 'bg-gray-50 text-gray-900' : 'bg-transparent text-gray-800 hover:bg-gray-50 hover:text-gray-900'}
+                  transition-all duration-200
+                  ${isChatsHovered ? 'bg-gray-100 text-gray-900' : 'bg-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
                 `}
-                title="Chats & Dashboards"
+                title="Past Chats"
               >
-                <ChatTextIcon size={18} weight="duotone" />
+                <ChatTextIcon size={20} weight="duotone" />
               </button>
 
-              {/* Hover Dropdown */}
+              {/* Hover Dropdown - Conversation List (fixed position to escape overflow:hidden) */}
               <AnimatePresence>
-                {isChatsHovered && items.length > 0 && (
+                {isChatsHovered && chatItems.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -975,67 +216,52 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
                   >
                     <div className="px-3 py-2 border-b border-gray-100">
-                      <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
-                        Recent
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                        Past Chats
                       </span>
                     </div>
                     <div className="overflow-y-auto max-h-64 py-1">
-                      {items.slice(0, 10).map((item) => {
-                        const isSelected = item.id === selectedItemId;
+                      {chatItems.slice(0, 10).map((item) => {
+                        const isSelected = item.id === selectedChatId;
+
+                        if (item.href) {
+                          return (
+                            <a
+                              key={item.id}
+                              href={item.href}
+                              className={`
+                                block px-3 py-2 text-sm text-gray-900
+                                transition-all duration-150 whitespace-nowrap overflow-hidden
+                                text-ellipsis no-underline cursor-pointer
+                                ${isSelected ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50 font-normal'}
+                              `}
+                              onClick={(e) => handleItemClick(e, item.id)}
+                              title={item.label}
+                            >
+                              {item.label}
+                            </a>
+                          );
+                        }
 
                         return (
                           <div
                             key={item.id}
                             className={`
-                              flex items-center gap-2.5 px-3 py-1.5 text-[13px]
-                              transition-all duration-150 cursor-pointer
-                              ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
+                              px-3 py-2 text-sm text-gray-900
+                              transition-all duration-150 whitespace-nowrap overflow-hidden
+                              text-ellipsis cursor-pointer
+                              ${isSelected ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50 font-normal'}
                             `}
-                            onClick={() => onItemClick?.(item.id, item.type)}
+                            onClick={() => onChatClick?.(item.id)}
                             title={item.label}
                           >
-                            {/* Icon before name */}
-                            {item.type === 'dashboard' ? (
-                              <span
-                                className="flex-shrink-0"
-                                title={
-                                  item.ownership === 'shared'
-                                    ? `Shared by ${item.ownerName || 'someone'}`
-                                    : item.ownership === 'shared_by_me'
-                                      ? 'Shared by you'
-                                      : 'Private'
-                                }
-                              >
-                                {item.ownership === 'shared' ? (
-                                  <BuildingOfficeIcon
-                                    size={16}
-                                    weight="regular"
-                                    className="text-gray-800"
-                                  />
-                                ) : item.ownership === 'shared_by_me' ? (
-                                  <UsersIcon size={16} weight="regular" className="text-gray-800" />
-                                ) : (
-                                  <UserSquareIcon
-                                    size={16}
-                                    weight="regular"
-                                    className="text-gray-800"
-                                  />
-                                )}
-                              </span>
-                            ) : (
-                              <ChatTextIcon
-                                size={16}
-                                weight="regular"
-                                className="text-gray-800 flex-shrink-0"
-                              />
-                            )}
-                            <span className="truncate font-medium">{item.label}</span>
+                            {item.label}
                           </div>
                         );
                       })}
-                      {items.length > 10 && (
-                        <div className="px-3 py-2 text-[11px] text-gray-500 border-t border-gray-100">
-                          +{items.length - 10} more
+                      {chatItems.length > 10 && (
+                        <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-100">
+                          +{chatItems.length - 10} more chats
                         </div>
                       )}
                     </div>
@@ -1046,16 +272,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         </div>
 
-        {/* User Profile Section - Collapsed */}
+        {/* Collapsed Avatar Section - Just avatar */}
         {(userName || userEmail || avatarLabel) && (
-          <div className="mt-auto pt-2 px-1 border-t border-gray-100">
+          <div className="pt-3 mt-auto border-t border-gray-200">
             <button
-              ref={avatarButtonRef}
-              onClick={handleAvatarClick}
-              className="w-full flex items-center justify-center py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center p-1 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={(e) => onAvatarClick?.(e.currentTarget.getBoundingClientRect())}
               title={userName || userEmail}
             >
-              <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
+              <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}
@@ -1063,7 +288,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-[11px] font-semibold">
+                  <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
                     {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                 )}
@@ -1071,294 +296,230 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </button>
           </div>
         )}
-
-        {/* Profile Popover */}
-        <ProfilePopover
-          isOpen={isProfileOpen}
-          onClose={() => setIsProfileOpen(false)}
-          userName={userName}
-          userEmail={userEmail}
-          avatarSrc={avatarSrc}
-          avatarLabel={avatarLabel}
-          position={popoverPosition}
-          onProfileClick={onProfileClick}
-          onSettingsClick={onSettingsClick}
-          onHelpClick={onHelpClick}
-          onSignOutClick={onSignOutClick}
-        />
       </div>
     );
   }
 
-  // ============================================================================
-  // Expanded State
-  // ============================================================================
+  // Expanded state - show full sidebar
   return (
-    <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-[13px] flex-col overflow-hidden antialiased font-sf">
-      {/* Logo Row */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        {/* Logo */}
-        <img
-          src={VON_COMBINATION_MARK_URL}
-          alt="Von logo"
-          width={64}
-          height={24}
-          style={{ cursor: onLogoClick ? 'pointer' : 'default' }}
-          onClick={onLogoClick}
-        />
+    <motion.div
+      className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf"
+      initial={{ width: 64 }}
+      animate={{ width: 240 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {/* Logo Row with Collapse Button */}
+      {/* <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200"> */}
+      {/* Combination Logo */}
+      {/* <svg width="72" height="28" viewBox="0 0 80 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z" fill="url(#paint0_radial_expanded)"/>
+          <path d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z" stroke="white" strokeWidth="1.33"/>
+          <circle cx="13.9922" cy="14" r="7.835" stroke="white" strokeWidth="1.33"/>
+          <path d="M32.0962 6.78408C31.8987 6.26257 32.0053 6.00182 32.4162 6.00182H33.6252C34.0519 6.00182 34.3363 6.19541 34.4786 6.58259L38.3306 17.1906C38.4966 17.6568 38.702 18.285 38.947 19.0751C39.1998 19.8574 39.3697 20.4816 39.4566 20.9478H39.504C39.5909 20.4816 39.7569 19.8574 40.0018 19.0751C40.2547 18.285 40.4641 17.6568 40.63 17.1906L44.4821 6.58259C44.6243 6.19541 44.9088 6.00182 45.3355 6.00182H46.5444C46.9553 6.00182 47.062 6.26257 46.8644 6.78408L41.0923 22.2753C40.9105 22.7573 40.6498 22.9983 40.31 22.9983H38.6506C38.3109 22.9983 38.0501 22.7573 37.8684 22.2753L32.0962 6.78408Z" fill="#332D3E"/>
+          <path d="M47.7038 14.5001C47.7038 11.7345 48.3833 9.56942 49.7424 8.00489C51.1094 6.43246 53.0769 5.64624 55.6449 5.64624C58.213 5.64624 60.1765 6.43246 61.5356 8.00489C62.9026 9.56942 63.5861 11.7345 63.5861 14.5001C63.5861 17.2656 62.9026 19.4347 61.5356 21.0071C60.1765 22.5716 58.213 23.3539 55.6449 23.3539C53.0769 23.3539 51.1094 22.5716 49.7424 21.0071C48.3833 19.4347 47.7038 17.2656 47.7038 14.5001ZM50.1335 14.5001C50.1335 16.7125 50.5879 18.4351 51.4966 19.6678C52.4052 20.8925 53.788 21.5049 55.6449 21.5049C57.5018 21.5049 58.8846 20.8925 59.7933 19.6678C60.702 18.4351 61.1563 16.7125 61.1563 14.5001C61.1563 12.2876 60.702 10.569 59.7933 9.34422C58.8846 8.11156 57.5018 7.49523 55.6449 7.49523C53.788 7.49523 52.4052 8.11156 51.4966 9.34422C50.5879 10.569 50.1335 12.2876 50.1335 14.5001Z" fill="#332D3E"/>
+          <path d="M66.7841 22.9983C66.389 22.9983 66.1915 22.781 66.1915 22.3464V6.6537C66.1915 6.21911 66.389 6.00182 66.7841 6.00182H68.3012C68.8543 6.00182 69.2494 6.19936 69.4865 6.59444L76.9061 19.0277H76.9535C76.9377 18.7116 76.9298 18.3956 76.9298 18.0795V6.6537C76.9298 6.21911 77.1274 6.00182 77.5225 6.00182H78.6129C79.008 6.00182 79.2055 6.21911 79.2055 6.6537V22.3464C79.2055 22.781 79.008 22.9983 78.6129 22.9983H77.5699C77.0167 22.9983 76.6217 22.8008 76.3846 22.4057L68.4908 9.21384H68.4434C68.4592 9.52991 68.4671 9.84598 68.4671 10.162V22.3464C68.4671 22.781 68.2696 22.9983 67.8745 22.9983H66.7841Z" fill="#332D3E"/>
+          <defs>
+            <radialGradient id="paint0_radial_expanded" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)">
+              <stop stopColor="#FFF3EB"/>
+              <stop offset="0.26" stopColor="#FF9042"/>
+              <stop offset="1" stopColor="#854FFF"/>
+            </radialGradient>
+          </defs>
+        </svg> */}
 
-        {/* Collapse Sidebar Button */}
-        <TertiaryIconButton
-          icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
+      {/* Collapse Button */}
+      {/* <motion.button
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           onClick={onToggleCollapse}
+          whileHover={{ scale: 1 }}
+          whileTap={{ scale: 0.95 }}
           title="Collapse sidebar"
-        />
-      </div>
-
-      {/* Search with Collapse All button */}
-      <div className="mb-2 px-1 flex items-center gap-1.5">
-        <div className="flex-1 flex items-center gap-1.5 px-2 py-1.25 bg-white rounded-lg border border-gray-100 focus-within:border-gray-200 focus-within:ring-1 focus-within:ring-gray-100 transition-colors">
-          <MagnifyingGlassIcon size={14} className="text-gray-400" />
-          <input
-            type="text"
-            placeholder={searchPlaceholder}
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none text-[13px] text-gray-900 placeholder:text-gray-400"
-          />
-        </div>
-        {/* Collapse All Button */}
-        <SecondaryIconButton
-          icon={<ArrowsInLineVerticalIcon size={14} weight="regular" className="text-gray-600" />}
-          onClick={handleCollapseAll}
-        />
-      </div>
-
-      {/* New Chat & New Dashboard Buttons - Side by Side */}
-      <div className="my-2 px-1 flex flex-col gap-1.5">
-        <PrimaryButton
-          onClick={onNewChatClick}
-          className="flex-1 flex items-center justify-center gap-1.5"
         >
-          <PlusIcon size={14} weight="bold" />
-          New Chat
-        </PrimaryButton>
-        <GhostButton
-          onClick={() => setIsNewDashboardModalOpen(true)}
-          className="flex-1 flex items-center justify-center gap-1.5"
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-gray-500"
+          >
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.button>
+      </div> */}
+
+      {/* New Chat Button */}
+      {/* <motion.button
+        className={`w-full h-[32px] mb-3 flex items-center justify-center gap-2 rounded-xl bg-gray-900 text-white text-sm font-semibold transition-all duration-200
+          cursor-pointer
+        }`}
+        onClick={onNewChatClick}
+        whileHover={{ scale: 1, opacity: 0.95 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.2 }}
+        title={'Create a new chat'}
+      >
+        New Chat
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
         >
-          <PlusIcon size={14} weight="bold" />
-          Dashboard
-        </GhostButton>
+          <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+        </svg>
+      </motion.button> */}
+
+      {/* Section Header */}
+      <div className="flex items-center justify-between px-2 pt-1 pb-3 border-b border-gray-200 mb-2">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          <ChatTextIcon size={16} weight="duotone" />
+          Past Chats
+        </div>
+        <button
+          onClick={onToggleCollapse}
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          title="Collapse sidebar"
+        >
+          <SidebarSimpleIcon size={16} weight="regular" className="text-gray-500" />
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
-        {/* Chats Section (with folders inside) */}
-        <div className="mb-1">
-          <SectionHeader
-            label="Chats"
-            isExpanded={isChatsExpanded}
-            onToggle={() => setIsChatsExpanded(!isChatsExpanded)}
-            onAdd={onNewChatFolderClick}
-            addButtonLabel="Add Folder"
-            count={totalChats}
-          />
-          <AnimatePresence>
-            {isChatsExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
-              >
-                {/* Chat Folders */}
-                {chatFolders.map((folder) => {
-                  const folderItems = itemsByFolder[folder.id] || [];
-                  if (folderItems.length === 0 && searchValue) return null;
+      {/* Chat List Container - Relative positioning for absolute indicator */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Chat List - Scrollable but hidden scrollbar */}
+        <div className="h-full overflow-y-scroll overflow-x-hidden scrollbar-hide">
+          {chatItems.map((item) => {
+            const isSelected = item.id === selectedChatId;
 
-                  return (
-                    <FolderSection
-                      key={folder.id}
-                      folder={folder}
-                      items={folderItems}
-                      selectedItemId={selectedItemId}
-                      menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                      editingItemId={editingItemId}
-                      isFolderEditing={editingFolderId === folder.id}
-                      isFolderMenuOpen={
-                        folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
-                      }
-                      onItemClick={(id, type) => onItemClick?.(id, type)}
-                      onItemContextMenu={handleContextMenu}
-                      onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
-                      onSaveEdit={handleSaveRename}
-                      onCancelEdit={handleCancelRename}
-                      onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                      onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
-                      onCancelFolderEdit={handleCancelFolderRename}
-                    />
-                  );
-                })}
-                {/* Root Chats (not in folders) */}
-                {rootChats.map((item) => (
-                  <SidebarItemRow
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedItemId}
-                    onClick={() => onItemClick?.(item.id, item.type)}
-                    onContextMenu={(e) => handleContextMenu(e, item)}
-                    showIcon={false}
-                    isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                    isEditing={editingItemId === item.id}
-                    onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                    onCancelEdit={handleCancelRename}
-                  />
-                ))}
-                {/* Empty state for chats */}
-                {totalChats === 0 && !searchValue && (
-                  <div className="py-3 text-center">
-                    <p className="text-[12px] text-gray-400">No chats yet</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+            // If href provided, use anchor tag for proper link behavior
+            if (item.href) {
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  className={`
+                    block px-2 py-1.5 mx-0 mb-0.25 text-sm text-gray-900
+                    transition-all duration-200 whitespace-nowrap overflow-hidden
+                    text-ellipsis rounded-lg no-underline cursor-pointer
+                    ${
+                      isSelected
+                        ? 'bg-gray-100 font-medium'
+                        : 'bg-transparent hover:bg-gray-50 font-normal'
+                    }
+                  `}
+                  onClick={(e) => handleItemClick(e, item.id)}
+                  title={item.label}
+                >
+                  {item.label}
+                </a>
+              );
+            }
+
+            // Fallback to div for backward compatibility
+            return (
+              <div
+                key={item.id}
+                className={`
+                  block px-2 py-1.5 mx-0 my-0.25 text-sm text-gray-900
+                  transition-all duration-200 whitespace-nowrap overflow-hidden
+                  text-ellipsis rounded-lg cursor-pointer
+                  ${
+                    isSelected
+                      ? 'bg-gray-100 font-medium'
+                      : 'bg-transparent hover:bg-gray-50 font-normal'
+                  }
+                `}
+                onClick={() => onChatClick?.(item.id)}
+                title={item.label}
+              >
+                {item.label}
+              </div>
+            );
+          })}
+
+          {/* Infinite scroll trigger - hidden but still functional */}
+          {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
         </div>
 
-        {/* Dashboards Section (with folders inside) */}
-        <div className="mb-1">
-          <SectionHeader
-            label="Dashboards"
-            isExpanded={isDashboardsExpanded}
-            onToggle={() => setIsDashboardsExpanded(!isDashboardsExpanded)}
-            onAdd={onNewDashboardFolderClick}
-            addButtonLabel="Add Folder"
-            count={totalDashboards}
-          />
-          <AnimatePresence>
-            {isDashboardsExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
+        {/* More Content Indicator - Animated double arrow at bottom */}
+        {hasNextPage && !isFetchingMore && (
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 h-16 flex items-end justify-center pb-2 pointer-events-none gradient-fade-top"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.button
+              className="pointer-events-auto px-4 py-2 flex flex-col items-center justify-center gap-0 cursor-pointer"
+              onClick={onLoadMore}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <motion.svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="text-gray-600"
+                animate={{
+                  y: [0, 4, 0],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
               >
-                {/* Dashboard Folders */}
-                {dashboardFolders.map((folder) => {
-                  const folderItems = itemsByFolder[folder.id] || [];
-                  if (folderItems.length === 0 && searchValue) return null;
-
-                  return (
-                    <FolderSection
-                      key={folder.id}
-                      folder={folder}
-                      items={folderItems}
-                      selectedItemId={selectedItemId}
-                      menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                      editingItemId={editingItemId}
-                      isFolderEditing={editingFolderId === folder.id}
-                      isFolderMenuOpen={
-                        folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
-                      }
-                      onItemClick={(id, type) => onItemClick?.(id, type)}
-                      onItemContextMenu={handleContextMenu}
-                      onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
-                      onSaveEdit={handleSaveRename}
-                      onCancelEdit={handleCancelRename}
-                      onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                      onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
-                      onCancelFolderEdit={handleCancelFolderRename}
-                    />
-                  );
-                })}
-                {/* Root Dashboards (not in folders) */}
-                {rootDashboards.map((item) => (
-                  <SidebarItemRow
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedItemId}
-                    onClick={() => onItemClick?.(item.id, item.type)}
-                    onContextMenu={(e) => handleContextMenu(e, item)}
-                    showIcon={true}
-                    isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                    isEditing={editingItemId === item.id}
-                    onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                    onCancelEdit={handleCancelRename}
-                  />
-                ))}
-                {/* Empty state for dashboards */}
-                {totalDashboards === 0 && !searchValue && (
-                  <div className="py-3 text-center">
-                    <p className="text-[12px] text-gray-400">No dashboards yet</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Empty state */}
-        {filteredItems.length === 0 && folders.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <ChatTextIcon size={24} weight="duotone" className="text-gray-300 mb-1" />
-            <p className="text-[13px] text-gray-500">
-              {searchValue ? 'No results found' : 'No chats or dashboards yet'}
-            </p>
-          </div>
+                <path d="M7 13l5 5 5-5M7 6l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+              </motion.svg>
+              <span className="text-[11px] text-gray-600 font-medium">More</span>
+            </motion.button>
+          </motion.div>
         )}
 
-        {/* Infinite scroll trigger */}
-        {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
+        {/* Loading indicator */}
+        {isFetchingMore && (
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-center gradient-fade-top"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <motion.div
+                className="w-1 h-1 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+              />
+              <motion.div
+                className="w-1 h-1 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+              />
+              <motion.div
+                className="w-1 h-1 rounded-full bg-gray-500"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+              />
+            </div>
+          </motion.div>
+        )}
       </div>
 
-      {/* More Content Indicator */}
-      {hasNextPage && !isFetchingMore && (
-        <motion.div
-          className="flex items-center justify-center py-1.5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <button
-            className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
-            onClick={onLoadMore}
-          >
-            <motion.div animate={{ y: [0, 2, 0] }} transition={{ duration: 1, repeat: Infinity }}>
-              <CaretDownIcon size={12} weight="bold" />
-            </motion.div>
-            Load more
-          </button>
-        </motion.div>
-      )}
-
-      {/* Loading indicator */}
-      {isFetchingMore && (
-        <div className="flex items-center justify-center py-1.5">
-          <div className="flex items-center gap-1">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-1 h-1 rounded-full bg-gray-400"
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* User Profile Section */}
+      {/* Avatar Section at Bottom */}
       {(userName || userEmail || avatarLabel) && (
-        <div className="mt-auto pt-2 px-1 border-t border-gray-100">
+        <div className="pt-3 mt-auto border-t border-gray-200">
           <button
-            ref={avatarButtonRef}
-            onClick={handleAvatarClick}
-            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            onClick={(e) => onAvatarClick?.(e.currentTarget.getBoundingClientRect())}
           >
             {/* Avatar */}
-            <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
+            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
               {avatarSrc ? (
                 <img
                   src={avatarSrc}
@@ -1366,102 +527,32 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-[11px] font-semibold">
+                <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
                   {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
                 </div>
               )}
             </div>
             {/* User Info */}
             <div className="flex-1 min-w-0 text-left">
-              {userName && (
-                <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
-              )}
-              {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
+              {userName && <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>}
+              {userEmail && <p className="text-xs text-gray-500 truncate">{userEmail}</p>}
             </div>
             {/* Chevron */}
-            <CaretUpDownIcon size={14} className="text-gray-400 flex-shrink-0" />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-gray-400 flex-shrink-0"
+            >
+              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       )}
-
-      {/* Profile Popover */}
-      <ProfilePopover
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        userName={userName}
-        userEmail={userEmail}
-        avatarSrc={avatarSrc}
-        avatarLabel={avatarLabel}
-        position={popoverPosition}
-        onProfileClick={onProfileClick}
-        onSettingsClick={onSettingsClick}
-        onHelpClick={onHelpClick}
-        onSignOutClick={onSignOutClick}
-      />
-
-      {/* Context Menu */}
-      <ContextMenu
-        isOpen={contextMenu.isOpen}
-        onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
-        items={getContextMenuItems()}
-        fixedPosition={contextMenu.position}
-        width={128}
-        onItemClick={(item) => {
-          if (item.id === 'rename' && contextMenu.item) {
-            handleStartRename(contextMenu.item);
-          } else if (item.id === 'delete' && contextMenu.item) {
-            handleShowDeleteConfirmation(contextMenu.item);
-          }
-          setContextMenu({ ...contextMenu, isOpen: false });
-        }}
-      />
-
-      {/* Delete Confirmation Popup (for items) */}
-      <DeleteConfirmationPopup
-        isOpen={deleteConfirmation.isOpen}
-        itemLabel={deleteConfirmation.item?.label || ''}
-        itemType={deleteConfirmation.item?.type || 'chat'}
-        onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
-      />
-
-      {/* Folder Context Menu */}
-      <ContextMenu
-        isOpen={folderContextMenu.isOpen}
-        onClose={() => setFolderContextMenu({ ...folderContextMenu, isOpen: false })}
-        items={getContextMenuItems()}
-        fixedPosition={folderContextMenu.position}
-        width={128}
-        onItemClick={(item) => {
-          if (item.id === 'rename' && folderContextMenu.folder) {
-            handleStartFolderRename(folderContextMenu.folder);
-          } else if (item.id === 'delete' && folderContextMenu.folder) {
-            handleShowFolderDeleteConfirmation(folderContextMenu.folder);
-          }
-          setFolderContextMenu({ ...folderContextMenu, isOpen: false });
-        }}
-      />
-
-      {/* Delete Confirmation Popup (for folders) */}
-      <DeleteConfirmationPopup
-        isOpen={folderDeleteConfirmation.isOpen}
-        itemLabel={folderDeleteConfirmation.folder?.label || ''}
-        itemType="folder"
-        onConfirm={handleConfirmFolderDelete}
-        onCancel={handleCancelFolderDelete}
-      />
-
-      {/* New Dashboard Modal */}
-      <NewDashboardModal
-        isOpen={isNewDashboardModalOpen}
-        salesforceDashboards={salesforceDashboards}
-        onConfirm={(config) => {
-          onCreateDashboard?.(config);
-          setIsNewDashboardModalOpen(false);
-        }}
-        onCancel={() => setIsNewDashboardModalOpen(false)}
-      />
-    </div>
+    </motion.div>
   );
 };
 

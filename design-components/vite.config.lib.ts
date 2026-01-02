@@ -28,8 +28,6 @@ export default defineConfig({
         'framer-motion',
         'rsuite',
         '@phosphor-icons/react',
-        'highcharts',
-        'highcharts-react-official',
       ],
       output: {
         // Provide global variables for UMD build
