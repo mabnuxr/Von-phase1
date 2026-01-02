@@ -81,7 +81,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   useLayoutEffect(() => {
     if (messagesEndRef.current && messagesContainerRef.current) {
       const container = messagesContainerRef.current;
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
       if (isNearBottom || isStreaming) {
         messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -139,13 +140,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
                   stroke="white"
                   strokeWidth="1.33"
                 />
-                <circle
-                  cx="13.9932"
-                  cy="14"
-                  r="7.835"
-                  stroke="white"
-                  strokeWidth="1.33"
-                />
+                <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
               </svg>
             </div>
             <p className="text-[13px] text-gray-500">Start a conversation</p>

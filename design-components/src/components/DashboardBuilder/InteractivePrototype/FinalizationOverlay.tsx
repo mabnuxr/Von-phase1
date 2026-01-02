@@ -156,7 +156,8 @@ export const FinalizationOverlay: React.FC<FinalizationOverlayProps> = ({
                 <div
                   className="px-8 py-8 text-center"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(128, 57, 233, 0.08), rgba(255, 144, 66, 0.08))',
+                    background:
+                      'linear-gradient(135deg, rgba(128, 57, 233, 0.08), rgba(255, 144, 66, 0.08))',
                   }}
                 >
                   {/* Success icon */}
@@ -217,8 +218,12 @@ export const FinalizationOverlay: React.FC<FinalizationOverlayProps> = ({
                             <CheckCircle size={16} weight="fill" className="text-green-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">6 Data Tables Created</p>
-                            <p className="text-xs text-gray-500">Connected to Salesforce & Von AI</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              6 Data Tables Created
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Connected to Salesforce & Von AI
+                            </p>
                           </div>
                         </motion.div>
 
@@ -232,7 +237,9 @@ export const FinalizationOverlay: React.FC<FinalizationOverlayProps> = ({
                             <CheckCircle size={16} weight="fill" className="text-green-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">8 Visualizations Built</p>
+                            <p className="text-sm font-medium text-gray-900">
+                              8 Visualizations Built
+                            </p>
                             <p className="text-xs text-gray-500">Charts, metrics, and tables</p>
                           </div>
                         </motion.div>

@@ -137,7 +137,12 @@ export const TableViewer: React.FC<TableViewerProps> = ({
         const aVal = a[sortKey];
         const bVal = b[sortKey];
         if (aVal == null || bVal == null) return 0;
-        const comparison = (aVal as string | number) > (bVal as string | number) ? 1 : (aVal as string | number) < (bVal as string | number) ? -1 : 0;
+        const comparison =
+          (aVal as string | number) > (bVal as string | number)
+            ? 1
+            : (aVal as string | number) < (bVal as string | number)
+              ? -1
+              : 0;
         return sortType === 'desc' ? -comparison : comparison;
       });
     }
@@ -265,7 +270,9 @@ export const TableViewer: React.FC<TableViewerProps> = ({
                     >
                       <option value="">Select column...</option>
                       {table.columns.map((col) => (
-                        <option key={col.key} value={col.key}>{col.label}</option>
+                        <option key={col.key} value={col.key}>
+                          {col.label}
+                        </option>
                       ))}
                     </select>
                     <input
@@ -319,7 +326,9 @@ export const TableViewer: React.FC<TableViewerProps> = ({
                     <select className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300">
                       <option value="">Select join column...</option>
                       {table.columns.map((col) => (
-                        <option key={col.key} value={col.key}>{col.label}</option>
+                        <option key={col.key} value={col.key}>
+                          {col.label}
+                        </option>
                       ))}
                     </select>
                     <button
@@ -362,19 +371,29 @@ export const TableViewer: React.FC<TableViewerProps> = ({
                   className="flex items-center gap-1.5 cursor-pointer select-none group"
                   onClick={() => handleSort(column.key)}
                 >
-                  <span className="text-xs font-medium text-gray-700">
-                    {column.label}
-                  </span>
+                  <span className="text-xs font-medium text-gray-700">{column.label}</span>
 
                   {/* Sort indicator */}
                   {sortColumn === column.key ? (
                     sortType === 'asc' ? (
-                      <SortAscending size={12} weight="bold" className="text-gray-700 flex-shrink-0" />
+                      <SortAscending
+                        size={12}
+                        weight="bold"
+                        className="text-gray-700 flex-shrink-0"
+                      />
                     ) : (
-                      <SortDescending size={12} weight="bold" className="text-gray-700 flex-shrink-0" />
+                      <SortDescending
+                        size={12}
+                        weight="bold"
+                        className="text-gray-700 flex-shrink-0"
+                      />
                     )
                   ) : (
-                    <CaretUpDown size={12} weight="bold" className="text-gray-500 flex-shrink-0 group-hover:text-gray-700 transition-colors" />
+                    <CaretUpDown
+                      size={12}
+                      weight="bold"
+                      className="text-gray-500 flex-shrink-0 group-hover:text-gray-700 transition-colors"
+                    />
                   )}
                 </div>
               </HeaderCell>
@@ -402,7 +421,11 @@ export const TableViewer: React.FC<TableViewerProps> = ({
                         <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
                           <div
                             className={`h-full rounded-full ${
-                              pct >= 70 ? 'bg-red-500' : pct >= 50 ? 'bg-orange-500' : 'bg-yellow-500'
+                              pct >= 70
+                                ? 'bg-red-500'
+                                : pct >= 50
+                                  ? 'bg-orange-500'
+                                  : 'bg-yellow-500'
                             }`}
                             style={{ width: `${pct}%` }}
                           />
@@ -418,7 +441,11 @@ export const TableViewer: React.FC<TableViewerProps> = ({
                     return (
                       <span
                         className={`font-medium ${
-                          score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                          score >= 70
+                            ? 'text-green-600'
+                            : score >= 40
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
                         }`}
                       >
                         {formattedValue}

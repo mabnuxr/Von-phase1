@@ -86,7 +86,11 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ checked, onChange, disabled
 // Sharing dropdown options with icons matching ChatSidebar dashboard types
 const sharingDropdownOptions = [
   { value: 'private', label: 'Keep Private', icon: <UserSquare size={16} weight="regular" /> },
-  { value: 'organization', label: 'Share with Organization', icon: <BuildingOffice size={16} weight="regular" /> },
+  {
+    value: 'organization',
+    label: 'Share with Organization',
+    icon: <BuildingOffice size={16} weight="regular" />,
+  },
   { value: 'shared', label: 'Share with Others', icon: <Users size={16} weight="regular" /> },
 ];
 
@@ -121,9 +125,10 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
   onCancel,
 }) => {
   // Use provided dashboards or fall back to defaults
-  const availableSalesforceDashboards = salesforceDashboards && salesforceDashboards.length > 0
-    ? salesforceDashboards
-    : defaultSalesforceDashboards;
+  const availableSalesforceDashboards =
+    salesforceDashboards && salesforceDashboards.length > 0
+      ? salesforceDashboards
+      : defaultSalesforceDashboards;
   // Form state
   const [name, setName] = useState('');
   const [recreateFromSalesforce, setRecreateFromSalesforce] = useState(false);
@@ -207,11 +212,9 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
             <div className="relative z-10 flex flex-col flex-1 py-3 overflow-hidden">
               {/* Header */}
               <div className="flex flex-row items-center gap-2 px-1 pb-3 mb-3 border-b border-gray-100">
-                  <SquaresFour size={18} weight="duotone" className="text-gray-700" />
+                <SquaresFour size={18} weight="duotone" className="text-gray-700" />
                 <div>
-                  <h3 className="font-medium text-gray-900">
-                    Create Dashboard
-                  </h3>
+                  <h3 className="font-medium text-gray-900">Create Dashboard</h3>
                 </div>
               </div>
 
@@ -231,7 +234,6 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
                     error={errors.name}
                   />
                 </div>
-
 
                 {/* Sharing Settings */}
                 <div className="space-y-3">
@@ -285,8 +287,7 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
                       onChange={setRecreateFromSalesforce}
                     />
                   </div>
-                        
-                        
+
                   {/* Salesforce Dashboard Selector */}
                   {recreateFromSalesforce && (
                     <div className=" ">
@@ -301,7 +302,6 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
                     </div>
                   )}
                 </div>
-
               </div>
 
               {/* Action buttons */}
@@ -312,7 +312,6 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
                 <SecondaryButton onClick={handleCancel} fullWidth>
                   Cancel
                 </SecondaryButton>
-
               </div>
             </div>
           </motion.div>

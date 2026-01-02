@@ -116,5 +116,4 @@ export interface StandardChatInputProps {
    * Callback when the reference is removed
    */
   onRemoveReference?: () => void;
-
-  }
+}

@@ -26,7 +26,15 @@ import {
   PaperPlaneTilt,
 } from '@phosphor-icons/react';
 import { Table } from 'rsuite';
-import type { Dashboard, DashboardWidget, MetricConfig, DataViewTab, ChartConfig, DragItem, DataTable } from './types';
+import type {
+  Dashboard,
+  DashboardWidget,
+  MetricConfig,
+  DataViewTab,
+  ChartConfig,
+  DragItem,
+  DataTable,
+} from './types';
 import { ChartWidget } from './ChartWidget';
 import { TableWidget } from './TableWidget';
 import {
@@ -287,7 +295,10 @@ const ExpandedWidgetModal: React.FC<{
           {/* Underlying data table with glass effect */}
           <div className="relative rounded-xl overflow-hidden border border-gray-100">
             {/* Glass overlay effect */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-white/40 backdrop-blur-[2px] pointer-events-none z-10" style={{ top: -1, height: 20 }} />
+            <div
+              className="absolute inset-0 bg-gradient-to-b from-white/80 to-white/40 backdrop-blur-[2px] pointer-events-none z-10"
+              style={{ top: -1, height: 20 }}
+            />
 
             <div className="max-h-64 overflow-auto">
               <Table
@@ -301,7 +312,9 @@ const ExpandedWidgetModal: React.FC<{
                 {Object.keys(data[0] || {}).map((key) => (
                   <Column key={key} width={120} flexGrow={key === 'accountName' ? 1 : 0}>
                     <HeaderCell>
-                      <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{key}</span>
+                      <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+                        {key}
+                      </span>
                     </HeaderCell>
                     <Cell dataKey={key}>
                       {(rowData: Record<string, unknown>) => (
@@ -593,9 +606,7 @@ const SharePopover: React.FC<{
               <Clock size={14} weight="duotone" className="text-gray-500" />
               <label className="text-xs font-medium text-gray-700">Update Frequency</label>
             </div>
-            <p className="text-[11px] text-gray-500 mb-2">
-              How often should the data refresh?
-            </p>
+            <p className="text-[11px] text-gray-500 mb-2">How often should the data refresh?</p>
             <div className="grid grid-cols-4 gap-1">
               {['hourly', 'daily', 'weekly', 'monthly'].map((freq) => (
                 <button
@@ -647,9 +658,7 @@ const SharePopover: React.FC<{
             )}
 
             {linkGenerated && (
-              <p className="text-[11px] text-gray-500 mt-1.5">
-                Anyone with this link can view
-              </p>
+              <p className="text-[11px] text-gray-500 mt-1.5">Anyone with this link can view</p>
             )}
           </div>
 
@@ -699,9 +708,7 @@ const SharePopover: React.FC<{
             )}
 
             {recipients.length === 0 && (
-              <p className="text-[11px] text-gray-500">
-                Recipients get email notifications
-              </p>
+              <p className="text-[11px] text-gray-500">Recipients get email notifications</p>
             )}
           </div>
         </div>
@@ -716,7 +723,11 @@ const SharePopover: React.FC<{
           </button>
           <button
             onClick={() => {
-              console.log('Share settings:', { updateFrequency, recipients, publicLink: linkGenerated ? publicLink : null });
+              console.log('Share settings:', {
+                updateFrequency,
+                recipients,
+                publicLink: linkGenerated ? publicLink : null,
+              });
               onClose();
             }}
             disabled={!linkGenerated && recipients.length === 0}
@@ -771,8 +782,11 @@ const MetricDetailModal: React.FC<{
           <div className="text-center mb-5">
             <p className="text-3xl font-semibold text-gray-900 tabular-nums">{config.value}</p>
             {config.change !== undefined && (
-              <p className={`text-[13px] font-medium mt-1 tabular-nums ${config.changeType === 'positive' ? 'text-emerald-600' : config.changeType === 'negative' ? 'text-red-600' : 'text-gray-500'}`}>
-                {config.change > 0 ? '+' : ''}{config.change}% vs last period
+              <p
+                className={`text-[13px] font-medium mt-1 tabular-nums ${config.changeType === 'positive' ? 'text-emerald-600' : config.changeType === 'negative' ? 'text-red-600' : 'text-gray-500'}`}
+              >
+                {config.change > 0 ? '+' : ''}
+                {config.change}% vs last period
               </p>
             )}
           </div>
@@ -781,7 +795,9 @@ const MetricDetailModal: React.FC<{
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50">
               <span className="text-[13px] text-gray-600">Previous Period</span>
               <span className="text-[13px] font-medium text-gray-900 tabular-nums">
-                {config.value ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 0.85).toFixed(1)}M` : '-'}
+                {config.value
+                  ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 0.85).toFixed(1)}M`
+                  : '-'}
               </span>
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
@@ -791,7 +807,9 @@ const MetricDetailModal: React.FC<{
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
               <span className="text-[13px] text-gray-600">Target</span>
               <span className="text-[13px] font-medium text-gray-900 tabular-nums">
-                {config.value ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 1.1).toFixed(1)}M` : '-'}
+                {config.value
+                  ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 1.1).toFixed(1)}M`
+                  : '-'}
               </span>
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
@@ -836,7 +854,9 @@ const getDefaultAxisConfig = (table: DataTable | undefined, chartType: ChartConf
   if (!table) return { xAxis: '', yAxis: '', series: [] };
 
   const stringColumns = table.columns.filter((c) => c.type === 'string');
-  const numericColumns = table.columns.filter((c) => ['number', 'currency', 'percentage'].includes(c.type));
+  const numericColumns = table.columns.filter((c) =>
+    ['number', 'currency', 'percentage'].includes(c.type)
+  );
 
   const xAxis = stringColumns[0]?.key || table.columns[0]?.key || '';
   const yAxis = numericColumns[0]?.key || '';
@@ -860,7 +880,9 @@ const ConfigureWidgetModal: React.FC<{
   onSave: (widget: DashboardWidget) => void;
 }> = ({ dragItem, dataTables, onClose, onSave }) => {
   const [title, setTitle] = useState('');
-  const [selectedTableId, setSelectedTableId] = useState(dragItem.tableId || dataTables[0]?.id || '');
+  const [selectedTableId, setSelectedTableId] = useState(
+    dragItem.tableId || dataTables[0]?.id || ''
+  );
   const [chartType, setChartType] = useState<ChartConfig['type']>(
     (dragItem.visualizationType as ChartConfig['type']) || 'bar'
   );
@@ -875,7 +897,8 @@ const ConfigureWidgetModal: React.FC<{
   const selectedTable = dataTables.find((t) => t.id === selectedTableId);
   const stringColumns = selectedTable?.columns.filter((c) => c.type === 'string') || [];
   const numericColumns =
-    selectedTable?.columns.filter((c) => ['number', 'currency', 'percentage'].includes(c.type)) || [];
+    selectedTable?.columns.filter((c) => ['number', 'currency', 'percentage'].includes(c.type)) ||
+    [];
 
   // Axis configuration
   const defaultConfig = getDefaultAxisConfig(selectedTable, chartType);
@@ -931,7 +954,11 @@ const ConfigureWidgetModal: React.FC<{
       onSave(widget);
     } else {
       // Determine if we use series or single yAxis
-      const useSeries = chartType === 'bar' || chartType === 'column' || chartType === 'line' || chartType === 'area';
+      const useSeries =
+        chartType === 'bar' ||
+        chartType === 'column' ||
+        chartType === 'line' ||
+        chartType === 'area';
 
       const widget: DashboardWidget = {
         id: widgetId,
@@ -994,7 +1021,9 @@ const ConfigureWidgetModal: React.FC<{
           {isMetric ? (
             <>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Metric Label</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Metric Label
+                </label>
                 <input
                   type="text"
                   value={metricLabel}
@@ -1029,7 +1058,9 @@ const ConfigureWidgetModal: React.FC<{
 
               {!isTable && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">Chart Type</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Chart Type
+                  </label>
                   <select
                     value={chartType}
                     onChange={(e) => setChartType(e.target.value as ChartConfig['type'])}
@@ -1046,7 +1077,9 @@ const ConfigureWidgetModal: React.FC<{
               )}
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Data Source</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Data Source
+                </label>
                 <select
                   value={selectedTableId}
                   onChange={(e) => handleTableChange(e.target.value)}
@@ -1065,7 +1098,9 @@ const ConfigureWidgetModal: React.FC<{
               {!isTable && selectedTable && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">X-Axis (Categories)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                      X-Axis (Categories)
+                    </label>
                     <select
                       value={xAxis}
                       onChange={(e) => setXAxis(e.target.value)}
@@ -1080,7 +1115,9 @@ const ConfigureWidgetModal: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Y-Axis (Values)</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                      Y-Axis (Values)
+                    </label>
                     <select
                       value={yAxis}
                       onChange={(e) => setYAxis(e.target.value)}
@@ -1094,7 +1131,10 @@ const ConfigureWidgetModal: React.FC<{
                     </select>
                   </div>
 
-                  {(chartType === 'bar' || chartType === 'column' || chartType === 'line' || chartType === 'area') &&
+                  {(chartType === 'bar' ||
+                    chartType === 'column' ||
+                    chartType === 'line' ||
+                    chartType === 'area') &&
                     numericColumns.length > 1 && (
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -1198,10 +1238,13 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
     }
   }, []);
 
-  const handleWidgetConfigSave = useCallback((widget: DashboardWidget) => {
-    onWidgetAdd?.(widget);
-    setPendingDragItem(null);
-  }, [onWidgetAdd]);
+  const handleWidgetConfigSave = useCallback(
+    (widget: DashboardWidget) => {
+      onWidgetAdd?.(widget);
+      setPendingDragItem(null);
+    },
+    [onWidgetAdd]
+  );
 
   // Separate widgets by type for layout
   const metrics = dashboard.widgets.filter((w) => w.type === 'metric');
@@ -1423,10 +1466,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
       {/* Modals */}
       <AnimatePresence>
         {expandedWidget && (
-          <ExpandedWidgetModal
-            widget={expandedWidget}
-            onClose={() => setExpandedWidget(null)}
-          />
+          <ExpandedWidgetModal widget={expandedWidget} onClose={() => setExpandedWidget(null)} />
         )}
       </AnimatePresence>
 
@@ -1444,10 +1484,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
 
       <AnimatePresence>
         {selectedMetric && (
-          <MetricDetailModal
-            config={selectedMetric}
-            onClose={() => setSelectedMetric(null)}
-          />
+          <MetricDetailModal config={selectedMetric} onClose={() => setSelectedMetric(null)} />
         )}
       </AnimatePresence>
 

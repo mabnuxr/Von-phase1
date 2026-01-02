@@ -106,12 +106,12 @@ const MultipleFiltersWrapper = () => {
     { id: '3', field: 'region', operator: 'equals', value: 'North America' },
   ]);
 
-  const updateFilter = (id: string, updates: Partial<typeof filters[0]>) => {
-    setFilters(filters.map(f => f.id === id ? { ...f, ...updates } : f));
+  const updateFilter = (id: string, updates: Partial<(typeof filters)[0]>) => {
+    setFilters(filters.map((f) => (f.id === id ? { ...f, ...updates } : f)));
   };
 
   const removeFilter = (id: string) => {
-    setFilters(filters.filter(f => f.id !== id));
+    setFilters(filters.filter((f) => f.id !== id));
   };
 
   return (

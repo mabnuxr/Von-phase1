@@ -102,7 +102,9 @@ export interface FileValidationResult {
 /**
  * Get file info from MIME type
  */
-export function getFileInfo(mimeType: string): { extension: string; category: FileCategory } | null {
+export function getFileInfo(
+  mimeType: string
+): { extension: string; category: FileCategory } | null {
   const info = SUPPORTED_FILE_TYPES[mimeType as SupportedMimeType];
   if (info) {
     return { extension: info.extension, category: info.category };

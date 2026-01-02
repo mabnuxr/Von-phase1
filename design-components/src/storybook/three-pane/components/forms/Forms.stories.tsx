@@ -54,8 +54,8 @@ const CombinedFormWrapper = () => {
     { id: '1', field: 'stage', operator: 'equals', value: 'Won' },
   ]);
 
-  const updateFilter = (id: string, updates: Partial<typeof filters[0]>) => {
-    setFilters(filters.map(f => f.id === id ? { ...f, ...updates } : f));
+  const updateFilter = (id: string, updates: Partial<(typeof filters)[0]>) => {
+    setFilters(filters.map((f) => (f.id === id ? { ...f, ...updates } : f)));
   };
 
   const addFilter = () => {
@@ -63,7 +63,7 @@ const CombinedFormWrapper = () => {
   };
 
   const removeFilter = (id: string) => {
-    setFilters(filters.filter(f => f.id !== id));
+    setFilters(filters.filter((f) => f.id !== id));
   };
 
   return (
@@ -86,9 +86,7 @@ const CombinedFormWrapper = () => {
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-center">
           <span className="text-xs font-medium text-gray-700">Filters</span>
-          <AddButton onClick={addFilter}>
-            Add Filter
-          </AddButton>
+          <AddButton onClick={addFilter}>Add Filter</AddButton>
         </div>
 
         {filters.map((filter) => (

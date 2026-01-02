@@ -77,9 +77,10 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
                 <motion.div
                   className="w-8 h-8 rounded-lg flex items-center justify-center"
                   style={{
-                    background: status === 'complete'
-                      ? 'linear-gradient(135deg, #10b981, #059669)'
-                      : 'linear-gradient(135deg, #8039e9, #FF9042)',
+                    background:
+                      status === 'complete'
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : 'linear-gradient(135deg, #8039e9, #FF9042)',
                   }}
                   animate={
                     status === 'working'
@@ -120,7 +121,12 @@ export const AgentProgressBar: React.FC<AgentProgressBarProps> = ({
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    {agentCount} Agent{agentCount > 1 ? 's' : ''} {status === 'working' ? 'Working' : status === 'complete' ? 'Complete' : 'Ready'}
+                    {agentCount} Agent{agentCount > 1 ? 's' : ''}{' '}
+                    {status === 'working'
+                      ? 'Working'
+                      : status === 'complete'
+                        ? 'Complete'
+                        : 'Ready'}
                   </span>
                   {status === 'working' && (
                     <motion.div

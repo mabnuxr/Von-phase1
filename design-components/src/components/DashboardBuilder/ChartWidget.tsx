@@ -63,7 +63,13 @@ const getDataForTable = (tableId: string): Record<string, unknown>[] => {
 /**
  * ChartWidget - Renders a Highcharts visualization
  */
-export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, onClick, onEdit, onExpand, onDelete }) => {
+export const ChartWidget: React.FC<ChartWidgetProps> = ({
+  widget,
+  onClick,
+  onEdit,
+  onExpand,
+  onDelete,
+}) => {
   const config = widget.config as ChartConfig;
   const data = getDataForTable(config.dataTableId);
   const [showMenu, setShowMenu] = useState(false);
@@ -169,11 +175,12 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({ widget, onClick, onEdi
       case 'line':
       case 'area': {
         const categories = data.map((d) => String(d[config.xAxis || '']));
-        const series = config.series?.map((seriesKey) => ({
-          name: seriesKey.charAt(0).toUpperCase() + seriesKey.slice(1).replace(/([A-Z])/g, ' $1'),
-          data: data.map((d) => Number(d[seriesKey]) || 0),
-          type: config.type as 'line' | 'area',
-        })) || [];
+        const series =
+          config.series?.map((seriesKey) => ({
+            name: seriesKey.charAt(0).toUpperCase() + seriesKey.slice(1).replace(/([A-Z])/g, ' $1'),
+            data: data.map((d) => Number(d[seriesKey]) || 0),
+            type: config.type as 'line' | 'area',
+          })) || [];
 
         return {
           ...baseOptions,

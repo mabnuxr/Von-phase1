@@ -112,9 +112,7 @@ export const TypingText: React.FC<TypingTextProps> = ({
           className={`inline-block w-0.5 h-[1em] bg-current ml-0.5 align-middle ${cursorClassName}`}
           animate={{ opacity: isTyping ? 1 : [1, 0] }}
           transition={
-            isTyping
-              ? { duration: 0 }
-              : { duration: 0.5, repeat: Infinity, repeatType: 'reverse' }
+            isTyping ? { duration: 0 } : { duration: 0.5, repeat: Infinity, repeatType: 'reverse' }
           }
         />
       )}

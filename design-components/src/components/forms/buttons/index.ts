@@ -27,12 +27,7 @@ export type {
 } from './ActionButtons';
 
 // Legacy action button exports (deprecated - will be removed in future versions)
-export {
-  GradientButton,
-  GradientIconButton,
-  SaveButton,
-  DiscardButton,
-} from './ActionButtons';
+export { GradientButton, GradientIconButton, SaveButton, DiscardButton } from './ActionButtons';
 export type {
   GradientButtonProps,
   GradientIconButtonProps,

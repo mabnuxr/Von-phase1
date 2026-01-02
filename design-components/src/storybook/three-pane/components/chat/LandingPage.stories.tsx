@@ -188,7 +188,9 @@ export const LandingPage: Story = {
       },
     ];
 
-    const sampleFolders = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false, type: 'chat' as const }];
+    const sampleFolders = [
+      { id: 'folder-1', label: 'Q4 Analysis', isExpanded: false, type: 'chat' as const },
+    ];
 
     return (
       <div className="flex flex-col h-full">
@@ -270,9 +272,7 @@ export const LandingPage: Story = {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
               >
-                <h2 className="text-3xl text-gray-900">
-                  {greeting}, Sarah
-                </h2>
+                <h2 className="text-3xl text-gray-900">{greeting}, Sarah</h2>
                 <p className="text-3xl text-gray-500">How can I help you today?</p>
               </motion.div>
 
@@ -323,7 +323,9 @@ export const LandingPage: Story = {
                           }
                         `}
                       >
-                        {isPopular && <StarIcon size={12} weight="fill" className="text-amber-500" />}
+                        {isPopular && (
+                          <StarIcon size={12} weight="fill" className="text-amber-500" />
+                        )}
                         {category}
                       </button>
                     );

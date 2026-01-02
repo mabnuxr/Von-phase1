@@ -17,16 +17,8 @@ export interface SelectProps extends Omit<DropdownProps, 'onChange'> {
  * This is an alias for the Dropdown component for semantic clarity.
  * Use this when the user is selecting a single option from a list.
  */
-export const Select: React.FC<SelectProps> = ({
-  onChange,
-  ...props
-}) => {
-  return (
-    <Dropdown
-      {...props}
-      onChange={onChange}
-    />
-  );
+export const Select: React.FC<SelectProps> = ({ onChange, ...props }) => {
+  return <Dropdown {...props} onChange={onChange} />;
 };
 
 export default Select;

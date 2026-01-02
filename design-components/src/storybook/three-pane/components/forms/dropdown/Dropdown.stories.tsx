@@ -34,11 +34,7 @@ const reportOptions = [
 export const Default: Story = {
   render: () => (
     <div style={{ width: '280px' }}>
-      <Dropdown
-        label="Report"
-        options={reportOptions}
-        placeholder="Select a report..."
-      />
+      <Dropdown label="Report" options={reportOptions} placeholder="Select a report..." />
     </div>
   ),
 };
@@ -79,12 +75,7 @@ export const Report: Story = {
 export const DataSource: Story = {
   render: () => (
     <div style={{ width: '280px' }}>
-      <Dropdown
-        label="Data Source"
-        options={reportOptions}
-        value="2"
-        onChange={() => {}}
-      />
+      <Dropdown label="Data Source" options={reportOptions} value="2" onChange={() => {}} />
     </div>
   ),
 };
@@ -133,12 +124,7 @@ export const WithError: Story = {
 export const Disabled: Story = {
   render: () => (
     <div style={{ width: '280px' }}>
-      <Dropdown
-        label="Report"
-        options={reportOptions}
-        value="2"
-        disabled
-      />
+      <Dropdown label="Report" options={reportOptions} value="2" disabled />
     </div>
   ),
 };
@@ -151,11 +137,7 @@ export const Disabled: Story = {
 export const SelectComponent: Story = {
   render: () => (
     <div style={{ width: '280px' }}>
-      <Select
-        label="Report"
-        options={reportOptions}
-        placeholder="Select a report..."
-      />
+      <Select label="Report" options={reportOptions} placeholder="Select a report..." />
     </div>
   ),
 };

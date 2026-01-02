@@ -1,11 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  GearIcon,
-  SignOutIcon,
-  UserIcon,
-  QuestionIcon,
-} from '@phosphor-icons/react';
+import { GearIcon, SignOutIcon, UserIcon, QuestionIcon } from '@phosphor-icons/react';
 
 export interface ProfilePopoverProps {
   /**
@@ -83,10 +78,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, variant = 'de
       onClick={onClick}
       className={`
         w-full flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors cursor-pointer text-left rounded-lg
-        ${variant === 'danger'
-          ? 'text-red-600 hover:bg-red-50'
-          : 'text-gray-700 hover:bg-gray-50'
-        }
+        ${variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
       `}
     >
       {icon}
@@ -191,9 +183,7 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
                   {userName && (
                     <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
                   )}
-                  {userEmail && (
-                    <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>
-                  )}
+                  {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
                 </div>
               </div>
             </div>

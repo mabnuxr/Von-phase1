@@ -8,7 +8,19 @@ export { DeleteConfirmationPopup } from './DeleteConfirmationPopup';
 export type { DeleteConfirmationPopupProps, DeleteItemType } from './DeleteConfirmationPopup';
 
 export { NewDashboardModal } from './NewDashboardModal';
-export type { NewDashboardModalProps, NewDashboardConfig, SharingOption, SalesforceDashboard } from './NewDashboardModal';
+export type {
+  NewDashboardModalProps,
+  NewDashboardConfig,
+  SharingOption,
+  SalesforceDashboard,
+} from './NewDashboardModal';
 
 export { NewReportModal } from './NewReportModal';
-export type { NewReportModalProps, NewReportConfig, DataSource, RelatedObject, ColumnOption, ReportFilter } from './NewReportModal';
+export type {
+  NewReportModalProps,
+  NewReportConfig,
+  DataSource,
+  RelatedObject,
+  ColumnOption,
+  ReportFilter,
+} from './NewReportModal';

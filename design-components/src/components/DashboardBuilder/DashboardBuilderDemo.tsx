@@ -149,7 +149,11 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
   // Handle message send from 3-pane layout
   const handleAskMessage = useCallback(
     (message: string, messageMode: BuildMode) => {
-      if (messageMode === 'build' || message.toLowerCase().includes('dashboard') || message.toLowerCase().includes('build')) {
+      if (
+        messageMode === 'build' ||
+        message.toLowerCase().includes('dashboard') ||
+        message.toLowerCase().includes('build')
+      ) {
         handleBuildMessage(message);
       } else {
         // Regular ask mode - just add messages

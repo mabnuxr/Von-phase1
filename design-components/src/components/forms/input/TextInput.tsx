@@ -1,7 +1,6 @@
 import { forwardRef } from 'react';
 
-export interface TextInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface TextInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /**
    * Label for the input
    */
@@ -29,7 +28,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className={labelClassName || "text-xs font-medium text-gray-700"}
+            className={labelClassName || 'text-xs font-medium text-gray-700'}
           >
             {label}
           </label>
@@ -42,9 +41,10 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
             w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white
             border rounded-lg placeholder:text-gray-400
             focus:outline-none focus:ring-1 transition-colors
-            ${error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : 'border-gray-200 focus:border-gray-300 focus:ring-gray-200'
+            ${
+              error
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-200 focus:border-gray-300 focus:ring-gray-200'
             }
             ${className}
           `}

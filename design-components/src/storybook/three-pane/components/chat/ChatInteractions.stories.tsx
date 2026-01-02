@@ -231,12 +231,7 @@ Your pipeline is performing well with **$4.2M** in total value.
     ];
 
     return (
-      <ChatMessage
-        type="assistant"
-        content=""
-        stepMessages={stepMessages}
-        status="completed"
-      />
+      <ChatMessage type="assistant" content="" stepMessages={stepMessages} status="completed" />
     );
   },
 };

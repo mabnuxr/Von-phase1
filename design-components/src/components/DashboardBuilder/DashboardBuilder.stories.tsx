@@ -121,7 +121,8 @@ export const AskMode: StoryObj<typeof ThreePaneLayout> = {
   parameters: {
     docs: {
       description: {
-        story: 'The initial 3-pane layout with collapsible sidebar, top navigation, and chat empty state.',
+        story:
+          'The initial 3-pane layout with collapsible sidebar, top navigation, and chat empty state.',
       },
     },
   },
@@ -135,7 +136,8 @@ export const BuildMode: StoryObj<typeof BuildModeLayout> = {
   parameters: {
     docs: {
       description: {
-        story: 'The full 4-column build mode layout with data explorer, dashboard canvas, and chat panel.',
+        story:
+          'The full 4-column build mode layout with data explorer, dashboard canvas, and chat panel.',
       },
     },
   },
@@ -310,7 +312,8 @@ export const TableViewerComponent: StoryObj<typeof TableViewer> = {
     layout: 'fullscreen',
     docs: {
       description: {
-        story: 'Full-featured table view with search, sort, and column operations. AI-generated columns are highlighted with the Von gradient.',
+        story:
+          'Full-featured table view with search, sort, and column operations. AI-generated columns are highlighted with the Von gradient.',
       },
     },
   },
@@ -369,7 +372,8 @@ export const BuildChatComponent: StoryObj<typeof BuildChat> = {
     layout: 'padded',
     docs: {
       description: {
-        story: 'Right-side chat panel for build mode with mode toggle and thinking process display.',
+        story:
+          'Right-side chat panel for build mode with mode toggle and thinking process display.',
       },
     },
   },

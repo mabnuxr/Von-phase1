@@ -91,17 +91,11 @@ const DataRow: React.FC<{
     if (value === null || value === undefined) return '-';
     switch (type) {
       case 'currency':
-        return typeof value === 'number'
-          ? `$${value.toLocaleString()}`
-          : String(value);
+        return typeof value === 'number' ? `$${value.toLocaleString()}` : String(value);
       case 'percentage':
-        return typeof value === 'number'
-          ? `${(value * 100).toFixed(0)}%`
-          : `${value}%`;
+        return typeof value === 'number' ? `${(value * 100).toFixed(0)}%` : `${value}%`;
       case 'number':
-        return typeof value === 'number'
-          ? value.toLocaleString()
-          : String(value);
+        return typeof value === 'number' ? value.toLocaleString() : String(value);
       default:
         return String(value);
     }
@@ -267,7 +261,11 @@ export const AnimatedTable: React.FC<AnimatedTableProps> = ({
               {phase === 'skeleton' && (
                 <>
                   {Array.from({ length: visibleRowCount }).map((_, i) => (
-                    <SkeletonRow key={`skeleton-${i}`} columnCount={visibleColumns.length} index={i} />
+                    <SkeletonRow
+                      key={`skeleton-${i}`}
+                      columnCount={visibleColumns.length}
+                      index={i}
+                    />
                   ))}
                 </>
               )}

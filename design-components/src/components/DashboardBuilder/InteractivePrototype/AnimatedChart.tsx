@@ -103,7 +103,9 @@ const ConfigurationPanel: React.FC<{
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/80">
         <div className="flex items-center gap-2">
           <GearSix size={16} weight="duotone" className="text-gray-500" />
-          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Configure</span>
+          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+            Configure
+          </span>
         </div>
       </div>
 
@@ -275,10 +277,13 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
     setTimeout(() => setPhase('container'), delay);
     setTimeout(() => setPhase('config'), delay + 300);
     setTimeout(() => setPhase('chart'), delay + (showConfigAnimation ? 2500 : 500));
-    setTimeout(() => {
-      setPhase('complete');
-      onComplete?.();
-    }, delay + (showConfigAnimation ? 3500 : 1500));
+    setTimeout(
+      () => {
+        setPhase('complete');
+        onComplete?.();
+      },
+      delay + (showConfigAnimation ? 3500 : 1500)
+    );
   }, [delay, showConfigAnimation, onComplete]);
 
   React.useLayoutEffect(() => {
@@ -374,11 +379,12 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
       case 'line':
       case 'area': {
         const categories = data.map((d) => String(d[config.xAxis || '']));
-        const series = config.series?.map((seriesKey) => ({
-          name: seriesKey.charAt(0).toUpperCase() + seriesKey.slice(1).replace(/([A-Z])/g, ' $1'),
-          data: data.map((d) => Number(d[seriesKey]) || 0),
-          type: config.type as 'line' | 'area',
-        })) || [];
+        const series =
+          config.series?.map((seriesKey) => ({
+            name: seriesKey.charAt(0).toUpperCase() + seriesKey.slice(1).replace(/([A-Z])/g, ' $1'),
+            data: data.map((d) => Number(d[seriesKey]) || 0),
+            type: config.type as 'line' | 'area',
+          })) || [];
 
         return {
           ...baseOptions,
@@ -431,13 +437,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
 
   // Render metric card
   if (isMetric) {
-    return (
-      <AnimatedMetricCard
-        config={metricConfig}
-        delay={delay}
-        onComplete={onComplete}
-      />
-    );
+    return <AnimatedMetricCard config={metricConfig} delay={delay} onComplete={onComplete} />;
   }
 
   if (phase === 'hidden') return null;

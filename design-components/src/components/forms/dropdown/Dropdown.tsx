@@ -128,9 +128,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`} ref={containerRef}>
       {label && (
-        <label className={labelClassName || "text-xs font-medium text-gray-700"}>
-          {label}
-        </label>
+        <label className={labelClassName || 'text-xs font-medium text-gray-700'}>{label}</label>
       )}
 
       <div className="relative">
@@ -145,17 +143,22 @@ export const Dropdown: React.FC<DropdownProps> = ({
             bg-white border rounded-lg cursor-pointer
             transition-colors duration-150
             focus:outline-none focus:ring-1
-            ${error
-              ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-              : isOpen
-                ? 'border-gray-300 ring-1 ring-gray-200'
-                : 'border-gray-200 hover:border-gray-300 focus:border-gray-300 focus:ring-gray-200'
+            ${
+              error
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                : isOpen
+                  ? 'border-gray-300 ring-1 ring-gray-200'
+                  : 'border-gray-200 hover:border-gray-300 focus:border-gray-300 focus:ring-gray-200'
             }
             ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}
           `}
         >
-          <span className={`flex items-center gap-2 ${selectedOption ? 'text-gray-900' : 'text-gray-400'}`}>
-            {selectedOption?.icon && <span className="flex-shrink-0 text-gray-700">{selectedOption.icon}</span>}
+          <span
+            className={`flex items-center gap-2 ${selectedOption ? 'text-gray-900' : 'text-gray-400'}`}
+          >
+            {selectedOption?.icon && (
+              <span className="flex-shrink-0 text-gray-700">{selectedOption.icon}</span>
+            )}
             {selectedOption?.label || placeholder}
           </span>
           <CaretDown
@@ -192,14 +195,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
                         className={`
                           w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[13px] text-left
                           transition-colors duration-100 cursor-pointer
-                          ${isSelected
-                            ? 'bg-gray-50 text-gray-900 font-medium'
-                            : 'text-gray-700 hover:bg-gray-50'
+                          ${
+                            isSelected
+                              ? 'bg-gray-50 text-gray-900 font-medium'
+                              : 'text-gray-700 hover:bg-gray-50'
                           }
                         `}
                       >
                         <span className="flex items-center gap-2 truncate">
-                          {option.icon && <span className="flex-shrink-0 text-gray-700">{option.icon}</span>}
+                          {option.icon && (
+                            <span className="flex-shrink-0 text-gray-700">{option.icon}</span>
+                          )}
                           {option.label}
                         </span>
                         {isSelected && (

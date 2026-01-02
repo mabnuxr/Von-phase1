@@ -338,12 +338,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {isOpen && (
         <>
           {/* Backdrop for click-away */}
-          {showBackdrop && (
-            <div
-              className="fixed inset-0 z-[9998]"
-              onClick={onClose}
-            />
-          )}
+          {showBackdrop && <div className="fixed inset-0 z-[9998]" onClick={onClose} />}
 
           {/* Popover */}
           <motion.div
@@ -363,11 +358,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             }}
           >
             {/* Optional header */}
-            {header && (
-              <div className="px-3 py-2 border-b border-gray-100">
-                {header}
-              </div>
-            )}
+            {header && <div className="px-3 py-2 border-b border-gray-100">{header}</div>}
 
             {/* Menu items */}
             <div className="py-0.5">
@@ -387,11 +378,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             </div>
 
             {/* Optional footer */}
-            {footer && (
-              <div className="px-3 py-2 border-t border-gray-100">
-                {footer}
-              </div>
-            )}
+            {footer && <div className="px-3 py-2 border-t border-gray-100">{footer}</div>}
           </motion.div>
         </>
       )}

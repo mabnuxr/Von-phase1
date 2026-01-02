@@ -134,9 +134,7 @@ export const DeleteConfirmationPopup: React.FC<DeleteConfirmationPopupProps> = (
 
               {/* Optional subtext */}
               {displaySubtext && (
-                <p className="text-sm text-left text-white/90 mb-4">
-                  {displaySubtext}
-                </p>
+                <p className="text-sm text-left text-white/90 mb-4">{displaySubtext}</p>
               )}
 
               {/* Action buttons */}

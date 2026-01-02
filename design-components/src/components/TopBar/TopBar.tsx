@@ -259,8 +259,8 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Right Section - Custom element or User Avatar */}
       <div style={rightSectionStyles}>
-        {rightElement ?? (
-          (userName || userEmail || avatarLabel) && (
+        {rightElement ??
+          ((userName || userEmail || avatarLabel) && (
             <button
               ref={avatarButtonRef}
               onClick={handleAvatarClick}
@@ -279,8 +279,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </div>
               )}
             </button>
-          )
-        )}
+          ))}
       </div>
 
       {/* Profile Popover */}

@@ -75,9 +75,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
         )}
-        <span className={`relative z-10 ${isAsk ? 'text-gray-900' : 'text-gray-500'}`}>
-          Ask
-        </span>
+        <span className={`relative z-10 ${isAsk ? 'text-gray-900' : 'text-gray-500'}`}>Ask</span>
       </button>
 
       {/* Build Mode */}
@@ -95,9 +93,7 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           />
         )}
-        <span className={`relative z-10 ${!isAsk ? 'text-gray-900' : 'text-gray-500'}`}>
-          Build
-        </span>
+        <span className={`relative z-10 ${!isAsk ? 'text-gray-900' : 'text-gray-500'}`}>Build</span>
       </button>
     </div>
   );

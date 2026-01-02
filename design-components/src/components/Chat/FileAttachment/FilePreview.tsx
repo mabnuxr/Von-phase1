@@ -136,9 +136,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
 
   // Truncate filename if too long
   const truncatedName =
-    attachment.name.length > 20
-      ? `${attachment.name.substring(0, 17)}...`
-      : attachment.name;
+    attachment.name.length > 20 ? `${attachment.name.substring(0, 17)}...` : attachment.name;
 
   if (isImage && attachment.previewUrl) {
     // Image preview - square format

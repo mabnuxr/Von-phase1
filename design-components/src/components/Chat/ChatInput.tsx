@@ -154,18 +154,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // File upload hook
-  const {
-    attachments,
-    addFiles,
-    removeFile,
-    clearFiles,
-    openFilePicker,
-    fileInputRef,
-  } = useFileUpload({
-    onError: (error, message) => {
-      onFileError?.(error, message);
-    },
-  });
+  const { attachments, addFiles, removeFile, clearFiles, openFilePicker, fileInputRef } =
+    useFileUpload({
+      onError: (error, message) => {
+        onFileError?.(error, message);
+      },
+    });
 
   // Handle dropped files from parent (drag-drop overlay)
   useEffect(() => {
@@ -337,11 +331,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
               {/* Mode toggle (Ask/Build) */}
               {showModeToggle && (
-                <ModeToggle
-                  mode={mode}
-                  onModeChange={onModeChange || (() => {})}
-                  size="sm"
-                />
+                <ModeToggle mode={mode} onModeChange={onModeChange || (() => {})} size="sm" />
               )}
 
               {/* Text input */}

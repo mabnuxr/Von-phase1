@@ -11,10 +11,7 @@ import type {
   DataTable,
   DragItem,
 } from '../../../components/DashboardBuilder/types';
-import {
-  mockDashboard,
-  mockDataTables,
-} from '../../../components/DashboardBuilder/mockData';
+import { mockDashboard, mockDataTables } from '../../../components/DashboardBuilder/mockData';
 
 /**
  * FullPageDecorator - Full viewport height container
@@ -124,7 +121,9 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
       },
     ];
 
-    const sampleFolders = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false, type: 'chat' as const }];
+    const sampleFolders = [
+      { id: 'folder-1', label: 'Q4 Analysis', isExpanded: false, type: 'chat' as const },
+    ];
 
     // Data tables for Pane1
     const dataTables: DataTable[] = mockDataTables;
@@ -178,7 +177,12 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
       // Create new widget from the configuration
       const newWidget: DashboardWidget = {
         id: `widget-${Date.now()}`,
-        type: config.componentType.icon === 'metric' ? 'metric' : config.componentType.icon === 'table' ? 'table' : 'chart',
+        type:
+          config.componentType.icon === 'metric'
+            ? 'metric'
+            : config.componentType.icon === 'table'
+              ? 'table'
+              : 'chart',
         title: config.title,
         position: { x: 0, y: 0 },
         size: { width: 6, height: 2 },
@@ -350,7 +354,8 @@ export const SidebarCollapsed: Story = {
       {
         id: 'msg-1',
         type: 'assistant',
-        content: 'Your dashboard is ready! Drag components from the left panel to add more visualizations.',
+        content:
+          'Your dashboard is ready! Drag components from the left panel to add more visualizations.',
       },
     ]);
     const [dashboard, setDashboard] = useState<Dashboard>(mockDashboard);
@@ -359,7 +364,12 @@ export const SidebarCollapsed: Story = {
 
     const sampleItems = [
       { id: 'chat-1', label: 'Pipeline by Stage', type: 'chat' as const },
-      { id: 'dash-1', label: 'Churn Risk Analysis', type: 'dashboard' as const, ownership: 'mine' as const },
+      {
+        id: 'dash-1',
+        label: 'Churn Risk Analysis',
+        type: 'dashboard' as const,
+        ownership: 'mine' as const,
+      },
     ];
 
     const dataTables: DataTable[] = mockDataTables;
@@ -498,7 +508,12 @@ export const ChatPaneCollapsed: Story = {
 
     const sampleItems = [
       { id: 'chat-1', label: 'Pipeline by Stage', type: 'chat' as const },
-      { id: 'dash-1', label: 'Churn Risk Analysis', type: 'dashboard' as const, ownership: 'mine' as const },
+      {
+        id: 'dash-1',
+        label: 'Churn Risk Analysis',
+        type: 'dashboard' as const,
+        ownership: 'mine' as const,
+      },
     ];
 
     const dataTables: DataTable[] = mockDataTables;
@@ -643,7 +658,12 @@ export const DataView: Story = {
 
     const sampleItems = [
       { id: 'chat-1', label: 'Pipeline by Stage', type: 'chat' as const },
-      { id: 'dash-1', label: 'Churn Risk Analysis', type: 'dashboard' as const, ownership: 'mine' as const },
+      {
+        id: 'dash-1',
+        label: 'Churn Risk Analysis',
+        type: 'dashboard' as const,
+        ownership: 'mine' as const,
+      },
     ];
 
     const dataTables: DataTable[] = mockDataTables;

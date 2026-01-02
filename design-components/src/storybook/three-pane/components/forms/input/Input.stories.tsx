@@ -25,10 +25,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <div style={{ width: '280px' }}>
-      <TextInput
-        label="Title"
-        placeholder="Enter title..."
-      />
+      <TextInput label="Title" placeholder="Enter title..." />
     </div>
   ),
 };
@@ -41,11 +38,7 @@ export const Default: Story = {
 export const WithValue: Story = {
   render: () => (
     <div style={{ width: '280px' }}>
-      <TextInput
-        label="Chart Title"
-        value="Revenue by Region"
-        onChange={() => {}}
-      />
+      <TextInput label="Chart Title" value="Revenue by Region" onChange={() => {}} />
     </div>
   ),
 };

@@ -216,24 +216,55 @@ export const mockDataTables: DataTable[] = [
   {
     id: 'tbl-accounts-at-risk',
     name: 'Accounts at Risk',
-    description: 'Accounts identified as at risk of churning based on health scores and usage patterns',
+    description:
+      'Accounts identified as at risk of churning based on health scores and usage patterns',
     source: 'von-ai',
     rowCount: accountsAtRiskData.length,
     columns: [
       { key: 'accountName', label: 'Account Name', type: 'string', source: 'salesforce' },
       { key: 'industry', label: 'Industry', type: 'string', source: 'salesforce' },
       { key: 'arr', label: 'ARR', type: 'currency', source: 'salesforce' },
-      { key: 'healthScore', label: 'Health Score', type: 'number', isAIGenerated: true, source: 'von-ai' },
-      { key: 'churnProbability', label: 'Churn Probability', type: 'percentage', isAIGenerated: true, source: 'von-ai' },
-      { key: 'riskLevel', label: 'Risk Level', type: 'string', isAIGenerated: true, source: 'von-ai' },
+      {
+        key: 'healthScore',
+        label: 'Health Score',
+        type: 'number',
+        isAIGenerated: true,
+        source: 'von-ai',
+      },
+      {
+        key: 'churnProbability',
+        label: 'Churn Probability',
+        type: 'percentage',
+        isAIGenerated: true,
+        source: 'von-ai',
+      },
+      {
+        key: 'riskLevel',
+        label: 'Risk Level',
+        type: 'string',
+        isAIGenerated: true,
+        source: 'von-ai',
+      },
       { key: 'lastEngagement', label: 'Last Engagement', type: 'date', source: 'salesforce' },
       { key: 'openTickets', label: 'Open Tickets', type: 'number', source: 'salesforce' },
       { key: 'npsScore', label: 'NPS Score', type: 'number', source: 'salesforce' },
-      { key: 'usageDropPercent', label: 'Usage Drop %', type: 'percentage', isAIGenerated: true, source: 'von-ai' },
+      {
+        key: 'usageDropPercent',
+        label: 'Usage Drop %',
+        type: 'percentage',
+        isAIGenerated: true,
+        source: 'von-ai',
+      },
       { key: 'csm', label: 'CSM', type: 'string', source: 'salesforce' },
       { key: 'region', label: 'Region', type: 'string', source: 'salesforce' },
       { key: 'contractEndDate', label: 'Contract End', type: 'date', source: 'salesforce' },
-      { key: 'daysSinceLastLogin', label: 'Days Since Login', type: 'number', isAIGenerated: true, source: 'von-ai' },
+      {
+        key: 'daysSinceLastLogin',
+        label: 'Days Since Login',
+        type: 'number',
+        isAIGenerated: true,
+        source: 'von-ai',
+      },
       { key: 'featuresAdopted', label: 'Features Adopted', type: 'number', source: 'von-ai' },
     ],
     data: accountsAtRiskData,
@@ -274,7 +305,13 @@ export const mockDataTables: DataTable[] = [
     rowCount: arrAtRiskByIndustry.length,
     columns: [
       { key: 'industry', label: 'Industry', type: 'string', source: 'salesforce' },
-      { key: 'arrAtRisk', label: 'ARR at Risk', type: 'currency', isAIGenerated: true, source: 'von-ai' },
+      {
+        key: 'arrAtRisk',
+        label: 'ARR at Risk',
+        type: 'currency',
+        isAIGenerated: true,
+        source: 'von-ai',
+      },
       { key: 'accountCount', label: 'Account Count', type: 'number' },
     ],
     data: arrAtRiskByIndustry,
@@ -309,21 +346,62 @@ export const mockDataTables: DataTable[] = [
 
 // Thinking steps for the AI process
 export const mockThinkingSteps: ThinkingStep[] = [
-  { id: 'ts-1', text: 'Analyzing your request to identify accounts at risk of churning...', status: 'complete' },
-  { id: 'ts-2', text: 'Connecting to Salesforce to pull account and opportunity data...', status: 'complete' },
-  { id: 'ts-3', text: 'Retrieving customer health metrics and engagement patterns...', status: 'complete' },
+  {
+    id: 'ts-1',
+    text: 'Analyzing your request to identify accounts at risk of churning...',
+    status: 'complete',
+  },
+  {
+    id: 'ts-2',
+    text: 'Connecting to Salesforce to pull account and opportunity data...',
+    status: 'complete',
+  },
+  {
+    id: 'ts-3',
+    text: 'Retrieving customer health metrics and engagement patterns...',
+    status: 'complete',
+  },
   { id: 'ts-4', text: 'Analyzing support ticket trends and NPS scores...', status: 'complete' },
   { id: 'ts-5', text: 'Running churn prediction model on account data...', status: 'complete' },
-  { id: 'ts-6', text: 'Calculating risk scores and identifying key indicators...', status: 'complete' },
+  {
+    id: 'ts-6',
+    text: 'Calculating risk scores and identifying key indicators...',
+    status: 'complete',
+  },
 ];
 
 // Progress steps for dashboard building
 export const mockProgressSteps: ProgressStep[] = [
-  { id: 'ps-1', label: 'Gathering Data', description: 'Collected 8 accounts with risk indicators', status: 'complete' },
-  { id: 'ps-2', label: 'Creating Tables', description: 'Generated 6 data tables for analysis', status: 'complete' },
-  { id: 'ps-3', label: 'Analyzing Patterns', description: 'Identified key churn risk factors', status: 'complete' },
-  { id: 'ps-4', label: 'Building Visualizations', description: 'Creating charts and metrics', status: 'complete' },
-  { id: 'ps-5', label: 'Finalizing Dashboard', description: 'Applying filters and formatting', status: 'complete' },
+  {
+    id: 'ps-1',
+    label: 'Gathering Data',
+    description: 'Collected 8 accounts with risk indicators',
+    status: 'complete',
+  },
+  {
+    id: 'ps-2',
+    label: 'Creating Tables',
+    description: 'Generated 6 data tables for analysis',
+    status: 'complete',
+  },
+  {
+    id: 'ps-3',
+    label: 'Analyzing Patterns',
+    description: 'Identified key churn risk factors',
+    status: 'complete',
+  },
+  {
+    id: 'ps-4',
+    label: 'Building Visualizations',
+    description: 'Creating charts and metrics',
+    status: 'complete',
+  },
+  {
+    id: 'ps-5',
+    label: 'Finalizing Dashboard',
+    description: 'Applying filters and formatting',
+    status: 'complete',
+  },
 ];
 
 // Dashboard filters
@@ -374,7 +452,8 @@ export const mockDashboardFilters: DashboardFilter[] = [
 export const mockDashboard: Dashboard = {
   id: 'dash-churn-risk',
   title: 'Accounts at Risk of Churning',
-  description: 'Analysis of accounts showing signs of potential churn based on health scores, engagement, and usage patterns',
+  description:
+    'Analysis of accounts showing signs of potential churn based on health scores, engagement, and usage patterns',
   filters: mockDashboardFilters,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -508,7 +587,16 @@ export const mockDashboard: Dashboard = {
       config: {
         id: 'table-accounts',
         dataTableId: 'tbl-accounts-at-risk',
-        visibleColumns: ['accountName', 'industry', 'arr', 'healthScore', 'churnProbability', 'riskLevel', 'csm', 'contractEndDate'],
+        visibleColumns: [
+          'accountName',
+          'industry',
+          'arr',
+          'healthScore',
+          'churnProbability',
+          'riskLevel',
+          'csm',
+          'contractEndDate',
+        ],
         sortBy: 'churnProbability',
         sortOrder: 'desc',
       },

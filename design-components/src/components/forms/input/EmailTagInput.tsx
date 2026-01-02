@@ -124,9 +124,7 @@ export const EmailTagInput: React.FC<EmailTagInputProps> = ({
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label className={labelClassName || "text-xs font-medium text-gray-700"}>
-          {label}
-        </label>
+        <label className={labelClassName || 'text-xs font-medium text-gray-700'}>{label}</label>
       )}
 
       <div
@@ -135,9 +133,10 @@ export const EmailTagInput: React.FC<EmailTagInputProps> = ({
           min-h-[38px] w-full px-2 py-1.5 bg-white
           border rounded-lg cursor-text
           focus-within:outline-none focus-within:ring-1 transition-colors
-          ${displayError
-            ? 'border-red-300 focus-within:border-red-500 focus-within:ring-red-500'
-            : 'border-gray-200 focus-within:border-gray-300 focus-within:ring-gray-200'
+          ${
+            displayError
+              ? 'border-red-300 focus-within:border-red-500 focus-within:ring-red-500'
+              : 'border-gray-200 focus-within:border-gray-300 focus-within:ring-gray-200'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}
         `}

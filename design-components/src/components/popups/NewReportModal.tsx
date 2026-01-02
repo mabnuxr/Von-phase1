@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Table,
-  Check,
-  Sparkle,
-} from '@phosphor-icons/react';
+import { Table, Check, Sparkle } from '@phosphor-icons/react';
 import { AddButton, PrimaryButton, GhostButton } from '../forms/buttons';
 import { FilterRow } from '../forms/filter';
 
@@ -107,9 +103,7 @@ const defaultRelatedObjects: Record<string, RelatedObject[]> = {
     { id: 'contacts', label: 'Contacts', relationField: 'AccountId' },
     { id: 'cases', label: 'Cases', relationField: 'AccountId' },
   ],
-  leads: [
-    { id: 'campaigns', label: 'Campaigns', relationField: 'CampaignId' },
-  ],
+  leads: [{ id: 'campaigns', label: 'Campaigns', relationField: 'CampaignId' }],
   contacts: [
     { id: 'account', label: 'Account', relationField: 'AccountId' },
     { id: 'opportunities', label: 'Opportunities', relationField: 'ContactId' },
@@ -125,10 +119,25 @@ const defaultColumnsBySource: Record<string, ColumnOption[]> = {
     { id: 'opp_name', label: 'Name', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
     { id: 'opp_amount', label: 'Amount', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
     { id: 'opp_stage', label: 'Stage', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
-    { id: 'opp_close_date', label: 'Close Date', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
-    { id: 'opp_probability', label: 'Probability', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
+    {
+      id: 'opp_close_date',
+      label: 'Close Date',
+      sourceId: 'opportunities',
+      sourceLabel: 'Opportunities',
+    },
+    {
+      id: 'opp_probability',
+      label: 'Probability',
+      sourceId: 'opportunities',
+      sourceLabel: 'Opportunities',
+    },
     { id: 'opp_type', label: 'Type', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
-    { id: 'opp_lead_source', label: 'Lead Source', sourceId: 'opportunities', sourceLabel: 'Opportunities' },
+    {
+      id: 'opp_lead_source',
+      label: 'Lead Source',
+      sourceId: 'opportunities',
+      sourceLabel: 'Opportunities',
+    },
   ],
   account: [
     { id: 'acc_name', label: 'Account Name', sourceId: 'account', sourceLabel: 'Account' },
@@ -144,7 +153,12 @@ const defaultColumnsBySource: Record<string, ColumnOption[]> = {
   gong_calls: [
     { id: 'gong_date', label: 'Call Date', sourceId: 'gong_calls', sourceLabel: 'Gong Calls' },
     { id: 'gong_duration', label: 'Duration', sourceId: 'gong_calls', sourceLabel: 'Gong Calls' },
-    { id: 'gong_sentiment', label: 'Sentiment Score', sourceId: 'gong_calls', sourceLabel: 'Gong Calls' },
+    {
+      id: 'gong_sentiment',
+      label: 'Sentiment Score',
+      sourceId: 'gong_calls',
+      sourceLabel: 'Gong Calls',
+    },
   ],
   von_iq: [
     { id: 'von_signal', label: 'Signal Type', sourceId: 'von_iq', sourceLabel: 'Von IQ Signals' },
@@ -190,10 +204,12 @@ const RadioOption: React.FC<RadioOptionProps> = ({ selected, label, onClick }) =
       ${selected ? 'bg-gray-50 border border-gray-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}
     `}
   >
-    <div className={`
+    <div
+      className={`
       w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0
       ${selected ? 'border-orange-600 bg-orange-600' : 'border-gray-300'}
-    `}>
+    `}
+    >
       {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
     </div>
     <span className={`text-[13px] ${selected ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
@@ -210,7 +226,12 @@ interface CheckboxOptionProps {
   onChange: (checked: boolean) => void;
 }
 
-const CheckboxOption: React.FC<CheckboxOptionProps> = ({ checked, label, description, onChange }) => (
+const CheckboxOption: React.FC<CheckboxOptionProps> = ({
+  checked,
+  label,
+  description,
+  onChange,
+}) => (
   <button
     type="button"
     onClick={() => onChange(!checked)}
@@ -219,18 +240,20 @@ const CheckboxOption: React.FC<CheckboxOptionProps> = ({ checked, label, descrip
       ${checked ? 'bg-gray-50 border border-gray-100' : 'bg-white border border-gray-100 hover:bg-gray-50'}
     `}
   >
-    <div className={`
+    <div
+      className={`
       w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 transition-colors
       ${checked ? 'bg-orange-600 border-orange-600' : 'border-2 border-gray-100'}
-    `}>
+    `}
+    >
       {checked && <Check size={9} weight="bold" className="text-white" />}
     </div>
-    <span className={`text-[13px] flex-1 ${checked ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
+    <span
+      className={`text-[13px] flex-1 ${checked ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
+    >
       {label}
     </span>
-    {description && (
-      <span className="text-[11px] text-gray-500">{description}</span>
-    )}
+    {description && <span className="text-[11px] text-gray-500">{description}</span>}
   </button>
 );
 
@@ -250,10 +273,12 @@ const ColumnCheckbox: React.FC<ColumnCheckboxProps> = ({ checked, label, onChang
       ${checked ? 'bg-gray-100 border-gray-200 text-gray-900' : 'bg-gray-50 border-gray-100 text-gray-700 hover:bg-gray-100'}
     `}
   >
-    <div className={`
+    <div
+      className={`
       w-3 h-3 rounded flex items-center justify-center flex-shrink-0 transition-colors
       ${checked ? 'bg-orange-600' : 'border border-gray-200'}
-    `}>
+    `}
+    >
       {checked && <Check size={8} weight="bold" className="text-white" />}
     </div>
     <span className="text-[12px]">{label}</span>
@@ -341,10 +366,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
 
   // Filter handlers
   const handleAddFilter = () => {
-    setFilters([
-      ...filters,
-      { id: crypto.randomUUID(), field: '', operator: '', value: '' },
-    ]);
+    setFilters([...filters, { id: crypto.randomUUID(), field: '', operator: '', value: '' }]);
   };
 
   const handleUpdateFilter = (
@@ -401,7 +423,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
 
   // Get related objects for selected primary source (used in step 2 rendering)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _relatedObjects = primarySource ? (availableRelatedObjects[primarySource] || []) : [];
+  const _relatedObjects = primarySource ? availableRelatedObjects[primarySource] || [] : [];
 
   // Get related objects for a specific source
   const getRelatedObjectsForSource = (sourceId: string) => {
@@ -443,7 +465,9 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
                           className="overflow-hidden"
                         >
                           <div className="ml-4 pl-3 border-l border-gray-200 mt-1.5 space-y-1.5">
-                            <span className="text-[11px] font-medium text-gray-500 pb-2 tracking-wide">Available to join</span>
+                            <span className="text-[11px] font-medium text-gray-500 pb-2 tracking-wide">
+                              Available to join
+                            </span>
                             {sourceRelatedObjects.map((obj) => (
                               <CheckboxOption
                                 key={obj.id}
@@ -470,15 +494,15 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
             {/* Step title */}
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-700">{stepTitles[2]}</span>
-              <AddButton onClick={handleAddFilter}>
-                Add Filter
-              </AddButton>
+              <AddButton onClick={handleAddFilter}>Add Filter</AddButton>
             </div>
 
             {filters.length === 0 ? (
               <div className="py-4 text-center">
                 <p className="text-[13px] text-gray-500">No filters added</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">Click "Add Filter" to filter your data</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Click "Add Filter" to filter your data
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -571,9 +595,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
               <div className="flex flex-row items-center gap-2 px-1 pb-3 mb-3 border-b border-gray-100">
                 <Table size={18} weight="duotone" className="text-gray-700" />
                 <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">
-                    Create New Report
-                  </h3>
+                  <h3 className="font-medium text-gray-900">Create New Report</h3>
                 </div>
               </div>
 

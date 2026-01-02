@@ -115,22 +115,73 @@ const ChatSidebarWrapper = () => {
     { id: 'chat-4', label: 'Top Performers Analysis', type: 'chat' as const },
 
     // Dashboards - Private (mine, not shared)
-    { id: 'dash-1', label: 'Sales Overview', type: 'dashboard' as const, ownership: 'mine' as const },
-    { id: 'dash-2', label: 'My Team Performance', type: 'dashboard' as const, ownership: 'mine' as const },
+    {
+      id: 'dash-1',
+      label: 'Sales Overview',
+      type: 'dashboard' as const,
+      ownership: 'mine' as const,
+    },
+    {
+      id: 'dash-2',
+      label: 'My Team Performance',
+      type: 'dashboard' as const,
+      ownership: 'mine' as const,
+    },
 
     // Dashboards - Shared by you (created by you and shared with others)
-    { id: 'dash-3', label: 'Q4 Pipeline Dashboard', type: 'dashboard' as const, ownership: 'shared_by_me' as const },
-    { id: 'dash-4', label: 'Weekly Sales Report', type: 'dashboard' as const, ownership: 'shared_by_me' as const },
+    {
+      id: 'dash-3',
+      label: 'Q4 Pipeline Dashboard',
+      type: 'dashboard' as const,
+      ownership: 'shared_by_me' as const,
+    },
+    {
+      id: 'dash-4',
+      label: 'Weekly Sales Report',
+      type: 'dashboard' as const,
+      ownership: 'shared_by_me' as const,
+    },
 
     // Dashboards - Org-wide (shared by someone else)
-    { id: 'dash-5', label: 'Company KPIs', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'Sarah Chen' },
-    { id: 'dash-6', label: 'Regional Breakdown', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'Mike Johnson' },
+    {
+      id: 'dash-5',
+      label: 'Company KPIs',
+      type: 'dashboard' as const,
+      ownership: 'shared' as const,
+      ownerName: 'Sarah Chen',
+    },
+    {
+      id: 'dash-6',
+      label: 'Regional Breakdown',
+      type: 'dashboard' as const,
+      ownership: 'shared' as const,
+      ownerName: 'Mike Johnson',
+    },
 
     // Items in folders
     { id: 'chat-5', label: 'Q4 Projections', type: 'chat' as const, folderId: 'folder-1' },
-    { id: 'dash-7', label: 'Q4 Executive Summary', type: 'dashboard' as const, ownership: 'mine' as const, folderId: 'folder-2' },
-    { id: 'dash-8', label: 'Team Metrics', type: 'dashboard' as const, ownership: 'shared_by_me' as const, folderId: 'folder-2' },
-    { id: 'dash-9', label: 'Board Deck Data', type: 'dashboard' as const, ownership: 'shared' as const, ownerName: 'CEO', folderId: 'folder-2' },
+    {
+      id: 'dash-7',
+      label: 'Q4 Executive Summary',
+      type: 'dashboard' as const,
+      ownership: 'mine' as const,
+      folderId: 'folder-2',
+    },
+    {
+      id: 'dash-8',
+      label: 'Team Metrics',
+      type: 'dashboard' as const,
+      ownership: 'shared_by_me' as const,
+      folderId: 'folder-2',
+    },
+    {
+      id: 'dash-9',
+      label: 'Board Deck Data',
+      type: 'dashboard' as const,
+      ownership: 'shared' as const,
+      ownerName: 'CEO',
+      folderId: 'folder-2',
+    },
   ];
 
   return (
@@ -163,9 +214,7 @@ const ChatSidebarWrapper = () => {
         onRenameItem={(id, type) => console.log('Rename:', id, type)}
         onDeleteItem={(id, type) => console.log('Delete:', id, type)}
         onFolderToggle={(folderId, isExpanded) => {
-          setFolders(folders.map(f =>
-            f.id === folderId ? { ...f, isExpanded } : f
-          ));
+          setFolders(folders.map((f) => (f.id === folderId ? { ...f, isExpanded } : f)));
         }}
         userName="John Doe"
         userEmail="john@example.com"
@@ -372,7 +421,13 @@ const Pane3WithReferenceWrapper = () => {
   });
 
   return (
-    <div style={{ height: '100%', width: isCollapsed ? '48px' : '400px', transition: 'width 0.3s ease' }}>
+    <div
+      style={{
+        height: '100%',
+        width: isCollapsed ? '48px' : '400px',
+        transition: 'width 0.3s ease',
+      }}
+    >
       <ChatPane
         conversationName="Build with Von"
         messages={sampleMessages}
@@ -451,7 +506,7 @@ const _Pane3StreamingConfig = {
       {
         id: 'msg-2',
         type: 'assistant',
-        content: 'I\'m analyzing your deal data now. Looking at the top performers...',
+        content: "I'm analyzing your deal data now. Looking at the top performers...",
         isStreaming: true,
         status: 'streaming',
       },

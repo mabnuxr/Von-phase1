@@ -70,7 +70,9 @@ const FilterInteraction: React.FC<{
   filterValue: string;
   onComplete?: () => void;
 }> = ({ isActive, filterValue, onComplete }) => {
-  const [phase, setPhase] = useState<'cursor' | 'dropdown' | 'select' | 'applied' | 'done'>('cursor');
+  const [phase, setPhase] = useState<'cursor' | 'dropdown' | 'select' | 'applied' | 'done'>(
+    'cursor'
+  );
 
   React.useLayoutEffect(() => {
     if (!isActive) return;
@@ -330,11 +332,7 @@ const RowSelectInteraction: React.FC<{
                 : 'transparent',
           border: phase === 'select' ? '2px solid rgba(128, 57, 233, 0.4)' : 'none',
         }}
-        animate={
-          phase === 'select'
-            ? { boxShadow: '0 0 0 4px rgba(128, 57, 233, 0.1)' }
-            : {}
-        }
+        animate={phase === 'select' ? { boxShadow: '0 0 0 4px rgba(128, 57, 233, 0.1)' } : {}}
       />
 
       {/* Cursor */}
@@ -393,11 +391,7 @@ export const SimulatedInteraction: React.FC<SimulatedInteractionProps> = ({
             />
           )}
           {type === 'sort' && (
-            <SortInteraction
-              isActive={isActive}
-              columnName={sortColumn}
-              onComplete={onComplete}
-            />
+            <SortInteraction isActive={isActive} columnName={sortColumn} onComplete={onComplete} />
           )}
           {type === 'select-row' && (
             <RowSelectInteraction isActive={isActive} onComplete={onComplete} />

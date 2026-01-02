@@ -1,6 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlusIcon, MicrophoneIcon, ChartBar, Table, FileText, X, XIcon, UploadSimpleIcon, AtomIcon, CheckIcon } from '@phosphor-icons/react';
+import {
+  PlusIcon,
+  MicrophoneIcon,
+  ChartBar,
+  Table,
+  FileText,
+  X,
+  XIcon,
+  UploadSimpleIcon,
+  AtomIcon,
+  CheckIcon,
+} from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
@@ -41,7 +52,6 @@ function getReferenceLabel(type: ReferenceContext['type']) {
   }
 }
 
-
 /**
  * PlusButtonMenu - Plus button with context menu for upload and deep research options
  */
@@ -77,7 +87,9 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
       label: 'Deep research',
       icon: <AtomIcon size={16} />,
       active: isDeepResearch,
-      rightContent: isDeepResearch ? <CheckIcon size={14} weight="bold" className="text-green-600" /> : undefined,
+      rightContent: isDeepResearch ? (
+        <CheckIcon size={14} weight="bold" className="text-green-600" />
+      ) : undefined,
     },
   ];
 
@@ -295,30 +307,28 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
         {referenceContext && (
           <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
             <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
-            <div className="flex items-center gap-1.5">
-              {getReferenceIcon(referenceContext.type)}
-              <span className="text-[13px] text-gray-900">
-                {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
-              </span>
+              <div className="flex items-center gap-1.5">
+                {getReferenceIcon(referenceContext.type)}
+                <span className="text-[13px] text-gray-900">
+                  {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
+                </span>
+              </div>
+              {onRemoveReference && (
+                <RemoveButton
+                  icon={<X size={12} weight="bold" />}
+                  onClick={onRemoveReference}
+                  title="Remove reference"
+                  className="text-gray-800"
+                />
+              )}
             </div>
-            {onRemoveReference && (
-              <RemoveButton
-                icon={<X size={12} weight="bold" />}
-                onClick={onRemoveReference}
-                title="Remove reference"
-                className="text-gray-800"
-              />
-            )}
-          </div>
           </div>
         )}
 
         {/* Main input container with gradient border */}
         <div
           className={`p-[1px] rounded-2xl transition-all duration-200 ${
-            disabled
-              ? 'opacity-60 cursor-not-allowed'
-              : 'shadow-sm hover:shadow-md'
+            disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
           }`}
           style={{
             background: disabled
@@ -374,7 +384,9 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   onClose={() => setIsPlusMenuOpen(false)}
                   onOpen={handlePlusButtonClick}
                   onUpload={handleUploadFilesClick}
-                  onDeepResearch={isDeepResearch ? handleCancelDeepResearch : handleDeepResearchClick}
+                  onDeepResearch={
+                    isDeepResearch ? handleCancelDeepResearch : handleDeepResearchClick
+                  }
                   isDeepResearch={isDeepResearch}
                   disabled={disabled && !isStreaming}
                 />
@@ -437,7 +449,11 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                     onClick={onVoiceInput}
                     disabled={disabled && !isStreaming}
                     title={isRecording ? 'Stop recording' : 'Start voice input'}
-                    className={isRecording ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl' : 'w-8.5 h-8.5 rounded-xl'}
+                    className={
+                      isRecording
+                        ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
+                        : 'w-8.5 h-8.5 rounded-xl'
+                    }
                   />
                 )}
 

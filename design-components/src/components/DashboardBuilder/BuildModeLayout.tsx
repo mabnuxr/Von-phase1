@@ -1,7 +1,14 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatTextIcon, GearSix, House, ChartBar, Database } from '@phosphor-icons/react';
-import type { BuildMode, DataViewTab, ChatMessage, DataTable, Dashboard, DashboardWidget } from './types';
+import type {
+  BuildMode,
+  DataViewTab,
+  ChatMessage,
+  DataTable,
+  Dashboard,
+  DashboardWidget,
+} from './types';
 import { DataExplorer } from './DataExplorer';
 import { DashboardCanvas } from './DashboardCanvas';
 import { TableViewer } from './TableViewer';
@@ -99,31 +106,34 @@ export const BuildModeLayout: React.FC<BuildModeLayoutProps> = ({
   const startXRef = useRef(0);
   const startWidthRef = useRef(320);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    isResizingRef.current = true;
-    startXRef.current = e.clientX;
-    startWidthRef.current = chatWidth;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      isResizingRef.current = true;
+      startXRef.current = e.clientX;
+      startWidthRef.current = chatWidth;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizingRef.current) return;
-      const delta = startXRef.current - e.clientX;
-      const newWidth = Math.min(Math.max(startWidthRef.current + delta, 280), 600);
-      setChatWidth(newWidth);
-    };
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizingRef.current) return;
+        const delta = startXRef.current - e.clientX;
+        const newWidth = Math.min(Math.max(startWidthRef.current + delta, 280), 600);
+        setChatWidth(newWidth);
+      };
 
-    const handleMouseUp = () => {
-      isResizingRef.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      const handleMouseUp = () => {
+        isResizingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [chatWidth]);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [chatWidth]
+  );
 
   const selectedTable = initialTables.find((t) => t.id === selectedTableId);
 
@@ -269,11 +279,7 @@ export const BuildModeLayout: React.FC<BuildModeLayoutProps> = ({
         {/* Main Content */}
         <div className="flex-1 min-h-0">
           {viewMode === 'data' && selectedTable ? (
-            <TableViewer
-              table={selectedTable}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
+            <TableViewer table={selectedTable} viewMode={viewMode} onViewModeChange={setViewMode} />
           ) : (
             <DashboardCanvas
               dashboard={dashboard}

@@ -112,7 +112,9 @@ export const PlusButtonMenu: Story = {
         label: 'Deep research',
         icon: <AtomIcon size={16} />,
         active: isDeepResearch,
-        rightContent: isDeepResearch ? <CheckIcon size={14} weight="bold" className="text-green-600" /> : undefined,
+        rightContent: isDeepResearch ? (
+          <CheckIcon size={14} weight="bold" className="text-green-600" />
+        ) : undefined,
       },
     ];
 
@@ -212,16 +214,16 @@ export const PositionVariants: Story = {
     const [openPosition, setOpenPosition] = useState<string | null>(null);
     const refs = {
       'top-start': useRef<HTMLButtonElement>(null),
-      'top': useRef<HTMLButtonElement>(null),
+      top: useRef<HTMLButtonElement>(null),
       'top-end': useRef<HTMLButtonElement>(null),
       'bottom-start': useRef<HTMLButtonElement>(null),
-      'bottom': useRef<HTMLButtonElement>(null),
+      bottom: useRef<HTMLButtonElement>(null),
       'bottom-end': useRef<HTMLButtonElement>(null),
       'left-start': useRef<HTMLButtonElement>(null),
-      'left': useRef<HTMLButtonElement>(null),
+      left: useRef<HTMLButtonElement>(null),
       'left-end': useRef<HTMLButtonElement>(null),
       'right-start': useRef<HTMLButtonElement>(null),
-      'right': useRef<HTMLButtonElement>(null),
+      right: useRef<HTMLButtonElement>(null),
       'right-end': useRef<HTMLButtonElement>(null),
     };
 
@@ -300,9 +302,7 @@ export const WithHeaderAndFooter: Story = {
               Recent
             </span>
           }
-          footer={
-            <span className="text-[11px] text-gray-500">+4 more items</span>
-          }
+          footer={<span className="text-[11px] text-gray-500">+4 more items</span>}
           onItemClick={(item) => {
             console.log('Selected:', item.label);
             setIsOpen(false);
@@ -333,19 +333,28 @@ export const ActiveState: Story = {
         id: 'option-1',
         label: 'Option 1',
         active: selectedId === 'option-1',
-        rightContent: selectedId === 'option-1' ? <CheckIcon size={14} weight="bold" className="text-green-600" /> : undefined,
+        rightContent:
+          selectedId === 'option-1' ? (
+            <CheckIcon size={14} weight="bold" className="text-green-600" />
+          ) : undefined,
       },
       {
         id: 'option-2',
         label: 'Option 2',
         active: selectedId === 'option-2',
-        rightContent: selectedId === 'option-2' ? <CheckIcon size={14} weight="bold" className="text-green-600" /> : undefined,
+        rightContent:
+          selectedId === 'option-2' ? (
+            <CheckIcon size={14} weight="bold" className="text-green-600" />
+          ) : undefined,
       },
       {
         id: 'option-3',
         label: 'Option 3',
         active: selectedId === 'option-3',
-        rightContent: selectedId === 'option-3' ? <CheckIcon size={14} weight="bold" className="text-green-600" /> : undefined,
+        rightContent:
+          selectedId === 'option-3' ? (
+            <CheckIcon size={14} weight="bold" className="text-green-600" />
+          ) : undefined,
       },
     ];
 

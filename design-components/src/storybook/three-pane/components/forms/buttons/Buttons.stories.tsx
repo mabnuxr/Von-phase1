@@ -56,9 +56,7 @@ export const AllButtons: Story = {
   render: () => (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <HeroButton icon={<PlusIcon size={14} weight="bold" />}>
-          Hero Button
-        </HeroButton>
+        <HeroButton icon={<PlusIcon size={14} weight="bold" />}>Hero Button</HeroButton>
         <span className="text-xs text-gray-500">Main CTA - highest prominence</span>
       </div>
       <div className="flex items-center gap-4">
@@ -92,11 +90,7 @@ export const AllButtons: Story = {
  * Used for main actions like "New chat" button.
  */
 export const HeroButtonDefault: Story = {
-  render: () => (
-    <HeroButton icon={<PlusIcon size={14} weight="bold" />}>
-      New chat
-    </HeroButton>
-  ),
+  render: () => <HeroButton icon={<PlusIcon size={14} weight="bold" />}>New chat</HeroButton>,
 };
 
 /**
@@ -105,12 +99,7 @@ export const HeroButtonDefault: Story = {
  * Icon-only gradient button for collapsed states.
  */
 export const HeroIconButtonDefault: Story = {
-  render: () => (
-    <HeroIconButton
-      icon={<PlusIcon size={16} weight="bold" />}
-      title="New Chat"
-    />
-  ),
+  render: () => <HeroIconButton icon={<PlusIcon size={16} weight="bold" />} title="New Chat" />,
 };
 
 // ============================================================================
@@ -209,11 +198,7 @@ export const PrimaryGhostPair: Story = {
  * Small pill-shaped button for inline actions.
  */
 export const PillButtonDefault: Story = {
-  render: () => (
-    <PillButton icon={<PlusIcon size={10} weight="bold" />}>
-      Add new
-    </PillButton>
-  ),
+  render: () => <PillButton icon={<PlusIcon size={10} weight="bold" />}>Add new</PillButton>,
 };
 
 /**
@@ -222,9 +207,7 @@ export const PillButtonDefault: Story = {
  * PillButton with a plus icon, specifically for adding items.
  */
 export const AddButtonDefault: Story = {
-  render: () => (
-    <AddButton>Add Filter</AddButton>
-  ),
+  render: () => <AddButton>Add Filter</AddButton>,
 };
 
 // ============================================================================
@@ -243,10 +226,7 @@ export const AllIconButtons: Story = {
   render: () => (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
-        <PrimaryIconButton
-          icon={<DotsThreeIcon size={16} weight="bold" />}
-          title="More options"
-        />
+        <PrimaryIconButton icon={<DotsThreeIcon size={16} weight="bold" />} title="More options" />
         <span className="text-xs text-gray-500">Primary - dark filled (more options)</span>
       </div>
       <div className="flex items-center gap-4">
@@ -275,10 +255,7 @@ export const AllIconButtons: Story = {
 export const PrimaryIconButtonDefault: Story = {
   render: () => (
     <div className="flex items-center gap-4">
-      <PrimaryIconButton
-        icon={<DotsThreeIcon size={16} weight="bold" />}
-        visible={true}
-      />
+      <PrimaryIconButton icon={<DotsThreeIcon size={16} weight="bold" />} visible={true} />
       <span className="text-sm text-gray-500">More options trigger</span>
     </div>
   ),
@@ -310,10 +287,7 @@ export const TertiaryIconButtonDefault: Story = {
         icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
         title="Toggle sidebar"
       />
-      <TertiaryIconButton
-        icon={<ArrowLeftIcon size={16} weight="bold" />}
-        title="Go back"
-      />
+      <TertiaryIconButton icon={<ArrowLeftIcon size={16} weight="bold" />} title="Go back" />
     </div>
   ),
 };

@@ -20,8 +20,21 @@ import { TextInput } from '../forms/input';
 import { Select } from '../forms/dropdown';
 import { FilterRow } from '../forms/filter';
 import { Toggle } from '../forms/toggle';
-import { AddButton, PrimaryButton, SecondaryButton, GhostButton, TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
-import { ContextMenu, DeleteConfirmationPopup, NewReportModal, type ContextMenuItem, type NewReportConfig } from '../popups';
+import {
+  AddButton,
+  PrimaryButton,
+  SecondaryButton,
+  GhostButton,
+  TertiaryIconButton,
+  PrimaryIconButton,
+} from '../forms/buttons';
+import {
+  ContextMenu,
+  DeleteConfirmationPopup,
+  NewReportModal,
+  type ContextMenuItem,
+  type NewReportConfig,
+} from '../popups';
 
 // ============================================================================
 // Types
@@ -355,9 +368,7 @@ const SubtableRow: React.FC<SubtableRowProps> = ({
       )}
 
       {/* Table icon for top-level parent tables */}
-      {level === 0 && (
-        <Table size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
-      )}
+      {level === 0 && <Table size={16} weight="regular" className="text-gray-700 flex-shrink-0" />}
 
       {isEditing ? (
         <input
@@ -372,15 +383,11 @@ const SubtableRow: React.FC<SubtableRowProps> = ({
         />
       ) : (
         <>
-          <span className="flex-1 text-[13px] truncate text-gray-900">
-            {item.label}
-          </span>
+          <span className="flex-1 text-[13px] truncate text-gray-900">{item.label}</span>
 
           {/* Child count badge */}
           {hasChildren && (
-            <span className="text-[11px] font-mono text-gray-500">
-              [{childCount}]
-            </span>
+            <span className="text-[11px] font-mono text-gray-500">[{childCount}]</span>
           )}
 
           {/* More options button - shows on hover or when menu is open */}
@@ -550,12 +557,15 @@ export const Pane1: React.FC<Pane1Props> = ({
   }>({ isOpen: false, item: null });
 
   // Internal state for selected component (uncontrolled mode)
-  const [internalSelectedComponent, setInternalSelectedComponent] = useState<ChartComponent | null>(null);
+  const [internalSelectedComponent, setInternalSelectedComponent] = useState<ChartComponent | null>(
+    null
+  );
 
   // Use controlled or uncontrolled state
-  const selectedComponent = controlledSelectedComponent !== undefined
-    ? controlledSelectedComponent
-    : internalSelectedComponent;
+  const selectedComponent =
+    controlledSelectedComponent !== undefined
+      ? controlledSelectedComponent
+      : internalSelectedComponent;
 
   const setSelectedComponent = (component: ChartComponent | null) => {
     if (onSelectedComponentChange) {
@@ -568,12 +578,14 @@ export const Pane1: React.FC<Pane1Props> = ({
   // Form state for component configuration
   const [configTitle, setConfigTitle] = useState('');
   const [configReportId, setConfigReportId] = useState('');
-  const [configFilters, setConfigFilters] = useState<Array<{
-    id: string;
-    field: string;
-    operator: string;
-    value: string;
-  }>>([]);
+  const [configFilters, setConfigFilters] = useState<
+    Array<{
+      id: string;
+      field: string;
+      operator: string;
+      value: string;
+    }>
+  >([]);
 
   // Get fields for the selected report
   const selectedReport = dataSources.find((d) => d.id === configReportId);
@@ -604,9 +616,7 @@ export const Pane1: React.FC<Pane1Props> = ({
     id: string,
     updates: Partial<{ field: string; operator: string; value: string }>
   ) => {
-    setConfigFilters(
-      configFilters.map((f) => (f.id === id ? { ...f, ...updates } : f))
-    );
+    setConfigFilters(configFilters.map((f) => (f.id === id ? { ...f, ...updates } : f)));
   };
 
   const handleRemoveFilter = (id: string) => {
@@ -644,7 +654,9 @@ export const Pane1: React.FC<Pane1Props> = ({
           <div className="flex justify-between gap-2">
             <div className="flex items-center gap-2">
               <IconComponent size={18} weight="regular" className="text-gray-700" />
-              <span className="font-medium text-gray-900">{configTitle || selectedComponent.label}</span>
+              <span className="font-medium text-gray-900">
+                {configTitle || selectedComponent.label}
+              </span>
             </div>
             <TertiaryIconButton
               icon={<ArrowLeft size={16} weight="bold" />}
@@ -656,8 +668,7 @@ export const Pane1: React.FC<Pane1Props> = ({
 
         {/* Configuration Form */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 space-y-4">
-
-           {/* Title Input */}
+          {/* Title Input */}
           <TextInput
             label="Title"
             value={configTitle}
@@ -678,15 +689,15 @@ export const Pane1: React.FC<Pane1Props> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-gray-700">Filters</span>
-              <AddButton onClick={handleAddFilter}>
-                Add Filter
-              </AddButton>
+              <AddButton onClick={handleAddFilter}>Add Filter</AddButton>
             </div>
 
             {configFilters.length === 0 ? (
               <div className="py-4 text-center">
                 <p className="text-[13px] text-gray-500">No filters added</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">Click "Add Filter" to add a filter condition</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Click "Add Filter" to add a filter condition
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -761,9 +772,7 @@ export const Pane1: React.FC<Pane1Props> = ({
             {/* Components Section */}
             <div className="mb-1">
               <div className="px-2 py-1.5">
-                <span className="text-xs font-medium text-gray-700">
-                  Drag and drop component
-                </span>
+                <span className="text-xs font-medium text-gray-700">Drag and drop component</span>
               </div>
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-2.5 pr-2">
@@ -778,9 +787,11 @@ export const Pane1: React.FC<Pane1Props> = ({
                       className="flex flex-row items-center justify-center gap-1.5 px-3 py-3 bg-white rounded-xl border border-gray-100 cursor-grab hover:border-gray-200 hover:border-dashed hover:shadow-lg hover:shadow-gray-100 transition-all duration-200 active:scale-[0.98]"
                     >
                       <div className="p-2 bg-gray-50 rounded-lg">
-                      <IconComponent size={18} weight="regular" className="text-gray-800" />
+                        <IconComponent size={18} weight="regular" className="text-gray-800" />
                       </div>
-                      <span className="text-[13px] text-gray-900 pl-1 leading-[15px]">{component.label}</span>
+                      <span className="text-[13px] text-gray-900 pl-1 leading-[15px]">
+                        {component.label}
+                      </span>
                     </div>
                   );
                 })}

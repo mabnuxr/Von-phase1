@@ -203,9 +203,7 @@ export const AllStates: Story = {
   render: () => (
     <div className="flex flex-col gap-6" style={{ width: '500px' }}>
       <div>
-        <div className="text-xs text-gray-500 mb-2 font-medium">
-          Default with File Upload
-        </div>
+        <div className="text-xs text-gray-500 mb-2 font-medium">Default with File Upload</div>
         <ChatInput
           placeholder="Ask von anything"
           enableFileUpload
@@ -215,9 +213,7 @@ export const AllStates: Story = {
       </div>
 
       <div>
-        <div className="text-xs text-gray-500 mb-2 font-medium">
-          Without File Upload
-        </div>
+        <div className="text-xs text-gray-500 mb-2 font-medium">Without File Upload</div>
         <ChatInput
           placeholder="Ask von anything"
           enableFileUpload={false}

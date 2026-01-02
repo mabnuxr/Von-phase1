@@ -1,9 +1,4 @@
-import {
-  Plus,
-  ClockCounterClockwise,
-  X,
-  SidebarSimpleIcon,
-} from '@phosphor-icons/react';
+import { Plus, ClockCounterClockwise, X, SidebarSimpleIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../forms/buttons';
 import type { ChatPaneHeaderProps } from './types';
 
@@ -26,9 +21,7 @@ export const ChatPaneHeader: React.FC<ChatPaneHeaderProps> = ({
     <div className="px-1 pb-3 border-b border-gray-100">
       <div className="flex items-center justify-between gap-2">
         {/* Left side - Conversation name */}
-        <span className="font-medium text-gray-900 text-[13px] truncate">
-          {conversationName}
-        </span>
+        <span className="font-medium text-gray-900 text-[13px] truncate">{conversationName}</span>
 
         {/* Right side - Action icons */}
         <div className="flex items-center gap-1">

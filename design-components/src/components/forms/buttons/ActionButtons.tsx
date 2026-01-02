@@ -314,16 +314,9 @@ export interface AddButtonProps extends Omit<PillButtonProps, 'icon'> {
 /**
  * AddButton - PillButton with a plus icon, for adding new items
  */
-export const AddButton: React.FC<AddButtonProps> = ({
-  children,
-  iconSize = 10,
-  ...props
-}) => {
+export const AddButton: React.FC<AddButtonProps> = ({ children, iconSize = 10, ...props }) => {
   return (
-    <PillButton
-      {...props}
-      icon={<PlusIcon size={iconSize} weight="bold" />}
-    >
+    <PillButton {...props} icon={<PlusIcon size={iconSize} weight="bold" />}>
       {children}
     </PillButton>
   );
@@ -384,18 +377,10 @@ export const ActionButtonGroup: React.FC<ActionButtonGroupProps> = ({
 }) => {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <GhostButton
-        onClick={onGhostClick}
-        disabled={ghostDisabled}
-        fullWidth
-      >
+      <GhostButton onClick={onGhostClick} disabled={ghostDisabled} fullWidth>
         {ghostLabel}
       </GhostButton>
-      <PrimaryButton
-        onClick={onPrimaryClick}
-        disabled={primaryDisabled}
-        fullWidth
-      >
+      <PrimaryButton onClick={onPrimaryClick} disabled={primaryDisabled} fullWidth>
         {primaryLabel}
       </PrimaryButton>
     </div>
@@ -445,7 +430,8 @@ export const TransparentButton: React.FC<TransparentButtonProps> = ({
   rightContent,
   variant = 'default',
 }) => {
-  const baseClasses = 'w-full rounded-xl flex items-center justify-between px-3 py-2 text-[13px] transition-colors cursor-pointer text-left';
+  const baseClasses =
+    'w-full rounded-xl flex items-center justify-between px-3 py-2 text-[13px] transition-colors cursor-pointer text-left';
 
   const variantClasses = {
     default: active
@@ -455,7 +441,7 @@ export const TransparentButton: React.FC<TransparentButtonProps> = ({
   };
 
   // Default icon color classes (apply to icon wrapper)
-  const iconColorClass = variant === 'danger' ? '' : (active ? 'text-green-600' : 'text-gray-800');
+  const iconColorClass = variant === 'danger' ? '' : active ? 'text-green-600' : 'text-gray-800';
 
   return (
     <button

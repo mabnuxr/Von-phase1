@@ -1,7 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { Table } from 'rsuite';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PencilSimple, ArrowsOut, DotsThree, SortAscending, SortDescending, Trash } from '@phosphor-icons/react';
+import {
+  PencilSimple,
+  ArrowsOut,
+  DotsThree,
+  SortAscending,
+  SortDescending,
+  Trash,
+} from '@phosphor-icons/react';
 import type { DashboardWidget, TableWidgetConfig, DataColumn } from './types';
 import { mockDataTables } from './mockData';
 
@@ -89,7 +96,13 @@ const getRiskBadgeStyles = (level: string): string => {
 /**
  * TableWidget - Renders a data table with Von styling
  */
-export const TableWidget: React.FC<TableWidgetProps> = ({ widget, onClick, onEdit, onExpand, onDelete }) => {
+export const TableWidget: React.FC<TableWidgetProps> = ({
+  widget,
+  onClick,
+  onEdit,
+  onExpand,
+  onDelete,
+}) => {
   const config = widget.config as TableWidgetConfig;
   const [showMenu, setShowMenu] = useState(false);
 
@@ -112,7 +125,12 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, onClick, onEdi
         const aVal = a[sortKey];
         const bVal = b[sortKey];
         if (aVal == null || bVal == null) return 0;
-        const comparison = (aVal as string | number) > (bVal as string | number) ? 1 : (aVal as string | number) < (bVal as string | number) ? -1 : 0;
+        const comparison =
+          (aVal as string | number) > (bVal as string | number)
+            ? 1
+            : (aVal as string | number) < (bVal as string | number)
+              ? -1
+              : 0;
         return config.sortOrder === 'desc' ? -comparison : comparison;
       });
     }
@@ -229,11 +247,13 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, onClick, onEdi
           hover
         >
           {columns.map((column) => (
-            <Column key={column.key} width={column.type === 'string' ? 150 : 120} flexGrow={column.key === 'accountName' ? 1 : 0}>
+            <Column
+              key={column.key}
+              width={column.type === 'string' ? 150 : 120}
+              flexGrow={column.key === 'accountName' ? 1 : 0}
+            >
               <HeaderCell>
-                <span className="text-xs font-medium text-gray-700">
-                  {column.label}
-                </span>
+                <span className="text-xs font-medium text-gray-700">{column.label}</span>
               </HeaderCell>
               <Cell dataKey={column.key}>
                 {(rowData: Record<string, unknown>) => {
@@ -259,7 +279,11 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, onClick, onEdi
                         <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
                           <div
                             className={`h-full rounded-full ${
-                              pct >= 70 ? 'bg-red-500' : pct >= 50 ? 'bg-orange-500' : 'bg-yellow-500'
+                              pct >= 70
+                                ? 'bg-red-500'
+                                : pct >= 50
+                                  ? 'bg-orange-500'
+                                  : 'bg-yellow-500'
                             }`}
                             style={{ width: `${pct}%` }}
                           />
@@ -275,7 +299,11 @@ export const TableWidget: React.FC<TableWidgetProps> = ({ widget, onClick, onEdi
                     return (
                       <span
                         className={`font-medium ${
-                          score >= 70 ? 'text-green-600' : score >= 40 ? 'text-yellow-600' : 'text-red-600'
+                          score >= 70
+                            ? 'text-green-600'
+                            : score >= 40
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
                         }`}
                       >
                         {formattedValue}

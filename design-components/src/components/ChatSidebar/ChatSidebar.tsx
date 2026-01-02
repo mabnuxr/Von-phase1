@@ -25,7 +25,15 @@ import {
   SecondaryIconButton,
   TertiaryIconButton,
 } from '../forms/buttons';
-import { ProfilePopover, ContextMenu, DeleteConfirmationPopup, NewDashboardModal, type ContextMenuItem, type NewDashboardConfig, type SalesforceDashboard } from '../popups';
+import {
+  ProfilePopover,
+  ContextMenu,
+  DeleteConfirmationPopup,
+  NewDashboardModal,
+  type ContextMenuItem,
+  type NewDashboardConfig,
+  type SalesforceDashboard,
+} from '../popups';
 
 const VON_COMBINATION_MARK_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
@@ -262,7 +270,6 @@ export interface ChatSidebarProps {
 // Sub-components
 // ============================================================================
 
-
 // Context menu items for sidebar items
 const getContextMenuItems = (): ContextMenuItem[] => [
   { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
@@ -301,7 +308,9 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
         <span>{label}</span>
         <div className="flex items-center gap-1.5">
           {count !== undefined && (
-            <span className="pl-0.5 text-[11px] text-gray-700 font-mono normal-case -mb-0.5">[{count}]</span>
+            <span className="pl-0.5 text-[11px] text-gray-700 font-mono normal-case -mb-0.5">
+              [{count}]
+            </span>
           )}
           {isExpanded ? (
             <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
@@ -400,8 +409,8 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
       title={isEditing ? undefined : item.label}
     >
       {/* Icon - show type/ownership icon before the name */}
-      {showIcon && (
-        item.type === 'dashboard' ? (
+      {showIcon &&
+        (item.type === 'dashboard' ? (
           // Dashboard: show ownership icon (building for org-wide, users for shared by you, user for personal)
           <span
             className="flex-shrink-0"
@@ -409,8 +418,8 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
               item.ownership === 'shared'
                 ? `Shared by ${item.ownerName || 'someone'}`
                 : item.ownership === 'shared_by_me'
-                ? 'Shared by you'
-                : 'Private'
+                  ? 'Shared by you'
+                  : 'Private'
             }
           >
             {item.ownership === 'shared' ? (
@@ -423,13 +432,8 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
           </span>
         ) : (
           // Chat: show chat icon
-          <ChatTextIcon
-            size={16}
-            weight="regular"
-            className="text-gray-700 flex-shrink-0"
-          />
-        )
-      )}
+          <ChatTextIcon size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
+        ))}
 
       {isEditing ? (
         <input
@@ -564,7 +568,11 @@ const FolderSection: React.FC<FolderSectionProps> = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <FolderSimpleIcon size={16} weight="regular" className="text-gray-800 mb-[1px] flex-shrink-0" />
+          <FolderSimpleIcon
+            size={16}
+            weight="regular"
+            className="text-gray-800 mb-[1px] flex-shrink-0"
+          />
           {isFolderEditing ? (
             <input
               ref={inputRef}
@@ -579,7 +587,9 @@ const FolderSection: React.FC<FolderSectionProps> = ({
           ) : (
             <>
               <span className="text-left truncate">{folder.label}</span>
-              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">({items.length})</span>
+              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">
+                ({items.length})
+              </span>
             </>
           )}
         </div>
@@ -682,14 +692,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // ============================================================================
 
   // Use new API if provided, otherwise fall back to legacy API
-  const items: SidebarItem[] = itemsProp ?? (chatItems || []).map((item) => ({
-    ...item,
-    type: 'chat' as ItemType,
-  }));
+  const items: SidebarItem[] =
+    itemsProp ??
+    (chatItems || []).map((item) => ({
+      ...item,
+      type: 'chat' as ItemType,
+    }));
 
   const selectedItemId = selectedItemIdProp ?? selectedChatId;
 
-  const onItemClick = onItemClickProp ?? (onChatClick ? (id: string) => onChatClick(id) : undefined);
+  const onItemClick =
+    onItemClickProp ?? (onChatClick ? (id: string) => onChatClick(id) : undefined);
   const [searchValue, setSearchValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -736,7 +749,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Profile popover state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ top?: number; bottom?: number; left?: number; right?: number }>({ bottom: 0, left: 0 });
+  const [popoverPosition, setPopoverPosition] = useState<{
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+  }>({ bottom: 0, left: 0 });
 
   const handleAvatarClick = () => {
     if (avatarButtonRef.current) {
@@ -984,20 +1002,32 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                   item.ownership === 'shared'
                                     ? `Shared by ${item.ownerName || 'someone'}`
                                     : item.ownership === 'shared_by_me'
-                                    ? 'Shared by you'
-                                    : 'Private'
+                                      ? 'Shared by you'
+                                      : 'Private'
                                 }
                               >
                                 {item.ownership === 'shared' ? (
-                                  <BuildingOfficeIcon size={16} weight="regular" className="text-gray-800" />
+                                  <BuildingOfficeIcon
+                                    size={16}
+                                    weight="regular"
+                                    className="text-gray-800"
+                                  />
                                 ) : item.ownership === 'shared_by_me' ? (
                                   <UsersIcon size={16} weight="regular" className="text-gray-800" />
                                 ) : (
-                                  <UserSquareIcon size={16} weight="regular" className="text-gray-800" />
+                                  <UserSquareIcon
+                                    size={16}
+                                    weight="regular"
+                                    className="text-gray-800"
+                                  />
                                 )}
                               </span>
                             ) : (
-                              <ChatTextIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />
+                              <ChatTextIcon
+                                size={16}
+                                weight="regular"
+                                className="text-gray-800 flex-shrink-0"
+                              />
                             )}
                             <span className="truncate font-medium">{item.label}</span>
                           </div>
@@ -1157,7 +1187,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
                       editingItemId={editingItemId}
                       isFolderEditing={editingFolderId === folder.id}
-                      isFolderMenuOpen={folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id}
+                      isFolderMenuOpen={
+                        folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
+                      }
                       onItemClick={(id, type) => onItemClick?.(id, type)}
                       onItemContextMenu={handleContextMenu}
                       onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
@@ -1228,7 +1260,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
                       editingItemId={editingItemId}
                       isFolderEditing={editingFolderId === folder.id}
-                      isFolderMenuOpen={folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id}
+                      isFolderMenuOpen={
+                        folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
+                      }
                       onItemClick={(id, type) => onItemClick?.(id, type)}
                       onItemContextMenu={handleContextMenu}
                       onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
@@ -1291,10 +1325,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
             onClick={onLoadMore}
           >
-            <motion.div
-              animate={{ y: [0, 2, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            >
+            <motion.div animate={{ y: [0, 2, 0] }} transition={{ duration: 1, repeat: Infinity }}>
               <CaretDownIcon size={12} weight="bold" />
             </motion.div>
             Load more
@@ -1345,9 +1376,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               {userName && (
                 <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
               )}
-              {userEmail && (
-                <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>
-              )}
+              {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
             </div>
             {/* Chevron */}
             <CaretUpDownIcon size={14} className="text-gray-400 flex-shrink-0" />
