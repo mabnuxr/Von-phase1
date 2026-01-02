@@ -5,13 +5,13 @@ import { BuildModeLayout } from './BuildModeLayout';
 import type { BuildMode, BuildPhase, ChatMessage, ThinkingStep, ProgressStep } from './types';
 import { mockThinkingSteps, mockProgressSteps } from './mockData';
 
-// Sample chat items for the sidebar
-const sampleChatItems = [
-  { id: '1', label: 'Q4 Pipeline Review' },
-  { id: '2', label: 'Forecast Analysis' },
-  { id: '3', label: 'Rep Performance' },
-  { id: '4', label: 'Deal Inspection' },
-  { id: '5', label: 'Account Health Check' },
+// Sample items for the sidebar
+const sampleItems = [
+  { id: '1', label: 'Q4 Pipeline Review', type: 'chat' as const },
+  { id: '2', label: 'Forecast Analysis', type: 'chat' as const },
+  { id: '3', label: 'Rep Performance', type: 'chat' as const },
+  { id: '4', label: 'Deal Inspection', type: 'chat' as const },
+  { id: '5', label: 'Account Health Check', type: 'chat' as const },
 ];
 
 export interface DashboardBuilderDemoProps {
@@ -195,9 +195,9 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
           >
             <ThreePaneLayout
               userName={userName}
-              chatItems={sampleChatItems}
-              selectedChatId={selectedChatId}
-              onChatClick={setSelectedChatId}
+              items={sampleItems}
+              selectedItemId={selectedChatId}
+              onItemClick={(id) => setSelectedChatId(id)}
               onSendMessage={handleAskMessage}
               mode={mode}
               onModeChange={setMode}

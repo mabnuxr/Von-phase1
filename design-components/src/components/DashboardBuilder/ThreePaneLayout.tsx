@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatSidebar, type ChatItem } from '../ChatSidebar';
+import { ChatSidebar, type SidebarItem, type ItemType } from '../ChatSidebar';
 import { TopBar, type Tab } from '../TopBar';
 import { ChatEmptyState } from '../Chat/ChatEmptyState';
 import type { BuildMode } from './types';
@@ -12,19 +12,19 @@ export interface ThreePaneLayoutProps {
   userName?: string;
 
   /**
-   * List of chat items for the sidebar
+   * List of sidebar items (chats and dashboards)
    */
-  chatItems?: ChatItem[];
+  items?: SidebarItem[];
 
   /**
-   * Currently selected chat ID
+   * Currently selected item ID
    */
-  selectedChatId?: string;
+  selectedItemId?: string;
 
   /**
-   * Callback when a chat item is clicked
+   * Callback when an item is clicked
    */
-  onChatClick?: (id: string) => void;
+  onItemClick?: (id: string, type: ItemType) => void;
 
   /**
    * Callback when new chat is clicked
@@ -100,9 +100,9 @@ export interface ThreePaneLayoutProps {
  */
 export const ThreePaneLayout: React.FC<ThreePaneLayoutProps> = ({
   userName = 'there',
-  chatItems = [],
-  selectedChatId,
-  onChatClick,
+  items = [],
+  selectedItemId,
+  onItemClick,
   onNewChatClick,
   tabs = [],
   onTabClick,
@@ -153,16 +153,16 @@ export const ThreePaneLayout: React.FC<ThreePaneLayoutProps> = ({
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
           <ChatSidebar
-            chatItems={chatItems}
-            selectedChatId={selectedChatId}
-            onChatClick={onChatClick}
+            items={items}
+            selectedItemId={selectedItemId}
+            onItemClick={onItemClick}
+            onNewChatClick={onNewChatClick}
             isCollapsed={isCollapsed}
             onToggleCollapse={handleToggleCollapse}
             avatarSrc={avatarSrc}
             avatarLabel={avatarLabel}
             userName={userDisplayName}
             userEmail={userEmail}
-            onAvatarClick={onAvatarClick}
           />
         </motion.div>
       </AnimatePresence>

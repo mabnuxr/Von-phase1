@@ -179,7 +179,7 @@ export type { TopBarProps, Tab } from './TopBar';
 
 // ChatSidebar Organism (uses: Search + List, manages chat history)
 export { ChatSidebar } from './ChatSidebar';
-export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
+export type { ChatSidebarProps, ChatItem, SidebarItem, ItemType, OwnershipType, Folder } from './ChatSidebar';
 
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';

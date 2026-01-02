@@ -37,6 +37,17 @@ const VON_COMBINATION_MARK_URL =
 export type ItemType = 'chat' | 'dashboard';
 export type OwnershipType = 'mine' | 'shared' | 'shared_by_me';
 
+/**
+ * Legacy ChatItem type for backward compatibility with the app.
+ * @deprecated Use SidebarItem instead for new code.
+ */
+export interface ChatItem {
+  id: string;
+  label: string;
+  href?: string;
+  timestamp?: string;
+}
+
 export interface SidebarItem {
   id: string;
   label: string;
@@ -215,6 +226,36 @@ export interface ChatSidebarProps {
    * Callback when sign out is clicked in popover
    */
   onSignOutClick?: () => void;
+
+  // ============================================================================
+  // Legacy Props (for backward compatibility with app)
+  // ============================================================================
+
+  /**
+   * @deprecated Use `items` instead. Legacy chat items array.
+   */
+  chatItems?: ChatItem[];
+
+  /**
+   * @deprecated Use `selectedItemId` instead. Legacy selected chat ID.
+   */
+  selectedChatId?: string;
+
+  /**
+   * @deprecated Use `onItemClick` instead. Legacy chat click handler.
+   */
+  onChatClick?: (id: string) => void;
+
+  /**
+   * @deprecated Search placeholder text (now hardcoded).
+   */
+  searchPlaceholder?: string;
+
+  /**
+   * @deprecated Legacy avatar click handler for external menu.
+   * Use the built-in profile popover callbacks instead.
+   */
+  onAvatarClick?: (rect: DOMRect) => void;
 }
 
 // ============================================================================
@@ -599,10 +640,10 @@ const FolderSection: React.FC<FolderSectionProps> = ({
  * Supports rename and delete operations via context menu.
  */
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
-  items = [],
+  items: itemsProp,
   folders = [],
-  selectedItemId,
-  onItemClick,
+  selectedItemId: selectedItemIdProp,
+  onItemClick: onItemClickProp,
   onNewChatClick,
   salesforceDashboards = [],
   onCreateDashboard,
@@ -629,7 +670,26 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
+  // Legacy props for backward compatibility
+  chatItems,
+  selectedChatId,
+  onChatClick,
+  searchPlaceholder = 'Search...',
+  onAvatarClick,
 }) => {
+  // ============================================================================
+  // Backward Compatibility: Transform legacy props to new API
+  // ============================================================================
+
+  // Use new API if provided, otherwise fall back to legacy API
+  const items: SidebarItem[] = itemsProp ?? (chatItems || []).map((item) => ({
+    ...item,
+    type: 'chat' as ItemType,
+  }));
+
+  const selectedItemId = selectedItemIdProp ?? selectedChatId;
+
+  const onItemClick = onItemClickProp ?? (onChatClick ? (id: string, _type: ItemType) => onChatClick(id) : undefined);
   const [searchValue, setSearchValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -681,6 +741,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   const handleAvatarClick = () => {
     if (avatarButtonRef.current) {
       const rect = avatarButtonRef.current.getBoundingClientRect();
+
+      // Legacy: Call external avatar click handler if provided
+      if (onAvatarClick) {
+        onAvatarClick(rect);
+        return; // Don't open internal popover when using legacy handler
+      }
+
       // Position popover above the avatar button, opening towards the top
       setPopoverPosition({
         bottom: window.innerHeight - rect.top + 8,
@@ -1024,7 +1091,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <MagnifyingGlassIcon size={14} className="text-gray-400" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="flex-1 bg-transparent border-0 outline-none text-[13px] text-gray-900 placeholder:text-gray-400"
