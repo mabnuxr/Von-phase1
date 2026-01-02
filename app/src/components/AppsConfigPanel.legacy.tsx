@@ -8,9 +8,8 @@ import {
 } from "../constants/integrationMetadata";
 import type { IntegrationMetadata } from "../constants/integrationMetadata";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { usePermissions, Resource } from "../hooks/usePermissions";
 import { Button } from "@vonlabs/design-components";
-import { SegmentedControl } from "./SegmentedControl";
+import { SegmentedControl } from "./SegmentedControl.legacy";
 
 // Define category order for display
 const CATEGORY_ORDER: Array<
@@ -39,12 +38,10 @@ const CATEGORY_ORDER: Array<
 function IntegrationCategoryList({
   apps,
   onConnect,
-  disabledReason,
   isPersonal = false,
 }: {
   apps: IntegrationMetadata[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
-  disabledReason?: string;
   isPersonal?: boolean;
 }) {
   // Group apps by category
@@ -89,7 +86,7 @@ function IntegrationCategoryList({
             {/* App List */}
             <div className="divide-y divide-gray-200">
               {categoryApps.map((app) => {
-                const isDisabled = app.disabled || !!disabledReason;
+                const isDisabled = app.disabled;
                 return (
                   <div
                     key={app.id}
@@ -125,10 +122,6 @@ function IntegrationCategoryList({
                       {app.disabled ? (
                         <span className="text-sm text-gray-400">
                           Coming soon
-                        </span>
-                      ) : disabledReason ? (
-                        <span className="text-sm text-gray-400">
-                          {disabledReason}
                         </span>
                       ) : (
                         <Button
@@ -171,10 +164,6 @@ export function AppsConfigPanel() {
     setConfiguringPersonalIntegration,
   } = usePreferencesStore();
   const { isGoogleCalendarEnabled } = useFeatureFlag();
-
-  // Check if user can create org-level integrations
-  const { data: integrationPermissions } = usePermissions(Resource.INTEGRATION);
-  const canCreateOrgIntegration = integrationPermissions?.create ?? false;
 
   const handleConnect = (appId: string, accessLevel: "tenant" | "user") => {
     // Open the appropriate pane based on access level
@@ -232,9 +221,6 @@ export function AppsConfigPanel() {
         <IntegrationCategoryList
           apps={orgApps}
           onConnect={(appId) => handleConnect(appId, "tenant")}
-          disabledReason={
-            !canCreateOrgIntegration ? "Admin access required" : undefined
-          }
           isPersonal={false}
         />
       ) : (

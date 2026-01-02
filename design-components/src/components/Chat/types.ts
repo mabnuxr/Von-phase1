@@ -647,19 +647,6 @@ export interface ChatProps {
   onError?: (error: Error) => void;
 
   /**
-   * Callback when AGUI state updates arrive from useAguiMessageStream (for controlled mode)
-   * Receives direct AGUI protocol data without transformation
-   */
-  onAguiStateUpdate?: (update: {
-    runId: string;
-    messageContent: string;
-    stepMessages: StepMessage[];
-    toolCalls: ToolCall[];
-    isStreaming: boolean;
-    status: 'created' | 'streaming' | 'completed' | 'failed';
-  }) => void;
-
-  /**
    * Callback when user message is received from backend via Pusher
    * Used to add user messages to the store when backend confirms receipt
    */

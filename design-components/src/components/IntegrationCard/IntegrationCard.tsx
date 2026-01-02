@@ -1,6 +1,51 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { CopyIcon, TrashSimpleIcon } from '@phosphor-icons/react';
+
+// Inline Chip component (since design-components can't import from app)
+interface ChipProps {
+  variant: 'workspace' | 'personal' | 'connected';
+  size?: 'small' | 'medium';
+}
+
+const Chip: React.FC<ChipProps> = ({ variant, size = 'small' }) => {
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'workspace':
+        return 'bg-purple-100 text-purple-700';
+      case 'personal':
+        return 'bg-blue-100 text-blue-700';
+      case 'connected':
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getSizeStyles = () => {
+    return size === 'small' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm';
+  };
+
+  const getLabel = () => {
+    switch (variant) {
+      case 'workspace':
+        return 'Workspace';
+      case 'personal':
+        return 'Personal';
+      case 'connected':
+        return 'Connected';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full font-medium ${getVariantStyles()} ${getSizeStyles()}`}
+    >
+      {getLabel()}
+    </span>
+  );
+};
 
 export interface IntegrationCardProps {
   /**
@@ -19,26 +64,13 @@ export interface IntegrationCardProps {
   integrationLogoPath: string;
 
   /**
-   * Whether the integration is enabled
-   * @default false
-   */
-  enabled?: boolean;
-
-  /**
-   * Callback when toggle state changes
-   * For disabling (enabled -> disabled), this will be called with the new state
-   * The parent should handle showing confirmation modal
+   * Callback when connect button is clicked for available integrations
+   * Called with true to initiate connection
    */
   onToggle?: (enabled: boolean) => void;
 
   /**
-   * Callback to request confirmation before disabling
-   * Returns a promise that resolves to true if confirmed, false if cancelled
-   */
-  onRequestDisableConfirmation?: () => Promise<boolean>;
-
-  /**
-   * Whether the toggle is disabled
+   * Whether the integration card is disabled (e.g., coming soon)
    * @default false
    */
   disabled?: boolean;
@@ -58,6 +90,30 @@ export interface IntegrationCardProps {
    * Callback when delete button is clicked
    */
   onDelete?: () => void;
+
+  /**
+   * Status chips to display (workspace, personal, connected)
+   */
+  chips?: Array<'workspace' | 'personal' | 'connected'>;
+
+  /**
+   * User who modified/created the integration (e.g., "John Doe")
+   */
+  modifiedBy?: string;
+
+  /**
+   * Whether this integration is available but not connected
+   * If true, shows "Connect" button instead of toggle
+   * @default false
+   */
+  isAvailable?: boolean;
+
+  /**
+   * Whether the delete button should be shown
+   * If false or undefined, delete button is hidden
+   * @default true when onDelete is provided
+   */
+  canDelete?: boolean;
 }
 
 /**
@@ -81,32 +137,17 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   name,
   description,
   integrationLogoPath,
-  enabled = false,
   onToggle,
-  onRequestDisableConfirmation,
   disabled = false,
   loadingText,
   instanceUrl,
   onDelete,
+  chips,
+  modifiedBy,
+  isAvailable = false,
+  canDelete = true,
 }) => {
   const isLoading = !!loadingText;
-
-  const handleToggle = async () => {
-    if (disabled || isLoading) return;
-
-    const newState = !enabled;
-
-    // If disabling and confirmation callback exists, request confirmation
-    if (enabled && !newState && onRequestDisableConfirmation) {
-      const confirmed = await onRequestDisableConfirmation();
-      if (!confirmed) {
-        return; // User cancelled, don't toggle
-      }
-    }
-
-    // Toggle immediately if enabling, or after confirmation if disabling
-    onToggle?.(newState);
-  };
 
   const handleCopyUrl = async () => {
     if (instanceUrl) {
@@ -137,9 +178,28 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
         </div>
 
         {/* Name, Description, and Metadata */}
-        <div className="flex flex-col">
-          <span className="text-sm font-medium text-gray-900">{name}</span>
+        <div className="flex flex-col gap-1">
+          {/* Name and Chips */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-900">{name}</span>
+            {chips && chips.length > 0 && (
+              <div className="flex gap-1">
+                {chips
+                  .filter((variant) => variant !== 'connected')
+                  .map((variant) => (
+                    <Chip key={variant} variant={variant} size="small" />
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
           {description && <span className="text-sm text-gray-500">{description}</span>}
+
+          {/* Modified By */}
+          {modifiedBy && <span className="text-xs text-gray-500">Modified by: {modifiedBy}</span>}
+
+          {/* Instance URL */}
           {instanceUrl && (
             <button
               onClick={handleCopyUrl}
@@ -161,55 +221,35 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
         {/* Status indicator */}
         {isLoading && <span className="text-sm text-von-purple font-medium">{loadingText}</span>}
 
-        {/* Delete button */}
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600"
-            aria-label="Delete integration"
-          >
-            <TrashSimpleIcon size={16} />
-          </button>
-        )}
+        {/* If this is an available integration, show Connect button or Coming soon */}
+        {isAvailable ? (
+          onToggle && !disabled ? (
+            <button
+              onClick={() => onToggle(true)}
+              className="px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors hover:cursor-pointer"
+            >
+              Connect
+            </button>
+          ) : disabled ? (
+            <span className="text-sm text-gray-400">Coming soon</span>
+          ) : null
+        ) : (
+          <>
+            {/* Connected chip - show if it's in the chips array */}
+            {chips?.includes('connected') && <Chip variant="connected" size="small" />}
 
-        {/* Toggle switch */}
-        <button
-          className={`
-            relative w-11 h-6 rounded-full border-none p-0 shrink-0 overflow-hidden
-            transition-colors duration-200
-            ${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'}
-            ${isLoading ? 'bg-gray-200' : enabled ? 'bg-von-purple' : 'bg-gray-200'}
-          `}
-          onClick={handleToggle}
-          disabled={disabled || isLoading}
-          aria-label={`Toggle ${name} integration`}
-          aria-pressed={enabled}
-          aria-busy={isLoading}
-        >
-          {isLoading ? (
-            <div className="absolute inset-0 overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 w-[200%]"
-                style={{
-                  background:
-                    'linear-gradient(90deg, transparent 0%, rgba(128, 57, 233, 0.6) 40%, rgba(191, 90, 242, 0.7) 50%, rgba(128, 57, 233, 0.6) 60%, transparent 100%)',
-                }}
-                animate={{ x: ['0%', '50%'] }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-            </div>
-          ) : (
-            <motion.div
-              className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
-              animate={{ left: enabled ? '22px' : '2px' }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            />
-          )}
-        </button>
+            {/* Single delete button - always */}
+            {onDelete && canDelete && (
+              <button
+                onClick={onDelete}
+                className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600"
+                aria-label="Delete integration"
+              >
+                <TrashSimpleIcon size={16} />
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

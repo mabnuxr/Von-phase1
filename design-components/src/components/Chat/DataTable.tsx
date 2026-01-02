@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Table } from 'rsuite';
+import type { SortType } from 'rsuite/esm/Table';
 import type { TableData, QueryInfo } from './types';
 
 const { Column, HeaderCell, Cell } = Table;
@@ -107,16 +108,52 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
 
 /**
  * DataTable component for displaying SQL query results
- * Uses rsuite Table for beautiful formatting
+ * Uses rsuite Table for beautiful formatting with sorting support
  */
 export const DataTable: React.FC<DataTableProps> = ({ data }) => {
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<string | undefined>();
+  const [sortType, setSortType] = useState<SortType | undefined>();
+
+  // Handle column sort
+  const handleSortColumn = (dataKey: string, sortType: SortType | undefined) => {
+    setSortColumn(dataKey);
+    setSortType(sortType);
+  };
+
+  // Sort data based on current sort state
+  const sortedData = useMemo(() => {
+    if (!data?.rows || !sortColumn || !sortType) {
+      return data?.rows || [];
+    }
+
+    return [...data.rows].sort((a, b) => {
+      const aVal = a[sortColumn];
+      const bVal = b[sortColumn];
+
+      // Handle nulls - push to end
+      if (aVal == null) return sortType === 'asc' ? 1 : -1;
+      if (bVal == null) return sortType === 'asc' ? -1 : 1;
+
+      // Compare based on type
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortType === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      // String comparison
+      const strA = String(aVal).toLowerCase();
+      const strB = String(bVal).toLowerCase();
+      return sortType === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+    });
+  }, [data?.rows, sortColumn, sortType]);
+
   // Memoize columns to prevent infinite re-render loop when parent resizes
   // rsuite Table has internal state that gets confused when columns are recreated
   const columns = useMemo(() => {
     if (!data || !data.columns) return [];
 
     return data.columns.map((col) => (
-      <Column key={col.name} flexGrow={1} minWidth={120} align="left" resizable={true}>
+      <Column key={col.name} flexGrow={1} minWidth={120} align="left" resizable sortable>
         <HeaderCell className="font-semibold text-gray-700 bg-gray-50 text-xs uppercase tracking-wide">
           {col.display_name}
         </HeaderCell>
@@ -135,15 +172,18 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
 
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 my-3">
-      {/* Header with metadata */}
-      <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex justify-between items-center">
-        <span className="text-xs text-gray-600 font-medium">📊</span>
-      </div>
+      {/* Header with row count */}
+      {/* <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex justify-between items-center">
+        <span className="text-xs text-gray-600 font-medium">
+          {data.rows.length} {data.rows.length === 1 ? 'row' : 'rows'}
+          {!data.isComplete && ' (sample)'}
+        </span>
+      </div> */}
 
       {/* Table */}
       <div className="overflow-x-auto">
         <Table
-          data={data.rows}
+          data={sortedData}
           autoHeight
           className="text-sm"
           bordered={false}
@@ -151,6 +191,9 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
           headerHeight={40}
           rowHeight={36}
           hover
+          sortColumn={sortColumn}
+          sortType={sortType}
+          onSortColumn={handleSortColumn}
         >
           {columns}
         </Table>

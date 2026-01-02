@@ -1,6 +1,17 @@
 export const config = {
   // Backend API configuration
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL as string,
+  // In development, use the Vite proxy (/api) to avoid CORS issues
+  // In production, use the full API URL from environment variable
+  apiBaseUrl: import.meta.env.DEV
+    ? "" // Use relative URLs in development (proxy will handle routing)
+    : (import.meta.env.VITE_API_BASE_URL as string),
+
+  // Pusher configuration
+  pusherKey: import.meta.env.VITE_PUSHER_KEY as string,
+  pusherCluster: import.meta.env.VITE_PUSHER_CLUSTER as string,
+  pusherAuthEndpoint: import.meta.env.DEV
+    ? "/api/v1/pusher/auth"
+    : `${import.meta.env.VITE_API_BASE_URL}/api/v1/pusher/auth`,
 
   // ScaleKit OAuth configuration
   scalekitClientId: import.meta.env.VITE_SCALEKIT_CLIENT_ID as string,

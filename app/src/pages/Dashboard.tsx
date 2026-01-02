@@ -1,6 +1,11 @@
 import { authService } from "../services";
-import { useNewChat } from "../hooks/useNewChat";
+import { config } from "../config";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  useCreateConversation,
+  conversationKeys,
+} from "../hooks/useConversations";
+import { generateConversationTitle } from "../lib/conversationUtils";
 import useChatStore from "../store/chatStore";
 import { useUser } from "../hooks/useUser";
 import { AvatarMenu } from "../components/AvatarMenu";
@@ -18,29 +23,30 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
-import { getDisplayTitle } from "../lib/conversationUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
+import {
+  transformMessagesToChatFormat,
+  transformConversationsToChatItems,
+  handleToolApproval,
+  handleToolRejection,
+} from "../lib/dashboardUtils";
+import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
+import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
 import {
   UserChannelEvents,
   type ConversationTitleUpdatedEvent,
 } from "../types/userChannelEvents";
 import type { MessageWithStreaming } from "../types/conversation";
-import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { useArtifact } from "../hooks/useArtifact";
 // Import Message type from design-components (includes events field)
-import type {
-  Message as ChatMessage,
-  ToolCall,
-  StepMessage,
-} from "@vonlabs/design-components";
+import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
   TopBar,
   ChatSidebar,
   Chat,
   ChatSkeleton,
   Banner,
-  resumeConversation,
   DashboardCanvas,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
@@ -70,8 +76,14 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // New chat creation
-  const { createNewChat, isCreating: isCreatingNewChat } = useNewChat();
+  // New chat creation mutation
+  const { mutateAsync: createConversation } = useCreateConversation();
+
+  // Track new chat creation state (instant feedback + target tracking)
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [pendingConversationId, setPendingConversationId] = useState<
+    string | null
+  >(null);
 
   // Fetch conversations with infinite scroll for sidebar
   const {
@@ -163,37 +175,12 @@ const Dashboard = () => {
   // Track last user message for reliable error recovery
   const lastUserMessageRef = useRef<string>("");
 
-  // Debounced loading state for smooth skeleton transitions
-  // This ensures skeleton shows for minimum 400ms to allow animations to play
-  const [showSkeleton, setShowSkeleton] = useState(true);
-  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const isActuallyLoading =
+  // Simplified loading state - deterministic, no timers
+  const isLoading =
+    isCreatingChat ||
+    pendingConversationId !== null ||
     isInitializing ||
-    isCreatingNewChat ||
     (isLoadingMessages && conversationMessages.length === 0);
-
-  useEffect(() => {
-    if (isActuallyLoading) {
-      // Show skeleton immediately when loading starts
-      if (skeletonTimerRef.current) {
-        clearTimeout(skeletonTimerRef.current);
-        skeletonTimerRef.current = null;
-      }
-      setShowSkeleton(true);
-    } else {
-      // Delay hiding skeleton for smooth transition (minimum 150ms display)
-      skeletonTimerRef.current = setTimeout(() => {
-        setShowSkeleton(false);
-      }, 150);
-    }
-
-    return () => {
-      if (skeletonTimerRef.current) {
-        clearTimeout(skeletonTimerRef.current);
-      }
-    };
-  }, [isActuallyLoading]);
 
   // User channel for title updates (same pattern as conversation channel)
   const { channel: userChannel } = useUserPusherChannel({
@@ -386,18 +373,39 @@ const Dashboard = () => {
     }
   }, [urlConversationId, currentConversationId, setCurrentConversationId]);
 
+  // Clear loading states when we arrive at the target conversation
+  useEffect(() => {
+    if (
+      pendingConversationId &&
+      currentConversationId === pendingConversationId
+    ) {
+      setIsCreatingChat(false);
+      setPendingConversationId(null);
+    }
+  }, [currentConversationId, pendingConversationId]);
+
   // Chat handlers
   const handleChatClick = (conversationId: string) => {
     navigate(`/chat/${conversationId}`);
   };
 
   const handleNewChatClick = async () => {
+    setIsCreatingChat(true); // Instant skeleton
     try {
-      await createNewChat();
+      const title = generateConversationTitle();
+      const response = await createConversation(title);
+      const newId = response.conversation.conversationId;
+      setPendingConversationId(newId); // Track target
+      await queryClient.refetchQueries({
+        queryKey: conversationKeys.lists(),
+      });
+      navigate(`/chat/${newId}`);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error("[Dashboard] Failed to create new chat:", error);
+        console.error("[Dashboard] Failed to create conversation:", error);
       }
+      setIsCreatingChat(false);
+      setPendingConversationId(null);
     }
   };
 
@@ -430,115 +438,26 @@ const Dashboard = () => {
     [stopStreaming],
   );
 
-  // Handle AGUI state updates from useAguiMessageStream hook
-  const handleAguiStateUpdate = (update: {
-    runId: string;
-    messageId?: string;
-    messageContent: string;
-    stepMessages: StepMessage[];
-    toolCalls: ToolCall[];
-    isStreaming: boolean;
-    status: "created" | "streaming" | "completed" | "failed";
-    stoppedByUser?: boolean;
-    errorMessage?: string;
-  }) => {
+  // Auto-populate input when error occurs (handled by chatStore updates from hook)
+  // Monitor store changes to detect error state and auto-populate input
+  const storeMessages = useChatStore.getState().messages;
+  useEffect(() => {
     if (!currentConversationId) return;
 
-    // Auto-populate input when error occurs (with smooth delay)
-    if (update.status === "failed" && update.errorMessage) {
+    const messages = storeMessages[currentConversationId] || [];
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage?.status === "failed" && lastMessage?.errorMessage) {
       const userMessage = lastUserMessageRef.current;
 
       if (userMessage) {
-        // Delay for subtle, intentional feel (200ms gives user time to process error)
+        // Delay for subtle, intentional feel
         setTimeout(() => {
           setAutoPopulatedInput(userMessage);
         }, 250);
       }
     }
-
-    // Direct AGUI state to backend message format (no transformation needed)
-    // IMPORTANT: id MUST be runId for upsert matching (m.runId === message.id)
-    // messageId (MongoDB ObjectId) is stored separately for API calls like resume
-    const backendMessage: MessageWithStreaming = {
-      id: update.runId,
-      runId: update.runId,
-      messageId: update.messageId,
-      conversationId: currentConversationId,
-      messageType: "text",
-      messageContent: update.messageContent,
-      role: "assistant",
-      createdAt: new Date().toISOString(),
-      createdBy: "assistant",
-      // AGUI streaming data
-      stepMessages: update.stepMessages,
-      toolCalls: update.toolCalls,
-      isStreaming: update.isStreaming,
-      status: update.status,
-      stoppedByUser: update.stoppedByUser,
-      // Error handling data
-      errorMessage: update.errorMessage,
-    };
-
-    // Use atomic upsert to prevent race conditions
-    useChatStore
-      .getState()
-      .upsertMessage(currentConversationId, backendMessage);
-  };
-
-  // Handle user message from Pusher (backend confirmation)
-  const handleUserMessage = (data: {
-    id: string;
-    conversationId: string;
-    messageContent: string;
-    messageType: string;
-    role: "user";
-    createdAt: string;
-    createdBy: string;
-  }) => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Received user_message event:", data);
-    }
-
-    // Add user message to store
-    const userMessage: MessageWithStreaming = {
-      id: data.id,
-      runId: data.id, // User messages don't have separate runId
-      conversationId: data.conversationId,
-      messageContent: data.messageContent,
-      messageType: data.messageType as "text" | "json" | "markdown",
-      role: data.role,
-      createdAt: data.createdAt,
-      createdBy: data.createdBy,
-      isStreaming: false,
-      status: "completed",
-    };
-
-    useChatStore.getState().upsertMessage(data.conversationId, userMessage);
-
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Added user message to store:", data.id);
-    }
-  };
-
-  // Helper to set streaming state on an existing message (for approval flow)
-  // IMPORTANT: Only updates isStreaming/status, NOT stepMessages
-  // This allows ApprovalCard's local pendingAction state to survive
-  function setMessageStreaming(runId: string) {
-    if (!currentConversationId) return;
-
-    const storeMessages =
-      useChatStore.getState().messages[currentConversationId] || [];
-    const existingMessage = storeMessages.find((m) => m.runId === runId);
-
-    if (!existingMessage) return;
-
-    // Update ONLY streaming state - don't touch stepMessages
-    useChatStore.getState().upsertMessage(currentConversationId, {
-      ...existingMessage,
-      isStreaming: true,
-      status: "streaming",
-    });
-  }
+  }, [currentConversationId, storeMessages]);
 
   // Handle stream timeout - force clear state and refetch messages from backend
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
@@ -563,57 +482,10 @@ const Dashboard = () => {
 
   // Transform backend messages to Chat component format
   // Replay events if backend hasn't persisted stepMessages/toolCalls
-  const transformedMessages: ChatMessage[] = useMemo(() => {
-    return conversationMessages.map((msg) => {
-      const streamingMsg = msg as MessageWithStreaming;
-
-      // For fetched messages with events, replay them to reconstruct stepMessages and toolCalls
-      let content = streamingMsg.messageContent;
-      let stepMessages = streamingMsg.stepMessages;
-      let toolCalls = streamingMsg.toolCalls;
-      let stoppedByUser = streamingMsg.stoppedByUser;
-
-      // If message has events but no stepMessages/toolCalls, replay the events
-      if (
-        streamingMsg.events &&
-        streamingMsg.events.length > 0 &&
-        !streamingMsg.isStreaming &&
-        (!stepMessages || !toolCalls || !content)
-      ) {
-        const replayedData = replayAguiEvents(streamingMsg.events);
-        if (replayedData) {
-          content = replayedData.content || content;
-          stepMessages = replayedData.stepMessages;
-          toolCalls = replayedData.toolCalls;
-          stoppedByUser = replayedData.stoppedByUser ?? stoppedByUser;
-        }
-      }
-
-      return {
-        id: streamingMsg.id,
-        type:
-          streamingMsg.role === "user"
-            ? ("user" as const)
-            : ("assistant" as const),
-        content,
-        timestamp: new Date(streamingMsg.createdAt),
-        isStreaming: streamingMsg.isStreaming || false,
-        isReasoningStreaming: streamingMsg.isReasoningStreaming || false,
-        reasoningContent: streamingMsg.reasoningContent,
-        // AGUI data (from backend or replayed)
-        toolCalls,
-        stepMessages,
-        status: streamingMsg.status,
-        errorMessage: streamingMsg.errorMessage,
-        events: streamingMsg.events,
-        // IDs for artifact fetching and retry operations
-        messageId: streamingMsg.id, // Use actual message ID for API calls
-        runId: streamingMsg.runId, // Preserve run ID separately
-        conversationId: streamingMsg.conversationId,
-        stoppedByUser,
-      } as ChatMessage;
-    });
-  }, [conversationMessages]);
+  const transformedMessages: ChatMessage[] = useMemo(
+    () => transformMessagesToChatFormat(conversationMessages),
+    [conversationMessages],
+  );
 
   // Force complete message handler for timeout
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
@@ -657,20 +529,10 @@ const Dashboard = () => {
 
   // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
   // Filter out conversations with empty titles (not yet named by LLM)
-  const chatItems = allConversations
-    .filter((conv) => conv.title && conv.title.trim() !== "")
-    .map((conv) => {
-      // Check if this conversation has an animated title in progress
-      const animatedTitle = animatedTitles.get(conv.conversationId);
-      const displayTitle = animatedTitle || getDisplayTitle(conv.title);
-
-      return {
-        id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
-        label: displayTitle, // Use animated title if available, otherwise use regular title
-        timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
-        href: `/chat/${conv.conversationId}`, // Add href for proper link behavior
-      };
-    });
+  const chatItems = useMemo(
+    () => transformConversationsToChatItems(allConversations, animatedTitles),
+    [allConversations, animatedTitles],
+  );
 
   // Handle convert to dashboard action
   const handleConvertToDashboard = useCallback(
@@ -708,54 +570,82 @@ const Dashboard = () => {
     return conversation?.title || "Dashboard";
   }, [allConversations, currentConversationId]);
 
-  // Memoize pusherConfig to prevent unnecessary Pusher reconnections
+  // Conversation-level Pusher channel (for AGUI events)
+  // Memoize config to prevent unnecessary reconnections
+  const conversationChannelConfig = useMemo(
+    () => ({
+      conversationId: currentConversationId,
+      tenantId: user?.tenantId,
+      userId: user?.id,
+    }),
+    [currentConversationId, user?.tenantId, user?.id],
+  );
+
+  const { error: conversationChannelError } = useConversationPusherChannel(
+    conversationChannelConfig,
+  );
+
+  // Separate pusherConfig for Chat component
   const pusherConfig = useMemo(
     () => ({
       key: import.meta.env.VITE_PUSHER_KEY || "",
       cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-      authEndpoint: import.meta.env.VITE_PUSHER_AUTH_ENDPOINT,
+      authEndpoint: `${config.apiBaseUrl}/api/v1/pusher/auth`,
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
     [user?.tenantId, user?.id],
   );
 
+  // Handle conversation channel errors
+  useEffect(() => {
+    if (conversationChannelError) {
+      console.error(
+        "[Dashboard] Conversation channel error:",
+        conversationChannelError,
+      );
+    }
+  }, [conversationChannelError]);
+
   // Determine if Salesforce is properly connected
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
 
-  // Create Salesforce connection banner
-  const salesforceBanner = useMemo(() => {
-    if (isSalesforceReady) {
-      return null;
-    }
+  // Tool approval handler
+  const handleApproval = useCallback(
+    async (toolCallId: string, runId: string) => {
+      if (!currentConversationId) return;
+      await handleToolApproval(
+        toolCallId,
+        runId,
+        currentConversationId,
+        import.meta.env.VITE_API_BASE_URL,
+      );
+    },
+    [currentConversationId],
+  );
 
-    return (
-      <motion.div
-        className="px-6 max-w-4xl mx-auto w-full"
-        animate={
-          shouldShakeBanner
-            ? {
-                x: [0, -10, 10, -10, 10, 0],
-                transition: { duration: 0.4 },
-              }
-            : {}
-        }
-        onAnimationComplete={() => setShouldShakeBanner(false)}
-      >
-        <div className="p-2 mt-2 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-xl">
-          <p className="pl-2 text-sm text-amber-800">
-            Salesforce integration not connected.
-          </p>
-          <a
-            href="/settings?tab=integrations"
-            className="pr-2 text-sm text-von-purple hover:text-von-purple-600 font-medium hover:scale-105"
-          >
-            Go to Integrations →
-          </a>
-        </div>
-      </motion.div>
-    );
-  }, [isSalesforceReady, shouldShakeBanner]);
+  // Tool rejection handler
+  const handleRejection = useCallback(
+    async (toolCallId: string, runId: string) => {
+      if (!currentConversationId) return;
+      await handleToolRejection(
+        toolCallId,
+        runId,
+        currentConversationId,
+        import.meta.env.VITE_API_BASE_URL,
+      );
+    },
+    [currentConversationId],
+  );
+
+  // Create Salesforce connection banner
+  const salesforceBanner = (
+    <SalesforceConnectionBanner
+      isSalesforceReady={isSalesforceReady}
+      shouldShakeBanner={shouldShakeBanner}
+      onShakeComplete={() => setShouldShakeBanner(false)}
+    />
+  );
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
@@ -849,7 +739,7 @@ const Dashboard = () => {
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            {showSkeleton ? (
+            {isLoading ? (
               <ChatSkeleton messageCount={4} />
             ) : (
               <Chat
@@ -857,7 +747,7 @@ const Dashboard = () => {
                 userId={user?.id}
                 userName={user?.firstName || user?.name?.split(" ")[0]}
                 userEmail={user?.email}
-                apiBaseUrl={import.meta.env.VITE_API_BASE_URL}
+                apiBaseUrl={config.apiBaseUrl}
                 pusherConfig={pusherConfig}
                 conversationId={currentConversationId || undefined}
                 enableRealtime={
@@ -868,8 +758,6 @@ const Dashboard = () => {
                 messages={transformedMessages}
                 onSendMessage={handleSendMessage}
                 onStopStreaming={handleStopStreaming}
-                onAguiStateUpdate={handleAguiStateUpdate}
-                onUserMessage={handleUserMessage}
                 inputValue={autoPopulatedInput}
                 onInputValueChange={setAutoPopulatedInput}
                 isLoading={false}
@@ -888,58 +776,8 @@ const Dashboard = () => {
                 onInputWhileDisabled={() => setShouldShakeBanner(true)}
                 enableCommands={isSlashCommandsEnabled}
                 enableActions={isActionsEnabled}
-                onApprove={async (toolCallId: string, runId: string) => {
-                  if (!currentConversationId) return;
-                  // Start streaming optimistically so Thinking animation shows immediately
-                  setMessageStreaming(runId);
-                  try {
-                    await resumeConversation(
-                      import.meta.env.VITE_API_BASE_URL,
-                      currentConversationId,
-                      true,
-                      runId,
-                    );
-                    if (import.meta.env.DEV) {
-                      console.log(
-                        "[Dashboard] Approval sent for tool:",
-                        toolCallId,
-                        "runId:",
-                        runId,
-                      );
-                    }
-                  } catch (error) {
-                    console.error(
-                      "[Dashboard] Failed to send approval:",
-                      error,
-                    );
-                  }
-                }}
-                onReject={async (toolCallId: string, runId: string) => {
-                  if (!currentConversationId) return;
-                  // Start streaming optimistically so Thinking animation shows immediately
-                  setMessageStreaming(runId);
-                  try {
-                    await resumeConversation(
-                      import.meta.env.VITE_API_BASE_URL,
-                      currentConversationId,
-                      false,
-                      runId,
-                    );
-                    if (import.meta.env.DEV) {
-                      console.log(
-                        "[Dashboard] Rejection sent for tool:",
-                        toolCallId,
-                        "runId:",
-                        runId,
-                      );
-                    }
-                  } catch (error) {
-                    console.error(
-                      "[Dashboard] Failed to send rejection:",
-                      error,
-                    );
-                  }
-                }}
+                onApprove={handleApproval}
+                onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
               />
             )}

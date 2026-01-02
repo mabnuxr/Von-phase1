@@ -88,96 +88,33 @@ const useChatStoreBase = create<ChatState>((set) => ({
   upsertMessage: (conversationId, message) =>
     set((state) => {
       const existingMessages = state.messages[conversationId] || [];
-      const existingIndex = existingMessages.findIndex(
+
+      // Try to find existing message by runId first (works for assistant messages)
+      let existingIndex = existingMessages.findIndex(
         (m) => m.runId === message.id,
       );
+
+      // Fallback: For user messages, also check by message id
+      if (existingIndex < 0 && message.role === "user") {
+        existingIndex = existingMessages.findIndex((m) => m.id === message.id);
+      }
 
       let updatedConversationMessages: MessageWithStreaming[];
 
       if (existingIndex >= 0) {
-        // UPDATE: Smart merge using event sequence numbers
-        // This prevents shorter content from overwriting longer content on refresh
+        // UPDATE: Simple event-driven merge
+        // If incoming message has events, trust the replayed content from those events
         const existingMessage = existingMessages[existingIndex];
-
-        // Helper: Get highest sequence number from events array
-        const getMaxSequence = (events?: typeof message.events): number => {
-          if (!events || events.length === 0) return -1;
-          return Math.max(...events.map((e) => e.sequence));
-        };
-
-        // Helper: Get latest timestamp from events array
-        const getLatestTimestamp = (
-          events?: typeof message.events,
-        ): Date | null => {
-          if (!events || events.length === 0) return null;
-          const timestamps = events.map((e) => new Date(e.timestamp).getTime());
-          return new Date(Math.max(...timestamps));
-        };
-
-        // Determine which update is newer based on event sequences
-        const existingMaxSeq = getMaxSequence(existingMessage.events);
-        const newMaxSeq = getMaxSequence(message.events);
-
-        // If both have events, compare sequence numbers (most reliable)
-        let useNewContent = false;
-        if (existingMaxSeq >= 0 && newMaxSeq >= 0) {
-          // Compare by sequence number
-          useNewContent = newMaxSeq >= existingMaxSeq;
-        } else if (existingMaxSeq < 0 && newMaxSeq >= 0) {
-          // New message has events, existing doesn't - use new
-          useNewContent = true;
-        } else if (existingMaxSeq >= 0 && newMaxSeq < 0) {
-          // Existing has events, new doesn't - keep existing
-          useNewContent = false;
-        } else {
-          // Neither has events - fallback to timestamp comparison
-          const existingTime = getLatestTimestamp(existingMessage.events);
-          const newTime = getLatestTimestamp(message.events);
-
-          if (existingTime && newTime) {
-            useNewContent = newTime >= existingTime;
-          } else if (message.lastStreamedAt || existingMessage.lastStreamedAt) {
-            // Fallback to lastStreamedAt
-            const existingLastTime = existingMessage.lastStreamedAt
-              ? new Date(existingMessage.lastStreamedAt)
-              : new Date(existingMessage.createdAt);
-            const newLastTime = message.lastStreamedAt
-              ? new Date(message.lastStreamedAt)
-              : new Date(message.createdAt);
-            useNewContent = newLastTime >= existingLastTime;
-          } else {
-            // Final fallback: if same sequences, prefer new update
-            useNewContent = true;
-          }
-        }
 
         const mergedMessage: MessageWithStreaming = {
           ...existingMessage,
           ...message,
-          // Use content from the update with higher sequence/timestamp
-          messageContent: useNewContent
-            ? message.messageContent
-            : existingMessage.messageContent,
-          events:
-            message.events && message.events.length > 0
-              ? message.events
-              : existingMessage.events,
-          stepMessages:
-            message.stepMessages && message.stepMessages.length > 0
-              ? message.stepMessages
-              : existingMessage.stepMessages,
-          toolCalls:
-            message.toolCalls && message.toolCalls.length > 0
-              ? message.toolCalls
-              : existingMessage.toolCalls,
-          // Always update streaming flags (they change from true -> false)
+          // Always update streaming flags
           isStreaming:
             message.isStreaming !== undefined
               ? message.isStreaming
               : existingMessage.isStreaming,
-          // Always update status (progresses forward)
           status: message.status || existingMessage.status,
-          // Explicitly handle error fields - null means "clear this field"
           errorMessage:
             message.errorMessage !== undefined
               ? message.errorMessage

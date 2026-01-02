@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import usePreferencesStore from "../store/preferencesStore";
 import { RadioButton, Banner, Input } from "@vonlabs/design-components";
 import {
   useCreateIntegration,
@@ -12,7 +11,7 @@ import {
   INTEGRATION_METADATA,
   getBackendIntegrationType,
 } from "../constants/integrationMetadata";
-import { InfoIcon } from "./icons";
+import usePreferencesStore from "../store/preferencesStore";
 
 // Use centralized integration metadata
 const integrationDetails = INTEGRATION_METADATA;
@@ -35,9 +34,12 @@ export function BaseIntegrationConfigPane({
   onClose,
   editData,
 }: BaseIntegrationConfigPaneProps) {
-  const { setIntegrationsActiveTab } = usePreferencesStore();
+  // Note: setIntegrationsActiveTab removed - no longer using tabs
 
   const integration = integrationDetails[integrationId];
+
+  // Get loading state setter from store
+  const { setLoadingIntegrationId } = usePreferencesStore();
 
   // React Query mutations and data
   const createMutation = useCreateIntegration();
@@ -72,6 +74,17 @@ export function BaseIntegrationConfigPane({
 
   // Fathom API key configuration state
   const [fathomApiKey, setFathomApiKey] = useState("");
+
+  // Attention API key configuration state
+  const [attentionApiKey, setAttentionApiKey] = useState("");
+
+  // Chorus username/password configuration state
+  const [chorusUsername, setChorusUsername] = useState("");
+  const [chorusPassword, setChorusPassword] = useState("");
+
+  // Clari username/password configuration state
+  const [clariUsername, setClariUsername] = useState("");
+  const [clariPassword, setClariPassword] = useState("");
 
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -123,6 +136,36 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "attention") {
+      if (!hasExistingCredentials) {
+        if (!attentionApiKey) {
+          errors.push("API Key is required");
+        }
+      }
+    }
+
+    if (integrationId === "chorus") {
+      if (!hasExistingCredentials) {
+        if (!chorusUsername) {
+          errors.push("Username is required");
+        }
+        if (!chorusPassword) {
+          errors.push("Password is required");
+        }
+      }
+    }
+
+    if (integrationId === "claricopilot") {
+      if (!hasExistingCredentials) {
+        if (!clariUsername) {
+          errors.push("API Key is required");
+        }
+        if (!clariPassword) {
+          errors.push("API Password is required");
+        }
+      }
+    }
+
     // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -169,6 +212,24 @@ export function BaseIntegrationConfigPane({
           if (fathomApiKey) {
             updateData.accessKey = fathomApiKey;
           }
+        } else if (integrationId === "attention") {
+          if (attentionApiKey) {
+            updateData.accessKey = attentionApiKey;
+          }
+        } else if (integrationId === "chorus") {
+          if (chorusUsername) {
+            updateData.accessKey = chorusUsername;
+          }
+          if (chorusPassword) {
+            updateData.accessSecret = chorusPassword;
+          }
+        } else if (integrationId === "claricopilot") {
+          if (clariUsername) {
+            updateData.accessKey = clariUsername;
+          }
+          if (clariPassword) {
+            updateData.accessSecret = clariPassword;
+          }
         }
 
         // Update existing integration
@@ -176,16 +237,15 @@ export function BaseIntegrationConfigPane({
           integrationId: editData.id,
           data: updateData,
         });
-        // For updates, just close and navigate (don't re-authorize)
+        // For updates, just close (don't re-authorize)
         handleClose();
-        setIntegrationsActiveTab("active-integrations");
       } else {
         // Create new integration
         const savedIntegration = await createMutation.mutateAsync({
           type: getBackendIntegrationType(integrationId) as IntegrationType,
           accessLevel,
           config,
-          // Pass API credentials if present
+          // Generic API credentials (Gong, Fathom)
           accessKey:
             integrationId === "gong"
               ? gongAccessKey
@@ -193,6 +253,20 @@ export function BaseIntegrationConfigPane({
                 ? fathomApiKey
                 : undefined,
           accessSecret: integrationId === "gong" ? gongAccessSecret : undefined,
+          // Semantic credentials for Basic Auth and specific integrations
+          username: integrationId === "chorus" ? chorusUsername : undefined,
+          password:
+            integrationId === "chorus"
+              ? chorusPassword
+              : integrationId === "claricopilot"
+                ? clariPassword
+                : undefined,
+          apiKey:
+            integrationId === "attention"
+              ? attentionApiKey
+              : integrationId === "claricopilot"
+                ? clariUsername
+                : undefined,
         });
 
         // Clear sensitive credentials from state after creation
@@ -203,15 +277,30 @@ export function BaseIntegrationConfigPane({
         if (integrationId === "fathom") {
           setFathomApiKey("");
         }
+        if (integrationId === "attention") {
+          setAttentionApiKey("");
+        }
+        if (integrationId === "chorus") {
+          setChorusUsername("");
+          setChorusPassword("");
+        }
+        if (integrationId === "claricopilot") {
+          setClariUsername("");
+          setClariPassword("");
+        }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
-        if (savedIntegration.requiresOauth !== false) {
+        if (savedIntegration.requiresOauth === true) {
           try {
             await authorizeMutation.mutateAsync(savedIntegration.id);
-            // OAuth initiated successfully - close pane and navigate
+            // Set loading state AFTER authorize completes to start polling with correct status
+            setLoadingIntegrationId(savedIntegration.id);
+            // OAuth initiated successfully - close pane
             handleClose();
-            setIntegrationsActiveTab("active-integrations");
           } catch (oauthError: unknown) {
+            // Clear loading state on error
+            setLoadingIntegrationId(null);
+
             // Handle OAuth-specific errors
             const oauthErrorMessage =
               oauthError &&
@@ -226,16 +315,14 @@ export function BaseIntegrationConfigPane({
                 oauthErrorMessage,
             ]);
 
-            // Navigate after showing error for 2 seconds
+            // Close after showing error for 2 seconds
             setTimeout(() => {
               handleClose();
-              setIntegrationsActiveTab("active-integrations");
             }, 2000);
           }
         } else {
-          // API key integration - no OAuth needed, directly navigate
+          // API key integration - no OAuth needed, just close
           handleClose();
-          setIntegrationsActiveTab("active-integrations");
         }
       }
     } catch (error: unknown) {
@@ -346,31 +433,6 @@ export function BaseIntegrationConfigPane({
           {/* Form Content */}
           <div className="flex-1 overflow-y-auto settings-scrollbar px-6 py-4">
             <div className="space-y-6">
-              {/* Workspace Integration Banner */}
-              {accessLevel === "tenant" && (
-                <div className="rounded-lg border p-3 bg-purple-50 border-purple-200">
-                  <div className="flex items-center gap-2">
-                    <InfoIcon className="w-4 h-4 text-purple-600 shrink-0" />
-                    <p className="text-sm text-purple-700">
-                      This integration will be shared with your entire
-                      workspace.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Personal Integration Banner */}
-              {accessLevel === "user" && (
-                <div className="rounded-lg border p-3 bg-blue-50 border-blue-200">
-                  <div className="flex items-center gap-2">
-                    <InfoIcon className="w-4 h-4 text-blue-600 shrink-0" />
-                    <p className="text-sm text-blue-700">
-                      Personal integration, private to your account.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* OAuth Authentication Info - for OAuth integrations */}
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar") && (
@@ -528,6 +590,152 @@ export function BaseIntegrationConfigPane({
 
                   <style>{`
                       .fathom-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
+
+              {/* Attention-specific fields */}
+              {integrationId === "attention" && (
+                <>
+                  {/* API Key */}
+                  <div className="attention-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Key"
+                      value={attentionApiKey}
+                      onChange={(e) => setAttentionApiKey(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Attention API key"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API key"
+                          : "Your Attention API key"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .attention-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
+
+              {/* Chorus-specific fields */}
+              {integrationId === "chorus" && (
+                <>
+                  {/* Username */}
+                  <div className="chorus-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Username"
+                      value={chorusUsername}
+                      onChange={(e) => setChorusUsername(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Chorus username"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing username"
+                          : "Your Chorus username"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="chorus-input-wrapper">
+                    <Input
+                      type="password"
+                      label="Password"
+                      value={chorusPassword}
+                      onChange={(e) => setChorusPassword(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Chorus password"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing password"
+                          : "Your Chorus password"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .chorus-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
+
+              {/* Clari Co-pilot-specific fields */}
+              {integrationId === "claricopilot" && (
+                <>
+                  {/* API Key (stored as username) */}
+                  <div className="clari-input-wrapper">
+                    <Input
+                      type="text"
+                      label="API Key"
+                      value={clariUsername}
+                      onChange={(e) => setClariUsername(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Clari API key"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API key"
+                          : "Your Clari API key"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* API Password */}
+                  <div className="clari-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Password"
+                      value={clariPassword}
+                      onChange={(e) => setClariPassword(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Clari API password"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API password"
+                          : "Your Clari API password"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .clari-input-wrapper input::placeholder {
                         font-size: 13px;
                         color: #9ca3af;
                       }

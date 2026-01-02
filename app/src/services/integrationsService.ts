@@ -47,6 +47,7 @@ export interface IntegrationBackendResponse {
   id: string;
   tenant_id: string;
   tenant_name: string;
+  user_id?: string;
   type: IntegrationType;
   name: string;
   description: string | null;
@@ -87,6 +88,7 @@ export interface Integration {
   id: string;
   tenantId: string;
   tenantName: string;
+  userId?: string;
   type: IntegrationType;
   name: string;
   description: string | null;
@@ -118,6 +120,7 @@ function transformIntegration(
     id: backendIntegration.id,
     tenantId: backendIntegration.tenant_id,
     tenantName: backendIntegration.tenant_name,
+    userId: backendIntegration.user_id,
     type: backendIntegration.type,
     name: backendIntegration.name,
     description: backendIntegration.description,
@@ -380,6 +383,10 @@ export class IntegrationsService {
     name?: string;
     accessKey?: string;
     accessSecret?: string;
+    // Semantic credential fields
+    username?: string;
+    password?: string;
+    apiKey?: string;
   }): Promise<Integration> {
     const response = await apiClient.post<IntegrationBackendResponse>(
       "/api/v1/integrations",
@@ -390,6 +397,9 @@ export class IntegrationsService {
         name: data.name,
         access_key: data.accessKey,
         access_secret: data.accessSecret,
+        username: data.username,
+        password: data.password,
+        api_key: data.apiKey,
       },
     );
     return transformIntegration(response);
@@ -424,6 +434,10 @@ export class IntegrationsService {
       name?: string;
       accessKey?: string;
       accessSecret?: string;
+      // Semantic credential fields
+      username?: string;
+      password?: string;
+      apiKey?: string;
     },
   ): Promise<Integration> {
     const response = await apiClient.patch<IntegrationBackendResponse>(
@@ -434,6 +448,9 @@ export class IntegrationsService {
         name: data.name,
         access_key: data.accessKey,
         access_secret: data.accessSecret,
+        username: data.username,
+        password: data.password,
+        api_key: data.apiKey,
       },
     );
     return transformIntegration(response);
