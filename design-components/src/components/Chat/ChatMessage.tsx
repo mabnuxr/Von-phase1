@@ -6,6 +6,8 @@ import { ToolCallItem } from './ToolCallItem';
 import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
+import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
+import type { MessageFileAttachment } from './types';
 
 /**
  * Get user initials from name or email
@@ -48,6 +50,11 @@ export interface ChatMessageProps {
    * Message content
    */
   content: string;
+
+  /**
+   * File attachments for user messages
+   */
+  attachments?: MessageFileAttachment[];
 
   /**
    * Thought content (for assistant messages)
@@ -197,6 +204,7 @@ export interface ChatMessageProps {
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
+  attachments,
   reasoningContent,
   isStreaming = false,
   isReasoningStreaming = false,
@@ -264,13 +272,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         `}
       >
         {/* Centered container */}
-        <div className="px-8">
+        <div className="px-2">
           <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
             {/* Message layout */}
             <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
               {/* Horizontal layout: Avatar + Content (reversed for user) */}
               <div
-                className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-100 border border-gray-200 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
+                className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-50 border border-gray-100 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
               >
                 {/* Avatar and Status Badge */}
                 <div className="flex items-start gap-2 flex-shrink-0">
@@ -359,7 +367,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           {isStreaming ? (
                             // While streaming: ALL steps go in ThinkingBlock (collapsed), summary shown in header
                             <ThinkingBlock
-                              key={`thinking-block-${messageId}-${runId}`}
+                              key="thinking-block"
                               isStreaming={isStreaming}
                               status={status}
                               stepMessages={stepMessages}
@@ -445,12 +453,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
                     </div>
                   ) : (
-                    // User messages - simple rendering with preserved whitespace
-                    <div
-                      ref={userMessageRef}
-                      className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap"
-                    >
-                      {content}
+                    // User messages - with file attachments and text
+                    <div ref={userMessageRef}>
+                      {/* File attachments shown above text */}
+                      {attachments && attachments.length > 0 && (
+                        <MessageFilePreview attachments={attachments} />
+                      )}
+                      {/* Text content */}
+                      {content && (
+                        <div className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap">
+                          {content}
+                        </div>
+                      )}
                     </div>
                   )}
 
