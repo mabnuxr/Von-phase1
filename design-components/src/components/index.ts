@@ -181,16 +181,6 @@ export type { TopBarProps, Tab } from './TopBar';
 export { ChatSidebar } from './ChatSidebar';
 export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
 
-// ChatSidebarV2 (3-pane layout with chats + dashboards)
-export { ChatSidebarV2 } from './ChatSidebar';
-export type {
-  ChatSidebarV2Props,
-  SidebarItem,
-  ItemType,
-  OwnershipType,
-  Folder,
-} from './ChatSidebar';
-
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
