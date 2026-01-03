@@ -57,6 +57,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
+    "serve": "^14.2.5",
     "streamdown": "^1.4.0"
   },
   "devDependencies": {
@@ -85,6 +86,8 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "eslint-plugin-storybook": "^9.1.10",
     "globals": "^16.3.0",
+    "highcharts": "^12.4.0",
+    "highcharts-react-official": "^3.2.3",
     "playwright": "^1.55.0",
     "prettier": "^3.6.2",
     "storybook": "^9.1.10",
