@@ -68,39 +68,11 @@ export function useConversationPusherChannel(
 
         if (!config.conversationId) return;
 
-        // Get existing message
+        // Get existing message for this run_id
+        // Each run_id represents a distinct backend run and should have its own message
         const messages =
           useChatStore.getState().messages[config.conversationId] || [];
-        let existingMessage = messages.find((m) => m.runId === run_id);
-
-        // Fallback: If new run after approval, update the last assistant message instead of creating duplicate
-        if (!existingMessage) {
-          const lastAssistantMessage = messages
-            .filter((m) => m.role === "assistant")
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime(),
-            )[0];
-
-          // Check if last message has approval tool calls with a result (indicates continuation after approval/rejection)
-          if (
-            lastAssistantMessage?.toolCalls?.some(
-              (tc) => tc.result !== undefined && tc.result !== null,
-            )
-          ) {
-            existingMessage = lastAssistantMessage;
-            if (import.meta.env.DEV) {
-              console.log(
-                "[useConversationPusherChannel] New run after approval detected, updating existing message",
-                {
-                  oldRunId: existingMessage.runId,
-                  newRunId: run_id,
-                },
-              );
-            }
-          }
-        }
+        const existingMessage = messages.find((m) => m.runId === run_id);
 
         // Append new event (dedup by run_id + sequence to prevent cross-run collisions)
         const currentEvents = existingMessage?.events || [];
