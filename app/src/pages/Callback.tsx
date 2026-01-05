@@ -10,6 +10,7 @@ import {
   clearCodeVerifier,
   clearOAuthState,
 } from "../lib/auth";
+import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 
 export default function Callback() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function Callback() {
   const code = params.get("code");
   const state = params.get("state");
   const [isExchanging, setIsExchanging] = useState(false);
+  const { identifyUser } = useLaunchDarklyIdentify();
 
   const exchange = useCallback(async () => {
     // Validate state parameter to prevent CSRF attacks
@@ -75,6 +77,10 @@ export default function Callback() {
       if (import.meta.env.DEV) {
         logCurrentToken("after login");
       }
+
+      // Identify user in LaunchDarkly after successful login
+      await identifyUser();
+
       navigate("/chat", { replace: true });
     } catch (error: unknown) {
       if (import.meta.env.DEV) {
@@ -85,7 +91,7 @@ export default function Callback() {
       // TODO: Add user-friendly error message
       navigate("/", { replace: true });
     }
-  }, [code, state, navigate]);
+  }, [code, state, navigate, identifyUser]);
 
   const startedRef = useRef(false);
   useEffect(() => {
