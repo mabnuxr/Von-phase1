@@ -6,6 +6,7 @@ import { ChatEmptyState } from './ChatEmptyState';
 import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
+import { ScrollToBottomButton } from './ScrollToBottomButton';
 
 // Export types from types.ts
 export type {
@@ -73,6 +74,7 @@ export const Chat: React.FC<ChatProps> = ({
 
   const shouldAutoScrollRef = useRef(true);
   const scrollOnNewUserMessage = useRef(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
     // ChatGPT-style scroll: scroll to absolute bottom
@@ -103,6 +105,8 @@ export const Chat: React.FC<ChatProps> = ({
       const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       // Within threshold distance of bottom → enable auto-scroll
       shouldAutoScrollRef.current = distanceFromBottom < AUTO_SCROLL_THRESHOLD_PX;
+      // Show scroll-to-bottom button when scrolled up more than 150px
+      setShowScrollButton(distanceFromBottom > 150);
     };
 
     el.addEventListener('scroll', handleScroll, { passive: true });
@@ -184,6 +188,7 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Generate container class names based on variant
   const containerClassName = [
+    'relative',
     'flex',
     'flex-col',
     'overflow-hidden',
@@ -289,6 +294,12 @@ export const Chat: React.FC<ChatProps> = ({
         {/* Invisible div for auto-scroll to bottom */}
         <div ref={messagesEndRef} className="h-px" />
       </div>
+
+      {/* Scroll to bottom button */}
+      <ScrollToBottomButton
+        visible={showScrollButton && messages.length > 0}
+        onClick={() => scrollToBottom('smooth')}
+      />
 
       {/* Banner above input (if provided) - only show when there are messages */}
       {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
