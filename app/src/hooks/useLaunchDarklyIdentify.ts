@@ -20,23 +20,13 @@ export function useLaunchDarklyIdentify() {
       const tenantId = user.tenantId || null;
       const userKey =
         tenantId && user.email
-          ? `${tenantId}:${user.email}`
+          ? `${tenantId}<>${user.email}`
           : user.email || "anonymous";
 
-      const context = tenantId
-        ? {
-            kind: "multi" as const,
-            Tenant: {
-              key: tenantId,
-            },
-            User: {
-              key: userKey,
-            },
-          }
-        : {
-            kind: "user" as const,
-            key: userKey,
-          };
+      const context = {
+        kind: "user" as const,
+        key: userKey,
+      };
 
       await ldClient.identify(context);
       console.log("[LaunchDarkly] User identified:", userKey);
