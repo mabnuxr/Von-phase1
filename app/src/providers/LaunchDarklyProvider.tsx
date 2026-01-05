@@ -38,11 +38,12 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
       try {
         // Get user and tenant context by decoding JWT token
         const userContext = getUserContextFromToken();
-        const userId = userContext?.userId || "anonymous";
+        const userEmail = userContext?.email || "anonymous";
         const tenantId = userContext?.tenantId || null;
 
         // Build multi-context for LaunchDarkly
         // Note: Using capital Tenant and User to match LaunchDarkly segment configuration
+        // Using email as the user key for better identification in LaunchDarkly dashboard
         const context = tenantId
           ? {
               kind: "multi",
@@ -50,12 +51,12 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
                 key: tenantId,
               },
               User: {
-                key: userId,
+                key: userEmail,
               },
             }
           : {
               kind: "user",
-              key: userId,
+              key: userEmail,
             };
 
         const Provider = await asyncWithLDProvider({
