@@ -80,7 +80,10 @@ interface IntegrationsListProps {
   loadingIntegrationId: string | null;
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
-  onDelete: (id: string) => void;
+  onDelete: (
+    id: string,
+    connectionType: "workspace" | "personal" | "both",
+  ) => void;
 }
 
 interface IntegrationItemProps {
@@ -93,7 +96,10 @@ interface IntegrationItemProps {
   loadingIntegrationId: string | null;
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
-  onDelete: (id: string) => void;
+  onDelete: (
+    id: string,
+    connectionType: "workspace" | "personal" | "both",
+  ) => void;
 }
 
 /**
@@ -175,6 +181,13 @@ function IntegrationItem({
   // Case 1: Not connected at all - show as available
   // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
   if (!isConnected) {
+    // Show Workspace chip for org-level integrations to help users understand the access level
+    const availableChips: Array<"workspace" | "personal"> = canBeOrgLevel(
+      item.id,
+    )
+      ? ["workspace"]
+      : [];
+
     return (
       <IntegrationCard
         name={item.name}
@@ -182,7 +195,7 @@ function IntegrationItem({
         integrationLogoPath={item.logoPath}
         isAvailable={true}
         disabled={item.disabled}
-        chips={[]}
+        chips={availableChips}
         onToggle={
           item.disabled
             ? undefined
@@ -206,11 +219,23 @@ function IntegrationItem({
     const instanceUrl = workspaceBackendIntegration?.config
       ?.instance_url as string;
 
+    // Check if current user is the owner of the workspace integration
+    const backendUserId = getBackendUserId();
+    const isOwner = backendUserId === workspace.userId;
+
     // Remove "connected" chip while authenticating
     const isLoading = workspaceIsLoading || personalIsLoading;
     const chips: Array<"workspace" | "personal" | "connected"> = isLoading
       ? ["workspace", "personal"]
       : ["workspace", "personal", "connected"];
+
+    // Determine connection type and tooltip based on ownership
+    // Owner: deleting personal cascades to workspace (removes both)
+    // Non-owner: only removes their personal connection
+    const connectionType = isOwner ? "both" : "personal";
+    const deleteTooltip = isOwner
+      ? "Removes both workspace and personal connections"
+      : "Removes personal connection";
 
     return (
       <IntegrationCard
@@ -221,11 +246,14 @@ function IntegrationItem({
         modifiedBy={modifiedBy}
         instanceUrl={instanceUrl}
         onDelete={
-          personalPerms?.delete ? () => onDelete(personal.id) : undefined
+          personalPerms?.delete
+            ? () => onDelete(personal.id, connectionType)
+            : undefined
         }
         canDelete={personalPerms?.delete ?? false}
         disabled={!!isLoading}
         loadingText={isLoading ? "Authenticating" : undefined}
+        deleteTooltip={deleteTooltip}
       />
     );
   }
@@ -244,17 +272,6 @@ function IntegrationItem({
     // Get backend user ID from JWT token and check ownership
     const backendUserId = getBackendUserId();
     const isOwner = backendUserId === workspace.userId;
-
-    // Debug logging
-    if (item.id === "salesforce") {
-      console.log("[IntegrationsList] Salesforce ownership check:", {
-        backendUserId,
-        workspaceUserId: workspace.userId,
-        isOwner,
-        canConnectPersonal,
-        workspaceData: workspace,
-      });
-    }
 
     // Determine chips based on ownership AND if integration supports both levels
     // Only for integrations that can be both workspace AND personal (like Salesforce):
@@ -281,14 +298,17 @@ function IntegrationItem({
           modifiedBy={modifiedBy}
           instanceUrl={instanceUrl}
           onDelete={
-            workspacePerms?.delete ? () => onDelete(workspace.id) : undefined
+            workspacePerms?.delete
+              ? () => onDelete(workspace.id, "workspace")
+              : undefined
           }
           canDelete={workspacePerms?.delete ?? false}
           disabled={!!workspaceIsLoading}
           loadingText={workspaceIsLoading ? "Authenticating" : undefined}
+          deleteTooltip="Removes workspace connection"
         />
         {canConnectPersonal && !isOwner && (
-          <div className="px-4 pb-3 bg-white border-t border-gray-100">
+          <div className="pl-[72px] pr-4 py-[5px] bg-white border-t border-gray-100 flex items-center">
             <button
               onClick={() => onConnect(item.id, "user")}
               className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
@@ -319,11 +339,14 @@ function IntegrationItem({
         chips={chips}
         instanceUrl={instanceUrl}
         onDelete={
-          personalPerms?.delete ? () => onDelete(personal.id) : undefined
+          personalPerms?.delete
+            ? () => onDelete(personal.id, "personal")
+            : undefined
         }
         canDelete={personalPerms?.delete ?? false}
         disabled={!!personalIsLoading}
         loadingText={personalIsLoading ? "Authenticating" : undefined}
+        deleteTooltip="Removes personal connection"
       />
     );
   }
@@ -387,7 +410,7 @@ export function IntegrationsList({
         return (
           <div
             key={category}
-            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+            className="bg-white rounded-lg border border-gray-200 overflow-visible"
           >
             {/* Category Header */}
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
