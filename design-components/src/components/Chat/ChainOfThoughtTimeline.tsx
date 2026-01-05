@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Streamdown } from 'streamdown';
 import { ToolCallItem } from './ToolCallItem';
+import { SalesforceLink } from './SalesforceLink';
 import type { StepMessage } from './types';
 
 export interface ChainOfThoughtTimelineProps {
@@ -50,6 +51,12 @@ export interface ChainOfThoughtTimelineProps {
    * Used to control visibility of approval buttons
    */
   isLatestMessage?: boolean;
+
+  /**
+   * Salesforce instance URL for building deep links in approval cards
+   * Example: "https://mycompany.my.salesforce.com"
+   */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -65,6 +72,7 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
   onReject,
   isApprovalProcessing = false,
   runId = '',
+  salesforceInstanceUrl,
 }) => {
   // Animation variants for staggered reveal
   const containerVariants = {
@@ -145,6 +153,7 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
                       parseIncompleteMarkdown={isStreaming && isLastStep}
                       isAnimating={isStreaming && isLastStep}
                       controls={{ table: true }}
+                      components={{ a: SalesforceLink }}
                     >
                       {step.content}
                     </Streamdown>
@@ -167,6 +176,7 @@ export const ChainOfThoughtTimeline: React.FC<ChainOfThoughtTimelineProps> = ({
                           onReject={onReject}
                           isApprovalProcessing={isApprovalProcessing}
                           runId={runId}
+                          salesforceInstanceUrl={salesforceInstanceUrl}
                         />
                       ))}
                   </div>

@@ -135,10 +135,19 @@ const Dashboard = () => {
   const {
     isConnected: isSalesforceConnected,
     isAuthenticated: isSalesforceAuthenticated,
+    integration: salesforceIntegration,
   } = useSalesforceConnection();
 
   // Feature flags
-  const { isSlashCommandsEnabled, isActionsEnabled } = useFeatureFlag();
+  const { isSlashCommandsEnabled, isActionsEnabled, isDeepLinksEnabled } =
+    useFeatureFlag();
+
+  // Build Salesforce instance URL from integration config for deep links in approval cards
+  // Only provide URL when deep links feature flag is enabled
+  const salesforceInstanceUrl =
+    isDeepLinksEnabled && salesforceIntegration?.config?.domain
+      ? `https://${salesforceIntegration.config.domain}`
+      : undefined;
 
   // UI state
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -779,6 +788,8 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
+                salesforceInstanceUrl={salesforceInstanceUrl}
+                enableDeepLinks={isDeepLinksEnabled}
               />
             )}
           </motion.div>

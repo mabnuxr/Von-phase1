@@ -37,6 +37,12 @@ export { ToolCallItem } from './ToolCallItem';
 export { ApprovalCard } from './ApprovalCard';
 export type { ApprovalCardProps, SalesforceOperation, ApprovalToolArgs } from './ApprovalCard';
 
+export { SalesforceLink } from './SalesforceLink';
+export type { SalesforceLinkProps } from './SalesforceLink';
+
+// Export Salesforce deep link utilities
+export { buildSalesforceDeepLink, isSalesforceUrl } from './utils/salesforceDeepLink';
+
 export { GoogleCalendarApprovalCard } from './GoogleCalendarApprovalCard';
 export type { GoogleCalendarApprovalCardProps } from './GoogleCalendarApprovalCard';
 

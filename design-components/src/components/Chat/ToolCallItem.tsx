@@ -45,6 +45,11 @@ interface ToolCallItemProps {
    * Used to control visibility of approval buttons
    */
   isLatestMessage?: boolean;
+  /**
+   * Salesforce instance URL for building deep links in approval cards
+   * Example: "https://mycompany.my.salesforce.com"
+   */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -100,6 +105,7 @@ export function ToolCallItem({
   onReject,
   isApprovalProcessing = false,
   runId = '',
+  salesforceInstanceUrl,
 }: ToolCallItemProps) {
   // Timer state - hooks must be called unconditionally at the top
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -231,6 +237,7 @@ export function ToolCallItem({
           onReject={onReject || (() => {})}
           isProcessing={isApprovalProcessing}
           result={approvalResult}
+          salesforceInstanceUrl={salesforceInstanceUrl}
         />
       );
     }

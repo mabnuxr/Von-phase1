@@ -46,6 +46,12 @@ interface ArtifactPaneProps {
     runId: string | null,
     artifactId: string | null
   ) => UseArtifactResult;
+  /**
+   * Enable deep links for Salesforce URLs in DataTable
+   * When enabled, URLs are rendered as clickable links
+   * @default false
+   */
+  enableDeepLinks?: boolean;
 }
 
 /**
@@ -104,6 +110,7 @@ export function ArtifactPane({
   toolName,
   onClose,
   useArtifactHook,
+  enableDeepLinks = false,
 }: ArtifactPaneProps) {
   const { data: artifact, isLoading, error } = useArtifactHook(conversationId, runId, artifactId);
 
@@ -420,11 +427,13 @@ export function ArtifactPane({
           {/* Tab Content */}
           <div className="flex-1 overflow-auto">
             {/* Memory tools - always show result without tabs */}
-            {toolResult.type === 'memory' && <ToolResultRenderer result={toolResult} />}
+            {toolResult.type === 'memory' && (
+              <ToolResultRenderer result={toolResult} enableDeepLinks={enableDeepLinks} />
+            )}
 
             {/* Other tools - show based on active tab */}
             {toolResult.type !== 'memory' && activeTab === 'result' && (
-              <ToolResultRenderer result={toolResult} />
+              <ToolResultRenderer result={toolResult} enableDeepLinks={enableDeepLinks} />
             )}
             {toolResult.type !== 'memory' && activeTab === 'query' && toolResult.queries && (
               <div className="p-4">

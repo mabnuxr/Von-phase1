@@ -15,13 +15,23 @@ export interface ToolResultRendererProps {
    * Tool result to render
    */
   result: ToolResult;
+
+  /**
+   * Enable deep links for Salesforce URLs in DataTable
+   * When enabled, URLs are rendered as clickable links
+   * @default false
+   */
+  enableDeepLinks?: boolean;
 }
 
 /**
  * ToolResultRenderer intelligently renders tool results based on their type
  * Routes to appropriate visualization component (Table, Query, Metrics, or JSON)
  */
-export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({ result }) => {
+export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({
+  result,
+  enableDeepLinks = false,
+}) => {
   const [showQuery, setShowQuery] = useState(false);
 
   if (!result) {
@@ -38,6 +48,7 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({ result }
               data={result.table}
               queries={result.queries}
               onViewQuery={result.queries ? () => setShowQuery(!showQuery) : undefined}
+              enableDeepLinks={enableDeepLinks}
             />
           )}
           {showQuery && result.queries && <QueryBlock queries={result.queries} />}

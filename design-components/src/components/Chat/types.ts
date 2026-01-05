@@ -852,6 +852,13 @@ export interface ChatProps {
   onConvertToDashboard?: (messageId: string) => void;
 
   /**
+   * Salesforce instance URL for building deep links in approval cards
+   * Example: "https://mycompany.my.salesforce.com"
+   * Used as fallback when instance_url is not available in streamed tool args
+   */
+  salesforceInstanceUrl?: string;
+
+  /**
    * Enable file upload/attachment functionality
    * When enabled, shows a + button in the chat input to attach files
    * @default false
@@ -863,4 +870,11 @@ export interface ChatProps {
    * Use this to show toast notifications for errors
    */
   onFileError?: (error: string, message: string) => void;
+
+  /**
+   * Enable deep links for Salesforce URLs in artifact pane DataTable
+   * When enabled, URLs are rendered as clickable links
+   * @default false
+   */
+  enableDeepLinks?: boolean;
 }
