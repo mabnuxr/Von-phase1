@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { ArrowDownIcon } from './icons';
 
 interface ScrollToBottomButtonProps {
   onClick: () => void;
@@ -20,21 +21,7 @@ export const ScrollToBottomButton = memo<ScrollToBottomButtonProps>(({ onClick, 
       `}
     aria-label="Scroll to bottom"
   >
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      className="text-gray-600"
-    >
-      <path
-        d="M12 5v14M5 12l7 7 7-7"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <ArrowDownIcon className="text-gray-600" size={20} />
   </button>
 ));
 
