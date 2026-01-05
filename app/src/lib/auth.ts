@@ -116,11 +116,12 @@ function decodeJWT(token: string): Record<string, unknown> | null {
 }
 
 /**
- * Get user context (user_id and tenant_id) from the current access token
+ * Get user context (user_id, email, and tenant_id) from the current access token
  * Returns null if no token or decoding fails
  */
 export function getUserContextFromToken(): {
   userId: string;
+  email: string | null;
   tenantId: string | null;
 } | null {
   const token = getAccessToken();
@@ -135,6 +136,7 @@ export function getUserContextFromToken(): {
 
   // Try common JWT claim names
   const userId = (payload.sub as string) || (payload.user_id as string);
+  const email = (payload.email as string | undefined) || null;
   const tenantId =
     (payload.xoid as string | undefined) ||
     (payload.oid as string | undefined) ||
@@ -146,6 +148,7 @@ export function getUserContextFromToken(): {
 
   return {
     userId,
+    email,
     tenantId: tenantId || null,
   };
 }
