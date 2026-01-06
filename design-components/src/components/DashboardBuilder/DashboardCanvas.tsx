@@ -37,7 +37,6 @@ import type {
   DataTable,
 } from './types';
 import { ChartWidget } from './ChartWidget';
-import { TableWidget } from './TableWidget';
 import { DashboardGrid } from './DashboardGrid';
 import type { DashboardData } from './DashboardGrid';
 import {
@@ -133,104 +132,6 @@ const getDataForChart = (tableId: string): Record<string, unknown>[] => {
     default:
       return [];
   }
-};
-
-/**
- * MetricCard - Displays a single metric with trend
- */
-const MetricCard: React.FC<{
-  config: MetricConfig;
-  onClick?: () => void;
-  onDelete?: () => void;
-}> = ({ config, onClick, onDelete }) => {
-  const [showMenu, setShowMenu] = useState(false);
-
-  const getTrendIcon = () => {
-    if (config.changeType === 'positive') {
-      return <TrendUp size={14} weight="duotone" className="text-emerald-600" />;
-    }
-    if (config.changeType === 'negative') {
-      return <TrendDown size={14} weight="duotone" className="text-red-600" />;
-    }
-    return <Minus size={14} weight="duotone" className="text-gray-400" />;
-  };
-
-  const getTrendColor = () => {
-    if (config.changeType === 'positive') return 'text-emerald-600';
-    if (config.changeType === 'negative') return 'text-red-600';
-    return 'text-gray-500';
-  };
-
-  return (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
-      onClick={onClick}
-      className="bg-white rounded-xl border border-gray-100 p-4 cursor-pointer hover:border-gray-200 hover:shadow-sm transition-all duration-150 relative group"
-    >
-      {/* Delete menu button - only visible on hover */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-            className="p-1 text-white bg-gray-800 hover:bg-gray-900 rounded-md transition-colors cursor-pointer"
-          >
-            <DotsThree size={14} weight="bold" />
-          </button>
-          <AnimatePresence>
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
-                  }}
-                />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5"
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenu(false);
-                      onDelete?.();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[13px] text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                  >
-                    <Trash size={14} />
-                    Delete
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-        {config.label}
-      </p>
-      <div className="flex items-end justify-between">
-        <p className="text-2xl font-semibold text-gray-900 tabular-nums">{config.value}</p>
-        {config.change !== undefined && (
-          <div className={`flex items-center gap-1 ${getTrendColor()}`}>
-            {getTrendIcon()}
-            <span className="text-xs font-medium tabular-nums">
-              {config.change > 0 ? '+' : ''}
-              {config.change}%
-            </span>
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
 };
 
 /**

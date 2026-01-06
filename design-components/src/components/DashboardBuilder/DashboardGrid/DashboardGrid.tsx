@@ -63,6 +63,7 @@ const DashboardGrid = ({
 			<GridLayout
 				className="layout"
 				layout={layout}
+				// @ts-ignore-next-line--- temporary fix for react-grid-layout types
 				cols={12}
 				rowHeight={30}
 				width={containerWidth}
