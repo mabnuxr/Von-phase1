@@ -37,6 +37,11 @@ export interface ChartWidgetProps {
    * Callback when delete is clicked
    */
   onDelete?: () => void;
+
+  /**
+   * Hide the header (title, subtitle, actions) when used inside WidgetLayout
+   */
+  hideHeader?: boolean;
 }
 
 // Color palette matching Von brand
@@ -69,6 +74,7 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
   onEdit,
   onExpand,
   onDelete,
+  hideHeader = false,
 }) => {
   const config = widget.config as ChartConfig;
   const data = getDataForTable(config.dataTableId);
@@ -240,6 +246,15 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         return baseOptions;
     }
   }, [config, data]);
+
+  // When hideHeader is true, render only the chart content (for use inside WidgetLayout)
+  if (hideHeader) {
+    return (
+      <div className="p-4 h-full">
+        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+      </div>
+    );
+  }
 
   return (
     <div

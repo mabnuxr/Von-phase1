@@ -1,12 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShareNetwork,
   Funnel,
   Download,
-  TrendUp,
-  TrendDown,
-  Minus,
   X,
   Table as TableIcon,
   Plus,
@@ -16,8 +13,6 @@ import {
   ChartDonut,
   NumberSquareOne,
   Rows,
-  DotsThree,
-  Trash,
   Link,
   Copy,
   Check,
@@ -26,6 +21,7 @@ import {
   PaperPlaneTilt,
 } from '@phosphor-icons/react';
 import { Table } from 'rsuite';
+import type { Layout, LayoutItem } from 'react-grid-layout';
 import type {
   Dashboard,
   DashboardWidget,
@@ -36,7 +32,8 @@ import type {
   DataTable,
 } from './types';
 import { ChartWidget } from './ChartWidget';
-import { TableWidget } from './TableWidget';
+import { DashboardGrid } from './DashboardGrid';
+import type { DashboardData } from './DashboardGrid';
 import {
   accountsAtRiskData,
   engagementTimelineData,
@@ -107,6 +104,11 @@ export interface DashboardCanvasProps {
    * Available data tables for widget configuration
    */
   dataTables?: DataTable[];
+
+  /**
+   * Callback when widget layout changes (drag/resize)
+   */
+  onLayoutChange?: (layout: Layout) => void;
 }
 
 // Get data for a chart by tableId
@@ -125,104 +127,6 @@ const getDataForChart = (tableId: string): Record<string, unknown>[] => {
     default:
       return [];
   }
-};
-
-/**
- * MetricCard - Displays a single metric with trend
- */
-const MetricCard: React.FC<{
-  config: MetricConfig;
-  onClick?: () => void;
-  onDelete?: () => void;
-}> = ({ config, onClick, onDelete }) => {
-  const [showMenu, setShowMenu] = useState(false);
-
-  const getTrendIcon = () => {
-    if (config.changeType === 'positive') {
-      return <TrendUp size={14} weight="duotone" className="text-emerald-600" />;
-    }
-    if (config.changeType === 'negative') {
-      return <TrendDown size={14} weight="duotone" className="text-red-600" />;
-    }
-    return <Minus size={14} weight="duotone" className="text-gray-400" />;
-  };
-
-  const getTrendColor = () => {
-    if (config.changeType === 'positive') return 'text-emerald-600';
-    if (config.changeType === 'negative') return 'text-red-600';
-    return 'text-gray-500';
-  };
-
-  return (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
-      onClick={onClick}
-      className="bg-white rounded-xl border border-gray-100 p-4 cursor-pointer hover:border-gray-200 hover:shadow-sm transition-all duration-150 relative group"
-    >
-      {/* Delete menu button - only visible on hover */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-            className="p-1 text-white bg-gray-800 hover:bg-gray-900 rounded-md transition-colors cursor-pointer"
-          >
-            <DotsThree size={14} weight="bold" />
-          </button>
-          <AnimatePresence>
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
-                  }}
-                />
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
-                  className="absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5"
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenu(false);
-                      onDelete?.();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-[13px] text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                  >
-                    <Trash size={14} />
-                    Delete
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-        {config.label}
-      </p>
-      <div className="flex items-end justify-between">
-        <p className="text-2xl font-semibold text-gray-900 tabular-nums">{config.value}</p>
-        {config.change !== undefined && (
-          <div className={`flex items-center gap-1 ${getTrendColor()}`}>
-            {getTrendIcon()}
-            <span className="text-xs font-medium tabular-nums">
-              {config.change > 0 ? '+' : ''}
-              {config.change}%
-            </span>
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
 };
 
 /**
@@ -1202,7 +1106,9 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   isLoading = false,
   onWidgetAdd,
   onWidgetDelete,
+  onWidgetEdit,
   dataTables = [],
+  onLayoutChange,
 }) => {
   const [showFilterPopover, setShowFilterPopover] = useState(false);
   const [showSharePopover, setShowSharePopover] = useState(false);
@@ -1211,6 +1117,76 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   const [selectedMetric, setSelectedMetric] = useState<MetricConfig | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [pendingDragItem, setPendingDragItem] = useState<DragItem | null>(null);
+
+  // Convert dashboard widgets to DashboardData format for DashboardGrid
+  const dashboardData: DashboardData = useMemo(() => {
+    const widgets: DashboardData['widgets'] = {};
+    const layoutItems: LayoutItem[] = [];
+
+    dashboard.widgets.forEach((widget, index) => {
+      widgets[widget.id] = widget;
+
+      // Calculate default layout based on widget type and position
+      let w = 6;
+      let h = 8;
+
+      if (widget.type === 'metric') {
+        w = 3;
+        h = 4;
+      } else if (widget.type === 'table') {
+        w = 12;
+        h = 10;
+      } else if (widget.type === 'chart') {
+        w = 6;
+        h = 10;
+      }
+
+      // Use widget's position if available, otherwise calculate based on index
+      const x = widget.position?.x ?? (index % 2) * 6;
+      const y = widget.position?.y ?? Math.floor(index / 2) * 10;
+
+      layoutItems.push({
+        i: widget.id,
+        x,
+        y,
+        w: widget.size?.width ?? w,
+        h: widget.size?.height ?? h,
+      });
+    });
+
+    return { layout: layoutItems, widgets };
+  }, [dashboard.widgets]);
+
+  const handleLayoutChange = useCallback(
+    (newLayout: Layout) => {
+      onLayoutChange?.(newLayout);
+    },
+    [onLayoutChange]
+  );
+
+  const handleWidgetEdit = useCallback(
+    (widgetId: string) => {
+      const widget = dashboard.widgets.find((w) => w.id === widgetId);
+      if (widget) {
+        if (onWidgetEdit) {
+          onWidgetEdit(widgetId);
+        } else {
+          setEditingWidget(widget);
+        }
+      }
+    },
+    [dashboard.widgets, onWidgetEdit]
+  );
+
+  const handleWidgetExpand = useCallback(
+    (widgetId: string) => {
+      const widget = dashboard.widgets.find((w) => w.id === widgetId);
+      if (widget) {
+        setExpandedWidget(widget);
+      }
+    },
+    [dashboard.widgets]
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -1245,11 +1221,6 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
     },
     [onWidgetAdd]
   );
-
-  // Separate widgets by type for layout
-  const metrics = dashboard.widgets.filter((w) => w.type === 'metric');
-  const charts = dashboard.widgets.filter((w) => w.type === 'chart');
-  const tables = dashboard.widgets.filter((w) => w.type === 'table');
 
   return (
     <div className="h-full flex flex-col bg-gray-50/50">
@@ -1390,76 +1361,13 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
             </div>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="space-y-6"
-          >
-            {/* Metrics Row */}
-            {metrics.length > 0 && (
-              <div className="grid grid-cols-4 gap-4">
-                {metrics.map((widget, index) => (
-                  <motion.div
-                    key={widget.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <MetricCard
-                      config={widget.config as MetricConfig}
-                      onClick={() => setSelectedMetric(widget.config as MetricConfig)}
-                      onDelete={() => onWidgetDelete?.(widget.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* Charts Grid */}
-            {charts.length > 0 && (
-              <div className="grid grid-cols-2 gap-4">
-                {charts.map((widget, index) => (
-                  <motion.div
-                    key={widget.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + index * 0.05 }}
-                  >
-                    <ChartWidget
-                      widget={widget}
-                      onClick={() => setExpandedWidget(widget)}
-                      onEdit={() => setEditingWidget(widget)}
-                      onExpand={() => setExpandedWidget(widget)}
-                      onDelete={() => onWidgetDelete?.(widget.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* Tables */}
-            {tables.length > 0 && (
-              <div className="space-y-4">
-                {tables.map((widget, index) => (
-                  <motion.div
-                    key={widget.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + index * 0.05 }}
-                  >
-                    <TableWidget
-                      widget={widget}
-                      onClick={() => setExpandedWidget(widget)}
-                      onEdit={() => setEditingWidget(widget)}
-                      onExpand={() => setExpandedWidget(widget)}
-                      onDelete={() => onWidgetDelete?.(widget.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </motion.div>
+          <DashboardGrid
+            dashboardData={dashboardData}
+            onLayoutChange={handleLayoutChange}
+            onWidgetEdit={handleWidgetEdit}
+            onWidgetExpand={handleWidgetExpand}
+            onWidgetDelete={onWidgetDelete}
+          />
         )}
       </div>
 
