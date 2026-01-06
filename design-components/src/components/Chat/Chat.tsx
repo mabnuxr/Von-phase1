@@ -57,6 +57,8 @@ export const Chat: React.FC<ChatProps> = ({
   enableCommands = false,
   enableActions = false,
   onConvertToDashboard,
+  salesforceInstanceUrl,
+  enableDeepLinks = false,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -282,6 +284,8 @@ export const Chat: React.FC<ChatProps> = ({
                   runId={message.runId}
                   enableActions={enableActions}
                   onConvertToDashboard={onConvertToDashboard}
+                  salesforceInstanceUrl={salesforceInstanceUrl}
+                  enableDeepLinks={enableDeepLinks}
                 />
               </div>
             ))}

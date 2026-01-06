@@ -9,6 +9,7 @@ export const FEATURE_FLAGS = {
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
   SIMPLIFIED_INTEGRATIONS: "enableSimplifiedIntegrations",
+  DEEP_LINKS: "enableDeepLinks",
 } as const;
 
 /**
@@ -60,6 +61,12 @@ export function useFeatureFlag() {
      */
     isSimplifiedIntegrationsEnabled:
       flags[FEATURE_FLAGS.SIMPLIFIED_INTEGRATIONS] === true,
+
+    /**
+     * Controls whether Salesforce deep links are enabled
+     * (clickable record names in approval cards and query results)
+     */
+    isDeepLinksEnabled: flags[FEATURE_FLAGS.DEEP_LINKS] === true,
 
     /**
      * Raw flags object for advanced usage

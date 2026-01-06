@@ -7,6 +7,7 @@ import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
+import { SalesforceLink } from './SalesforceLink';
 import type { MessageFileAttachment } from './types';
 
 /**
@@ -196,6 +197,19 @@ export interface ChatMessageProps {
    * Callback when convert to dashboard is clicked
    */
   onConvertToDashboard?: (messageId: string) => void;
+
+  /**
+   * Salesforce instance URL for building deep links in approval cards
+   * Example: "https://mycompany.my.salesforce.com"
+   */
+  salesforceInstanceUrl?: string;
+
+  /**
+   * Enable deep links for Salesforce URLs in artifact pane DataTable
+   * When enabled, URLs are rendered as clickable links
+   * @default false
+   */
+  enableDeepLinks?: boolean;
 }
 
 /**
@@ -223,6 +237,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   runId = '',
   enableActions = false,
   onConvertToDashboard,
+  salesforceInstanceUrl,
+  enableDeepLinks = false,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -357,6 +373,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           onApprove={onApprove}
                           onReject={onReject}
                           runId={runId}
+                          salesforceInstanceUrl={salesforceInstanceUrl}
                         />
                       )}
 
@@ -377,6 +394,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               onApprove={onApprove}
                               onReject={onReject}
                               runId={runId}
+                              salesforceInstanceUrl={salesforceInstanceUrl}
                             />
                           ) : (
                             // After completion: Show intermediate steps in ThinkingBlock + final step outside
@@ -393,6 +411,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                   onApprove={onApprove}
                                   onReject={onReject}
                                   runId={runId}
+                                  salesforceInstanceUrl={salesforceInstanceUrl}
                                 />
                               )}
 
@@ -408,6 +427,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                           parseIncompleteMarkdown={false}
                                           isAnimating={false}
                                           controls={{ table: true }}
+                                          components={{ a: SalesforceLink }}
                                         >
                                           {finalStep.content}
                                         </Streamdown>
@@ -427,6 +447,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                             onApprove={onApprove}
                                             onReject={onReject}
                                             runId={runId}
+                                            salesforceInstanceUrl={salesforceInstanceUrl}
                                           />
                                         ))}
                                       </div>
@@ -445,6 +466,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               parseIncompleteMarkdown={isStreaming}
                               isAnimating={isStreaming}
                               controls={{ table: true }}
+                              components={{ a: SalesforceLink }}
                             >
                               {content}
                             </Streamdown>
@@ -510,6 +532,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           artifactType={openArtifact.artifactType}
           onClose={() => setOpenArtifact(null)}
           useArtifactHook={useArtifactHook}
+          enableDeepLinks={enableDeepLinks}
         />
       )}
     </div>
