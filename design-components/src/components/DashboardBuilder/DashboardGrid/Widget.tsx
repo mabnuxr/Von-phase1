@@ -71,7 +71,10 @@ const MetricContent: React.FC<{ config: MetricConfig }> = ({ config }) => {
       {config.change !== undefined && (
         <div className={`flex items-center gap-1 mt-2 text-sm ${getTrendColor()}`}>
           {getTrendIcon()}
-          <span>{config.change > 0 ? '+' : ''}{config.change}%</span>
+          <span>
+            {config.change > 0 ? '+' : ''}
+            {config.change}%
+          </span>
         </div>
       )}
     </div>
@@ -99,12 +102,7 @@ const TextContent: React.FC<{ config: TextConfig }> = ({ config }) => {
   );
 };
 
-const Widget: React.FC<WidgetProps> = ({
-  widget,
-  onEdit,
-  onExpand,
-  onDelete,
-}) => {
+const Widget: React.FC<WidgetProps> = ({ widget, onEdit, onExpand, onDelete }) => {
   const title = getWidgetTitle(widget);
   const subtitle = getWidgetSubtitle(widget);
 

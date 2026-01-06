@@ -1227,7 +1227,6 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
     [onWidgetAdd]
   );
 
-
   return (
     <div className="h-full flex flex-col bg-gray-50/50">
       {/* Header */}

@@ -107,9 +107,7 @@ const WidgetLayout: React.FC<WidgetLayoutProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        {children}
-      </div>
+      <div className="flex-1 min-h-0 overflow-auto">{children}</div>
     </div>
   );
 };

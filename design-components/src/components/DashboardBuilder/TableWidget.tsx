@@ -197,11 +197,7 @@ export const TableWidget: React.FC<TableWidgetProps> = ({
                       <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
                         <div
                           className={`h-full rounded-full ${
-                            pct >= 70
-                              ? 'bg-red-500'
-                              : pct >= 50
-                                ? 'bg-orange-500'
-                                : 'bg-yellow-500'
+                            pct >= 70 ? 'bg-red-500' : pct >= 50 ? 'bg-orange-500' : 'bg-yellow-500'
                           }`}
                           style={{ width: `${pct}%` }}
                         />

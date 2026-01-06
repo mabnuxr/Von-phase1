@@ -186,7 +186,7 @@ const mockDashboardData: DashboardData = { layout: mockLayout, widgets: mockWidg
 const InteractiveDashboardGrid = ({
   initialData,
   loading = false,
-  width
+  width,
 }: {
   initialData: DashboardData;
   loading?: boolean;
@@ -195,7 +195,7 @@ const InteractiveDashboardGrid = ({
   const [dashboardData, setDashboardData] = useState(initialData);
 
   const handleLayoutChange = (layout: Layout) => {
-    setDashboardData(prev => ({ ...prev, layout }));
+    setDashboardData((prev) => ({ ...prev, layout }));
     console.log('Layout updated:', layout);
   };
 
@@ -210,10 +210,10 @@ const InteractiveDashboardGrid = ({
   };
 
   const handleWidgetDelete = (widgetId: string) => {
-    setDashboardData(prev => {
+    setDashboardData((prev) => {
       const newWidgets = { ...prev.widgets };
       delete newWidgets[widgetId];
-      const newLayout = prev.layout.filter(item => item.i !== widgetId);
+      const newLayout = prev.layout.filter((item) => item.i !== widgetId);
       return { layout: newLayout, widgets: newWidgets };
     });
     console.log('Deleted widget:', widgetId);
@@ -271,7 +271,7 @@ export const Empty: Story = {
 export const MetricsOnly: Story = {
   render: () => {
     const metricsData: DashboardData = {
-      layout: mockLayout.filter(item => item.i.startsWith('metric-')),
+      layout: mockLayout.filter((item) => item.i.startsWith('metric-')),
       widgets: Object.fromEntries(
         Object.entries(mockWidgets).filter(([key]) => key.startsWith('metric-'))
       ),

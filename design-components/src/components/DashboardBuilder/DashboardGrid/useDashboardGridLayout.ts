@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
-import type { DashboardData, UseDashboardGridLayoutParams } from "./types";
-import type { Layout, LayoutItem } from "react-grid-layout";
+import { useCallback, useEffect, useState } from 'react';
+import type { DashboardData, UseDashboardGridLayoutParams } from './types';
+import type { Layout, LayoutItem } from 'react-grid-layout';
 
-
-const normalizeLayoutItem = (item: {i: string; x?: number; y?: number; w?: number; h?: number}): LayoutItem => ({
-	i: String(item.i),
-	x: Number(item.x ?? 0),
-	y: Number(item.y ?? 0),
-	w: Number(item.w ?? 1),
-	h: Number(item.h ?? 1)
+const normalizeLayoutItem = (item: {
+  i: string;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+}): LayoutItem => ({
+  i: String(item.i),
+  x: Number(item.x ?? 0),
+  y: Number(item.y ?? 0),
+  w: Number(item.w ?? 1),
+  h: Number(item.h ?? 1),
 });
 
 /**
@@ -32,25 +37,28 @@ const normalizeLayoutItem = (item: {i: string; x?: number; y?: number; w?: numbe
  * );
  * ```
  */
-export const useDashboardGridLayout = ({fetchDashboardData, updateDashboardLayout}: UseDashboardGridLayoutParams) => {
-	const [layout, setLayout] = useState<Layout>([]);
-	const [loading, setLoading] = useState<boolean>(true);
-	const [widgets, setWidgets] = useState<DashboardData["widgets"]>({});
-	const [saving, setSaving] = useState(false);
+export const useDashboardGridLayout = ({
+  fetchDashboardData,
+  updateDashboardLayout,
+}: UseDashboardGridLayoutParams) => {
+  const [layout, setLayout] = useState<Layout>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [widgets, setWidgets] = useState<DashboardData['widgets']>({});
+  const [saving, setSaving] = useState(false);
 
-	useEffect(() => {
+  useEffect(() => {
     let mounted = true;
     async function load() {
-			if (!mounted) return;
+      if (!mounted) return;
 
-			try {
-				setLoading(true);
-				const response = await fetchDashboardData();
+      try {
+        setLoading(true);
+        const response = await fetchDashboardData();
 
-				const parsedLayout: Layout = response.layout.map(normalizeLayoutItem);
+        const parsedLayout: Layout = response.layout.map(normalizeLayoutItem);
 
-				setLayout(parsedLayout);
-				setWidgets(response.widgets);
+        setLayout(parsedLayout);
+        setWidgets(response.widgets);
       } catch (e) {
         console.error(e);
       } finally {
@@ -63,35 +71,39 @@ export const useDashboardGridLayout = ({fetchDashboardData, updateDashboardLayou
     };
   }, [fetchDashboardData]);
 
+  const saveLayout = useCallback(
+    async ({ layout: newLayout }: { layout: Layout }) => {
+      setSaving(true);
+      try {
+        await updateDashboardLayout({ layout: newLayout });
+      } catch (e) {
+        console.error('save failed', e);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [updateDashboardLayout]
+  );
 
-	const saveLayout = useCallback(async ({layout: newLayout}: {layout: Layout}) => {
-		setSaving(true);
-		try {
-			await updateDashboardLayout({ layout: newLayout });
-		} catch (e) {
-			console.error("save failed", e);
-		} finally {
-			setSaving(false);
-		}
-	}, [updateDashboardLayout]);
+  const onLayoutChange = useCallback(
+    (newLayout: Layout) => {
+      const normalized = newLayout.map(normalizeLayoutItem);
+      setLayout(normalized);
+      saveLayout({ layout: normalized });
+    },
+    [saveLayout]
+  );
 
+  // Construct dashboardData object for DashboardGrid
+  const dashboardData: DashboardData = {
+    layout,
+    widgets,
+  };
 
-  const onLayoutChange = useCallback((newLayout: Layout) =>{
-    const normalized = newLayout.map(normalizeLayoutItem);
-    setLayout(normalized);
-    saveLayout({layout: normalized});
-  }, [saveLayout]);
-
-	// Construct dashboardData object for DashboardGrid
-	const dashboardData: DashboardData = {
-		layout,
-		widgets,
-	};
-
-	return {
-		dashboardData,
-		loading,
-		saving,
-		onLayoutChange,
-	}
+  return {
+    dashboardData,
+    loading,
+    saving,
+    onLayoutChange,
+  };
 };
