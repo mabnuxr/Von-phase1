@@ -160,3 +160,15 @@ export {
   needsSync,
   getStorageInfo,
 } from './utils/localStorage';
+
+// Export CSV export utilities
+export {
+  tableToCSV,
+  valuesToCSV,
+  statisticsToCSV,
+  metricsToCSV,
+  downloadCSV,
+  generateCSVFilename,
+  isExportableType,
+  escapeCsvValue,
+} from './utils/csvExport';
