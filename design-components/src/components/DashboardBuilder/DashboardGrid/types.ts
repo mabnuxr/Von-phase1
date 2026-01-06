@@ -13,6 +13,28 @@ export type UseDashboardGridLayoutParams = {
     updateDashboardLayout: (params: {layout: Layout}) => Promise<void>;
 };
 
-export type DashboardGridProps = UseDashboardGridLayoutParams & {
-	width?: number;
-}
+export type DashboardGridProps = {
+    dashboardData: DashboardData;
+    loading?: boolean;
+    onLayoutChange: (layout: Layout) => void;
+    onWidgetEdit?: (widgetId: string) => void;
+    onWidgetExpand?: (widgetId: string) => void;
+    onWidgetDelete?: (widgetId: string) => void;
+    width?: number;
+};
+
+export type WidgetLayoutProps = {
+    title: string;
+    subtitle?: string;
+    onEdit?: () => void;
+    onExpand?: () => void;
+    onDelete?: () => void;
+    children: React.ReactNode;
+};
+
+export type WidgetProps = {
+    widget: DashboardWidget;
+    onEdit?: () => void;
+    onExpand?: () => void;
+    onDelete?: () => void;
+};

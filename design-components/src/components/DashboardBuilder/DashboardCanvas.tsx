@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShareNetwork,
@@ -26,6 +26,7 @@ import {
   PaperPlaneTilt,
 } from '@phosphor-icons/react';
 import { Table } from 'rsuite';
+import type { Layout, LayoutItem } from 'react-grid-layout';
 import type {
   Dashboard,
   DashboardWidget,
@@ -37,6 +38,8 @@ import type {
 } from './types';
 import { ChartWidget } from './ChartWidget';
 import { TableWidget } from './TableWidget';
+import { DashboardGrid } from './DashboardGrid';
+import type { DashboardData } from './DashboardGrid';
 import {
   accountsAtRiskData,
   engagementTimelineData,
@@ -107,6 +110,11 @@ export interface DashboardCanvasProps {
    * Available data tables for widget configuration
    */
   dataTables?: DataTable[];
+
+  /**
+   * Callback when widget layout changes (drag/resize)
+   */
+  onLayoutChange?: (layout: Layout) => void;
 }
 
 // Get data for a chart by tableId
@@ -1202,7 +1210,9 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   isLoading = false,
   onWidgetAdd,
   onWidgetDelete,
+  onWidgetEdit,
   dataTables = [],
+  onLayoutChange,
 }) => {
   const [showFilterPopover, setShowFilterPopover] = useState(false);
   const [showSharePopover, setShowSharePopover] = useState(false);
@@ -1211,6 +1221,76 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
   const [selectedMetric, setSelectedMetric] = useState<MetricConfig | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [pendingDragItem, setPendingDragItem] = useState<DragItem | null>(null);
+
+  // Convert dashboard widgets to DashboardData format for DashboardGrid
+  const dashboardData: DashboardData = useMemo(() => {
+    const widgets: DashboardData['widgets'] = {};
+    const layoutItems: LayoutItem[] = [];
+
+    dashboard.widgets.forEach((widget, index) => {
+      widgets[widget.id] = widget;
+
+      // Calculate default layout based on widget type and position
+      let w = 6;
+      let h = 8;
+
+      if (widget.type === 'metric') {
+        w = 3;
+        h = 4;
+      } else if (widget.type === 'table') {
+        w = 12;
+        h = 10;
+      } else if (widget.type === 'chart') {
+        w = 6;
+        h = 10;
+      }
+
+      // Use widget's position if available, otherwise calculate based on index
+      const x = widget.position?.x ?? (index % 2) * 6;
+      const y = widget.position?.y ?? Math.floor(index / 2) * 10;
+
+      layoutItems.push({
+        i: widget.id,
+        x,
+        y,
+        w: widget.size?.width ?? w,
+        h: widget.size?.height ?? h,
+      });
+    });
+
+    return { layout: layoutItems, widgets };
+  }, [dashboard.widgets]);
+
+  const handleLayoutChange = useCallback(
+    (newLayout: Layout) => {
+      onLayoutChange?.(newLayout);
+    },
+    [onLayoutChange]
+  );
+
+  const handleWidgetEdit = useCallback(
+    (widgetId: string) => {
+      const widget = dashboard.widgets.find((w) => w.id === widgetId);
+      if (widget) {
+        if (onWidgetEdit) {
+          onWidgetEdit(widgetId);
+        } else {
+          setEditingWidget(widget);
+        }
+      }
+    },
+    [dashboard.widgets, onWidgetEdit]
+  );
+
+  const handleWidgetExpand = useCallback(
+    (widgetId: string) => {
+      const widget = dashboard.widgets.find((w) => w.id === widgetId);
+      if (widget) {
+        setExpandedWidget(widget);
+      }
+    },
+    [dashboard.widgets]
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -1246,10 +1326,6 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
     [onWidgetAdd]
   );
 
-  // Separate widgets by type for layout
-  const metrics = dashboard.widgets.filter((w) => w.type === 'metric');
-  const charts = dashboard.widgets.filter((w) => w.type === 'chart');
-  const tables = dashboard.widgets.filter((w) => w.type === 'table');
 
   return (
     <div className="h-full flex flex-col bg-gray-50/50">
@@ -1390,76 +1466,13 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
             </div>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="space-y-6"
-          >
-            {/* Metrics Row */}
-            {metrics.length > 0 && (
-              <div className="grid grid-cols-4 gap-4">
-                {metrics.map((widget, index) => (
-                  <motion.div
-                    key={widget.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <MetricCard
-                      config={widget.config as MetricConfig}
-                      onClick={() => setSelectedMetric(widget.config as MetricConfig)}
-                      onDelete={() => onWidgetDelete?.(widget.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* Charts Grid */}
-            {charts.length > 0 && (
-              <div className="grid grid-cols-2 gap-4">
-                {charts.map((widget, index) => (
-                  <motion.div
-                    key={widget.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + index * 0.05 }}
-                  >
-                    <ChartWidget
-                      widget={widget}
-                      onClick={() => setExpandedWidget(widget)}
-                      onEdit={() => setEditingWidget(widget)}
-                      onExpand={() => setExpandedWidget(widget)}
-                      onDelete={() => onWidgetDelete?.(widget.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* Tables */}
-            {tables.length > 0 && (
-              <div className="space-y-4">
-                {tables.map((widget, index) => (
-                  <motion.div
-                    key={widget.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + index * 0.05 }}
-                  >
-                    <TableWidget
-                      widget={widget}
-                      onClick={() => setExpandedWidget(widget)}
-                      onEdit={() => setEditingWidget(widget)}
-                      onExpand={() => setExpandedWidget(widget)}
-                      onDelete={() => onWidgetDelete?.(widget.id)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </motion.div>
+          <DashboardGrid
+            dashboardData={dashboardData}
+            onLayoutChange={handleLayoutChange}
+            onWidgetEdit={handleWidgetEdit}
+            onWidgetExpand={handleWidgetExpand}
+            onWidgetDelete={onWidgetDelete}
+          />
         )}
       </div>
 

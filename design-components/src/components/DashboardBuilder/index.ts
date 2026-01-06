@@ -32,6 +32,9 @@ export type { TableWidgetProps } from './TableWidget';
 export { TableViewer } from './TableViewer';
 export type { TableViewerProps } from './TableViewer';
 
+export { DashboardGrid, Widget, WidgetLayout, useDashboardGridLayout } from './DashboardGrid';
+export type { DashboardGridProps, DashboardData, UseDashboardGridLayoutParams, WidgetProps, WidgetLayoutProps } from './DashboardGrid';
+
 export { BuildChat } from './BuildChat';
 export type { BuildChatProps } from './BuildChat';
 

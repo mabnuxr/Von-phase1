@@ -1,20 +1,41 @@
-import { ReactGridLayout } from "react-grid-layout";
+import GridLayout from "react-grid-layout";
 import type { LayoutItem } from "react-grid-layout";
 import type { DashboardGridProps } from "./types";
-import { useDashboardGridLayout } from "./useDashboardGridLayout";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ChartWidget } from "..";
+import { Widget } from "./Widget";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
 
-const DASHBOARD_GRID_CONFIG = {
-	cols: 12,
-	rowHeight: 30,
-	draggableHandle: ".widget-drag-handle",
-}
-
-const DashboardGrid = ({ fetchDashboardData, updateDashboardLayout, width }: DashboardGridProps) => {
+const DashboardGrid = ({
+	dashboardData,
+	loading,
+	onLayoutChange,
+	onWidgetEdit,
+	onWidgetExpand,
+	onWidgetDelete,
+	width
+}: DashboardGridProps) => {
 	const containerRef = useRef<HTMLDivElement>(null);
-  const { layout, widgetData, loading, onLayoutChange } = useDashboardGridLayout({ fetchDashboardData, updateDashboardLayout });
+	const [containerWidth, setContainerWidth] = useState(width || 1200);
+	const { layout, widgets } = dashboardData;
+
+	useEffect(() => {
+		if (width) {
+			setContainerWidth(width);
+			return;
+		}
+
+		const updateWidth = () => {
+			if (containerRef.current) {
+				setContainerWidth(containerRef.current.offsetWidth);
+			}
+		};
+
+		updateWidth();
+		window.addEventListener('resize', updateWidth);
+		return () => window.removeEventListener('resize', updateWidth);
+	}, [width]);
 
 	if (loading) {
 		return (
@@ -33,33 +54,47 @@ const DashboardGrid = ({ fetchDashboardData, updateDashboardLayout, width }: Das
 
 	return (
 		<motion.div
-			className="h-full"
-			style={{ width: width || '100%' }}
+			className="h-full w-full"
 			ref={containerRef}
 			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.4 }}
 		>
-			<ReactGridLayout
+			<GridLayout
 				className="layout"
 				layout={layout}
-				gridConfig={DASHBOARD_GRID_CONFIG}
+				cols={12}
+				rowHeight={30}
+				width={containerWidth}
 				onLayoutChange={onLayoutChange}
-				width={(width ?? containerRef.current?.offsetWidth) || 1200}
+				draggableHandle=".widget-drag-handle"
+				isResizable={true}
+				isDraggable={true}
+				margin={[16, 16]}
+				containerPadding={[0, 0]}
+				useCSSTransforms={true}
 			>
 				{layout.map((item: LayoutItem, index: number) => (
-					<motion.div
+					<div
 						key={item.i}
-						data-grid={item}
-						className="p-1"
-						initial={{ opacity: 0, y: 10 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ delay: index * 0.05 }}
+						className="h-full"
 					>
-						<ChartWidget widget={widgetData[item.i]}/>
-					</motion.div>
+						<motion.div
+							className="h-full"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: index * 0.05 }}
+						>
+							<Widget
+								widget={widgets[item.i]}
+								onEdit={onWidgetEdit ? () => onWidgetEdit(item.i) : undefined}
+								onExpand={onWidgetExpand ? () => onWidgetExpand(item.i) : undefined}
+								onDelete={onWidgetDelete ? () => onWidgetDelete(item.i) : undefined}
+							/>
+						</motion.div>
+					</div>
 				))}
-			</ReactGridLayout>
+			</GridLayout>
 		</motion.div>
 	)
 }
