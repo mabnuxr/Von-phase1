@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { Table } from 'rsuite';
 import type { SortType } from 'rsuite/esm/Table';
 import type { TableData, QueryInfo } from './types';
-import { isSalesforceUrl } from './utils/salesforceDeepLink';
 
 const { Column, HeaderCell, Cell } = Table;
 
@@ -119,18 +118,17 @@ function CellFormatter({
   // Strings
   const strValue = String(value);
 
-  // URLs - render as clickable links only when enableDeepLinks is true
-  if (enableDeepLinks && isUrl(strValue)) {
-    const isSfLink = isSalesforceUrl(strValue);
+  // URLs in deep_link column - render as "View in Salesforce" links
+  if (enableDeepLinks && columnName === 'deep_link' && isUrl(strValue)) {
     return (
       <a
         href={strValue}
         target="_blank"
         rel="noopener noreferrer"
         className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-        title={isSfLink ? 'Open in Salesforce' : strValue}
+        title="Open in Salesforce"
       >
-        {isSfLink ? 'View in Salesforce' : strValue}
+        View in Salesforce
       </a>
     );
   }
