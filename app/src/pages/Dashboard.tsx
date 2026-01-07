@@ -16,7 +16,7 @@ import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useFeatureFlag, useFeatureFlagValue } from "../hooks/useFeatureFlag";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -58,9 +58,8 @@ import {
   STREAM_TIMEOUT_MS,
 } from "../config/constants";
 
-const isChatV2 = true;
-
 const Dashboard = () => {
+  const isChatV2 = useFeatureFlagValue('sidebarV2');
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
