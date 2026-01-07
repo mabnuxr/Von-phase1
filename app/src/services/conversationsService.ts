@@ -6,6 +6,7 @@ import type {
   CreateConversationResponse,
   CreateMessageResponse,
 } from "../types/conversation";
+import type { ChatSidebarResponse } from "../types/chatSidebar";
 
 /**
  * Response type for artifact retrieval
@@ -116,6 +117,14 @@ class ConversationsService {
     return apiClient.post<{ success: boolean }>(
       `/api/v1/chat/conversations/${conversationId}/stop`,
     );
+  }
+
+  /**
+   * Fetch chat sidebar data with folders and unfiled conversations
+   * Used for ChatSidebarV2 component
+   */
+  async getChatSidebar(): Promise<ChatSidebarResponse> {
+    return apiClient.get<ChatSidebarResponse>(`/api/v1/chat/sidebar`);
   }
 }
 
