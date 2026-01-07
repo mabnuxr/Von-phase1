@@ -1,5 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useChatSidebar, chatSidebarKeys } from "./useChatSidebar";
+import { useCreateFolder } from "./useCreateFolder";
+import { useDeleteFolder } from "./useDeleteFolder";
+import { useRenameFolder } from "./useRenameFolder";
 import type {
   ChatFolder,
   SidebarConversation,
@@ -54,6 +57,18 @@ export interface UseChatSidebarV2Return {
   error: Error | null;
   /** Refetch sidebar data */
   refetch: () => void;
+  /** Create a new folder */
+  createFolder: (name: string) => void;
+  /** Whether folder creation is in progress */
+  isCreatingFolder: boolean;
+  /** Delete a folder by ID */
+  deleteFolder: (folderId: string) => void;
+  /** Whether folder deletion is in progress */
+  isDeletingFolder: boolean;
+  /** Rename a folder */
+  renameFolder: (folderId: string, newName: string) => void;
+  /** Whether folder renaming is in progress */
+  isRenamingFolder: boolean;
 }
 
 /**
@@ -77,6 +92,18 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     error,
     refetch,
   } = useChatSidebar();
+
+  // Folder creation mutation
+  const { mutate: createFolderMutation, isPending: isCreatingFolder } =
+    useCreateFolder();
+
+  // Folder deletion mutation
+  const { mutate: deleteFolderMutation, isPending: isDeletingFolder } =
+    useDeleteFolder();
+
+  // Folder rename mutation
+  const { mutate: renameFolderMutation, isPending: isRenamingFolder } =
+    useRenameFolder();
 
   // Transform folders to ChatSidebarV2 format
   const folders = useMemo(
@@ -102,6 +129,30 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   // Pagination info
   const pagination = sidebarData?.unfiled?.pagination ?? null;
 
+  // Stable callback for creating folders
+  const createFolder = useCallback(
+    (name: string) => {
+      createFolderMutation(name);
+    },
+    [createFolderMutation],
+  );
+
+  // Stable callback for deleting folders
+  const deleteFolder = useCallback(
+    (folderId: string) => {
+      deleteFolderMutation(folderId);
+    },
+    [deleteFolderMutation],
+  );
+
+  // Stable callback for renaming folders
+  const renameFolder = useCallback(
+    (folderId: string, newName: string) => {
+      renameFolderMutation({ folderId, name: newName });
+    },
+    [renameFolderMutation],
+  );
+
   return {
     folders,
     items,
@@ -111,6 +162,12 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     isError,
     error: error as Error | null,
     refetch,
+    createFolder,
+    isCreatingFolder,
+    deleteFolder,
+    isDeletingFolder,
+    renameFolder,
+    isRenamingFolder,
   };
 }
 

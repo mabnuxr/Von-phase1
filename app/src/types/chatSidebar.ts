@@ -53,3 +53,30 @@ export interface ChatSidebarResponse {
   folders: ChatFolder[];
   unfiled: UnfiledConversations;
 }
+
+// ============================================================================
+// Folder Mutation Types
+// ============================================================================
+
+/**
+ * Request body for creating a new folder
+ */
+export interface CreateFolderRequest {
+  name: string;
+}
+
+/**
+ * Response from create folder API
+ */
+export interface CreateFolderResponse {
+  id: string;
+  folderId: string;
+  name: string;
+  folderType: "chat" | "dashboard";
+  description: string | null;
+  maxItems: number;
+  itemCount: number;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+}

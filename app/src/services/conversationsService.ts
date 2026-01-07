@@ -6,7 +6,10 @@ import type {
   CreateConversationResponse,
   CreateMessageResponse,
 } from "../types/conversation";
-import type { ChatSidebarResponse } from "../types/chatSidebar";
+import type {
+  ChatSidebarResponse,
+  CreateFolderResponse,
+} from "../types/chatSidebar";
 
 /**
  * Response type for artifact retrieval
@@ -125,6 +128,29 @@ class ConversationsService {
    */
   async getChatSidebar(): Promise<ChatSidebarResponse> {
     return apiClient.get<ChatSidebarResponse>(`/api/v1/chat/sidebar`);
+  }
+
+  /**
+   * Create a new folder for organizing conversations
+   * Backend expects: { name: string }
+   */
+  async createFolder(name: string): Promise<CreateFolderResponse> {
+    return apiClient.post<CreateFolderResponse>(`/api/v1/folders`, { name });
+  }
+
+  /**
+   * Delete a folder by ID
+   */
+  async deleteFolder(folderId: string): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/folders/${folderId}`);
+  }
+
+  /**
+   * Rename a folder
+   * Backend expects: { name: string }
+   */
+  async renameFolder(folderId: string, name: string): Promise<void> {
+    return apiClient.patch<void>(`/api/v1/folders/${folderId}`, { name });
   }
 }
 

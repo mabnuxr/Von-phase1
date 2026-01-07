@@ -102,6 +102,9 @@ const Dashboard = () => {
     folders: sidebarV2Folders,
     items: sidebarV2Items,
     isLoading: isSidebarV2Loading,
+    createFolder,
+    deleteFolder,
+    renameFolder,
   } = useChatSidebarV2();
 
   // Infinite scroll hook for loading more conversations
@@ -726,6 +729,11 @@ const Dashboard = () => {
                 selectedItemId={currentConversationId || undefined}
                 onItemClick={(id: string) => handleChatClick(id)}
                 onNewChatClick={handleNewChatClick}
+                onNewChatFolderClick={() => createFolder("New Folder")}
+                onDeleteFolder={(folderId: string) => deleteFolder(folderId)}
+                onRenameFolder={(folderId: string, newName: string) =>
+                  renameFolder(folderId, newName)
+                }
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
                 loadMoreRef={loadMoreConversationsRef}
