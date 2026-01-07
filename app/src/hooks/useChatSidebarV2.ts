@@ -10,7 +10,6 @@ import { CONVERSATIONS_STALE_TIME } from "../config/constants";
 import type {
   SidebarConversation,
   SidebarPagination,
-  FolderConversationsResponse,
 } from "../types/chatSidebar";
 import type { Folder, SidebarItem } from "@vonlabs/design-components";
 
