@@ -8,6 +8,7 @@ import { StatisticsRenderer } from './StatisticsRenderer';
 import { TableListRenderer } from './TableListRenderer';
 import { ValuesRenderer } from './ValuesRenderer';
 import { MemoryResultRenderer } from './MemoryResultRenderer';
+import { CallSearchUnionRenderer } from './CallSearchUnionRenderer';
 import type { ToolResult } from './types';
 
 export interface ToolResultRendererProps {
@@ -90,6 +91,15 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({
     case 'memory':
       // Render memory operation results
       return <MemoryResultRenderer result={result} />;
+
+    case 'call_search_union':
+      // Render comprehensive call search results
+      return result.callSearchUnion ? (
+        <CallSearchUnionRenderer
+          result={result.callSearchUnion}
+          enableDeepLinks={enableDeepLinks}
+        />
+      ) : null;
 
     case 'json':
     default:
