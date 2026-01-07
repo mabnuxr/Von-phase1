@@ -59,7 +59,7 @@ import {
 } from "../config/constants";
 
 const Dashboard = () => {
-  const isChatV2 = useFeatureFlagValue('sidebarV2');
+  const isChatV2 = useFeatureFlagValue("sidebarV2");
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;

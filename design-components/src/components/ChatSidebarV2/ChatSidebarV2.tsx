@@ -25,7 +25,15 @@ import {
   SecondaryIconButton,
   TertiaryIconButton,
 } from '../forms/buttons';
-import { ProfilePopover, ContextMenu, DeleteConfirmationPopup, NewDashboardModal, type ContextMenuItem, type NewDashboardConfig, type SalesforceDashboard } from '../popups';
+import {
+  ProfilePopover,
+  ContextMenu,
+  DeleteConfirmationPopup,
+  NewDashboardModal,
+  type ContextMenuItem,
+  type NewDashboardConfig,
+  type SalesforceDashboard,
+} from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
 
 const VON_COMBINATION_MARK_URL =
@@ -247,7 +255,6 @@ export interface ChatSidebarProps {
 // Sub-components
 // ============================================================================
 
-
 // Context menu items for sidebar items
 const getContextMenuItems = (): ContextMenuItem[] => [
   { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
@@ -286,7 +293,9 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
         <span>{label}</span>
         <div className="flex items-center gap-1.5">
           {count !== undefined && (
-            <span className="pl-0.5 text-[11px] text-gray-700 font-mono normal-case -mb-0.5">[{count}]</span>
+            <span className="pl-0.5 text-[11px] text-gray-700 font-mono normal-case -mb-0.5">
+              [{count}]
+            </span>
           )}
           {isExpanded ? (
             <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
@@ -385,8 +394,8 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
       title={isEditing ? undefined : item.label}
     >
       {/* Icon - show type/ownership icon before the name */}
-      {showIcon && (
-        item.type === 'dashboard' ? (
+      {showIcon &&
+        (item.type === 'dashboard' ? (
           // Dashboard: show ownership icon (building for org-wide, users for shared by you, user for personal)
           <span
             className="flex-shrink-0"
@@ -394,8 +403,8 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
               item.ownership === 'shared'
                 ? `Shared by ${item.ownerName || 'someone'}`
                 : item.ownership === 'shared_by_me'
-                ? 'Shared by you'
-                : 'Private'
+                  ? 'Shared by you'
+                  : 'Private'
             }
           >
             {item.ownership === 'shared' ? (
@@ -408,13 +417,8 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
           </span>
         ) : (
           // Chat: show chat icon
-          <ChatTextIcon
-            size={16}
-            weight="regular"
-            className="text-gray-700 flex-shrink-0"
-          />
-        )
-      )}
+          <ChatTextIcon size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
+        ))}
 
       {isEditing ? (
         <input
@@ -552,7 +556,11 @@ const FolderSection: React.FC<FolderSectionProps> = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <FolderSimpleIcon size={16} weight="regular" className="text-gray-800 mb-[1px] flex-shrink-0" />
+          <FolderSimpleIcon
+            size={16}
+            weight="regular"
+            className="text-gray-800 mb-[1px] flex-shrink-0"
+          />
           {isFolderEditing ? (
             <input
               ref={inputRef}
@@ -567,7 +575,9 @@ const FolderSection: React.FC<FolderSectionProps> = ({
           ) : (
             <>
               <span className="text-left truncate">{folder.label}</span>
-              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">({items.length})</span>
+              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">
+                ({items.length})
+              </span>
             </>
           )}
         </div>
@@ -728,7 +738,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Profile popover state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ top?: number; bottom?: number; left?: number; right?: number }>({ bottom: 0, left: 0 });
+  const [popoverPosition, setPopoverPosition] = useState<{
+    top?: number;
+    bottom?: number;
+    left?: number;
+    right?: number;
+  }>({ bottom: 0, left: 0 });
 
   const handleAvatarClick = () => {
     if (avatarButtonRef.current) {
@@ -987,20 +1002,32 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                   item.ownership === 'shared'
                                     ? `Shared by ${item.ownerName || 'someone'}`
                                     : item.ownership === 'shared_by_me'
-                                    ? 'Shared by you'
-                                    : 'Private'
+                                      ? 'Shared by you'
+                                      : 'Private'
                                 }
                               >
                                 {item.ownership === 'shared' ? (
-                                  <BuildingOfficeIcon size={16} weight="regular" className="text-gray-800" />
+                                  <BuildingOfficeIcon
+                                    size={16}
+                                    weight="regular"
+                                    className="text-gray-800"
+                                  />
                                 ) : item.ownership === 'shared_by_me' ? (
                                   <UsersIcon size={16} weight="regular" className="text-gray-800" />
                                 ) : (
-                                  <UserSquareIcon size={16} weight="regular" className="text-gray-800" />
+                                  <UserSquareIcon
+                                    size={16}
+                                    weight="regular"
+                                    className="text-gray-800"
+                                  />
                                 )}
                               </span>
                             ) : (
-                              <ChatTextIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />
+                              <ChatTextIcon
+                                size={16}
+                                weight="regular"
+                                className="text-gray-800 flex-shrink-0"
+                              />
                             )}
                             <span className="truncate font-medium">{item.label}</span>
                           </div>
@@ -1131,150 +1158,160 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {isLoading && <ChatSidebarSkeleton />}
 
         {/* Chats Section (with folders inside) */}
-        {!isLoading && <div className="mb-1">
-          <SectionHeader
-            label="Chats"
-            isExpanded={isChatsExpanded}
-            onToggle={() => setIsChatsExpanded(!isChatsExpanded)}
-            onAdd={onNewChatFolderClick}
-            addButtonLabel="Add Folder"
-            count={totalChats}
-          />
-          <AnimatePresence>
-            {isChatsExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
-              >
-                {/* Chat Folders */}
-                {chatFolders.map((folder) => {
-                  const folderItemsList = itemsByFolder[folder.id] || [];
-                  const isFolderLoading = folderLoadingMap[folder.id] || false;
-                  if (folderItemsList.length === 0 && searchValue && !isFolderLoading) return null;
+        {!isLoading && (
+          <div className="mb-1">
+            <SectionHeader
+              label="Chats"
+              isExpanded={isChatsExpanded}
+              onToggle={() => setIsChatsExpanded(!isChatsExpanded)}
+              onAdd={onNewChatFolderClick}
+              addButtonLabel="Add Folder"
+              count={totalChats}
+            />
+            <AnimatePresence>
+              {isChatsExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
+                >
+                  {/* Chat Folders */}
+                  {chatFolders.map((folder) => {
+                    const folderItemsList = itemsByFolder[folder.id] || [];
+                    const isFolderLoading = folderLoadingMap[folder.id] || false;
+                    if (folderItemsList.length === 0 && searchValue && !isFolderLoading)
+                      return null;
 
-                  return (
-                    <FolderSection
-                      key={folder.id}
-                      folder={folder}
-                      items={folderItemsList}
-                      selectedItemId={selectedItemId}
-                      menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                      editingItemId={editingItemId}
-                      isFolderEditing={editingFolderId === folder.id}
-                      isFolderMenuOpen={folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id}
-                      isLoading={isFolderLoading}
-                      onItemClick={(id, type) => onItemClick?.(id, type)}
-                      onItemContextMenu={handleContextMenu}
-                      onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
-                      onSaveEdit={handleSaveRename}
+                    return (
+                      <FolderSection
+                        key={folder.id}
+                        folder={folder}
+                        items={folderItemsList}
+                        selectedItemId={selectedItemId}
+                        menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
+                        editingItemId={editingItemId}
+                        isFolderEditing={editingFolderId === folder.id}
+                        isFolderMenuOpen={
+                          folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
+                        }
+                        isLoading={isFolderLoading}
+                        onItemClick={(id, type) => onItemClick?.(id, type)}
+                        onItemContextMenu={handleContextMenu}
+                        onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
+                        onSaveEdit={handleSaveRename}
+                        onCancelEdit={handleCancelRename}
+                        onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
+                        onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
+                        onCancelFolderEdit={handleCancelFolderRename}
+                      />
+                    );
+                  })}
+                  {/* Root Chats (not in folders) */}
+                  {rootChats.map((item) => (
+                    <SidebarItemRow
+                      key={item.id}
+                      item={item}
+                      isSelected={item.id === selectedItemId}
+                      onClick={() => onItemClick?.(item.id, item.type)}
+                      onContextMenu={(e) => handleContextMenu(e, item)}
+                      showIcon={false}
+                      isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                      isEditing={editingItemId === item.id}
+                      onSaveEdit={(newName) => handleSaveRename(item, newName)}
                       onCancelEdit={handleCancelRename}
-                      onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                      onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
-                      onCancelFolderEdit={handleCancelFolderRename}
                     />
-                  );
-                })}
-                {/* Root Chats (not in folders) */}
-                {rootChats.map((item) => (
-                  <SidebarItemRow
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedItemId}
-                    onClick={() => onItemClick?.(item.id, item.type)}
-                    onContextMenu={(e) => handleContextMenu(e, item)}
-                    showIcon={false}
-                    isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                    isEditing={editingItemId === item.id}
-                    onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                    onCancelEdit={handleCancelRename}
-                  />
-                ))}
-                {/* Empty state for chats */}
-                {totalChats === 0 && !searchValue && (
-                  <div className="py-3 text-center">
-                    <p className="text-[12px] text-gray-400">No chats yet</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>}
+                  ))}
+                  {/* Empty state for chats */}
+                  {totalChats === 0 && !searchValue && (
+                    <div className="py-3 text-center">
+                      <p className="text-[12px] text-gray-400">No chats yet</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* Dashboards Section (with folders inside) */}
-        {!isLoading && <div className="mb-1">
-          <SectionHeader
-            label="Dashboards"
-            isExpanded={isDashboardsExpanded}
-            onToggle={() => setIsDashboardsExpanded(!isDashboardsExpanded)}
-            onAdd={onNewDashboardFolderClick}
-            addButtonLabel="Add Folder"
-            count={totalDashboards}
-          />
-          <AnimatePresence>
-            {isDashboardsExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
-              >
-                {/* Dashboard Folders */}
-                {dashboardFolders.map((folder) => {
-                  const folderItemsList = itemsByFolder[folder.id] || [];
-                  const isFolderLoading = folderLoadingMap[folder.id] || false;
-                  if (folderItemsList.length === 0 && searchValue && !isFolderLoading) return null;
+        {!isLoading && (
+          <div className="mb-1">
+            <SectionHeader
+              label="Dashboards"
+              isExpanded={isDashboardsExpanded}
+              onToggle={() => setIsDashboardsExpanded(!isDashboardsExpanded)}
+              onAdd={onNewDashboardFolderClick}
+              addButtonLabel="Add Folder"
+              count={totalDashboards}
+            />
+            <AnimatePresence>
+              {isDashboardsExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
+                >
+                  {/* Dashboard Folders */}
+                  {dashboardFolders.map((folder) => {
+                    const folderItemsList = itemsByFolder[folder.id] || [];
+                    const isFolderLoading = folderLoadingMap[folder.id] || false;
+                    if (folderItemsList.length === 0 && searchValue && !isFolderLoading)
+                      return null;
 
-                  return (
-                    <FolderSection
-                      key={folder.id}
-                      folder={folder}
-                      items={folderItemsList}
-                      selectedItemId={selectedItemId}
-                      menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                      editingItemId={editingItemId}
-                      isFolderEditing={editingFolderId === folder.id}
-                      isFolderMenuOpen={folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id}
-                      isLoading={isFolderLoading}
-                      onItemClick={(id, type) => onItemClick?.(id, type)}
-                      onItemContextMenu={handleContextMenu}
-                      onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
-                      onSaveEdit={handleSaveRename}
+                    return (
+                      <FolderSection
+                        key={folder.id}
+                        folder={folder}
+                        items={folderItemsList}
+                        selectedItemId={selectedItemId}
+                        menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
+                        editingItemId={editingItemId}
+                        isFolderEditing={editingFolderId === folder.id}
+                        isFolderMenuOpen={
+                          folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
+                        }
+                        isLoading={isFolderLoading}
+                        onItemClick={(id, type) => onItemClick?.(id, type)}
+                        onItemContextMenu={handleContextMenu}
+                        onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
+                        onSaveEdit={handleSaveRename}
+                        onCancelEdit={handleCancelRename}
+                        onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
+                        onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
+                        onCancelFolderEdit={handleCancelFolderRename}
+                      />
+                    );
+                  })}
+                  {/* Root Dashboards (not in folders) */}
+                  {rootDashboards.map((item) => (
+                    <SidebarItemRow
+                      key={item.id}
+                      item={item}
+                      isSelected={item.id === selectedItemId}
+                      onClick={() => onItemClick?.(item.id, item.type)}
+                      onContextMenu={(e) => handleContextMenu(e, item)}
+                      showIcon={true}
+                      isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                      isEditing={editingItemId === item.id}
+                      onSaveEdit={(newName) => handleSaveRename(item, newName)}
                       onCancelEdit={handleCancelRename}
-                      onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                      onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
-                      onCancelFolderEdit={handleCancelFolderRename}
                     />
-                  );
-                })}
-                {/* Root Dashboards (not in folders) */}
-                {rootDashboards.map((item) => (
-                  <SidebarItemRow
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedItemId}
-                    onClick={() => onItemClick?.(item.id, item.type)}
-                    onContextMenu={(e) => handleContextMenu(e, item)}
-                    showIcon={true}
-                    isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                    isEditing={editingItemId === item.id}
-                    onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                    onCancelEdit={handleCancelRename}
-                  />
-                ))}
-                {/* Empty state for dashboards */}
-                {totalDashboards === 0 && !searchValue && (
-                  <div className="py-3 text-center">
-                    <p className="text-[12px] text-gray-400">No dashboards yet</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>}
+                  ))}
+                  {/* Empty state for dashboards */}
+                  {totalDashboards === 0 && !searchValue && (
+                    <div className="py-3 text-center">
+                      <p className="text-[12px] text-gray-400">No dashboards yet</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         {/* Empty state */}
         {!isLoading && filteredItems.length === 0 && folders.length === 0 && (
@@ -1301,10 +1338,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
             onClick={onLoadMore}
           >
-            <motion.div
-              animate={{ y: [0, 2, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            >
+            <motion.div animate={{ y: [0, 2, 0] }} transition={{ duration: 1, repeat: Infinity }}>
               <CaretDownIcon size={12} weight="bold" />
             </motion.div>
             Load more
@@ -1355,9 +1389,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               {userName && (
                 <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
               )}
-              {userEmail && (
-                <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>
-              )}
+              {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
             </div>
             {/* Chevron */}
             <CaretUpDownIcon size={14} className="text-gray-400 flex-shrink-0" />
