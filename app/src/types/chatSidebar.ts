@@ -80,3 +80,46 @@ export interface CreateFolderResponse {
   createdBy: string;
   updatedAt: string;
 }
+
+// ============================================================================
+// Folder Conversations Types
+// ============================================================================
+
+/**
+ * Detailed folder info from folder conversations API
+ */
+export interface FolderDetail {
+  id: string;
+  folderId: string;
+  name: string;
+  folderType: "chat" | "dashboard";
+  description: string | null;
+  maxItems: number;
+  itemCount: number;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+}
+
+/**
+ * Conversation within a folder
+ */
+export interface FolderConversation {
+  id: string;
+  conversationId: string;
+  userId: string;
+  tenantId: string;
+  title: string;
+  folderId: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+}
+
+/**
+ * Response from GET /api/v1/folders/{folder_id}/conversations
+ */
+export interface FolderConversationsResponse {
+  folder: FolderDetail;
+  conversations: FolderConversation[];
+}

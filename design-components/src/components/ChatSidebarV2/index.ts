@@ -5,4 +5,6 @@ export type {
   Folder,
   ItemType,
   OwnershipType,
+  FolderItemsMap,
+  FolderLoadingMap,
 } from './ChatSidebarV2';

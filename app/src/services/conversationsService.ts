@@ -9,6 +9,7 @@ import type {
 import type {
   ChatSidebarResponse,
   CreateFolderResponse,
+  FolderConversationsResponse,
 } from "../types/chatSidebar";
 
 /**
@@ -151,6 +152,18 @@ class ConversationsService {
    */
   async renameFolder(folderId: string, name: string): Promise<void> {
     return apiClient.patch<void>(`/api/v1/folders/${folderId}`, { name });
+  }
+
+  /**
+   * Fetch conversations within a folder
+   * Returns folder details and list of conversations
+   */
+  async getFolderConversations(
+    folderId: string,
+  ): Promise<FolderConversationsResponse> {
+    return apiClient.get<FolderConversationsResponse>(
+      `/api/v1/folders/${folderId}/conversations`,
+    );
   }
 }
 

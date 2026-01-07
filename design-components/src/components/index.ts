@@ -189,6 +189,8 @@ export type {
   Folder,
   ItemType,
   OwnershipType,
+  FolderItemsMap,
+  FolderLoadingMap,
 } from './ChatSidebarV2';
 
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
