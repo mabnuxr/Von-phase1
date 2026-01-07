@@ -125,6 +125,12 @@ export interface ChatInputProps {
    * Callback when mode changes
    */
   onModeChange?: (mode: BuildMode) => void;
+
+  /**
+   * Auto-focus the input on mount
+   * @default false
+   */
+  autoFocus?: boolean;
 }
 
 /**
@@ -149,6 +155,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   showModeToggle = false,
   mode = 'ask',
   onModeChange,
+  autoFocus = false,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -361,6 +368,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
+                  autoFocus={autoFocus}
                   className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
                   style={{
                     minHeight: '20px',

@@ -295,6 +295,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             value={inputValue}
             onChange={handleInputChange}
             hideDisclaimer
+            autoFocus
           />
         ) : (
           <ChatInput
@@ -313,6 +314,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             showModeToggle={showModeToggle}
             mode={mode}
             onModeChange={onModeChange}
+            autoFocus
           />
         )}
       </motion.div>
