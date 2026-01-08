@@ -447,7 +447,7 @@ export function getUserLevelIntegrations(): IntegrationMetadata[] {
  */
 export function getIntegrationDescription(
   integrationId: string,
-  isPersonal: boolean
+  isPersonal: boolean,
 ): string {
   const integration = INTEGRATION_METADATA[integrationId];
   if (!integration) return "";
