@@ -297,13 +297,13 @@ export const Chat: React.FC<ChatProps> = ({
 
         {/* Invisible div for auto-scroll to bottom */}
         <div ref={messagesEndRef} className="h-px" />
-      </div>
 
-      {/* Scroll to bottom button */}
-      <ScrollToBottomButton
-        visible={showScrollButton && messages.length > 0}
-        onClick={() => scrollToBottom('smooth')}
-      />
+        {/* Scroll to bottom button - inside scroll container with sticky positioning */}
+        <ScrollToBottomButton
+          visible={showScrollButton && messages.length > 0}
+          onClick={() => scrollToBottom('smooth')}
+        />
+      </div>
 
       {/* Banner above input (if provided) - only show when there are messages */}
       {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
