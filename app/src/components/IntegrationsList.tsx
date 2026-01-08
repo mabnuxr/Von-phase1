@@ -181,12 +181,11 @@ function IntegrationItem({
   // Case 1: Not connected at all - show as available
   // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
   if (!isConnected) {
-    // Show Workspace chip for org-level integrations to help users understand the access level
-    const availableChips: Array<"workspace" | "personal"> = canBeOrgLevel(
-      item.id,
-    )
-      ? ["workspace"]
-      : [];
+    // Show access level chips for available integrations
+    // Some integrations (like Salesforce) support both levels
+    const availableChips: Array<"workspace" | "personal"> = [];
+    if (canBeOrgLevel(item.id)) availableChips.push("workspace");
+    if (canBeUserLevel(item.id)) availableChips.push("personal");
 
     return (
       <IntegrationCard
@@ -299,13 +298,21 @@ function IntegrationItem({
           instanceUrl={instanceUrl}
           onDelete={
             workspacePerms?.delete
-              ? () => onDelete(workspace.id, "workspace")
+              ? () =>
+                  onDelete(
+                    workspace.id,
+                    isOwner && canConnectPersonal ? "both" : "workspace",
+                  )
               : undefined
           }
           canDelete={workspacePerms?.delete ?? false}
           disabled={!!workspaceIsLoading}
           loadingText={workspaceIsLoading ? "Authenticating" : undefined}
-          deleteTooltip="Removes workspace connection"
+          deleteTooltip={
+            isOwner && canConnectPersonal
+              ? "Removes both workspace and personal connections"
+              : "Removes workspace connection"
+          }
         />
         {canConnectPersonal && !isOwner && (
           <div className="pl-[72px] pr-4 py-[5px] bg-white border-t border-gray-100 flex items-center">
