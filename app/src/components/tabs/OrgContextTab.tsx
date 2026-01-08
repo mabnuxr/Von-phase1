@@ -1,11 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  PencilSimpleIcon,
-  BrainIcon,
-  TrashIcon,
-  InfoIcon,
-  LockKeyIcon,
-} from "@phosphor-icons/react";
+import { PencilSimpleIcon, BrainIcon, TrashIcon } from "@phosphor-icons/react";
 import { ConfirmationModal } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import {
@@ -18,6 +12,7 @@ import { OrgContextDocumentList } from "../OrgContextDocumentList";
 import { MemoryContextPane } from "../MemoryContextPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
+import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { ApiError } from "../../services/apiClient";
 
 export function OrgContextTab() {
@@ -34,23 +29,104 @@ export function OrgContextTab() {
   // Toast notifications
   const { showToast } = useToast();
 
+  // Feature flags
+  const { isUserMemoryEnabled } = useFeatureFlag();
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const prevPageRef = useRef(currentPage);
 
-  // Fetch memory contexts with pagination
+  // Fetch org memory contexts with pagination
   const { data, isLoading, error } = useMemoryContexts(
     "tenant",
     currentPage,
     20,
   );
+
+  // Fetch user memory (only when feature flag is enabled)
+  const {
+    data: userMemoryData,
+    isLoading: isUserMemoryLoading,
+    refetch: refetchUserMemory,
+  } = useMemoryContexts("user", 1, 1, { enabled: isUserMemoryEnabled });
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
 
+  // Refresh user memory on mount to reflect updates made via chat
+  useEffect(() => {
+    if (isUserMemoryEnabled) {
+      refetchUserMemory();
+    }
+  }, [isUserMemoryEnabled, refetchUserMemory]);
+
+  // Auto-create user memory if feature is enabled but no user memory exists
+  const [isCreatingUserMemory, setIsCreatingUserMemory] = useState(false);
+  const hasAttemptedUserMemoryCreation = useRef(false);
+
+  useEffect(() => {
+    const shouldCreateUserMemory =
+      isUserMemoryEnabled &&
+      !isUserMemoryLoading &&
+      userMemoryData?.data?.length === 0 &&
+      !isCreatingUserMemory &&
+      !hasAttemptedUserMemoryCreation.current;
+
+    if (shouldCreateUserMemory) {
+      hasAttemptedUserMemoryCreation.current = true;
+      setIsCreatingUserMemory(true);
+
+      createMutation
+        .mutateAsync({
+          key: "User Memory",
+          description:
+            "Personal context and preferences that apply only to your conversations",
+          value: "",
+          accessLevel: "user",
+        })
+        .then(() => {
+          console.log("[OrgContextTab] User memory created successfully");
+          refetchUserMemory();
+        })
+        .catch((error) => {
+          console.error("[OrgContextTab] Failed to create user memory:", error);
+        })
+        .finally(() => {
+          setIsCreatingUserMemory(false);
+        });
+    }
+  }, [
+    isUserMemoryEnabled,
+    isUserMemoryLoading,
+    userMemoryData?.data?.length,
+    isCreatingUserMemory,
+    createMutation,
+    refetchUserMemory,
+  ]);
+
   // Extract contexts and pagination info (memoized to prevent useEffect loop)
   const contexts = useMemo(() => data?.data || [], [data?.data]);
   const pagination = data?.pagination;
+
+  // Extract user memory (single item or null)
+  const userMemory = useMemo(
+    () => (isUserMemoryEnabled ? userMemoryData?.data?.[0] || null : null),
+    [userMemoryData?.data, isUserMemoryEnabled],
+  );
+
+  // Combined loading state
+  const isAnyLoading =
+    isLoading ||
+    (isUserMemoryEnabled && (isUserMemoryLoading || isCreatingUserMemory));
+
+  // Debug logging
+  console.log("[OrgContextTab] Debug:", {
+    isUserMemoryEnabled,
+    userMemoryData,
+    userMemory,
+    isUserMemoryLoading,
+    isCreatingUserMemory,
+  });
 
   // Auto-select first context when data loads or page changes
   useEffect(() => {
@@ -82,10 +158,11 @@ export function OrgContextTab() {
     }
   }, [contexts.length, currentPage, isLoading, pagination?.totalPages]);
 
-  // Get selected context
-  const selectedContext = contexts.find(
-    (ctx: MemoryContext) => ctx.id === selectedContextId,
-  );
+  // Get selected context (search both user memory and org contexts)
+  const selectedContext = useMemo(() => {
+    if (selectedContextId === userMemory?.id) return userMemory;
+    return contexts.find((ctx: MemoryContext) => ctx.id === selectedContextId);
+  }, [selectedContextId, userMemory, contexts]);
 
   // Handle context selection - just select, don't open pane
   const handleSelectContext = (id: string) => {
@@ -144,8 +221,11 @@ export function OrgContextTab() {
           value: data.value,
         };
 
-        // Only include key if not a default context
-        if (!selectedContext?.isDefault) {
+        // Only include key if not a default context or user memory
+        if (
+          !selectedContext?.isDefault &&
+          selectedContext?.accessLevel !== "user"
+        ) {
           updateData.key = data.key;
         }
 
@@ -237,15 +317,7 @@ export function OrgContextTab() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Org Memory</h2>
-          <div className="flex flex-row items-center gap-2">
-            <div className="flex-shrink-0">
-              <InfoIcon size={20} className="text-indigo-600" />
-            </div>
-            <span className="mt-[2px] ml-auto text-xs font-medium text-indigo-600">
-              User memory coming soon
-            </span>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-800">Memory</h2>
         </div>
 
         <div className="flex items-center mt-0.5">
@@ -266,7 +338,7 @@ export function OrgContextTab() {
         )}
 
         {/* Empty state */}
-        {!isLoading && contexts.length === 0 && (
+        {!isAnyLoading && contexts.length === 0 && !userMemory && (
           <div className="flex flex-col items-center justify-center h-full">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
               <BrainIcon
@@ -291,17 +363,19 @@ export function OrgContextTab() {
         )}
 
         {/* Two Column Layout */}
-        {(isLoading || contexts.length > 0) && (
+        {(isAnyLoading || contexts.length > 0 || userMemory) && (
           <div className="mt-2 w-[75%] mx-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 h-full overflow-hidden">
             <div className="flex h-full">
               {/* Left Panel - Context List */}
               <div className="w-60 border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0 flex flex-col">
                 <OrgContextDocumentList
                   contexts={contexts}
+                  userMemory={userMemory}
+                  isUserMemoryEnabled={isUserMemoryEnabled}
                   selectedContextId={selectedContextId}
                   onSelectContext={handleSelectContext}
                   onCreateClick={handleCreateClick}
-                  isLoading={isLoading}
+                  isLoading={isAnyLoading}
                   currentPage={pagination?.page || 1}
                   totalPages={pagination?.totalPages || 1}
                   onPageChange={setCurrentPage}
@@ -328,13 +402,16 @@ export function OrgContextTab() {
                           onClick={handleDeleteClick}
                           disabled={
                             deleteMutation.isPending ||
-                            selectedContext?.isDefault
+                            selectedContext?.isDefault ||
+                            selectedContext?.accessLevel === "user"
                           }
                           className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title={
                             selectedContext?.isDefault
                               ? "Cannot delete default context"
-                              : "Delete"
+                              : selectedContext?.accessLevel === "user"
+                                ? "Cannot delete user memory"
+                                : "Delete"
                           }
                         >
                           <TrashIcon size={16} weight="regular" />
@@ -348,21 +425,6 @@ export function OrgContextTab() {
                 <div className="flex-1 overflow-y-auto settings-scrollbar p-5">
                   {selectedContext ? (
                     <div className="flex flex-col gap-5 h-full">
-                      {/* Default Context Indicator */}
-                      {selectedContext.isDefault && (
-                        <div className="bg-indigo-50/60 rounded-xl p-3 border border-indigo-100">
-                          <div className="flex items-center gap-2">
-                            <LockKeyIcon
-                              size={16}
-                              className="text-indigo-600"
-                            />
-                            <span className="text-xs font-medium text-indigo-700">
-                              Default Memory
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Description */}
                       <div className="bg-gray-50/60 rounded-xl p-4">
                         <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
