@@ -63,7 +63,7 @@ export function IntegrationsPanel() {
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
       )
       .map((i: { id: string }) => i.id) || [];
 
@@ -80,7 +80,7 @@ export function IntegrationsPanel() {
 
   // Track timeout warnings that have been shown
   const [shownTimeoutWarnings, setShownTimeoutWarnings] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Confirmation modal state (for delete and disable)
@@ -138,9 +138,9 @@ export function IntegrationsPanel() {
           ownerLastName: integration.ownerLastName,
           authenticationStatus: integration.authenticationStatus,
           isConfigured: integration.isConfigured,
-        })
+        }),
       ) || [],
-    [integrationsData]
+    [integrationsData],
   );
 
   const handleModalConfirm = () => {
@@ -198,7 +198,7 @@ export function IntegrationsPanel() {
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. Please try again.`
+            `Authentication for ${integration.name} timed out. Please try again.`,
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
           // Delete the integration so user can start fresh (avoids "record already exists" error)
@@ -219,7 +219,7 @@ export function IntegrationsPanel() {
   useEffect(() => {
     if (loadingIntegrationId) {
       const integration = integrationsData?.integrations.find(
-        (i: { id: string }) => i.id === loadingIntegrationId
+        (i: { id: string }) => i.id === loadingIntegrationId,
       );
       if (
         integration?.authenticationStatus === AuthenticationStatus.AUTHENTICATED

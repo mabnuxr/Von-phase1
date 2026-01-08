@@ -2016,7 +2016,7 @@ interface PreferencesState {
   // Tab state for defaults panel
   defaultsActiveTab: "email-categorization" | "process-configuration";
   setDefaultsActiveTab: (
-    tab: "email-categorization" | "process-configuration"
+    tab: "email-categorization" | "process-configuration",
   ) => void;
 
   // Tab state for fields panel
@@ -2049,7 +2049,7 @@ interface PreferencesState {
   editingFieldType: "salesforce" | "voniq" | null;
   setEditingField: (
     id: string | null,
-    fieldType?: "salesforce" | "voniq"
+    fieldType?: "salesforce" | "voniq",
   ) => void;
 
   // Salesforce Field management methods
@@ -2061,25 +2061,25 @@ interface PreferencesState {
   toggleVonIQFieldEnabled: (fieldId: string) => void;
   updateVonIQFieldCustomization: (
     fieldId: string,
-    updates: Partial<VonIQFieldCustomization>
+    updates: Partial<VonIQFieldCustomization>,
   ) => void;
   addUserDefinedVonIQField: (field: VonIQField) => void;
   updateUserDefinedVonIQField: (
     id: string,
-    updates: Partial<VonIQField>
+    updates: Partial<VonIQField>,
   ) => void;
   deleteUserDefinedVonIQField: (id: string) => void;
 
   // Email categorization settings
   emailCategorization: EmailCategorizationSettings;
   updateEmailCategorization: (
-    settings: Partial<EmailCategorizationSettings>
+    settings: Partial<EmailCategorizationSettings>,
   ) => void;
   addFilterCondition: (condition: FilterCondition) => void;
   removeFilterCondition: (id: string) => void;
   updateFilterCondition: (
     id: string,
-    updates: Partial<FilterCondition>
+    updates: Partial<FilterCondition>,
   ) => void;
   addFilterGroup: (group: FilterGroup) => void;
   removeFilterGroup: (groupId: string) => void;
@@ -2088,18 +2088,18 @@ interface PreferencesState {
   updateConditionInGroup: (
     groupId: string,
     conditionId: string,
-    updates: Partial<FilterCondition>
+    updates: Partial<FilterCondition>,
   ) => void;
   updateFilterGroup: (groupId: string, updates: Partial<FilterGroup>) => void;
   updateGroupInternalOperator: (
     groupId: string,
-    operator: "AND" | "OR"
+    operator: "AND" | "OR",
   ) => void;
 
   // Process configuration settings
   processConfiguration: ProcessConfigurationSettings;
   updateProcessConfiguration: (
-    settings: Partial<ProcessConfigurationSettings>
+    settings: Partial<ProcessConfigurationSettings>,
   ) => void;
   addBusinessStage: (stage: BusinessStage) => void;
   removeBusinessStage: (stage: BusinessStage) => void;
@@ -2200,14 +2200,14 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   updateField: (id, updates) =>
     set((state) => ({
       salesforceFields: state.salesforceFields.map((field) =>
-        field.id === id ? { ...field, ...updates } : field
+        field.id === id ? { ...field, ...updates } : field,
       ),
     })),
 
   deleteField: (id) =>
     set((state) => ({
       salesforceFields: state.salesforceFields.filter(
-        (field) => field.id !== id
+        (field) => field.id !== id,
       ),
     })),
 
@@ -2215,14 +2215,14 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   toggleVonIQFieldEnabled: (fieldId) =>
     set((state) => {
       const existingCustomization = state.voniqFieldCustomizations.find(
-        (c) => c.fieldId === fieldId
+        (c) => c.fieldId === fieldId,
       );
 
       if (existingCustomization) {
         // Toggle existing customization
         return {
           voniqFieldCustomizations: state.voniqFieldCustomizations.map((c) =>
-            c.fieldId === fieldId ? { ...c, enabled: !c.enabled } : c
+            c.fieldId === fieldId ? { ...c, enabled: !c.enabled } : c,
           ),
         };
       } else {
@@ -2239,13 +2239,13 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   updateVonIQFieldCustomization: (fieldId, updates) =>
     set((state) => {
       const existingCustomization = state.voniqFieldCustomizations.find(
-        (c) => c.fieldId === fieldId
+        (c) => c.fieldId === fieldId,
       );
 
       if (existingCustomization) {
         return {
           voniqFieldCustomizations: state.voniqFieldCustomizations.map((c) =>
-            c.fieldId === fieldId ? { ...c, ...updates } : c
+            c.fieldId === fieldId ? { ...c, ...updates } : c,
           ),
         };
       } else {
@@ -2266,14 +2266,14 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   updateUserDefinedVonIQField: (id, updates) =>
     set((state) => ({
       userDefinedVonIQFields: state.userDefinedVonIQFields.map((field) =>
-        field.id === id ? { ...field, ...updates } : field
+        field.id === id ? { ...field, ...updates } : field,
       ),
     })),
 
   deleteUserDefinedVonIQField: (id) =>
     set((state) => ({
       userDefinedVonIQFields: state.userDefinedVonIQFields.filter(
-        (field) => field.id !== id
+        (field) => field.id !== id,
       ),
     })),
 
@@ -2312,7 +2312,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       emailCategorization: {
         ...state.emailCategorization,
         filterConditions: state.emailCategorization.filterConditions.filter(
-          (c) => c.id !== id
+          (c) => c.id !== id,
         ),
       },
     })),
@@ -2322,7 +2322,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       emailCategorization: {
         ...state.emailCategorization,
         filterConditions: state.emailCategorization.filterConditions.map((c) =>
-          c.id === id ? { ...c, ...updates } : c
+          c.id === id ? { ...c, ...updates } : c,
         ),
       },
     })),
@@ -2343,7 +2343,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       emailCategorization: {
         ...state.emailCategorization,
         filterGroups: (state.emailCategorization.filterGroups || []).filter(
-          (g) => g.id !== groupId
+          (g) => g.id !== groupId,
         ),
       },
     })),
@@ -2355,7 +2355,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
         filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
           g.id === groupId
             ? { ...g, conditions: [...g.conditions, condition] }
-            : g
+            : g,
         ),
       },
     })),
@@ -2370,7 +2370,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
                 ...g,
                 conditions: g.conditions.filter((c) => c.id !== conditionId),
               }
-            : g
+            : g,
         ),
       },
     })),
@@ -2384,10 +2384,10 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
             ? {
                 ...g,
                 conditions: g.conditions.map((c) =>
-                  c.id === conditionId ? { ...c, ...updates } : c
+                  c.id === conditionId ? { ...c, ...updates } : c,
                 ),
               }
-            : g
+            : g,
         ),
       },
     })),
@@ -2397,7 +2397,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       emailCategorization: {
         ...state.emailCategorization,
         filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId ? { ...g, ...updates } : g
+          g.id === groupId ? { ...g, ...updates } : g,
         ),
       },
     })),
@@ -2407,7 +2407,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       emailCategorization: {
         ...state.emailCategorization,
         filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId ? { ...g, internalLogicalOperator: operator } : g
+          g.id === groupId ? { ...g, internalLogicalOperator: operator } : g,
         ),
       },
     })),
@@ -2447,7 +2447,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       processConfiguration: {
         ...state.processConfiguration,
         businessStages: state.processConfiguration.businessStages.filter(
-          (s) => s !== stage
+          (s) => s !== stage,
         ),
       },
     })),
@@ -2465,7 +2465,7 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       processConfiguration: {
         ...state.processConfiguration,
         customerStages: state.processConfiguration.customerStages.filter(
-          (s) => s !== stage
+          (s) => s !== stage,
         ),
       },
     })),

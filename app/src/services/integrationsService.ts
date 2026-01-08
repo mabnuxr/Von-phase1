@@ -114,7 +114,7 @@ export interface Integration {
  * Transform backend integration to frontend format
  */
 function transformIntegration(
-  backendIntegration: IntegrationBackendResponse
+  backendIntegration: IntegrationBackendResponse,
 ): Integration {
   return {
     id: backendIntegration.id,
@@ -165,7 +165,7 @@ export class IntegrationsService {
    */
   async getIntegrations(
     activeOnly = false,
-    configuredOnly = false
+    configuredOnly = false,
   ): Promise<{
     integrations: Integration[];
     total: number;
@@ -207,7 +207,7 @@ export class IntegrationsService {
    */
   async getIntegrationById(integrationId: string): Promise<Integration> {
     const response = await apiClient.get<IntegrationBackendResponse>(
-      `/api/v1/integrations/${integrationId}`
+      `/api/v1/integrations/${integrationId}`,
     );
     return transformIntegration(response);
   }
@@ -400,7 +400,7 @@ export class IntegrationsService {
         username: data.username,
         password: data.password,
         api_key: data.apiKey,
-      }
+      },
     );
     return transformIntegration(response);
   }
@@ -438,7 +438,7 @@ export class IntegrationsService {
       username?: string;
       password?: string;
       apiKey?: string;
-    }
+    },
   ): Promise<Integration> {
     const response = await apiClient.patch<IntegrationBackendResponse>(
       `/api/v1/integrations/${integrationId}`,
@@ -451,7 +451,7 @@ export class IntegrationsService {
         username: data.username,
         password: data.password,
         api_key: data.apiKey,
-      }
+      },
     );
     return transformIntegration(response);
   }
