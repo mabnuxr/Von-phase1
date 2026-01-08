@@ -365,7 +365,8 @@ export interface ToolResult {
     | 'schema'
     | 'table_list'
     | 'statistics'
-    | 'memory';
+    | 'memory'
+    | 'call_search_union';
   table?: TableData;
   queries?: QueryInfo[];
   metrics?: MetricData[];
@@ -374,6 +375,7 @@ export interface ToolResult {
   tables?: string[];
   statistics?: StatisticsData;
   memory?: MemoryResultData;
+  callSearchUnion?: CallSearchUnionResult;
   error?: string;
 }
 
@@ -385,6 +387,177 @@ export interface MemoryResultData {
   char_count?: number;
   appended?: boolean;
   error?: string;
+}
+
+/**
+ * Call Search Union Types
+ * Used for comprehensive call search with multiple matching strategies
+ */
+
+/**
+ * Match source types for call search union queries
+ * Each represents a different search strategy used to find calls
+ */
+export type CallMatchSource =
+  | 'crm_account' // Direct match on crm_object_id = account_id
+  | 'crm_opportunity' // Match on crm_object_id = opportunity_id
+  | 'crm_contact' // Match on crm_object_id = contact_id
+  | 'email_external' // Match by external speaker email
+  | 'email_internal' // Match by internal speaker email
+  | 'email_domain' // Match by email domain
+  | 'company_name' // Match by company name in external_speaker_companies
+  | 'name_fuzzy' // Fuzzy match on speaker names or call title
+  | 'job_title' // Match by speaker job titles
+  | 'keyword' // Match in keywords/topics/action_items
+  | 'topic' // Match in topics array
+  | 'content'; // Match in title/description/summary
+
+/**
+ * Individual call result with match metadata
+ */
+export interface CallSearchResult {
+  /** Unique call identifier from provider */
+  call_id: string;
+  /** Internal conversation ID */
+  conversation_id?: string;
+  /** Call title/subject */
+  call_title: string;
+  /** AI-generated summary (may be truncated) */
+  summary?: string;
+  /** Call start time (ISO format) */
+  call_date: string;
+  /** Duration in minutes */
+  duration_minutes?: number;
+  /** External speaker names (comma-separated or array) */
+  external_speakers?: string | string[];
+  /** Internal speaker names (comma-separated or array) */
+  internal_speakers?: string | string[];
+  /** External speaker companies */
+  external_companies?: string[];
+  /** Topics discussed */
+  topics?: string[];
+  /** Keywords from the call */
+  keywords?: string[];
+  /** Call provider (gong, fathom, etc.) */
+  provider?: string;
+  /** Deep link to view call recording */
+  deep_link?: string;
+  /** Meeting URL */
+  meeting_url?: string;
+  /** Engagement score (0-100) */
+  engagement_score?: number;
+
+  /** Match metadata for visualization */
+  match_info: {
+    /** Which strategy found this result */
+    source: CallMatchSource;
+    /** Priority (1=highest, higher numbers=lower priority) */
+    priority: number;
+    /** Confidence score (0-1) */
+    confidence: number;
+    /** Human-readable explanation of how match was found */
+    match_reason: string;
+    /** The specific value that matched (e.g., email, company name) */
+    matched_value?: string;
+  };
+}
+
+/**
+ * Union query component for display
+ */
+export interface UnionQueryComponent {
+  /** Human-readable label for this query part */
+  label: string;
+  /** The actual SQL query executed */
+  query: string;
+  /** Which match source this query targets */
+  source: CallMatchSource;
+  /** Number of results from this specific query (before dedup) */
+  result_count: number;
+}
+
+/**
+ * Deduplication info for merged results
+ */
+export interface DeduplicationInfo {
+  /** Total calls before deduplication */
+  total_raw_count: number;
+  /** Total calls after deduplication */
+  deduplicated_count: number;
+  /** Number of duplicates merged */
+  duplicates_merged: number;
+  /** Details of which calls were merged (optional) */
+  merge_details?: Array<{
+    primary_call_id: string;
+    merged_from_sources: CallMatchSource[];
+  }>;
+}
+
+/**
+ * Search parameters used for the query
+ */
+export interface CallSearchParams {
+  /** CRM object IDs used */
+  account_id?: string;
+  opportunity_id?: string;
+  contact_id?: string;
+  /** Direct search parameters */
+  emails?: string[];
+  person_names?: string[];
+  company_names?: string[];
+  domains?: string[];
+  job_titles?: string[];
+  keywords?: string[];
+  topics?: string[];
+  content?: string;
+  /** Filters applied */
+  date_from?: string;
+  date_to?: string;
+  providers?: string[];
+  call_outcome?: string;
+  min_engagement_score?: number;
+  /** Whether CRM resolution was attempted */
+  crm_resolved?: boolean;
+}
+
+/**
+ * Complete union query result for call search
+ */
+export interface CallSearchUnionResult {
+  /** Result type identifier */
+  type: 'call_search_union';
+
+  /** Unified results after deduplication, sorted by relevance */
+  results: CallSearchResult[];
+
+  /** Results grouped by match source for visualization */
+  results_by_source: Partial<Record<CallMatchSource, CallSearchResult[]>>;
+
+  /** Union query components for display */
+  union_query: {
+    /** Combined query (for debugging/transparency) */
+    combined_sql: string;
+    /** Individual components of the union */
+    components: UnionQueryComponent[];
+    /** Total execution time in milliseconds */
+    execution_time_ms: number;
+  };
+
+  /** Deduplication information */
+  deduplication: DeduplicationInfo;
+
+  /** Search parameters used */
+  search_params: CallSearchParams;
+
+  /** Summary statistics */
+  summary: {
+    total_results: number;
+    by_source_counts: Partial<Record<CallMatchSource, number>>;
+    time_range?: {
+      earliest: string;
+      latest: string;
+    };
+  };
 }
 
 export interface ColumnMetadata {

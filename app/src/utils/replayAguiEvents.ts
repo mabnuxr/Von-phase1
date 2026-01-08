@@ -104,6 +104,15 @@ function parseToolResult(resultJson: any): ToolResult | null {
       };
     }
 
+    // Detect call search union results (comprehensive call search)
+    if (resultJson.type === "call_search_union" && resultJson.results) {
+      return {
+        raw: resultJson,
+        type: "call_search_union",
+        callSearchUnion: resultJson,
+      };
+    }
+
     // Detect query information
     if (resultJson.queries && Array.isArray(resultJson.queries)) {
       return {

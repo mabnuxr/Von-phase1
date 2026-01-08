@@ -71,6 +71,9 @@ export type { ToolResultRendererProps } from './ToolResultRenderer';
 
 export { MemoryResultRenderer } from './MemoryResultRenderer';
 
+export { CallSearchUnionRenderer } from './CallSearchUnionRenderer';
+export type { CallSearchUnionRendererProps } from './CallSearchUnionRenderer';
+
 export { ToolCallBlock } from './ToolCallBlock';
 export type { ToolCallBlockProps } from './ToolCallBlock';
 
@@ -124,6 +127,13 @@ export type {
   // Google Calendar approval types
   GoogleCalendarOperation,
   GoogleCalendarApprovalToolArgs,
+  // Call Search Union types
+  CallMatchSource,
+  CallSearchResult,
+  CallSearchUnionResult,
+  UnionQueryComponent,
+  DeduplicationInfo,
+  CallSearchParams,
 } from './types';
 
 // Export approval utility functions
