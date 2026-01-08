@@ -154,8 +154,12 @@ const Dashboard = () => {
   } = useSalesforceConnection();
 
   // Feature flags
-  const { isSlashCommandsEnabled, isActionsEnabled, isDeepLinksEnabled, isChatV2 } =
-    useFeatureFlag();
+  const {
+    isSlashCommandsEnabled,
+    isActionsEnabled,
+    isDeepLinksEnabled,
+    isChatV2,
+  } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
   // Only provide URL when deep links feature flag is enabled

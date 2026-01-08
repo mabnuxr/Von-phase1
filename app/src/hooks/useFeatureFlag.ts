@@ -10,7 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   SIMPLIFIED_INTEGRATIONS: "enableSimplifiedIntegrations",
   DEEP_LINKS: "enableDeepLinks",
-  SIDE_BAR_V2: "sidebarV2"
+  SIDE_BAR_V2: "sidebarV2",
 } as const;
 
 /**
