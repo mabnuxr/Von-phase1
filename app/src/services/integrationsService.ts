@@ -28,6 +28,19 @@ export type IntegrationStatus =
   (typeof IntegrationStatus)[keyof typeof IntegrationStatus];
 
 /**
+ * Authentication status constants matching backend
+ */
+export const AuthenticationStatus = {
+  NOT_AUTHENTICATED: "NOT_AUTHENTICATED",
+  AUTHENTICATING: "AUTHENTICATING",
+  AUTHENTICATED: "AUTHENTICATED",
+  AUTHENTICATION_FAILED: "AUTHENTICATION_FAILED",
+} as const;
+
+export type AuthenticationStatus =
+  (typeof AuthenticationStatus)[keyof typeof AuthenticationStatus];
+
+/**
  * Backend integration response (snake_case)
  */
 export interface IntegrationBackendResponse {
