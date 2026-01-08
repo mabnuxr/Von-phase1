@@ -171,7 +171,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onFileError,
   referenceContext,
   onRemoveReference,
-  showFormattingToolbar = true,
+  showFormattingToolbar = false,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
