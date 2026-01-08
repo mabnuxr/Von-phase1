@@ -22,6 +22,10 @@ import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../../popups';
 import type { StandardChatInputProps, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
+import { TiptapEditor } from './TiptapEditor';
+import { EditorToolbar } from './EditorToolbar';
+import type { Editor } from '@tiptap/react';
+import './TiptapEditor.css';
 
 /**
  * Get icon for reference type
@@ -167,12 +171,13 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onFileError,
   referenceContext,
   onRemoveReference,
+  showFormattingToolbar = true,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isResearchTagHovered, setIsResearchTagHovered] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<Editor | null>(null);
 
   // File upload hook for uncontrolled mode
   const {
@@ -205,14 +210,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const isControlled = value !== undefined;
   const message = isControlled ? value : internalMessage;
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-    }
-  }, [message]);
-
   const handleChange = useCallback(
     (newValue: string) => {
       if (isControlled) {
@@ -227,7 +224,11 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const handleSend = useCallback(() => {
     if (disableSubmit) return;
 
-    const messageToSend = message.trim();
+    // Extract plain text from HTML content for sending
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = message;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    const messageToSend = plainText.trim();
     const hasContent = messageToSend || hasAttachments;
 
     if (hasContent && onSend) {
@@ -240,8 +241,9 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       if (!isAttachmentsControlled) {
         clearFiles();
       }
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      // Clear the editor
+      if (editorRef.current) {
+        editorRef.current.commands.clearContent();
       }
     }
   }, [
@@ -256,17 +258,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     clearFiles,
   ]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (!isStreaming && !disableSubmit) {
-          handleSend();
-        }
-      }
-    },
-    [isStreaming, disableSubmit, handleSend]
-  );
+  // handleKeyDown is now managed by TiptapEditor
 
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -364,24 +356,22 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
               </div>
             )}
 
-            {/* Text input area */}
+            {/* Text input area - Tiptap Editor */}
             <div className="px-4 py-3">
-              <textarea
-                ref={textareaRef}
-                value={message}
-                onChange={(e) => handleChange(e.target.value)}
-                onKeyDown={handleKeyDown}
+              <TiptapEditor
+                content={message}
+                onChange={handleChange}
+                onSubmit={handleSend}
                 placeholder={placeholder}
                 disabled={disabled && !isStreaming}
-                className="w-full resize-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
-                style={{
-                  minHeight: '24px',
-                  maxHeight: '200px',
-                  lineHeight: '1.5',
-                }}
-                rows={1}
+                editorRef={editorRef}
               />
             </div>
+
+            {/* Formatting toolbar - Slack-style */}
+            {showFormattingToolbar && editorRef.current && (
+              <EditorToolbar editor={editorRef.current} />
+            )}
 
             {/* Bottom toolbar */}
             <div className="flex items-center justify-between px-3 pb-3">

@@ -116,4 +116,10 @@ export interface StandardChatInputProps {
    * Callback when the reference is removed
    */
   onRemoveReference?: () => void;
+
+  /**
+   * Show formatting toolbar for rich text editing
+   * @default true
+   */
+  showFormattingToolbar?: boolean;
 }

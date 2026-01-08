@@ -1,0 +1,229 @@
+/* Tiptap Editor Styles - Slack-like appearance */
+
+.tiptap-editor-wrapper {
+  position: relative;
+  min-height: 24px;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.5;
+  cursor: text;
+}
+
+.tiptap-editor-wrapper .ProseMirror {
+  outline: none;
+  font-size: 15px;
+  color: #111827;
+  min-height: 24px;
+  max-height: 200px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Placeholder styling */
+.tiptap-editor-wrapper .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Headings */
+.tiptap-editor-wrapper .ProseMirror h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin: 0.5em 0;
+}
+
+.tiptap-editor-wrapper .ProseMirror h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 0.5em 0;
+}
+
+.tiptap-editor-wrapper .ProseMirror h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.5em 0;
+}
+
+/* Paragraphs */
+.tiptap-editor-wrapper .ProseMirror p {
+  margin: 0;
+  padding: 0;
+}
+
+.tiptap-editor-wrapper .ProseMirror p + p {
+  margin-top: 0.5em;
+}
+
+/* Bold, Italic, Underline, Strike */
+.tiptap-editor-wrapper .ProseMirror strong {
+  font-weight: 700;
+}
+
+.tiptap-editor-wrapper .ProseMirror em {
+  font-style: italic;
+}
+
+.tiptap-editor-wrapper .ProseMirror u {
+  text-decoration: underline;
+}
+
+.tiptap-editor-wrapper .ProseMirror s {
+  text-decoration: line-through;
+}
+
+/* Inline code - Slack style */
+.tiptap-editor-wrapper .ProseMirror code.inline-code {
+  background-color: #f3f4f6;
+  color: #dc2626;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  border: 1px solid #e5e7eb;
+}
+
+/* Code blocks - Slack style */
+.tiptap-editor-wrapper .ProseMirror pre.code-block {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.tiptap-editor-wrapper .ProseMirror pre.code-block code {
+  background: none;
+  color: #1f2937;
+  padding: 0;
+  font-size: inherit;
+  border: none;
+}
+
+/* Blockquotes */
+.tiptap-editor-wrapper .ProseMirror blockquote.blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Links */
+.tiptap-editor-wrapper .ProseMirror a.editor-link {
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tiptap-editor-wrapper .ProseMirror a.editor-link:hover {
+  color: #1d4ed8;
+}
+
+/* Lists */
+.tiptap-editor-wrapper .ProseMirror ul.bullet-list,
+.tiptap-editor-wrapper .ProseMirror ol.ordered-list {
+  padding-left: 1.5em;
+  margin: 8px 0;
+}
+
+.tiptap-editor-wrapper .ProseMirror ul.bullet-list {
+  list-style-type: disc;
+}
+
+.tiptap-editor-wrapper .ProseMirror ol.ordered-list {
+  list-style-type: decimal;
+}
+
+.tiptap-editor-wrapper .ProseMirror li.list-item {
+  margin: 2px 0;
+}
+
+/* Nested lists */
+.tiptap-editor-wrapper .ProseMirror ul ul {
+  list-style-type: circle;
+  margin-top: 4px;
+}
+
+.tiptap-editor-wrapper .ProseMirror ul ul ul {
+  list-style-type: square;
+}
+
+/* Task lists - Slack style checkboxes */
+.tiptap-editor-wrapper .ProseMirror ul.task-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+}
+
+.tiptap-editor-wrapper .ProseMirror li.task-item {
+  display: flex;
+  align-items: flex-start;
+  margin: 4px 0;
+}
+
+.tiptap-editor-wrapper .ProseMirror li.task-item > label {
+  flex: 0 0 auto;
+  margin-right: 8px;
+  user-select: none;
+}
+
+.tiptap-editor-wrapper .ProseMirror li.task-item > label input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0 0;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+}
+
+.tiptap-editor-wrapper .ProseMirror li.task-item > div {
+  flex: 1 1 auto;
+}
+
+/* Horizontal rule */
+.tiptap-editor-wrapper .ProseMirror hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 12px 0;
+}
+
+/* Selection styling */
+.tiptap-editor-wrapper .ProseMirror ::selection {
+  background-color: rgba(37, 99, 235, 0.2);
+}
+
+/* Focus styling */
+.tiptap-editor-wrapper .ProseMirror:focus {
+  outline: none;
+}
+
+/* Scrollbar styling to match design */
+.tiptap-editor-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tiptap-editor-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tiptap-editor-wrapper::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.tiptap-editor-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Ensure proper spacing at the end of editor */
+.tiptap-editor-wrapper .ProseMirror > *:last-child {
+  margin-bottom: 0;
+}

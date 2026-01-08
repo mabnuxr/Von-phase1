@@ -357,3 +357,86 @@ export const Controlled: Story = {
     );
   },
 };
+
+// ============================================================================
+// Rich Text Editor with Formatting
+// ============================================================================
+
+/**
+ * Rich Text Formatting
+ *
+ * Demonstrates the Tiptap rich text editor with Slack-like formatting options:
+ * - Bold, italic, strikethrough, underline
+ * - Inline code and code blocks
+ * - Links (auto-detected)
+ * - Bulleted and numbered lists
+ * - Task lists with checkboxes
+ * - Blockquotes
+ * - Headings
+ * - Markdown paste support
+ *
+ * Try pasting markdown content or using keyboard shortcuts:
+ * - Cmd/Ctrl+B for bold
+ * - Cmd/Ctrl+I for italic
+ * - Cmd/Ctrl+E for inline code
+ * - Enter for submit, Shift+Enter for new line
+ */
+export const RichTextFormatting: Story = {
+  render: () => {
+    const [mode, setMode] = useState<BuildMode>('ask');
+
+    return (
+      <div className="space-y-4">
+        <StandardChatInput
+          placeholder="Try formatting your text or pasting markdown..."
+          mode={mode}
+          onModeChange={setMode}
+          onVoiceInput={() => console.log('Voice input clicked')}
+          onSend={(message, attachments) => {
+            console.log('Send:', message, attachments);
+          }}
+          showFormattingToolbar={true}
+        />
+        <div className="bg-gray-50 rounded-lg p-4 text-xs text-gray-600 max-w-3xl mx-auto">
+          <div className="font-semibold mb-2">Try these features:</div>
+          <ul className="space-y-1 list-disc list-inside">
+            <li>Use the formatting toolbar to style your text</li>
+            <li>Press Cmd/Ctrl+B for <strong>bold</strong>, Cmd/Ctrl+I for <em>italic</em></li>
+            <li>Paste markdown content and it will be automatically formatted</li>
+            <li>Create lists, add links, and use code blocks</li>
+            <li>Press Enter to send, Shift+Enter for new line</li>
+          </ul>
+        </div>
+      </div>
+    );
+  },
+};
+
+// ============================================================================
+// Without Formatting Toolbar
+// ============================================================================
+
+/**
+ * Without Formatting Toolbar
+ *
+ * Shows the rich text editor without the formatting toolbar.
+ * Keyboard shortcuts and markdown paste still work.
+ */
+export const WithoutFormattingToolbar: Story = {
+  render: () => {
+    const [mode, setMode] = useState<BuildMode>('ask');
+
+    return (
+      <StandardChatInput
+        placeholder="Type a message (formatting toolbar hidden)..."
+        mode={mode}
+        onModeChange={setMode}
+        onVoiceInput={() => console.log('Voice input clicked')}
+        onSend={(message) => {
+          console.log('Send:', message);
+        }}
+        showFormattingToolbar={false}
+      />
+    );
+  },
+};
