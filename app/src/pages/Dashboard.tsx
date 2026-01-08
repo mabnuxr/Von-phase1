@@ -24,6 +24,7 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
+import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import {
   transformMessagesToChatFormat,
   transformConversationsToChatItems,
@@ -44,6 +45,7 @@ import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
   TopBar,
   ChatSidebar,
+  ChatSidebarV2,
   Chat,
   ChatSkeleton,
   Banner,
@@ -85,13 +87,26 @@ const Dashboard = () => {
     string | null
   >(null);
 
-  // Fetch conversations with infinite scroll for sidebar
+  // Fetch conversations with infinite scroll for sidebar (V1)
   const {
     data: infiniteConversationsData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteConversations(CONVERSATIONS_PAGE_LIMIT);
+
+  // Fetch sidebar data with folders (V2)
+  const {
+    folders: sidebarV2Folders,
+    items: sidebarV2Items,
+    folderItems: sidebarV2FolderItems,
+    folderLoadingMap: sidebarV2FolderLoadingMap,
+    isLoading: isSidebarV2Loading,
+    createFolder,
+    deleteFolder,
+    renameFolder,
+    toggleFolderExpanded,
+  } = useChatSidebarV2();
 
   // Infinite scroll hook for loading more conversations
   const loadMoreConversationsRef = useInfiniteScroll({
@@ -139,8 +154,12 @@ const Dashboard = () => {
   } = useSalesforceConnection();
 
   // Feature flags
-  const { isSlashCommandsEnabled, isActionsEnabled, isDeepLinksEnabled } =
-    useFeatureFlag();
+  const {
+    isSlashCommandsEnabled,
+    isActionsEnabled,
+    isDeepLinksEnabled,
+    isChatV2,
+  } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
   // Only provide URL when deep links feature flag is enabled
@@ -708,23 +727,54 @@ const Dashboard = () => {
             className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
             style={{ width: isSidebarCollapsed ? "64px" : "240px" }}
           >
-            <ChatSidebar
-              chatItems={chatItems}
-              selectedChatId={currentConversationId || undefined}
-              onChatClick={handleChatClick}
-              searchPlaceholder="Search conversations..."
-              isCollapsed={isSidebarCollapsed}
-              onToggleCollapse={toggleSidebar}
-              loadMoreRef={loadMoreConversationsRef}
-              isFetchingMore={isFetchingNextPage}
-              hasNextPage={!!hasNextPage}
-              onLoadMore={() => fetchNextPage()}
-              avatarSrc={avatarSrc}
-              avatarLabel={avatarLabel}
-              userName={displayName}
-              userEmail={user?.email}
-              onAvatarClick={handleAvatarClick}
-            />
+            {isChatV2 ? (
+              <ChatSidebarV2
+                items={sidebarV2Items}
+                folders={sidebarV2Folders}
+                folderItems={sidebarV2FolderItems}
+                folderLoadingMap={sidebarV2FolderLoadingMap}
+                isLoading={isSidebarV2Loading}
+                selectedItemId={currentConversationId || undefined}
+                onItemClick={(id: string) => handleChatClick(id)}
+                onNewChatClick={handleNewChatClick}
+                onNewChatFolderClick={() => createFolder("New Folder")}
+                onDeleteFolder={(folderId: string) => deleteFolder(folderId)}
+                onRenameFolder={(folderId: string, newName: string) =>
+                  renameFolder(folderId, newName)
+                }
+                onFolderToggle={(folderId: string) =>
+                  toggleFolderExpanded(folderId)
+                }
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={toggleSidebar}
+                loadMoreRef={loadMoreConversationsRef}
+                isFetchingMore={isFetchingNextPage}
+                avatarSrc={avatarSrc}
+                avatarLabel={avatarLabel}
+                userName={displayName}
+                userEmail={user?.email}
+                onSignOutClick={handleLogoutClick}
+                onSettingsClick={handleSettingsClick}
+              />
+            ) : (
+              <ChatSidebar
+                chatItems={chatItems}
+                selectedChatId={currentConversationId || undefined}
+                onChatClick={handleChatClick}
+                searchPlaceholder="Search conversations..."
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={toggleSidebar}
+                loadMoreRef={loadMoreConversationsRef}
+                isFetchingMore={isFetchingNextPage}
+                hasNextPage={!!hasNextPage}
+                onLoadMore={() => fetchNextPage()}
+                avatarSrc={avatarSrc}
+                avatarLabel={avatarLabel}
+                userName={displayName}
+                userEmail={user?.email}
+                onAvatarClick={handleAvatarClick}
+              />
+            )}
           </div>
 
           {/* Dashboard Canvas - appears when converting message to dashboard */}

@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   SIMPLIFIED_INTEGRATIONS: "enableSimplifiedIntegrations",
   DEEP_LINKS: "enableDeepLinks",
+  SIDE_BAR_V2: "sidebarV2",
 } as const;
 
 /**
@@ -67,6 +68,11 @@ export function useFeatureFlag() {
      * (clickable record names in approval cards and query results)
      */
     isDeepLinksEnabled: flags[FEATURE_FLAGS.DEEP_LINKS] === true,
+
+    /**
+     * Controls if we need to show new chat UI experience
+     */
+    isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
 
     /**
      * Raw flags object for advanced usage

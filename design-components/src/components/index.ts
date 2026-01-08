@@ -181,6 +181,18 @@ export type { TopBarProps, Tab } from './TopBar';
 export { ChatSidebar } from './ChatSidebar';
 export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
 
+// ChatSidebarV2 Organism (uses: Folders + Search + List, supports folder organization)
+export { ChatSidebar as ChatSidebarV2 } from './ChatSidebarV2';
+export type {
+  ChatSidebarProps as ChatSidebarV2Props,
+  SidebarItem,
+  Folder,
+  ItemType,
+  OwnershipType,
+  FolderItemsMap,
+  FolderLoadingMap,
+} from './ChatSidebarV2';
+
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
