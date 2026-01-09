@@ -5,23 +5,12 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import ListItem from '@tiptap/extension-list-item';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Markdown } from 'tiptap-markdown';
 import type { TiptapEditorProps } from './types';
-
-// Custom ListItem extension with Shift+Enter to create new list item
-const CustomListItem = ListItem.extend({
-  addKeyboardShortcuts() {
-    return {
-      'Shift-Enter': () => this.editor.commands.splitListItem(this.name),
-      Tab: () => this.editor.commands.sinkListItem(this.name),
-      'Shift-Tab': () => this.editor.commands.liftListItem(this.name),
-    };
-  },
-});
+import { CustomListItem } from './extensions';
 
 /**
  * TiptapEditor - A rich text editor with Slack-like functionality
@@ -127,7 +116,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       attributes: {
         class: 'tiptap-editor',
       },
-      handleKeyDown: (_view, event) => {
+      handleKeyDown: (view, event) => {
         // Handle Enter key for submission (Shift+Enter is handled by CustomListItem extension)
         if (event.key === 'Enter' && !event.shiftKey && onSubmit) {
           event.preventDefault();
@@ -136,6 +125,30 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           }
           return true;
         }
+
+        // Handle Shift+Enter outside of lists - create new paragraph instead of hard break
+        // This allows markdown input rules (like "- " for bullets) to work on the new line
+        if (event.key === 'Enter' && event.shiftKey) {
+          const { $from } = view.state.selection;
+          // Check if we're inside a list item
+          let isInList = false;
+          for (let d = $from.depth; d > 0; d--) {
+            if ($from.node(d).type.name === 'listItem') {
+              isInList = true;
+              break;
+            }
+          }
+          // If not in a list, create a new paragraph instead of hard break
+          if (!isInList) {
+            event.preventDefault();
+            // Split the current block to create a new paragraph
+            const { tr } = view.state;
+            const split = tr.split($from.pos);
+            view.dispatch(split);
+            return true;
+          }
+        }
+
         return false;
       },
     },
@@ -167,16 +180,23 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     }
   }, [disabled, editor]);
 
-  const focusEditor = useCallback(() => {
-    editor?.commands.focus('end');
-  }, [editor]);
+  const handleWrapperClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Only focus editor if clicking on the wrapper itself, not on the editor content
+      // This prevents interfering with text selection (double-click to select word)
+      if (e.target === e.currentTarget) {
+        editor?.commands.focus('end');
+      }
+    },
+    [editor]
+  );
 
   if (!editor) {
     return null;
   }
 
   return (
-    <div className="tiptap-editor-wrapper w-full" onClick={focusEditor}>
+    <div className="tiptap-editor-wrapper w-full" onClick={handleWrapperClick}>
       <EditorContent editor={editor} />
     </div>
   );
