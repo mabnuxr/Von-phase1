@@ -128,7 +128,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
         onClose={onClose}
         items={items}
         anchorRef={containerRef}
-        position="top-start"
+        position="bottom-start"
         width={208}
         onItemClick={handleItemClick}
       />

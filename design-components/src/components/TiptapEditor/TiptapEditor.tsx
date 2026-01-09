@@ -5,11 +5,23 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
+import ListItem from '@tiptap/extension-list-item';
 import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Markdown } from 'tiptap-markdown';
 import type { TiptapEditorProps } from './types';
+
+// Custom ListItem extension with Shift+Enter to create new list item
+const CustomListItem = ListItem.extend({
+  addKeyboardShortcuts() {
+    return {
+      'Shift-Enter': () => this.editor.commands.splitListItem(this.name),
+      Tab: () => this.editor.commands.sinkListItem(this.name),
+      'Shift-Tab': () => this.editor.commands.liftListItem(this.name),
+    };
+  },
+});
 
 /**
  * TiptapEditor - A rich text editor with Slack-like functionality
@@ -64,10 +76,12 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
             class: 'ordered-list',
           },
         },
-        listItem: {
-          HTMLAttributes: {
-            class: 'list-item',
-          },
+        // Disable default listItem to use our custom one with Shift+Enter support
+        listItem: false,
+      }),
+      CustomListItem.configure({
+        HTMLAttributes: {
+          class: 'list-item',
         },
       }),
       Underline,
@@ -114,7 +128,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         class: 'tiptap-editor',
       },
       handleKeyDown: (_view, event) => {
-        // Handle Enter key for submission
+        // Handle Enter key for submission (Shift+Enter is handled by CustomListItem extension)
         if (event.key === 'Enter' && !event.shiftKey && onSubmit) {
           event.preventDefault();
           if (!disabled) {
