@@ -176,10 +176,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   }
 
   return (
-    <div
-      className="tiptap-editor-wrapper w-full"
-      onClick={focusEditor}
-    >
+    <div className="tiptap-editor-wrapper w-full" onClick={focusEditor}>
       <EditorContent editor={editor} />
     </div>
   );

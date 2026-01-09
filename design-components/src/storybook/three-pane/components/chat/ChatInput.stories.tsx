@@ -401,7 +401,9 @@ export const RichTextFormatting: Story = {
           <div className="font-semibold mb-2">Try these features:</div>
           <ul className="space-y-1 list-disc list-inside">
             <li>Use the formatting toolbar to style your text</li>
-            <li>Press Cmd/Ctrl+B for <strong>bold</strong>, Cmd/Ctrl+I for <em>italic</em></li>
+            <li>
+              Press Cmd/Ctrl+B for <strong>bold</strong>, Cmd/Ctrl+I for <em>italic</em>
+            </li>
             <li>Paste markdown content and it will be automatically formatted</li>
             <li>Create lists, add links, and use code blocks</li>
             <li>Press Enter to send, Shift+Enter for new line</li>

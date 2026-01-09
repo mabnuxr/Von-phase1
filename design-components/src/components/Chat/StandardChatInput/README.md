@@ -9,7 +9,7 @@ The `StandardChatInput` component now includes a powerful Tiptap-based rich text
 The editor supports the following formatting options:
 
 - **Bold** (Cmd/Ctrl+B)
-- *Italic* (Cmd/Ctrl+I)
+- _Italic_ (Cmd/Ctrl+I)
 - ~~Strikethrough~~
 - <u>Underline</u>
 - `Inline code` (Cmd/Ctrl+E)
@@ -27,10 +27,10 @@ The editor automatically converts pasted markdown content into formatted text. Y
 
 **Example:** Copy and paste this markdown content:
 
-```markdown
+````markdown
 # Project Overview
 
-This is a **bold statement** and this is *italic text*.
+This is a **bold statement** and this is _italic text_.
 
 ## Features
 
@@ -45,14 +45,14 @@ Here's some `inline code` and a code block:
 
 \```javascript
 function hello() {
-  console.log("Hello, world!");
+console.log("Hello, world!");
 }
 \```
 
 > This is a blockquote with **formatting**.
 
 [Check out this link](https://example.com)
-```
+````
 
 ### Keyboard Shortcuts
 
@@ -134,18 +134,18 @@ function ControlledExample() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `showFormattingToolbar` | `boolean` | `true` | Show/hide the formatting toolbar |
-| `placeholder` | `string` | `'Type a message...'` | Placeholder text |
-| `onSend` | `(message: string, attachments?: FileAttachment[]) => void` | - | Called when message is sent |
-| `value` | `string` | - | Controlled value (HTML) |
-| `onChange` | `(value: string) => void` | - | Called when content changes (HTML) |
-| `disabled` | `boolean` | `false` | Disable the input |
-| `onVoiceInput` | `() => void` | - | Voice input callback |
-| `isRecording` | `boolean` | `false` | Voice recording state |
-| `attachments` | `FileAttachment[]` | - | File attachments |
-| `onRemoveAttachment` | `(id: string) => void` | - | Remove attachment callback |
+| Prop                    | Type                                                        | Default               | Description                        |
+| ----------------------- | ----------------------------------------------------------- | --------------------- | ---------------------------------- |
+| `showFormattingToolbar` | `boolean`                                                   | `true`                | Show/hide the formatting toolbar   |
+| `placeholder`           | `string`                                                    | `'Type a message...'` | Placeholder text                   |
+| `onSend`                | `(message: string, attachments?: FileAttachment[]) => void` | -                     | Called when message is sent        |
+| `value`                 | `string`                                                    | -                     | Controlled value (HTML)            |
+| `onChange`              | `(value: string) => void`                                   | -                     | Called when content changes (HTML) |
+| `disabled`              | `boolean`                                                   | `false`               | Disable the input                  |
+| `onVoiceInput`          | `() => void`                                                | -                     | Voice input callback               |
+| `isRecording`           | `boolean`                                                   | `false`               | Voice recording state              |
+| `attachments`           | `FileAttachment[]`                                          | -                     | File attachments                   |
+| `onRemoveAttachment`    | `(id: string) => void`                                      | -                     | Remove attachment callback         |
 
 See [types.ts](./types.ts) for the complete API documentation.
 
