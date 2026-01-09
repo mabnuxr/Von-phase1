@@ -1,5 +1,4 @@
 import React from 'react';
-import type { Editor } from '@tiptap/react';
 import {
   TextB,
   TextItalic,
@@ -10,10 +9,7 @@ import {
   ListNumbers,
   Quotes,
 } from '@phosphor-icons/react';
-
-interface EditorToolbarProps {
-  editor: Editor | null;
-}
+import type { EditorToolbarProps } from './types';
 
 /**
  * EditorToolbar - Formatting toolbar for Tiptap editor (Slack-style)

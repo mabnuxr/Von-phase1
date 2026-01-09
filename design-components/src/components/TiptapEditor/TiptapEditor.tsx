@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
@@ -9,15 +9,7 @@ import Underline from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Markdown } from 'tiptap-markdown';
-
-interface TiptapEditorProps {
-  content: string;
-  onChange: (content: string) => void;
-  onSubmit: () => void;
-  placeholder?: string;
-  disabled?: boolean;
-  editorRef?: React.RefObject<Editor | null>;
-}
+import type { TiptapEditorProps } from './types';
 
 /**
  * TiptapEditor - A rich text editor with Slack-like functionality
@@ -123,7 +115,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       },
       handleKeyDown: (_view, event) => {
         // Handle Enter key for submission
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if (event.key === 'Enter' && !event.shiftKey && onSubmit) {
           event.preventDefault();
           if (!disabled) {
             onSubmit();

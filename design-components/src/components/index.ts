@@ -234,3 +234,9 @@ export type {
 // ============================================================================
 export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
+
+// ============================================================================
+// TIPTAP EDITOR (Standalone rich text editor)
+// ============================================================================
+export { TiptapEditor, EditorToolbar } from './TiptapEditor';
+export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';

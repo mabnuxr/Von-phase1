@@ -22,10 +22,8 @@ import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../../popups';
 import type { StandardChatInputProps, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
-import { TiptapEditor } from './TiptapEditor';
-import { EditorToolbar } from './EditorToolbar';
+import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
-import './TiptapEditor.css';
 
 /**
  * Get icon for reference type
