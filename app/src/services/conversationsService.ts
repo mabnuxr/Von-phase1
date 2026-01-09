@@ -165,6 +165,34 @@ class ConversationsService {
       `/api/v1/folders/${folderId}/conversations`,
     );
   }
+
+  /**
+   * Add a conversation to a folder
+   * @param folderId - Target folder ID
+   * @param conversationId - The conversation to add
+   */
+  async addConversationToFolder(
+    folderId: string,
+    conversationId: string,
+  ): Promise<void> {
+    return apiClient.post<void>(`/api/v1/folders/${folderId}/conversations`, {
+      conversation_id: conversationId,
+    });
+  }
+
+  /**
+   * Remove a conversation from a folder
+   * @param folderId - Folder ID to remove from
+   * @param conversationId - The conversation to remove
+   */
+  async removeConversationFromFolder(
+    folderId: string,
+    conversationId: string,
+  ): Promise<void> {
+    return apiClient.delete<void>(
+      `/api/v1/folders/${folderId}/conversations/${conversationId}`,
+    );
+  }
 }
 
 // Singleton instance

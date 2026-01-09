@@ -1,0 +1,438 @@
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebarV2';
+import type { MoveToFolderConfig } from '../../popups';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface ContextMenuState {
+  isOpen: boolean;
+  position: { top: number; left: number };
+  item: SidebarItem | null;
+}
+
+export interface FolderContextMenuState {
+  isOpen: boolean;
+  position: { top: number; left: number };
+  folder: Folder | null;
+}
+
+export interface DeleteConfirmationState {
+  isOpen: boolean;
+  item: SidebarItem | null;
+}
+
+export interface FolderDeleteConfirmationState {
+  isOpen: boolean;
+  folder: Folder | null;
+}
+
+export interface MoveToFolderModalState {
+  isOpen: boolean;
+  item: SidebarItem | null;
+}
+
+export interface PopoverPosition {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+}
+
+export interface UseChatSidebarStateOptions {
+  items: SidebarItem[];
+  folders: Folder[];
+  folderItems: FolderItemsMap;
+  newlyCreatedFolderId?: string | null;
+  onRenameItem?: (id: string, newName: string) => void;
+  onDeleteItem?: (id: string) => void;
+  onRenameFolder?: (folderId: string, newName: string) => void;
+  onDeleteFolder?: (folderId: string) => void;
+  onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
+  onCollapseAllClick?: () => void;
+  onMoveItemToFolder?: (itemId: string, folderId: string) => void;
+  onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
+  onRemoveItemFromFolder?: (itemId: string) => void;
+}
+
+// ============================================================================
+// Hook
+// ============================================================================
+
+export function useChatSidebarState({
+  items,
+  folders,
+  folderItems,
+  newlyCreatedFolderId,
+  onRenameItem,
+  onDeleteItem,
+  onRenameFolder,
+  onDeleteFolder,
+  onFolderToggle,
+  onCollapseAllClick,
+  onMoveItemToFolder,
+  onCreateFolderAndMoveItem,
+  onRemoveItemFromFolder,
+}: UseChatSidebarStateOptions) {
+  // ============================================================================
+  // State
+  // ============================================================================
+
+  // Search
+  const [searchValue, setSearchValue] = useState('');
+
+  // Section expansion
+  const [isChatsExpanded, setIsChatsExpanded] = useState(true);
+
+  // Item context menu
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    position: { top: 0, left: 0 },
+    item: null,
+  });
+
+  // Item editing
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+  // Item delete confirmation
+  const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmationState>({
+    isOpen: false,
+    item: null,
+  });
+
+  // Folder context menu
+  const [folderContextMenu, setFolderContextMenu] = useState<FolderContextMenuState>({
+    isOpen: false,
+    position: { top: 0, left: 0 },
+    folder: null,
+  });
+
+  // Folder editing
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+
+  // Folder delete confirmation
+  const [folderDeleteConfirmation, setFolderDeleteConfirmation] =
+    useState<FolderDeleteConfirmationState>({
+      isOpen: false,
+      folder: null,
+    });
+
+  // Move to folder modal
+  const [moveToFolderModal, setMoveToFolderModal] = useState<MoveToFolderModalState>({
+    isOpen: false,
+    item: null,
+  });
+
+  // Profile popover
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState<PopoverPosition>({
+    bottom: 0,
+    left: 0,
+  });
+
+  // Collapsed sidebar hover dropdown
+  const [isChatsHovered, setIsChatsHovered] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  // Refs
+  const chatButtonRef = useRef<HTMLButtonElement>(null);
+  const avatarButtonRef = useRef<HTMLButtonElement>(null);
+
+  // ============================================================================
+  // Effects
+  // ============================================================================
+
+  // Auto-edit newly created folder
+  useEffect(() => {
+    if (newlyCreatedFolderId) {
+      setEditingFolderId(newlyCreatedFolderId);
+    }
+  }, [newlyCreatedFolderId]);
+
+  // ============================================================================
+  // Derived State
+  // ============================================================================
+
+  // Filter items based on search
+  const filteredItems = useMemo(
+    () => items.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase())),
+    [items, searchValue]
+  );
+
+  // Root items (not in any folder)
+  const rootItems = useMemo(
+    () => filteredItems.filter((item) => !item.folderId),
+    [filteredItems]
+  );
+
+  // Items by folder - use folderItems prop if provided, otherwise filter from items
+  const itemsByFolder = useMemo(() => {
+    return folders.reduce(
+      (acc, folder) => {
+        const itemsFromProp = folderItems[folder.id] || [];
+        const itemsFromFilter = filteredItems.filter((item) => item.folderId === folder.id);
+        const folderItemsList = itemsFromProp.length > 0 ? itemsFromProp : itemsFromFilter;
+
+        acc[folder.id] = searchValue
+          ? folderItemsList.filter((item) =>
+              item.label.toLowerCase().includes(searchValue.toLowerCase())
+            )
+          : folderItemsList;
+        return acc;
+      },
+      {} as Record<string, SidebarItem[]>
+    );
+  }, [folders, folderItems, filteredItems, searchValue]);
+
+  // Count total chats
+  const totalChats = useMemo(() => {
+    const folderItemCount = folders.reduce(
+      (sum, folder) => sum + (itemsByFolder[folder.id]?.length || 0),
+      0
+    );
+    return rootItems.length + folderItemCount;
+  }, [folders, itemsByFolder, rootItems]);
+
+  // Available folders for move (excludes current folder)
+  const getAvailableFoldersForMove = useCallback(() => {
+    return folders.map((f) => ({ id: f.id, label: f.label }));
+  }, [folders]);
+
+  // ============================================================================
+  // Item Handlers
+  // ============================================================================
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, item: SidebarItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      isOpen: true,
+      position: { top: e.clientY, left: e.clientX + 8 },
+      item,
+    });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const handleStartRename = useCallback((item: SidebarItem) => {
+    setEditingItemId(item.id);
+  }, []);
+
+  const handleSaveRename = useCallback(
+    (item: SidebarItem, newName: string) => {
+      onRenameItem?.(item.id, newName);
+      setEditingItemId(null);
+    },
+    [onRenameItem]
+  );
+
+  const handleCancelRename = useCallback(() => {
+    setEditingItemId(null);
+  }, []);
+
+  const handleShowDeleteConfirmation = useCallback((item: SidebarItem) => {
+    setDeleteConfirmation({ isOpen: true, item });
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteConfirmation.item) {
+      onDeleteItem?.(deleteConfirmation.item.id);
+    }
+    setDeleteConfirmation({ isOpen: false, item: null });
+  }, [deleteConfirmation.item, onDeleteItem]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteConfirmation({ isOpen: false, item: null });
+  }, []);
+
+  // ============================================================================
+  // Folder Handlers
+  // ============================================================================
+
+  const handleFolderContextMenu = useCallback((e: React.MouseEvent, folder: Folder) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFolderContextMenu({
+      isOpen: true,
+      position: { top: e.clientY, left: e.clientX + 8 },
+      folder,
+    });
+  }, []);
+
+  const handleCloseFolderContextMenu = useCallback(() => {
+    setFolderContextMenu((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  const handleStartFolderRename = useCallback((folder: Folder) => {
+    setEditingFolderId(folder.id);
+  }, []);
+
+  const handleSaveFolderRename = useCallback(
+    (folder: Folder, newName: string) => {
+      onRenameFolder?.(folder.id, newName);
+      setEditingFolderId(null);
+    },
+    [onRenameFolder]
+  );
+
+  const handleCancelFolderRename = useCallback(() => {
+    setEditingFolderId(null);
+  }, []);
+
+  const handleShowFolderDeleteConfirmation = useCallback((folder: Folder) => {
+    setFolderDeleteConfirmation({ isOpen: true, folder });
+  }, []);
+
+  const handleConfirmFolderDelete = useCallback(() => {
+    if (folderDeleteConfirmation.folder) {
+      onDeleteFolder?.(folderDeleteConfirmation.folder.id);
+    }
+    setFolderDeleteConfirmation({ isOpen: false, folder: null });
+  }, [folderDeleteConfirmation.folder, onDeleteFolder]);
+
+  const handleCancelFolderDelete = useCallback(() => {
+    setFolderDeleteConfirmation({ isOpen: false, folder: null });
+  }, []);
+
+  // ============================================================================
+  // Move to Folder Handlers
+  // ============================================================================
+
+  const handleShowMoveToFolder = useCallback((item: SidebarItem) => {
+    setMoveToFolderModal({ isOpen: true, item });
+  }, []);
+
+  const handleConfirmMoveToFolder = useCallback(
+    (config: MoveToFolderConfig) => {
+      if (!moveToFolderModal.item) return;
+
+      if (config.isNewFolder && config.newFolderName) {
+        onCreateFolderAndMoveItem?.(moveToFolderModal.item.id, config.newFolderName);
+      } else {
+        onMoveItemToFolder?.(moveToFolderModal.item.id, config.folderId);
+      }
+      setMoveToFolderModal({ isOpen: false, item: null });
+    },
+    [moveToFolderModal.item, onCreateFolderAndMoveItem, onMoveItemToFolder]
+  );
+
+  const handleCancelMoveToFolder = useCallback(() => {
+    setMoveToFolderModal({ isOpen: false, item: null });
+  }, []);
+
+  const handleRemoveFromFolder = useCallback(
+    (item: SidebarItem) => {
+      onRemoveItemFromFolder?.(item.id);
+    },
+    [onRemoveItemFromFolder]
+  );
+
+  // ============================================================================
+  // UI Handlers
+  // ============================================================================
+
+  const handleCollapseAll = useCallback(() => {
+    setIsChatsExpanded(false);
+    folders.forEach((folder) => {
+      if (folder.isExpanded) {
+        onFolderToggle?.(folder.id, false);
+      }
+    });
+    onCollapseAllClick?.();
+  }, [folders, onFolderToggle, onCollapseAllClick]);
+
+  const handleChatsHover = useCallback((isHovering: boolean) => {
+    if (isHovering && chatButtonRef.current) {
+      const rect = chatButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.top,
+        left: rect.right + 8,
+      });
+    }
+    setIsChatsHovered(isHovering);
+  }, []);
+
+  const handleAvatarClick = useCallback(() => {
+    if (avatarButtonRef.current) {
+      const rect = avatarButtonRef.current.getBoundingClientRect();
+      setPopoverPosition({
+        bottom: window.innerHeight - rect.top + 8,
+        left: rect.right + 8,
+      });
+    }
+    setIsProfileOpen((prev) => !prev);
+  }, []);
+
+  const handleCloseProfile = useCallback(() => {
+    setIsProfileOpen(false);
+  }, []);
+
+  // ============================================================================
+  // Return
+  // ============================================================================
+
+  return {
+    // State
+    searchValue,
+    setSearchValue,
+    isChatsExpanded,
+    setIsChatsExpanded,
+    contextMenu,
+    editingItemId,
+    deleteConfirmation,
+    folderContextMenu,
+    editingFolderId,
+    folderDeleteConfirmation,
+    moveToFolderModal,
+    isProfileOpen,
+    popoverPosition,
+    isChatsHovered,
+    dropdownPosition,
+
+    // Refs
+    chatButtonRef,
+    avatarButtonRef,
+
+    // Derived state
+    filteredItems,
+    rootItems,
+    itemsByFolder,
+    totalChats,
+    getAvailableFoldersForMove,
+
+    // Item handlers
+    handleContextMenu,
+    handleCloseContextMenu,
+    handleStartRename,
+    handleSaveRename,
+    handleCancelRename,
+    handleShowDeleteConfirmation,
+    handleConfirmDelete,
+    handleCancelDelete,
+
+    // Folder handlers
+    handleFolderContextMenu,
+    handleCloseFolderContextMenu,
+    handleStartFolderRename,
+    handleSaveFolderRename,
+    handleCancelFolderRename,
+    handleShowFolderDeleteConfirmation,
+    handleConfirmFolderDelete,
+    handleCancelFolderDelete,
+
+    // Move handlers
+    handleShowMoveToFolder,
+    handleConfirmMoveToFolder,
+    handleCancelMoveToFolder,
+    handleRemoveFromFolder,
+
+    // UI handlers
+    handleCollapseAll,
+    handleChatsHover,
+    handleAvatarClick,
+    handleCloseProfile,
+  };
+}

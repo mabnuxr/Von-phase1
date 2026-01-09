@@ -24,3 +24,10 @@ export type {
   ColumnOption,
   ReportFilter,
 } from './NewReportModal';
+
+export { MoveToFolderModal } from './MoveToFolderModal';
+export type {
+  MoveToFolderModalProps,
+  MoveToFolderConfig,
+  MoveToFolderFolder,
+} from './MoveToFolderModal';
