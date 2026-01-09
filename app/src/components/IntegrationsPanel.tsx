@@ -1,31 +1,19 @@
-import {
-  ConfirmationModal,
-  Banner,
-  Text,
-  TabSwitcher,
-} from "@vonlabs/design-components";
+import { ConfirmationModal, Banner, Text } from "@vonlabs/design-components";
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
   useIntegrations,
-  useAuthorizeIntegration,
-  useRevokeIntegration,
   useCheckAllAuthStatuses,
   useDeleteIntegration,
 } from "../hooks/useIntegrations";
-import { IntegrationType, AuthenticationStatus, Resource } from "../services";
+import { IntegrationType, AuthenticationStatus } from "../services";
 import usePreferencesStore from "../store/preferencesStore";
 import { WorkspaceIntegrationPane } from "./WorkspaceIntegrationPane";
 import { PersonalIntegrationPane } from "./PersonalIntegrationPane";
 import { IntegrationsList } from "./IntegrationsList";
-import { IntegrationCardList } from "./IntegrationCardList.legacy";
-import { AppsConfigPanel } from "./AppsConfigPanel.legacy";
-import { SegmentedControl } from "./SegmentedControl.legacy";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
 } from "../constants/integrationMetadata";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { usePermissions } from "../hooks/usePermissions";
 
 export interface Integration {
   id: string;
@@ -48,32 +36,15 @@ export interface IntegrationsPanelProps {
 
 /**
  * IntegrationsPanel - Displays and manages integrations with React Query
- *
- * Supports two UI modes controlled by feature flag:
- * - Flag ON: New unified IntegrationsList with dual-level chips
- * - Flag OFF: Old tab-based UI with IntegrationCardList and pills
  */
 export function IntegrationsPanel() {
-  // Feature flag to toggle between old and new UI
-  const { isSimplifiedIntegrationsEnabled } = useFeatureFlag();
-
   // Get config pane setters and tab state from preferences store
   const {
-    integrationsActiveTab,
-    setIntegrationsActiveTab,
     setConfiguringWorkspaceIntegration,
     setConfiguringPersonalIntegration,
     loadingIntegrationId,
     setLoadingIntegrationId,
   } = usePreferencesStore();
-
-  // Permissions for workspace integrations (used in old flow)
-  const { data: integrationPermissions } = usePermissions(Resource.INTEGRATION);
-
-  // Local state for nested SegmentedControl in Connected tab (old flow)
-  const [activeIntegrationsSection, setActiveIntegrationsSection] = useState<
-    "workspace" | "personal"
-  >("workspace");
 
   // Fetch integrations with React Query
   const {
@@ -83,15 +54,8 @@ export function IntegrationsPanel() {
     refetch,
   } = useIntegrations();
 
-  // OAuth mutations
-  const authorizeIntegration = useAuthorizeIntegration();
-  const revokeIntegration = useRevokeIntegration();
-
   // Delete integration mutation
   const deleteIntegration = useDeleteIntegration();
-
-  // Note: Permissions are now checked per-integration in the card component
-  // The old workspace-wide permission check is removed in favor of instance-specific checks
 
   // Track authenticating integrations for polling
   // Include loadingIntegrationId since backend may return AUTHENTICATED prematurely
@@ -179,17 +143,6 @@ export function IntegrationsPanel() {
     [integrationsData],
   );
 
-  // Split integrations by access level for old flow
-  const workspaceIntegrations = useMemo(
-    () => integrations.filter((i) => i.accessLevel === "tenant"),
-    [integrations],
-  );
-
-  const personalIntegrations = useMemo(
-    () => integrations.filter((i) => i.accessLevel === "user"),
-    [integrations],
-  );
-
   const handleModalConfirm = () => {
     modalState.resolver?.(true);
     pendingResolverRef.current = null;
@@ -200,57 +153,6 @@ export function IntegrationsPanel() {
     modalState.resolver?.(false);
     pendingResolverRef.current = null;
     setModalState({ isOpen: false, integrationName: "", action: "delete" });
-  };
-
-  const handleToggle = async (id: string, enabled: boolean) => {
-    // Clear any previous errors
-    setOauthError(null);
-
-    if (enabled) {
-      // Clear timeout warning for this integration
-      setShownTimeoutWarnings((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-
-      setLoadingIntegrationId(id);
-      authorizeIntegration.mutate(id, {
-        onSuccess: () => setLoadingIntegrationId(null),
-        onError: (error: Error) => {
-          setLoadingIntegrationId(null);
-          setOauthError(error.message);
-          // Refetch integrations to get updated status from backend
-          refetch();
-        },
-      });
-    } else {
-      // Disable flow - show confirmation modal
-      const confirmed = await new Promise<boolean>((resolve) => {
-        const integration = integrations.find((i) => i.id === id);
-        pendingResolverRef.current = resolve;
-        setModalState({
-          isOpen: true,
-          integrationName: integration?.name || "this integration",
-          action: "disable",
-          resolver: resolve,
-        });
-      });
-
-      // Clear resolver after promise completes
-      pendingResolverRef.current = null;
-
-      if (confirmed) {
-        setLoadingIntegrationId(id);
-        revokeIntegration.mutate(id, {
-          onSuccess: () => setLoadingIntegrationId(null),
-          onError: (error: Error) => {
-            setLoadingIntegrationId(null);
-            setOauthError(`Failed to revoke integration: ${error.message}`);
-          },
-        });
-      }
-    }
   };
 
   const handleDelete = async (id: string) => {
@@ -371,115 +273,24 @@ export function IntegrationsPanel() {
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
         <div className="pt-6 pb-12 space-y-6 w-2xl mx-auto">
-          {/* Conditional Rendering Based on Feature Flag */}
-          {isSimplifiedIntegrationsEnabled ? (
-            /* NEW FLOW: Unified Integrations List */
-            <>
-              {/* OAuth Error Banner */}
-              {oauthError && (
-                <div className="mb-4">
-                  <Banner
-                    variant="warning"
-                    message={oauthError}
-                    onClose={() => setOauthError(null)}
-                    dismissible={true}
-                  />
-                </div>
-              )}
-              <IntegrationsList
-                integrations={integrations}
-                integrationsData={integrationsData}
-                loadingIntegrationId={loadingIntegrationId}
-                timedOutIntegrations={timedOutIntegrations}
-                onConnect={handleConnect}
-                onDelete={handleDelete}
+          {oauthError && (
+            <div className="mb-4">
+              <Banner
+                variant="warning"
+                message={oauthError}
+                onClose={() => setOauthError(null)}
+                dismissible={true}
               />
-            </>
-          ) : (
-            /* OLD FLOW: Two-level tab structure */
-            <div className="space-y-6">
-              {/* OAuth Error Banner */}
-              {oauthError && (
-                <div className="mb-4">
-                  <Banner
-                    variant="warning"
-                    message={oauthError}
-                    onClose={() => setOauthError(null)}
-                    dismissible={true}
-                  />
-                </div>
-              )}
-
-              {/* Top-level TabSwitcher: Configure new / Connected */}
-              <TabSwitcher
-                tabs={[
-                  { id: "apps", label: "Configure new" },
-                  { id: "active-integrations", label: "Connected" },
-                ]}
-                activeTabId={integrationsActiveTab}
-                onTabClick={(id) =>
-                  setIntegrationsActiveTab(id as "apps" | "active-integrations")
-                }
-              />
-
-              {/* Tab Content */}
-              {integrationsActiveTab === "apps" ? (
-                // Configure new tab - AppsConfigPanel only
-                <AppsConfigPanel />
-              ) : (
-                // Connected tab - IntegrationCardList with SegmentedControl
-                <div className="space-y-2">
-                  {/* SegmentedControl for Workspace/Personal */}
-                  <SegmentedControl
-                    options={[
-                      { value: "workspace", label: "Workspace" },
-                      { value: "personal", label: "Personal" },
-                    ]}
-                    value={activeIntegrationsSection}
-                    onChange={setActiveIntegrationsSection}
-                  />
-
-                  {/* Helper text */}
-                  {activeIntegrationsSection === "workspace" ? (
-                    <p className="text-xs text-gray-500 px-1">
-                      Workspace integrations can only be managed by admins.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-500 px-1">
-                      Personal integrations are private to your account.
-                    </p>
-                  )}
-
-                  {/* Integration List */}
-                  {activeIntegrationsSection === "workspace" ? (
-                    <IntegrationCardList
-                      integrations={workspaceIntegrations}
-                      integrationsData={integrationsData}
-                      loadingIntegrationId={loadingIntegrationId}
-                      timedOutIntegrations={timedOutIntegrations}
-                      onToggle={handleToggle}
-                      onDelete={handleDelete}
-                      canUpdate={integrationPermissions?.update ?? false}
-                      canDelete={integrationPermissions?.delete ?? false}
-                      isPersonal={false}
-                    />
-                  ) : (
-                    <IntegrationCardList
-                      integrations={personalIntegrations}
-                      integrationsData={integrationsData}
-                      loadingIntegrationId={loadingIntegrationId}
-                      timedOutIntegrations={timedOutIntegrations}
-                      onToggle={handleToggle}
-                      onDelete={handleDelete}
-                      canUpdate={true}
-                      canDelete={true}
-                      isPersonal={true}
-                    />
-                  )}
-                </div>
-              )}
             </div>
           )}
+          <IntegrationsList
+            integrations={integrations}
+            integrationsData={integrationsData}
+            loadingIntegrationId={loadingIntegrationId}
+            timedOutIntegrations={timedOutIntegrations}
+            onConnect={handleConnect}
+            onDelete={handleDelete}
+          />
         </div>
       </div>
 
