@@ -160,9 +160,7 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-gray-900">Move to Folder</h3>
-                <p className="text-xs text-gray-500 truncate">
-                  Moving "{itemName}"
-                </p>
+                <p className="text-xs text-gray-500 truncate">Moving "{itemName}"</p>
               </div>
             </div>
 
@@ -210,9 +208,7 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
               </AnimatePresence>
 
               {/* Divider if there are folders */}
-              {availableFolders.length > 0 && (
-                <div className="border-t border-gray-100 my-2" />
-              )}
+              {availableFolders.length > 0 && <div className="border-t border-gray-100 my-2" />}
 
               {/* Existing folders */}
               {availableFolders.map((folder) => (
@@ -254,9 +250,11 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
                 disabled={!canConfirm}
                 className={`
                   w-full px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer
-                  ${canConfirm
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
+                  ${
+                    canConfirm
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }
                 `}
               >
                 {isCreatingNew ? 'Create & Move' : 'Move'}

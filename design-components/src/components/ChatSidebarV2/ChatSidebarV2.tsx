@@ -6,16 +6,8 @@ import {
   PlusIcon,
   ArrowsInLineVerticalIcon,
 } from '@phosphor-icons/react';
-import {
-  PrimaryButton,
-  SecondaryIconButton,
-  TertiaryIconButton,
-} from '../forms/buttons';
-import {
-  ContextMenu,
-  DeleteConfirmationPopup,
-  MoveToFolderModal,
-} from '../popups';
+import { PrimaryButton, SecondaryIconButton, TertiaryIconButton } from '../forms/buttons';
+import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
 import {
   ConversationItem,

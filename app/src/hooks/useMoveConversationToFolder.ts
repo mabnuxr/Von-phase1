@@ -47,7 +47,10 @@ export function useAddConversationToFolder() {
 
   return useMutation<void, Error, AddToFolderParams, MoveConversationContext>({
     mutationFn: ({ conversationId, targetFolderId }: AddToFolderParams) =>
-      conversationsService.addConversationToFolder(targetFolderId, conversationId),
+      conversationsService.addConversationToFolder(
+        targetFolderId,
+        conversationId,
+      ),
 
     onMutate: async ({ conversationId, targetFolderId, sourceFolderId }) => {
       // Cancel any outgoing refetches to prevent overwriting optimistic update
@@ -80,7 +83,10 @@ export function useAddConversationToFolder() {
         );
 
       // Find the conversation to move
-      let conversationToMove: SidebarConversation | FolderConversation | undefined;
+      let conversationToMove:
+        | SidebarConversation
+        | FolderConversation
+        | undefined;
 
       // Check unfiled conversations first
       if (previousSidebarData?.unfiled?.conversations) {
@@ -143,7 +149,10 @@ export function useAddConversationToFolder() {
           folderConversationsKeys.folder(targetFolderId),
           {
             ...previousTargetFolderData,
-            conversations: [...previousTargetFolderData.conversations, newConversation],
+            conversations: [
+              ...previousTargetFolderData.conversations,
+              newConversation,
+            ],
           },
         );
       }
@@ -221,10 +230,16 @@ export function useRemoveConversationFromFolder() {
     void,
     Error,
     RemoveFromFolderParams,
-    { previousSidebarData: ChatSidebarResponse | undefined; previousFolderData: FolderConversationsResponse | undefined }
+    {
+      previousSidebarData: ChatSidebarResponse | undefined;
+      previousFolderData: FolderConversationsResponse | undefined;
+    }
   >({
     mutationFn: ({ conversationId, sourceFolderId }: RemoveFromFolderParams) =>
-      conversationsService.removeConversationFromFolder(sourceFolderId, conversationId),
+      conversationsService.removeConversationFromFolder(
+        sourceFolderId,
+        conversationId,
+      ),
 
     onMutate: async ({ conversationId, sourceFolderId }) => {
       // Cancel any outgoing refetches to prevent overwriting optimistic update
@@ -238,9 +253,10 @@ export function useRemoveConversationFromFolder() {
         chatSidebarKeys.sidebar(),
       );
 
-      const previousFolderData = queryClient.getQueryData<FolderConversationsResponse>(
-        folderConversationsKeys.folder(sourceFolderId),
-      );
+      const previousFolderData =
+        queryClient.getQueryData<FolderConversationsResponse>(
+          folderConversationsKeys.folder(sourceFolderId),
+        );
 
       // Find the conversation to remove from folder
       const conversationToMove = previousFolderData?.conversations.find(

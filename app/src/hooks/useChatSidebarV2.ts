@@ -215,16 +215,12 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     useRenameFolder();
 
   // Add conversation to folder mutation
-  const {
-    mutate: addToFolderMutation,
-    isPending: isAddingToFolder,
-  } = useAddConversationToFolder();
+  const { mutate: addToFolderMutation, isPending: isAddingToFolder } =
+    useAddConversationToFolder();
 
   // Remove conversation from folder mutation
-  const {
-    mutate: removeFromFolderMutation,
-    isPending: isRemovingFromFolder,
-  } = useRemoveConversationFromFolder();
+  const { mutate: removeFromFolderMutation, isPending: isRemovingFromFolder } =
+    useRemoveConversationFromFolder();
 
   // Combined loading state for move operations
   const isMovingConversation = isAddingToFolder || isRemovingFromFolder;

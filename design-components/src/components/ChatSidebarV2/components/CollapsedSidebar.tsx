@@ -1,14 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChatTextIcon,
-  SidebarSimpleIcon,
-  PlusIcon,
-} from '@phosphor-icons/react';
-import {
-  PrimaryIconButton,
-  TertiaryIconButton,
-} from '../../forms/buttons';
+import { ChatTextIcon, SidebarSimpleIcon, PlusIcon } from '@phosphor-icons/react';
+import { PrimaryIconButton, TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import type { SidebarItem } from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';

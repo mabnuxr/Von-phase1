@@ -161,10 +161,7 @@ export function useChatSidebarState({
   );
 
   // Root items (not in any folder)
-  const rootItems = useMemo(
-    () => filteredItems.filter((item) => !item.folderId),
-    [filteredItems]
-  );
+  const rootItems = useMemo(() => filteredItems.filter((item) => !item.folderId), [filteredItems]);
 
   // Items by folder - use folderItems prop if provided, otherwise filter from items
   const itemsByFolder = useMemo(() => {
