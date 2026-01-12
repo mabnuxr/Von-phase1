@@ -197,11 +197,6 @@
   margin: 12px 0;
 }
 
-/* Selection styling */
-.tiptap-editor-wrapper .ProseMirror ::selection {
-  background-color: rgba(37, 99, 235, 0.2);
-}
-
 /* Focus styling */
 .tiptap-editor-wrapper .ProseMirror:focus {
   outline: none;
