@@ -5,6 +5,7 @@ import { ChatSidebar } from '../../../components/ChatSidebar/ChatSidebar';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import { ChatPane } from '../../../components/ChatPane/ChatPane';
 import type { Message } from '../../../components/Chat/types';
+import type { AutoEditMode, ActivePopover } from '../../../components/Chat/StandardChatInput/types';
 
 // Using a generic component for the meta since we have multiple components
 const LayoutComponents = () => <div>Layout Components</div>;
@@ -536,3 +537,427 @@ void _Pane3CollapsedConfig;
 void _Pane3EmptyConfig;
 void _Pane3StreamingConfig;
 void Pane3ExpandedWrapper;
+
+// ============================================================================
+// Pane3 with Mode Selector and Popovers
+// ============================================================================
+
+// Sample markdown content for the plan popover
+const SAMPLE_PLAN_CONTENT = `## Implementation Plan
+
+I'll help you create a sales performance dashboard. Here's my plan:
+
+### Step 1: Data Analysis
+- Analyze the existing sales data structure
+- Identify key metrics (revenue, deals closed, conversion rate)
+
+### Step 2: Widget Creation
+- Create a KPI summary widget for top-level metrics
+- Build a line chart for revenue trends over time
+- Add a bar chart for deals by stage
+
+### Step 3: Layout & Styling
+- Arrange widgets in a 2x2 grid layout
+- Apply the design system styling
+- Add responsive behavior
+`;
+
+const SAMPLE_EDIT_CONTENT = `## Proposed Edits
+
+I'll make the following changes to your dashboard:
+
+### Changes to "Revenue by Region" Chart
+- Update chart type from bar to stacked bar
+- Add year-over-year comparison
+- Include percentage change labels
+
+### Changes to Layout
+- Move the chart to the top-right position
+- Increase height by 50px for better visibility
+
+Do you want me to proceed with these changes?
+`;
+
+/**
+ * Pane3 - With Mode Selector
+ *
+ * The ChatPane with the Auto Edits mode selector button.
+ * Click the button to cycle through modes: off -> on -> Plan Mode
+ */
+const Pane3WithModeSelectorWrapper = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Message[]>(sampleMessages);
+  const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('off');
+
+  const handleSend = (message: string) => {
+    const newUserMessage: Message = {
+      id: `msg-${Date.now()}`,
+      type: 'user',
+      content: message,
+    };
+    setMessages([...messages, newUserMessage]);
+  };
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        width: isCollapsed ? '48px' : '400px',
+        transition: 'width 0.3s ease',
+      }}
+    >
+      <ChatPane
+        conversationName="Build with Von"
+        messages={messages}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onNewChat={() => {
+          setMessages([]);
+          console.log('New chat clicked');
+        }}
+        onViewHistory={() => console.log('View history clicked')}
+        onSendMessage={handleSend}
+        userName="John Doe"
+        userEmail="john@example.com"
+        showModeSelector={true}
+        autoEditMode={autoEditMode}
+        onAutoEditModeChange={setAutoEditMode}
+      />
+    </div>
+  );
+};
+
+export const Pane3WithModeSelector: Story = {
+  decorators: [LayoutDecoratorRow],
+  render: () => <Pane3WithModeSelectorWrapper />,
+};
+
+/**
+ * Pane3 - With Plan Popover
+ *
+ * The ChatPane showing the Plan Mode popover with a markdown plan from the LLM.
+ * Features:
+ * - Mode selector in "Plan Mode" state
+ * - Plan popover above the chat input
+ * - Approve button and close button
+ * - Feedback input at the bottom
+ */
+const Pane3WithPlanPopoverWrapper = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'msg-1',
+      type: 'user',
+      content: 'Create a sales performance dashboard with revenue trends and deal pipeline',
+    },
+  ]);
+  const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('plan');
+  const [activePopover, setActivePopover] = useState<ActivePopover | undefined>({
+    intent: 'plan',
+    title: 'Plan for "Create a sales dashboard"',
+    content: SAMPLE_PLAN_CONTENT,
+    primaryActionLabel: 'Approve Plan',
+    isStreaming: false,
+  });
+
+  const handleApprove = () => {
+    console.log('Plan approved!');
+    setActivePopover(undefined);
+    setAutoEditMode('off');
+    // Add assistant response
+    setMessages([
+      ...messages,
+      {
+        id: `msg-${Date.now()}`,
+        type: 'assistant',
+        content: 'Great! I\'ll start implementing the dashboard now based on the approved plan.',
+        status: 'completed',
+      },
+    ]);
+  };
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        width: isCollapsed ? '48px' : '400px',
+        transition: 'width 0.3s ease',
+      }}
+    >
+      <ChatPane
+        conversationName="Build with Von"
+        messages={messages}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onNewChat={() => console.log('New chat clicked')}
+        onViewHistory={() => console.log('View history clicked')}
+        onSendMessage={(message) => console.log('Send:', message)}
+        userName="John Doe"
+        userEmail="john@example.com"
+        showModeSelector={true}
+        autoEditMode={autoEditMode}
+        onAutoEditModeChange={setAutoEditMode}
+        activePopover={activePopover}
+        onPopoverClose={() => {
+          setActivePopover(undefined);
+          setAutoEditMode('off');
+        }}
+        onPopoverPrimaryAction={handleApprove}
+        onPopoverFeedback={(feedback) => console.log('Feedback:', feedback)}
+      />
+    </div>
+  );
+};
+
+export const Pane3WithPlanPopover: Story = {
+  decorators: [LayoutDecoratorRow],
+  render: () => <Pane3WithPlanPopoverWrapper />,
+};
+
+/**
+ * Pane3 - With Edit Request Popover
+ *
+ * The ChatPane showing an edit request popover asking user to confirm edits.
+ */
+const Pane3WithEditPopoverWrapper = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 'msg-1',
+      type: 'user',
+      content: 'Change the Revenue by Region chart to a stacked bar chart',
+    },
+  ]);
+  const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('on');
+  const [activePopover, setActivePopover] = useState<ActivePopover | undefined>({
+    intent: 'edit',
+    title: 'Edit: Update Revenue Chart',
+    content: SAMPLE_EDIT_CONTENT,
+    primaryActionLabel: 'Confirm Edits',
+    isStreaming: false,
+  });
+
+  const handleConfirm = () => {
+    console.log('Edits confirmed!');
+    setActivePopover(undefined);
+    // Add assistant response
+    setMessages([
+      ...messages,
+      {
+        id: `msg-${Date.now()}`,
+        type: 'assistant',
+        content: 'Done! I\'ve updated the Revenue by Region chart to a stacked bar chart with year-over-year comparison.',
+        status: 'completed',
+      },
+    ]);
+  };
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        width: isCollapsed ? '48px' : '400px',
+        transition: 'width 0.3s ease',
+      }}
+    >
+      <ChatPane
+        conversationName="Build with Von"
+        messages={messages}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onNewChat={() => console.log('New chat clicked')}
+        onViewHistory={() => console.log('View history clicked')}
+        onSendMessage={(message) => console.log('Send:', message)}
+        userName="John Doe"
+        userEmail="john@example.com"
+        showModeSelector={true}
+        autoEditMode={autoEditMode}
+        onAutoEditModeChange={setAutoEditMode}
+        activePopover={activePopover}
+        onPopoverClose={() => setActivePopover(undefined)}
+        onPopoverPrimaryAction={handleConfirm}
+        onPopoverFeedback={(feedback) => console.log('Feedback:', feedback)}
+      />
+    </div>
+  );
+};
+
+export const Pane3WithEditPopover: Story = {
+  decorators: [LayoutDecoratorRow],
+  render: () => <Pane3WithEditPopoverWrapper />,
+};
+
+/**
+ * Pane3 - Interactive Mode Flow
+ *
+ * Full interactive demo showing how mode selection triggers popovers.
+ * - Switch to "Plan Mode" to see the plan popover appear
+ * - In "Auto edits: on" mode, sending a message shows an edit popover
+ */
+const Pane3InteractiveFlowWrapper = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('off');
+  const [activePopover, setActivePopover] = useState<ActivePopover | undefined>();
+
+  const handleModeChange = (newMode: AutoEditMode) => {
+    setAutoEditMode(newMode);
+
+    // When entering plan mode, show the plan popover (simulating LLM response)
+    if (newMode === 'plan' && messages.length > 0) {
+      setTimeout(() => {
+        setActivePopover({
+          intent: 'plan',
+          title: 'Plan for your request',
+          content: SAMPLE_PLAN_CONTENT,
+          primaryActionLabel: 'Approve Plan',
+          isStreaming: false,
+        });
+      }, 500);
+    } else {
+      setActivePopover(undefined);
+    }
+  };
+
+  const handleSend = (message: string) => {
+    const newUserMessage: Message = {
+      id: `msg-${Date.now()}`,
+      type: 'user',
+      content: message,
+    };
+    setMessages([...messages, newUserMessage]);
+
+    // If in auto edit mode, show an edit popover (simulating LLM response)
+    if (autoEditMode === 'on') {
+      setTimeout(() => {
+        setActivePopover({
+          intent: 'edit',
+          title: `Edit: ${message.slice(0, 30)}...`,
+          content: SAMPLE_EDIT_CONTENT,
+          primaryActionLabel: 'Confirm Edits',
+          isStreaming: false,
+        });
+      }, 500);
+    } else if (autoEditMode === 'plan') {
+      setTimeout(() => {
+        setActivePopover({
+          intent: 'plan',
+          title: `Plan for "${message.slice(0, 25)}..."`,
+          content: SAMPLE_PLAN_CONTENT,
+          primaryActionLabel: 'Approve Plan',
+          isStreaming: false,
+        });
+      }, 500);
+    }
+  };
+
+  const handlePopoverAction = () => {
+    const assistantMessage: Message = {
+      id: `msg-${Date.now()}`,
+      type: 'assistant',
+      content: activePopover?.intent === 'plan'
+        ? 'Great! I\'ll start implementing now.'
+        : 'Done! The changes have been applied.',
+      status: 'completed',
+    };
+    setMessages([...messages, assistantMessage]);
+    setActivePopover(undefined);
+    if (autoEditMode === 'plan') {
+      setAutoEditMode('off');
+    }
+  };
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        width: isCollapsed ? '48px' : '400px',
+        transition: 'width 0.3s ease',
+      }}
+    >
+      <ChatPane
+        conversationName="Build with Von"
+        messages={messages}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onNewChat={() => {
+          setMessages([]);
+          setActivePopover(undefined);
+          setAutoEditMode('off');
+        }}
+        onViewHistory={() => console.log('View history clicked')}
+        onSendMessage={handleSend}
+        userName="John Doe"
+        userEmail="john@example.com"
+        showModeSelector={true}
+        autoEditMode={autoEditMode}
+        onAutoEditModeChange={handleModeChange}
+        activePopover={activePopover}
+        onPopoverClose={() => {
+          setActivePopover(undefined);
+          if (autoEditMode === 'plan') {
+            setAutoEditMode('off');
+          }
+        }}
+        onPopoverPrimaryAction={handlePopoverAction}
+        onPopoverFeedback={(feedback) => console.log('Feedback:', feedback)}
+      />
+    </div>
+  );
+};
+
+export const Pane3InteractiveFlow: Story = {
+  decorators: [LayoutDecoratorRow],
+  render: () => <Pane3InteractiveFlowWrapper />,
+};
+
+/**
+ * Pane3 - With Reference and Mode Selector
+ *
+ * The ChatPane with both a dashboard reference and the mode selector.
+ */
+const Pane3WithReferenceAndModeSelectorWrapper = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('off');
+  const [reference, setReference] = useState<{
+    type: 'dashboard' | 'report' | 'document';
+    name: string;
+    id: string;
+  } | undefined>({
+    type: 'dashboard',
+    name: 'Sales Overview',
+    id: 'dash-1',
+  });
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        width: isCollapsed ? '48px' : '400px',
+        transition: 'width 0.3s ease',
+      }}
+    >
+      <ChatPane
+        conversationName="Build with Von"
+        messages={sampleMessages}
+        referenceContext={reference}
+        onRemoveReference={() => setReference(undefined)}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        onNewChat={() => console.log('New chat clicked')}
+        onViewHistory={() => console.log('View history clicked')}
+        onSendMessage={(message) => console.log('Send:', message)}
+        userName="John Doe"
+        userEmail="john@example.com"
+        showModeSelector={true}
+        autoEditMode={autoEditMode}
+        onAutoEditModeChange={setAutoEditMode}
+      />
+    </div>
+  );
+};
+
+export const Pane3WithReferenceAndModeSelector: Story = {
+  decorators: [LayoutDecoratorRow],
+  render: () => <Pane3WithReferenceAndModeSelectorWrapper />,
+};

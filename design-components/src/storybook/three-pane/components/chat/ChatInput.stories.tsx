@@ -1,6 +1,6 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState } from 'react';
-import { StandardChatInput } from '../../../../components/Chat/StandardChatInput';
+import { StandardChatInput, type AutoEditMode } from '../../../../components/Chat/StandardChatInput';
 import type { FileAttachment } from '../../../../components/Chat/FileAttachment/types';
 import type { BuildMode } from '../../../../components/DashboardBuilder/types';
 
@@ -438,6 +438,64 @@ export const WithoutFormattingToolbar: Story = {
           console.log('Send:', message);
         }}
         showFormattingToolbar={false}
+      />
+    );
+  },
+};
+
+// ============================================================================
+// With Mode Selector (Auto Edits)
+// ============================================================================
+
+/**
+ * With Mode Selector
+ *
+ * Shows the chat input with the Auto Edits mode selector button.
+ * Click the button to cycle through modes: off -> on -> Plan Mode -> off
+ */
+export const WithModeSelector: Story = {
+  render: () => {
+    const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('off');
+
+    return (
+      <div className="space-y-4">
+        <StandardChatInput
+          placeholder="Type a message..."
+          showModeSelector={true}
+          autoEditMode={autoEditMode}
+          onAutoEditModeChange={setAutoEditMode}
+          onVoiceInput={() => console.log('Voice input clicked')}
+          onSend={(message) => {
+            console.log('Send:', message);
+          }}
+        />
+        <div className="text-xs text-gray-500 text-center">
+          Current auto edit mode: <strong>{autoEditMode}</strong>
+        </div>
+      </div>
+    );
+  },
+};
+
+/**
+ * Plan Mode Active
+ *
+ * Shows the chat input with Plan Mode active.
+ */
+export const PlanModeActive: Story = {
+  render: () => {
+    const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('plan');
+
+    return (
+      <StandardChatInput
+        placeholder="Describe your plan..."
+        showModeSelector={true}
+        autoEditMode={autoEditMode}
+        onAutoEditModeChange={setAutoEditMode}
+        onVoiceInput={() => console.log('Voice input clicked')}
+        onSend={(message) => {
+          console.log('Send:', message);
+        }}
       />
     );
   },

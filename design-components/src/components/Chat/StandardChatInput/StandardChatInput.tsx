@@ -24,6 +24,8 @@ import type { StandardChatInputProps, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
+import { ModeSelector } from './ModeSelector';
+import { ChatInputPopover } from './ChatInputPopover';
 
 /**
  * Get icon for reference type
@@ -170,6 +172,15 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   referenceContext,
   onRemoveReference,
   showFormattingToolbar = false,
+  // Mode selector props
+  showModeSelector = false,
+  autoEditMode = 'off',
+  onAutoEditModeChange,
+  // Popover props
+  activePopover,
+  onPopoverClose,
+  onPopoverPrimaryAction,
+  onPopoverFeedback,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
@@ -301,9 +312,25 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
 
   return (
     <div className="w-full antialiased font-sf">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto relative">
+        {/* ChatInputPopover - shown above the input when active */}
+        {activePopover && (
+          <ChatInputPopover
+            isOpen={true}
+            onClose={onPopoverClose || (() => {})}
+            intent={activePopover.intent}
+            title={activePopover.title}
+            content={activePopover.content}
+            isStreaming={activePopover.isStreaming}
+            primaryActionLabel={activePopover.primaryActionLabel}
+            onPrimaryAction={onPopoverPrimaryAction || (() => {})}
+            onFeedbackSubmit={onPopoverFeedback}
+            hasUserEdits={activePopover.hasUserEdits}
+          />
+        )}
+
         {/* Reference tag - shown above the input when a reference is set */}
-        {referenceContext && (
+        {referenceContext && !activePopover && (
           <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
             <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
               <div className="flex items-center gap-1.5">
@@ -422,13 +449,14 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   aria-hidden="true"
                 />
 
-                {/* Mode toggle (Ask/Build) using forms Toggle component */}
-                {/* <Toggle
-                  options={MODE_OPTIONS}
-                  value={mode}
-                  onChange={(newMode) => onModeChange?.(newMode)}
-                  disabled={disabled}
-                /> */}
+                {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                {showModeSelector && onAutoEditModeChange && (
+                  <ModeSelector
+                    mode={autoEditMode}
+                    onModeChange={onAutoEditModeChange}
+                    disabled={disabled && !isStreaming}
+                  />
+                )}
               </div>
 
               {/* Right side - Voice and Send buttons */}

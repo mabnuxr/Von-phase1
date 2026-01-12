@@ -240,3 +240,9 @@ export type { DashboardCanvasProps } from './DashboardCanvas';
 // ============================================================================
 export { TiptapEditor, EditorToolbar } from './TiptapEditor';
 export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
+
+// ============================================================================
+// REPORT TABLE (TanStack Table for data reports)
+// ============================================================================
+export { ReportTable } from './ReportTable';
+export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';
