@@ -38,22 +38,11 @@ export const CustomListItem = ListItem.extend({
           const isOnlyItem = list.childCount === 1;
 
           if (isOnlyItem) {
-            // If this is the only item, delete the entire list and insert a paragraph
-            return editor
-              .chain()
-              .deleteNode(list.type.name)
-              .insertContent({ type: 'paragraph' })
-              .focus()
-              .run();
+            // If this is the only item, delete the entire list (no new paragraph)
+            return editor.chain().deleteNode(list.type.name).focus().run();
           } else if (isLastItem) {
-            // If this is the last item, delete it and insert paragraph after the list
-            const listEnd = $from.after(listDepth);
-            return editor
-              .chain()
-              .deleteNode('listItem')
-              .insertContentAt(listEnd - 2, { type: 'paragraph' })
-              .focus()
-              .run();
+            // If this is the last item, just delete it (no new paragraph)
+            return editor.chain().deleteNode('listItem').focus().run();
           } else {
             // If in the middle, just lift out (split the list)
             return editor.commands.liftListItem(this.name);
