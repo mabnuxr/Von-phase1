@@ -9,9 +9,15 @@ export { CommandDrawer } from './CommandDrawer';
 export { ManageCommandsDrawer } from './ManageCommandsDrawer';
 export { ChatInputWithCommands } from './ChatInputWithCommands';
 export type { ChatInputWithCommandsProps } from './ChatInputWithCommands';
+export { CommandChip } from './CommandChip';
+export type { CommandChipProps } from './CommandChip';
+export { CommandsOverlay } from './CommandsOverlay';
+export type { CommandsOverlayProps } from './CommandsOverlay';
 
-// Hook
+// Hooks
 export { useCommands } from './useCommands';
+export { useCommandsInput } from './useCommandsInput';
+export type { UseCommandsInputOptions, UseCommandsInputReturn } from './useCommandsInput';
 
 // Types
 export type {

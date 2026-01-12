@@ -1050,4 +1050,12 @@ export interface ChatProps {
    * @default false
    */
   enableDeepLinks?: boolean;
+
+  /**
+   * Use the new StandardChatInput component with Tiptap editor
+   * When enabled, replaces ChatInput/ChatInputWithCommands with StandardChatInput
+   * This provides rich text editing, file upload UI, and voice input support
+   * @default false
+   */
+  useStandardInput?: boolean;
 }
