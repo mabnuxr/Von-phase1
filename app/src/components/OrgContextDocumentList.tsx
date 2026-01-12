@@ -20,6 +20,8 @@ interface OrgContextDocumentListProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  /** Whether the current user can create org memory (controls visibility of "New Org Memory" button) */
+  canCreateOrgMemory?: boolean;
 }
 
 export function OrgContextDocumentList({
@@ -33,6 +35,7 @@ export function OrgContextDocumentList({
   currentPage,
   totalPages,
   onPageChange,
+  canCreateOrgMemory = false,
 }: OrgContextDocumentListProps) {
   // Helper to render a memory item
   const renderMemoryItem = (
@@ -120,16 +123,18 @@ export function OrgContextDocumentList({
         </span>
       </div>
 
-      {/* Add new segment button - chat style */}
-      <div className="px-3 py-3">
-        <button
-          onClick={onCreateClick}
-          className="w-full h-[32px] flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
-        >
-          New Org Memory
-          <PlusIcon size={14} weight="bold" />
-        </button>
-      </div>
+      {/* Add new segment button - chat style (only visible to users with create permission) */}
+      {canCreateOrgMemory && (
+        <div className="px-3 py-3">
+          <button
+            onClick={onCreateClick}
+            className="w-full h-[32px] flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
+          >
+            New Org Memory
+            <PlusIcon size={14} weight="bold" />
+          </button>
+        </div>
+      )}
 
       {/* List of contexts - grouped by type */}
       <div className="flex-1 overflow-y-auto settings-scrollbar">

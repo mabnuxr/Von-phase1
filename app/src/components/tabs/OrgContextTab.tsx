@@ -13,6 +13,7 @@ import { MemoryContextPane } from "../MemoryContextPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
+import { usePermissions, Resource } from "../../hooks/usePermissions";
 import { ApiError } from "../../services/apiClient";
 
 export function OrgContextTab() {
@@ -31,6 +32,12 @@ export function OrgContextTab() {
 
   // Feature flags
   const { isUserMemoryEnabled } = useFeatureFlag();
+
+  // Get permissions for org memory (tenant-level)
+  const { data: orgMemoryPermissions } = usePermissions(
+    Resource.MEMORY_CONTEXT,
+    { access_level: "tenant" },
+  );
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -163,6 +170,20 @@ export function OrgContextTab() {
     if (selectedContextId === userMemory?.id) return userMemory;
     return contexts.find((ctx: MemoryContext) => ctx.id === selectedContextId);
   }, [selectedContextId, userMemory, contexts]);
+
+  // Permission flags derived from org memory permissions
+  const canCreateOrgMemory = orgMemoryPermissions?.create ?? false;
+  const canUpdateOrgMemory = orgMemoryPermissions?.update ?? false;
+  const canDeleteOrgMemory = orgMemoryPermissions?.delete ?? false;
+
+  // Determine if the selected context can be edited
+  // - User memory: always editable by the user
+  // - Org memory: only editable if user has update permission (admins)
+  const canEditSelectedContext = useMemo(() => {
+    if (!selectedContext) return false;
+    const isUserMemory = selectedContext.accessLevel === "user";
+    return isUserMemory || canUpdateOrgMemory;
+  }, [selectedContext, canUpdateOrgMemory]);
 
   // Handle context selection - just select, don't open pane
   const handleSelectContext = (id: string) => {
@@ -379,6 +400,7 @@ export function OrgContextTab() {
                   currentPage={pagination?.page || 1}
                   totalPages={pagination?.totalPages || 1}
                   onPageChange={setCurrentPage}
+                  canCreateOrgMemory={canCreateOrgMemory}
                 />
               </div>
 
@@ -388,8 +410,9 @@ export function OrgContextTab() {
                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
                   <div />
                   {/* Right - Edit & Delete Actions */}
+                  {/* Only show edit/delete buttons if user can edit the selected context */}
                   <div className="flex items-center gap-0.5">
-                    {selectedContext && (
+                    {selectedContext && canEditSelectedContext && (
                       <>
                         <button
                           onClick={handleEditClick}
@@ -398,24 +421,25 @@ export function OrgContextTab() {
                         >
                           <PencilSimpleIcon size={16} weight="regular" />
                         </button>
-                        <button
-                          onClick={handleDeleteClick}
-                          disabled={
-                            deleteMutation.isPending ||
-                            selectedContext?.isDefault ||
-                            selectedContext?.accessLevel === "user"
-                          }
-                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={
-                            selectedContext?.isDefault
-                              ? "Cannot delete default context"
-                              : selectedContext?.accessLevel === "user"
-                                ? "Cannot delete user memory"
-                                : "Delete"
-                          }
-                        >
-                          <TrashIcon size={16} weight="regular" />
-                        </button>
+                        {/* Hide delete button for user memory (can't delete) and non-admin on org memory */}
+                        {selectedContext?.accessLevel !== "user" &&
+                          canDeleteOrgMemory && (
+                            <button
+                              onClick={handleDeleteClick}
+                              disabled={
+                                deleteMutation.isPending ||
+                                selectedContext?.isDefault
+                              }
+                              className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={
+                                selectedContext?.isDefault
+                                  ? "Cannot delete default context"
+                                  : "Delete"
+                              }
+                            >
+                              <TrashIcon size={16} weight="regular" />
+                            </button>
+                          )}
                       </>
                     )}
                   </div>
