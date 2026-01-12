@@ -499,7 +499,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <MoveToFolderModal
         isOpen={moveToFolderModal.isOpen}
         itemName={moveToFolderModal.item?.label || ''}
-        itemType="chat"
         folders={getAvailableFoldersForMove()}
         currentFolderId={moveToFolderModal.item?.folderId}
         onConfirm={handleConfirmMoveToFolder}

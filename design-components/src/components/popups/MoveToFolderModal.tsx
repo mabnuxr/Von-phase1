@@ -32,11 +32,6 @@ export interface MoveToFolderModalProps {
   itemName: string;
 
   /**
-   * The type of item being moved
-   */
-  itemType: 'chat';
-
-  /**
    * Available folders to move to
    */
   folders: MoveToFolderFolder[];
@@ -74,7 +69,6 @@ export interface MoveToFolderModalProps {
 export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
   isOpen,
   itemName,
-  itemType,
   folders,
   currentFolderId,
   onConfirm,
