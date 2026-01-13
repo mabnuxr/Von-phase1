@@ -197,11 +197,7 @@ export function OrgContextDocumentList({
         <div className="flex-shrink-0 border-t border-gray-200 bg-gradient-to-b from-violet-50/30 to-violet-50/50">
           <div className="p-2">
             <div className="flex items-center gap-1.5 px-2 mb-2">
-              <UserIcon
-                size={12}
-                weight="bold"
-                className="text-violet-500"
-              />
+              <UserIcon size={12} weight="bold" className="text-violet-500" />
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                 Personal
               </span>

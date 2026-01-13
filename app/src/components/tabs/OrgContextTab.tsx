@@ -85,7 +85,8 @@ export function OrgContextTab() {
     // Only proceed if we have loaded user memory data (not undefined)
     // and it's empty (length === 0 means no user memory exists)
     const userMemoryLoaded = userMemoryData !== undefined;
-    const hasNoUserMemory = userMemoryLoaded && (userMemoryData?.data?.length ?? 0) === 0;
+    const hasNoUserMemory =
+      userMemoryLoaded && (userMemoryData?.data?.length ?? 0) === 0;
 
     const shouldCreateUserMemory =
       isUserMemoryEnabled &&
@@ -136,7 +137,6 @@ export function OrgContextTab() {
   const isAnyLoading =
     isLoading ||
     (isUserMemoryEnabled && (isUserMemoryLoading || isCreatingUserMemory));
-
 
   // Auto-select first org memory context when data loads or page changes
   // Prioritize org memory over user memory for initial selection
@@ -367,29 +367,32 @@ export function OrgContextTab() {
         )}
 
         {/* Empty state - only show when not loading and no memory exists (and not creating user memory) */}
-        {!isAnyLoading && contexts.length === 0 && !userMemory && !isCreatingUserMemory && (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
-              <BrainIcon
-                size={32}
-                weight="duotone"
-                className="text-indigo-400"
-              />
+        {!isAnyLoading &&
+          contexts.length === 0 &&
+          !userMemory &&
+          !isCreatingUserMemory && (
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
+                <BrainIcon
+                  size={32}
+                  weight="duotone"
+                  className="text-indigo-400"
+                />
+              </div>
+              <h3 className="text-base font-medium text-gray-600 mb-1">
+                No memories yet
+              </h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Insights will appear here as your team asks questions.
+              </p>
+              <button
+                onClick={handleCreateClick}
+                className="h-[32px] px-4 flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
+              >
+                Add new segment
+              </button>
             </div>
-            <h3 className="text-base font-medium text-gray-600 mb-1">
-              No memories yet
-            </h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Insights will appear here as your team asks questions.
-            </p>
-            <button
-              onClick={handleCreateClick}
-              className="h-[32px] px-4 flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
-            >
-              Add new segment
-            </button>
-          </div>
-        )}
+          )}
 
         {/* Two Column Layout */}
         {(isAnyLoading || contexts.length > 0 || userMemory) && (
