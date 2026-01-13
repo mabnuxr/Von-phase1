@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import {
-  asyncWithLDProvider,
-  useLDClient,
-} from "launchdarkly-react-client-sdk";
+import { asyncWithLDProvider } from "launchdarkly-react-client-sdk";
 import Observability from "@launchdarkly/observability";
 import SessionReplay from "@launchdarkly/session-replay";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
-import { authService } from "../services";
 
 interface LaunchDarklyProviderProps {
   children: ReactNode;
@@ -89,61 +85,5 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
     console.error("LaunchDarkly initialization error:", error);
   }
 
-  return (
-    <LDProvider>
-      <LaunchDarklyIdentifier>{children}</LaunchDarklyIdentifier>
-    </LDProvider>
-  );
-}
-
-/**
- * Component to identify user in LaunchDarkly after provider is initialized
- * This runs at the root level so user context is available on all pages
- */
-function LaunchDarklyIdentifier({ children }: { children: ReactNode }) {
-  const ldClient = useLDClient();
-
-  useEffect(() => {
-    const identifyUser = async () => {
-      if (!ldClient) return;
-
-      try {
-        const user = await authService.getMe();
-        const tenantId = user.tenantId || null;
-        const userId = user.id || "anonymous";
-        const userEmail = user.email || "";
-
-        const context = tenantId
-          ? {
-              kind: "multi" as const,
-              Tenant: {
-                key: tenantId,
-              },
-              User: {
-                key: userId,
-                email: userEmail,
-              },
-            }
-          : {
-              kind: "user" as const,
-              key: userId,
-              email: userEmail,
-            };
-
-        await ldClient.identify(context);
-        console.log("[LaunchDarkly] User identified:", {
-          tenantId,
-          userId,
-          email: userEmail,
-        });
-      } catch {
-        // User not authenticated or error fetching - stay anonymous
-        console.log("[LaunchDarkly] User not authenticated, staying anonymous");
-      }
-    };
-
-    identifyUser();
-  }, [ldClient]);
-
-  return <>{children}</>;
+  return <LDProvider>{children}</LDProvider>;
 }
