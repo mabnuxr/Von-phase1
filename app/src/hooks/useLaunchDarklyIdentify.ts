@@ -18,18 +18,25 @@ export function useLaunchDarklyIdentify() {
     try {
       const user = await authService.getMe();
       const tenantId = user.tenantId || null;
-      const userKey =
-        tenantId && user.email
-          ? `${tenantId}<>${user.email}`
-          : user.email || "anonymous";
+      const userId = user.id || "anonymous";
 
-      const context = {
-        kind: "user" as const,
-        key: userKey,
-      };
+      const context = tenantId
+        ? {
+            kind: "multi" as const,
+            Tenant: {
+              key: tenantId,
+            },
+            User: {
+              key: userId,
+            },
+          }
+        : {
+            kind: "user" as const,
+            key: userId,
+          };
 
       await ldClient.identify(context);
-      console.log("[LaunchDarkly] User identified:", userKey);
+      console.log("[LaunchDarkly] User identified:", { tenantId, userId });
     } catch (error) {
       console.error("[LaunchDarkly] Failed to identify user:", error);
     }
