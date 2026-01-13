@@ -3,8 +3,8 @@ import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LayoutItem } from 'react-grid-layout';
 import { CheckCircle } from '@phosphor-icons/react';
-import { ChatSidebar } from '../../../components/ChatSidebarV2/ChatSidebarV2';
-import type { SidebarItem, Folder, ItemType } from '../../../components/ChatSidebarV2/ChatSidebarV2';
+import { ChatSidebarV3 } from '../../../components/ChatSidebarV3/ChatSidebarV3';
+import type { SidebarItem, Folder, ItemType } from '../../../components/ChatSidebarV3/ChatSidebarV3';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import type { ChartComponent, SubtableItem, ComponentConfig } from '../../../components/Pane1/Pane1';
 import { Pane2 } from '../../../components/layouts/Pane2';
@@ -807,7 +807,7 @@ const AutoDashboardDemo = () => {
           flexShrink: 0,
         }}
       >
-        <ChatSidebar
+        <ChatSidebarV3
           items={dummySidebarItems}
           folders={folders}
           selectedItemId={selectedSidebarItem}

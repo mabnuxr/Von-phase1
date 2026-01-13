@@ -193,6 +193,10 @@ export type {
   FolderLoadingMap,
 } from './ChatSidebarV2';
 
+// ChatSidebarV3 Organism (extended version for prototyping)
+export { ChatSidebarV3 } from './ChatSidebarV3';
+export type { ChatSidebarV3Props } from './ChatSidebarV3';
+
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
