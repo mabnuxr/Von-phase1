@@ -39,7 +39,11 @@ export function useLaunchDarklyIdentify() {
           };
 
       await ldClient.identify(context);
-      console.log("[LaunchDarkly] User identified:", { tenantId, userId, email: userEmail });
+      console.log("[LaunchDarkly] User identified:", {
+        tenantId,
+        userId,
+        email: userEmail,
+      });
     } catch (error) {
       console.error("[LaunchDarkly] Failed to identify user:", error);
     }
