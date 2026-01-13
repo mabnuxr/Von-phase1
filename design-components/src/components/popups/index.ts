@@ -30,6 +30,7 @@ export type {
   MoveToFolderModalProps,
   MoveToFolderConfig,
   FolderOption,
+  MoveToFolderFolder,
 } from './MoveToFolderModal';
 
 export { SaveReportModal } from './SaveReportModal';

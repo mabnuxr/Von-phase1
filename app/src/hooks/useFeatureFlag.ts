@@ -8,9 +8,9 @@ export const FEATURE_FLAGS = {
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
-  SIMPLIFIED_INTEGRATIONS: "enableSimplifiedIntegrations",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
+  USER_MEMORY: "enableUserMemory",
 } as const;
 
 /**
@@ -57,13 +57,6 @@ export function useFeatureFlag() {
     isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
 
     /**
-     * Controls whether new simplified integrations UI is shown
-     * (unified list with dual-level chips vs tab-based UI with pills)
-     */
-    isSimplifiedIntegrationsEnabled:
-      flags[FEATURE_FLAGS.SIMPLIFIED_INTEGRATIONS] === true,
-
-    /**
      * Controls whether Salesforce deep links are enabled
      * (clickable record names in approval cards and query results)
      */
@@ -73,6 +66,12 @@ export function useFeatureFlag() {
      * Controls if we need to show new chat UI experience
      */
     isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+
+    /**
+     * Controls whether user memory feature is enabled
+     * (personal memory segment for each user)
+     */
+    isUserMemoryEnabled: flags[FEATURE_FLAGS.USER_MEMORY] === true,
 
     /**
      * Raw flags object for advanced usage

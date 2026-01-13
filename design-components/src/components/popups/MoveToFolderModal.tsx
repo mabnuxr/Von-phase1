@@ -14,9 +14,15 @@ export interface FolderOption {
   label: string;
 }
 
+// Alias for compatibility
+export type MoveToFolderFolder = FolderOption;
+
 export interface MoveToFolderConfig {
+  /** The target folder ID (not used if isNewFolder is true) */
   folderId: string;
+  /** Whether this is a new folder being created */
   isNewFolder: boolean;
+  /** Name for the new folder (only used if isNewFolder is true) */
   newFolderName?: string;
 }
 
@@ -40,6 +46,11 @@ export interface MoveToFolderModalProps {
    * Available folders to move to
    */
   folders: FolderOption[];
+
+  /**
+   * Current folder ID (to exclude from options)
+   */
+  currentFolderId?: string | null;
 
   /**
    * Callback when user confirms the move
@@ -69,12 +80,14 @@ const CREATE_NEW_FOLDER_ID = '__create_new__';
  * - Dropdown to select existing folder
  * - Option to create a new folder inline
  * - Shows "No folders available" state with create option
+ * - Filters out current folder from options
  */
 export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
   isOpen,
   itemName,
   itemType,
   folders,
+  currentFolderId,
   onConfirm,
   onCancel,
 }) => {
@@ -83,9 +96,12 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
   const [newFolderName, setNewFolderName] = useState('');
   const [errors, setErrors] = useState<{ folder?: string; newFolderName?: string }>({});
 
+  // Filter out current folder from options
+  const availableFolders = folders.filter((f) => f.id !== currentFolderId);
+
   // Build dropdown options
   const folderOptions = [
-    ...folders.map((f) => ({
+    ...availableFolders.map((f) => ({
       value: f.id,
       label: f.label,
       icon: <FolderSimple size={16} weight="regular" />,
@@ -192,7 +208,7 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
                 </div>
 
                 {/* Folder Selection */}
-                {folders.length === 0 && !isCreatingNew ? (
+                {availableFolders.length === 0 && !isCreatingNew ? (
                   <div className="space-y-3">
                     <div className="py-4 text-center">
                       <FolderSimple size={32} weight="duotone" className="mx-auto text-gray-300 mb-2" />
@@ -261,7 +277,7 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
                 <PrimaryButton
                   onClick={handleConfirm}
                   fullWidth
-                  disabled={!selectedFolderId && folders.length > 0}
+                  disabled={!selectedFolderId && availableFolders.length > 0}
                 >
                   {isCreatingNew ? 'Create Folder & Move' : 'Move'}
                 </PrimaryButton>

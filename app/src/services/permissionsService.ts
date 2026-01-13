@@ -11,6 +11,7 @@ export const Resource = {
   MESSAGE: "message",
   USER: "user",
   REPORT: "report",
+  MEMORY_CONTEXT: "memory_context",
 } as const;
 
 export type ResourceType = (typeof Resource)[keyof typeof Resource];

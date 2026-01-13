@@ -106,6 +106,10 @@ const Dashboard = () => {
     deleteFolder,
     renameFolder,
     toggleFolderExpanded,
+    moveConversationToFolder,
+    newlyCreatedFolderId,
+    clearNewlyCreatedFolderId,
+    createFolderAndMoveItem,
   } = useChatSidebarV2();
 
   // Infinite scroll hook for loading more conversations
@@ -738,6 +742,7 @@ const Dashboard = () => {
                 onItemClick={(id: string) => handleChatClick(id)}
                 onNewChatClick={handleNewChatClick}
                 onNewChatFolderClick={() => createFolder("New Folder")}
+                newlyCreatedFolderId={newlyCreatedFolderId}
                 onDeleteFolder={(folderId: string) => deleteFolder(folderId)}
                 onRenameFolder={(folderId: string, newName: string) =>
                   renameFolder(folderId, newName)
@@ -745,6 +750,31 @@ const Dashboard = () => {
                 onFolderToggle={(folderId: string) =>
                   toggleFolderExpanded(folderId)
                 }
+                onMoveItemToFolder={(itemId: string, folderId: string) => {
+                  const item = [
+                    ...sidebarV2Items,
+                    ...Object.values(sidebarV2FolderItems).flat(),
+                  ].find((i) => i.id === itemId);
+                  moveConversationToFolder(itemId, folderId, item?.folderId);
+                  clearNewlyCreatedFolderId();
+                }}
+                onCreateFolderAndMoveItem={(
+                  itemId: string,
+                  folderName: string,
+                ) => {
+                  const item = [
+                    ...sidebarV2Items,
+                    ...Object.values(sidebarV2FolderItems).flat(),
+                  ].find((i) => i.id === itemId);
+                  createFolderAndMoveItem(itemId, folderName, item?.folderId);
+                }}
+                onRemoveItemFromFolder={(itemId: string) => {
+                  const item = [
+                    ...sidebarV2Items,
+                    ...Object.values(sidebarV2FolderItems).flat(),
+                  ].find((i) => i.id === itemId);
+                  moveConversationToFolder(itemId, null, item?.folderId);
+                }}
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
                 loadMoreRef={loadMoreConversationsRef}
