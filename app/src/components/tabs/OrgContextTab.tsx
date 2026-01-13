@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PencilSimpleIcon, BrainIcon, TrashIcon } from "@phosphor-icons/react";
 import { ConfirmationModal } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
@@ -17,6 +18,13 @@ import { usePermissions, Resource } from "../../hooks/usePermissions";
 import { ApiError } from "../../services/apiClient";
 
 export function OrgContextTab() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get initial view from URL parameter (default to "org")
+  const viewFromUrl = searchParams.get("view");
+  const initialView: "org" | "personal" =
+    viewFromUrl === "personal" ? "personal" : "org";
+
   // Selection state
   const [selectedContextId, setSelectedContextId] = useState<string | null>(
     null,
@@ -198,8 +206,14 @@ export function OrgContextTab() {
     setSelectedContextId(id);
   };
 
-  // Handle tab change - auto-select first item in the new tab
+  // Handle tab change - auto-select first item in the new tab and update URL
   const handleTabChange = (tab: "org" | "personal") => {
+    setSearchParams((prev) => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set("view", tab);
+      return newParams;
+    });
+
     if (tab === "org") {
       // Select first org memory if available
       if (contexts.length > 0) {
@@ -428,6 +442,7 @@ export function OrgContextTab() {
                   onPageChange={setCurrentPage}
                   canCreateOrgMemory={canCreateOrgMemory}
                   onTabChange={handleTabChange}
+                  initialView={initialView}
                 />
               </div>
 

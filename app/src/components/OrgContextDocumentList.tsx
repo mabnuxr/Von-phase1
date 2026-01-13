@@ -25,6 +25,8 @@ interface OrgContextDocumentListProps {
   canCreateOrgMemory?: boolean;
   /** Callback when tab changes - receives "org" or "personal" */
   onTabChange?: (tab: "org" | "personal") => void;
+  /** Initial view from URL parameter */
+  initialView?: "org" | "personal";
 }
 
 export function OrgContextDocumentList({
@@ -40,8 +42,9 @@ export function OrgContextDocumentList({
   onPageChange,
   canCreateOrgMemory = false,
   onTabChange,
+  initialView = "org",
 }: OrgContextDocumentListProps) {
-  const [activeTab, setActiveTab] = useState<"org" | "personal">("org");
+  const [activeTab, setActiveTab] = useState<"org" | "personal">(initialView);
 
   const handleTabChange = (tab: "org" | "personal") => {
     setActiveTab(tab);
