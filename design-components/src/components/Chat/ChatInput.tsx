@@ -241,9 +241,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      const isMobile =
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        window.matchMedia('(max-width: 768px)').matches;
+
+      if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        // Don't send message during streaming or if submit is disabled
         if (!isStreaming && !disableSubmit) {
           handleSend();
         }
@@ -347,7 +351,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   value={message}
                   onChange={handleChange}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !isStreaming && !disableSubmit) {
+                    const isMobile =
+                      'ontouchstart' in window ||
+                      navigator.maxTouchPoints > 0 ||
+                      window.matchMedia('(max-width: 768px)').matches;
+
+                    // On desktop: Enter sends. On mobile: user taps send button
+                    if (
+                      !isMobile &&
+                      e.key === 'Enter' &&
+                      !e.shiftKey &&
+                      !isStreaming &&
+                      !disableSubmit
+                    ) {
                       handleSend();
                     }
                   }}
