@@ -165,15 +165,15 @@ const createMockWidgets = (): { widgets: Record<string, DashboardWidget>; layout
   };
 
   // Layout with proper positioning (no overlaps)
-  // Grid is 12 columns, rowHeight is 30px
+  // Grid is 12 columns, rowHeight is 80px (8px increments)
   const layout: Layout = [
-    { i: 'metric-arr', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'metric-accounts', x: 3, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'metric-health', x: 6, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'metric-churn', x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'chart-risk-region', x: 0, y: 4, w: 6, h: 10, minW: 4, minH: 6 },
-    { i: 'chart-churn-trend', x: 6, y: 4, w: 6, h: 10, minW: 4, minH: 6 },
-    { i: 'chart-industry', x: 0, y: 14, w: 4, h: 10, minW: 3, minH: 6 },
+    { i: 'metric-arr', x: 0, y: 0, w: 3, h: 3, minW: 2, minH: 3 },
+    { i: 'metric-accounts', x: 3, y: 0, w: 3, h: 3, minW: 2, minH: 3 },
+    { i: 'metric-health', x: 6, y: 0, w: 3, h: 3, minW: 2, minH: 3 },
+    { i: 'metric-churn', x: 9, y: 0, w: 3, h: 3, minW: 2, minH: 3 },
+    { i: 'chart-risk-region', x: 0, y: 3, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'chart-churn-trend', x: 6, y: 3, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'chart-industry', x: 0, y: 7, w: 4, h: 4, minW: 3, minH: 3 },
   ];
 
   return { widgets, layout };

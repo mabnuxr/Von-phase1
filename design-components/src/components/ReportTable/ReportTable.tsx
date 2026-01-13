@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -11,6 +11,7 @@ import {
   type Row,
   type ColumnSizingState,
   type PaginationState,
+  type ColumnOrderState,
 } from '@tanstack/react-table';
 import { CaretUp, CaretDown, ArrowSquareOut, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { TertiaryIconButton, SecondaryIconButton } from '../forms/buttons/IconButtons';
@@ -104,7 +105,7 @@ export interface ReportTableProps<TData extends Record<string, unknown>> {
   emptyMessage?: string;
   /**
    * Number of rows per page
-   * @default 10
+   * @default 15
    */
   pageSize?: number;
   /**
@@ -285,17 +286,22 @@ export function ReportTable<TData extends Record<string, unknown>>({
   className = '',
   isLoading = false,
   emptyMessage = 'No data available',
-  pageSize = 10,
+  pageSize = 12,
   showPagination = true,
 }: ReportTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [resizingColumnId, setResizingColumnId] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize,
   });
+  const [showLeftGradient, setShowLeftGradient] = useState(false);
+  const [showRightGradient, setShowRightGradient] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const columnHelper = createColumnHelper<TData>();
 
@@ -303,7 +309,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
   const defaultColumnSizes: Record<string, number> = useMemo(() => {
     const sizes: Record<string, number> = { _actions: 60 };
     columns.forEach((col) => {
-      sizes[col.id] = col.width ?? col.minWidth ?? 150;
+      sizes[col.id] = col.width ?? col.minWidth ?? 120;
     });
     return sizes;
   }, [columns]);
@@ -340,14 +346,14 @@ export function ReportTable<TData extends Record<string, unknown>>({
           id: col.id,
           header: () => (
             <div className="flex items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1.5">
-                {col.isAI && <VonIcon size={14} />}
+              <div className="flex items-center gap-1.5 min-w-0">
+                {col.isAI && <VonIcon size={14} className="flex-shrink-0" />}
                 <span
-                  className={
+                  className={`truncate ${
                     col.isAI
                       ? 'bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent'
                       : ''
-                  }
+                  }`}
                 >
                   {col.label}
                 </span>
@@ -360,8 +366,8 @@ export function ReportTable<TData extends Record<string, unknown>>({
 
             return <span className="text-gray-900">{formattedValue}</span>;
           },
-          size: col.width ?? 150,
-          minSize: col.minWidth ?? 80,
+          size: col.width ?? 120,
+          minSize: col.minWidth ?? 120,
           enableSorting: col.sortable !== false,
           enableResizing: true,
         })
@@ -374,10 +380,11 @@ export function ReportTable<TData extends Record<string, unknown>>({
   const table = useReactTable({
     data,
     columns: tableColumns,
-    state: { sorting, columnSizing, pagination },
+    state: { sorting, columnSizing, pagination, columnOrder },
     onSortingChange: setSorting,
     onColumnSizingChange: setColumnSizing,
     onPaginationChange: setPagination,
+    onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -392,11 +399,11 @@ export function ReportTable<TData extends Record<string, unknown>>({
       setResizingColumnId(columnId);
 
       const startX = e.clientX;
-      const startWidth = columnSizing[columnId] ?? defaultColumnSizes[columnId] ?? 150;
+      const startWidth = columnSizing[columnId] ?? defaultColumnSizes[columnId] ?? 120;
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const diff = moveEvent.clientX - startX;
-        const newWidth = Math.max(80, startWidth + diff);
+        const newWidth = Math.max(120, startWidth + diff);
         setColumnSizing((prev) => ({
           ...prev,
           [columnId]: newWidth,
@@ -414,6 +421,91 @@ export function ReportTable<TData extends Record<string, unknown>>({
     },
     [columnSizing, defaultColumnSizes]
   );
+
+  // Handle column reorder via drag and drop
+  const handleDragStart = useCallback((e: React.DragEvent, columnId: string) => {
+    e.stopPropagation();
+    setDraggedColumnId(columnId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', columnId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetColumnId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!draggedColumnId || draggedColumnId === targetColumnId) {
+        setDraggedColumnId(null);
+        return;
+      }
+
+      const currentOrder = table.getAllLeafColumns().map((col) => col.id);
+      const draggedIndex = currentOrder.indexOf(draggedColumnId);
+      const targetIndex = currentOrder.indexOf(targetColumnId);
+
+      if (draggedIndex === -1 || targetIndex === -1) {
+        setDraggedColumnId(null);
+        return;
+      }
+
+      // Don't allow reordering the actions column
+      if (draggedColumnId === '_actions' || targetColumnId === '_actions') {
+        setDraggedColumnId(null);
+        return;
+      }
+
+      const newOrder = [...currentOrder];
+      newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, draggedColumnId);
+
+      setColumnOrder(newOrder);
+      setDraggedColumnId(null);
+    },
+    [draggedColumnId, table]
+  );
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    e.stopPropagation();
+    setDraggedColumnId(null);
+  }, []);
+
+  // Check scroll position to show/hide gradients
+  const checkScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const isScrollable = scrollWidth > clientWidth;
+
+    setShowLeftGradient(isScrollable && scrollLeft > 0);
+    setShowRightGradient(isScrollable && scrollLeft < scrollWidth - clientWidth - 1);
+  }, []);
+
+  // Check scroll on mount and when data/columns change
+  useEffect(() => {
+    checkScroll();
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => checkScroll();
+    container.addEventListener('scroll', handleScroll);
+    
+    // Also check on resize
+    const resizeObserver = new ResizeObserver(checkScroll);
+    resizeObserver.observe(container);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      resizeObserver.disconnect();
+    };
+  }, [checkScroll, data, columns, columnSizing]);
 
   if (isLoading) {
     return (
@@ -443,13 +535,22 @@ export function ReportTable<TData extends Record<string, unknown>>({
   const totalRows = data.length;
   const currentPage = table.getState().pagination.pageIndex;
   const totalPages = table.getPageCount();
-  const startRow = currentPage * pagination.pageSize + 1;
-  const endRow = Math.min((currentPage + 1) * pagination.pageSize, totalRows);
 
   return (
     <div className={`w-full flex flex-col ${className}`}>
-      <div className="overflow-x-auto flex-1">
-        <table className="w-full border-collapse table-fixed">
+      <div className="relative flex-1">
+        {/* Left scroll gradient */}
+        {showLeftGradient && (
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+        )}
+        
+        {/* Right scroll gradient */}
+        {showRightGradient && (
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+        )}
+        
+        <div ref={scrollContainerRef} className="overflow-x-auto h-full">
+          <table className="w-full border-collapse table-fixed">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="bg-gray-50">
@@ -466,9 +567,16 @@ export function ReportTable<TData extends Record<string, unknown>>({
                   return (
                     <th
                       key={header.id}
+                      draggable={!isActionsColumn}
+                      onDragStart={(e) => !isActionsColumn && handleDragStart(e, header.column.id)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, header.column.id)}
+                      onDragEnd={handleDragEnd}
                       className={`
                         px-4 py-2.5 text-left text-xs font-medium text-gray-700 relative
-                        ${!isActionsColumn && canSort ? 'cursor-pointer select-none hover:bg-gray-100 transition-colors' : ''}
+                        ${!isActionsColumn ? 'cursor-move' : ''}
+                        ${!isActionsColumn && canSort ? 'select-none hover:bg-gray-100 transition-colors' : ''}
+                        ${draggedColumnId === header.column.id ? 'opacity-50' : ''}
                       `}
                       style={{
                         width: colWidth,
@@ -531,13 +639,14 @@ export function ReportTable<TData extends Record<string, unknown>>({
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination */}
       {showPagination && totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-white">
-          <div className="text-[13px] text-gray-700">
-            Showing {startRow} to {endRow} of {totalRows} results
+        <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-white">
+          <div className="text-xs text-gray-600">
+            {totalRows} {totalRows === 1 ? 'result' : 'results'}
           </div>
           <div className="flex items-center gap-2">
             <SecondaryIconButton
@@ -547,24 +656,9 @@ export function ReportTable<TData extends Record<string, unknown>>({
               title="Previous page"
               size="small"
             />
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => table.setPageIndex(i)}
-                  className={`
-                    min-w-[28px] h-7 px-2 text-[13px] font-medium rounded-lg transition-colors
-                    ${
-                      currentPage === i
-                        ? 'bg-gray-900 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
+            <span className="text-xs text-gray-700 font-medium">
+              Page {currentPage + 1} of {totalPages}
+            </span>
             <SecondaryIconButton
               icon={<CaretRight size={14} />}
               onClick={() => table.nextPage()}

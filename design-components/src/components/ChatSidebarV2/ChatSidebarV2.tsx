@@ -30,10 +30,13 @@ import {
   ContextMenu,
   DeleteConfirmationPopup,
   NewDashboardModal,
+  MoveToFolderModal,
   type ContextMenuItem,
   type NewDashboardConfig,
   type SalesforceDashboard,
+  type MoveToFolderConfig,
 } from '../popups';
+import { ArrowBendUpRightIcon } from '@phosphor-icons/react';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
 
 const VON_COMBINATION_MARK_URL =
@@ -64,8 +67,6 @@ export interface Folder {
   label: string;
   /** Whether folder is expanded */
   isExpanded?: boolean;
-  /** Type of items this folder contains */
-  type: 'chat' | 'dashboard';
 }
 
 /**
@@ -165,6 +166,21 @@ export interface ChatSidebarProps {
   onDeleteFolder?: (folderId: string) => void;
 
   /**
+   * Move item to folder handler
+   */
+  onMoveItemToFolder?: (itemId: string, itemType: ItemType, folderId: string) => void;
+
+  /**
+   * Create folder and move item handler
+   */
+  onCreateFolderAndMoveItem?: (itemId: string, itemType: ItemType, newFolderName: string) => void;
+
+  /**
+   * Remove item from folder handler - moves item back to root level
+   */
+  onRemoveItemFromFolder?: (itemId: string, itemType: ItemType) => void;
+
+  /**
    * Search input change handler
    */
   onSearchChange?: (value: string) => void;
@@ -256,7 +272,22 @@ export interface ChatSidebarProps {
 // ============================================================================
 
 // Context menu items for sidebar items
-const getContextMenuItems = (): ContextMenuItem[] => [
+const getContextMenuItems = (options: {
+  isInFolder?: boolean;
+} = {}): ContextMenuItem[] => {
+  const { isInFolder = false } = options;
+  return [
+    { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
+    { id: 'move', label: 'Move to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
+    ...(isInFolder
+      ? [{ id: 'remove-from-folder', label: 'Remove from Folder', icon: <FolderSimpleIcon size={14} /> }]
+      : []),
+    { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' as const },
+  ];
+};
+
+// Context menu items for folders (no move options)
+const getFolderContextMenuItems = (): ContextMenuItem[] => [
   { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
   { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' },
 ];
@@ -298,9 +329,9 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
             </span>
           )}
           {isExpanded ? (
-            <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
+            <CaretDownIcon size={12} weight="regular" className="text-gray-800" />
           ) : (
-            <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
+            <CaretRightIcon size={12} weight="regular" className="text-gray-800" />
           )}
         </div>
       </button>
@@ -669,12 +700,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   salesforceDashboards = [],
   onCreateDashboard,
   onNewChatFolderClick,
-  onNewDashboardFolderClick,
+  onNewDashboardFolderClick: _onNewDashboardFolderClick,
   onRenameItem,
   onDeleteItem,
   onFolderToggle,
   onRenameFolder,
   onDeleteFolder,
+  onMoveItemToFolder,
+  onCreateFolderAndMoveItem,
+  onRemoveItemFromFolder,
   isCollapsed = false,
   onToggleCollapse,
   loadMoreRef,
@@ -724,12 +758,50 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     folder: Folder | null;
   }>({ isOpen: false, folder: null });
 
-  // Section expansion states
-  const [isChatsExpanded, setIsChatsExpanded] = useState(true);
-  const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(true);
+  // Section expansion states - only one section open at a time
+  const [isFoldersExpanded, setIsFoldersExpanded] = useState(true);
+  const [isChatsExpanded, setIsChatsExpanded] = useState(false);
+  const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
+
+  // Toggle handlers - close other sections when one opens
+  const handleToggleFolders = () => {
+    if (!isFoldersExpanded) {
+      setIsFoldersExpanded(true);
+      setIsChatsExpanded(false);
+      setIsDashboardsExpanded(false);
+    } else {
+      setIsFoldersExpanded(false);
+    }
+  };
+
+  const handleToggleDashboards = () => {
+    if (!isDashboardsExpanded) {
+      setIsDashboardsExpanded(true);
+      setIsFoldersExpanded(false);
+      setIsChatsExpanded(false);
+    } else {
+      setIsDashboardsExpanded(false);
+    }
+  };
+
+  const handleToggleChats = () => {
+    if (!isChatsExpanded) {
+      setIsChatsExpanded(true);
+      setIsFoldersExpanded(false);
+      setIsDashboardsExpanded(false);
+    } else {
+      setIsChatsExpanded(false);
+    }
+  };
 
   // New dashboard modal state
   const [isNewDashboardModalOpen, setIsNewDashboardModalOpen] = useState(false);
+
+  // Move to folder modal state
+  const [moveToFolderModal, setMoveToFolderModal] = useState<{
+    isOpen: boolean;
+    item: SidebarItem | null;
+  }>({ isOpen: false, item: null });
 
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   const [isChatsHovered, setIsChatsHovered] = useState(false);
@@ -759,6 +831,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
   // Handle collapse all - collapses all sections
   const handleCollapseAll = () => {
+    setIsFoldersExpanded(false);
     setIsChatsExpanded(false);
     setIsDashboardsExpanded(false);
     // Also collapse all folders
@@ -775,12 +848,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     item.label.toLowerCase().includes(searchValue.toLowerCase())
   );
 
-  // Separate folders by type
-  const chatFolders = folders.filter((folder) => folder.type === 'chat');
-  const dashboardFolders = folders.filter((folder) => folder.type === 'dashboard');
-
   // Separate items by folder - use folderItems prop if provided, otherwise filter from items
-  const rootItems = filteredItems.filter((item) => !item.folderId);
   const itemsByFolder = folders.reduce(
     (acc, folder) => {
       // Use folderItems prop if available (from API), otherwise filter from items
@@ -799,21 +867,17 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     {} as Record<string, SidebarItem[]>
   );
 
+  // Root items (not in any folder)
+  const rootItems = filteredItems.filter((item) => !item.folderId);
+
   // Separate root items by type
   const rootChats = rootItems.filter((item) => item.type === 'chat');
   const rootDashboards = rootItems.filter((item) => item.type === 'dashboard');
 
-  // Count total items in each section (root + folders)
-  const chatFolderItemCount = chatFolders.reduce(
-    (sum, folder) => sum + (itemsByFolder[folder.id]?.length || 0),
-    0
-  );
-  const dashboardFolderItemCount = dashboardFolders.reduce(
-    (sum, folder) => sum + (itemsByFolder[folder.id]?.length || 0),
-    0
-  );
-  const totalChats = rootChats.length + chatFolderItemCount;
-  const totalDashboards = rootDashboards.length + dashboardFolderItemCount;
+  // Count total items
+  const totalChats = filteredItems.filter((item) => item.type === 'chat').length;
+  const totalDashboards = filteredItems.filter((item) => item.type === 'dashboard').length;
+  const totalFolders = folders.length;
 
   const handleContextMenu = (e: React.MouseEvent, item: SidebarItem) => {
     e.preventDefault();
@@ -917,6 +981,46 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Handle canceling folder delete
   const handleCancelFolderDelete = () => {
     setFolderDeleteConfirmation({ isOpen: false, folder: null });
+  };
+
+  // ============================================================================
+  // Move to Folder Handlers
+  // ============================================================================
+
+  // Handle showing move to folder modal
+  const handleShowMoveToFolder = (item: SidebarItem) => {
+    setMoveToFolderModal({ isOpen: true, item });
+  };
+
+  // Handle confirming move to folder
+  const handleConfirmMoveToFolder = (config: MoveToFolderConfig) => {
+    if (!moveToFolderModal.item) return;
+
+    if (config.isNewFolder && config.newFolderName) {
+      onCreateFolderAndMoveItem?.(
+        moveToFolderModal.item.id,
+        moveToFolderModal.item.type,
+        config.newFolderName
+      );
+    } else {
+      onMoveItemToFolder?.(moveToFolderModal.item.id, moveToFolderModal.item.type, config.folderId);
+    }
+    setMoveToFolderModal({ isOpen: false, item: null });
+  };
+
+  // Handle canceling move to folder
+  const handleCancelMoveToFolder = () => {
+    setMoveToFolderModal({ isOpen: false, item: null });
+  };
+
+  // Handle removing item from folder
+  const handleRemoveFromFolder = (item: SidebarItem) => {
+    onRemoveItemFromFolder?.(item.id, item.type);
+  };
+
+  // Get available folders for move modal
+  const getAvailableFoldersForMove = () => {
+    return folders.map((f) => ({ id: f.id, label: f.label }));
   };
 
   // ============================================================================
@@ -1152,37 +1256,39 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </GhostButton>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      {/* Content - Flex container for sections */}
+      <div className="flex-1 flex flex-col overflow-hidden px-1 min-h-0">
         {/* Loading Skeleton */}
-        {isLoading && <ChatSidebarSkeleton />}
+        {isLoading && (
+          <div className="overflow-y-auto">
+            <ChatSidebarSkeleton />
+          </div>
+        )}
 
-        {/* Chats Section (with folders inside) */}
+        {/* Folders Section */}
         {!isLoading && (
-          <div className="mb-1">
+          <div className="flex flex-col min-h-0 flex-shrink-0 max-h-[calc(100%-64px)]">
             <SectionHeader
-              label="Chats"
-              isExpanded={isChatsExpanded}
-              onToggle={() => setIsChatsExpanded(!isChatsExpanded)}
+              label="Folders"
+              isExpanded={isFoldersExpanded}
+              onToggle={handleToggleFolders}
               onAdd={onNewChatFolderClick}
-              addButtonLabel="Add Folder"
-              count={totalChats}
+              addButtonLabel="Add"
+              count={totalFolders}
             />
             <AnimatePresence>
-              {isChatsExpanded && (
+              {isFoldersExpanded && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
+                  className="overflow-y-auto overflow-x-hidden"
                 >
-                  {/* Chat Folders */}
-                  {chatFolders.map((folder) => {
+                  {/* All Folders */}
+                  {folders.map((folder) => {
                     const folderItemsList = itemsByFolder[folder.id] || [];
                     const isFolderLoading = folderLoadingMap[folder.id] || false;
-                    if (folderItemsList.length === 0 && searchValue && !isFolderLoading)
-                      return null;
 
                     return (
                       <FolderSection
@@ -1208,25 +1314,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       />
                     );
                   })}
-                  {/* Root Chats (not in folders) */}
-                  {rootChats.map((item) => (
-                    <SidebarItemRow
-                      key={item.id}
-                      item={item}
-                      isSelected={item.id === selectedItemId}
-                      onClick={() => onItemClick?.(item.id, item.type)}
-                      onContextMenu={(e) => handleContextMenu(e, item)}
-                      showIcon={false}
-                      isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                      isEditing={editingItemId === item.id}
-                      onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                      onCancelEdit={handleCancelRename}
-                    />
-                  ))}
-                  {/* Empty state for chats */}
-                  {totalChats === 0 && !searchValue && (
+                  {/* Empty state for folders */}
+                  {folders.length === 0 && !searchValue && (
                     <div className="py-3 text-center">
-                      <p className="text-[12px] text-gray-400">No chats yet</p>
+                      <p className="text-[12px] text-gray-400">No folders yet</p>
                     </div>
                   )}
                 </motion.div>
@@ -1235,15 +1326,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         )}
 
-        {/* Dashboards Section (with folders inside) */}
+        {/* Dashboards Section */}
         {!isLoading && (
-          <div className="mb-1">
+          <div className="flex flex-col min-h-0 flex-shrink-0 max-h-[calc(100%-64px)]">
             <SectionHeader
               label="Dashboards"
               isExpanded={isDashboardsExpanded}
-              onToggle={() => setIsDashboardsExpanded(!isDashboardsExpanded)}
-              onAdd={onNewDashboardFolderClick}
-              addButtonLabel="Add Folder"
+              onToggle={handleToggleDashboards}
               count={totalDashboards}
             />
             <AnimatePresence>
@@ -1253,39 +1342,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="overflow-hidden pl-1.5 ml-2.5 border-l border-dashed border-gray-200"
+                  className="overflow-y-auto overflow-x-hidden"
                 >
-                  {/* Dashboard Folders */}
-                  {dashboardFolders.map((folder) => {
-                    const folderItemsList = itemsByFolder[folder.id] || [];
-                    const isFolderLoading = folderLoadingMap[folder.id] || false;
-                    if (folderItemsList.length === 0 && searchValue && !isFolderLoading)
-                      return null;
-
-                    return (
-                      <FolderSection
-                        key={folder.id}
-                        folder={folder}
-                        items={folderItemsList}
-                        selectedItemId={selectedItemId}
-                        menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                        editingItemId={editingItemId}
-                        isFolderEditing={editingFolderId === folder.id}
-                        isFolderMenuOpen={
-                          folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
-                        }
-                        isLoading={isFolderLoading}
-                        onItemClick={(id, type) => onItemClick?.(id, type)}
-                        onItemContextMenu={handleContextMenu}
-                        onToggle={(isExpanded) => onFolderToggle?.(folder.id, isExpanded)}
-                        onSaveEdit={handleSaveRename}
-                        onCancelEdit={handleCancelRename}
-                        onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                        onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
-                        onCancelFolderEdit={handleCancelFolderRename}
-                      />
-                    );
-                  })}
                   {/* Root Dashboards (not in folders) */}
                   {rootDashboards.map((item) => (
                     <SidebarItemRow
@@ -1302,7 +1360,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     />
                   ))}
                   {/* Empty state for dashboards */}
-                  {totalDashboards === 0 && !searchValue && (
+                  {rootDashboards.length === 0 && !searchValue && (
                     <div className="py-3 text-center">
                       <p className="text-[12px] text-gray-400">No dashboards yet</p>
                     </div>
@@ -1313,9 +1371,54 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
         )}
 
+        {/* Chats Section */}
+        {!isLoading && (
+          <div className="flex flex-col min-h-0 flex-shrink-0 max-h-[calc(100%-64px)]">
+            <SectionHeader
+              label="Chats"
+              isExpanded={isChatsExpanded}
+              onToggle={handleToggleChats}
+              count={totalChats}
+            />
+            <AnimatePresence>
+              {isChatsExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-y-auto overflow-x-hidden"
+                >
+                  {/* Root Chats (not in folders) */}
+                  {rootChats.map((item) => (
+                    <SidebarItemRow
+                      key={item.id}
+                      item={item}
+                      isSelected={item.id === selectedItemId}
+                      onClick={() => onItemClick?.(item.id, item.type)}
+                      onContextMenu={(e) => handleContextMenu(e, item)}
+                      showIcon={false}
+                      isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                      isEditing={editingItemId === item.id}
+                      onSaveEdit={(newName) => handleSaveRename(item, newName)}
+                      onCancelEdit={handleCancelRename}
+                    />
+                  ))}
+                  {/* Empty state for chats */}
+                  {rootChats.length === 0 && !searchValue && (
+                    <div className="py-3 text-center">
+                      <p className="text-[12px] text-gray-400">No chats yet</p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
         {/* Empty state */}
         {!isLoading && filteredItems.length === 0 && folders.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-col items-center justify-center py-8 text-center flex-1">
             <ChatTextIcon size={24} weight="duotone" className="text-gray-300 mb-1" />
             <p className="text-[13px] text-gray-500">
               {searchValue ? 'No results found' : 'No chats or dashboards yet'}
@@ -1324,7 +1427,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         )}
 
         {/* Infinite scroll trigger */}
-        {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
+        {loadMoreRef && <div ref={loadMoreRef} className="h-px flex-shrink-0" />}
       </div>
 
       {/* More Content Indicator */}
@@ -1416,12 +1519,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <ContextMenu
         isOpen={contextMenu.isOpen}
         onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
-        items={getContextMenuItems()}
+        items={getContextMenuItems({ isInFolder: !!contextMenu.item?.folderId })}
         fixedPosition={contextMenu.position}
-        width={128}
+        width={160}
         onItemClick={(item) => {
           if (item.id === 'rename' && contextMenu.item) {
             handleStartRename(contextMenu.item);
+          } else if (item.id === 'move' && contextMenu.item) {
+            handleShowMoveToFolder(contextMenu.item);
+          } else if (item.id === 'remove-from-folder' && contextMenu.item) {
+            handleRemoveFromFolder(contextMenu.item);
           } else if (item.id === 'delete' && contextMenu.item) {
             handleShowDeleteConfirmation(contextMenu.item);
           }
@@ -1442,7 +1549,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <ContextMenu
         isOpen={folderContextMenu.isOpen}
         onClose={() => setFolderContextMenu({ ...folderContextMenu, isOpen: false })}
-        items={getContextMenuItems()}
+        items={getFolderContextMenuItems()}
         fixedPosition={folderContextMenu.position}
         width={128}
         onItemClick={(item) => {
@@ -1473,6 +1580,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           setIsNewDashboardModalOpen(false);
         }}
         onCancel={() => setIsNewDashboardModalOpen(false)}
+      />
+
+      {/* Move to Folder Modal */}
+      <MoveToFolderModal
+        isOpen={moveToFolderModal.isOpen}
+        itemName={moveToFolderModal.item?.label || ''}
+        itemType={moveToFolderModal.item?.type || 'chat'}
+        folders={getAvailableFoldersForMove()}
+        onConfirm={handleConfirmMoveToFolder}
+        onCancel={handleCancelMoveToFolder}
       />
     </div>
   );

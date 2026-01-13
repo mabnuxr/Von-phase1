@@ -65,13 +65,13 @@ const DashboardGrid = ({
         layout={layout}
         // @ts-expect-error-next-line--- incorrect types of react-grid-layout
         cols={12}
-        rowHeight={30}
+        rowHeight={80}
         width={containerWidth}
         onLayoutChange={onLayoutChange}
         draggableHandle=".widget-drag-handle"
         isResizable={true}
         isDraggable={true}
-        margin={[16, 16]}
+        margin={[8, 8]}
         containerPadding={[0, 0]}
         useCSSTransforms={true}
       >

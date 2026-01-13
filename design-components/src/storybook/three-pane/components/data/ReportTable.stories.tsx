@@ -507,7 +507,6 @@ export const Default: Story = {
   args: {
     columns: standardColumns,
     data: sampleOpportunities,
-    pageSize: 10,
   },
 };
 
@@ -519,7 +518,6 @@ export const WithAIColumns: Story = {
   args: {
     columns: columnsWithAI,
     data: sampleOpportunities,
-    pageSize: 10,
   },
 };
 
@@ -554,7 +552,6 @@ const InteractiveWrapper = () => {
         onRowSelect={handleRowSelect}
         onRowOpen={handleRowOpen}
         rowIdKey="id"
-        pageSize={10}
       />
     </div>
   );
@@ -571,7 +568,6 @@ export const Minimal: Story = {
   args: {
     columns: minimalColumns,
     data: sampleOpportunities,
-    pageSize: 10,
   },
 };
 
@@ -625,7 +621,7 @@ export const SmallPageSize: Story = {
 const FullWidthWrapper = () => {
   return (
     <div className="w-full bg-white rounded-xl border border-gray-100 overflow-hidden">
-      <ReportTable columns={columnsWithAI} data={sampleOpportunities} pageSize={10} />
+      <ReportTable columns={columnsWithAI} data={sampleOpportunities} />
     </div>
   );
 };

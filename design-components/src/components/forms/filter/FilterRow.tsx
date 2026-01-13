@@ -39,6 +39,10 @@ export interface FilterRowProps {
    * Whether to show the remove button
    */
   showRemove?: boolean;
+  /**
+   * Whether to render dropdowns in a portal (useful when inside overflow containers)
+   */
+  usePortal?: boolean;
 }
 
 const OPERATORS = [
@@ -73,6 +77,7 @@ export const FilterRow: React.FC<FilterRowProps> = ({
   onValueChange,
   onRemove,
   showRemove = true,
+  usePortal = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -111,6 +116,7 @@ export const FilterRow: React.FC<FilterRowProps> = ({
             value={field}
             onChange={onFieldChange}
             placeholder="Select field..."
+            usePortal={usePortal}
           />
         </div>
 
@@ -123,6 +129,7 @@ export const FilterRow: React.FC<FilterRowProps> = ({
               value={operator}
               onChange={onOperatorChange}
               placeholder="Operator"
+              usePortal={usePortal}
             />
           </div>
 
