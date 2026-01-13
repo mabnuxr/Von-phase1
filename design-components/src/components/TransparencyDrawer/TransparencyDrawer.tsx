@@ -97,8 +97,8 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                   <div>
                     <h2 className="text-base font-semibold text-gray-900">{title}</h2>
                     <p className="text-xs text-gray-500">
-                      {queries.length} {queries.length === 1 ? 'query' : 'queries'},{' '}
-                      {calls.length} {calls.length === 1 ? 'call' : 'calls'}
+                      {queries.length} {queries.length === 1 ? 'query' : 'queries'}, {calls.length}{' '}
+                      {calls.length === 1 ? 'call' : 'calls'}
                     </p>
                   </div>
                 </div>

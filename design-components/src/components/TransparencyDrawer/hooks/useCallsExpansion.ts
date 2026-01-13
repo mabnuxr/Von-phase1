@@ -37,10 +37,7 @@ export function useCallsExpansion(defaultExpandedId?: string): UseCallsExpansion
     });
   }, []);
 
-  const isExpanded = useCallback(
-    (id: string) => expandedItems.has(id),
-    [expandedItems]
-  );
+  const isExpanded = useCallback((id: string) => expandedItems.has(id), [expandedItems]);
 
   return { expandedItems, toggleExpanded, isExpanded };
 }

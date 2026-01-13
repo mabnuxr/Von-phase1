@@ -10,9 +10,7 @@ import type { CallTranscript } from '../types';
  * @param calls - Array of call transcripts to group
  * @returns Object with month-year keys and arrays of calls
  */
-export const groupCallsByMonth = (
-  calls: CallTranscript[]
-): Record<string, CallTranscript[]> => {
+export const groupCallsByMonth = (calls: CallTranscript[]): Record<string, CallTranscript[]> => {
   const groups: Record<string, CallTranscript[]> = {};
 
   calls.forEach((call) => {

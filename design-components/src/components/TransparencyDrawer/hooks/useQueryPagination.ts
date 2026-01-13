@@ -32,15 +32,9 @@ export function useQueryPagination(
 ): UseQueryPaginationReturn {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = useMemo(
-    () => Math.ceil(totalRows / rowsPerPage),
-    [totalRows, rowsPerPage]
-  );
+  const totalPages = useMemo(() => Math.ceil(totalRows / rowsPerPage), [totalRows, rowsPerPage]);
 
-  const startIndex = useMemo(
-    () => (currentPage - 1) * rowsPerPage,
-    [currentPage, rowsPerPage]
-  );
+  const startIndex = useMemo(() => (currentPage - 1) * rowsPerPage, [currentPage, rowsPerPage]);
 
   const endIndex = useMemo(
     () => Math.min(startIndex + rowsPerPage, totalRows),
@@ -52,10 +46,7 @@ export function useQueryPagination(
     [totalPages]
   );
 
-  const goToPrevPage = useCallback(
-    () => setCurrentPage((p) => Math.max(1, p - 1)),
-    []
-  );
+  const goToPrevPage = useCallback(() => setCurrentPage((p) => Math.max(1, p - 1)), []);
 
   // Reset to page 1 when total rows change
   useEffect(() => {

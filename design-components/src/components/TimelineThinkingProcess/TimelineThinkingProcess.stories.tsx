@@ -41,7 +41,8 @@ const sampleSteps: TimelineStep[] = [
     text: 'Understanding the request',
     status: 'complete',
     type: 'reasoning',
-    description: 'Analyzing the user query to understand what information is needed about account revenue.',
+    description:
+      'Analyzing the user query to understand what information is needed about account revenue.',
   },
   {
     id: '2',
@@ -58,7 +59,8 @@ const sampleSteps: TimelineStep[] = [
     status: 'complete',
     type: 'tool_call',
     source: 'gong',
-    description: 'Searching through recent call recordings to find relevant discussions about the account.',
+    description:
+      'Searching through recent call recordings to find relevant discussions about the account.',
   },
   {
     id: '4',

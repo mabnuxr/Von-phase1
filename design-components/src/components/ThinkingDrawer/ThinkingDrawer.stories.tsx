@@ -246,11 +246,7 @@ console.log(\`Growth Rate: \${growthRate.toFixed(1)}%\`);`,
     },
   },
   render: (args) => (
-    <DrawerWrapper
-      steps={args.steps}
-      title={args.title}
-      selectedStep={args.selectedStep}
-    />
+    <DrawerWrapper steps={args.steps} title={args.title} selectedStep={args.selectedStep} />
   ),
 };
 
@@ -270,11 +266,7 @@ export const WithArtifact: Story = {
     },
   },
   render: (args) => (
-    <DrawerWrapper
-      steps={args.steps}
-      title={args.title}
-      selectedStep={args.selectedStep}
-    />
+    <DrawerWrapper steps={args.steps} title={args.title} selectedStep={args.selectedStep} />
   ),
 };
 

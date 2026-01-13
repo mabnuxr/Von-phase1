@@ -18,7 +18,13 @@ export type {
 export { CONTAINER_HEIGHT, SOURCE_CONFIG, TYPE_CONFIG } from './constants';
 
 // Re-export components for potential external use
-export { StatusIcon, StepTypeIcon, CompactApprovalCard, StepRow, CollapsedStepRow } from './components';
+export {
+  StatusIcon,
+  StepTypeIcon,
+  CompactApprovalCard,
+  StepRow,
+  CollapsedStepRow,
+} from './components';
 
 // Re-export hooks
 export { useTimelineState } from './hooks';

@@ -89,9 +89,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               <div key={idx} className="flex items-center gap-2 text-[11px]">
                 <span className="text-gray-500 min-w-[60px]">{change.field}:</span>
                 {change.before !== undefined && (
-                  <span className="text-gray-400 line-through">
-                    {String(change.before ?? '—')}
-                  </span>
+                  <span className="text-gray-400 line-through">{String(change.before ?? '—')}</span>
                 )}
                 <span className="text-gray-400">→</span>
                 <span className="text-gray-900 font-medium">{String(change.after ?? '—')}</span>

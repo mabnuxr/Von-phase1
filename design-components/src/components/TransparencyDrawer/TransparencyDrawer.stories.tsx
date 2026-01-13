@@ -32,7 +32,8 @@ const sampleQueries: QueryResult[] = [
     id: 'query-1',
     name: 'Account Opportunities',
     description: 'All open opportunities for the selected account',
-    query: 'SELECT Name, Amount, StageName, CloseDate FROM Opportunity WHERE AccountId = :accountId AND IsClosed = false',
+    query:
+      'SELECT Name, Amount, StageName, CloseDate FROM Opportunity WHERE AccountId = :accountId AND IsClosed = false',
     columns: [
       { key: 'name', label: 'Opportunity Name', type: 'string' },
       { key: 'amount', label: 'Amount', type: 'currency' },
@@ -41,11 +42,41 @@ const sampleQueries: QueryResult[] = [
       { key: 'probability', label: 'Probability', type: 'percentage' },
     ],
     rows: [
-      { name: 'Enterprise License Deal', amount: 150000, stage: 'Negotiation', closeDate: '2024-02-15', probability: 75 },
-      { name: 'Support Renewal', amount: 25000, stage: 'Proposal', closeDate: '2024-01-30', probability: 90 },
-      { name: 'Add-on Services', amount: 45000, stage: 'Discovery', closeDate: '2024-03-01', probability: 40 },
-      { name: 'Platform Expansion', amount: 200000, stage: 'Qualification', closeDate: '2024-04-15', probability: 25 },
-      { name: 'Training Package', amount: 15000, stage: 'Closed Won', closeDate: '2024-01-10', probability: 100 },
+      {
+        name: 'Enterprise License Deal',
+        amount: 150000,
+        stage: 'Negotiation',
+        closeDate: '2024-02-15',
+        probability: 75,
+      },
+      {
+        name: 'Support Renewal',
+        amount: 25000,
+        stage: 'Proposal',
+        closeDate: '2024-01-30',
+        probability: 90,
+      },
+      {
+        name: 'Add-on Services',
+        amount: 45000,
+        stage: 'Discovery',
+        closeDate: '2024-03-01',
+        probability: 40,
+      },
+      {
+        name: 'Platform Expansion',
+        amount: 200000,
+        stage: 'Qualification',
+        closeDate: '2024-04-15',
+        probability: 25,
+      },
+      {
+        name: 'Training Package',
+        amount: 15000,
+        stage: 'Closed Won',
+        closeDate: '2024-01-10',
+        probability: 100,
+      },
     ],
     executedAt: new Date(),
     duration: 234,
@@ -54,7 +85,8 @@ const sampleQueries: QueryResult[] = [
     id: 'query-2',
     name: 'Revenue by Quarter',
     description: 'Quarterly revenue breakdown for the past year',
-    query: 'SELECT CALENDAR_QUARTER(CloseDate), SUM(Amount) FROM Opportunity GROUP BY CALENDAR_QUARTER(CloseDate)',
+    query:
+      'SELECT CALENDAR_QUARTER(CloseDate), SUM(Amount) FROM Opportunity GROUP BY CALENDAR_QUARTER(CloseDate)',
     columns: [
       { key: 'quarter', label: 'Quarter', type: 'string' },
       { key: 'revenue', label: 'Revenue', type: 'currency' },
@@ -81,9 +113,24 @@ const sampleQueries: QueryResult[] = [
       { key: 'lastActivity', label: 'Last Activity', type: 'date' },
     ],
     rows: [
-      { name: 'John Smith', title: 'VP of Engineering', email: 'john.smith@acme.com', lastActivity: '2024-01-12' },
-      { name: 'Sarah Johnson', title: 'CTO', email: 'sarah.j@acme.com', lastActivity: '2024-01-08' },
-      { name: 'Mike Chen', title: 'Director of IT', email: 'mchen@acme.com', lastActivity: '2024-01-05' },
+      {
+        name: 'John Smith',
+        title: 'VP of Engineering',
+        email: 'john.smith@acme.com',
+        lastActivity: '2024-01-12',
+      },
+      {
+        name: 'Sarah Johnson',
+        title: 'CTO',
+        email: 'sarah.j@acme.com',
+        lastActivity: '2024-01-08',
+      },
+      {
+        name: 'Mike Chen',
+        title: 'Director of IT',
+        email: 'mchen@acme.com',
+        lastActivity: '2024-01-05',
+      },
     ],
     executedAt: new Date(),
     duration: 89,
@@ -103,7 +150,8 @@ const sampleCalls: CallTranscript[] = [
     accountName: 'Acme Corp',
     opportunityName: 'Enterprise License Deal',
     sentiment: 'positive',
-    summary: 'Discussed Q4 priorities and budget allocation. Customer expressed strong interest in expanding the platform usage. Key decision makers are aligned on timeline.',
+    summary:
+      'Discussed Q4 priorities and budget allocation. Customer expressed strong interest in expanding the platform usage. Key decision makers are aligned on timeline.',
   },
   {
     id: 'call-2',
@@ -115,7 +163,8 @@ const sampleCalls: CallTranscript[] = [
     sourceUrl: 'https://app.gong.io/call/124',
     accountName: 'Acme Corp',
     sentiment: 'neutral',
-    summary: 'Reviewed technical requirements for the integration. Some concerns about API rate limits were raised. Follow-up meeting scheduled to address security questions.',
+    summary:
+      'Reviewed technical requirements for the integration. Some concerns about API rate limits were raised. Follow-up meeting scheduled to address security questions.',
   },
   {
     id: 'call-3',
@@ -128,7 +177,8 @@ const sampleCalls: CallTranscript[] = [
     accountName: 'Acme Corp',
     opportunityName: 'Enterprise License Deal',
     sentiment: 'positive',
-    summary: 'Made significant progress on contract terms. Customer agreed to multi-year commitment. Final approval expected by end of month.',
+    summary:
+      'Made significant progress on contract terms. Customer agreed to multi-year commitment. Final approval expected by end of month.',
   },
   {
     id: 'call-4',
@@ -139,7 +189,8 @@ const sampleCalls: CallTranscript[] = [
     sourceUrl: 'https://app.gong.io/call/126',
     accountName: 'Acme Corp',
     sentiment: 'negative',
-    summary: 'Customer raised concerns about recent downtime. Issue was resolved but customer requested compensation. Need to follow up with account team.',
+    summary:
+      'Customer raised concerns about recent downtime. Issue was resolved but customer requested compensation. Need to follow up with account team.',
   },
   {
     id: 'call-5',
@@ -151,7 +202,8 @@ const sampleCalls: CallTranscript[] = [
     sourceUrl: 'https://app.gong.io/call/127',
     accountName: 'Acme Corp',
     sentiment: 'positive',
-    summary: 'Comprehensive review of partnership success. Customer highlighted ROI achievements. Discussion about expanding to additional departments.',
+    summary:
+      'Comprehensive review of partnership success. Customer highlighted ROI achievements. Discussion about expanding to additional departments.',
   },
 ];
 
@@ -201,9 +253,7 @@ export const Default: Story = {
     calls: sampleCalls,
     title: 'Data Sources',
   },
-  render: (args) => (
-    <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />
-  ),
+  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
 };
 
 export const QueriesOnly: Story = {
@@ -224,9 +274,7 @@ export const CallsOnly: Story = {
     calls: sampleCalls,
     title: 'Call Recordings',
   },
-  render: (args) => (
-    <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />
-  ),
+  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
 };
 
 export const SingleQuery: Story = {
@@ -249,7 +297,9 @@ export const LargeDataset: Story = {
         rows: Array.from({ length: 50 }, (_, i) => ({
           name: `Opportunity ${i + 1}`,
           amount: Math.floor(Math.random() * 200000) + 10000,
-          stage: ['Discovery', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'][Math.floor(Math.random() * 5)],
+          stage: ['Discovery', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'][
+            Math.floor(Math.random() * 5)
+          ],
           closeDate: `2024-0${Math.floor(Math.random() * 3) + 1}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
           probability: Math.floor(Math.random() * 100),
         })),
@@ -268,9 +318,7 @@ export const EmptyState: Story = {
     calls: [],
     title: 'No Data',
   },
-  render: (args) => (
-    <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />
-  ),
+  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
 };
 
 export const MixedSentiments: Story = {
@@ -285,9 +333,7 @@ export const MixedSentiments: Story = {
     ],
     title: 'Call Analysis',
   },
-  render: (args) => (
-    <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />
-  ),
+  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
 };
 
 export const WithLongQuery: Story = {

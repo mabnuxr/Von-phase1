@@ -13,10 +13,7 @@ import type { QueryColumn, SentimentType } from '../types';
  * @param type - The column type (currency, percentage, number, date, etc.)
  * @returns Formatted string representation
  */
-export const formatValue = (
-  value: string | number,
-  type?: QueryColumn['type']
-): string => {
+export const formatValue = (value: string | number, type?: QueryColumn['type']): string => {
   if (value === null || value === undefined) return '-';
 
   switch (type) {
