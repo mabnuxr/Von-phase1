@@ -20,6 +20,7 @@ export function useLaunchDarklyIdentify() {
       const tenantId = user.tenantId || null;
       const userId = user.id || "anonymous";
 
+      const userEmail = user.email || "";
       const context = tenantId
         ? {
             kind: "multi" as const,
@@ -28,15 +29,17 @@ export function useLaunchDarklyIdentify() {
             },
             User: {
               key: userId,
+              email: userEmail,
             },
           }
         : {
             kind: "user" as const,
             key: userId,
+            email: userEmail,
           };
 
       await ldClient.identify(context);
-      console.log("[LaunchDarkly] User identified:", { tenantId, userId });
+      console.log("[LaunchDarkly] User identified:", { tenantId, userId, email: userEmail });
     } catch (error) {
       console.error("[LaunchDarkly] Failed to identify user:", error);
     }
