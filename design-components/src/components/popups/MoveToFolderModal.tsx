@@ -38,9 +38,9 @@ export interface MoveToFolderModalProps {
   itemName: string;
 
   /**
-   * Type of item being moved
+   * Type of item being moved (optional, defaults to 'chat')
    */
-  itemType: 'chat' | 'dashboard' | 'chart';
+  itemType?: 'chat' | 'dashboard' | 'chart';
 
   /**
    * Available folders to move to
@@ -85,7 +85,7 @@ const CREATE_NEW_FOLDER_ID = '__create_new__';
 export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
   isOpen,
   itemName,
-  itemType,
+  itemType = 'chat',
   folders,
   currentFolderId,
   onConfirm,
