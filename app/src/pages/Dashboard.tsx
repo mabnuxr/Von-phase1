@@ -17,7 +17,6 @@ import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 import { startProviderLogout } from "../lib/authFlow";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,16 +65,6 @@ const Dashboard = () => {
   }>();
   useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
-
-  // LaunchDarkly user identification (for feature flag targeting)
-  const { identifyUser } = useLaunchDarklyIdentify();
-
-  // Identify user in LaunchDarkly when user data is available
-  useEffect(() => {
-    if (user?.tenantId && user?.email) {
-      identifyUser();
-    }
-  }, [user?.tenantId, user?.email, identifyUser]);
 
   // Chat state management
   const { currentConversationId, setCurrentConversationId, messages } =
