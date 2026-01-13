@@ -29,13 +29,14 @@ export function useLaunchDarklyIdentify() {
             },
             User: {
               key: userId,
-              email: userEmail,
+            },
+            Email: {
+              key: userEmail,
             },
           }
         : {
             kind: "user" as const,
             key: userId,
-            email: userEmail,
           };
 
       await ldClient.identify(context);
