@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
+  USER_MEMORY: "enableUserMemory",
 } as const;
 
 /**
@@ -65,6 +66,12 @@ export function useFeatureFlag() {
      * Controls if we need to show new chat UI experience
      */
     isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+
+    /**
+     * Controls whether user memory feature is enabled
+     * (personal memory segment for each user)
+     */
+    isUserMemoryEnabled: flags[FEATURE_FLAGS.USER_MEMORY] === true,
 
     /**
      * Raw flags object for advanced usage
