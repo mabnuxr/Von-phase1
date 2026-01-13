@@ -299,3 +299,38 @@ export const ChartsOnly: Story = {
     return <InteractiveDashboardGrid initialData={chartsData} />;
   },
 };
+
+/**
+ * Test row-based resize behavior.
+ *
+ * This story demonstrates the dynamic row resize feature:
+ * - When you resize a widget, adjacent widgets in the same row adjust automatically
+ * - Expanding one widget will shrink/shift widgets to its right
+ * - Shrinking a widget will shift widgets to the left to fill the gap
+ *
+ * Try resizing the first widget in each row to see the effect!
+ */
+export const RowResizeTest: Story = {
+  render: () => {
+    const testLayout: Layout = [
+      // Row 1: Two equal widgets (6+6 = 12 cols)
+      { i: 'chart-risk-region', x: 0, y: 0, w: 6, h: 4, minW: 2, minH: 3 },
+      { i: 'chart-churn-trend', x: 6, y: 0, w: 6, h: 4, minW: 2, minH: 3 },
+      // Row 2: Three widgets (4+4+4 = 12 cols)
+      { i: 'metric-arr', x: 0, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
+      { i: 'metric-accounts', x: 4, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
+      { i: 'metric-health', x: 8, y: 4, w: 4, h: 3, minW: 2, minH: 2 },
+    ];
+    const testData: DashboardData = {
+      layout: testLayout,
+      widgets: {
+        'chart-risk-region': mockWidgets['chart-risk-region'],
+        'chart-churn-trend': mockWidgets['chart-churn-trend'],
+        'metric-arr': mockWidgets['metric-arr'],
+        'metric-accounts': mockWidgets['metric-accounts'],
+        'metric-health': mockWidgets['metric-health'],
+      },
+    };
+    return <InteractiveDashboardGrid initialData={testData} />;
+  },
+};

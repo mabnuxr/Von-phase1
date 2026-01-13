@@ -16,7 +16,9 @@ import { ChatEmptyState } from '../../../components/Chat/ChatEmptyState';
 import { AmbientGlow } from '../../../components/DashboardBuilder/InteractivePrototype/AmbientGlow';
 import { AgentProgressBar } from '../../../components/DashboardBuilder/InteractivePrototype/AgentProgressBar';
 import type { AgentStatus } from '../../../components/DashboardBuilder/InteractivePrototype/AgentProgressBar';
-import { reports } from '../data/salesData';
+import { ReportTable } from '../../../components/ReportTable/ReportTable';
+import type { ReportColumn } from '../../../components/ReportTable/ReportTable';
+import { opportunities, reports } from '../data/salesData';
 
 // ============================================================================
 // Layout Decorator
@@ -59,6 +61,13 @@ interface WidgetBuildStep {
   component: ChartComponent;
 }
 
+interface DataTableConfig {
+  id: string;
+  label: string;
+  columns: ReportColumn[];
+  data: Record<string, unknown>[];
+}
+
 interface OrchestratorState {
   phase: AutoDashboardPhase;
   agentStatus: AgentStatus;
@@ -67,6 +76,7 @@ interface OrchestratorState {
   pane1Tab: 'data' | 'dashboard';
   // Data phase
   visibleReports: SubtableItem[];
+  currentDataTableIndex: number;
   // Dashboard phase
   visibleWidgetIds: string[];
   currentWidgetIndex: number;
@@ -77,7 +87,7 @@ interface OrchestratorState {
 }
 
 // ============================================================================
-// Dummy Data (same as ManualDashboard)
+// Sidebar Data
 // ============================================================================
 
 const dummySidebarItems: SidebarItem[] = [
@@ -104,14 +114,109 @@ const dummyFolders: Folder[] = [
   { id: 'folder-3', label: 'Executive Prep', isExpanded: false },
 ];
 
-// Reports to be added during the data phase
-const reportsToAdd: SubtableItem[] = [
-  { id: 'auto-report-1', label: 'Account Health Scores' },
-  { id: 'auto-report-2', label: 'Renewal Risk Analysis' },
-  { id: 'auto-report-3', label: 'Engagement Metrics' },
-  { id: 'auto-report-4', label: 'Churn Indicators' },
-  { id: 'auto-report-5', label: 'Support Ticket Trends' },
+// ============================================================================
+// Realistic Data for "Deals at Risk" Dashboard
+// ============================================================================
+
+// Filter opportunities that are at risk (Medium or High risk, not closed)
+const dealsAtRisk = opportunities.filter(
+  (opp) =>
+    (opp.dealRisk === 'High' || opp.dealRisk === 'Medium') &&
+    opp.stage !== 'Closed Won' &&
+    opp.stage !== 'Closed Lost'
+);
+
+// Filter deals closing this month (January 2026)
+const dealsAtRiskThisMonth = dealsAtRisk.filter((opp) => {
+  const closeDate = new Date(opp.closeDate);
+  return closeDate.getMonth() === 0 && closeDate.getFullYear() === 2026;
+});
+
+// Calculate totals
+const totalValueAtRisk = dealsAtRisk.reduce((sum, opp) => sum + opp.amount, 0);
+const numberOfDealsAtRisk = dealsAtRisk.length;
+const dealsAtRiskThisMonthCount = dealsAtRiskThisMonth.length;
+
+// Data tables that will be created during the data phase
+const dataTablesConfig: DataTableConfig[] = [
+  {
+    id: 'deals-at-risk-all',
+    label: 'All Deals at Risk',
+    columns: [
+      { id: 'name', label: 'Deal Name', type: 'string' },
+      { id: 'accountName', label: 'Account', type: 'string' },
+      { id: 'owner', label: 'Owner', type: 'string' },
+      { id: 'amount', label: 'Amount', type: 'currency' },
+      { id: 'closeDate', label: 'Close Date', type: 'date' },
+      { id: 'dealRisk', label: 'Risk Level', type: 'string' },
+      { id: 'stage', label: 'Stage', type: 'string' },
+    ],
+    data: dealsAtRisk.map((opp) => ({
+      id: opp.id,
+      name: opp.name,
+      accountName: opp.accountName,
+      owner: opp.owner,
+      amount: opp.amount,
+      closeDate: opp.closeDate,
+      dealRisk: opp.dealRisk,
+      stage: opp.stage,
+    })),
+  },
+  {
+    id: 'deals-at-risk-monthly',
+    label: 'Deals at Risk - This Month',
+    columns: [
+      { id: 'name', label: 'Deal Name', type: 'string' },
+      { id: 'accountName', label: 'Account', type: 'string' },
+      { id: 'owner', label: 'Owner', type: 'string' },
+      { id: 'amount', label: 'Amount', type: 'currency' },
+      { id: 'closeDate', label: 'Close Date', type: 'date' },
+      { id: 'probability', label: 'Probability', type: 'number' },
+    ],
+    data: dealsAtRiskThisMonth.map((opp) => ({
+      id: opp.id,
+      name: opp.name,
+      accountName: opp.accountName,
+      owner: opp.owner,
+      amount: opp.amount,
+      closeDate: opp.closeDate,
+      probability: opp.probability,
+    })),
+  },
+  {
+    id: 'risk-by-owner',
+    label: 'Risk by Owner',
+    columns: [
+      { id: 'owner', label: 'Sales Rep', type: 'string' },
+      { id: 'dealCount', label: 'Deals at Risk', type: 'number' },
+      { id: 'totalValue', label: 'Total Value', type: 'currency' },
+      { id: 'avgProbability', label: 'Avg Probability', type: 'number' },
+    ],
+    data: (() => {
+      const byOwner: Record<string, { count: number; value: number; probSum: number }> = {};
+      dealsAtRisk.forEach((opp) => {
+        if (!byOwner[opp.owner]) {
+          byOwner[opp.owner] = { count: 0, value: 0, probSum: 0 };
+        }
+        byOwner[opp.owner].count++;
+        byOwner[opp.owner].value += opp.amount;
+        byOwner[opp.owner].probSum += opp.probability;
+      });
+      return Object.entries(byOwner).map(([owner, stats]) => ({
+        owner,
+        dealCount: stats.count,
+        totalValue: stats.value,
+        avgProbability: Math.round(stats.probSum / stats.count),
+      }));
+    })(),
+  },
 ];
+
+// Reports to be added during the data phase (shown in Pane1 sidebar)
+const reportsToAdd: SubtableItem[] = dataTablesConfig.map((table) => ({
+  id: table.id,
+  label: table.label,
+}));
 
 // Chart components mapping
 const chartComponents: Record<string, ChartComponent> = {
@@ -124,54 +229,84 @@ const chartComponents: Record<string, ChartComponent> = {
 };
 
 // Widgets to be added during the dashboard phase
+// Layout: 3 KPI cards on top, line chart below, table at bottom
 const widgetsToAdd: WidgetBuildStep[] = [
+  // Row 1: 3 KPI Cards
   {
-    widget: { id: 'auto-widget-1', type: 'metric', chartType: 'metric', title: 'Accounts at Risk', reportId: 'auto-report-1' },
-    layout: { i: 'auto-widget-1', x: 0, y: 0, w: 2, h: 3 },
-    configTitle: 'Accounts at Risk',
-    configReportId: 'auto-report-1',
+    widget: {
+      id: 'widget-total-value',
+      type: 'metric',
+      chartType: 'metric',
+      title: 'Total Value at Risk',
+      reportId: 'deals-at-risk-all',
+      config: { metricValue: `$${(totalValueAtRisk / 1000000).toFixed(1)}M` },
+    },
+    layout: { i: 'widget-total-value', x: 0, y: 0, w: 3, h: 3 },
+    configTitle: 'Total Value at Risk',
+    configReportId: 'deals-at-risk-all',
     component: chartComponents.metric,
   },
   {
-    widget: { id: 'auto-widget-2', type: 'metric', chartType: 'metric', title: 'Total ARR at Risk', reportId: 'auto-report-2' },
-    layout: { i: 'auto-widget-2', x: 2, y: 0, w: 2, h: 3 },
-    configTitle: 'Total ARR at Risk',
-    configReportId: 'auto-report-2',
+    widget: {
+      id: 'widget-deal-count',
+      type: 'metric',
+      chartType: 'metric',
+      title: 'Number of Deals at Risk',
+      reportId: 'deals-at-risk-all',
+      config: { metricValue: String(numberOfDealsAtRisk) },
+    },
+    layout: { i: 'widget-deal-count', x: 3, y: 0, w: 3, h: 3 },
+    configTitle: 'Number of Deals at Risk',
+    configReportId: 'deals-at-risk-all',
     component: chartComponents.metric,
   },
   {
-    widget: { id: 'auto-widget-3', type: 'chart', chartType: 'bar', title: 'Risk by Region', reportId: 'auto-report-1' },
-    layout: { i: 'auto-widget-3', x: 4, y: 0, w: 3, h: 4 },
-    configTitle: 'Risk by Region',
-    configReportId: 'auto-report-1',
-    component: chartComponents.bar,
+    widget: {
+      id: 'widget-this-month',
+      type: 'metric',
+      chartType: 'metric',
+      title: 'At Risk This Month',
+      reportId: 'deals-at-risk-monthly',
+      config: { metricValue: String(dealsAtRiskThisMonthCount) },
+    },
+    layout: { i: 'widget-this-month', x: 6, y: 0, w: 3, h: 3 },
+    configTitle: 'At Risk This Month',
+    configReportId: 'deals-at-risk-monthly',
+    component: chartComponents.metric,
   },
+  // Row 2: Line Chart
   {
-    widget: { id: 'auto-widget-4', type: 'chart', chartType: 'line', title: 'Engagement Trend', reportId: 'auto-report-3' },
-    layout: { i: 'auto-widget-4', x: 7, y: 0, w: 3, h: 4 },
-    configTitle: 'Engagement Trend',
-    configReportId: 'auto-report-3',
+    widget: {
+      id: 'widget-trend',
+      type: 'chart',
+      chartType: 'line',
+      title: 'Deals at Risk Trend',
+      reportId: 'deals-at-risk-all',
+    },
+    layout: { i: 'widget-trend', x: 0, y: 3, w: 9, h: 4 },
+    configTitle: 'Deals at Risk Trend',
+    configReportId: 'deals-at-risk-all',
     component: chartComponents.line,
   },
+  // Row 3: Table
   {
-    widget: { id: 'auto-widget-5', type: 'chart', chartType: 'pie', title: 'Risk Distribution', reportId: 'auto-report-4' },
-    layout: { i: 'auto-widget-5', x: 0, y: 4, w: 4, h: 4 },
-    configTitle: 'Risk Distribution',
-    configReportId: 'auto-report-4',
-    component: chartComponents.pie,
-  },
-  {
-    widget: { id: 'auto-widget-6', type: 'table', chartType: 'table', title: 'Accounts Requiring Action', reportId: 'auto-report-1' },
-    layout: { i: 'auto-widget-6', x: 4, y: 4, w: 6, h: 4 },
-    configTitle: 'Accounts Requiring Action',
-    configReportId: 'auto-report-1',
+    widget: {
+      id: 'widget-table',
+      type: 'table',
+      chartType: 'table',
+      title: 'All Deals at Risk',
+      reportId: 'deals-at-risk-all',
+    },
+    layout: { i: 'widget-table', x: 0, y: 7, w: 9, h: 5 },
+    configTitle: 'All Deals at Risk',
+    configReportId: 'deals-at-risk-all',
     component: chartComponents.table,
   },
 ];
 
 // Data sources for the dropdown (combine auto-generated + existing reports)
 const allDataSources = [
-  ...reportsToAdd.map((r) => ({ id: r.id, label: r.label, columnCount: 8 })),
+  ...dataTablesConfig.map((t) => ({ id: t.id, label: t.label, columnCount: t.columns.length })),
   ...reports.map((r) => ({ id: r.id, label: r.name, columnCount: r.columns.length })),
 ];
 
@@ -186,6 +321,7 @@ const initialState: OrchestratorState = {
   agentProgress: 0,
   pane1Tab: 'dashboard',
   visibleReports: [],
+  currentDataTableIndex: -1,
   visibleWidgetIds: [],
   currentWidgetIndex: -1,
   selectedComponent: null,
@@ -223,28 +359,29 @@ function useAutoDashboardOrchestrator() {
     updateState({
       phase: 'building-data',
       agentStatus: 'working',
-      agentMessage: 'Creating data tables...',
+      agentMessage: 'Analyzing your Salesforce data...',
       agentProgress: 5,
       ambientGlowActive: true,
       pane1Tab: 'data',
     });
 
-    // Add reports one by one to Pane1
-    reportsToAdd.forEach((report, idx) => {
+    // Add reports one by one to Pane1 and show table in Pane2
+    dataTablesConfig.forEach((table, idx) => {
       addTimeout(
         () => {
           updateState({
-            agentMessage: `Creating ${report.label}...`,
-            agentProgress: 5 + ((idx + 1) / reportsToAdd.length) * 40,
+            agentMessage: `Creating ${table.label}...`,
+            agentProgress: 5 + ((idx + 1) / dataTablesConfig.length) * 40,
             visibleReports: reportsToAdd.slice(0, idx + 1),
+            currentDataTableIndex: idx,
           });
         },
-        (time += 600)
+        (time += 1200)
       );
     });
 
     // Brief pause after data tables
-    time += 400;
+    time += 600;
 
     // Phase 2: Switch to Dashboard tab and start adding widgets
     addTimeout(
@@ -254,12 +391,13 @@ function useAutoDashboardOrchestrator() {
           agentMessage: 'Building dashboard widgets...',
           agentProgress: 50,
           pane1Tab: 'dashboard',
+          currentDataTableIndex: -1,
         });
       },
       time
     );
 
-    time += 300;
+    time += 400;
 
     // Add widgets one by one with config animation in Pane1
     widgetsToAdd.forEach((step, idx) => {
@@ -275,7 +413,7 @@ function useAutoDashboardOrchestrator() {
             configReportId: '',
           });
         },
-        (time += 400)
+        (time += 500)
       );
 
       // Step 2: Type the name
@@ -285,7 +423,7 @@ function useAutoDashboardOrchestrator() {
             configTitle: step.configTitle,
           });
         },
-        (time += 350)
+        (time += 400)
       );
 
       // Step 3: Select report
@@ -295,7 +433,7 @@ function useAutoDashboardOrchestrator() {
             configReportId: step.configReportId,
           });
         },
-        (time += 350)
+        (time += 400)
       );
 
       // Step 4: Save - add widget to canvas and clear form
@@ -308,7 +446,7 @@ function useAutoDashboardOrchestrator() {
             configReportId: '',
           });
         },
-        (time += 300)
+        (time += 350)
       );
     });
 
@@ -323,7 +461,7 @@ function useAutoDashboardOrchestrator() {
           currentWidgetIndex: -1,
         });
       },
-      (time += 400)
+      (time += 500)
     );
 
     // Fade out glow after a moment
@@ -373,7 +511,7 @@ function useAutoDashboardOrchestrator() {
 }
 
 // ============================================================================
-// Toast Component (simple inline)
+// Toast Component
 // ============================================================================
 
 interface ToastProps {
@@ -410,22 +548,24 @@ const SuccessToast: React.FC<ToastProps> = ({ message, onDismiss }) => {
 
 const planApprovalContent = `## Dashboard Build Plan
 
-I'll create a comprehensive **Accounts at Risk** dashboard with the following:
+I'll create a **Deals at Risk** dashboard to help you track and manage at-risk opportunities.
 
-### Data Tables (5)
-1. **Account Health Scores** - Health metrics for all accounts
-2. **Renewal Risk Analysis** - Upcoming renewals with risk levels
-3. **Engagement Metrics** - Activity and engagement data
-4. **Churn Indicators** - Signals predicting churn
-5. **Support Ticket Trends** - Support history analysis
+### Data Tables (3)
+1. **All Deals at Risk** - ${numberOfDealsAtRisk} deals with Medium/High risk
+2. **Deals at Risk - This Month** - ${dealsAtRiskThisMonthCount} deals closing in January
+3. **Risk by Owner** - Aggregated view by sales rep
 
-### Dashboard Widgets (6)
-1. **Accounts at Risk** - Metric card showing count
-2. **Total ARR at Risk** - Dollar amount at risk
-3. **Risk by Region** - Bar chart breakdown
-4. **Engagement Trend** - Line chart over time
-5. **Risk Distribution** - Pie chart by category
-6. **Accounts Requiring Action** - Detailed table
+### Dashboard Widgets (5)
+1. **Total Value at Risk** - $${(totalValueAtRisk / 1000000).toFixed(1)}M at risk
+2. **Number of Deals at Risk** - ${numberOfDealsAtRisk} total deals
+3. **At Risk This Month** - ${dealsAtRiskThisMonthCount} deals closing soon
+4. **Deals at Risk Trend** - Line chart showing risk over time
+5. **All Deals at Risk** - Detailed table with all fields
+
+### Data Sources
+- Salesforce Opportunities
+- Risk scoring from engagement data
+- Close date analysis
 
 Ready to build this dashboard?`;
 
@@ -460,7 +600,7 @@ const AutoDashboardDemo = () => {
     }
   }, [state.phase, state.agentStatus]);
 
-  const currentDashboardName = 'Accounts at Risk Dashboard';
+  const currentDashboardName = 'Deals at Risk Dashboard';
 
   // Build subtables list including auto-generated reports
   const subtablesWithAutoReports: SubtableItem[] =
@@ -468,7 +608,7 @@ const AutoDashboardDemo = () => {
       ? [
           {
             id: 'auto-generated',
-            label: 'Auto Generated',
+            label: 'Generated Reports',
             isExpanded: true,
             children: state.visibleReports,
           },
@@ -490,6 +630,9 @@ const AutoDashboardDemo = () => {
     },
     {} as Record<string, DashboardWidgetData>
   );
+
+  // Get the current data table being shown (during data phase)
+  const currentDataTable = state.currentDataTableIndex >= 0 ? dataTablesConfig[state.currentDataTableIndex] : null;
 
   // Get reference context
   const getReferenceContext = (): ReferenceContext | undefined => {
@@ -524,7 +667,8 @@ const AutoDashboardDemo = () => {
       const assistantMsg: Message = {
         id: `msg-${Date.now() + 1}`,
         type: 'assistant',
-        content: "I'll analyze your request and create a comprehensive dashboard. Let me show you my plan...",
+        content:
+          "I'll analyze your Salesforce data to identify deals at risk. I found several opportunities that need attention. Let me show you my plan...",
         status: 'completed',
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -586,7 +730,7 @@ const AutoDashboardDemo = () => {
     const confirmMsg: Message = {
       id: `msg-${Date.now()}`,
       type: 'assistant',
-      content: "Building your dashboard now. Watch the magic happen...",
+      content: "Building your dashboard now. Watch as I create each component...",
       status: 'completed',
     };
     setMessages((prev) => [...prev, confirmMsg]);
@@ -615,6 +759,21 @@ const AutoDashboardDemo = () => {
   const isBuilding = ['building-data', 'building-dashboard'].includes(state.phase);
   const showAgentBar = isBuilding || state.agentStatus === 'complete';
 
+  // Render the data table for Pane2 during data phase
+  const renderReportTable = () => {
+    if (state.pane1Tab !== 'data' || !currentDataTable) return undefined;
+
+    return (
+      <ReportTable
+        columns={currentDataTable.columns}
+        data={currentDataTable.data}
+        onRowSelect={(row, selected) => console.log('Row selected:', row, selected)}
+        onRowOpen={(row) => console.log('Row opened:', row)}
+        pageSize={10}
+      />
+    );
+  };
+
   return (
     <div className="flex h-full w-full gap-2 relative">
       {/* Ambient Glow Effect */}
@@ -630,9 +789,7 @@ const AutoDashboardDemo = () => {
 
       {/* Success Toast */}
       <AnimatePresence>
-        {showToast && (
-          <SuccessToast message="Dashboard created" onDismiss={() => setShowToast(false)} />
-        )}
+        {showToast && <SuccessToast message="Dashboard created" onDismiss={() => setShowToast(false)} />}
       </AnimatePresence>
 
       {/* ChatSidebar */}
@@ -718,6 +875,7 @@ const AutoDashboardDemo = () => {
               onSendMessage={handleLandingMessage}
               placeholder="Ask Von to build a dashboard..."
               showModeToggle={false}
+              defaultValue="Build me a dashboard of my deals at risk"
             />
           </div>
         )}
@@ -727,13 +885,14 @@ const AutoDashboardDemo = () => {
           <Pane2
             mode={state.pane1Tab === 'data' ? 'data' : 'dashboard'}
             dashboardName={currentDashboardName}
-            reportName="Select a report"
+            reportName={currentDataTable?.label || 'Select a report'}
             layout={currentLayout}
             widgets={currentWidgets}
             onLayoutChange={() => {}}
             onWidgetSelect={setSelectedWidgetId}
             selectedWidgetId={selectedWidgetId}
             isEmpty={currentLayout.length === 0 && state.pane1Tab === 'dashboard'}
+            reportTableContent={renderReportTable()}
           />
         )}
       </div>
@@ -797,56 +956,44 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * # Auto Dashboard - AI-Powered Dashboard Builder Demo
+ * # Auto Dashboard - Deals at Risk Demo
  *
- * This interactive prototype demonstrates the full AI-driven dashboard building experience
- * using the actual 3-pane layout components.
+ * A realistic end-to-end demo of AI-powered dashboard creation for tracking deals at risk.
  *
- * ## How It Works
+ * ## The Scenario
  *
- * ### Phase 1: Landing Page
- * - Start on the chat empty state with template suggestions
- * - Type a query like: **"Build me a dashboard showing accounts at risk of churning"**
- * - Or click any template to auto-fill the input
+ * The user asks: **"Build me a dashboard of my deals at risk"**
  *
- * ### Phase 2: Plan Approval
- * - Von analyzes your request and shows a detailed plan
- * - Review the proposed data tables and widgets
- * - Click **"Build Dashboard"** to approve and start building
+ * Von analyzes the Salesforce data and finds:
+ * - **${numberOfDealsAtRisk} deals** at Medium/High risk
+ * - **$${(totalValueAtRisk / 1000000).toFixed(1)}M** total value at risk
+ * - **${dealsAtRiskThisMonthCount} deals** closing this month
  *
- * ### Phase 3: Data Table Creation
- * - Pane1 toggles to **Data** mode
- * - Watch reports being added to the listing one by one
- * - Progress bar shows real-time status
+ * ## What Gets Built
  *
- * ### Phase 4: Widget Creation
- * - Pane1 toggles to **Dashboard** mode
- * - For each widget:
- *   - Config form appears in Pane1 with component selected
- *   - Title is typed in
- *   - Report is selected
- *   - Widget appears on the canvas in Pane2
+ * ### Data Phase (Pane2 shows tables)
+ * 1. **All Deals at Risk** - Full list with risk levels, amounts, close dates
+ * 2. **Deals at Risk - This Month** - Urgent deals closing in January
+ * 3. **Risk by Owner** - Aggregated view by sales rep
  *
- * ### Phase 5: Completion
- * - Toast notification shows "Dashboard created"
- * - Ambient glow fades out steadily
- * - Full dashboard is ready to explore
+ * ### Dashboard Phase (Widgets appear on canvas)
+ * 1. **Total Value at Risk** - KPI card showing $${(totalValueAtRisk / 1000000).toFixed(1)}M
+ * 2. **Number of Deals at Risk** - KPI card showing ${numberOfDealsAtRisk}
+ * 3. **At Risk This Month** - KPI card showing ${dealsAtRiskThisMonthCount}
+ * 4. **Deals at Risk Trend** - Line chart
+ * 5. **All Deals at Risk** - Detailed table widget
  *
- * ## Try It Out
+ * ## How to Use
  *
- * 1. Type: **"Show me accounts at risk of churning with health scores"**
- * 2. Review the plan and click **"Build Dashboard"**
- * 3. Watch the magic happen in Pane1 and Pane2!
- * 4. Explore your auto-generated dashboard
- *
- * ## Key Features
- *
- * - Uses actual Pane1 component (Data/Dashboard toggle, config form)
- * - Reports added progressively to Pane1 Data view
- * - Widget config shown in Pane1 Dashboard view (title typing, report selection)
- * - Widgets appear on Pane2 canvas with Highcharts
- * - Ambient glow and progress bar for premium feel
- * - Toast notification on completion (no popup)
+ * 1. The landing page pre-fills: **"Build me a dashboard of my deals at risk"**
+ * 2. Press Enter or click Send
+ * 3. Review the plan showing real data counts
+ * 4. Click **"Build Dashboard"** to approve
+ * 5. Watch:
+ *    - Data tab: Tables appear in Pane2 with real opportunity data
+ *    - Reports added to Pane1 sidebar
+ *    - Dashboard tab: Widgets configured and added one by one
+ * 6. Explore your completed dashboard!
  */
 export const Default: Story = {
   decorators: [FullLayoutDecorator],
