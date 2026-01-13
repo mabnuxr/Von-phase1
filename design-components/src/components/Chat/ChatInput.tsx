@@ -240,11 +240,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   ]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    (e: React.KeyboardEvent) => {
       const isMobile =
-        'ontouchstart' in window ||
-        navigator.maxTouchPoints > 0 ||
-        window.matchMedia('(max-width: 768px)').matches;
+        typeof window !== 'undefined' &&
+        ('ontouchstart' in window ||
+          navigator.maxTouchPoints > 0 ||
+          window.matchMedia('(max-width: 768px)').matches);
 
       if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -350,23 +351,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <RichTextInput
                   value={message}
                   onChange={handleChange}
-                  onKeyDown={(e) => {
-                    const isMobile =
-                      'ontouchstart' in window ||
-                      navigator.maxTouchPoints > 0 ||
-                      window.matchMedia('(max-width: 768px)').matches;
-
-                    // On desktop: Enter sends. On mobile: user taps send button
-                    if (
-                      !isMobile &&
-                      e.key === 'Enter' &&
-                      !e.shiftKey &&
-                      !isStreaming &&
-                      !disableSubmit
-                    ) {
-                      handleSend();
-                    }
-                  }}
+                  onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
                   className="flex-1 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
