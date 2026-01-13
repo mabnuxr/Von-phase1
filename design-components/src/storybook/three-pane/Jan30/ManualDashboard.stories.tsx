@@ -565,6 +565,7 @@ const ManualDashboardDemo = () => {
     if (!pendingComponent) return;
 
     const widgetId = `widget-${Date.now()}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reportId = (pendingComponent as any).reportId || 'report-pipeline-overview';
     const newWidget: DashboardWidgetData = {
       id: widgetId,
@@ -698,6 +699,7 @@ const ManualDashboardDemo = () => {
 
         // Store report info for later use
         if (intent.reportId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (component as any).reportId = intent.reportId;
         }
         

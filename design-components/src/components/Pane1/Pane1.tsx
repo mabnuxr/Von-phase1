@@ -305,7 +305,7 @@ interface SubtableRowProps {
 
 const SubtableRow: React.FC<SubtableRowProps> = ({
   item,
-  level: _level,
+  level: _level, // eslint-disable-line @typescript-eslint/no-unused-vars
   isSelected = false,
   isEditing = false,
   isMenuOpen = false,

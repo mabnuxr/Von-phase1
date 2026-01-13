@@ -334,12 +334,14 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
 
     const handleResize = () => {
       setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (chart && !(chart as any).renderTo?.offsetParent) return;
         chart.reflow();
       }, 0);
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const container = (chart as any).renderTo?.parentElement;
     if (container) {
       resizeObserver.observe(container);

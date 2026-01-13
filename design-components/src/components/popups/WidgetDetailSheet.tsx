@@ -277,7 +277,7 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
     onFilterChange?.(filterId, value);
   };
 
-  const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
+  const _activeFilterCount = Object.values(activeFilters).filter(Boolean).length; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
     <AnimatePresence>

@@ -700,7 +700,7 @@ export const ChatSidebarV3: React.FC<ChatSidebarProps> = ({
   salesforceDashboards = [],
   onCreateDashboard,
   onNewChatFolderClick,
-  onNewDashboardFolderClick: _onNewDashboardFolderClick,
+  onNewDashboardFolderClick: _onNewDashboardFolderClick, // eslint-disable-line @typescript-eslint/no-unused-vars
   onRenameItem,
   onDeleteItem,
   onFolderToggle,

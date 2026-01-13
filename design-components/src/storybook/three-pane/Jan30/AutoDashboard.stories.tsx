@@ -645,6 +645,7 @@ const AutoDashboardDemo = () => {
   };
 
   // Handle sidebar item click
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSidebarItemClick = (id: string, _type: ItemType) => {
     setSelectedSidebarItem(id);
   };
@@ -742,6 +743,7 @@ const AutoDashboardDemo = () => {
   };
 
   // Handle Pane1 config save (during auto-build this is controlled by orchestrator)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSaveConfig = (_config: ComponentConfig) => {
     // No-op during auto-build
   };

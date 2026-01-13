@@ -268,8 +268,7 @@ const MIN_WIDGET_COLS = 2; // 2 columns minimum = ~200px (each col varies by con
 const MIN_WIDGET_ROWS = 3; // 3 rows minimum = 240px + margins (~200px visible + 32px header)
 const DEFAULT_WIDGET_COLS = 3; // 3 columns default = ~240px width
 const DEFAULT_WIDGET_ROWS = 4; // 4 rows default = 320px height
-const DEFAULT_TABLE_COLS = 10; // Tables take full width
-const DEFAULT_TABLE_ROWS = 4; // Tables default to 320px height
+// Reserved for future use: Tables take full width (10 cols) and default to 320px height (4 rows)
 const MARGIN = 8; // 8px margin (aligns to 8px grid)
 const PADDING = 16; // 16px padding (2 units of 8px)
 
