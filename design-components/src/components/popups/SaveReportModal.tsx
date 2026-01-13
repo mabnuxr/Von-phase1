@@ -157,7 +157,9 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
                     {saveAs === 'report' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
                   <div className="flex-1">
-                    <span className={`text-[13px] ${saveAs === 'report' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
+                    <span
+                      className={`text-[13px] ${saveAs === 'report' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
+                    >
                       New Report
                     </span>
                     <p className="text-[11px] text-gray-500">Create as a standalone report</p>
@@ -179,13 +181,19 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
                     ${saveAs === 'subreport' ? 'border-gray-900 bg-gray-900' : 'border-gray-300'}
                   `}
                   >
-                    {saveAs === 'subreport' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {saveAs === 'subreport' && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    )}
                   </div>
                   <div className="flex-1">
-                    <span className={`text-[13px] ${saveAs === 'subreport' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
+                    <span
+                      className={`text-[13px] ${saveAs === 'subreport' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
+                    >
                       Sub-report
                     </span>
-                    <p className="text-[11px] text-gray-500">Save as a child of an existing report</p>
+                    <p className="text-[11px] text-gray-500">
+                      Save as a child of an existing report
+                    </p>
                   </div>
                 </button>
               </div>
@@ -213,8 +221,14 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
                               ${selectedParentId === report.id ? 'bg-gray-100 border border-gray-200' : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'}
                             `}
                           >
-                            <FolderSimple size={14} weight="regular" className="text-gray-700 flex-shrink-0" />
-                            <span className={`text-[13px] flex-1 ${selectedParentId === report.id ? 'text-gray-900 font-medium' : 'text-gray-700'}`}>
+                            <FolderSimple
+                              size={14}
+                              weight="regular"
+                              className="text-gray-700 flex-shrink-0"
+                            />
+                            <span
+                              className={`text-[13px] flex-1 ${selectedParentId === report.id ? 'text-gray-900 font-medium' : 'text-gray-700'}`}
+                            >
                               {report.name}
                             </span>
                             {selectedParentId === report.id && (

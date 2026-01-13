@@ -241,7 +241,11 @@ export const Dropdown: React.FC<DropdownProps> = ({
                             {option.label}
                           </span>
                           {isSelected && (
-                            <Check size={14} weight="bold" className="text-gray-700 flex-shrink-0" />
+                            <Check
+                              size={14}
+                              weight="bold"
+                              className="text-gray-700 flex-shrink-0"
+                            />
                           )}
                         </button>
                       );
@@ -302,7 +306,11 @@ export const Dropdown: React.FC<DropdownProps> = ({
                             {option.label}
                           </span>
                           {isSelected && (
-                            <Check size={14} weight="bold" className="text-gray-700 flex-shrink-0" />
+                            <Check
+                              size={14}
+                              weight="bold"
+                              className="text-gray-700 flex-shrink-0"
+                            />
                           )}
                         </button>
                       );

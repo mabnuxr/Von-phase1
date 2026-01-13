@@ -97,7 +97,7 @@ export const csmTeam = [
   { id: 'csm-2', name: 'Rachel Park', accounts: 52 },
   { id: 'csm-3', name: 'Michael Brown', accounts: 38 },
   { id: 'csm-4', name: 'Jessica Martinez', accounts: 41 },
-  { id: 'csm-5', name: 'Kevin O\'Brien', accounts: 48 },
+  { id: 'csm-5', name: "Kevin O'Brien", accounts: 48 },
 ];
 
 // ============================================================================
@@ -240,7 +240,7 @@ export const accounts: Account[] = [
     region: 'West',
     tier: 'Enterprise',
     healthScore: 94,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 195000,
     renewalDate: '2026-07-20',
     lastEngagement: '2026-01-12',
@@ -310,7 +310,7 @@ export const accounts: Account[] = [
     region: 'East',
     tier: 'Enterprise',
     healthScore: 58,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 380000,
     renewalDate: '2026-03-15',
     lastEngagement: '2025-12-28',
@@ -366,7 +366,7 @@ export const accounts: Account[] = [
     region: 'East',
     tier: 'Enterprise',
     healthScore: 87,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 345000,
     renewalDate: '2026-07-15',
     lastEngagement: '2026-01-10',
@@ -436,7 +436,7 @@ export const accounts: Account[] = [
     region: 'Central',
     tier: 'Enterprise',
     healthScore: 71,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 485000,
     renewalDate: '2026-05-30',
     lastEngagement: '2026-01-03',
@@ -506,7 +506,7 @@ export const accounts: Account[] = [
     region: 'West',
     tier: 'Growth',
     healthScore: 95,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 125000,
     renewalDate: '2026-11-15',
     lastEngagement: '2026-01-12',
@@ -576,7 +576,7 @@ export const accounts: Account[] = [
     region: 'Central',
     tier: 'Growth',
     healthScore: 85,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 115000,
     renewalDate: '2026-09-15',
     lastEngagement: '2026-01-09',
@@ -646,7 +646,7 @@ export const accounts: Account[] = [
     region: 'East',
     tier: 'Enterprise',
     healthScore: 86,
-    csm: 'Kevin O\'Brien',
+    csm: "Kevin O'Brien",
     contractValue: 295000,
     renewalDate: '2026-08-15',
     lastEngagement: '2026-01-10',
@@ -2676,7 +2676,7 @@ export const contacts: Contact[] = [
   {
     id: 'con-029',
     accountId: 'acc-006',
-    name: 'Ryan O\'Connor',
+    name: "Ryan O'Connor",
     title: 'Engineering Manager',
     email: 'r.oconnor@datadriven.io',
     phone: '(650) 555-0604',
@@ -5764,7 +5764,13 @@ export const reports: Report[] = [
       { id: 'healthScore', label: 'Health', type: 'number', width: 90, isAI: true },
       { id: 'daysToRenewal', label: 'Days Left', type: 'number', width: 90 },
       { id: 'churnRisk', label: 'Churn Risk', type: 'text', width: 100, isAI: true },
-      { id: 'recommendedAction', label: 'Recommended Action', type: 'text', width: 220, isAI: true },
+      {
+        id: 'recommendedAction',
+        label: 'Recommended Action',
+        type: 'text',
+        width: 220,
+        isAI: true,
+      },
     ],
   },
   {
@@ -5873,7 +5879,9 @@ export const getRenewalsAtRiskData = () => {
     .filter((acc) => acc.healthScore < 80)
     .map((acc) => {
       const renewalDate = new Date(acc.renewalDate);
-      const daysToRenewal = Math.ceil((renewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const daysToRenewal = Math.ceil(
+        (renewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
       return {
         id: acc.id,
@@ -5902,7 +5910,9 @@ export const getRepPerformanceData = () => {
       .filter((opp) => opp.stage !== 'Closed Won' && opp.stage !== 'Closed Lost')
       .reduce((sum, opp) => sum + opp.amount, 0);
     const wonDeals = repOpps.filter((opp) => opp.stage === 'Closed Won').length;
-    const totalDeals = repOpps.filter((opp) => opp.stage === 'Closed Won' || opp.stage === 'Closed Lost').length;
+    const totalDeals = repOpps.filter(
+      (opp) => opp.stage === 'Closed Won' || opp.stage === 'Closed Lost'
+    ).length;
     const winRate = totalDeals > 0 ? wonDeals / totalDeals : 0;
     const avgDealSize = wonDeals > 0 ? closedWon / wonDeals : 0;
     const attainment = closedWon / rep.quota;

@@ -211,7 +211,11 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
                 {availableFolders.length === 0 && !isCreatingNew ? (
                   <div className="space-y-3">
                     <div className="py-4 text-center">
-                      <FolderSimple size={32} weight="duotone" className="mx-auto text-gray-300 mb-2" />
+                      <FolderSimple
+                        size={32}
+                        weight="duotone"
+                        className="mx-auto text-gray-300 mb-2"
+                      />
                       <p className="text-sm text-gray-500">No folders available</p>
                       <p className="text-xs text-gray-400 mt-1">
                         Create a new folder to organize your {itemTypeLabel}s

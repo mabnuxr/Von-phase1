@@ -1,6 +1,9 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState } from 'react';
-import { StandardChatInput, type AutoEditMode } from '../../../../components/Chat/StandardChatInput';
+import {
+  StandardChatInput,
+  type AutoEditMode,
+} from '../../../../components/Chat/StandardChatInput';
 import type { FileAttachment } from '../../../../components/Chat/FileAttachment/types';
 import type { BuildMode } from '../../../../components/DashboardBuilder/types';
 

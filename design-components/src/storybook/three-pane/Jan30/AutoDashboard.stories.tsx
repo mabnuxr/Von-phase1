@@ -4,9 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { LayoutItem } from 'react-grid-layout';
 import { CheckCircle } from '@phosphor-icons/react';
 import { ChatSidebarV3 } from '../../../components/ChatSidebarV3/ChatSidebarV3';
-import type { SidebarItem, Folder, ItemType } from '../../../components/ChatSidebarV3/ChatSidebarV3';
+import type {
+  SidebarItem,
+  Folder,
+  ItemType,
+} from '../../../components/ChatSidebarV3/ChatSidebarV3';
 import { Pane1 } from '../../../components/Pane1/Pane1';
-import type { ChartComponent, SubtableItem, ComponentConfig } from '../../../components/Pane1/Pane1';
+import type {
+  ChartComponent,
+  SubtableItem,
+  ComponentConfig,
+} from '../../../components/Pane1/Pane1';
 import { Pane2 } from '../../../components/layouts/Pane2';
 import type { DashboardWidgetData } from '../../../components/layouts/Pane2';
 import { ChatPane } from '../../../components/ChatPane/ChatPane';
@@ -101,11 +109,23 @@ const dummySidebarItems: SidebarItem[] = [
   { id: 'chat-8', label: 'Lead Scoring Model Update', type: 'chat' },
   { id: 'dash-1', label: 'Sales Overview', type: 'dashboard', ownership: 'mine' },
   { id: 'dash-2', label: 'Team Performance', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-3', label: 'Executive Dashboard', type: 'dashboard', ownership: 'shared', ownerName: 'Sarah Chen' },
+  {
+    id: 'dash-3',
+    label: 'Executive Dashboard',
+    type: 'dashboard',
+    ownership: 'shared',
+    ownerName: 'Sarah Chen',
+  },
   { id: 'dash-4', label: 'Regional Metrics', type: 'dashboard', ownership: 'shared_by_me' },
   { id: 'chat-f1-1', label: 'Q4 Pipeline Deep Dive', type: 'chat', folderId: 'folder-1' },
   { id: 'chat-f1-2', label: 'Q4 Revenue Projections', type: 'chat', folderId: 'folder-1' },
-  { id: 'dash-f2-1', label: 'Weekly Sales Report', type: 'dashboard', folderId: 'folder-2', ownership: 'mine' },
+  {
+    id: 'dash-f2-1',
+    label: 'Weekly Sales Report',
+    type: 'dashboard',
+    folderId: 'folder-2',
+    ownership: 'mine',
+  },
 ];
 
 const dummyFolders: Folder[] = [
@@ -384,18 +404,15 @@ function useAutoDashboardOrchestrator() {
     time += 600;
 
     // Phase 2: Switch to Dashboard tab and start adding widgets
-    addTimeout(
-      () => {
-        updateState({
-          phase: 'building-dashboard',
-          agentMessage: 'Building dashboard widgets...',
-          agentProgress: 50,
-          pane1Tab: 'dashboard',
-          currentDataTableIndex: -1,
-        });
-      },
-      time
-    );
+    addTimeout(() => {
+      updateState({
+        phase: 'building-dashboard',
+        agentMessage: 'Building dashboard widgets...',
+        agentProgress: 50,
+        pane1Tab: 'dashboard',
+        currentDataTableIndex: -1,
+      });
+    }, time);
 
     time += 400;
 
@@ -574,7 +591,8 @@ Ready to build this dashboard?`;
 // ============================================================================
 
 const AutoDashboardDemo = () => {
-  const { state, startChatting, showPlan, startBuildSequence, reset } = useAutoDashboardOrchestrator();
+  const { state, startChatting, showPlan, startBuildSequence, reset } =
+    useAutoDashboardOrchestrator();
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -632,7 +650,8 @@ const AutoDashboardDemo = () => {
   );
 
   // Get the current data table being shown (during data phase)
-  const currentDataTable = state.currentDataTableIndex >= 0 ? dataTablesConfig[state.currentDataTableIndex] : null;
+  const currentDataTable =
+    state.currentDataTableIndex >= 0 ? dataTablesConfig[state.currentDataTableIndex] : null;
 
   // Get reference context
   const getReferenceContext = (): ReferenceContext | undefined => {
@@ -704,7 +723,7 @@ const AutoDashboardDemo = () => {
       const assistantMsg: Message = {
         id: `msg-${Date.now() + 1}`,
         type: 'assistant',
-        content: "I understand. Let me show you an updated plan based on your feedback.",
+        content: 'I understand. Let me show you an updated plan based on your feedback.',
         status: 'completed',
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -731,7 +750,7 @@ const AutoDashboardDemo = () => {
     const confirmMsg: Message = {
       id: `msg-${Date.now()}`,
       type: 'assistant',
-      content: "Building your dashboard now. Watch as I create each component...",
+      content: 'Building your dashboard now. Watch as I create each component...',
       status: 'completed',
     };
     setMessages((prev) => [...prev, confirmMsg]);
@@ -791,7 +810,9 @@ const AutoDashboardDemo = () => {
 
       {/* Success Toast */}
       <AnimatePresence>
-        {showToast && <SuccessToast message="Dashboard created" onDismiss={() => setShowToast(false)} />}
+        {showToast && (
+          <SuccessToast message="Dashboard created" onDismiss={() => setShowToast(false)} />
+        )}
       </AnimatePresence>
 
       {/* ChatSidebar */}

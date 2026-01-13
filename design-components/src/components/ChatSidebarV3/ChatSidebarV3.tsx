@@ -272,15 +272,23 @@ export interface ChatSidebarProps {
 // ============================================================================
 
 // Context menu items for sidebar items
-const getContextMenuItems = (options: {
-  isInFolder?: boolean;
-} = {}): ContextMenuItem[] => {
+const getContextMenuItems = (
+  options: {
+    isInFolder?: boolean;
+  } = {}
+): ContextMenuItem[] => {
   const { isInFolder = false } = options;
   return [
     { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
     { id: 'move', label: 'Move to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
     ...(isInFolder
-      ? [{ id: 'remove-from-folder', label: 'Remove from Folder', icon: <FolderSimpleIcon size={14} /> }]
+      ? [
+          {
+            id: 'remove-from-folder',
+            label: 'Remove from Folder',
+            icon: <FolderSimpleIcon size={14} />,
+          },
+        ]
       : []),
     { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' as const },
   ];

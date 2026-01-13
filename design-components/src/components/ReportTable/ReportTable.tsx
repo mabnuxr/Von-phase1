@@ -341,36 +341,37 @@ export function ReportTable<TData extends Record<string, unknown>>({
         enableResizing: false,
       }),
       // Data columns
-      ...columns.map((col): ColumnDef<TData> =>
-        columnHelper.accessor((row: TData) => row[col.id as keyof TData] as unknown, {
-          id: col.id,
-          header: () => (
-            <div className="flex items-center justify-between gap-2 w-full">
-              <div className="flex items-center gap-1.5 min-w-0">
-                {col.isAI && <VonIcon size={14} className="flex-shrink-0" />}
-                <span
-                  className={`truncate ${
-                    col.isAI
-                      ? 'bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent'
-                      : ''
-                  }`}
-                >
-                  {col.label}
-                </span>
+      ...columns.map(
+        (col): ColumnDef<TData> =>
+          columnHelper.accessor((row: TData) => row[col.id as keyof TData] as unknown, {
+            id: col.id,
+            header: () => (
+              <div className="flex items-center justify-between gap-2 w-full">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {col.isAI && <VonIcon size={14} className="flex-shrink-0" />}
+                  <span
+                    className={`truncate ${
+                      col.isAI
+                        ? 'bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent'
+                        : ''
+                    }`}
+                  >
+                    {col.label}
+                  </span>
+                </div>
               </div>
-            </div>
-          ),
-          cell: (info) => {
-            const value = info.getValue();
-            const formattedValue = formatValue(value, col.type);
+            ),
+            cell: (info) => {
+              const value = info.getValue();
+              const formattedValue = formatValue(value, col.type);
 
-            return <span className="text-gray-900">{formattedValue}</span>;
-          },
-          size: col.width ?? 120,
-          minSize: col.minWidth ?? 120,
-          enableSorting: col.sortable !== false,
-          enableResizing: true,
-        })
+              return <span className="text-gray-900">{formattedValue}</span>;
+            },
+            size: col.width ?? 120,
+            minSize: col.minWidth ?? 120,
+            enableSorting: col.sortable !== false,
+            enableResizing: true,
+          })
       ),
     ];
 
@@ -440,7 +441,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
     (e: React.DragEvent, targetColumnId: string) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       if (!draggedColumnId || draggedColumnId === targetColumnId) {
         setDraggedColumnId(null);
         return;
@@ -496,7 +497,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
 
     const handleScroll = () => checkScroll();
     container.addEventListener('scroll', handleScroll);
-    
+
     // Also check on resize
     const resizeObserver = new ResizeObserver(checkScroll);
     resizeObserver.observe(container);
@@ -543,102 +544,106 @@ export function ReportTable<TData extends Record<string, unknown>>({
         {showLeftGradient && (
           <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
         )}
-        
+
         {/* Right scroll gradient */}
         {showRightGradient && (
           <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
         )}
-        
+
         <div ref={scrollContainerRef} className="overflow-x-auto h-full">
           <table className="w-full border-collapse table-fixed">
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="bg-gray-50">
-                {headerGroup.headers.map((header) => {
-                  const canSort = header.column.getCanSort();
-                  const sortDirection = header.column.getIsSorted();
-                  const isActionsColumn = header.id === '_actions';
-                  const colWidth =
-                    columnSizing[header.column.id] ??
-                    defaultColumnSizes[header.column.id] ??
-                    header.getSize();
-                  const canResize = header.column.getCanResize();
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="bg-gray-50">
+                  {headerGroup.headers.map((header) => {
+                    const canSort = header.column.getCanSort();
+                    const sortDirection = header.column.getIsSorted();
+                    const isActionsColumn = header.id === '_actions';
+                    const colWidth =
+                      columnSizing[header.column.id] ??
+                      defaultColumnSizes[header.column.id] ??
+                      header.getSize();
+                    const canResize = header.column.getCanResize();
 
-                  return (
-                    <th
-                      key={header.id}
-                      draggable={!isActionsColumn}
-                      onDragStart={(e) => !isActionsColumn && handleDragStart(e, header.column.id)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, header.column.id)}
-                      onDragEnd={handleDragEnd}
-                      className={`
+                    return (
+                      <th
+                        key={header.id}
+                        draggable={!isActionsColumn}
+                        onDragStart={(e) =>
+                          !isActionsColumn && handleDragStart(e, header.column.id)
+                        }
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, header.column.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`
                         px-4 py-2.5 text-left text-xs font-medium text-gray-700 relative
                         ${!isActionsColumn ? 'cursor-move' : ''}
                         ${!isActionsColumn && canSort ? 'select-none hover:bg-gray-100 transition-colors' : ''}
                         ${draggedColumnId === header.column.id ? 'opacity-50' : ''}
                       `}
-                      style={{
-                        width: colWidth,
-                        minWidth: header.column.columnDef.minSize,
-                      }}
-                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {!isActionsColumn && canSort && <SortIndicator direction={sortDirection} />}
-                      </div>
-                      {canResize && (
-                        <ColumnResizer
-                          onMouseDown={(e) => handleResizeMouseDown(e, header.column.id)}
-                          isResizing={resizingColumnId === header.column.id}
-                        />
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => {
-              const rowId = String(row.original[rowIdKey as keyof TData] ?? row.index);
-              const isSelected = selectedRows.includes(rowId);
-
-              return (
-                <tr
-                  key={row.id}
-                  className={`
-                    border-b border-gray-100 transition-colors
-                    ${isSelected ? 'bg-gray-50' : 'hover:bg-gray-50/50'}
-                  `}
-                  onMouseEnter={() => setHoveredRowId(rowId)}
-                  onMouseLeave={() => setHoveredRowId(null)}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const colWidth =
-                      columnSizing[cell.column.id] ??
-                      defaultColumnSizes[cell.column.id] ??
-                      cell.column.getSize();
-
-                    return (
-                      <td
-                        key={cell.id}
-                        className="px-4 py-3 text-[13px]"
                         style={{
                           width: colWidth,
-                          minWidth: cell.column.columnDef.minSize,
+                          minWidth: header.column.columnDef.minSize,
                         }}
+                        onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
+                        <div className="flex items-center justify-between gap-2">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {!isActionsColumn && canSort && (
+                            <SortIndicator direction={sortDirection} />
+                          )}
+                        </div>
+                        {canResize && (
+                          <ColumnResizer
+                            onMouseDown={(e) => handleResizeMouseDown(e, header.column.id)}
+                            isResizing={resizingColumnId === header.column.id}
+                          />
+                        )}
+                      </th>
                     );
                   })}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => {
+                const rowId = String(row.original[rowIdKey as keyof TData] ?? row.index);
+                const isSelected = selectedRows.includes(rowId);
+
+                return (
+                  <tr
+                    key={row.id}
+                    className={`
+                    border-b border-gray-100 transition-colors
+                    ${isSelected ? 'bg-gray-50' : 'hover:bg-gray-50/50'}
+                  `}
+                    onMouseEnter={() => setHoveredRowId(rowId)}
+                    onMouseLeave={() => setHoveredRowId(null)}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const colWidth =
+                        columnSizing[cell.column.id] ??
+                        defaultColumnSizes[cell.column.id] ??
+                        cell.column.getSize();
+
+                      return (
+                        <td
+                          key={cell.id}
+                          className="px-4 py-3 text-[13px]"
+                          style={{
+                            width: colWidth,
+                            minWidth: cell.column.columnDef.minSize,
+                          }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

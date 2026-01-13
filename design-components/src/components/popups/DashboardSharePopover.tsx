@@ -60,7 +60,9 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
   onClose,
   onGeneratePublicLink,
 }) => {
-  const [accessLevel, setAccessLevel] = useState<AccessLevel>(currentConfig.accessLevel || 'restricted');
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>(
+    currentConfig.accessLevel || 'restricted'
+  );
   const [publicLink, setPublicLink] = useState<string | undefined>(currentConfig.publicLink);
   const [recipients, setRecipients] = useState<string[]>(currentConfig.recipients || []);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
@@ -91,7 +93,8 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
       await handleGeneratePublicLink();
     }
 
-    const linkToCopy = publicLink || `https://app.vonlabs.ai/share/${Math.random().toString(36).substring(7)}`;
+    const linkToCopy =
+      publicLink || `https://app.vonlabs.ai/share/${Math.random().toString(36).substring(7)}`;
     if (!publicLink) {
       setPublicLink(linkToCopy);
     }
@@ -206,9 +209,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                       <div className="text-[13px] font-medium text-gray-900">
                         {selectedAccess?.label}
                       </div>
-                      <div className="text-[11px] text-gray-500">
-                        {selectedAccess?.description}
-                      </div>
+                      <div className="text-[11px] text-gray-500">{selectedAccess?.description}</div>
                     </div>
                     <CaretDown size={16} className="text-gray-400" />
                   </button>
@@ -234,11 +235,13 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                                 isSelected ? 'bg-indigo-50' : 'hover:bg-gray-50'
                               }`}
                             >
-                              <div className={`w-8 h-8 flex items-center justify-center rounded-full border ${
-                                isSelected
-                                  ? 'bg-indigo-100 border-indigo-200'
-                                  : 'bg-white border-gray-200'
-                              }`}>
+                              <div
+                                className={`w-8 h-8 flex items-center justify-center rounded-full border ${
+                                  isSelected
+                                    ? 'bg-indigo-100 border-indigo-200'
+                                    : 'bg-white border-gray-200'
+                                }`}
+                              >
                                 <Icon
                                   size={16}
                                   weight="regular"
@@ -246,9 +249,11 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                                 />
                               </div>
                               <div className="flex-1">
-                                <div className={`text-[13px] font-medium ${
-                                  isSelected ? 'text-indigo-700' : 'text-gray-900'
-                                }`}>
+                                <div
+                                  className={`text-[13px] font-medium ${
+                                    isSelected ? 'text-indigo-700' : 'text-gray-900'
+                                  }`}
+                                >
                                   {option.label}
                                 </div>
                                 <div className="text-[11px] text-gray-500">
@@ -328,9 +333,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                 )}
               </button>
               <div className="flex items-center gap-2">
-                <GhostButton onClick={onClose}>
-                  Cancel
-                </GhostButton>
+                <GhostButton onClick={onClose}>Cancel</GhostButton>
                 <PrimaryButton
                   onClick={handleShare}
                   disabled={recipients.length === 0 && accessLevel === 'restricted'}

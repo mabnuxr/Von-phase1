@@ -199,7 +199,8 @@ export const PlanPopoverStreaming: Story = {
     const [activePopover, setActivePopover] = useState<ActivePopover | undefined>({
       intent: 'plan',
       title: 'Plan for "Build analytics dashboard"',
-      content: '## Implementation Plan\n\nAnalyzing your request...\n\n### Step 1: Data Analysis\n- Analyzing the existing',
+      content:
+        '## Implementation Plan\n\nAnalyzing your request...\n\n### Step 1: Data Analysis\n- Analyzing the existing',
       primaryActionLabel: 'Approve Plan',
       isStreaming: true,
     });
@@ -450,9 +451,9 @@ export const InteractiveModeFlow: Story = {
     return (
       <div className="space-y-4">
         <div className="text-[13px] text-gray-700 p-3 bg-gray-50 rounded-lg">
-          <strong>Instructions:</strong> Try switching modes using the "Auto edits" button.
-          In "Plan Mode", a plan popover will appear. In "Auto edits: on" mode, send a message
-          to see an edit request popover.
+          <strong>Instructions:</strong> Try switching modes using the "Auto edits" button. In "Plan
+          Mode", a plan popover will appear. In "Auto edits: on" mode, send a message to see an edit
+          request popover.
         </div>
         <StandardChatInput
           placeholder="Try sending a message or switching modes..."

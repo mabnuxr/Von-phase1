@@ -17,10 +17,7 @@ type EventCallback = NonNullable<GridLayoutProps['onResizeStart']>;
 const GRID_COLS = 12;
 
 // Find widgets that are in the same row (overlapping Y positions)
-const getWidgetsInSameRow = (
-  layout: Layout,
-  targetItem: LayoutItem
-): LayoutItem[] => {
+const getWidgetsInSameRow = (layout: Layout, targetItem: LayoutItem): LayoutItem[] => {
   return layout.filter((item) => {
     if (item.i === targetItem.i) return false;
     // Check if items overlap vertically (same row)
@@ -48,14 +45,10 @@ const adjustAdjacentWidgets = (
   const sortedRowWidgets = [...rowWidgets].sort((a, b) => a.x - b.x);
 
   // Find widgets to the right of the resized item
-  const widgetsToRight = sortedRowWidgets.filter(
-    (item) => item.x >= resizedItem.x + oldItem.w
-  );
+  const widgetsToRight = sortedRowWidgets.filter((item) => item.x >= resizedItem.x + oldItem.w);
 
   // Find widgets to the left of the resized item
-  const widgetsToLeft = sortedRowWidgets.filter(
-    (item) => item.x + item.w <= resizedItem.x
-  );
+  const widgetsToLeft = sortedRowWidgets.filter((item) => item.x + item.w <= resizedItem.x);
 
   const newLayout = layout.map((item) => {
     if (item.i === resizedItem.i) return resizedItem;
@@ -111,9 +104,7 @@ const DashboardGrid = ({
 }: DashboardGridProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(width || 1200);
-  const [internalLayout, setInternalLayout] = useState<Layout>(
-    dashboardData.layout
-  );
+  const [internalLayout, setInternalLayout] = useState<Layout>(dashboardData.layout);
   const resizeStartRef = useRef<LayoutItem | null>(null);
   const { widgets } = dashboardData;
 
@@ -154,40 +145,21 @@ const DashboardGrid = ({
     );
   }
 
-  const handleResizeStart: EventCallback = (
-    _layout,
-    oldItem
-  ) => {
+  const handleResizeStart: EventCallback = (_layout, oldItem) => {
     resizeStartRef.current = oldItem;
   };
 
-  const handleResize: EventCallback = (
-    layout,
-    _oldItem,
-    newItem
-  ) => {
+  const handleResize: EventCallback = (layout, _oldItem, newItem) => {
     if (!resizeStartRef.current || !newItem) return;
 
-    const adjustedLayout = adjustAdjacentWidgets(
-      layout,
-      newItem,
-      resizeStartRef.current
-    );
+    const adjustedLayout = adjustAdjacentWidgets(layout, newItem, resizeStartRef.current);
     setInternalLayout(adjustedLayout);
   };
 
-  const handleResizeStop: EventCallback = (
-    layout,
-    _oldItem,
-    newItem
-  ) => {
+  const handleResizeStop: EventCallback = (layout, _oldItem, newItem) => {
     if (!resizeStartRef.current || !newItem) return;
 
-    const adjustedLayout = adjustAdjacentWidgets(
-      layout,
-      newItem,
-      resizeStartRef.current
-    );
+    const adjustedLayout = adjustAdjacentWidgets(layout, newItem, resizeStartRef.current);
     resizeStartRef.current = null;
     setInternalLayout(adjustedLayout);
     onLayoutChange(adjustedLayout);

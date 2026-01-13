@@ -492,10 +492,18 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-gray-50">
             <tr>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">Account</th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">Stage</th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">Amount</th>
-              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">Owner</th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">
+                Account
+              </th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">
+                Stage
+              </th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">
+                Amount
+              </th>
+              <th className="text-left px-3 py-2 font-medium text-gray-500 uppercase tracking-wide">
+                Owner
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -581,7 +589,7 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Editing
           </span>
-        ) : (isHovered || isSelected) ? (
+        ) : isHovered || isSelected ? (
           <div className="flex items-center gap-1 flex-shrink-0">
             <SecondaryIconButton
               icon={<PencilSimpleIcon size={14} />}
@@ -718,7 +726,9 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
   };
 
   const toggleColumn = (columnId: string) => {
-    onColumnsChange(columns.map((c) => (c.id === columnId ? { ...c, isVisible: !c.isVisible } : c)));
+    onColumnsChange(
+      columns.map((c) => (c.id === columnId ? { ...c, isVisible: !c.isVisible } : c))
+    );
   };
 
   // Handle column reorder
@@ -741,7 +751,9 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
           >
             {/* Header row - compact with inline Add Filter button */}
             <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between rounded-t-xl">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Active Filters</span>
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Active Filters
+              </span>
               <AddButton onClick={addFilter}>Add Filter</AddButton>
             </div>
 
@@ -783,66 +795,78 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
   // Column dropdown content (rendered via portal)
   const columnDropdownContent = showColumnDropdown
     ? createPortal(
-          <div
-            ref={columnDropdownRef}
-            className="fixed w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-[9999] overflow-hidden"
-            style={{ top: columnDropdownPosition.top, right: columnDropdownPosition.right }}
-          >
-            {/* Header row - compact with inline Add AI Column button */}
-            <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Columns</span>
-              {onAddAIColumn && (
-                <AddButton onClick={() => {
+        <div
+          ref={columnDropdownRef}
+          className="fixed w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-[9999] overflow-hidden"
+          style={{ top: columnDropdownPosition.top, right: columnDropdownPosition.right }}
+        >
+          {/* Header row - compact with inline Add AI Column button */}
+          <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Columns
+            </span>
+            {onAddAIColumn && (
+              <AddButton
+                onClick={() => {
                   onAddAIColumn();
                   setShowColumnDropdown(false);
-                }}>Add AI Column</AddButton>
-              )}
-            </div>
-
-            {/* Column list with drag-to-reorder */}
-            <div className="max-h-80 overflow-y-auto p-2">
-              <Reorder.Group
-                axis="y"
-                values={columns}
-                onReorder={handleColumnReorder}
-                className="space-y-1"
+                }}
               >
-                {columns.map((column) => (
-                  <Reorder.Item
-                    key={column.id}
-                    value={column}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-grab active:cursor-grabbing"
-                  >
-                    {/* Drag handle */}
-                    <DotsSixVerticalIcon size={16} weight="bold" className="text-gray-500 flex-shrink-0" />
+                Add AI Column
+              </AddButton>
+            )}
+          </div>
 
-                    {/* Checkbox */}
-                    <button
-                      onClick={() => toggleColumn(column.id)}
-                      className={`
+          {/* Column list with drag-to-reorder */}
+          <div className="max-h-80 overflow-y-auto p-2">
+            <Reorder.Group
+              axis="y"
+              values={columns}
+              onReorder={handleColumnReorder}
+              className="space-y-1"
+            >
+              {columns.map((column) => (
+                <Reorder.Item
+                  key={column.id}
+                  value={column}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-grab active:cursor-grabbing"
+                >
+                  {/* Drag handle */}
+                  <DotsSixVerticalIcon
+                    size={16}
+                    weight="bold"
+                    className="text-gray-500 flex-shrink-0"
+                  />
+
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggleColumn(column.id)}
+                    className={`
                         w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer
                         ${column.isVisible ? 'bg-gray-800 border-gray-800' : 'border-2 border-gray-300'}
                       `}
-                    >
-                      {column.isVisible && (
-                        <CheckIcon size={10} weight="bold" className="text-white" />
-                      )}
-                    </button>
-
-                    {/* Label */}
-                    <span className={`text-[13px] flex-1 ${column.isVisible ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {column.label}
-                    </span>
-
-                    {/* AI indicator */}
-                    {column.isAI && (
-                      <SparkleIcon size={14} className="text-orange-500 flex-shrink-0" />
+                  >
+                    {column.isVisible && (
+                      <CheckIcon size={10} weight="bold" className="text-white" />
                     )}
-                  </Reorder.Item>
-                ))}
-              </Reorder.Group>
-            </div>
-          </div>,
+                  </button>
+
+                  {/* Label */}
+                  <span
+                    className={`text-[13px] flex-1 ${column.isVisible ? 'text-gray-900' : 'text-gray-500'}`}
+                  >
+                    {column.label}
+                  </span>
+
+                  {/* AI indicator */}
+                  {column.isAI && (
+                    <SparkleIcon size={14} className="text-orange-500 flex-shrink-0" />
+                  )}
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
+          </div>
+        </div>,
         document.body
       )
     : null;
@@ -870,41 +894,41 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
       </div>
 
       <div className=" flex gap-2 flex-row items-center">
-
-      {/* Filter Button */}
-      <button
-        ref={filterButtonRef}
-        onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-        className={`
+        {/* Filter Button */}
+        <button
+          ref={filterButtonRef}
+          onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+          className={`
           flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[13px] font-medium transition-colors cursor-pointer
-          ${filters.length > 0
-            ? 'bg-gray-100 border-gray-200 text-gray-900 hover:bg-gray-200'
-            : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+          ${
+            filters.length > 0
+              ? 'bg-gray-100 border-gray-200 text-gray-900 hover:bg-gray-200'
+              : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
           }
         `}
-      >
-        <FunnelIcon size={14} />
-        <span>Filters</span>
-        {filters.length > 0 && (
-          <span className="ml-1 px-1.5 py-0.5 text-[11px] font-medium bg-gray-800 text-white rounded-full">
-            {filters.length}
-          </span>
-        )}
-      </button>
+        >
+          <FunnelIcon size={14} />
+          <span>Filters</span>
+          {filters.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 text-[11px] font-medium bg-gray-800 text-white rounded-full">
+              {filters.length}
+            </span>
+          )}
+        </button>
 
-      {/* Columns Button */}
-      <button
-        ref={columnButtonRef}
-        onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-100 text-[13px] font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
-      >
-        <ColumnsIcon size={14} />
-        <span>Columns</span>
-      </button>
+        {/* Columns Button */}
+        <button
+          ref={columnButtonRef}
+          onClick={() => setShowColumnDropdown(!showColumnDropdown)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-100 text-[13px] font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
+        >
+          <ColumnsIcon size={14} />
+          <span>Columns</span>
+        </button>
 
-      {/* Dropdowns rendered via portal */}
-      {filterDropdownContent}
-      {columnDropdownContent}
+        {/* Dropdowns rendered via portal */}
+        {filterDropdownContent}
+        {columnDropdownContent}
       </div>
     </div>
   );
@@ -959,7 +983,12 @@ export const Pane2: React.FC<Pane2Props> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(width || 800);
-  const [dropPreview, setDropPreview] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [dropPreview, setDropPreview] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   // Widget config popover state
   const [configPopoverState, setConfigPopoverState] = useState<{
@@ -975,7 +1004,7 @@ export const Pane2: React.FC<Pane2Props> = ({
 
   // Track if widget is being dragged (to prevent detail sheet opening on drag end)
   const isDraggingWidgetRef = useRef(false);
-  
+
   // Refs for action buttons
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const shareButtonRef = useRef<HTMLDivElement>(null);
@@ -985,9 +1014,7 @@ export const Pane2: React.FC<Pane2Props> = ({
   const cellWidth = (gridWidth - MARGIN * (COLS - 1)) / COLS;
 
   // Calculate current number of rows from layout
-  const currentRows = layout.length > 0
-    ? Math.max(...layout.map((item) => item.y + item.h))
-    : 0;
+  const currentRows = layout.length > 0 ? Math.max(...layout.map((item) => item.y + item.h)) : 0;
 
   useEffect(() => {
     if (width) {
@@ -1085,7 +1112,12 @@ export const Pane2: React.FC<Pane2Props> = ({
         const newBottom = clampedY + MIN_WIDGET_ROWS;
 
         // Check for overlap
-        return !(clampedX >= itemRight || newRight <= item.x || clampedY >= itemBottom || newBottom <= item.y);
+        return !(
+          clampedX >= itemRight ||
+          newRight <= item.x ||
+          clampedY >= itemBottom ||
+          newBottom <= item.y
+        );
       });
 
       // If position is free, use it directly
@@ -1234,7 +1266,12 @@ export const Pane2: React.FC<Pane2Props> = ({
     if (isDraggingOver) {
       const result = calculateGridPosition(e.clientX, e.clientY);
       if (result) {
-        setDropPreview({ x: result.x, y: result.y, w: DEFAULT_WIDGET_COLS, h: DEFAULT_WIDGET_ROWS });
+        setDropPreview({
+          x: result.x,
+          y: result.y,
+          w: DEFAULT_WIDGET_COLS,
+          h: DEFAULT_WIDGET_ROWS,
+        });
 
         // Auto-scroll if near edges
         const rect = containerRef.current?.getBoundingClientRect();
@@ -1307,7 +1344,7 @@ export const Pane2: React.FC<Pane2Props> = ({
                   <span>Filter</span>
                 </button>
               )}
-              
+
               {/* Refresh Button - Icon only */}
               {onRefreshClick && (
                 <SecondaryIconButton
@@ -1316,7 +1353,7 @@ export const Pane2: React.FC<Pane2Props> = ({
                   title="Refresh now • Refreshes automatically daily"
                 />
               )}
-              
+
               {/* Export Button - Icon only */}
               {onExportClick && (
                 <SecondaryIconButton
@@ -1325,12 +1362,10 @@ export const Pane2: React.FC<Pane2Props> = ({
                   title="Export as PDF"
                 />
               )}
-              
+
               {/* Separator */}
-              {onShareClick && (
-                <div className="h-6 w-px bg-gray-200" />
-              )}
-              
+              {onShareClick && <div className="h-6 w-px bg-gray-200" />}
+
               {/* Share Button - Icon only with send icon */}
               {onShareClick && (
                 <div ref={shareButtonRef}>
@@ -1405,7 +1440,12 @@ export const Pane2: React.FC<Pane2Props> = ({
               </div>
             ) : (
               /* Dashboard Grid */
-              <div className="p-4" style={{ minHeight: Math.max((currentRows + 1) * (ROW_HEIGHT + MARGIN) + PADDING, 400) }}>
+              <div
+                className="p-4"
+                style={{
+                  minHeight: Math.max((currentRows + 1) * (ROW_HEIGHT + MARGIN) + PADDING, 400),
+                }}
+              >
                 <GridLayout
                   className="layout"
                   layout={layout.map((item) => ({
@@ -1492,7 +1532,13 @@ export const Pane2: React.FC<Pane2Props> = ({
                 const reportId = widgets[detailSheetWidgetId].reportId;
                 if (!reportId) return 'No data source';
                 const dataSource = dataSources.find((ds) => ds.id === reportId);
-                return dataSource?.name || reportId.replace('report-', '').replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+                return (
+                  dataSource?.name ||
+                  reportId
+                    .replace('report-', '')
+                    .replace(/-/g, ' ')
+                    .replace(/\b\w/g, (l) => l.toUpperCase())
+                );
               })(),
               dataSourceType:
                 dataSources.find((ds) => ds.id === widgets[detailSheetWidgetId].reportId)?.type ||
@@ -1555,9 +1601,7 @@ export const Pane2: React.FC<Pane2Props> = ({
           isOpen={configPopoverState.isOpen}
           chartType={configPopoverState.chartType}
           defaultName={
-            configPopoverState.widgetId
-              ? widgets[configPopoverState.widgetId]?.title
-              : undefined
+            configPopoverState.widgetId ? widgets[configPopoverState.widgetId]?.title : undefined
           }
           dataSources={dataSources}
           position={configPopoverState.position}
@@ -1575,7 +1619,6 @@ export const Pane2: React.FC<Pane2Props> = ({
           }
         />
       )}
-
     </div>
   );
 };

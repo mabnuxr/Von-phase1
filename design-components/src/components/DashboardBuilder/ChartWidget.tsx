@@ -357,7 +357,12 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="flex-1 min-h-0">
-          <HighchartsReact ref={chartRef} highcharts={Highcharts} options={chartOptions} containerProps={{ style: { height: '100%', width: '100%' } }} />
+          <HighchartsReact
+            ref={chartRef}
+            highcharts={Highcharts}
+            options={chartOptions}
+            containerProps={{ style: { height: '100%', width: '100%' } }}
+          />
         </div>
       </div>
     );
@@ -444,7 +449,12 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       {/* Chart */}
       <div className="p-4 flex-1 min-h-0">
         <div style={{ height: '100%', minHeight: '140px' }}>
-          <HighchartsReact ref={chartRef} highcharts={Highcharts} options={chartOptions} containerProps={{ style: { height: '100%', width: '100%' } }} />
+          <HighchartsReact
+            ref={chartRef}
+            highcharts={Highcharts}
+            options={chartOptions}
+            containerProps={{ style: { height: '100%', width: '100%' } }}
+          />
         </div>
       </div>
     </div>

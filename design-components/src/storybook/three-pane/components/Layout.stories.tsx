@@ -3,7 +3,11 @@ import { useState } from 'react';
 import { TopBar } from '../../../components/TopBar/TopBar';
 import { ChatSidebar } from '../../../components/ChatSidebar/ChatSidebar';
 import { ChatSidebarV3 } from '../../../components/ChatSidebarV3/ChatSidebarV3';
-import type { SidebarItem, Folder, ItemType } from '../../../components/ChatSidebarV3/ChatSidebarV3';
+import type {
+  SidebarItem,
+  Folder,
+  ItemType,
+} from '../../../components/ChatSidebarV3/ChatSidebarV3';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import { ChatPane } from '../../../components/ChatPane/ChatPane';
 import type { Message } from '../../../components/Chat/types';
@@ -811,7 +815,7 @@ const Pane3WithPlanPopoverWrapper = () => {
       {
         id: `msg-${Date.now()}`,
         type: 'assistant',
-        content: 'Great! I\'ll start implementing the dashboard now based on the approved plan.',
+        content: "Great! I'll start implementing the dashboard now based on the approved plan.",
         status: 'completed',
       },
     ]);
@@ -887,7 +891,8 @@ const Pane3WithEditPopoverWrapper = () => {
       {
         id: `msg-${Date.now()}`,
         type: 'assistant',
-        content: 'Done! I\'ve updated the Revenue by Region chart to a stacked bar chart with year-over-year comparison.',
+        content:
+          "Done! I've updated the Revenue by Region chart to a stacked bar chart with year-over-year comparison.",
         status: 'completed',
       },
     ]);
@@ -996,9 +1001,10 @@ const Pane3InteractiveFlowWrapper = () => {
     const assistantMessage: Message = {
       id: `msg-${Date.now()}`,
       type: 'assistant',
-      content: activePopover?.intent === 'plan'
-        ? 'Great! I\'ll start implementing now.'
-        : 'Done! The changes have been applied.',
+      content:
+        activePopover?.intent === 'plan'
+          ? "Great! I'll start implementing now."
+          : 'Done! The changes have been applied.',
       status: 'completed',
     };
     setMessages([...messages, assistantMessage]);
@@ -1060,11 +1066,14 @@ export const Pane3InteractiveFlow: Story = {
 const Pane3WithReferenceAndModeSelectorWrapper = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [autoEditMode, setAutoEditMode] = useState<AutoEditMode>('off');
-  const [reference, setReference] = useState<{
-    type: 'dashboard' | 'report' | 'document';
-    name: string;
-    id: string;
-  } | undefined>({
+  const [reference, setReference] = useState<
+    | {
+        type: 'dashboard' | 'report' | 'document';
+        name: string;
+        id: string;
+      }
+    | undefined
+  >({
     type: 'dashboard',
     name: 'Sales Overview',
     id: 'dash-1',

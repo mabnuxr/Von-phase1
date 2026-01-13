@@ -2,11 +2,24 @@ import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState } from 'react';
 import type { LayoutItem } from 'react-grid-layout';
 import { ChatSidebarV3 } from '../../../components/ChatSidebarV3/ChatSidebarV3';
-import type { SidebarItem, Folder, ItemType } from '../../../components/ChatSidebarV3/ChatSidebarV3';
+import type {
+  SidebarItem,
+  Folder,
+  ItemType,
+} from '../../../components/ChatSidebarV3/ChatSidebarV3';
 import { Pane1 } from '../../../components/Pane1/Pane1';
-import type { ChartComponent, ComponentConfig, SubtableItem } from '../../../components/Pane1/Pane1';
+import type {
+  ChartComponent,
+  ComponentConfig,
+  SubtableItem,
+} from '../../../components/Pane1/Pane1';
 import { Pane2 } from '../../../components/layouts/Pane2';
-import type { DashboardWidgetData, Pane2Mode, FilterConfig, ColumnConfig } from '../../../components/layouts/Pane2';
+import type {
+  DashboardWidgetData,
+  Pane2Mode,
+  FilterConfig,
+  ColumnConfig,
+} from '../../../components/layouts/Pane2';
 import { ChatPane } from '../../../components/ChatPane/ChatPane';
 import type { Message } from '../../../components/Chat/types';
 import type { ReferenceContext, ActivePopover } from '../../../components/ChatPane/types';
@@ -84,18 +97,42 @@ const dummySidebarItems: SidebarItem[] = [
   // Root dashboards
   { id: 'dash-1', label: 'Sales Overview', type: 'dashboard', ownership: 'mine' },
   { id: 'dash-2', label: 'Team Performance', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-3', label: 'Executive Dashboard', type: 'dashboard', ownership: 'shared', ownerName: 'Sarah Chen' },
+  {
+    id: 'dash-3',
+    label: 'Executive Dashboard',
+    type: 'dashboard',
+    ownership: 'shared',
+    ownerName: 'Sarah Chen',
+  },
   { id: 'dash-4', label: 'Regional Metrics', type: 'dashboard', ownership: 'shared_by_me' },
   { id: 'dash-5', label: 'Pipeline Health', type: 'dashboard', ownership: 'mine' },
   { id: 'dash-6', label: 'Revenue Trends', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-7', label: 'Win/Loss Analysis', type: 'dashboard', ownership: 'shared', ownerName: 'Mike Johnson' },
+  {
+    id: 'dash-7',
+    label: 'Win/Loss Analysis',
+    type: 'dashboard',
+    ownership: 'shared',
+    ownerName: 'Mike Johnson',
+  },
   { id: 'dash-8', label: 'Activity Dashboard', type: 'dashboard', ownership: 'mine' },
   // Chats in folders
   { id: 'chat-f1-1', label: 'Q4 Pipeline Deep Dive', type: 'chat', folderId: 'folder-1' },
   { id: 'chat-f1-2', label: 'Q4 Revenue Projections', type: 'chat', folderId: 'folder-1' },
   { id: 'chat-f1-3', label: 'Q4 Team Performance', type: 'chat', folderId: 'folder-1' },
-  { id: 'dash-f2-1', label: 'Weekly Sales Report', type: 'dashboard', folderId: 'folder-2', ownership: 'mine' },
-  { id: 'dash-f2-2', label: 'Weekly Pipeline Status', type: 'dashboard', folderId: 'folder-2', ownership: 'mine' },
+  {
+    id: 'dash-f2-1',
+    label: 'Weekly Sales Report',
+    type: 'dashboard',
+    folderId: 'folder-2',
+    ownership: 'mine',
+  },
+  {
+    id: 'dash-f2-2',
+    label: 'Weekly Pipeline Status',
+    type: 'dashboard',
+    folderId: 'folder-2',
+    ownership: 'mine',
+  },
 ];
 
 const dummyFolders: Folder[] = [
@@ -111,17 +148,13 @@ const salesReportsAsSubtables: SubtableItem[] = [
     id: 'report-pipeline-overview',
     label: 'Pipeline Overview',
     isExpanded: true,
-    children: [
-      { id: 'report-deals-at-risk', label: 'Deals at Risk' },
-    ],
+    children: [{ id: 'report-deals-at-risk', label: 'Deals at Risk' }],
   },
   {
     id: 'report-account-health',
     label: 'Account Health Scorecard',
     isExpanded: false,
-    children: [
-      { id: 'report-renewals-at-risk', label: 'Renewals at Risk' },
-    ],
+    children: [{ id: 'report-renewals-at-risk', label: 'Renewals at Risk' }],
   },
   {
     id: 'report-rep-performance',
@@ -224,7 +257,14 @@ const getWidgetSourceColumns = (widgetReportId: string | undefined): SourceDataC
   return reportColumns.map((col) => ({
     id: col.id,
     label: col.label,
-    type: col.type === 'currency' ? 'currency' : col.type === 'number' ? 'number' : col.type === 'percentage' ? 'percentage' : 'text',
+    type:
+      col.type === 'currency'
+        ? 'currency'
+        : col.type === 'number'
+          ? 'number'
+          : col.type === 'percentage'
+            ? 'percentage'
+            : 'text',
     isAI: col.isAI,
   }));
 };
@@ -265,22 +305,32 @@ interface WidgetIntent {
 
 const parseWidgetIntent = (message: string): WidgetIntent => {
   const lowerMsg = message.toLowerCase();
-  
+
   // Check for edit intent
-  if ((lowerMsg.includes('edit') || lowerMsg.includes('change') || lowerMsg.includes('modify') || lowerMsg.includes('update')) && 
-      (lowerMsg.includes('widget') || lowerMsg.includes('chart'))) {
+  if (
+    (lowerMsg.includes('edit') ||
+      lowerMsg.includes('change') ||
+      lowerMsg.includes('modify') ||
+      lowerMsg.includes('update')) &&
+    (lowerMsg.includes('widget') || lowerMsg.includes('chart'))
+  ) {
     return { action: 'edit' };
   }
-  
+
   // Check for create intent
-  const isCreateIntent = 
-    (lowerMsg.includes('add') || lowerMsg.includes('create') || lowerMsg.includes('build') || lowerMsg.includes('make')) &&
-    (lowerMsg.includes('widget') || lowerMsg.includes('chart') || lowerMsg.includes('visualization'));
-  
+  const isCreateIntent =
+    (lowerMsg.includes('add') ||
+      lowerMsg.includes('create') ||
+      lowerMsg.includes('build') ||
+      lowerMsg.includes('make')) &&
+    (lowerMsg.includes('widget') ||
+      lowerMsg.includes('chart') ||
+      lowerMsg.includes('visualization'));
+
   if (!isCreateIntent) {
     return { action: 'none' };
   }
-  
+
   // Extract chart type
   let chartType: WidgetIntent['chartType'];
   if (lowerMsg.includes('bar chart') || lowerMsg.includes('bar graph')) chartType = 'bar';
@@ -289,11 +339,11 @@ const parseWidgetIntent = (message: string): WidgetIntent => {
   else if (lowerMsg.includes('donut chart')) chartType = 'donut';
   else if (lowerMsg.includes('metric') || lowerMsg.includes('kpi')) chartType = 'metric';
   else if (lowerMsg.includes('table') || lowerMsg.includes('data table')) chartType = 'table';
-  
+
   // Extract report reference
   let reportId: string | undefined;
   let reportName: string | undefined;
-  
+
   // Check for specific report mentions
   if (lowerMsg.includes('pipeline overview')) {
     reportId = 'report-pipeline-overview';
@@ -311,7 +361,7 @@ const parseWidgetIntent = (message: string): WidgetIntent => {
     reportId = 'report-rep-performance';
     reportName = 'Rep Performance Dashboard';
   }
-  
+
   return {
     action: 'create',
     chartType,
@@ -322,11 +372,11 @@ const parseWidgetIntent = (message: string): WidgetIntent => {
 
 // Generate approval content for widget creation
 const getWidgetCreationApprovalContent = (intent: WidgetIntent): string => {
-  const chartTypeLabel = intent.chartType ? 
-    intent.chartType.charAt(0).toUpperCase() + intent.chartType.slice(1) + ' Chart' : 
-    'Widget';
+  const chartTypeLabel = intent.chartType
+    ? intent.chartType.charAt(0).toUpperCase() + intent.chartType.slice(1) + ' Chart'
+    : 'Widget';
   const reportInfo = intent.reportName ? `**${intent.reportName}**` : 'the selected report';
-  
+
   return `## Create ${chartTypeLabel}
 
 I'll create a **${chartTypeLabel}** widget with the following configuration:
@@ -419,7 +469,6 @@ Based on your current view, I can help you:
 What would you like to explore?`;
 };
 
-
 // ============================================================================
 // Main Story Component
 // ============================================================================
@@ -438,12 +487,18 @@ const ManualDashboardDemo = () => {
   // Toast and Save Report Modal state
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [showSaveReportModal, setShowSaveReportModal] = useState(false);
-  
+
   // Dashboard action popovers state
   const [showFilterPopover, setShowFilterPopover] = useState(false);
-  const [filterPopoverPosition, setFilterPopoverPosition] = useState<{ top: number; right: number }>({ top: 60, right: 20 });
+  const [filterPopoverPosition, setFilterPopoverPosition] = useState<{
+    top: number;
+    right: number;
+  }>({ top: 60, right: 20 });
   const [showSharePopover, setShowSharePopover] = useState(false);
-  const [sharePopoverPosition, setSharePopoverPosition] = useState<{ top: number; right: number }>({ top: 60, right: 20 });
+  const [sharePopoverPosition, setSharePopoverPosition] = useState<{ top: number; right: number }>({
+    top: 60,
+    right: 20,
+  });
   const [dashboardFilters, setDashboardFilters] = useState<DashboardFilterConfig>({
     dateRange: 'last-30-days',
     region: 'all',
@@ -473,11 +528,10 @@ const ManualDashboardDemo = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [activePopover, setActivePopover] = useState<ActivePopover | undefined>();
 
-
   // Current dashboard/report name
-  const currentDashboardName = dummySidebarItems.find(
-    (item) => item.id === selectedSidebarItem && item.type === 'dashboard'
-  )?.label || 'Sales Overview';
+  const currentDashboardName =
+    dummySidebarItems.find((item) => item.id === selectedSidebarItem && item.type === 'dashboard')
+      ?.label || 'Sales Overview';
 
   const currentReportName = getReportName(selectedReportId);
 
@@ -569,7 +623,12 @@ const ManualDashboardDemo = () => {
     const reportId = (pendingComponent as any).reportId || 'report-pipeline-overview';
     const newWidget: DashboardWidgetData = {
       id: widgetId,
-      type: pendingComponent.icon === 'metric' ? 'metric' : pendingComponent.icon === 'table' ? 'table' : 'chart',
+      type:
+        pendingComponent.icon === 'metric'
+          ? 'metric'
+          : pendingComponent.icon === 'table'
+            ? 'table'
+            : 'chart',
       chartType: pendingComponent.icon,
       title: pendingComponent.label,
       reportId: reportId,
@@ -690,7 +749,7 @@ const ManualDashboardDemo = () => {
           metric: 'Metric Card',
           table: 'Data Table',
         };
-        
+
         const component: ChartComponent = {
           id: chartType,
           label: chartLabels[chartType],
@@ -702,7 +761,7 @@ const ManualDashboardDemo = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (component as any).reportId = intent.reportId;
         }
-        
+
         setActivePopover({
           intent: 'edit',
           title: `Add Widget: ${chartLabels[chartType]}`,
@@ -711,12 +770,12 @@ const ManualDashboardDemo = () => {
           isStreaming: false,
         });
         setPendingComponent(component);
-        
+
         setIsStreaming(false);
       }, 1000);
       return;
     }
-    
+
     // Handle widget edit intent
     if (intent.action === 'edit') {
       setTimeout(() => {
@@ -729,7 +788,7 @@ const ManualDashboardDemo = () => {
             status: 'completed',
           };
           setMessages((prev) => [...prev, assistantMsg]);
-          
+
           // Trigger edit mode by setting the widget as editing
           setEditingWidgetId(selectedWidgetId);
           setSelectedComponent({
@@ -814,27 +873,27 @@ const ManualDashboardDemo = () => {
     };
     setDataColumns([...dataColumns, newColumn]);
   };
-  
+
   // Handle dashboard filter
   const handleFilterApply = (filters: DashboardFilterConfig) => {
     setDashboardFilters(filters);
     console.log('Dashboard filters applied:', filters);
   };
-  
+
   // Handle dashboard export
   const handleExport = () => {
     console.log('Exporting dashboard as PDF...');
     // In a real implementation, this would trigger PDF generation
     alert('Dashboard export started! PDF will be downloaded shortly.');
   };
-  
+
   // Handle dashboard refresh
   const handleRefresh = () => {
     console.log('Refreshing dashboard data...');
     // In a real implementation, this would refresh all widget data
     alert('Dashboard refreshed! Data updated.');
   };
-  
+
   // Handle dashboard share
   const handleShare = (config: ShareConfig) => {
     console.log('Sharing dashboard with config:', config);
@@ -960,17 +1019,17 @@ const ManualDashboardDemo = () => {
           onWidgetEdit={(widgetId) => {
             const widget = dashboardWidgets[widgetId];
             if (!widget) return;
-            
+
             // Set the widget as editing
             setEditingWidgetId(widgetId);
-            
+
             // Set the component type based on widget's chart type
             setSelectedComponent({
               id: widget.chartType || 'bar',
               label: widget.title,
               icon: widget.chartType || 'bar',
             });
-            
+
             // Switch to dashboard mode in Pane1 to show config form
             setPane1Tab('dashboard');
           }}
@@ -991,8 +1050,12 @@ const ManualDashboardDemo = () => {
           dataSources={widgetDataSources}
           // Widget detail sheet props
           drillDownFilters={widgetDrillDownFilters}
-          getWidgetSourceColumns={(widgetId) => getWidgetSourceColumns(dashboardWidgets[widgetId]?.reportId)}
-          getWidgetSourceData={(widgetId) => getWidgetSourceData(dashboardWidgets[widgetId]?.reportId)}
+          getWidgetSourceColumns={(widgetId) =>
+            getWidgetSourceColumns(dashboardWidgets[widgetId]?.reportId)
+          }
+          getWidgetSourceData={(widgetId) =>
+            getWidgetSourceData(dashboardWidgets[widgetId]?.reportId)
+          }
           onWidgetDrillDownChange={(widgetId, filterId, value) =>
             console.log('Drill-down change:', widgetId, filterId, value)
           }
@@ -1094,7 +1157,7 @@ const ManualDashboardDemo = () => {
         }}
         onCancel={() => setShowSaveReportModal(false)}
       />
-      
+
       {/* Dashboard Filter Popover */}
       <DashboardFilterModal
         isOpen={showFilterPopover}
@@ -1103,7 +1166,7 @@ const ManualDashboardDemo = () => {
         onApply={handleFilterApply}
         onClose={() => setShowFilterPopover(false)}
       />
-      
+
       {/* Dashboard Share Popover */}
       <DashboardSharePopover
         isOpen={showSharePopover}
@@ -1115,7 +1178,6 @@ const ManualDashboardDemo = () => {
         onShare={handleShare}
         onClose={() => setShowSharePopover(false)}
       />
-
     </div>
   );
 };
@@ -1178,7 +1240,7 @@ type Story = StoryObj<typeof meta>;
  *
  * ### Creating Widgets
  * You can create widgets by asking Von in natural language. Examples:
- * 
+ *
  * - **"Build me a bar chart showing data from the pipeline overview report"**
  * - **"Add a line chart from deals at risk"**
  * - **"Create a metric card from account health"**
@@ -1193,7 +1255,7 @@ type Story = StoryObj<typeof meta>;
  *
  * ### Editing Widgets
  * Select a widget, then ask Von to edit it:
- * 
+ *
  * - **"Edit this widget"**
  * - **"Change this chart"**
  * - **"Modify the widget"**

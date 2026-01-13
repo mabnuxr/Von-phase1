@@ -386,7 +386,6 @@ const SubtableRow: React.FC<SubtableRowProps> = ({
         </button>
       )}
 
-
       {isEditing ? (
         <input
           ref={inputRef}
@@ -613,8 +612,10 @@ export const Pane1: React.FC<Pane1Props> = ({
   const [internalConfigReportId, setInternalConfigReportId] = useState('');
 
   // Use controlled config values if provided
-  const configTitle = controlledConfigTitle !== undefined ? controlledConfigTitle : internalConfigTitle;
-  const configReportId = controlledConfigReportId !== undefined ? controlledConfigReportId : internalConfigReportId;
+  const configTitle =
+    controlledConfigTitle !== undefined ? controlledConfigTitle : internalConfigTitle;
+  const configReportId =
+    controlledConfigReportId !== undefined ? controlledConfigReportId : internalConfigReportId;
 
   const setConfigTitle = (value: string) => setInternalConfigTitle(value);
   const setConfigReportId = (value: string) => setInternalConfigReportId(value);

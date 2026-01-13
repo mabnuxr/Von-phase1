@@ -101,10 +101,7 @@ export const DashboardFilterModal: React.FC<DashboardFilterModalProps> = ({
       {isOpen && (
         <>
           {/* Backdrop - invisible, just for click outside */}
-          <div
-            className="fixed inset-0 z-[9998]"
-            onClick={onClose}
-          />
+          <div className="fixed inset-0 z-[9998]" onClick={onClose} />
 
           {/* Popover */}
           <motion.div

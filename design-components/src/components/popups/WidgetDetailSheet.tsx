@@ -109,27 +109,56 @@ const ChartVisualization: React.FC<ChartVisualizationProps> = ({ chartType, data
   const chartOptions: Highcharts.Options = useMemo(() => {
     // For metric cards, show the first numeric value
     if (chartType === 'metric') {
-      const numericCol = columns.find((c) => c.type === 'number' || c.type === 'currency' || c.type === 'percentage');
+      const numericCol = columns.find(
+        (c) => c.type === 'number' || c.type === 'currency' || c.type === 'percentage'
+      );
       const value = numericCol ? data[0]?.[numericCol.id] : 0;
       return {
         chart: { type: 'solidgauge', height: '100%', backgroundColor: 'transparent' },
         title: { text: undefined },
         credits: { enabled: false },
-        pane: { startAngle: 0, endAngle: 360, background: [{ outerRadius: '112%', innerRadius: '88%', backgroundColor: '#f3f4f6', borderWidth: 0 }] },
+        pane: {
+          startAngle: 0,
+          endAngle: 360,
+          background: [
+            { outerRadius: '112%', innerRadius: '88%', backgroundColor: '#f3f4f6', borderWidth: 0 },
+          ],
+        },
         yAxis: { min: 0, max: 100, lineWidth: 0, tickPositions: [] },
-        plotOptions: { solidgauge: { dataLabels: { enabled: true, format: `<div style="text-align:center"><span style="font-size:32px;font-weight:600;color:#1f2937">${value}</span></div>` } } },
-        series: [{ type: 'solidgauge', data: [75], innerRadius: '88%', radius: '112%', dataLabels: { y: -25 } }],
+        plotOptions: {
+          solidgauge: {
+            dataLabels: {
+              enabled: true,
+              format: `<div style="text-align:center"><span style="font-size:32px;font-weight:600;color:#1f2937">${value}</span></div>`,
+            },
+          },
+        },
+        series: [
+          {
+            type: 'solidgauge',
+            data: [75],
+            innerRadius: '88%',
+            radius: '112%',
+            dataLabels: { y: -25 },
+          },
+        ],
       };
     }
 
     // For table type, return empty config (table is shown separately)
     if (chartType === 'table') {
-      return { chart: { type: 'column' }, title: { text: 'Table View' }, credits: { enabled: false } };
+      return {
+        chart: { type: 'column' },
+        title: { text: 'Table View' },
+        credits: { enabled: false },
+      };
     }
 
     // Get first text column for categories and first numeric column for values
     const categoryCol = columns.find((c) => c.type === 'text');
-    const valueCol = columns.find((c) => c.type === 'number' || c.type === 'currency' || c.type === 'percentage');
+    const valueCol = columns.find(
+      (c) => c.type === 'number' || c.type === 'currency' || c.type === 'percentage'
+    );
 
     if (!categoryCol || !valueCol) {
       return { chart: { type: 'column' }, title: { text: 'No data' }, credits: { enabled: false } };
@@ -139,13 +168,24 @@ const ChartVisualization: React.FC<ChartVisualizationProps> = ({ chartType, data
     const values = data.map((row) => Number(row[valueCol.id]) || 0);
 
     const baseOptions: Highcharts.Options = {
-      chart: { type: chartType === 'bar' ? 'column' : chartType === 'donut' ? 'pie' : chartType, height: '100%', backgroundColor: 'transparent' },
+      chart: {
+        type: chartType === 'bar' ? 'column' : chartType === 'donut' ? 'pie' : chartType,
+        height: '100%',
+        backgroundColor: 'transparent',
+      },
       title: { text: undefined },
       credits: { enabled: false },
-      legend: { enabled: chartType === 'pie' || chartType === 'donut', align: 'center', verticalAlign: 'bottom' },
+      legend: {
+        enabled: chartType === 'pie' || chartType === 'donut',
+        align: 'center',
+        verticalAlign: 'bottom',
+      },
       colors: ['#4f46e5', '#818cf8', '#c7d2fe', '#e0e7ff'],
       plotOptions: {
-        pie: { innerSize: chartType === 'donut' ? '50%' : '0%', dataLabels: { enabled: true, format: '<b>{point.name}</b>: {point.percentage:.1f}%' } },
+        pie: {
+          innerSize: chartType === 'donut' ? '50%' : '0%',
+          dataLabels: { enabled: true, format: '<b>{point.name}</b>: {point.percentage:.1f}%' },
+        },
         column: { borderRadius: 4, borderWidth: 0 },
       },
     };
@@ -153,7 +193,13 @@ const ChartVisualization: React.FC<ChartVisualizationProps> = ({ chartType, data
     if (chartType === 'pie' || chartType === 'donut') {
       return {
         ...baseOptions,
-        series: [{ type: 'pie', name: valueCol.label, data: categories.map((cat, i) => ({ name: cat, y: values[i] })) }],
+        series: [
+          {
+            type: 'pie',
+            name: valueCol.label,
+            data: categories.map((cat, i) => ({ name: cat, y: values[i] })),
+          },
+        ],
       };
     }
 
@@ -161,11 +207,19 @@ const ChartVisualization: React.FC<ChartVisualizationProps> = ({ chartType, data
       ...baseOptions,
       xAxis: { categories, labels: { style: { fontSize: '11px' } } },
       yAxis: { title: { text: valueCol.label }, labels: { style: { fontSize: '11px' } } },
-      series: [{ type: chartType === 'bar' ? 'column' : chartType, name: valueCol.label, data: values }],
+      series: [
+        { type: chartType === 'bar' ? 'column' : chartType, name: valueCol.label, data: values },
+      ],
     };
   }, [chartType, data, columns]);
 
-  return <HighchartsReact highcharts={Highcharts} options={chartOptions} containerProps={{ style: { height: '100%', width: '100%' } }} />;
+  return (
+    <HighchartsReact
+      highcharts={Highcharts}
+      options={chartOptions}
+      containerProps={{ style: { height: '100%', width: '100%' } }}
+    />
+  );
 };
 
 interface GlassDataTableProps {
@@ -228,10 +282,7 @@ const GlassDataTable: React.FC<GlassDataTableProps> = ({ columns, data }) => {
       {/* Table Body */}
       <div className="divide-y divide-white/20 max-h-64 overflow-y-auto">
         {data.map((row, rowIndex) => (
-          <div
-            key={row.id || rowIndex}
-            className="flex hover:bg-white/30 transition-colors"
-          >
+          <div key={row.id || rowIndex} className="flex hover:bg-white/30 transition-colors">
             {columns.map((col) => (
               <div key={col.id} className="flex-1 px-4 py-3 text-[13px] text-gray-900">
                 {formatValue(row[col.id], col.type)}
@@ -372,7 +423,9 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
                       <div className="h-full flex items-center justify-center">
                         <div className="text-center">
                           <p className="text-[13px] text-gray-500">No data available</p>
-                          <p className="text-[11px] text-gray-400 mt-1">Configure this widget with a data source</p>
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            Configure this widget with a data source
+                          </p>
                         </div>
                       </div>
                     )}
@@ -391,7 +444,8 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
                     </div>
 
                     <p className="text-[12px] text-gray-500 text-center">
-                      Source: <span className="font-medium text-gray-700">{widget.dataSourceName}</span>
+                      Source:{' '}
+                      <span className="font-medium text-gray-700">{widget.dataSourceName}</span>
                       <span className="text-gray-400"> • </span>
                       {sourceData.length} rows
                     </p>
@@ -410,7 +464,9 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
                     </div>
                     <div className="text-center py-8">
                       <p className="text-[13px] text-gray-500">No data source configured</p>
-                      <p className="text-[11px] text-gray-400 mt-1">Configure this widget with a report to see data</p>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Configure this widget with a report to see data
+                      </p>
                     </div>
                   </div>
                 )}

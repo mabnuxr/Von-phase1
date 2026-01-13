@@ -129,7 +129,9 @@ export const WidgetConfigPopover: React.FC<WidgetConfigPopoverProps> = ({
   existingConfig,
 }) => {
   const [name, setName] = useState(existingConfig?.name || defaultName || chartLabels[chartType]);
-  const [selectedDataSourceId, setSelectedDataSourceId] = useState(existingConfig?.dataSourceId || '');
+  const [selectedDataSourceId, setSelectedDataSourceId] = useState(
+    existingConfig?.dataSourceId || ''
+  );
   const [errors, setErrors] = useState<{ name?: string; dataSource?: string }>({});
 
   const IconComponent = chartIcons[chartType];
@@ -259,7 +261,9 @@ export const WidgetConfigPopover: React.FC<WidgetConfigPopoverProps> = ({
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="flex items-center gap-2 mb-2">
                     <IconComponent size={16} weight="regular" className="text-gray-600" />
-                    <span className="text-[13px] font-medium text-gray-900">{name || 'Untitled'}</span>
+                    <span className="text-[13px] font-medium text-gray-900">
+                      {name || 'Untitled'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-gray-500">
                     {selectedDataSource.type === 'subreport' ? (

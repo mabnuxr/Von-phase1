@@ -34,11 +34,7 @@ export type {
 } from './MoveToFolderModal';
 
 export { SaveReportModal } from './SaveReportModal';
-export type {
-  SaveReportModalProps,
-  SaveReportConfig,
-  ParentReport,
-} from './SaveReportModal';
+export type { SaveReportModalProps, SaveReportConfig, ParentReport } from './SaveReportModal';
 
 export { WidgetConfigPopover } from './WidgetConfigPopover';
 export type {
@@ -57,14 +53,7 @@ export type {
 } from './WidgetDetailSheet';
 
 export { DashboardFilterModal } from './DashboardFilterModal';
-export type {
-  DashboardFilterModalProps,
-  DashboardFilterConfig,
-} from './DashboardFilterModal';
+export type { DashboardFilterModalProps, DashboardFilterConfig } from './DashboardFilterModal';
 
 export { DashboardSharePopover } from './DashboardSharePopover';
-export type {
-  DashboardSharePopoverProps,
-  ShareConfig,
-  AccessLevel,
-} from './DashboardSharePopover';
+export type { DashboardSharePopoverProps, ShareConfig, AccessLevel } from './DashboardSharePopover';
