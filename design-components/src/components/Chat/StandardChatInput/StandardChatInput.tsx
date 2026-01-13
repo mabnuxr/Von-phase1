@@ -22,6 +22,10 @@ import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../../popups';
 import type { StandardChatInputProps, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
+import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
+import type { Editor } from '@tiptap/react';
+import { ModeSelector } from './ModeSelector';
+import { ChatInputPopover } from './ChatInputPopover';
 
 /**
  * Get icon for reference type
@@ -126,7 +130,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
         onClose={onClose}
         items={items}
         anchorRef={containerRef}
-        position="top-start"
+        position="bottom-start"
         width={208}
         onItemClick={handleItemClick}
       />
@@ -167,12 +171,22 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onFileError,
   referenceContext,
   onRemoveReference,
+  showFormattingToolbar = false,
+  // Mode selector props
+  showModeSelector = false,
+  autoEditMode = 'off',
+  onAutoEditModeChange,
+  // Popover props
+  activePopover,
+  onPopoverClose,
+  onPopoverPrimaryAction,
+  onPopoverFeedback,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isResearchTagHovered, setIsResearchTagHovered] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<Editor | null>(null);
 
   // File upload hook for uncontrolled mode
   const {
@@ -205,14 +219,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const isControlled = value !== undefined;
   const message = isControlled ? value : internalMessage;
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-    }
-  }, [message]);
-
   const handleChange = useCallback(
     (newValue: string) => {
       if (isControlled) {
@@ -227,7 +233,11 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const handleSend = useCallback(() => {
     if (disableSubmit) return;
 
-    const messageToSend = message.trim();
+    // Extract plain text from HTML content for sending
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = message;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    const messageToSend = plainText.trim();
     const hasContent = messageToSend || hasAttachments;
 
     if (hasContent && onSend) {
@@ -240,8 +250,9 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       if (!isAttachmentsControlled) {
         clearFiles();
       }
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      // Clear the editor
+      if (editorRef.current) {
+        editorRef.current.commands.clearContent();
       }
     }
   }, [
@@ -256,17 +267,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     clearFiles,
   ]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (!isStreaming && !disableSubmit) {
-          handleSend();
-        }
-      }
-    },
-    [isStreaming, disableSubmit, handleSend]
-  );
+  // handleKeyDown is now managed by TiptapEditor
 
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,9 +312,25 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
 
   return (
     <div className="w-full antialiased font-sf">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto relative">
+        {/* ChatInputPopover - shown above the input when active */}
+        {activePopover && (
+          <ChatInputPopover
+            isOpen={true}
+            onClose={onPopoverClose || (() => {})}
+            intent={activePopover.intent}
+            title={activePopover.title}
+            content={activePopover.content}
+            isStreaming={activePopover.isStreaming}
+            primaryActionLabel={activePopover.primaryActionLabel}
+            onPrimaryAction={onPopoverPrimaryAction || (() => {})}
+            onFeedbackSubmit={onPopoverFeedback}
+            hasUserEdits={activePopover.hasUserEdits}
+          />
+        )}
+
         {/* Reference tag - shown above the input when a reference is set */}
-        {referenceContext && (
+        {referenceContext && !activePopover && (
           <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
             <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
               <div className="flex items-center gap-1.5">
@@ -364,24 +381,22 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
               </div>
             )}
 
-            {/* Text input area */}
+            {/* Text input area - Tiptap Editor */}
             <div className="px-4 py-3">
-              <textarea
-                ref={textareaRef}
-                value={message}
-                onChange={(e) => handleChange(e.target.value)}
-                onKeyDown={handleKeyDown}
+              <TiptapEditor
+                content={message}
+                onChange={handleChange}
+                onSubmit={handleSend}
                 placeholder={placeholder}
                 disabled={disabled && !isStreaming}
-                className="w-full resize-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
-                style={{
-                  minHeight: '24px',
-                  maxHeight: '200px',
-                  lineHeight: '1.5',
-                }}
-                rows={1}
+                editorRef={editorRef}
               />
             </div>
+
+            {/* Formatting toolbar - Slack-style */}
+            {showFormattingToolbar && editorRef.current && (
+              <EditorToolbar editor={editorRef.current} />
+            )}
 
             {/* Bottom toolbar */}
             <div className="flex items-center justify-between px-3 pb-3">
@@ -434,13 +449,14 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   aria-hidden="true"
                 />
 
-                {/* Mode toggle (Ask/Build) using forms Toggle component */}
-                {/* <Toggle
-                  options={MODE_OPTIONS}
-                  value={mode}
-                  onChange={(newMode) => onModeChange?.(newMode)}
-                  disabled={disabled}
-                /> */}
+                {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                {showModeSelector && onAutoEditModeChange && (
+                  <ModeSelector
+                    mode={autoEditMode}
+                    onModeChange={onAutoEditModeChange}
+                    disabled={disabled && !isStreaming}
+                  />
+                )}
               </div>
 
               {/* Right side - Voice and Send buttons */}

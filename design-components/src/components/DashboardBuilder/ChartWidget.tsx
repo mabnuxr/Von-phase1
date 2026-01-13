@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,17 +79,96 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
   const config = widget.config as ChartConfig;
   const data = getDataForTable(config.dataTableId);
   const [showMenu, setShowMenu] = useState(false);
+  const chartRef = useRef<HighchartsReact.RefObject>(null);
 
   const chartOptions: Highcharts.Options = useMemo(() => {
     const baseOptions: Highcharts.Options = {
       chart: {
         type: config.type === 'column' ? 'column' : config.type,
-        height: 280,
+        height: null,
+        reflow: true,
+        spacing: [10, 10, 10, 10],
         style: {
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
         },
         backgroundColor: 'transparent',
+      },
+      responsive: {
+        rules: [
+          {
+            condition: {
+              maxWidth: 250,
+            },
+            chartOptions: {
+              legend: {
+                enabled: false,
+              },
+              yAxis: {
+                labels: {
+                  style: { fontSize: '9px' },
+                },
+                title: {
+                  text: undefined,
+                },
+              },
+              xAxis: {
+                labels: {
+                  style: { fontSize: '9px' },
+                  rotation: -45,
+                },
+                title: {
+                  text: undefined,
+                },
+              },
+              chart: {
+                spacing: [5, 5, 5, 5],
+              },
+            },
+          },
+          {
+            condition: {
+              maxHeight: 200,
+            },
+            chartOptions: {
+              legend: {
+                enabled: false,
+              },
+              chart: {
+                spacing: [5, 5, 5, 5],
+              },
+              yAxis: {
+                labels: {
+                  style: { fontSize: '9px' },
+                },
+                title: {
+                  text: undefined,
+                },
+              },
+              xAxis: {
+                labels: {
+                  style: { fontSize: '9px' },
+                  rotation: 0,
+                },
+                title: {
+                  text: undefined,
+                },
+              },
+              plotOptions: {
+                pie: {
+                  dataLabels: {
+                    enabled: false,
+                  },
+                },
+                series: {
+                  dataLabels: {
+                    enabled: false,
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       title: {
         text: undefined,
@@ -103,9 +182,11 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
         verticalAlign: 'bottom',
         itemStyle: {
           color: '#6e6e73',
-          fontSize: '11px',
+          fontSize: '10px',
           fontWeight: '500',
         },
+        itemMarginBottom: 2,
+        margin: 8,
       },
       colors: chartColors,
       plotOptions: {
@@ -247,18 +328,49 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
     }
   }, [config, data]);
 
+  useEffect(() => {
+    const chart = chartRef.current?.chart;
+    if (!chart) return;
+
+    const handleResize = () => {
+      setTimeout(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (chart && !(chart as any).renderTo?.offsetParent) return;
+        chart.reflow();
+      }, 0);
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const container = (chart as any).renderTo?.parentElement;
+    if (container) {
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   // When hideHeader is true, render only the chart content (for use inside WidgetLayout)
   if (hideHeader) {
     return (
-      <div className="p-4 h-full">
-        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+      <div className="p-4 h-full flex flex-col">
+        <div className="flex-1 min-h-0">
+          <HighchartsReact
+            ref={chartRef}
+            highcharts={Highcharts}
+            options={chartOptions}
+            containerProps={{ style: { height: '100%', width: '100%' } }}
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div
-      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full"
       onClick={onClick}
     >
       {/* Header */}
@@ -335,8 +447,15 @@ export const ChartWidget: React.FC<ChartWidgetProps> = ({
       </div>
 
       {/* Chart */}
-      <div className="p-4">
-        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+      <div className="p-4 flex-1 min-h-0">
+        <div style={{ height: '100%', minHeight: '140px' }}>
+          <HighchartsReact
+            ref={chartRef}
+            highcharts={Highcharts}
+            options={chartOptions}
+            containerProps={{ style: { height: '100%', width: '100%' } }}
+          />
+        </div>
       </div>
     </div>
   );

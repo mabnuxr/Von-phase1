@@ -1,15 +1,21 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FolderSimpleIcon, FolderPlusIcon, CheckIcon } from '@phosphor-icons/react';
+import { FolderSimple, Plus } from '@phosphor-icons/react';
+import { TextInput } from '../forms/input';
+import { Select } from '../forms/dropdown';
+import { PrimaryButton, SecondaryButton } from '../forms/buttons';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface MoveToFolderFolder {
+export interface FolderOption {
   id: string;
   label: string;
 }
+
+// Alias for compatibility
+export type MoveToFolderFolder = FolderOption;
 
 export interface MoveToFolderConfig {
   /** The target folder ID (not used if isNewFolder is true) */
@@ -27,14 +33,19 @@ export interface MoveToFolderModalProps {
   isOpen: boolean;
 
   /**
-   * The name of the item being moved
+   * The name of the item being moved (for display)
    */
   itemName: string;
 
   /**
+   * Type of item being moved (optional, defaults to 'chat')
+   */
+  itemType?: 'chat' | 'dashboard' | 'chart';
+
+  /**
    * Available folders to move to
    */
-  folders: MoveToFolderFolder[];
+  folders: FolderOption[];
 
   /**
    * Current folder ID (to exclude from options)
@@ -53,77 +64,105 @@ export interface MoveToFolderModalProps {
 }
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+const CREATE_NEW_FOLDER_ID = '__create_new__';
+
+// ============================================================================
 // Component
 // ============================================================================
 
 /**
- * MoveToFolderModal - A slide-up modal for moving items between folders
+ * MoveToFolderModal - A slide-up modal for moving items to folders
  *
  * Features:
- * - List of existing folders to choose from
- * - Option to create a new folder
- * - Inline input for new folder name
- * - Animated slide-up panel
- * - Backdrop blur overlay
+ * - Dropdown to select existing folder
+ * - Option to create a new folder inline
+ * - Shows "No folders available" state with create option
+ * - Filters out current folder from options
  */
 export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
   isOpen,
   itemName,
+  itemType = 'chat',
   folders,
   currentFolderId,
   onConfirm,
   onCancel,
 }) => {
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [errors, setErrors] = useState<{ folder?: string; newFolderName?: string }>({});
 
   // Filter out current folder from options
   const availableFolders = folders.filter((f) => f.id !== currentFolderId);
 
-  // Focus input when creating new folder
-  useEffect(() => {
-    if (isCreatingNew && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isCreatingNew]);
+  // Build dropdown options
+  const folderOptions = [
+    ...availableFolders.map((f) => ({
+      value: f.id,
+      label: f.label,
+      icon: <FolderSimple size={16} weight="regular" />,
+    })),
+    {
+      value: CREATE_NEW_FOLDER_ID,
+      label: 'Create New Folder',
+      icon: <Plus size={16} weight="bold" className="text-indigo-600" />,
+    },
+  ];
 
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedFolderId(null);
+  const handleFolderChange = (value: string) => {
+    setSelectedFolderId(value);
+    if (value === CREATE_NEW_FOLDER_ID) {
+      setIsCreatingNew(true);
+    } else {
       setIsCreatingNew(false);
       setNewFolderName('');
     }
-  }, [isOpen]);
+    setErrors({});
+  };
 
   const handleConfirm = () => {
-    if (isCreatingNew && newFolderName.trim()) {
-      onConfirm({
-        folderId: '',
-        isNewFolder: true,
-        newFolderName: newFolderName.trim(),
-      });
-    } else if (selectedFolderId) {
-      onConfirm({
-        folderId: selectedFolderId,
-        isNewFolder: false,
-      });
+    const newErrors: { folder?: string; newFolderName?: string } = {};
+
+    if (!selectedFolderId) {
+      newErrors.folder = 'Please select a folder';
     }
+
+    if (isCreatingNew && !newFolderName.trim()) {
+      newErrors.newFolderName = 'Folder name is required';
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      return;
+    }
+
+    onConfirm({
+      folderId: isCreatingNew ? '' : selectedFolderId,
+      isNewFolder: isCreatingNew,
+      newFolderName: isCreatingNew ? newFolderName.trim() : undefined,
+    });
+
+    resetForm();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newFolderName.trim()) {
-      e.preventDefault();
-      handleConfirm();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
-    }
+  const handleCancel = () => {
+    resetForm();
+    onCancel();
   };
 
-  const canConfirm = (isCreatingNew && newFolderName.trim()) || selectedFolderId;
+  const resetForm = () => {
+    setSelectedFolderId('');
+    setIsCreatingNew(false);
+    setNewFolderName('');
+    setErrors({});
+  };
+
+  const itemTypeLabel = itemType === 'chart' ? 'chart' : itemType;
 
   return (
     <AnimatePresence>
@@ -135,8 +174,8 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-[99] bg-white/10 backdrop-blur-[1.75px]"
-            onClick={onCancel}
+            className="absolute inset-0 z-[99] bg-white/10 backdrop-blur-[2px]"
+            onClick={handleCancel}
           />
 
           {/* Modal panel */}
@@ -145,120 +184,111 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute bottom-0 left-0 right-0 h-[70%] z-[100] flex flex-col rounded-t-2xl overflow-hidden bg-gradient-to-b from-white to-gray-50"
+            className="absolute bottom-0 left-0 right-0 h-[90%] z-[100] px-2 flex flex-col rounded-t-2xl border border-gray-100 shadow-[0_-8px_30px_-8px_rgba(255,237,213,0.8)]"
           >
-            {/* Header */}
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-gray-100">
-              <div className="p-1.5 rounded-lg bg-gray-100">
-                <FolderSimpleIcon size={18} weight="duotone" className="text-gray-700" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-gray-900">Move to Folder</h3>
-                <p className="text-xs text-gray-500 truncate">Moving "{itemName}"</p>
-              </div>
-            </div>
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white to-gray-50 rounded-t-2xl overflow-hidden" />
 
-            {/* Folder list */}
-            <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-              {/* Create new folder option */}
-              <button
-                onClick={() => {
-                  setIsCreatingNew(true);
-                  setSelectedFolderId(null);
-                }}
-                className={`
-                  w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px]
-                  transition-colors cursor-pointer text-left
-                  ${isCreatingNew ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-700'}
-                `}
-              >
-                <FolderPlusIcon size={16} weight="regular" />
-                <span className="font-medium">Create new folder</span>
-              </button>
-
-              {/* New folder name input */}
-              <AnimatePresence>
-                {isCreatingNew && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-3 py-2">
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="New folder name..."
-                        className="w-full text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-400"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Divider if there are folders */}
-              {availableFolders.length > 0 && <div className="border-t border-gray-100 my-2" />}
-
-              {/* Existing folders */}
-              {availableFolders.map((folder) => (
-                <button
-                  key={folder.id}
-                  onClick={() => {
-                    setSelectedFolderId(folder.id);
-                    setIsCreatingNew(false);
-                  }}
-                  className={`
-                    w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg text-[13px]
-                    transition-colors cursor-pointer text-left
-                    ${selectedFolderId === folder.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50 text-gray-900'}
-                  `}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FolderSimpleIcon size={16} weight="regular" className="flex-shrink-0" />
-                    <span className="truncate">{folder.label}</span>
-                  </div>
-                  {selectedFolderId === folder.id && (
-                    <CheckIcon size={14} weight="bold" className="text-indigo-600 flex-shrink-0" />
-                  )}
-                </button>
-              ))}
-
-              {/* Empty state */}
-              {availableFolders.length === 0 && !isCreatingNew && (
-                <div className="py-4 text-center">
-                  <p className="text-xs text-gray-400">No folders available</p>
-                  <p className="text-xs text-gray-400 mt-1">Create a new folder above</p>
+            {/* Content */}
+            <div className="relative z-10 flex flex-col flex-1 py-3 overflow-hidden">
+              {/* Header */}
+              <div className="flex flex-row items-center gap-2 px-1 pb-3 mb-3 border-b border-gray-100">
+                <FolderSimple size={18} weight="duotone" className="text-gray-700" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Move to Folder</h3>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Action buttons */}
-            <div className="flex flex-col gap-2 px-4 py-3 border-t border-gray-100 bg-white">
-              <button
-                onClick={handleConfirm}
-                disabled={!canConfirm}
-                className={`
-                  w-full px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer
-                  ${
-                    canConfirm
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }
-                `}
-              >
-                {isCreatingNew ? 'Create & Move' : 'Move'}
-              </button>
-              <button
-                onClick={onCancel}
-                className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
+              {/* Form Content */}
+              <div className="px-1 space-y-4 flex-1">
+                {/* Item being moved */}
+                <div className="text-sm text-gray-600">
+                  Moving <span className="font-medium text-gray-900">"{itemName}"</span> (
+                  {itemTypeLabel})
+                </div>
+
+                {/* Folder Selection */}
+                {availableFolders.length === 0 && !isCreatingNew ? (
+                  <div className="space-y-3">
+                    <div className="py-4 text-center">
+                      <FolderSimple
+                        size={32}
+                        weight="duotone"
+                        className="mx-auto text-gray-300 mb-2"
+                      />
+                      <p className="text-sm text-gray-500">No folders available</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Create a new folder to organize your {itemTypeLabel}s
+                      </p>
+                    </div>
+                    <SecondaryButton
+                      onClick={() => {
+                        setSelectedFolderId(CREATE_NEW_FOLDER_ID);
+                        setIsCreatingNew(true);
+                      }}
+                      fullWidth
+                      className="flex items-center justify-center gap-1.5"
+                    >
+                      <Plus size={14} weight="bold" />
+                      Create New Folder
+                    </SecondaryButton>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Select
+                      label="Select Folder"
+                      labelClassName="text-xs font-medium text-gray-700"
+                      options={folderOptions}
+                      value={selectedFolderId}
+                      onChange={handleFolderChange}
+                      placeholder="Choose a folder..."
+                      error={errors.folder}
+                    />
+
+                    {/* New folder name input */}
+                    <AnimatePresence>
+                      {isCreatingNew && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="overflow-hidden"
+                        >
+                          <TextInput
+                            label="New Folder Name"
+                            labelClassName="text-xs font-medium text-gray-700"
+                            value={newFolderName}
+                            onChange={(e) => {
+                              setNewFolderName(e.target.value);
+                              if (errors.newFolderName) {
+                                setErrors((prev) => ({ ...prev, newFolderName: undefined }));
+                              }
+                            }}
+                            placeholder="Enter folder name..."
+                            error={errors.newFolderName}
+                            autoFocus
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-col items-center gap-2 pt-3 mt-auto border-t border-gray-100 px-1">
+                <PrimaryButton
+                  onClick={handleConfirm}
+                  fullWidth
+                  disabled={!selectedFolderId && availableFolders.length > 0}
+                >
+                  {isCreatingNew ? 'Create Folder & Move' : 'Move'}
+                </PrimaryButton>
+                <SecondaryButton onClick={handleCancel} fullWidth>
+                  Cancel
+                </SecondaryButton>
+              </div>
             </div>
           </motion.div>
         </>

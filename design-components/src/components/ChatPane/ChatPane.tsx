@@ -1,42 +1,10 @@
 import { useRef, useLayoutEffect } from 'react';
-import { SidebarSimpleIcon, ChartBar, FileText, Table, X } from '@phosphor-icons/react';
+import { SidebarSimpleIcon } from '@phosphor-icons/react';
 import { ChatMessage } from '../Chat/ChatMessage';
 import { StandardChatInput } from '../Chat/StandardChatInput/StandardChatInput';
 import { ChatPaneHeader } from './ChatPaneHeader';
-import { TertiaryIconButton, RemoveButton } from '../forms/buttons';
-import type { ChatPaneProps, ReferenceContext } from './types';
-
-/**
- * Get icon for reference type
- */
-function getReferenceIcon(type: ReferenceContext['type']) {
-  switch (type) {
-    case 'dashboard':
-      return <ChartBar size={14} weight="regular" className="text-gray-500" />;
-    case 'report':
-      return <Table size={14} weight="regular" className="text-gray-500" />;
-    case 'document':
-      return <FileText size={14} weight="regular" className="text-gray-500" />;
-    default:
-      return <ChartBar size={14} weight="regular" className="text-gray-500" />;
-  }
-}
-
-/**
- * Get label for reference type
- */
-function getReferenceLabel(type: ReferenceContext['type']) {
-  switch (type) {
-    case 'dashboard':
-      return 'Dashboard';
-    case 'report':
-      return 'Report';
-    case 'document':
-      return 'Document';
-    default:
-      return 'Reference';
-  }
-}
+import { TertiaryIconButton } from '../forms/buttons';
+import type { ChatPaneProps } from './types';
 
 /**
  * ChatPane - A Claude Code-style chat interface for the three-pane layout
@@ -73,6 +41,15 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   conversationId,
   onApprove,
   onReject,
+  // Mode selector props
+  showModeSelector = false,
+  autoEditMode = 'off',
+  onAutoEditModeChange,
+  // Popover props
+  activePopover,
+  onPopoverClose,
+  onPopoverPrimaryAction,
+  onPopoverFeedback,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -177,28 +154,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
         )}
       </div>
 
-      {/* Reference tag (above input) */}
-      {referenceContext && (
-        <div className="px-1 mt-3">
-          <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg">
-            <div className="flex items-center gap-2">
-              {getReferenceIcon(referenceContext.type)}
-              <span className="text-[13px] text-gray-700">
-                {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
-              </span>
-            </div>
-            {onRemoveReference && (
-              <RemoveButton
-                icon={<X size={12} weight="bold" />}
-                onClick={onRemoveReference}
-                title="Remove reference"
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Chat input */}
+      {/* Chat input - includes reference context display */}
       <div className="mt-3 px-1">
         <StandardChatInput
           placeholder={placeholder}
@@ -208,6 +164,15 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
           onVoiceInput={enableVoiceInput ? onVoiceInput : undefined}
           isRecording={isRecording}
           mode="build"
+          referenceContext={referenceContext}
+          onRemoveReference={onRemoveReference}
+          showModeSelector={showModeSelector}
+          autoEditMode={autoEditMode}
+          onAutoEditModeChange={onAutoEditModeChange}
+          activePopover={activePopover}
+          onPopoverClose={onPopoverClose}
+          onPopoverPrimaryAction={onPopoverPrimaryAction}
+          onPopoverFeedback={onPopoverFeedback}
         />
       </div>
     </div>

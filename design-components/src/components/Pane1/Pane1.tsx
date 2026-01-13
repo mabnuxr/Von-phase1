@@ -9,7 +9,6 @@ import {
   Table,
   MagnifyingGlass,
   ArrowLeft,
-  TreeStructureIcon,
   CaretDownIcon,
   CaretRightIcon,
   DotsThreeIcon,
@@ -157,6 +156,31 @@ export interface Pane1Props {
    * Called when a new report is created
    */
   onCreateReport?: (config: NewReportConfig) => void;
+
+  /**
+   * Called when the tab changes (Data/Dashboard)
+   */
+  onTabChange?: (tab: 'data' | 'dashboard') => void;
+
+  /**
+   * Called when configuration changes (for live preview updates)
+   */
+  onConfigChange?: (config: Partial<ComponentConfig>) => void;
+
+  /**
+   * Controlled config title value (for animation demos)
+   */
+  controlledConfigTitle?: string;
+
+  /**
+   * Controlled config report ID value (for animation demos)
+   */
+  controlledConfigReportId?: string;
+
+  /**
+   * Controlled active tab (for animation demos)
+   */
+  controlledTab?: 'data' | 'dashboard';
 }
 
 const iconMap = {
@@ -281,7 +305,7 @@ interface SubtableRowProps {
 
 const SubtableRow: React.FC<SubtableRowProps> = ({
   item,
-  level,
+  level: _level, // eslint-disable-line @typescript-eslint/no-unused-vars
   isSelected = false,
   isEditing = false,
   isMenuOpen = false,
@@ -355,20 +379,12 @@ const SubtableRow: React.FC<SubtableRowProps> = ({
           className="flex-shrink-0 p-0.5 hover:bg-gray-100 rounded transition-colors"
         >
           {item.isExpanded ? (
-            <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
+            <CaretDownIcon size={12} weight="regular" className="text-gray-800" />
           ) : (
-            <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
+            <CaretRightIcon size={12} weight="regular" className="text-gray-800" />
           )}
         </button>
       )}
-
-      {/* Branch icon for subtables (not for top-level parent tables) */}
-      {level > 0 && (
-        <TreeStructureIcon size={16} weight="regular" className="text-gray-600 flex-shrink-0" />
-      )}
-
-      {/* Table icon for top-level parent tables */}
-      {level === 0 && <Table size={16} weight="regular" className="text-gray-700 flex-shrink-0" />}
 
       {isEditing ? (
         <input
@@ -502,7 +518,7 @@ export const Pane1: React.FC<Pane1Props> = ({
   subtables = defaultSubtables,
   searchPlaceholder,
   onDragStart,
-  onComponentClick,
+  onComponentClick: _onComponentClick, // Kept for API compatibility but no longer used (drag-drop only)
   onSubtableClick,
   onSubtableToggle,
   onSubtableRename,
@@ -513,8 +529,24 @@ export const Pane1: React.FC<Pane1Props> = ({
   selectedComponent: controlledSelectedComponent,
   onSelectedComponentChange,
   onCreateReport,
+  onTabChange,
+  onConfigChange,
+  controlledConfigTitle,
+  controlledConfigReportId,
+  controlledTab,
 }) => {
-  const [activeTab, setActiveTab] = useState<'data' | 'dashboard'>(defaultTab);
+  // Suppress unused variable warning
+  void _onComponentClick;
+  const [internalActiveTab, setInternalActiveTab] = useState<'data' | 'dashboard'>(defaultTab);
+
+  // Use controlled tab if provided, otherwise use internal state
+  const activeTab = controlledTab !== undefined ? controlledTab : internalActiveTab;
+
+  // Handle tab change with callback
+  const handleTabChange = (tab: 'data' | 'dashboard') => {
+    setInternalActiveTab(tab);
+    onTabChange?.(tab);
+  };
   const [searchValue, setSearchValue] = useState('');
 
   // New Report Modal state
@@ -576,8 +608,17 @@ export const Pane1: React.FC<Pane1Props> = ({
   };
 
   // Form state for component configuration
-  const [configTitle, setConfigTitle] = useState('');
-  const [configReportId, setConfigReportId] = useState('');
+  const [internalConfigTitle, setInternalConfigTitle] = useState('');
+  const [internalConfigReportId, setInternalConfigReportId] = useState('');
+
+  // Use controlled config values if provided
+  const configTitle =
+    controlledConfigTitle !== undefined ? controlledConfigTitle : internalConfigTitle;
+  const configReportId =
+    controlledConfigReportId !== undefined ? controlledConfigReportId : internalConfigReportId;
+
+  const setConfigTitle = (value: string) => setInternalConfigTitle(value);
+  const setConfigReportId = (value: string) => setInternalConfigReportId(value);
   const [configFilters, setConfigFilters] = useState<
     Array<{
       id: string;
@@ -596,14 +637,6 @@ export const Pane1: React.FC<Pane1Props> = ({
     value: d.id,
     label: d.label,
   }));
-
-  const handleComponentSelect = (component: ChartComponent) => {
-    setSelectedComponent(component);
-    setConfigTitle(component.label);
-    setConfigReportId('');
-    setConfigFilters([]);
-    onComponentClick?.(component);
-  };
 
   const handleAddFilter = () => {
     setConfigFilters([
@@ -632,7 +665,11 @@ export const Pane1: React.FC<Pane1Props> = ({
         filters: configFilters,
       });
     }
-    handleDiscard();
+    // Clear form state but do NOT call onDiscardConfig (that removes the widget)
+    setSelectedComponent(null);
+    setConfigTitle('');
+    setConfigReportId('');
+    setConfigFilters([]);
   };
 
   const handleDiscard = () => {
@@ -672,7 +709,17 @@ export const Pane1: React.FC<Pane1Props> = ({
           <TextInput
             label="Title"
             value={configTitle}
-            onChange={(e) => setConfigTitle(e.target.value)}
+            onChange={(e) => {
+              const newTitle = e.target.value;
+              setConfigTitle(newTitle);
+              // Live update for preview
+              onConfigChange?.({
+                componentType: selectedComponent,
+                title: newTitle,
+                reportId: configReportId,
+                filters: configFilters,
+              });
+            }}
             placeholder="Enter chart title..."
           />
 
@@ -681,7 +728,16 @@ export const Pane1: React.FC<Pane1Props> = ({
             label="Source Report"
             options={reportOptions}
             value={configReportId}
-            onChange={(value) => setConfigReportId(value)}
+            onChange={(value) => {
+              setConfigReportId(value);
+              // Live update for preview
+              onConfigChange?.({
+                componentType: selectedComponent,
+                title: configTitle,
+                reportId: value,
+                filters: configFilters,
+              });
+            }}
             placeholder="Select a report..."
           />
 
@@ -745,7 +801,7 @@ export const Pane1: React.FC<Pane1Props> = ({
             { value: 'dashboard', label: 'Dashboard' },
           ]}
           value={activeTab}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
         />
       </div>
 
@@ -783,7 +839,6 @@ export const Pane1: React.FC<Pane1Props> = ({
                       key={component.id}
                       draggable
                       onDragStart={() => onDragStart?.(component)}
-                      onClick={() => handleComponentSelect(component)}
                       className="flex flex-row items-center justify-center gap-1.5 px-3 py-3 bg-white rounded-xl border border-gray-100 cursor-grab hover:border-gray-200 hover:border-dashed hover:shadow-lg hover:shadow-gray-100 transition-all duration-200 active:scale-[0.98]"
                     >
                       <div className="p-2 bg-gray-50 rounded-lg">
@@ -820,9 +875,9 @@ export const Pane1: React.FC<Pane1Props> = ({
                     [{countSubtableItems(subtables)}]
                   </span>
                   {isSubtablesExpanded ? (
-                    <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
+                    <CaretDownIcon size={12} weight="regular" className="text-gray-800" />
                   ) : (
-                    <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
+                    <CaretRightIcon size={12} weight="regular" className="text-gray-800" />
                   )}
                 </button>
               </div>

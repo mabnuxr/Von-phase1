@@ -14,6 +14,34 @@ export interface ReferenceContext {
   id: string;
 }
 
+/**
+ * Auto edit modes for the chat input
+ */
+export type AutoEditMode = 'off' | 'on' | 'plan';
+
+/**
+ * Popover intent types for different chat input states
+ */
+export type PopoverIntent = 'plan' | 'edit' | 'add-widget' | 'delete-widget';
+
+/**
+ * Active popover state for the chat input
+ */
+export interface ActivePopover {
+  /** The type of popover */
+  intent: PopoverIntent;
+  /** Title for the popover header */
+  title: string;
+  /** Markdown content to display */
+  content: string;
+  /** Whether the content is streaming */
+  isStreaming?: boolean;
+  /** Primary action label */
+  primaryActionLabel: string;
+  /** Whether user has made edits */
+  hasUserEdits?: boolean;
+}
+
 export interface StandardChatInputProps {
   /**
    * Placeholder text for the input
@@ -116,4 +144,56 @@ export interface StandardChatInputProps {
    * Callback when the reference is removed
    */
   onRemoveReference?: () => void;
+
+  /**
+   * Show formatting toolbar for rich text editing
+   * @default true
+   */
+  showFormattingToolbar?: boolean;
+
+  // ============================================================================
+  // Auto Edit Mode Props
+  // ============================================================================
+
+  /**
+   * Whether to show the mode selector button
+   * @default false
+   */
+  showModeSelector?: boolean;
+
+  /**
+   * Current auto edit mode
+   * @default 'off'
+   */
+  autoEditMode?: AutoEditMode;
+
+  /**
+   * Callback when auto edit mode changes
+   */
+  onAutoEditModeChange?: (mode: AutoEditMode) => void;
+
+  // ============================================================================
+  // Popover Props
+  // ============================================================================
+
+  /**
+   * Active popover configuration (if any)
+   * When set, the popover will be displayed above the input
+   */
+  activePopover?: ActivePopover;
+
+  /**
+   * Callback when popover is closed/dismissed
+   */
+  onPopoverClose?: () => void;
+
+  /**
+   * Callback when popover primary action is clicked
+   */
+  onPopoverPrimaryAction?: () => void;
+
+  /**
+   * Callback when user submits feedback in the popover
+   */
+  onPopoverFeedback?: (feedback: string) => void;
 }
