@@ -60,6 +60,16 @@ export function OrgContextTab() {
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
 
+  // Extract contexts and pagination info (memoized to prevent useEffect loop)
+  const contexts = useMemo(() => data?.data || [], [data?.data]);
+  const pagination = data?.pagination;
+
+  // Extract user memory (single item or null)
+  const userMemory = useMemo(
+    () => (isUserMemoryEnabled ? userMemoryData?.data?.[0] || null : null),
+    [userMemoryData?.data, isUserMemoryEnabled],
+  );
+
   // Refresh user memory on mount to reflect updates made via chat
   useEffect(() => {
     if (isUserMemoryEnabled) {
@@ -72,10 +82,16 @@ export function OrgContextTab() {
   const hasAttemptedUserMemoryCreation = useRef(false);
 
   useEffect(() => {
+    // Only proceed if we have loaded user memory data (not undefined)
+    // and it's empty (length === 0 means no user memory exists)
+    const userMemoryLoaded = userMemoryData !== undefined;
+    const hasNoUserMemory = userMemoryLoaded && (userMemoryData?.data?.length ?? 0) === 0;
+
     const shouldCreateUserMemory =
       isUserMemoryEnabled &&
       !isUserMemoryLoading &&
-      userMemoryData?.data?.length === 0 &&
+      userMemoryLoaded &&
+      hasNoUserMemory &&
       !isCreatingUserMemory &&
       !hasAttemptedUserMemoryCreation.current;
 
@@ -91,9 +107,13 @@ export function OrgContextTab() {
           value: "",
           accessLevel: "user",
         })
-        .then(() => {
+        .then((newMemory) => {
           console.log("[OrgContextTab] User memory created successfully");
           refetchUserMemory();
+          // Auto-select the new user memory if no org contexts exist
+          if (contexts.length === 0 && newMemory?.id) {
+            setSelectedContextId(newMemory.id);
+          }
         })
         .catch((error) => {
           console.error("[OrgContextTab] Failed to create user memory:", error);
@@ -105,52 +125,40 @@ export function OrgContextTab() {
   }, [
     isUserMemoryEnabled,
     isUserMemoryLoading,
-    userMemoryData?.data?.length,
+    userMemoryData,
     isCreatingUserMemory,
     createMutation,
     refetchUserMemory,
+    contexts.length,
   ]);
-
-  // Extract contexts and pagination info (memoized to prevent useEffect loop)
-  const contexts = useMemo(() => data?.data || [], [data?.data]);
-  const pagination = data?.pagination;
-
-  // Extract user memory (single item or null)
-  const userMemory = useMemo(
-    () => (isUserMemoryEnabled ? userMemoryData?.data?.[0] || null : null),
-    [userMemoryData?.data, isUserMemoryEnabled],
-  );
 
   // Combined loading state
   const isAnyLoading =
     isLoading ||
     (isUserMemoryEnabled && (isUserMemoryLoading || isCreatingUserMemory));
 
-  // Debug logging
-  console.log("[OrgContextTab] Debug:", {
-    isUserMemoryEnabled,
-    userMemoryData,
-    userMemory,
-    isUserMemoryLoading,
-    isCreatingUserMemory,
-  });
 
-  // Auto-select first context when data loads or page changes
+  // Auto-select first org memory context when data loads or page changes
+  // Prioritize org memory over user memory for initial selection
   useEffect(() => {
     const pageChanged = prevPageRef.current !== currentPage;
 
-    if (contexts.length > 0) {
-      // Select first context if:
-      // 1. No context is selected, OR
-      // 2. Page has changed
-      if (!selectedContextId || pageChanged) {
+    // Select first org memory context if:
+    // 1. No context is selected, OR
+    // 2. Page has changed
+    if (!selectedContextId || pageChanged) {
+      if (contexts.length > 0) {
+        // Prefer org memory (first in list)
         setSelectedContextId(contexts[0].id);
+      } else if (userMemory) {
+        // Fall back to user memory if no org memories exist
+        setSelectedContextId(userMemory.id);
       }
     }
 
     // Update previous page reference
     prevPageRef.current = currentPage;
-  }, [contexts, selectedContextId, currentPage]);
+  }, [contexts, userMemory, selectedContextId, currentPage]);
 
   // Auto-navigate to previous page if current page is empty and not the first page
   useEffect(() => {
@@ -358,8 +366,8 @@ export function OrgContextTab() {
           </div>
         )}
 
-        {/* Empty state */}
-        {!isAnyLoading && contexts.length === 0 && !userMemory && (
+        {/* Empty state - only show when not loading and no memory exists (and not creating user memory) */}
+        {!isAnyLoading && contexts.length === 0 && !userMemory && !isCreatingUserMemory && (
           <div className="flex flex-col items-center justify-center h-full">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
               <BrainIcon
