@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FileTextIcon,
   PlusIcon,
@@ -22,6 +23,8 @@ interface OrgContextDocumentListProps {
   onPageChange: (page: number) => void;
   /** Whether the current user can create org memory (controls visibility of "New Org Memory" button) */
   canCreateOrgMemory?: boolean;
+  /** Callback when tab changes - receives "org" or "personal" */
+  onTabChange?: (tab: "org" | "personal") => void;
 }
 
 export function OrgContextDocumentList({
@@ -36,7 +39,15 @@ export function OrgContextDocumentList({
   totalPages,
   onPageChange,
   canCreateOrgMemory = false,
+  onTabChange,
 }: OrgContextDocumentListProps) {
+  const [activeTab, setActiveTab] = useState<"org" | "personal">("org");
+
+  const handleTabChange = (tab: "org" | "personal") => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
+
   // Helper to render a memory item
   const renderMemoryItem = (
     ctx: MemoryContext,
@@ -55,23 +66,25 @@ export function OrgContextDocumentList({
           transition-all duration-200
           ${
             isSelected
-              ? isUserMemoryItem
-                ? "bg-violet-50 shadow-sm shadow-violet-200/50 ring-1 ring-violet-200/50"
-                : isDefault
-                  ? "bg-indigo-50 shadow-sm shadow-indigo-200/50 ring-1 ring-indigo-200/50"
-                  : "bg-white shadow-sm shadow-indigo-100/50 ring-1 ring-indigo-100/50"
-              : isUserMemoryItem
-                ? "bg-violet-50/40 hover:bg-violet-50/70"
-                : isDefault
-                  ? "bg-indigo-50/40 hover:bg-indigo-50/70"
-                  : "hover:bg-white/70"
+              ? isDefault || isUserMemoryItem
+                ? "bg-indigo-50 shadow-sm shadow-indigo-200/50 ring-1 ring-indigo-200/50"
+                : "bg-white shadow-sm shadow-indigo-100/50 ring-1 ring-indigo-100/50"
+              : isDefault || isUserMemoryItem
+                ? "bg-indigo-50/40 hover:bg-indigo-50/70"
+                : "hover:bg-white/70"
           }
         `}
       >
         <div className="flex items-start gap-2.5">
           {showLock ? (
             isUserMemoryItem ? (
-              <></>
+              <UserIcon
+                size={15}
+                weight={isSelected ? "duotone" : "regular"}
+                className={`flex-shrink-0 mt-0.5 transition-colors duration-200 ${
+                  isSelected ? "text-indigo-600" : "text-indigo-500"
+                }`}
+              />
             ) : (
               <LockKeyIcon
                 size={15}
@@ -94,11 +107,9 @@ export function OrgContextDocumentList({
             className={`text-[13px] leading-snug line-clamp-2 transition-colors duration-200 ${
               isSelected
                 ? "text-gray-800 font-medium"
-                : isUserMemoryItem
-                  ? "text-violet-700"
-                  : isDefault
-                    ? "text-indigo-700"
-                    : "text-gray-600"
+                : isDefault || isUserMemoryItem
+                  ? "text-indigo-700"
+                  : "text-gray-600"
             }`}
           >
             {ctx.key}
@@ -110,15 +121,48 @@ export function OrgContextDocumentList({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with title */}
-      <div className="px-3 py-3 border-b border-gray-100/80">
-        <span className="text-xs font-semibold text-gray-500 tracking-wider">
-          Memories
-        </span>
-      </div>
+      {/* Tab bar or simple header */}
+      {isUserMemoryEnabled ? (
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => handleTabChange("org")}
+            className={`flex-1 px-3 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "org"
+                ? "border-b-2 border-indigo-500 text-indigo-600 -mb-px"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <BuildingsIcon
+              size={14}
+              weight={activeTab === "org" ? "bold" : "regular"}
+            />
+            Organization
+          </button>
+          <button
+            onClick={() => handleTabChange("personal")}
+            className={`flex-1 px-3 py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "personal"
+                ? "border-b-2 border-indigo-500 text-indigo-600 -mb-px"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <UserIcon
+              size={14}
+              weight={activeTab === "personal" ? "bold" : "regular"}
+            />
+            Personal
+          </button>
+        </div>
+      ) : (
+        <div className="px-3 py-3 border-b border-gray-100/80">
+          <span className="text-xs font-semibold text-gray-500 tracking-wider">
+            Memories
+          </span>
+        </div>
+      )}
 
-      {/* Add new segment button - chat style (only visible to users with create permission) */}
-      {canCreateOrgMemory && (
+      {/* Add new org memory button - only on org tab */}
+      {canCreateOrgMemory && (!isUserMemoryEnabled || activeTab === "org") && (
         <div className="px-3 py-3">
           <button
             onClick={onCreateClick}
@@ -130,84 +174,71 @@ export function OrgContextDocumentList({
         </div>
       )}
 
-      {/* Organization Memory Section (Scrollable) */}
+      {/* Tab content */}
       <div className="flex-1 min-h-0 overflow-y-auto settings-scrollbar">
-        <div className="p-2">
-          {isLoading && contexts.length === 0 ? (
-            <div className="px-3 py-8 text-sm text-gray-400 text-center animate-pulse">
-              Loading...
-            </div>
-          ) : contexts.length > 0 ? (
-            <div>
-              {isUserMemoryEnabled && (
-                <div className="flex items-center gap-1.5 px-2 mb-2">
-                  <BuildingsIcon
-                    size={12}
-                    weight="bold"
-                    className="text-indigo-500"
-                  />
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                    Organization
-                  </span>
+        {!isUserMemoryEnabled || activeTab === "org" ? (
+          <>
+            {/* Organization Memory Content */}
+            <div className="p-2">
+              {isLoading && contexts.length === 0 ? (
+                <div className="px-3 py-8 text-sm text-gray-400 text-center animate-pulse">
+                  Loading...
+                </div>
+              ) : contexts.length > 0 ? (
+                <div className="space-y-1">
+                  {contexts.map((ctx) => renderMemoryItem(ctx, false))}
+                </div>
+              ) : (
+                <div className="px-3 py-8 text-sm text-gray-400 text-center">
+                  No organization memories yet
                 </div>
               )}
-              <div className="space-y-1">
-                {contexts.map((ctx) => renderMemoryItem(ctx, false))}
-              </div>
             </div>
-          ) : !userMemory ? (
-            <div className="px-3 py-8 text-sm text-gray-400 text-center">
-              No memories yet
-            </div>
-          ) : null}
-        </div>
 
-        {/* Pagination Controls (for org memory) */}
-        {totalPages > 1 && (
-          <div className="px-3 py-2 border-t border-gray-100/80">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>
-                Page {currentPage} of {totalPages}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Previous page"
-                >
-                  <CaretLeft size={16} weight="bold" />
-                </button>
-                <button
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Next page"
-                >
-                  <CaretRight size={16} weight="bold" />
-                </button>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="px-3 py-2 border-t border-gray-100/80">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onPageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Previous page"
+                    >
+                      <CaretLeft size={16} weight="bold" />
+                    </button>
+                    <button
+                      onClick={() => onPageChange(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Next page"
+                    >
+                      <CaretRight size={16} weight="bold" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+          </>
+        ) : (
+          /* Personal Memory Content */
+          <div className="p-2">
+            {userMemory ? (
+              <div className="space-y-1">
+                {renderMemoryItem(userMemory, true)}
+              </div>
+            ) : (
+              <div className="px-3 py-8 text-sm text-gray-400 text-center">
+                No personal memory yet
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/* User Memory Section (Fixed at Bottom) */}
-      {isUserMemoryEnabled && userMemory && (
-        <div className="flex-shrink-0 border-t border-gray-200 bg-gradient-to-b from-violet-50/30 to-violet-50/50">
-          <div className="p-2">
-            <div className="flex items-center gap-1.5 px-2 mb-2">
-              <UserIcon size={12} weight="bold" className="text-violet-500" />
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                Personal
-              </span>
-            </div>
-            <div className="space-y-1">
-              {renderMemoryItem(userMemory, true)}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
