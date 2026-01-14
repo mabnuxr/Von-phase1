@@ -11,6 +11,7 @@ export const FEATURE_FLAGS = {
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
   USER_MEMORY: "enableUserMemory",
+  CHAT_INPUT_V2: "chatInputV2",
 } as const;
 
 /**
@@ -68,6 +69,11 @@ export function useFeatureFlag() {
     isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
 
     /**
+     * Controls if we need to show new chat input UI experience
+     */
+    isChatInputV2: flags[FEATURE_FLAGS.CHAT_INPUT_V2],
+
+    /**
      * Controls whether user memory feature is enabled
      * (personal memory segment for each user)
      */
@@ -93,7 +99,7 @@ export function useFeatureFlag() {
  */
 export function useFeatureFlagValue(
   flagKey: FeatureFlagKey | string,
-  defaultValue: boolean = false,
+  defaultValue: boolean = false
 ): boolean {
   const flags = useFlags();
   return flags[flagKey] ?? defaultValue;

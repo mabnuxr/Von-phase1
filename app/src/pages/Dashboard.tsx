@@ -71,7 +71,7 @@ const Dashboard = () => {
     useChatStore();
   const conversationMessages = useMemo(
     () => (currentConversationId ? messages[currentConversationId] || [] : []),
-    [currentConversationId, messages],
+    [currentConversationId, messages]
   );
 
   // Initialize conversation (load latest or create new)
@@ -163,6 +163,7 @@ const Dashboard = () => {
     isActionsEnabled,
     isDeepLinksEnabled,
     isChatV2,
+    isChatInputV2,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -181,7 +182,7 @@ const Dashboard = () => {
   // Dashboard canvas state
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [dashboardMessageId, setDashboardMessageId] = useState<string | null>(
-    null,
+    null
   );
   const [dashboardMessageContent, setDashboardMessageContent] = useState<
     string | null
@@ -193,7 +194,7 @@ const Dashboard = () => {
 
   // Track animated titles for smooth typing effect
   const [animatedTitles, setAnimatedTitles] = useState<Map<string, string>>(
-    new Map(),
+    new Map()
   );
 
   // Message filtering state for ChatGPT-style visual clearing
@@ -230,7 +231,7 @@ const Dashboard = () => {
           "[Dashboard] Title update received via user channel:",
           data.title,
           "for conversation:",
-          data.conversationId,
+          data.conversationId
         );
       }
 
@@ -247,19 +248,19 @@ const Dashboard = () => {
     if (import.meta.env.DEV) {
       console.log(
         "[Dashboard] Binding to user channel event:",
-        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
+        UserChannelEvents.CONVERSATION_TITLE_UPDATED
       );
     }
 
     userChannel.bind(
       UserChannelEvents.CONVERSATION_TITLE_UPDATED,
-      handleTitleUpdate,
+      handleTitleUpdate
     );
 
     return () => {
       userChannel.unbind(
         UserChannelEvents.CONVERSATION_TITLE_UPDATED,
-        handleTitleUpdate,
+        handleTitleUpdate
       );
     };
   }, [userChannel, queryClient]);
@@ -347,7 +348,7 @@ const Dashboard = () => {
       if (import.meta.env.DEV) {
         console.log(
           "[Dashboard] Backend logout successful, redirect URL:",
-          response.redirectUrl,
+          response.redirectUrl
         );
       }
 
@@ -362,7 +363,7 @@ const Dashboard = () => {
         // Fallback to default logout flow if no redirect URL provided
         if (import.meta.env.DEV) {
           console.warn(
-            "[Dashboard] No redirect URL provided, using default logout flow",
+            "[Dashboard] No redirect URL provided, using default logout flow"
           );
         }
         startProviderLogout();
@@ -387,7 +388,7 @@ const Dashboard = () => {
           "[Dashboard] Switching conversation:",
           currentConversationId,
           "→",
-          urlConversationId,
+          urlConversationId
         );
       }
 
@@ -467,7 +468,7 @@ const Dashboard = () => {
         },
       });
     },
-    [stopStreaming],
+    [stopStreaming]
   );
 
   // Auto-populate input when error occurs (handled by chatStore updates from hook)
@@ -509,14 +510,14 @@ const Dashboard = () => {
         await refetchMessages();
       }
     },
-    [currentConversationId, refetchMessages],
+    [currentConversationId, refetchMessages]
   );
 
   // Transform backend messages to Chat component format
   // Replay events if backend hasn't persisted stepMessages/toolCalls
   const transformedMessages: ChatMessage[] = useMemo(
     () => transformMessagesToChatFormat(conversationMessages),
-    [conversationMessages],
+    [conversationMessages]
   );
 
   // Force complete message handler for timeout
@@ -529,7 +530,7 @@ const Dashboard = () => {
           .forceCompleteMessage(currentConversationId, messageId);
       }
     },
-    [currentConversationId],
+    [currentConversationId]
   );
 
   // Client-side timeout detection (5 minutes)
@@ -542,7 +543,7 @@ const Dashboard = () => {
       timeoutMs: STREAM_TIMEOUT_MS,
       onTimeout: handleStreamTimeout,
       onForceComplete: handleForceComplete,
-    },
+    }
   );
 
   // Compute avatar props from user data
@@ -556,14 +557,14 @@ const Dashboard = () => {
   // Flatten paginated conversations data
   const allConversations = useMemo(
     () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
-    [infiniteConversationsData?.pages],
+    [infiniteConversationsData?.pages]
   );
 
   // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
   // Filter out conversations with empty titles (not yet named by LLM)
   const chatItems = useMemo(
     () => transformConversationsToChatItems(allConversations, animatedTitles),
-    [allConversations, animatedTitles],
+    [allConversations, animatedTitles]
   );
 
   // Handle convert to dashboard action
@@ -579,12 +580,12 @@ const Dashboard = () => {
         if (import.meta.env.DEV) {
           console.log(
             "[Dashboard] Converting message to dashboard:",
-            messageId,
+            messageId
           );
         }
       }
     },
-    [transformedMessages],
+    [transformedMessages]
   );
 
   // Handle closing the dashboard canvas
@@ -597,7 +598,7 @@ const Dashboard = () => {
   // Get conversation title for dashboard header
   const currentConversationTitle = useMemo(() => {
     const conversation = allConversations.find(
-      (conv) => conv.conversationId === currentConversationId,
+      (conv) => conv.conversationId === currentConversationId
     );
     return conversation?.title || "Dashboard";
   }, [allConversations, currentConversationId]);
@@ -610,11 +611,11 @@ const Dashboard = () => {
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [currentConversationId, user?.tenantId, user?.id],
+    [currentConversationId, user?.tenantId, user?.id]
   );
 
   const { error: conversationChannelError } = useConversationPusherChannel(
-    conversationChannelConfig,
+    conversationChannelConfig
   );
 
   // Separate pusherConfig for Chat component
@@ -626,7 +627,7 @@ const Dashboard = () => {
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [user?.tenantId, user?.id],
+    [user?.tenantId, user?.id]
   );
 
   // Handle conversation channel errors
@@ -634,7 +635,7 @@ const Dashboard = () => {
     if (conversationChannelError) {
       console.error(
         "[Dashboard] Conversation channel error:",
-        conversationChannelError,
+        conversationChannelError
       );
     }
   }, [conversationChannelError]);
@@ -650,10 +651,10 @@ const Dashboard = () => {
         toolCallId,
         runId,
         currentConversationId,
-        import.meta.env.VITE_API_BASE_URL,
+        import.meta.env.VITE_API_BASE_URL
       );
     },
-    [currentConversationId],
+    [currentConversationId]
   );
 
   // Tool rejection handler
@@ -664,10 +665,10 @@ const Dashboard = () => {
         toolCallId,
         runId,
         currentConversationId,
-        import.meta.env.VITE_API_BASE_URL,
+        import.meta.env.VITE_API_BASE_URL
       );
     },
-    [currentConversationId],
+    [currentConversationId]
   );
 
   // Create Salesforce connection banner
@@ -760,7 +761,7 @@ const Dashboard = () => {
                 }}
                 onCreateFolderAndMoveItem={(
                   itemId: string,
-                  folderName: string,
+                  folderName: string
                 ) => {
                   const item = [
                     ...sidebarV2Items,
@@ -870,6 +871,7 @@ const Dashboard = () => {
                 onConvertToDashboard={handleConvertToDashboard}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
+                useStandardInput={isChatInputV2}
               />
             )}
           </motion.div>
