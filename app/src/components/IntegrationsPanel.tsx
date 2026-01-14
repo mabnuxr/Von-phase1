@@ -63,7 +63,7 @@ export function IntegrationsPanel() {
     integrationsData?.integrations
       .filter(
         (i: { authenticationStatus: string }) =>
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING,
       )
       .map((i: { id: string }) => i.id) || [];
 
@@ -80,7 +80,7 @@ export function IntegrationsPanel() {
 
   // Track timeout warnings that have been shown
   const [shownTimeoutWarnings, setShownTimeoutWarnings] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Confirmation modal state (for delete and disable)
@@ -139,9 +139,9 @@ export function IntegrationsPanel() {
           ownerLastName: integration.ownerLastName,
           authenticationStatus: integration.authenticationStatus,
           isConfigured: integration.isConfigured,
-        })
+        }),
       ) || [],
-    [integrationsData]
+    [integrationsData],
   );
 
   const handleModalConfirm = () => {
@@ -156,60 +156,9 @@ export function IntegrationsPanel() {
     setModalState({ isOpen: false, integrationName: "", action: "delete" });
   };
 
-  const handleToggle = async (id: string, enabled: boolean) => {
-    // Clear any previous errors
-    setOauthError(null);
-
-    if (enabled) {
-      // Clear timeout warning for this integration
-      setShownTimeoutWarnings((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-
-      setLoadingIntegrationId(id);
-      authorizeIntegration.mutate(id, {
-        onSuccess: () => setLoadingIntegrationId(null),
-        onError: (error: Error) => {
-          setLoadingIntegrationId(null);
-          setOauthError(error.message);
-          // Refetch integrations to get updated status from backend
-          refetch();
-        },
-      });
-    } else {
-      // Disable flow - show confirmation modal
-      const confirmed = await new Promise<boolean>((resolve) => {
-        const integration = integrations.find((i) => i.id === id);
-        pendingResolverRef.current = resolve;
-        setModalState({
-          isOpen: true,
-          integrationName: integration?.name || "this integration",
-          action: "disable",
-          resolver: resolve,
-        });
-      });
-
-      // Clear resolver after promise completes
-      pendingResolverRef.current = null;
-
-      if (confirmed) {
-        setLoadingIntegrationId(id);
-        revokeIntegration.mutate(id, {
-          onSuccess: () => setLoadingIntegrationId(null),
-          onError: (error: Error) => {
-            setLoadingIntegrationId(null);
-            setOauthError(`Failed to revoke integration: ${error.message}`);
-          },
-        });
-      }
-    }
-  };
-
   const handleDelete = async (
     id: string,
-    connectionType: "workspace" | "personal" | "both" = "personal"
+    connectionType: "workspace" | "personal" | "both" = "personal",
   ) => {
     const integration = integrations.find((i) => i.id === id);
 
@@ -254,7 +203,7 @@ export function IntegrationsPanel() {
         const integration = integrations.find((i) => i.id === id);
         if (integration) {
           setOauthError(
-            `Authentication for ${integration.name} timed out. Please try again.`
+            `Authentication for ${integration.name} timed out. Please try again.`,
           );
           setShownTimeoutWarnings((prev) => new Set(prev).add(id));
           // Delete the integration so user can start fresh (avoids "record already exists" error)
@@ -275,7 +224,7 @@ export function IntegrationsPanel() {
   useEffect(() => {
     if (loadingIntegrationId) {
       const integration = integrationsData?.integrations.find(
-        (i: { id: string }) => i.id === loadingIntegrationId
+        (i: { id: string }) => i.id === loadingIntegrationId,
       );
       if (
         integration?.authenticationStatus === AuthenticationStatus.AUTHENTICATED
