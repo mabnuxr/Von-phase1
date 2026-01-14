@@ -12,8 +12,7 @@ import type { Command } from '../../Commands/types';
 import { SecondaryIconButton } from '../../forms/buttons';
 import { SendIcon } from '../icons';
 
-export interface StandardChatInputWithCommandsProps
-  extends Omit<StandardChatInputProps, 'onSend'> {
+export interface StandardChatInputWithCommandsProps extends Omit<StandardChatInputProps, 'onSend'> {
   onSend?: (message: string, command?: Command) => void;
   /** Optional: Salesforce fields for selection in command drawer */
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
