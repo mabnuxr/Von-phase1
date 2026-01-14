@@ -49,9 +49,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   const {
     isDrawerOpen,
     isCollapsed,
-    expandedSteps,
     selectedStepForDrawer,
-    focusedStepId,
     scrollContainerRef,
     setIsDrawerOpen,
     setSelectedStepForDrawer,
@@ -184,17 +182,16 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                     <div className="space-y-0">
                       {visibleSteps.map((step, idx) => {
                         const displayMode = getStepDisplayMode(step, idx);
+                        const isExpanded = displayMode === 'expanded';
 
-                        if (
-                          displayMode === 'collapsed' &&
-                          !expandedSteps.has(step.id) &&
-                          focusedStepId !== step.id
-                        ) {
+                        // Use CollapsedStepRow for collapsed steps (compact view)
+                        // Use toggleStep so clicking toggles expand/collapse
+                        if (!isExpanded) {
                           return (
                             <CollapsedStepRow
                               key={step.id}
                               step={step}
-                              onClick={() => focusOnStep(step.id)}
+                              onClick={() => toggleStep(step.id)}
                             />
                           );
                         }
@@ -203,7 +200,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                           <StepRow
                             key={step.id}
                             step={step}
-                            isExpanded={expandedSteps.has(step.id) || displayMode === 'expanded'}
+                            isExpanded={isExpanded}
                             onToggle={() => toggleStep(step.id)}
                             onExpand={() => handleExpandStep(step)}
                             isLast={idx === visibleSteps.length - 1}

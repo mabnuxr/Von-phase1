@@ -146,24 +146,28 @@ export function useTimelineState({
 
   const getStepDisplayMode = useCallback(
     (step: TimelineStep, index: number): 'expanded' | 'collapsed' => {
+      // If user has explicitly toggled this step in expandedSteps, respect that
+      if (expandedSteps.has(step.id)) {
+        return 'expanded';
+      }
+
       // If user clicked to focus on a specific step, show it expanded
       if (focusedStepId === step.id) {
         return 'expanded';
       }
 
-      // During thinking process
+      // During thinking process, auto-expand current and previous step
       if (isThinking) {
         const expandedIndices = getExpandedStepIndices();
         if (expandedIndices.has(index)) {
           return 'expanded';
         }
-        return 'collapsed';
       }
 
-      // When complete, default to collapsed
+      // Default to collapsed
       return 'collapsed';
     },
-    [focusedStepId, isThinking, getExpandedStepIndices]
+    [expandedSteps, focusedStepId, isThinking, getExpandedStepIndices]
   );
 
   const getSummary = useCallback((): string => {

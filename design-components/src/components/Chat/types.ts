@@ -129,6 +129,16 @@ export interface Message {
    * Used to control visibility of approval buttons
    */
   isLatestMessage?: boolean;
+
+  // V2 Thinking Process fields
+  /**
+   * Timeline steps for v2 thinking process visualization
+   */
+  timelineSteps?: import('../TimelineThinkingProcess').TimelineStep[];
+  /**
+   * Elapsed time in seconds for v2 thinking process
+   */
+  thinkingElapsedTime?: number;
 }
 
 export interface ChatSession {
@@ -1050,4 +1060,15 @@ export interface ChatProps {
    * @default false
    */
   enableDeepLinks?: boolean;
+
+  // ============================================================================
+  // V2 Thinking Process Props (TimelineThinkingProcess component)
+  // ============================================================================
+
+  /**
+   * Version of thinking process component to use
+   * 'v1' uses ThinkingBlock, 'v2' uses TimelineThinkingProcess
+   * @default 'v1'
+   */
+  thinkingProcessVersion?: 'v1' | 'v2';
 }

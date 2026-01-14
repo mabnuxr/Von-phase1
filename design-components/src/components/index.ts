@@ -233,3 +233,17 @@ export type {
 // ============================================================================
 export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
+
+// ============================================================================
+// THINKING PROCESS V2 (Timeline-based thinking visualization)
+// ============================================================================
+export { TimelineThinkingProcess } from './TimelineThinkingProcess';
+export type {
+  TimelineThinkingProcessProps,
+  TimelineStep,
+  StepType,
+  StepStatus,
+  SourceType,
+  ApprovalData,
+  QueryResult,
+} from './TimelineThinkingProcess';

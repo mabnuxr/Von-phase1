@@ -8,6 +8,8 @@ import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
+import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
+import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
 
 /**
@@ -210,6 +212,26 @@ export interface ChatMessageProps {
    * @default false
    */
   enableDeepLinks?: boolean;
+
+  // ============================================================================
+  // V2 Thinking Process Props (TimelineThinkingProcess component)
+  // ============================================================================
+
+  /**
+   * Version of thinking process component to use
+   * @default 'v1'
+   */
+  thinkingProcessVersion?: 'v1' | 'v2';
+
+  /**
+   * Timeline steps for v2 thinking process visualization
+   */
+  timelineSteps?: TimelineStep[];
+
+  /**
+   * Elapsed time in seconds for v2 thinking process
+   */
+  thinkingElapsedTime?: number;
 }
 
 /**
@@ -239,6 +261,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onConvertToDashboard,
   salesforceInstanceUrl,
   enableDeepLinks = false,
+  // V2 Thinking Process props
+  thinkingProcessVersion = 'v1',
+  timelineSteps,
+  thinkingElapsedTime = 0,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -355,40 +381,47 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
                     <div>
-                      {isStreaming &&
-                        !content &&
-                        !reasoningContent &&
-                        (!stepMessages || stepMessages.length === 0) && (
-                          <ThinkingBlock content="" isStreaming={true} status="streaming" />
-                        )}
-
-                      {/* Thinking Block - Show immediately when reasoning starts */}
-                      {(isReasoningStreaming || reasoningContent) && (
-                        <ThinkingBlock
-                          content={reasoningContent || ''}
-                          isStreaming={isReasoningStreaming}
-                          status={status}
-                          messageId={messageId}
-                          isLatestMessage={isLatestMessage}
-                          onApprove={onApprove}
-                          onReject={onReject}
-                          runId={runId}
-                          salesforceInstanceUrl={salesforceInstanceUrl}
-                        />
-                      )}
-
-                      {/* Render stepMessages if available (AGUI multi-step responses) */}
-                      {stepMessages && stepMessages.length > 0 ? (
+                      {/* V2 Thinking Process - TimelineThinkingProcess component */}
+                      {thinkingProcessVersion === 'v2' && (timelineSteps?.length || isStreaming) ? (
                         <div className="space-y-4">
-                          {/* STREAMING STRATEGY: Split intermediate steps from final output */}
-                          {isStreaming ? (
-                            // While streaming: ALL steps go in ThinkingBlock (collapsed), summary shown in header
+                          <TimelineThinkingProcess
+                            steps={timelineSteps || []}
+                            isThinking={isStreaming}
+                            elapsedTime={thinkingElapsedTime}
+                            title="Thinking"
+                            onApprove={(stepId) => onApprove?.(stepId, runId)}
+                            onReject={(stepId) => onReject?.(stepId, runId)}
+                          />
+                          {/* Content after thinking - only show when not streaming */}
+                          {!isStreaming && content && (
+                            <div className="prose-sm markdown-body max-w-none">
+                              <Streamdown
+                                parseIncompleteMarkdown={false}
+                                isAnimating={false}
+                                controls={{ table: true }}
+                                components={{ a: SalesforceLink }}
+                              >
+                                {content}
+                              </Streamdown>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* V1 Thinking Process - Original ThinkingBlock components */
+                        <>
+                          {isStreaming &&
+                            !content &&
+                            !reasoningContent &&
+                            (!stepMessages || stepMessages.length === 0) && (
+                              <ThinkingBlock content="" isStreaming={true} status="streaming" />
+                            )}
+
+                          {/* Thinking Block - Show immediately when reasoning starts */}
+                          {(isReasoningStreaming || reasoningContent) && (
                             <ThinkingBlock
-                              key="thinking-block"
-                              isStreaming={isStreaming}
+                              content={reasoningContent || ''}
+                              isStreaming={isReasoningStreaming}
                               status={status}
-                              stepMessages={stepMessages}
-                              onArtifactClick={handleArtifactClick}
                               messageId={messageId}
                               isLatestMessage={isLatestMessage}
                               onApprove={onApprove}
@@ -396,24 +429,45 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               runId={runId}
                               salesforceInstanceUrl={salesforceInstanceUrl}
                             />
-                          ) : (
-                            // After completion: Show intermediate steps in ThinkingBlock + final step outside
-                            <>
-                              {stepMessages.length > 1 && (
+                          )}
+
+                          {/* Render stepMessages if available (AGUI multi-step responses) */}
+                          {stepMessages && stepMessages.length > 0 ? (
+                            <div className="space-y-4">
+                              {/* STREAMING STRATEGY: Split intermediate steps from final output */}
+                              {isStreaming ? (
+                                // While streaming: ALL steps go in ThinkingBlock (collapsed), summary shown in header
                                 <ThinkingBlock
                                   key="thinking-block"
-                                  messageId={messageId}
-                                  isStreaming={false}
+                                  isStreaming={isStreaming}
                                   status={status}
-                                  stepMessages={stepMessages.slice(0, -1)}
+                                  stepMessages={stepMessages}
                                   onArtifactClick={handleArtifactClick}
+                                  messageId={messageId}
                                   isLatestMessage={isLatestMessage}
                                   onApprove={onApprove}
                                   onReject={onReject}
                                   runId={runId}
                                   salesforceInstanceUrl={salesforceInstanceUrl}
                                 />
-                              )}
+                              ) : (
+                                // After completion: Show intermediate steps in ThinkingBlock + final step outside
+                                <>
+                                  {stepMessages.length > 1 && (
+                                    <ThinkingBlock
+                                      key="thinking-block"
+                                      messageId={messageId}
+                                      isStreaming={false}
+                                      status={status}
+                                      stepMessages={stepMessages.slice(0, -1)}
+                                      onArtifactClick={handleArtifactClick}
+                                      isLatestMessage={isLatestMessage}
+                                      onApprove={onApprove}
+                                      onReject={onReject}
+                                      runId={runId}
+                                      salesforceInstanceUrl={salesforceInstanceUrl}
+                                    />
+                                  )}
 
                               {/* Final Message - Rendered outside ThinkingBlock after completion */}
                               {(() => {
@@ -472,6 +526,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             </Streamdown>
                           </div>
                         )
+                      )}
+                        </>
                       )}
                     </div>
                   ) : (

@@ -31,9 +31,14 @@ import {
   handleToolApproval,
   handleToolRejection,
 } from "../lib/dashboardUtils";
+import {
+  transformAguiToTimelineSteps,
+  getElapsedTimeFromEvents,
+} from "../utils/transformAguiToTimelineSteps";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
+import { useConversationPusherChannelV2 } from "../hooks/useConversationPusherChannelV2";
 import {
   UserChannelEvents,
   type ConversationTitleUpdatedEvent,
@@ -163,6 +168,7 @@ const Dashboard = () => {
     isActionsEnabled,
     isDeepLinksEnabled,
     isChatV2,
+    isThinkingProcessV2,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -512,12 +518,72 @@ const Dashboard = () => {
     [currentConversationId, refetchMessages],
   );
 
+  // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
+  const {
+    timelineSteps: v2TimelineSteps,
+    isThinking: v2IsThinking,
+    elapsedTime: v2ElapsedTime,
+  } = useConversationPusherChannelV2({
+    conversationId: isThinkingProcessV2 ? currentConversationId : null,
+    tenantId: user?.tenantId,
+    userId: user?.id,
+  });
+
   // Transform backend messages to Chat component format
   // Replay events if backend hasn't persisted stepMessages/toolCalls
-  const transformedMessages: ChatMessage[] = useMemo(
-    () => transformMessagesToChatFormat(conversationMessages),
-    [conversationMessages],
-  );
+  // For v2, transform events to timeline steps for each assistant message
+  const transformedMessages: ChatMessage[] = useMemo(() => {
+    const messages = transformMessagesToChatFormat(conversationMessages);
+
+    if (!isThinkingProcessV2) {
+      return messages;
+    }
+
+    // For v2: transform events to timeline steps for each message
+    return messages.map((msg, index) => {
+      // Only process assistant messages
+      if (msg.type !== "assistant") {
+        return msg;
+      }
+
+      // Check if this is the latest assistant message and we have live streaming data
+      const isLastAssistant = (() => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].type === "assistant") {
+            return i === index;
+          }
+        }
+        return false;
+      })();
+
+      // If this is the latest message and we have live timeline steps from Pusher, use those
+      if (isLastAssistant && v2TimelineSteps.length > 0) {
+        return {
+          ...msg,
+          timelineSteps: v2TimelineSteps,
+          thinkingElapsedTime: v2ElapsedTime,
+        };
+      }
+
+      // For persisted messages, transform events to timeline steps
+      if (msg.events && msg.events.length > 0) {
+        const { steps } = transformAguiToTimelineSteps(msg.events);
+        const elapsed = getElapsedTimeFromEvents(msg.events);
+        return {
+          ...msg,
+          timelineSteps: steps,
+          thinkingElapsedTime: elapsed,
+        };
+      }
+
+      return msg;
+    });
+  }, [
+    conversationMessages,
+    isThinkingProcessV2,
+    v2TimelineSteps,
+    v2ElapsedTime,
+  ]);
 
   // Force complete message handler for timeout
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
@@ -870,6 +936,7 @@ const Dashboard = () => {
                 onConvertToDashboard={handleConvertToDashboard}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
+                thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
               />
             )}
           </motion.div>

@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
+  THINKING_PROCESS_V2: "agentsV2",
 } as const;
 
 /**
@@ -67,6 +68,13 @@ export function useFeatureFlag() {
     isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
 
     /**
+     * Controls whether the new TimelineThinkingProcess v2 component is used
+     * instead of the legacy ThinkingBlock component
+     */
+    isThinkingProcessV2:
+      true || flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
+
+    /**
      * Raw flags object for advanced usage
      */
     flags,
@@ -86,7 +94,7 @@ export function useFeatureFlag() {
  */
 export function useFeatureFlagValue(
   flagKey: FeatureFlagKey | string,
-  defaultValue: boolean = false,
+  defaultValue: boolean = false
 ): boolean {
   const flags = useFlags();
   return flags[flagKey] ?? defaultValue;

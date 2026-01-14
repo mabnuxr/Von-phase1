@@ -59,6 +59,8 @@ export const Chat: React.FC<ChatProps> = ({
   onConvertToDashboard,
   salesforceInstanceUrl,
   enableDeepLinks = false,
+  // V2 Thinking Process
+  thinkingProcessVersion = 'v1',
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -286,6 +288,10 @@ export const Chat: React.FC<ChatProps> = ({
                   onConvertToDashboard={onConvertToDashboard}
                   salesforceInstanceUrl={salesforceInstanceUrl}
                   enableDeepLinks={enableDeepLinks}
+                  // V2 Thinking Process props
+                  thinkingProcessVersion={thinkingProcessVersion}
+                  timelineSteps={message.timelineSteps}
+                  thinkingElapsedTime={message.thinkingElapsedTime}
                 />
               </div>
             ))}
