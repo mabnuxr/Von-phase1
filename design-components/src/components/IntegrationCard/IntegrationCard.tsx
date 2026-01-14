@@ -114,6 +114,11 @@ export interface IntegrationCardProps {
    * @default true when onDelete is provided
    */
   canDelete?: boolean;
+
+  /**
+   * Tooltip text for delete button (shown on hover)
+   */
+  deleteTooltip?: string;
 }
 
 /**
@@ -146,6 +151,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   modifiedBy,
   isAvailable = false,
   canDelete = true,
+  deleteTooltip,
 }) => {
   const isLoading = !!loadingText;
 
@@ -240,13 +246,21 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
             {/* Single delete button - always */}
             {onDelete && canDelete && (
-              <button
-                onClick={onDelete}
-                className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600"
-                aria-label="Delete integration"
-              >
-                <TrashSimpleIcon size={16} />
-              </button>
+              <div className="relative group">
+                <button
+                  onClick={onDelete}
+                  className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600"
+                  aria-label="Delete integration"
+                >
+                  <TrashSimpleIcon size={16} />
+                </button>
+                {deleteTooltip && (
+                  <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                    {deleteTooltip}
+                    <div className="absolute top-full right-2 border-4 border-transparent border-t-gray-900" />
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}

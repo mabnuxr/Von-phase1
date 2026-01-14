@@ -88,6 +88,7 @@ export function IntegrationsPanel() {
     isOpen: boolean;
     integrationName: string;
     action: "delete" | "disable";
+    connectionType?: "workspace" | "personal" | "both";
     resolver?: (value: boolean) => void;
   }>({
     isOpen: false,
@@ -155,7 +156,10 @@ export function IntegrationsPanel() {
     setModalState({ isOpen: false, integrationName: "", action: "delete" });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (
+    id: string,
+    connectionType: "workspace" | "personal" | "both" = "personal",
+  ) => {
     const integration = integrations.find((i) => i.id === id);
 
     const confirmed = await new Promise<boolean>((resolve) => {
@@ -164,6 +168,7 @@ export function IntegrationsPanel() {
         isOpen: true,
         integrationName: integration?.name || "this integration",
         action: "delete",
+        connectionType,
         resolver: resolve,
       });
     });
@@ -307,9 +312,29 @@ export function IntegrationsPanel() {
             : "Disable Integration"
         }
         message={
-          modalState.action === "delete"
-            ? `Are you sure you want to delete ${modalState.integrationName}? This will permanently remove the integration and you'll need to set it up again.`
-            : `Are you sure you want to disable ${modalState.integrationName}? This will revoke access and you'll need to re-authenticate to enable it again.`
+          modalState.action === "delete" ? (
+            <>
+              Are you sure you want to delete {modalState.integrationName}? This
+              removes{" "}
+              {modalState.connectionType === "both" ? (
+                <>
+                  both <strong>workspace</strong> and <strong>personal</strong>{" "}
+                  connections
+                </>
+              ) : modalState.connectionType === "workspace" ? (
+                <>
+                  the <strong>workspace</strong> connection
+                </>
+              ) : (
+                <>
+                  your <strong>personal</strong> connection
+                </>
+              )}{" "}
+              and you'll need to set it up again.
+            </>
+          ) : (
+            `Are you sure you want to disable ${modalState.integrationName}? This will revoke access and you'll need to re-authenticate to enable it again.`
+          )
         }
         confirmText={modalState.action === "delete" ? "Delete" : "Disable"}
         cancelText="Cancel"

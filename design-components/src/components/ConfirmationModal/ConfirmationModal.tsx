@@ -13,9 +13,9 @@ export interface ConfirmationModalProps {
   title: string;
 
   /**
-   * Confirmation message
+   * Confirmation message (can include JSX for formatting)
    */
-  message: string;
+  message: React.ReactNode;
 
   /**
    * Text for confirm button
