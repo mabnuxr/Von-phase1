@@ -99,7 +99,7 @@ export function useFeatureFlag() {
  */
 export function useFeatureFlagValue(
   flagKey: FeatureFlagKey | string,
-  defaultValue: boolean = false
+  defaultValue: boolean = false,
 ): boolean {
   const flags = useFlags();
   return flags[flagKey] ?? defaultValue;
