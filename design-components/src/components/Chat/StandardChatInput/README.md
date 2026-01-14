@@ -43,11 +43,11 @@ This is a **bold statement** and this is _italic text_.
 
 Here's some `inline code` and a code block:
 
-\```javascript
+```javascript
 function hello() {
-console.log("Hello, world!");
+  console.log('Hello, world!');
 }
-\```
+```
 
 > This is a blockquote with **formatting**.
 
