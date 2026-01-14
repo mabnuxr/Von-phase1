@@ -24,3 +24,36 @@ export type {
   ColumnOption,
   ReportFilter,
 } from './NewReportModal';
+
+export { MoveToFolderModal } from './MoveToFolderModal';
+export type {
+  MoveToFolderModalProps,
+  MoveToFolderConfig,
+  FolderOption,
+  MoveToFolderFolder,
+} from './MoveToFolderModal';
+
+export { SaveReportModal } from './SaveReportModal';
+export type { SaveReportModalProps, SaveReportConfig, ParentReport } from './SaveReportModal';
+
+export { WidgetConfigPopover } from './WidgetConfigPopover';
+export type {
+  WidgetConfigPopoverProps,
+  WidgetConfig,
+  DataSourceOption,
+} from './WidgetConfigPopover';
+
+export { WidgetDetailSheet } from './WidgetDetailSheet';
+export type {
+  WidgetDetailSheetProps,
+  WidgetDetailData,
+  DrillDownFilter,
+  SourceDataColumn,
+  SourceDataRow,
+} from './WidgetDetailSheet';
+
+export { DashboardFilterModal } from './DashboardFilterModal';
+export type { DashboardFilterModalProps, DashboardFilterConfig } from './DashboardFilterModal';
+
+export { DashboardSharePopover } from './DashboardSharePopover';
+export type { DashboardSharePopoverProps, ShareConfig, AccessLevel } from './DashboardSharePopover';

@@ -30,6 +30,7 @@ export function useMemoryContexts(
   accessLevel: "tenant" | "user" = "tenant",
   page: number = 1,
   limit: number = 5,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: memoryContextKeys.list(accessLevel, page),
@@ -37,6 +38,7 @@ export function useMemoryContexts(
       memoryContextsService.getMemoryContexts(accessLevel, page, limit),
     staleTime: 60000, // 1 minute
     refetchOnWindowFocus: true,
+    enabled: options?.enabled ?? true,
   });
 }
 

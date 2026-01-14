@@ -31,6 +31,8 @@
     "@tiptap/starter-kit": "^3.13.0",
     "@vonlabs/design-components": "*",
     "framer-motion": "^12.23.24",
+    "highcharts": "^12.5.0",
+    "highcharts-react-official": "^3.2.3",
     "launchdarkly-react-client-sdk": "^3.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -39,6 +41,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@tanstack/react-query-devtools": "^5.91.2",
     "@types/node": "^22.0.0",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",

@@ -2106,10 +2106,6 @@ interface PreferencesState {
   addCustomerStage: (stage: CustomerStage) => void;
   removeCustomerStage: (stage: CustomerStage) => void;
 
-  // Integrations UI state
-  integrationsActiveTab: "apps" | "active-integrations";
-  setIntegrationsActiveTab: (tab: "apps" | "active-integrations") => void;
-
   // Separate pane state for workspace and personal integrations
   // This allows each pane to have isolated state and mount/unmount independently
   configuringWorkspaceIntegration: string | null;
@@ -2473,10 +2469,6 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
         ),
       },
     })),
-
-  // Integrations UI state
-  integrationsActiveTab: "apps",
-  setIntegrationsActiveTab: (tab) => set({ integrationsActiveTab: tab }),
 
   // Separate pane state for workspace and personal integrations
   configuringWorkspaceIntegration: null,

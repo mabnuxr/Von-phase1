@@ -20,6 +20,8 @@ export interface ChatInputWithCommandsProps extends Omit<ChatInputProps, 'onSend
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
   /** Loading state for salesforce fields */
   isLoadingSalesforceFields?: boolean;
+  /** Auto-focus the input on mount */
+  autoFocus?: boolean;
 }
 
 export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
@@ -29,6 +31,7 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
   salesforceFields,
   isLoadingSalesforceFields,
   placeholder = 'Ask von anything',
+  autoFocus = false,
   ...props
 }) => {
   const { commands, addCommand, updateCommand, deleteCommand } = useCommands();
@@ -280,6 +283,7 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
           onChange={handleInputChange}
           onSend={handleSend}
           placeholder={placeholder}
+          autoFocus={autoFocus}
         />
       )}
 

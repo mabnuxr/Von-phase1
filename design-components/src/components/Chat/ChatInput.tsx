@@ -125,6 +125,12 @@ export interface ChatInputProps {
    * Callback when mode changes
    */
   onModeChange?: (mode: BuildMode) => void;
+
+  /**
+   * Auto-focus the input on mount
+   * @default false
+   */
+  autoFocus?: boolean;
 }
 
 /**
@@ -149,6 +155,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   showModeToggle = false,
   mode = 'ask',
   onModeChange,
+  autoFocus = false,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -233,10 +240,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   ]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    (e: React.KeyboardEvent) => {
+      const isMobile =
+        typeof window !== 'undefined' &&
+        ('ontouchstart' in window ||
+          navigator.maxTouchPoints > 0 ||
+          window.matchMedia('(max-width: 768px)').matches);
+
+      if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        // Don't send message during streaming or if submit is disabled
         if (!isStreaming && !disableSubmit) {
           handleSend();
         }
@@ -339,11 +351,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <RichTextInput
                   value={message}
                   onChange={handleChange}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !isStreaming && !disableSubmit) {
-                      handleSend();
-                    }
-                  }}
+                  onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
                   className="flex-1 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
@@ -361,6 +369,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
+                  autoFocus={autoFocus}
                   className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
                   style={{
                     minHeight: '20px',

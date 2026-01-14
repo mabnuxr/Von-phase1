@@ -228,15 +228,6 @@ export function getAllIntegrations(): IntegrationMetadata[] {
 }
 
 /**
- * Get integration metadata by ID
- */
-export function getIntegrationById(
-  id: string,
-): IntegrationMetadata | undefined {
-  return INTEGRATION_METADATA[id];
-}
-
-/**
  * Get logo path for an integration type
  * Handles mapping backend types like GOOGLE_CALENDAR to frontend IDs like googlecalendar
  */

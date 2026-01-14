@@ -8,6 +8,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from './icons';
+import { buildSalesforceDeepLink } from './utils/salesforceDeepLink';
 
 /**
  * Single operation in a Salesforce CRUD approval request
@@ -65,6 +66,8 @@ export interface ApprovalCardProps {
   };
   /** Whether this is the latest message in the conversation */
   isLatestMessage?: boolean;
+  /** Salesforce instance URL from app layer (fallback for building deep links) */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -180,10 +183,46 @@ const UpdateContent: React.FC<{ operation: SalesforceOperation }> = ({ operation
 );
 
 /**
+ * Render a record name as a clickable link if deep link is available
+ */
+const RecordNameLink: React.FC<{
+  operation: SalesforceOperation;
+  instanceUrl?: string;
+  className?: string;
+}> = ({ operation, instanceUrl, className = '' }) => {
+  // Build deep link URL from instance URL - validation handled internally
+  const deepLinkUrl = buildSalesforceDeepLink(
+    instanceUrl,
+    operation.sobject_type,
+    operation.record_id
+  );
+
+  if (deepLinkUrl) {
+    return (
+      <a
+        href={deepLinkUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-1 ${className}`}
+        title={`Open ${operation.sobject_type} in Salesforce`}
+        onClick={(e) => e.stopPropagation()} // Prevent card toggle when clicking link
+      >
+        {operation.record_name}
+      </a>
+    );
+  }
+
+  return <span className={`text-gray-900 ${className}`}>{operation.record_name}</span>;
+};
+
+/**
  * Simple non-expandable card for DELETE operations
  * Shows trash icon with record name - no expansion needed
  */
-const DeleteOperationCard: React.FC<{ operation: SalesforceOperation }> = ({ operation }) => (
+const DeleteOperationCard: React.FC<{
+  operation: SalesforceOperation;
+  instanceUrl?: string;
+}> = ({ operation, instanceUrl }) => (
   <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 flex items-center gap-3">
     <div className="p-1.5 rounded-md bg-gray-100">
       <TrashIcon className="text-gray-600" size={16} />
@@ -191,7 +230,11 @@ const DeleteOperationCard: React.FC<{ operation: SalesforceOperation }> = ({ ope
     <div className="flex flex-col items-start">
       {/* Record name first (more intuitive for users) */}
       {operation.record_name && (
-        <span className="text-sm font-medium text-gray-900">{operation.record_name}</span>
+        <RecordNameLink
+          operation={operation}
+          instanceUrl={instanceUrl}
+          className="text-sm font-medium"
+        />
       )}
       {/* Action + object type below */}
       <div className="flex items-center gap-1">
@@ -209,7 +252,8 @@ const OperationCard: React.FC<{
   operation: SalesforceOperation;
   isExpanded: boolean;
   onToggle: () => void;
-}> = ({ operation, isExpanded, onToggle }) => {
+  instanceUrl?: string;
+}> = ({ operation, isExpanded, onToggle, instanceUrl }) => {
   const style = getOperationStyle(operation.operation);
   const IconComponent = style.icon;
 
@@ -240,9 +284,11 @@ const OperationCard: React.FC<{
           <div className="flex flex-col items-start">
             {/* Record name first (more intuitive for users) */}
             {operation.record_name && (
-              <span className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
-                {operation.record_name}
-              </span>
+              <RecordNameLink
+                operation={operation}
+                instanceUrl={instanceUrl}
+                className="text-sm font-medium truncate max-w-[200px]"
+              />
             )}
             {/* Action + object type below */}
             <div className="flex items-center gap-1">
@@ -299,6 +345,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
   isProcessing = false,
   result,
   isLatestMessage,
+  salesforceInstanceUrl,
 }) => {
   // Track which operations are expanded (first one expanded by default)
   const [expandedOps, setExpandedOps] = useState<Set<number>>(new Set([0]));
@@ -314,6 +361,9 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
       return newSet;
     });
   };
+
+  // Use salesforceInstanceUrl prop from app layer for building deep links
+  const effectiveInstanceUrl = salesforceInstanceUrl;
 
   // Determine card state
   const isConfirmedApproved = result?.approved === true;
@@ -339,7 +389,13 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
           {args.operations.map((operation, index) => {
             // Use simple non-expandable card for delete operations
             if (operation.operation?.toLowerCase() === 'delete') {
-              return <DeleteOperationCard key={index} operation={operation} />;
+              return (
+                <DeleteOperationCard
+                  key={index}
+                  operation={operation}
+                  instanceUrl={effectiveInstanceUrl}
+                />
+              );
             }
             return (
               <OperationCard
@@ -347,6 +403,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
                 operation={operation}
                 isExpanded={expandedOps.has(index)}
                 onToggle={() => toggleOperation(index)}
+                instanceUrl={effectiveInstanceUrl}
               />
             );
           })}

@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react';
+import { DownloadSimpleIcon } from '@phosphor-icons/react';
 import { ToolResultRenderer } from './ToolResultRenderer';
 import type { ToolResult, QueryInfo, MetricData, ValueData, StatisticsData } from './types';
 import { SidePane } from '../SidePane';
 import { getToolDisplayName } from './utils/toolNameFormatter';
+import {
+  tableToCSV,
+  valuesToCSV,
+  statisticsToCSV,
+  metricsToCSV,
+  downloadCSV,
+  generateCSVFilename,
+  isExportableType,
+} from './utils/csvExport';
 import { XCircleIcon } from './icons';
 import { ARTIFACT_PANE_WIDTH } from '../../constants';
 
@@ -46,6 +56,12 @@ interface ArtifactPaneProps {
     runId: string | null,
     artifactId: string | null
   ) => UseArtifactResult;
+  /**
+   * Enable deep links for Salesforce URLs in DataTable
+   * When enabled, URLs are rendered as clickable links
+   * @default false
+   */
+  enableDeepLinks?: boolean;
 }
 
 /**
@@ -104,6 +120,7 @@ export function ArtifactPane({
   toolName,
   onClose,
   useArtifactHook,
+  enableDeepLinks = false,
 }: ArtifactPaneProps) {
   const { data: artifact, isLoading, error } = useArtifactHook(conversationId, runId, artifactId);
 
@@ -161,6 +178,70 @@ export function ArtifactPane({
 
   // Extract queries even for failed executions (for SQL tab)
   const queries = ((artifact?.content as Record<string, unknown>)?.queries as QueryInfo[]) || null;
+
+  // Determine if CSV export is available
+  const canExportCSV =
+    artifact &&
+    !hasExecutionError &&
+    !isLoading &&
+    !error &&
+    isExportableType(artifact.artifact_type);
+
+  // Handle CSV download based on artifact type
+  const handleDownloadCSV = () => {
+    if (!artifact) return;
+
+    let csvContent = '';
+    const artifactType = artifact.artifact_type;
+
+    switch (artifactType) {
+      case 'table': {
+        const sample = (artifact.content as Record<string, unknown>).sample as Record<
+          string,
+          unknown
+        >;
+        if (sample) {
+          const tableData = {
+            columns: (sample.columns as import('./types').ColumnMetadata[]) || [],
+            rows: (sample.rows as Record<string, unknown>[]) || [],
+            rowCount: (sample.size as number) || 0,
+            isComplete: (sample.is_complete as boolean) ?? true,
+          };
+          csvContent = tableToCSV(tableData);
+        }
+        break;
+      }
+      case 'values': {
+        const values = (artifact.content as Record<string, unknown>).values as ValueData[];
+        if (values) {
+          csvContent = valuesToCSV(values);
+        }
+        break;
+      }
+      case 'statistics': {
+        const statistics = (artifact.content as Record<string, unknown>)
+          .statistics as StatisticsData;
+        if (statistics) {
+          csvContent = statisticsToCSV(statistics);
+        }
+        break;
+      }
+      case 'metrics': {
+        const metrics = (artifact.content as Record<string, unknown>).metrics as MetricData[];
+        if (metrics) {
+          csvContent = metricsToCSV(metrics);
+        }
+        break;
+      }
+      default:
+        return;
+    }
+
+    if (csvContent) {
+      const filename = generateCSVFilename(toolName, artifactType);
+      downloadCSV(csvContent, filename);
+    }
+  };
 
   // Convert artifact content to ToolResult format for rendering
   const toolResult: ToolResult | null =
@@ -288,7 +369,7 @@ export function ArtifactPane({
         }
       : null;
 
-  // Custom title without badge
+  // Custom title
   const toolDisplayName = getToolDisplayName(toolName);
   const titleContent = <h3 className="text-lg font-semibold text-gray-900">{toolDisplayName}</h3>;
 
@@ -420,11 +501,31 @@ export function ArtifactPane({
           {/* Tab Content */}
           <div className="flex-1 overflow-auto">
             {/* Memory tools - always show result without tabs */}
-            {toolResult.type === 'memory' && <ToolResultRenderer result={toolResult} />}
+            {toolResult.type === 'memory' && (
+              <ToolResultRenderer result={toolResult} enableDeepLinks={enableDeepLinks} />
+            )}
 
             {/* Other tools - show based on active tab */}
             {toolResult.type !== 'memory' && activeTab === 'result' && (
-              <ToolResultRenderer result={toolResult} />
+              <div className="flex flex-col h-full">
+                {/* Toolbar with download button */}
+                {canExportCSV && (
+                  <div className="flex justify-end items-center px-4 py-2 border-b border-gray-100 bg-gray-50/50">
+                    <button
+                      onClick={handleDownloadCSV}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                      title="Download as CSV"
+                      aria-label="Download data as CSV"
+                    >
+                      <DownloadSimpleIcon size={14} />
+                      <span>Download CSV</span>
+                    </button>
+                  </div>
+                )}
+                <div className="flex-1 overflow-auto">
+                  <ToolResultRenderer result={toolResult} enableDeepLinks={enableDeepLinks} />
+                </div>
+              </div>
             )}
             {toolResult.type !== 'memory' && activeTab === 'query' && toolResult.queries && (
               <div className="p-4">

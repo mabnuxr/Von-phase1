@@ -39,6 +39,11 @@ export interface TableWidgetProps {
    * Callback when delete is clicked
    */
   onDelete?: () => void;
+
+  /**
+   * Hide the header (title, actions) when used inside WidgetLayout
+   */
+  hideHeader?: boolean;
 }
 
 // Format cell value based on column type
@@ -102,6 +107,7 @@ export const TableWidget: React.FC<TableWidgetProps> = ({
   onEdit,
   onExpand,
   onDelete,
+  hideHeader = false,
 }) => {
   const config = widget.config as TableWidgetConfig;
   const [showMenu, setShowMenu] = useState(false);
@@ -144,6 +150,93 @@ export const TableWidget: React.FC<TableWidgetProps> = ({
         <p className="text-gray-500">Table not found</p>
       </div>
     );
+  }
+
+  // Table content (shared between both modes)
+  const tableContent = (
+    <div className="overflow-x-auto h-full">
+      <Table
+        data={data}
+        autoHeight
+        rowHeight={48}
+        headerHeight={44}
+        bordered={false}
+        cellBordered={false}
+        hover
+      >
+        {columns.map((column) => (
+          <Column
+            key={column.key}
+            width={column.type === 'string' ? 150 : 120}
+            flexGrow={column.key === 'accountName' ? 1 : 0}
+          >
+            <HeaderCell>
+              <span className="text-xs font-medium text-gray-700">{column.label}</span>
+            </HeaderCell>
+            <Cell dataKey={column.key}>
+              {(rowData: Record<string, unknown>) => {
+                const value = rowData[column.key];
+                const formattedValue = formatCellValue(value, column);
+
+                // Special rendering for risk level
+                if (column.key === 'riskLevel') {
+                  return (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${getRiskBadgeStyles(String(value))}`}
+                    >
+                      {formattedValue}
+                    </span>
+                  );
+                }
+
+                // Special rendering for churn probability (show as progress bar)
+                if (column.key === 'churnProbability') {
+                  const pct = Number(value) * 100;
+                  return (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
+                        <div
+                          className={`h-full rounded-full ${
+                            pct >= 70 ? 'bg-red-500' : pct >= 50 ? 'bg-orange-500' : 'bg-yellow-500'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-600">{formattedValue}</span>
+                    </div>
+                  );
+                }
+
+                // Special rendering for health score
+                if (column.key === 'healthScore') {
+                  const score = Number(value);
+                  return (
+                    <span
+                      className={`font-medium ${
+                        score >= 70
+                          ? 'text-green-600'
+                          : score >= 40
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                      }`}
+                    >
+                      {formattedValue}
+                    </span>
+                  );
+                }
+
+                return <span className="text-sm text-gray-900">{formattedValue}</span>;
+              }}
+            </Cell>
+          </Column>
+        ))}
+      </Table>
+    </div>
+  );
+
+  // When hideHeader is true, render only the table content (for use inside WidgetLayout)
+  if (hideHeader) {
+    return tableContent;
   }
 
   return (
@@ -236,88 +329,7 @@ export const TableWidget: React.FC<TableWidgetProps> = ({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <Table
-          data={data}
-          autoHeight
-          rowHeight={48}
-          headerHeight={44}
-          bordered={false}
-          cellBordered={false}
-          hover
-        >
-          {columns.map((column) => (
-            <Column
-              key={column.key}
-              width={column.type === 'string' ? 150 : 120}
-              flexGrow={column.key === 'accountName' ? 1 : 0}
-            >
-              <HeaderCell>
-                <span className="text-xs font-medium text-gray-700">{column.label}</span>
-              </HeaderCell>
-              <Cell dataKey={column.key}>
-                {(rowData: Record<string, unknown>) => {
-                  const value = rowData[column.key];
-                  const formattedValue = formatCellValue(value, column);
-
-                  // Special rendering for risk level
-                  if (column.key === 'riskLevel') {
-                    return (
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full border ${getRiskBadgeStyles(String(value))}`}
-                      >
-                        {formattedValue}
-                      </span>
-                    );
-                  }
-
-                  // Special rendering for churn probability (show as progress bar)
-                  if (column.key === 'churnProbability') {
-                    const pct = Number(value) * 100;
-                    return (
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden max-w-[60px]">
-                          <div
-                            className={`h-full rounded-full ${
-                              pct >= 70
-                                ? 'bg-red-500'
-                                : pct >= 50
-                                  ? 'bg-orange-500'
-                                  : 'bg-yellow-500'
-                            }`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-600">{formattedValue}</span>
-                      </div>
-                    );
-                  }
-
-                  // Special rendering for health score
-                  if (column.key === 'healthScore') {
-                    const score = Number(value);
-                    return (
-                      <span
-                        className={`font-medium ${
-                          score >= 70
-                            ? 'text-green-600'
-                            : score >= 40
-                              ? 'text-yellow-600'
-                              : 'text-red-600'
-                        }`}
-                      >
-                        {formattedValue}
-                      </span>
-                    );
-                  }
-
-                  return <span className="text-sm text-gray-900">{formattedValue}</span>;
-                }}
-              </Cell>
-            </Column>
-          ))}
-        </Table>
-      </div>
+      {tableContent}
     </div>
   );
 };

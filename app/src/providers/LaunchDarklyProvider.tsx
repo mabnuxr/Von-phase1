@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { asyncWithLDProvider } from "launchdarkly-react-client-sdk";
 import Observability from "@launchdarkly/observability";
 import SessionReplay from "@launchdarkly/session-replay";
-import { getUserContextFromToken } from "../lib/auth";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
 
 interface LaunchDarklyProviderProps {
@@ -36,27 +35,11 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
       }
 
       try {
-        // Get user and tenant context by decoding JWT token
-        const userContext = getUserContextFromToken();
-        const userId = userContext?.userId || "anonymous";
-        const tenantId = userContext?.tenantId || null;
-
-        // Build multi-context for LaunchDarkly
-        // Note: Using capital Tenant and User to match LaunchDarkly segment configuration
-        const context = tenantId
-          ? {
-              kind: "multi",
-              Tenant: {
-                key: tenantId,
-              },
-              User: {
-                key: userId,
-              },
-            }
-          : {
-              kind: "user",
-              key: userId,
-            };
+        // Initialize with anonymous user - will be updated via identify() after login
+        const context = {
+          kind: "user",
+          key: "anonymous",
+        };
 
         const Provider = await asyncWithLDProvider({
           clientSideID,

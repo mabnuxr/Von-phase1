@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Streamdown } from 'streamdown';
 import { SpinningCircles } from './icons';
 import { ChainOfThoughtTimeline } from './ChainOfThoughtTimeline';
+import { SalesforceLink } from './SalesforceLink';
 import type { StepMessage } from './types';
 
 // Extract CSS animation to global scope to prevent re-creation on every render
@@ -108,6 +109,12 @@ export interface ThinkingBlockProps {
    * Used to control visibility of approval buttons
    */
   isLatestMessage?: boolean;
+
+  /**
+   * Salesforce instance URL for building deep links in approval cards
+   * Example: "https://mycompany.my.salesforce.com"
+   */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -145,6 +152,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   onReject,
   isApprovalProcessing = false,
   runId = '',
+  salesforceInstanceUrl,
 }) => {
   // Start expanded if streaming, collapsed if already completed
   const [isExpanded, setIsExpanded] = useState(() => status !== 'completed');
@@ -392,6 +400,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                     onReject={onReject}
                     isApprovalProcessing={isApprovalProcessing}
                     runId={runId}
+                    salesforceInstanceUrl={salesforceInstanceUrl}
                   />
                 </div>
               ) : children ? (
@@ -408,6 +417,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                     parseIncompleteMarkdown={isStreaming}
                     isAnimating={isStreaming}
                     controls={{ table: true }}
+                    components={{ a: SalesforceLink }}
                   >
                     {content}
                   </Streamdown>

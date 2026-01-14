@@ -1,5 +1,6 @@
 import type { Message } from '../Chat/types';
 import type { FileAttachment } from '../Chat/FileAttachment/types';
+import type { AutoEditMode, ActivePopover } from '../Chat/StandardChatInput/types';
 
 /**
  * Reference context for the chat input
@@ -13,6 +14,9 @@ export interface ReferenceContext {
   /** Unique identifier */
   id: string;
 }
+
+// Re-export types for convenience
+export type { AutoEditMode, ActivePopover };
 
 export interface ChatPaneProps {
   /**
@@ -152,6 +156,51 @@ export interface ChatPaneProps {
    * Callback when user rejects an operation
    */
   onReject?: (toolCallId: string, runId: string) => void;
+
+  // ============================================================================
+  // Auto Edit Mode Props
+  // ============================================================================
+
+  /**
+   * Whether to show the mode selector button
+   * @default false
+   */
+  showModeSelector?: boolean;
+
+  /**
+   * Current auto edit mode
+   * @default 'off'
+   */
+  autoEditMode?: AutoEditMode;
+
+  /**
+   * Callback when auto edit mode changes
+   */
+  onAutoEditModeChange?: (mode: AutoEditMode) => void;
+
+  // ============================================================================
+  // Popover Props
+  // ============================================================================
+
+  /**
+   * Active popover configuration (if any)
+   */
+  activePopover?: ActivePopover;
+
+  /**
+   * Callback when popover is closed/dismissed
+   */
+  onPopoverClose?: () => void;
+
+  /**
+   * Callback when popover primary action is clicked
+   */
+  onPopoverPrimaryAction?: () => void;
+
+  /**
+   * Callback when user submits feedback in the popover
+   */
+  onPopoverFeedback?: (feedback: string) => void;
 }
 
 export interface ChatPaneHeaderProps {

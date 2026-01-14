@@ -37,6 +37,12 @@ export { ToolCallItem } from './ToolCallItem';
 export { ApprovalCard } from './ApprovalCard';
 export type { ApprovalCardProps, SalesforceOperation, ApprovalToolArgs } from './ApprovalCard';
 
+export { SalesforceLink } from './SalesforceLink';
+export type { SalesforceLinkProps } from './SalesforceLink';
+
+// Export Salesforce deep link utilities
+export { buildSalesforceDeepLink, isSalesforceUrl } from './utils/salesforceDeepLink';
+
 export { GoogleCalendarApprovalCard } from './GoogleCalendarApprovalCard';
 export type { GoogleCalendarApprovalCardProps } from './GoogleCalendarApprovalCard';
 
@@ -64,6 +70,9 @@ export { ToolResultRenderer } from './ToolResultRenderer';
 export type { ToolResultRendererProps } from './ToolResultRenderer';
 
 export { MemoryResultRenderer } from './MemoryResultRenderer';
+
+export { CallSearchUnionRenderer } from './CallSearchUnionRenderer';
+export type { CallSearchUnionRendererProps } from './CallSearchUnionRenderer';
 
 export { ToolCallBlock } from './ToolCallBlock';
 export type { ToolCallBlockProps } from './ToolCallBlock';
@@ -118,6 +127,13 @@ export type {
   // Google Calendar approval types
   GoogleCalendarOperation,
   GoogleCalendarApprovalToolArgs,
+  // Call Search Union types
+  CallMatchSource,
+  CallSearchResult,
+  CallSearchUnionResult,
+  UnionQueryComponent,
+  DeduplicationInfo,
+  CallSearchParams,
 } from './types';
 
 // Export approval utility functions
@@ -154,3 +170,15 @@ export {
   needsSync,
   getStorageInfo,
 } from './utils/localStorage';
+
+// Export CSV export utilities
+export {
+  tableToCSV,
+  valuesToCSV,
+  statisticsToCSV,
+  metricsToCSV,
+  downloadCSV,
+  generateCSVFilename,
+  isExportableType,
+  escapeCsvValue,
+} from './utils/csvExport';

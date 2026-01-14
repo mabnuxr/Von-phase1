@@ -157,7 +157,7 @@ const Settings = () => {
         icon: <RowsIcon size={20} weight="duotone" />,
       },
       {
-        id: "org-memory",
+        id: "memory",
         label: "Memory",
         icon: <BrainIcon size={20} weight="duotone" />,
       },
@@ -193,7 +193,7 @@ const Settings = () => {
         return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
-      case "org-memory":
+      case "memory":
         return <OrgContextTab />;
       default:
         return null;

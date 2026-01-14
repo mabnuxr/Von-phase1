@@ -5,6 +5,13 @@ import type { TableData, QueryInfo } from './types';
 
 const { Column, HeaderCell, Cell } = Table;
 
+/**
+ * Check if a string value looks like a URL
+ */
+function isUrl(value: string): boolean {
+  return value.startsWith('http://') || value.startsWith('https://');
+}
+
 export interface DataTableProps {
   /**
    * Table data to render
@@ -20,6 +27,13 @@ export interface DataTableProps {
    * Callback when "View Query" is clicked
    */
   onViewQuery?: () => void;
+
+  /**
+   * Enable deep links for Salesforce URLs
+   * When enabled, URLs are rendered as clickable links
+   * @default false
+   */
+  enableDeepLinks?: boolean;
 }
 
 /**
@@ -35,7 +49,15 @@ function formatNumber(num: number): string {
 /**
  * Smart cell formatter based on column name and value type
  */
-function CellFormatter({ value, columnName }: { value: unknown; columnName: string }) {
+function CellFormatter({
+  value,
+  columnName,
+  enableDeepLinks = false,
+}: {
+  value: unknown;
+  columnName: string;
+  enableDeepLinks?: boolean;
+}) {
   // Null/undefined
   if (value === null || value === undefined) {
     return <span className="text-gray-400">—</span>;
@@ -93,8 +115,25 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
     return <span className="text-gray-900 font-mono text-xs">{jsonStr}</span>;
   }
 
-  // Strings - truncate if very long
+  // Strings
   const strValue = String(value);
+
+  // URLs in deep_link column - render as "View in Salesforce" links
+  if (enableDeepLinks && columnName === 'deep_link' && isUrl(strValue)) {
+    return (
+      <a
+        href={strValue}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+        title="Open in Salesforce"
+      >
+        View in Salesforce
+      </a>
+    );
+  }
+
+  // Non-URL strings - truncate if very long
   if (strValue.length > 100) {
     return (
       <span className="text-gray-900" title={strValue}>
@@ -110,7 +149,7 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
  * DataTable component for displaying SQL query results
  * Uses rsuite Table for beautiful formatting with sorting support
  */
-export const DataTable: React.FC<DataTableProps> = ({ data }) => {
+export const DataTable: React.FC<DataTableProps> = ({ data, enableDeepLinks = false }) => {
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | undefined>();
   const [sortType, setSortType] = useState<SortType | undefined>();
@@ -159,12 +198,16 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
         </HeaderCell>
         <Cell dataKey={col.name}>
           {(rowData: Record<string, unknown>) => (
-            <CellFormatter value={rowData[col.name]} columnName={col.name} />
+            <CellFormatter
+              value={rowData[col.name]}
+              columnName={col.name}
+              enableDeepLinks={enableDeepLinks}
+            />
           )}
         </Cell>
       </Column>
     ));
-  }, [data]);
+  }, [data, enableDeepLinks]);
 
   if (!data || !data.columns || !data.rows) {
     return <div className="text-sm text-gray-500 italic">No data available</div>;
