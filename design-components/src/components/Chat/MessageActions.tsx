@@ -14,6 +14,7 @@ import {
   ThumbsDownIcon,
   DotsThreeIcon,
   ChartBarIcon,
+  GitBranchIcon,
 } from '@phosphor-icons/react';
 
 /**
@@ -89,6 +90,17 @@ export interface MessageActionsProps {
    * Optional callback when convert to dashboard is clicked
    */
   onConvertToDashboard?: (messageId: string) => void;
+
+  /**
+   * Optional callback when transparency (data sources) button is clicked
+   */
+  onTransparencyClick?: (messageId: string) => void;
+
+  /**
+   * Whether to show the transparency button
+   * @default true
+   */
+  showTransparency?: boolean;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -100,6 +112,8 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onDislike,
   enableActions = false,
   onConvertToDashboard,
+  onTransparencyClick,
+  showTransparency = true,
 }) => {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
@@ -227,6 +241,10 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     onConvertToDashboard?.(messageId);
   };
 
+  const handleTransparencyClick = () => {
+    onTransparencyClick?.(messageId);
+  };
+
   const buttonClass =
     'p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer';
   const activeButtonClass = 'p-1.5 rounded transition-colors cursor-pointer';
@@ -286,6 +304,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       >
         <ThumbsDownIcon size={16} weight={feedback === 'dislike' ? 'fill' : 'regular'} />
       </button>
+
+      {/* Transparency / Data Sources button */}
+      {showTransparency && (
+        <button
+          onClick={handleTransparencyClick}
+          className={buttonClass}
+          title="View data sources"
+          aria-label="View data sources"
+        >
+          <GitBranchIcon size={16} />
+        </button>
+      )}
 
       {/* More menu - only show when enableActions is true (controlled by feature flag) */}
       {enableActions && (

@@ -201,6 +201,17 @@ export interface ChatMessageProps {
   onConvertToDashboard?: (messageId: string) => void;
 
   /**
+   * Callback when transparency (data sources) button is clicked
+   */
+  onTransparencyClick?: (messageId: string) => void;
+
+  /**
+   * Whether to show the transparency button
+   * @default true
+   */
+  showTransparency?: boolean;
+
+  /**
    * Salesforce instance URL for building deep links in approval cards
    * Example: "https://mycompany.my.salesforce.com"
    */
@@ -259,6 +270,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   runId = '',
   enableActions = false,
   onConvertToDashboard,
+  onTransparencyClick,
+  showTransparency = true,
   salesforceInstanceUrl,
   enableDeepLinks = false,
   // V2 Thinking Process props
@@ -569,6 +582,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       messageId={messageId || ''}
                       enableActions={enableActions}
                       onConvertToDashboard={onConvertToDashboard}
+                      onTransparencyClick={onTransparencyClick}
+                      showTransparency={showTransparency}
                     />
                   )}
                 </div>

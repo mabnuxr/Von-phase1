@@ -5,13 +5,27 @@
  * structured format expected by the new TimelineThinkingProcess component.
  */
 
-import type { AguiEventWrapper } from "@vonlabs/design-components";
 import type {
+  AguiEventWrapper,
   TimelineStep,
   StepStatus,
   StepType,
   SourceType,
 } from "@vonlabs/design-components";
+
+// Extended event types for STEP_STARTED/STEP_FINISHED with step_number
+// These events provide step boundaries for timing and tracking
+interface StepStartedEventWithNumber {
+  type: "STEP_STARTED";
+  step_number: number;
+  step_name: string;
+}
+
+interface StepFinishedEventWithNumber {
+  type: "STEP_FINISHED";
+  step_number: number;
+  step_name: string;
+}
 
 /**
  * Maps tool names to source types for the timeline visualization
@@ -127,6 +141,8 @@ export function transformAguiToTimelineSteps(
   const steps: TimelineStep[] = [];
   const stepMap = new Map<string, TimelineStep>();
   const toolArgsMap = new Map<string, string>();
+  // Map to track steps by step_number for STEP_STARTED/STEP_FINISHED correlation
+  const stepNumberMap = new Map<number, TimelineStep>();
   let currentReasoningStep: TimelineStep | null = null;
   let isThinking = true;
   let stepCounter = 0;
@@ -144,6 +160,48 @@ export function transformAguiToTimelineSteps(
     switch (event.type) {
       case "RUN_STARTED": {
         // Initialize - no step created yet
+        break;
+      }
+
+      case "STEP_STARTED": {
+        // Create a new step when STEP_STARTED arrives
+        // This provides a step boundary with step_number for tracking
+        const stepEvent = event as StepStartedEventWithNumber;
+        stepCounter++;
+        const stepId = `step-${stepEvent.step_number}`;
+
+        const step: TimelineStep = {
+          id: stepId,
+          text: stepEvent.step_name,
+          status: "in-progress" as StepStatus,
+          type: "reasoning" as StepType,
+          description: "",
+        };
+
+        stepMap.set(stepId, step);
+        stepNumberMap.set(stepEvent.step_number, step);
+        steps.push(step);
+
+        // Track as current reasoning step so TEXT_MESSAGE events can append to it
+        currentReasoningStep = step;
+        break;
+      }
+
+      case "STEP_FINISHED": {
+        // Mark the step as complete when STEP_FINISHED arrives
+        const finishedEvent = event as StepFinishedEventWithNumber;
+        const step = stepNumberMap.get(finishedEvent.step_number);
+        if (step) {
+          step.status = "complete" as StepStatus;
+        }
+
+        // Clear current reasoning step if it matches
+        if (
+          currentReasoningStep &&
+          currentReasoningStep.id === `step-${finishedEvent.step_number}`
+        ) {
+          currentReasoningStep = null;
+        }
         break;
       }
 

@@ -45,6 +45,8 @@ import {
 } from "../types/userChannelEvents";
 import type { MessageWithStreaming } from "../types/conversation";
 import { useArtifact } from "../hooks/useArtifact";
+import { useTransparencyArtifacts } from "../hooks/useMessageArtifacts";
+import { transformArtifactsToTransparency } from "../utils/transformArtifactsToTransparency";
 // Import Message type from design-components (includes events field)
 import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
@@ -55,6 +57,7 @@ import {
   ChatSkeleton,
   Banner,
   DashboardCanvas,
+  TransparencyDrawer,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
@@ -192,6 +195,12 @@ const Dashboard = () => {
   const [dashboardMessageContent, setDashboardMessageContent] = useState<
     string | null
   >(null);
+
+  // Transparency drawer state
+  const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
+  const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
+    null,
+  );
 
   // Sidebar collapse state
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
@@ -660,6 +669,49 @@ const Dashboard = () => {
     setDashboardMessageContent(null);
   }, []);
 
+  // Fetch transparency artifacts when drawer is open
+  const { artifacts: transparencyArtifacts, isLoading: isTransparencyLoading } =
+    useTransparencyArtifacts(
+      isTransparencyOpen ? currentConversationId : null,
+      isTransparencyOpen ? transparencyRunId : null,
+    );
+
+  // Transform artifacts for TransparencyDrawer
+  const transparencyData = useMemo(() => {
+    if (!transparencyArtifacts || transparencyArtifacts.length === 0) {
+      return { queries: [], calls: [] };
+    }
+    return transformArtifactsToTransparency(transparencyArtifacts);
+  }, [transparencyArtifacts]);
+
+  // Handle transparency button click
+  const handleTransparencyClick = useCallback(
+    (messageId: string) => {
+      // Find the message to get its runId
+      const message = transformedMessages.find((m) => m.id === messageId);
+      if (message?.runId) {
+        setTransparencyRunId(message.runId);
+        setIsTransparencyOpen(true);
+
+        if (import.meta.env.DEV) {
+          console.log(
+            "[Dashboard] Opening transparency drawer for message:",
+            messageId,
+            "runId:",
+            message.runId,
+          );
+        }
+      }
+    },
+    [transformedMessages],
+  );
+
+  // Handle closing the transparency drawer
+  const handleCloseTransparency = useCallback(() => {
+    setIsTransparencyOpen(false);
+    setTransparencyRunId(null);
+  }, []);
+
   // Get conversation title for dashboard header
   const currentConversationTitle = useMemo(() => {
     const conversation = allConversations.find(
@@ -934,6 +986,7 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
+                onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
                 thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
@@ -941,6 +994,15 @@ const Dashboard = () => {
             )}
           </motion.div>
         </div>
+
+        {/* Transparency Drawer - shows data sources for a message */}
+        <TransparencyDrawer
+          isOpen={isTransparencyOpen}
+          onClose={handleCloseTransparency}
+          queries={transparencyData.queries}
+          calls={transparencyData.calls}
+          title="Data Sources"
+        />
       </div>
     </div>
   );

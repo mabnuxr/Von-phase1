@@ -240,7 +240,8 @@ export type AguiEvent =
   | ToolCallEndEvent
   | ToolCallResultEvent
   | StepFinishedEvent
-  | RunFinishedEvent;
+  | RunFinishedEvent
+  | RunErrorEvent;
 
 // Individual event types
 export interface RunStartedEvent {
@@ -252,6 +253,7 @@ export interface RunStartedEvent {
 
 export interface StepStartedEvent {
   type: 'STEP_STARTED';
+  step_number: number;
   step_name: string;
 }
 
@@ -300,6 +302,7 @@ export interface ToolCallResultEvent {
 
 export interface StepFinishedEvent {
   type: 'STEP_FINISHED';
+  step_number: number;
   step_name: string;
 }
 
@@ -311,6 +314,14 @@ export interface RunFinishedEvent {
     status: 'completed' | 'failed';
     stopped_by_user?: boolean;
   };
+}
+
+export interface RunErrorEvent {
+  type: 'RUN_ERROR';
+  thread_id?: string;
+  run_id?: string;
+  error?: string;
+  message?: string;
 }
 
 /**
@@ -1033,6 +1044,17 @@ export interface ChatProps {
    * Callback when convert to dashboard is clicked
    */
   onConvertToDashboard?: (messageId: string) => void;
+
+  /**
+   * Callback when transparency (data sources) button is clicked
+   */
+  onTransparencyClick?: (messageId: string) => void;
+
+  /**
+   * Whether to show the transparency button
+   * @default true
+   */
+  showTransparency?: boolean;
 
   /**
    * Salesforce instance URL for building deep links in approval cards

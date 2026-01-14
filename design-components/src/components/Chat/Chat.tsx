@@ -57,6 +57,8 @@ export const Chat: React.FC<ChatProps> = ({
   enableCommands = false,
   enableActions = false,
   onConvertToDashboard,
+  onTransparencyClick,
+  showTransparency = true,
   salesforceInstanceUrl,
   enableDeepLinks = false,
   // V2 Thinking Process
@@ -286,6 +288,8 @@ export const Chat: React.FC<ChatProps> = ({
                   runId={message.runId}
                   enableActions={enableActions}
                   onConvertToDashboard={onConvertToDashboard}
+                  onTransparencyClick={onTransparencyClick}
+                  showTransparency={showTransparency}
                   salesforceInstanceUrl={salesforceInstanceUrl}
                   enableDeepLinks={enableDeepLinks}
                   // V2 Thinking Process props
