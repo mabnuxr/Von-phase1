@@ -391,7 +391,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
   const [localFormula, setLocalFormula] = useState(formula);
   const [showFilterPopover, setShowFilterPopover] = useState(false);
   const [showFormulaPopover, setShowFormulaPopover] = useState(false);
-  const [panelHeight, setPanelHeight] = useState(70);
+  const [panelHeight, setPanelHeight] = useState(90);
   const resizeRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
@@ -483,15 +483,26 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <motion.div
-      ref={containerRef}
-      initial={{ y: '100%' }}
-      animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50"
-      style={{ height: `${panelHeight}%` }}
-    >
+    <>
+      {/* Backdrop with blur */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-40"
+        onClick={onClose}
+      />
+
+      <motion.div
+        ref={containerRef}
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50 overflow-hidden"
+        style={{ height: `${panelHeight}%` }}
+      >
       {/* Resize Handle */}
       <div
         ref={resizeRef}
@@ -621,6 +632,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
         />
       </AnimatePresence>
     </motion.div>
+    </>
   );
 };
 

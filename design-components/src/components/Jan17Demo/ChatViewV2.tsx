@@ -25,6 +25,13 @@ export interface ThinkingStep {
   icon?: 'salesforce' | 'database' | 'chart' | 'table';
 }
 
+export interface DashboardArtifact {
+  type: 'dashboard';
+  title: string;
+  description: string;
+  items?: { label: string; value: string }[];
+}
+
 export interface ChatMessage {
   id: string;
   type: MessageType;
@@ -32,6 +39,7 @@ export interface ChatMessage {
   thinkingSteps?: ThinkingStep[];
   showBuildButton?: boolean;
   plan?: DashboardPlan;
+  artifact?: DashboardArtifact;
 }
 
 export interface DashboardPlan {
@@ -116,10 +124,11 @@ interface ThinkingBlockProps {
   steps: ThinkingStep[];
   isThinking: boolean;
   elapsedTime: number;
+  defaultCollapsed?: boolean;
 }
 
-const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ steps, isThinking, elapsedTime }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ steps, isThinking, elapsedTime, defaultCollapsed = false }) => {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const completedCount = steps.filter((s) => s.status === 'complete').length;
   const totalCount = steps.length;
@@ -317,6 +326,31 @@ const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
 };
 
 // ============================================================================
+// Artifact Card Component
+// ============================================================================
+
+interface ArtifactCardProps {
+  artifact: DashboardArtifact;
+}
+
+const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact }) => {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 w-full justify-between">
+            <h3 className="text-[13px] font-medium text-gray-900">{artifact.title}</h3>
+            <span className="text-[11px] text-gray-400">·</span>
+            <span className="text-[11px] text-gray-500 underline">View</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
 // Assistant Message Component
 // ============================================================================
 
@@ -327,6 +361,7 @@ interface AssistantMessageProps {
   elapsedTime?: number;
   plan?: DashboardPlan;
   onBuildDashboard?: () => void;
+  artifact?: DashboardArtifact;
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({
@@ -336,20 +371,32 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
   elapsedTime = 0,
   plan,
   onBuildDashboard,
+  artifact,
 }) => {
+  // Auto-collapse thinking block when all steps are complete
+  const allStepsComplete = thinkingSteps?.every((s) => s.status === 'complete') ?? false;
+
   return (
     <div className="space-y-3">
       {/* Thinking Block */}
       {thinkingSteps && thinkingSteps.length > 0 && (
-        <ThinkingBlock steps={thinkingSteps} isThinking={isThinking} elapsedTime={elapsedTime} />
+        <ThinkingBlock
+          steps={thinkingSteps}
+          isThinking={isThinking}
+          elapsedTime={elapsedTime}
+          defaultCollapsed={allStepsComplete && !isThinking}
+        />
       )}
 
       {/* Message Content */}
       {content && (
-        <div className="text-[13px] text-gray-900 leading-relaxed">
+        <div className="text-[13px] text-gray-900 leading-relaxed whitespace-pre-wrap">
           {content}
         </div>
       )}
+
+      {/* Artifact Card */}
+      {artifact && <ArtifactCard artifact={artifact} />}
 
       {/* Plan Card with Build Button */}
       {plan && onBuildDashboard && (
@@ -395,6 +442,7 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
                 elapsedTime={elapsedTime}
                 plan={message.plan}
                 onBuildDashboard={message.showBuildButton ? onBuildDashboard : undefined}
+                artifact={message.artifact}
               />
             )}
           </div>

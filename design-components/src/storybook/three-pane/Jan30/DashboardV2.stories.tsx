@@ -1,7 +1,7 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircleIcon, CaretLeftIcon, CaretRightIcon, StarIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, CaretLeftIcon, CaretRightIcon, StarIcon, XIcon } from '@phosphor-icons/react';
 import { ChatSidebarV4 } from '../../../components/Jan17Demo/ChatSidebarV4';
 import type { SidebarItem, Folder, ItemType } from '../../../components/Jan17Demo/ChatSidebarV4';
 import { StandardChatInput } from '../../../components/Chat/StandardChatInput';
@@ -16,11 +16,13 @@ import type { ThinkingStep, DashboardPlan } from '../../../components/Jan17Demo/
 import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
 import type { ChatMessage, ReferenceContext } from '../../../components/Jan17Demo/ChatPaneV2';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
-import type { KPICardData, ChartData, TableData } from '../../../components/Jan17Demo/DashboardV2';
+import type { KPICardData, ChartData, TableData, TimelineFilter, DashboardFilter, OwnerOption } from '../../../components/Jan17Demo/DashboardV2';
 import { InlineDrilldownPanel } from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import type { DrilldownFilter, DrilldownColumn } from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import { WidgetConfigModal } from '../../../components/Jan17Demo/WidgetConfigModal';
 import type { WidgetConfigData, ChartType } from '../../../components/Jan17Demo/WidgetConfigModal';
+import { WidgetEditSheet } from '../../../components/Jan17Demo/WidgetEditSheet';
+import type { WidgetConfigData as WidgetEditConfigData } from '../../../components/Jan17Demo/WidgetEditSheet';
 import { AmbientGlow } from '../../../components/DashboardBuilder/InteractivePrototype/AmbientGlow';
 import { AgentProgressBar } from '../../../components/DashboardBuilder/InteractivePrototype/AgentProgressBar';
 import type { AgentStatus } from '../../../components/DashboardBuilder/InteractivePrototype/AgentProgressBar';
@@ -244,6 +246,26 @@ const drilldownFilters: DrilldownFilter[] = [
 ];
 
 const drilldownFormula = 'SUM(Amount) WHERE CloseDate >= "2026-01-01" AND CloseDate <= "2026-03-31"';
+
+// Owner options for filter
+const ownerOptions: OwnerOption[] = [
+  { id: 'owner-1', name: 'Sarah Chen' },
+  { id: 'owner-2', name: 'Mike Johnson' },
+  { id: 'owner-3', name: 'Emily Davis' },
+  { id: 'owner-4', name: 'John Doe' },
+];
+
+// Available fields for filtering
+const availableFilterFields = [
+  'Deal Name',
+  'Account',
+  'Owner',
+  'Amount',
+  'Close Date',
+  'Stage',
+  'Probability',
+  'Deal Risk',
+];
 
 // ============================================================================
 // Toast Component
@@ -578,6 +600,24 @@ const DashboardV2Demo = () => {
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [editingWidgetConfig, setEditingWidgetConfig] = useState<Partial<WidgetConfigData> | undefined>(undefined);
 
+  // New filter state for dashboard
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('this-quarter');
+  const [ownerFilter, setOwnerFilter] = useState<string>('all');
+  const [advancedFilters, setAdvancedFilters] = useState<DashboardFilter[]>([]);
+
+  // Widget Edit Sheet state (new side sheet)
+  const [showWidgetEditSheet, setShowWidgetEditSheet] = useState(false);
+
+  // Drilldown with chart segment click state
+  const [drilldownSegmentFilter, setDrilldownSegmentFilter] = useState<{ name: string; value: number } | null>(null);
+
+  // Reference context state for Pane3
+  const [referenceContext, setReferenceContext] = useState<ReferenceContext>({
+    type: 'dashboard',
+    name: 'Deals Closing This Quarter',
+    id: 'dashboard-deals-q1',
+  });
+
   // Timer ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
@@ -658,7 +698,12 @@ const DashboardV2Demo = () => {
     setVisibleWidgets([]);
     setIsChatPaneCollapsed(true); // Ensure chat pane is collapsed
 
-    // Add the conversation to chat messages (including the plan from thinking phase)
+    // Add the conversation to chat messages (including thinking steps and plan from thinking phase)
+    const completedThinkingSteps = thinkingStepsConfig.map((s) => ({
+      ...s,
+      status: 'complete' as const,
+    }));
+
     setChatMessages([
       {
         id: 'msg-1',
@@ -668,8 +713,10 @@ const DashboardV2Demo = () => {
       {
         id: 'msg-2',
         type: 'assistant',
-        content: dashboardPlan.description,
+        content: `I'll create a dashboard showing ${dealsThisQuarter.length} deals totaling $${(totalValue / 1000000).toFixed(2)}M in pipeline value.`,
+        thinkingSteps: completedThinkingSteps,
         plan: dashboardPlan,
+        showBuildButton: false, // Don't show build button since we're already building
       },
     ]);
 
@@ -698,6 +745,26 @@ const DashboardV2Demo = () => {
       setAgentProgress(100);
       setShowToast(true);
       setIsChatPaneCollapsed(false); // Open chat pane by default when complete
+
+      // Add completion message with artifact
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: 'msg-3',
+          type: 'assistant',
+          content: `I've created your dashboard! Here's what I built:`,
+          artifact: {
+            type: 'dashboard',
+            title: 'Deals Closing This Quarter',
+            description: `Dashboard with ${kpiCards.length} KPI cards, 2 charts, and a data table showing ${dealsThisQuarter.length} deals worth $${(totalValue / 1000000).toFixed(2)}M`,
+            items: [
+              { label: 'Total Pipeline Value', value: `$${(totalValue / 1000000).toFixed(2)}M` },
+              { label: 'Deal Count', value: String(dealsThisQuarter.length) },
+              { label: 'Avg Deal Size', value: `$${(avgDealSize / 1000).toFixed(0)}K` },
+            ],
+          },
+        },
+      ]);
     }, time + 400);
 
     // Fade out glow
@@ -709,7 +776,7 @@ const DashboardV2Demo = () => {
     addTimeout(() => {
       setAgentStatus('idle');
     }, time + 2500);
-  }, [clearAllTimeouts, addTimeout]);
+  }, [clearAllTimeouts, addTimeout, userMessage]);
 
   // Reset to landing
   const handleReset = useCallback(() => {
@@ -785,7 +852,8 @@ const DashboardV2Demo = () => {
       chartType,
       dataSourceId: 'ds-1', // Default data source
     });
-    setShowWidgetConfigModal(true);
+    // Use the new WidgetEditSheet instead of modal
+    setShowWidgetEditSheet(true);
   };
 
   // Handle widget config save
@@ -794,6 +862,121 @@ const DashboardV2Demo = () => {
     setShowWidgetConfigModal(false);
     setEditingWidgetId(null);
     setEditingWidgetConfig(undefined);
+  };
+
+  // Handle widget edit sheet save
+  const handleWidgetEditSheetSave = (config: WidgetEditConfigData) => {
+    console.log('Widget edit sheet saved:', config);
+    setShowWidgetEditSheet(false);
+    setEditingWidgetId(null);
+    setEditingWidgetConfig(undefined);
+  };
+
+  // Handle chart segment click (opens drilldown with additional filter)
+  const handleChartSegmentClick = (widgetId: string, segmentData: { name: string; value: number }) => {
+    console.log('Chart segment clicked:', widgetId, segmentData);
+    setDrilldownSegmentFilter(segmentData);
+    setDrilldownWidget(widgetId);
+
+    // Update reference context for segment drilldown
+    const widgetTitle =
+      widgetId === barChart.id
+        ? barChart.title
+        : widgetId === pieChart.id
+          ? pieChart.title
+          : kpiCards.find((k) => k.id === widgetId)?.title || 'Widget';
+    setReferenceContext({
+      type: 'widget',
+      name: `${widgetTitle} — ${segmentData.name}`,
+      id: `${widgetId}-${segmentData.name}`,
+    });
+  };
+
+  // Handle regular widget drilldown (updates reference context)
+  const handleWidgetDrillDown = (widgetId: string) => {
+    setDrilldownSegmentFilter(null);
+    setDrilldownWidget(widgetId);
+
+    // Update reference context based on widget type
+    let widgetType: 'widget' | 'kpi' | 'table' | 'source' = 'widget';
+    let widgetName = '';
+
+    if (widgetId.startsWith('kpi-')) {
+      widgetType = 'kpi';
+      widgetName = kpiCards.find((k) => k.id === widgetId)?.title || 'KPI';
+    } else if (widgetId === barChart.id) {
+      widgetType = 'widget';
+      widgetName = barChart.title;
+    } else if (widgetId === pieChart.id) {
+      widgetType = 'widget';
+      widgetName = pieChart.title;
+    } else if (widgetId === tableData.id) {
+      widgetType = 'table';
+      widgetName = tableData.title;
+    }
+
+    setReferenceContext({
+      type: widgetType,
+      name: widgetName,
+      id: widgetId,
+    });
+  };
+
+  // Handle closing drilldown (reset reference context to dashboard)
+  const handleCloseDrilldown = () => {
+    setDrilldownWidget(null);
+    setDrilldownSegmentFilter(null);
+    setReferenceContext({
+      type: 'dashboard',
+      name: 'Deals Closing This Quarter',
+      id: 'dashboard-deals-q1',
+    });
+  };
+
+  // Handle widget edit sheet open (updates reference context to source)
+  const handleOpenWidgetEditSheet = (widgetId: string) => {
+    handleWidgetEdit(widgetId);
+    setReferenceContext({
+      type: 'source',
+      name: 'Deals Closing This Quarter',
+      id: 'source-deals-q1',
+    });
+  };
+
+  // Handle cancel/close dashboard (go back to thinking/plan view)
+  const handleCancelDashboard = () => {
+    setPhase('planning');
+    setShowPlan(true);
+    setIsChatPaneCollapsed(true);
+    setVisibleWidgets([]);
+    setAgentStatus('idle');
+  };
+
+  // Handle widget click (updates reference context without opening drilldown)
+  const handleWidgetClick = (widgetId: string) => {
+    // Update reference context based on widget type
+    let widgetType: 'widget' | 'kpi' | 'table' | 'source' = 'widget';
+    let widgetName = '';
+
+    if (widgetId.startsWith('kpi-')) {
+      widgetType = 'kpi';
+      widgetName = kpiCards.find((k) => k.id === widgetId)?.title || 'KPI';
+    } else if (widgetId === barChart.id) {
+      widgetType = 'widget';
+      widgetName = barChart.title;
+    } else if (widgetId === pieChart.id) {
+      widgetType = 'widget';
+      widgetName = pieChart.title;
+    } else if (widgetId === tableData.id) {
+      widgetType = 'table';
+      widgetName = tableData.title;
+    }
+
+    setReferenceContext({
+      type: widgetType,
+      name: widgetName,
+      id: widgetId,
+    });
   };
 
   // Determine what to show
@@ -814,6 +997,20 @@ const DashboardV2Demo = () => {
   };
 
   const drilldownData = getDrilldownData();
+
+  // Get combined filters for drilldown (includes segment filter if clicked on chart)
+  const getCombinedDrilldownFilters = (): DrilldownFilter[] => {
+    const baseFilters = [...drilldownFilters];
+    if (drilldownSegmentFilter) {
+      baseFilters.push({
+        id: 'segment-filter',
+        field: drilldownWidget === barChart.id ? 'Stage' : 'Deal Risk',
+        operator: 'equals',
+        value: drilldownSegmentFilter.name,
+      });
+    }
+    return baseFilters;
+  };
 
   return (
     <div className="flex h-full w-full gap-2 relative">
@@ -897,7 +1094,7 @@ const DashboardV2Demo = () => {
 
         {/* Dashboard with Inline Drilldown Panel */}
         {showDashboard && (
-          <div className="relative h-full w-full">
+          <div className="relative h-full w-full overflow-hidden rounded-xl">
             <DashboardV2
               name="Deals Closing This Quarter"
               kpiCards={kpiCards}
@@ -906,16 +1103,9 @@ const DashboardV2Demo = () => {
               table={tableData}
               isBuilding={phase === 'building'}
               visibleWidgets={visibleWidgets}
-              onWidgetDrillDown={(widgetId) => setDrilldownWidget(widgetId)}
-              onWidgetEdit={handleWidgetEdit}
+              onWidgetDrillDown={handleWidgetDrillDown}
+              onWidgetEdit={handleOpenWidgetEditSheet}
               onWidgetDelete={(widgetId) => console.log('Delete widget:', widgetId)}
-              onFilterClick={(rect) => {
-                setFilterPopoverPosition({
-                  top: rect.bottom + 8,
-                  right: window.innerWidth - rect.right,
-                });
-                setShowFilterPopover(true);
-              }}
               onExportClick={handleExport}
               onRefreshClick={handleRefresh}
               onShareClick={(rect) => {
@@ -925,7 +1115,21 @@ const DashboardV2Demo = () => {
                 });
                 setShowSharePopover(true);
               }}
-              onEditClick={() => console.log('Edit dashboard mode')}
+              // New props
+              timestamp="Jan 15, 2026 at 2:45 PM"
+              createdBy="John Doe"
+              onCancelClick={handleCancelDashboard}
+              // Filter props
+              timelineFilter={timelineFilter}
+              onTimelineFilterChange={setTimelineFilter}
+              ownerFilter={ownerFilter}
+              onOwnerFilterChange={setOwnerFilter}
+              ownerOptions={ownerOptions}
+              advancedFilters={advancedFilters}
+              onAdvancedFiltersChange={setAdvancedFilters}
+              availableFilterFields={availableFilterFields}
+              onChartSegmentClick={handleChartSegmentClick}
+              onWidgetClick={handleWidgetClick}
             />
 
             {/* Inline Drilldown Panel inside Pane2 */}
@@ -933,20 +1137,29 @@ const DashboardV2Demo = () => {
               {drilldownWidget && drilldownData && (
                 <InlineDrilldownPanel
                   isOpen={!!drilldownWidget}
-                  onClose={() => setDrilldownWidget(null)}
+                  onClose={handleCloseDrilldown}
                   widgetName={
-                    kpiCards.find((k) => k.id === drilldownWidget)?.title ||
-                    (barChart.id === drilldownWidget
-                      ? barChart.title
-                      : pieChart.id === drilldownWidget
-                        ? pieChart.title
-                        : tableData.id === drilldownWidget
-                          ? tableData.title
-                          : 'Widget')
+                    drilldownSegmentFilter
+                      ? `${
+                          kpiCards.find((k) => k.id === drilldownWidget)?.title ||
+                          (barChart.id === drilldownWidget
+                            ? barChart.title
+                            : pieChart.id === drilldownWidget
+                              ? pieChart.title
+                              : 'Widget')
+                        } — ${drilldownSegmentFilter.name}`
+                      : kpiCards.find((k) => k.id === drilldownWidget)?.title ||
+                        (barChart.id === drilldownWidget
+                          ? barChart.title
+                          : pieChart.id === drilldownWidget
+                            ? pieChart.title
+                            : tableData.id === drilldownWidget
+                              ? tableData.title
+                              : 'Widget')
                   }
                   columns={drilldownData.columns}
                   rows={drilldownData.rows}
-                  filters={drilldownFilters}
+                  filters={getCombinedDrilldownFilters()}
                   formula={drilldownFormula}
                   onFiltersChange={(filters) => console.log('Filters changed:', filters)}
                   onFormulaChange={(formula) => console.log('Formula changed:', formula)}
@@ -954,6 +1167,27 @@ const DashboardV2Demo = () => {
                 />
               )}
             </AnimatePresence>
+
+            {/* Widget Edit Sheet (new side sheet) */}
+            <WidgetEditSheet
+              isOpen={showWidgetEditSheet}
+              onClose={() => {
+                setShowWidgetEditSheet(false);
+                setEditingWidgetId(null);
+                setEditingWidgetConfig(undefined);
+                // Reset reference context back to dashboard
+                setReferenceContext({
+                  type: 'dashboard',
+                  name: 'Deals Closing This Quarter',
+                  id: 'dashboard-deals-q1',
+                });
+              }}
+              onSave={handleWidgetEditSheetSave}
+              existingConfig={editingWidgetConfig}
+              widgetId={editingWidgetId || undefined}
+              mode="edit"
+              availableFilterFields={availableFilterFields}
+            />
           </div>
         )}
       </div>
@@ -975,11 +1209,7 @@ const DashboardV2Demo = () => {
             isCollapsed={isChatPaneCollapsed}
             onToggleCollapse={() => setIsChatPaneCollapsed(!isChatPaneCollapsed)}
             placeholder="Make changes to this dashboard..."
-            referenceContext={{
-              type: 'dashboard',
-              name: 'Deals Closing This Quarter',
-              id: 'dashboard-deals-q1',
-            } as ReferenceContext}
+            referenceContext={referenceContext}
           />
         </div>
       )}

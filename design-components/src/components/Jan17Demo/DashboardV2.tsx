@@ -1,4 +1,5 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DotsThreeIcon,
@@ -11,15 +12,31 @@ import {
   DownloadIcon,
   ArrowsClockwiseIcon,
   PaperPlaneTiltIcon,
+  CalendarIcon,
+  UserIcon,
+  CaretDownIcon,
+  CheckIcon,
+  XIcon,
 } from '@phosphor-icons/react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { SecondaryIconButton } from '../forms/buttons';
+import { SecondaryIconButton, AddButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../popups';
+import { FilterRow } from '../forms/filter';
 
 // ============================================================================
 // Types
 // ============================================================================
+
+export type TimelineFilter = 'this-quarter' | 'next-quarter' | 'last-quarter' | 'this-month' | 'this-year';
+export type OwnerFilter = string; // owner id or 'all'
+
+export interface DashboardFilter {
+  id: string;
+  field: string;
+  operator: string;
+  value: string;
+}
 
 export interface KPICardData {
   id: string;
@@ -50,6 +67,11 @@ export interface TableData {
   rows: Record<string, unknown>[];
 }
 
+export interface OwnerOption {
+  id: string;
+  name: string;
+}
+
 export interface DashboardV2Props {
   name: string;
   kpiCards: KPICardData[];
@@ -62,7 +84,7 @@ export interface DashboardV2Props {
   onWidgetDrillDown?: (widgetId: string) => void;
   onWidgetEdit?: (widgetId: string) => void;
   onWidgetDelete?: (widgetId: string) => void;
-  /** Callback when filter button is clicked */
+  /** Callback when filter button is clicked (legacy) */
   onFilterClick?: (buttonRect: DOMRect) => void;
   /** Callback when export button is clicked */
   onExportClick?: () => void;
@@ -76,7 +98,45 @@ export interface DashboardV2Props {
   onNameChange?: (newName: string) => void;
   /** Whether the dashboard is in edit mode */
   isEditMode?: boolean;
+  /** Timeline filter value */
+  timelineFilter?: TimelineFilter;
+  /** Callback when timeline filter changes */
+  onTimelineFilterChange?: (value: TimelineFilter) => void;
+  /** Owner filter value */
+  ownerFilter?: OwnerFilter;
+  /** Callback when owner filter changes */
+  onOwnerFilterChange?: (value: OwnerFilter) => void;
+  /** Available owners for filtering */
+  ownerOptions?: OwnerOption[];
+  /** Advanced filters */
+  advancedFilters?: DashboardFilter[];
+  /** Callback when advanced filters change */
+  onAdvancedFiltersChange?: (filters: DashboardFilter[]) => void;
+  /** Available fields for advanced filtering */
+  availableFilterFields?: string[];
+  /** Callback when a chart segment is clicked for drilldown */
+  onChartSegmentClick?: (widgetId: string, segmentData: { name: string; value: number }) => void;
+  /** Callback when cancel/close button is clicked */
+  onCancelClick?: () => void;
+  /** Timestamp when dashboard was created/updated */
+  timestamp?: string;
+  /** User who created the dashboard */
+  createdBy?: string;
+  /** Callback when a widget card is clicked (for reference context updates) */
+  onWidgetClick?: (widgetId: string) => void;
 }
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const TIMELINE_OPTIONS = [
+  { value: 'this-quarter', label: 'This Quarter' },
+  { value: 'next-quarter', label: 'Next Quarter' },
+  { value: 'last-quarter', label: 'Last Quarter' },
+  { value: 'this-month', label: 'This Month' },
+  { value: 'this-year', label: 'This Year' },
+];
 
 // ============================================================================
 // Context Menu Items
@@ -88,6 +148,237 @@ const getWidgetContextMenuItems = (): ContextMenuItem[] => [
 ];
 
 // ============================================================================
+// Filter Dropdown Popover Component
+// ============================================================================
+
+interface FilterDropdownPopoverProps<T extends string> {
+  isOpen: boolean;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  title: string;
+}
+
+function FilterDropdownPopover<T extends string>({
+  isOpen,
+  onClose,
+  anchorRef,
+  options,
+  value,
+  onChange,
+  title,
+}: FilterDropdownPopoverProps<T>) {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (isOpen && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+      });
+    }
+  }, [isOpen, anchorRef]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose, anchorRef]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <motion.div
+      ref={popoverRef}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.15 }}
+      className="fixed w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-[10000] overflow-hidden"
+      style={{ top: position.top, left: position.left }}
+    >
+      {/* Header */}
+      <div className="px-3 py-2 border-b border-gray-100">
+        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{title}</span>
+      </div>
+
+      {/* Options */}
+      <div className="py-1 max-h-[240px] overflow-y-auto">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => {
+              onChange(option.value);
+              onClose();
+            }}
+            className={`
+              w-full flex items-center justify-between px-3 py-2 text-[13px] transition-colors cursor-pointer
+              ${value === option.value ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'}
+            `}
+          >
+            <span>{option.label}</span>
+            {value === option.value && <CheckIcon size={14} className="text-indigo-600" />}
+          </button>
+        ))}
+      </div>
+    </motion.div>,
+    document.body
+  );
+}
+
+// ============================================================================
+// Advanced Filters Popover Component
+// ============================================================================
+
+interface AdvancedFiltersPopoverProps {
+  isOpen: boolean;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  filters: DashboardFilter[];
+  fieldOptions: { value: string; label: string }[];
+  onFiltersChange: (filters: DashboardFilter[]) => void;
+}
+
+const AdvancedFiltersPopover: React.FC<AdvancedFiltersPopoverProps> = ({
+  isOpen,
+  onClose,
+  anchorRef,
+  filters,
+  fieldOptions,
+  onFiltersChange,
+}) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [localFilters, setLocalFilters] = useState<DashboardFilter[]>(filters);
+
+  // Reset local filters when popover opens
+  useEffect(() => {
+    if (isOpen) {
+      setLocalFilters(filters);
+    }
+  }, [isOpen, filters]);
+
+  useEffect(() => {
+    if (isOpen && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 8,
+        left: Math.max(16, rect.left),
+      });
+    }
+  }, [isOpen, anchorRef]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose, anchorRef]);
+
+  const addFilter = () => {
+    const newFilter: DashboardFilter = {
+      id: `filter-${Date.now()}`,
+      field: fieldOptions[0]?.value || '',
+      operator: 'equals',
+      value: '',
+    };
+    setLocalFilters([...localFilters, newFilter]);
+  };
+
+  const updateFilter = (id: string, updates: Partial<DashboardFilter>) => {
+    setLocalFilters(localFilters.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+  };
+
+  const removeFilter = (id: string) => {
+    setLocalFilters(localFilters.filter((f) => f.id !== id));
+  };
+
+  const handleApply = () => {
+    onFiltersChange(localFilters);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <motion.div
+      ref={popoverRef}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.15 }}
+      className="fixed w-[420px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000]"
+      style={{ top: position.top, left: position.left }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <span className="text-[13px] font-medium text-gray-900">Edit Filters</span>
+        <AddButton onClick={addFilter}>Add Filter</AddButton>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto">
+        {localFilters.length === 0 ? (
+          <p className="text-[13px] text-gray-500 text-center py-4">
+            No filters applied. Click "Add Filter" to create one.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {localFilters.map((filter) => (
+              <FilterRow
+                key={filter.id}
+                fields={fieldOptions}
+                field={filter.field}
+                operator={filter.operator}
+                value={filter.value}
+                onFieldChange={(field) => updateFilter(filter.id, { field })}
+                onOperatorChange={(operator) => updateFilter(filter.id, { operator })}
+                onValueChange={(value) => updateFilter(filter.id, { value })}
+                onRemove={() => removeFilter(filter.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+        <GhostButton onClick={onClose}>Cancel</GhostButton>
+        <PrimaryButton onClick={handleApply}>Apply Filters</PrimaryButton>
+      </div>
+    </motion.div>,
+    document.body
+  );
+};
+
+// ============================================================================
 // KPI Card Component
 // ============================================================================
 
@@ -96,9 +387,10 @@ interface KPICardProps {
   isAnimating?: boolean;
   onDrillDown?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onClick?: () => void;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ data, isAnimating, onDrillDown, onContextMenu }) => {
+const KPICard: React.FC<KPICardProps> = ({ data, isAnimating, onDrillDown, onContextMenu, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -109,6 +401,7 @@ const KPICard: React.FC<KPICardProps> = ({ data, isAnimating, onDrillDown, onCon
       className="relative bg-white rounded-xl border border-gray-100 p-4 cursor-pointer hover:border-gray-200 transition-colors"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
       {/* Actions */}
       <AnimatePresence>
@@ -174,9 +467,11 @@ interface ChartWidgetProps {
   isAnimating?: boolean;
   onDrillDown?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onSegmentClick?: (segmentData: { name: string; value: number }) => void;
+  onClick?: () => void;
 }
 
-const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDown, onContextMenu }) => {
+const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDown, onContextMenu, onSegmentClick, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -225,6 +520,19 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDow
             borderWidth: 0,
             groupPadding: 0.2,
             pointPadding: 0.1,
+            cursor: onSegmentClick ? 'pointer' : 'default',
+            point: {
+              events: {
+                click: function (this: Highcharts.Point) {
+                  if (onSegmentClick) {
+                    onSegmentClick({
+                      name: this.category as string,
+                      value: this.y as number,
+                    });
+                  }
+                },
+              },
+            },
           },
         },
         colors: ['#4f46e5', '#818cf8'],
@@ -241,10 +549,23 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDow
           pie: {
             innerSize: '50%',
             borderWidth: 0,
+            cursor: onSegmentClick ? 'pointer' : 'default',
             dataLabels: {
               enabled: true,
               format: '{point.name}: {point.percentage:.0f}%',
               style: { fontSize: '10px', fontWeight: '400', color: '#374151' },
+            },
+            point: {
+              events: {
+                click: function (this: Highcharts.Point) {
+                  if (onSegmentClick) {
+                    onSegmentClick({
+                      name: this.name as string,
+                      value: this.y as number,
+                    });
+                  }
+                },
+              },
             },
           },
         },
@@ -259,7 +580,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDow
     }
 
     return baseOptions;
-  }, [data]);
+  }, [data, onSegmentClick]);
 
   return (
     <motion.div
@@ -269,6 +590,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDow
       className="relative bg-white rounded-xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -325,9 +647,10 @@ interface TableWidgetProps {
   isAnimating?: boolean;
   onDrillDown?: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onClick?: () => void;
 }
 
-const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDown, onContextMenu }) => {
+const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDown, onContextMenu, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const formatValue = (value: unknown, type?: string): string => {
@@ -346,9 +669,10 @@ const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDow
       initial={isAnimating ? { opacity: 0, y: 20 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="relative bg-white rounded-xl border border-gray-100 overflow-hidden"
+      className="relative bg-white rounded-xl border border-gray-100 overflow-hidden cursor-pointer hover:border-gray-200 transition-colors"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -446,18 +770,73 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
   onEditClick,
   onNameChange,
   isEditMode = false,
+  timelineFilter = 'this-quarter',
+  onTimelineFilterChange,
+  ownerFilter = 'all',
+  onOwnerFilterChange,
+  ownerOptions = [],
+  advancedFilters = [],
+  onAdvancedFiltersChange,
+  availableFilterFields = [],
+  onChartSegmentClick,
+  onCancelClick,
+  timestamp,
+  createdBy,
+  onWidgetClick,
 }) => {
   const filterButtonRef = useRef<HTMLButtonElement>(null);
+  const timelineButtonRef = useRef<HTMLButtonElement>(null);
+  const ownerButtonRef = useRef<HTMLButtonElement>(null);
   const shareButtonRef = useRef<HTMLDivElement>(null);
   const editButtonRef = useRef<HTMLDivElement>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(name);
+  const [showTimelinePopover, setShowTimelinePopover] = useState(false);
+  const [showOwnerPopover, setShowOwnerPopover] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Derive owner options for dropdown
+  const ownerDropdownOptions = useMemo(() => {
+    const options: { value: string; label: string }[] = [{ value: 'all', label: 'All Owners' }];
+    ownerOptions.forEach((owner) => {
+      options.push({ value: owner.id, label: owner.name });
+    });
+    return options;
+  }, [ownerOptions]);
+
+  // Derive field options for filter rows
+  const fieldOptions = useMemo(() => {
+    return availableFilterFields.map((f) => ({ value: f, label: f }));
+  }, [availableFilterFields]);
+
+  // Get display labels for current filter values
+  const timelineLabel = TIMELINE_OPTIONS.find((o) => o.value === timelineFilter)?.label || 'This Quarter';
+  const ownerLabel = ownerDropdownOptions.find((o) => o.value === ownerFilter)?.label || 'All Owners';
 
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
     position: { top: number; left: number };
     widgetId: string | null;
   }>({ isOpen: false, position: { top: 0, left: 0 }, widgetId: null });
+
+  // Close all popovers when one opens
+  const handleOpenTimelinePopover = () => {
+    setShowTimelinePopover(true);
+    setShowOwnerPopover(false);
+    setShowAdvancedFilters(false);
+  };
+
+  const handleOpenOwnerPopover = () => {
+    setShowOwnerPopover(true);
+    setShowTimelinePopover(false);
+    setShowAdvancedFilters(false);
+  };
+
+  const handleOpenAdvancedFilters = () => {
+    setShowAdvancedFilters(true);
+    setShowTimelinePopover(false);
+    setShowOwnerPopover(false);
+  };
 
   const handleContextMenu = (e: React.MouseEvent, widgetId: string) => {
     e.preventDefault();
@@ -487,66 +866,63 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
     <div className="px-2 h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-        {/* Dashboard Name - Editable */}
-        {isEditingName ? (
-          <input
-            type="text"
-            value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
-            onBlur={() => {
-              setIsEditingName(false);
-              if (editedName.trim() && editedName !== name) {
-                onNameChange?.(editedName.trim());
-              } else {
-                setEditedName(name);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+        {/* Left side - Dashboard Name and metadata */}
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Dashboard Name - Editable */}
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={() => {
                 setIsEditingName(false);
                 if (editedName.trim() && editedName !== name) {
                   onNameChange?.(editedName.trim());
-                }
-              }
-              if (e.key === 'Escape') {
-                setIsEditingName(false);
-                setEditedName(name);
-              }
-            }}
-            autoFocus
-            className="text-[13px] font-medium text-gray-900 bg-transparent border-b border-indigo-500 outline-none px-0 py-0"
-          />
-        ) : (
-          <span
-            className={`text-[13px] font-medium text-gray-900 ${onNameChange ? 'cursor-pointer hover:text-indigo-600 transition-colors' : ''}`}
-            onClick={() => {
-              if (onNameChange) {
-                setIsEditingName(true);
-              }
-            }}
-            title={onNameChange ? 'Click to edit name' : undefined}
-          >
-            {name}
-          </span>
-        )}
-        <div className="flex items-center gap-2">
-          {/* Filter Button */}
-          {onFilterClick && (
-            <button
-              ref={filterButtonRef}
-              onClick={() => {
-                if (filterButtonRef.current) {
-                  onFilterClick(filterButtonRef.current.getBoundingClientRect());
+                } else {
+                  setEditedName(name);
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-gray-700 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
-              title="Filter dashboard"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setIsEditingName(false);
+                  if (editedName.trim() && editedName !== name) {
+                    onNameChange?.(editedName.trim());
+                  }
+                }
+                if (e.key === 'Escape') {
+                  setIsEditingName(false);
+                  setEditedName(name);
+                }
+              }}
+              autoFocus
+              className="text-[13px] font-medium text-gray-900 bg-transparent border-b border-indigo-500 outline-none px-0 py-0"
+            />
+          ) : (
+            <span
+              className={`text-[13px] font-medium text-gray-900 ${onNameChange ? 'cursor-pointer hover:text-indigo-600 transition-colors' : ''}`}
+              onClick={() => {
+                if (onNameChange) {
+                  setIsEditingName(true);
+                }
+              }}
+              title={onNameChange ? 'Click to edit name' : undefined}
             >
-              <FunnelIcon size={14} weight="regular" />
-              <span>Filter</span>
-            </button>
+              {name}
+            </span>
           )}
 
+          {/* Timestamp and Created By */}
+          {(timestamp || createdBy) && (
+            <span className="text-[11px] text-gray-400 whitespace-nowrap">
+              {timestamp && `Updated ${timestamp}`}
+              {timestamp && createdBy && ' • '}
+              {createdBy && `by ${createdBy}`}
+            </span>
+          )}
+        </div>
+
+        {/* Right side - Action buttons */}
+        <div className="flex items-center gap-2">
           {/* Refresh Button */}
           {onRefreshClick && (
             <SecondaryIconButton
@@ -565,20 +941,6 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             />
           )}
 
-          {/* Edit Button */}
-          {onEditClick && (
-            <div ref={editButtonRef}>
-              <SecondaryIconButton
-                icon={<PencilSimpleIcon size={14} />}
-                onClick={onEditClick}
-                title="Edit dashboard"
-              />
-            </div>
-          )}
-
-          {/* Separator */}
-          {onShareClick && <div className="h-6 w-px bg-gray-200" />}
-
           {/* Share Button */}
           {onShareClick && (
             <div ref={shareButtonRef}>
@@ -593,7 +955,104 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
               />
             </div>
           )}
+
+          {/* Separator before Cancel */}
+          {onCancelClick && <div className="h-6 w-px bg-gray-200" />}
+
+          {/* Cancel Button */}
+          {onCancelClick && (
+            <button
+              onClick={onCancelClick}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              title="Close dashboard"
+            >
+              <XIcon size={16} />
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
+        {/* Timeline Filter Button */}
+        {onTimelineFilterChange && (
+          <button
+            ref={timelineButtonRef}
+            onClick={handleOpenTimelinePopover}
+            className={`
+              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              ${
+                showTimelinePopover
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+              }
+            `}
+          >
+            <CalendarIcon size={14} />
+            <span>{timelineLabel}</span>
+            <CaretDownIcon size={12} className="text-gray-400" />
+          </button>
+        )}
+
+        {/* Owner Filter Button */}
+        {onOwnerFilterChange && ownerDropdownOptions.length > 1 && (
+          <button
+            ref={ownerButtonRef}
+            onClick={handleOpenOwnerPopover}
+            className={`
+              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              ${
+                showOwnerPopover
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+              }
+            `}
+          >
+            <UserIcon size={14} />
+            <span>{ownerLabel}</span>
+            <CaretDownIcon size={12} className="text-gray-400" />
+          </button>
+        )}
+
+        {/* Advanced Filters Button */}
+        {onAdvancedFiltersChange && (
+          <button
+            ref={filterButtonRef}
+            onClick={handleOpenAdvancedFilters}
+            className={`
+              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              ${
+                showAdvancedFilters || advancedFilters.length > 0
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+              }
+            `}
+          >
+            <FunnelIcon size={14} />
+            <span>Filters</span>
+            {advancedFilters.length > 0 && (
+              <span className="px-1.5 py-0.5 text-[11px] font-medium bg-indigo-600 text-white rounded-full">
+                {advancedFilters.length}
+              </span>
+            )}
+          </button>
+        )}
+
+        {/* Legacy Filter Button (for backwards compatibility) */}
+        {onFilterClick && !onAdvancedFiltersChange && (
+          <button
+            ref={filterButtonRef}
+            onClick={() => {
+              if (filterButtonRef.current) {
+                onFilterClick(filterButtonRef.current.getBoundingClientRect());
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[13px] text-gray-700 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
+          >
+            <FunnelIcon size={14} />
+            <span>Filter</span>
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -609,6 +1068,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                     isAnimating={isBuilding}
                     onDrillDown={() => onWidgetDrillDown?.(kpi.id)}
                     onContextMenu={(e) => handleContextMenu(e, kpi.id)}
+                    onClick={() => onWidgetClick?.(kpi.id)}
                   />
                 )}
               </AnimatePresence>
@@ -625,6 +1085,12 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                     isAnimating={isBuilding}
                     onDrillDown={() => onWidgetDrillDown?.(barChart.id)}
                     onContextMenu={(e) => handleContextMenu(e, barChart.id)}
+                    onSegmentClick={
+                      onChartSegmentClick
+                        ? (segmentData) => onChartSegmentClick(barChart.id, segmentData)
+                        : undefined
+                    }
+                    onClick={() => onWidgetClick?.(barChart.id)}
                   />
                 )}
               </AnimatePresence>
@@ -637,6 +1103,12 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                     isAnimating={isBuilding}
                     onDrillDown={() => onWidgetDrillDown?.(pieChart.id)}
                     onContextMenu={(e) => handleContextMenu(e, pieChart.id)}
+                    onSegmentClick={
+                      onChartSegmentClick
+                        ? (segmentData) => onChartSegmentClick(pieChart.id, segmentData)
+                        : undefined
+                    }
+                    onClick={() => onWidgetClick?.(pieChart.id)}
                   />
                 )}
               </AnimatePresence>
@@ -652,6 +1124,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                   isAnimating={isBuilding}
                   onDrillDown={() => onWidgetDrillDown?.(table.id)}
                   onContextMenu={(e) => handleContextMenu(e, table.id)}
+                  onClick={() => onWidgetClick?.(table.id)}
                 />
               )}
             </AnimatePresence>
@@ -668,6 +1141,54 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
         width={128}
         onItemClick={(item) => handleContextMenuAction(item.id)}
       />
+
+      {/* Timeline Filter Popover */}
+      <AnimatePresence>
+        {onTimelineFilterChange && (
+          <FilterDropdownPopover
+            isOpen={showTimelinePopover}
+            onClose={() => setShowTimelinePopover(false)}
+            anchorRef={timelineButtonRef}
+            options={TIMELINE_OPTIONS}
+            value={timelineFilter}
+            onChange={(value) => {
+              onTimelineFilterChange(value as TimelineFilter);
+            }}
+            title="Time Period"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Owner Filter Popover */}
+      <AnimatePresence>
+        {onOwnerFilterChange && (
+          <FilterDropdownPopover
+            isOpen={showOwnerPopover}
+            onClose={() => setShowOwnerPopover(false)}
+            anchorRef={ownerButtonRef}
+            options={ownerDropdownOptions}
+            value={ownerFilter}
+            onChange={(value) => {
+              onOwnerFilterChange(value);
+            }}
+            title="Owner"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Advanced Filters Popover */}
+      <AnimatePresence>
+        {onAdvancedFiltersChange && (
+          <AdvancedFiltersPopover
+            isOpen={showAdvancedFilters}
+            onClose={() => setShowAdvancedFilters(false)}
+            anchorRef={filterButtonRef}
+            filters={advancedFilters}
+            fieldOptions={fieldOptions}
+            onFiltersChange={onAdvancedFiltersChange}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

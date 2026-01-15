@@ -11,6 +11,9 @@ import {
   UploadSimpleIcon,
   AtomIcon,
   CheckIcon,
+  ChartLineIcon,
+  HashIcon,
+  DatabaseIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -38,6 +41,14 @@ function getReferenceIcon(type: ReferenceContext['type']) {
       return <Table size={14} weight="regular" className="text-gray-800" />;
     case 'document':
       return <FileText size={14} weight="regular" className="text-gray-800" />;
+    case 'widget':
+      return <ChartLineIcon size={14} weight="regular" className="text-gray-800" />;
+    case 'kpi':
+      return <HashIcon size={14} weight="regular" className="text-gray-800" />;
+    case 'table':
+      return <Table size={14} weight="regular" className="text-gray-800" />;
+    case 'source':
+      return <DatabaseIcon size={14} weight="regular" className="text-gray-800" />;
     default:
       return <ChartBar size={14} weight="regular" className="text-gray-800" />;
   }
@@ -54,6 +65,14 @@ function getReferenceLabel(type: ReferenceContext['type']) {
       return 'Report';
     case 'document':
       return 'Document';
+    case 'widget':
+      return 'Widget';
+    case 'kpi':
+      return 'KPI';
+    case 'table':
+      return 'Table';
+    case 'source':
+      return 'Reference';
     default:
       return 'Reference';
   }

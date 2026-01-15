@@ -1,7 +1,7 @@
 import { useRef, useLayoutEffect } from 'react';
 import { SidebarSimpleIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../forms/buttons';
-import { ChatViewV2, type ChatMessage, type ThinkingStep, type DashboardPlan } from './ChatViewV2';
+import { ChatViewV2, type ChatMessage, type ThinkingStep, type DashboardPlan, type DashboardArtifact } from './ChatViewV2';
 import { StandardChatInput, type ReferenceContext } from '../Chat/StandardChatInput';
 
 // ============================================================================
@@ -28,7 +28,7 @@ export interface ChatPaneV2Props {
 }
 
 // Re-export types for convenience
-export type { ChatMessage, ThinkingStep, DashboardPlan, ReferenceContext };
+export type { ChatMessage, ThinkingStep, DashboardPlan, DashboardArtifact, ReferenceContext };
 
 // ============================================================================
 // Header Component
