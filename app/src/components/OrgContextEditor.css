@@ -83,7 +83,6 @@
   overflow-y: auto;
   border: none;
   max-height: none;
-  background: white;
 }
 
 /* Tiptap's EditorContent wrapper - make it take no space */

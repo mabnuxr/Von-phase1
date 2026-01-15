@@ -65,32 +65,30 @@ export function OrgContextDocumentList({
         `}
         onClick={() => onSelectContext(ctx.id)}
       >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
-            {isDefault && (
-              <LockKeyIcon
-                size={15}
-                weight={isSelected ? "duotone" : "regular"}
-                className={`flex-shrink-0 mt-0.5 transition-colors duration-200 ${
-                  isSelected ? "text-indigo-600" : "text-indigo-500"
-                }`}
-              />
-            )}
-            <span
-              className={`text-[13px] leading-snug truncate transition-colors duration-200 ${
-                isSelected
-                  ? "text-gray-800 font-medium"
-                  : isDefault
-                    ? "text-indigo-700"
-                    : "text-gray-600"
+        <div className="flex items-start gap-2.5">
+          {isDefault && (
+            <LockKeyIcon
+              size={15}
+              weight={isSelected ? "duotone" : "regular"}
+              className={`flex-shrink-0 mt-0.5 transition-colors duration-200 ${
+                isSelected ? "text-indigo-600" : "text-indigo-500"
               }`}
-            >
-              {ctx.key}
-            </span>
-          </div>
+            />
+          )}
+          <span
+            className={`flex-1 text-[13px] leading-snug line-clamp-2 transition-colors duration-200 ${
+              isSelected
+                ? "text-gray-800 font-medium"
+                : isDefault
+                  ? "text-indigo-700"
+                  : "text-gray-600"
+            }`}
+          >
+            {ctx.key}
+          </span>
           {/* Edit/Delete buttons on selected item */}
           {isSelected && (canUpdateOrgMemory || canDeleteOrgMemory) && (
-            <div className="flex items-center gap-0.5 flex-shrink-0">
+            <div className="flex items-center gap-0.5 ml-auto flex-shrink-0">
               {canUpdateOrgMemory && (
                 <button
                   onClick={(e) => {
@@ -124,7 +122,7 @@ export function OrgContextDocumentList({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full">
       {/* Add new org memory button */}
       {canCreateOrgMemory && (
         <div className="px-3 py-3">

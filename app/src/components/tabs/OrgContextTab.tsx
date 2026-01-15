@@ -84,9 +84,6 @@ export function OrgContextTab() {
   const [isCreatingUserMemory, setIsCreatingUserMemory] = useState(false);
   const hasAttemptedUserMemoryCreation = useRef(false);
 
-  // Toggle state for user memory (enabled by default)
-  const [isUserMemoryActive, setIsUserMemoryActive] = useState(true);
-
   useEffect(() => {
     // Only proceed if we have loaded user memory data (not undefined)
     // and it's empty (length === 0 means no user memory exists)
@@ -394,7 +391,7 @@ export function OrgContextTab() {
           )}
 
           {/* ===== ORG MEMORY SECTION ===== */}
-          <div className="w-[650px]">
+          <div className="w-[75%]">
             {/* Section Header - Outside card */}
             <div className="mb-3">
               <h3 className="text-sm font-semibold text-gray-800">
@@ -406,10 +403,12 @@ export function OrgContextTab() {
             </div>
 
             {/* Org Memory Card */}
-            <div className="w-[650px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden">
-              <div className="flex h-[450px] w-full">
+            <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden">
+              <div
+                className={`flex w-full ${isUserMemoryEnabled ? "h-[50vh]" : "h-[70vh]"}`}
+              >
                 {/* Left Panel - Context List */}
-                <div className="w-56 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0">
+                <div className="w-60 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0 flex flex-col">
                   <OrgContextDocumentList
                     contexts={contexts}
                     selectedContextId={selectedOrgContextId}
@@ -463,59 +462,20 @@ export function OrgContextTab() {
 
           {/* ===== USER MEMORY SECTION ===== */}
           {isUserMemoryEnabled && (
-            <div className="w-[650px]">
+            <div className="w-[75%]">
               {/* Section Header - Outside card */}
               <div className="mb-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-800 leading-5">
-                    User Memory
-                  </h3>
-                  {/* Toggle Switch */}
-                  <button
-                    onClick={() => setIsUserMemoryActive(!isUserMemoryActive)}
-                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
-                      isUserMemoryActive ? "bg-violet-500" : "bg-gray-300"
-                    }`}
-                    role="switch"
-                    aria-checked={isUserMemoryActive}
-                  >
-                    <span
-                      className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                        isUserMemoryActive
-                          ? "translate-x-3.5"
-                          : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
+                <h3 className="text-sm font-semibold text-gray-800">
+                  User Memory
+                </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Manage your personal preferences and context
                 </p>
               </div>
 
               {/* User Memory Card - Fixed height with scroll */}
-              <div
-                className={`w-[650px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden h-[200px] relative transition-opacity duration-200 ${
-                  !isUserMemoryActive ? "opacity-50" : ""
-                }`}
-              >
-                {!isUserMemoryActive ? (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-3">
-                      <BrainIcon
-                        size={24}
-                        weight="duotone"
-                        className="text-gray-400"
-                      />
-                    </div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-1">
-                      User Memory Disabled
-                    </h4>
-                    <p className="text-xs text-gray-400 text-center">
-                      Enable the toggle to use your personal memory.
-                    </p>
-                  </div>
-                ) : isUserMemoryLoading || isCreatingUserMemory ? (
+              <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden h-[200px] relative">
+                {isUserMemoryLoading || isCreatingUserMemory ? (
                   <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                     <span className="animate-pulse">Loading...</span>
                   </div>
