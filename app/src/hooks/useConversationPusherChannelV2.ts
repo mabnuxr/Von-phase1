@@ -25,56 +25,6 @@ import {
   getElapsedTimeFromEvents,
 } from "../utils/transformAguiToTimelineSteps";
 
-// ============================================================================
-// DEBUG: Event logging for verification (REMOVE BEFORE PUSHING TO PRODUCTION)
-// ============================================================================
-interface V2PusherEventLog {
-  timestamp: string;
-  eventName: string;
-  data: AguiEventWrapper;
-}
-
-// Extend window type for debug logs
-declare global {
-  interface Window {
-    __v2PusherEventLogs?: V2PusherEventLog[];
-    __v2PusherDownloadLogs?: () => void;
-  }
-}
-
-// Initialize debug log storage and download helper
-if (typeof window !== "undefined") {
-  window.__v2PusherEventLogs = window.__v2PusherEventLogs || [];
-  window.__v2PusherDownloadLogs = () => {
-    const logs = window.__v2PusherEventLogs || [];
-    const blob = new Blob([JSON.stringify(logs, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `v2-pusher-events-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    console.log(`[V2 Pusher Debug] Downloaded ${logs.length} events`);
-  };
-}
-
-function logV2Event(eventName: string, data: AguiEventWrapper) {
-  const logEntry: V2PusherEventLog = {
-    timestamp: new Date().toISOString(),
-    eventName,
-    data,
-  };
-  console.log("[V2 Pusher Event]", eventName, logEntry);
-  if (typeof window !== "undefined" && window.__v2PusherEventLogs) {
-    window.__v2PusherEventLogs.push(logEntry);
-  }
-}
-// ============================================================================
-// END DEBUG SECTION
-// ============================================================================
-
 export interface UseConversationPusherChannelV2Config {
   conversationId: string | null;
   tenantId: string | undefined;
@@ -146,9 +96,6 @@ export function useConversationPusherChannelV2(
         const wrapper: AguiEventWrapper =
           typeof data === "string" ? JSON.parse(data) : data;
         const { run_id, sequence, event } = wrapper;
-
-        // DEBUG: Log every event
-        logV2Event(eventName, wrapper);
 
         if (!config.conversationId || !run_id) return;
 

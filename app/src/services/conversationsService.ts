@@ -58,10 +58,10 @@ class ConversationsService {
    */
   async getConversations(
     page: number = 1,
-    limit: number = 20,
+    limit: number = 20
   ): Promise<PaginatedConversationsResponse> {
     return apiClient.get<PaginatedConversationsResponse>(
-      `/api/v1/chat/conversations?page=${page}&limit=${limit}`,
+      `/api/v1/chat/conversations?page=${page}&limit=${limit}`
     );
   }
 
@@ -72,7 +72,7 @@ class ConversationsService {
   async createConversation(title: string): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
-      { title },
+      { title }
     );
   }
 
@@ -81,7 +81,7 @@ class ConversationsService {
    */
   async getConversation(conversationId: string): Promise<Conversation> {
     return apiClient.get<Conversation>(
-      `/api/v1/chat/conversations/${conversationId}`,
+      `/api/v1/chat/conversations/${conversationId}`
     );
   }
 
@@ -91,10 +91,10 @@ class ConversationsService {
   async getConversationMessages(
     conversationId: string,
     page: number = 1,
-    limit: number = 50,
+    limit: number = 50
   ): Promise<PaginatedMessagesResponse> {
     return apiClient.get<PaginatedMessagesResponse>(
-      `/api/v1/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
+      `/api/v1/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`
     );
   }
 
@@ -105,11 +105,11 @@ class ConversationsService {
   async sendMessage(
     conversationId: string,
     content: string,
-    messageType: "text" | "json" | "markdown" = "text",
+    messageType: "text" | "json" | "markdown" = "text"
   ): Promise<CreateMessageResponse> {
     return apiClient.post<CreateMessageResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages`,
-      { content, messageType },
+      { content, messageType }
     );
   }
 
@@ -118,7 +118,7 @@ class ConversationsService {
    */
   async deleteConversation(conversationId: string): Promise<void> {
     return apiClient.delete<void>(
-      `/api/v1/chat/conversations/${conversationId}`,
+      `/api/v1/chat/conversations/${conversationId}`
     );
   }
 
@@ -129,10 +129,10 @@ class ConversationsService {
   async getArtifact(
     conversationId: string,
     messageId: string,
-    artifactId: string,
+    artifactId: string
   ): Promise<ArtifactResponse> {
     return apiClient.get<ArtifactResponse>(
-      `/api/v1/chat/conversations/${conversationId}/messages/${messageId}/artifacts/${artifactId}`,
+      `/api/v1/chat/conversations/${conversationId}/messages/${messageId}/artifacts/${artifactId}`
     );
   }
 
@@ -142,10 +142,10 @@ class ConversationsService {
    */
   async getMessageArtifacts(
     conversationId: string,
-    runId: string,
+    runId: string
   ): Promise<MessageArtifactsResponse> {
     return apiClient.get<MessageArtifactsResponse>(
-      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts/`,
+      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts`
     );
   }
 
@@ -156,10 +156,10 @@ class ConversationsService {
   async getArtifactByRunId(
     conversationId: string,
     runId: string,
-    artifactId: string,
+    artifactId: string
   ): Promise<ArtifactResponse> {
     return apiClient.get<ArtifactResponse>(
-      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts/${artifactId}`,
+      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts/${artifactId}`
     );
   }
 
@@ -168,7 +168,7 @@ class ConversationsService {
    */
   async stopStreaming(conversationId: string): Promise<{ success: boolean }> {
     return apiClient.post<{ success: boolean }>(
-      `/api/v1/chat/conversations/${conversationId}/stop`,
+      `/api/v1/chat/conversations/${conversationId}/stop`
     );
   }
 
@@ -208,10 +208,10 @@ class ConversationsService {
    * Returns folder details and list of conversations
    */
   async getFolderConversations(
-    folderId: string,
+    folderId: string
   ): Promise<FolderConversationsResponse> {
     return apiClient.get<FolderConversationsResponse>(
-      `/api/v1/folders/${folderId}/conversations`,
+      `/api/v1/folders/${folderId}/conversations`
     );
   }
 
@@ -222,7 +222,7 @@ class ConversationsService {
    */
   async addConversationToFolder(
     folderId: string,
-    conversationId: string,
+    conversationId: string
   ): Promise<void> {
     return apiClient.post<void>(`/api/v1/folders/${folderId}/conversations`, {
       conversation_id: conversationId,
@@ -236,10 +236,10 @@ class ConversationsService {
    */
   async removeConversationFromFolder(
     folderId: string,
-    conversationId: string,
+    conversationId: string
   ): Promise<void> {
     return apiClient.delete<void>(
-      `/api/v1/folders/${folderId}/conversations/${conversationId}`,
+      `/api/v1/folders/${folderId}/conversations/${conversationId}`
     );
   }
 }
