@@ -12,7 +12,7 @@
 
 /* Toolbar Styles */
 .tiptap-toolbar {
-  background: transparent;
+  background: white;
   border-bottom: 1px solid #e5e7eb;
   padding: 0.375rem 0.5rem;
   display: flex;
@@ -85,6 +85,44 @@
   max-height: none;
 }
 
+/* Tiptap's EditorContent wrapper - make it take no space */
+.tiptap-editor-wrapper {
+  position: relative;
+}
+
+.tiptap-editor-wrapper > div:first-child:not(.tiptap-editor):not(.ProseMirror) {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* Prevent empty siblings from taking space in flex layout */
+.org-context-editor
+  > div:empty:not(.tiptap-toolbar):not(.tiptap-editor-wrapper) {
+  display: none;
+  flex: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ProseMirror reset */
+.tiptap-editor-wrapper .ProseMirror {
+  background: white;
+  outline: none;
+  height: 100%;
+}
+
+.tiptap-editor-wrapper .ProseMirror > *:first-child {
+  margin-top: 0;
+}
+
 /* Thin scrollbar with no track */
 .tiptap-editor-wrapper::-webkit-scrollbar {
   width: 6px;
@@ -113,10 +151,27 @@
 .tiptap-editor {
   min-height: 200px;
   outline: none;
+  background: white !important;
+  height: 100%;
+}
+
+.tiptap-editor.ProseMirror {
+  background: white !important;
 }
 
 .tiptap-editor p {
   margin: 0.375rem 0;
+  background: transparent;
+}
+
+.tiptap-editor p:first-child {
+  margin-top: 0;
+}
+
+/* First element reset */
+.tiptap-editor > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .tiptap-editor h1 {
@@ -125,6 +180,11 @@
   margin-top: 1rem;
   margin-bottom: 0.5rem;
   line-height: 1.5;
+  background: transparent;
+}
+
+.tiptap-editor h1:first-child {
+  margin-top: 0;
 }
 
 .tiptap-editor h2 {
@@ -133,6 +193,11 @@
   margin-top: 1.25rem;
   margin-bottom: 0.5rem;
   line-height: 1.5;
+  background: transparent;
+}
+
+.tiptap-editor h2:first-child {
+  margin-top: 0;
 }
 
 .tiptap-editor h3 {
@@ -141,6 +206,11 @@
   margin-top: 0.75rem;
   margin-bottom: 0.375rem;
   line-height: 1.5;
+  background: transparent;
+}
+
+.tiptap-editor h3:first-child {
+  margin-top: 0;
 }
 
 /* Lists */
@@ -159,6 +229,13 @@
 .tiptap-editor li {
   margin: 0.125rem 0;
   display: list-item;
+  color: inherit;
+}
+
+/* Reset prose list marker styling */
+.tiptap-editor ol > li::marker,
+.tiptap-editor ul > li::marker {
+  color: #374151;
 }
 
 .tiptap-editor li p {
@@ -284,6 +361,36 @@
 /* Focus styles */
 .tiptap-editor:focus {
   outline: none;
+}
+
+/* Tiptap/ProseMirror internal element fixes */
+.tiptap-editor .ProseMirror-gapcursor {
+  display: none !important;
+  pointer-events: none;
+}
+
+.tiptap-editor .ProseMirror-gapcursor:after {
+  display: none !important;
+}
+
+/* Hide drop cursor */
+.tiptap-editor .ProseMirror-dropcursor {
+  display: none !important;
+}
+
+/* Remove any widget decorations backgrounds */
+.tiptap-editor .ProseMirror-widget {
+  background: transparent !important;
+}
+
+/* Remove separator/divider backgrounds */
+.tiptap-editor .ProseMirror-separator {
+  background: transparent !important;
+}
+
+/* Ensure no unwanted backgrounds on any prosemirror element */
+.tiptap-editor [class*="ProseMirror"] {
+  background: transparent !important;
 }
 
 /* Selection */

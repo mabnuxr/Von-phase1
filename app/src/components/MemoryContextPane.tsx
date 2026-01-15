@@ -93,9 +93,10 @@ export function MemoryContextPane({
 
   const isValid =
     editingKey.trim().length > 0 &&
-    editingDescription.trim().length > 0 &&
+    (isUserMemory || editingDescription.trim().length > 0) &&
     editingKey.length <= MEMORY_CONTEXT_LIMITS.key &&
-    editingDescription.length <= MEMORY_CONTEXT_LIMITS.description &&
+    (isUserMemory ||
+      editingDescription.length <= MEMORY_CONTEXT_LIMITS.description) &&
     editingContent.length <= MEMORY_CONTEXT_LIMITS.value;
 
   const footer = (
@@ -179,26 +180,28 @@ export function MemoryContextPane({
           )}
         </div>
 
-        {/* Description */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-medium text-gray-700">
-              When should the agent use this?{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <CharacterBudget
-              current={editingDescription.length}
-              max={MEMORY_CONTEXT_LIMITS.description}
+        {/* Description - Hidden for user memory */}
+        {!isUserMemory && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                When should the agent use this?{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <CharacterBudget
+                current={editingDescription.length}
+                max={MEMORY_CONTEXT_LIMITS.description}
+              />
+            </div>
+            <textarea
+              value={editingDescription}
+              onChange={(e) => setEditingDescription(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none"
+              placeholder="e.g., When answering questions about pricing or discounts"
             />
           </div>
-          <textarea
-            value={editingDescription}
-            onChange={(e) => setEditingDescription(e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none"
-            placeholder="e.g., When answering questions about pricing or discounts"
-          />
-        </div>
+        )}
 
         {/* Memory Content */}
         <div className="flex-1 flex flex-col min-h-0">
