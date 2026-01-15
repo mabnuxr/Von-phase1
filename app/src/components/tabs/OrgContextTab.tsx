@@ -386,169 +386,175 @@ export function OrgContextTab() {
       {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto settings-scrollbar px-6">
         <div className="pt-6 pb-12 space-y-8 flex flex-col items-center">
-        {/* Error state */}
-        {error && (
-          <div className="text-center py-8 px-6 bg-red-50/80 rounded-2xl backdrop-blur-sm">
-            <p className="text-sm text-red-500">Failed to load memory</p>
-          </div>
-        )}
-
-        {/* ===== ORG MEMORY SECTION ===== */}
-        <div className="w-[650px]">
-          {/* Section Header - Outside card */}
-          <div className="mb-3">
-            <h3 className="text-sm font-semibold text-gray-800">Org Memory</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Define context shared across all users in your organization
-            </p>
-          </div>
-
-          {/* Org Memory Card */}
-          <div className="w-[650px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden">
-            <div className="flex h-[450px] w-full">
-            {/* Left Panel - Context List */}
-            <div className="w-56 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0">
-              <OrgContextDocumentList
-                contexts={contexts}
-                selectedContextId={selectedOrgContextId}
-                onSelectContext={handleSelectOrgContext}
-                onCreateClick={handleCreateClick}
-                onEditClick={handleEditOrgClick}
-                onDeleteClick={handleDeleteClick}
-                isLoading={isOrgLoading}
-                currentPage={pagination?.page || 1}
-                totalPages={pagination?.totalPages || 1}
-                onPageChange={setCurrentPage}
-                canCreateOrgMemory={canCreateOrgMemory}
-                canUpdateOrgMemory={canUpdateOrgMemory}
-                canDeleteOrgMemory={canDeleteOrgMemory}
-                isDeleting={deleteMutation.isPending}
-              />
+          {/* Error state */}
+          {error && (
+            <div className="text-center py-8 px-6 bg-red-50/80 rounded-2xl backdrop-blur-sm">
+              <p className="text-sm text-red-500">Failed to load memory</p>
             </div>
+          )}
 
-            {/* Right Panel - View Content */}
-            <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50">
-              {/* Content Area */}
-              <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
-                {isOrgLoading && contexts.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                    <span className="animate-pulse">Loading...</span>
-                  </div>
-                ) : contexts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-3">
-                      <BrainIcon
-                        size={24}
-                        weight="duotone"
-                        className="text-indigo-400"
-                      />
-                    </div>
-                    <h4 className="text-sm font-medium text-gray-600 mb-1">
-                      No org memories yet
-                    </h4>
-                    <p className="text-xs text-gray-400 text-center">
-                      Insights will appear here as your team asks questions.
-                    </p>
-                  </div>
-                ) : (
-                  renderContentView(selectedOrgContext)
-                )}
-              </div>
-            </div>
-          </div>
-          </div>
-        </div>
-
-        {/* ===== USER MEMORY SECTION ===== */}
-        {isUserMemoryEnabled && (
+          {/* ===== ORG MEMORY SECTION ===== */}
           <div className="w-[650px]">
             {/* Section Header - Outside card */}
             <div className="mb-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-800 leading-5">
-                  User Memory
-                </h3>
-                {/* Toggle Switch */}
-                <button
-                  onClick={() => setIsUserMemoryActive(!isUserMemoryActive)}
-                  className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
-                    isUserMemoryActive ? "bg-violet-500" : "bg-gray-300"
-                  }`}
-                  role="switch"
-                  aria-checked={isUserMemoryActive}
-                >
-                  <span
-                    className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                      isUserMemoryActive ? "translate-x-3.5" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
+              <h3 className="text-sm font-semibold text-gray-800">
+                Org Memory
+              </h3>
               <p className="text-xs text-gray-500 mt-1">
-                Manage your personal preferences and context
+                Define context shared across all users in your organization
               </p>
             </div>
 
-            {/* User Memory Card - Fixed height with scroll */}
-            <div className={`w-[650px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden h-[200px] relative transition-opacity duration-200 ${
-              !isUserMemoryActive ? "opacity-50" : ""
-            }`}>
-              {!isUserMemoryActive ? (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-3">
-                    <BrainIcon
-                      size={24}
-                      weight="duotone"
-                      className="text-gray-400"
-                    />
+            {/* Org Memory Card */}
+            <div className="w-[650px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden">
+              <div className="flex h-[450px] w-full">
+                {/* Left Panel - Context List */}
+                <div className="w-56 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0">
+                  <OrgContextDocumentList
+                    contexts={contexts}
+                    selectedContextId={selectedOrgContextId}
+                    onSelectContext={handleSelectOrgContext}
+                    onCreateClick={handleCreateClick}
+                    onEditClick={handleEditOrgClick}
+                    onDeleteClick={handleDeleteClick}
+                    isLoading={isOrgLoading}
+                    currentPage={pagination?.page || 1}
+                    totalPages={pagination?.totalPages || 1}
+                    onPageChange={setCurrentPage}
+                    canCreateOrgMemory={canCreateOrgMemory}
+                    canUpdateOrgMemory={canUpdateOrgMemory}
+                    canDeleteOrgMemory={canDeleteOrgMemory}
+                    isDeleting={deleteMutation.isPending}
+                  />
+                </div>
+
+                {/* Right Panel - View Content */}
+                <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50">
+                  {/* Content Area */}
+                  <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                    {isOrgLoading && contexts.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                        <span className="animate-pulse">Loading...</span>
+                      </div>
+                    ) : contexts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-3">
+                          <BrainIcon
+                            size={24}
+                            weight="duotone"
+                            className="text-indigo-400"
+                          />
+                        </div>
+                        <h4 className="text-sm font-medium text-gray-600 mb-1">
+                          No org memories yet
+                        </h4>
+                        <p className="text-xs text-gray-400 text-center">
+                          Insights will appear here as your team asks questions.
+                        </p>
+                      </div>
+                    ) : (
+                      renderContentView(selectedOrgContext)
+                    )}
                   </div>
-                  <h4 className="text-sm font-medium text-gray-500 mb-1">
-                    User Memory Disabled
-                  </h4>
-                  <p className="text-xs text-gray-400 text-center">
-                    Enable the toggle to use your personal memory.
-                  </p>
                 </div>
-              ) : isUserMemoryLoading || isCreatingUserMemory ? (
-                <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                  <span className="animate-pulse">Loading...</span>
-                </div>
-              ) : userMemory ? (
-                <div className="h-full w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
-                  {/* Edit button - top right */}
-                  <button
-                    onClick={handleEditUserClick}
-                    className="absolute top-3 right-3 p-2 text-violet-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200 cursor-pointer z-10"
-                    title="Edit"
-                  >
-                    <PencilSimpleIcon size={14} weight="bold" />
-                  </button>
-                  <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
-                    <Streamdown parseIncompleteMarkdown={false}>
-                      {userMemory.value || "No content yet"}
-                    </Streamdown>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
-                    <BrainIcon
-                      size={24}
-                      weight="duotone"
-                      className="text-violet-400"
-                    />
-                  </div>
-                  <h4 className="text-sm font-medium text-gray-600 mb-1">
-                    No user memory yet
-                  </h4>
-                  <p className="text-xs text-gray-400 text-center">
-                    Your personal memory will appear here.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
-        )}
+
+          {/* ===== USER MEMORY SECTION ===== */}
+          {isUserMemoryEnabled && (
+            <div className="w-[650px]">
+              {/* Section Header - Outside card */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-800 leading-5">
+                    User Memory
+                  </h3>
+                  {/* Toggle Switch */}
+                  <button
+                    onClick={() => setIsUserMemoryActive(!isUserMemoryActive)}
+                    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 ${
+                      isUserMemoryActive ? "bg-violet-500" : "bg-gray-300"
+                    }`}
+                    role="switch"
+                    aria-checked={isUserMemoryActive}
+                  >
+                    <span
+                      className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                        isUserMemoryActive
+                          ? "translate-x-3.5"
+                          : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Manage your personal preferences and context
+                </p>
+              </div>
+
+              {/* User Memory Card - Fixed height with scroll */}
+              <div
+                className={`w-[650px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden h-[200px] relative transition-opacity duration-200 ${
+                  !isUserMemoryActive ? "opacity-50" : ""
+                }`}
+              >
+                {!isUserMemoryActive ? (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-3">
+                      <BrainIcon
+                        size={24}
+                        weight="duotone"
+                        className="text-gray-400"
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">
+                      User Memory Disabled
+                    </h4>
+                    <p className="text-xs text-gray-400 text-center">
+                      Enable the toggle to use your personal memory.
+                    </p>
+                  </div>
+                ) : isUserMemoryLoading || isCreatingUserMemory ? (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <span className="animate-pulse">Loading...</span>
+                  </div>
+                ) : userMemory ? (
+                  <div className="h-full w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                    {/* Edit button - top right */}
+                    <button
+                      onClick={handleEditUserClick}
+                      className="absolute top-3 right-3 p-2 text-violet-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200 cursor-pointer z-10"
+                      title="Edit"
+                    >
+                      <PencilSimpleIcon size={14} weight="bold" />
+                    </button>
+                    <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
+                      <Streamdown parseIncompleteMarkdown={false}>
+                        {userMemory.value || "No content yet"}
+                      </Streamdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
+                      <BrainIcon
+                        size={24}
+                        weight="duotone"
+                        className="text-violet-400"
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium text-gray-600 mb-1">
+                      No user memory yet
+                    </h4>
+                    <p className="text-xs text-gray-400 text-center">
+                      Your personal memory will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

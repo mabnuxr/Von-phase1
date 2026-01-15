@@ -105,7 +105,8 @@
 }
 
 /* Prevent empty siblings from taking space in flex layout */
-.org-context-editor > div:empty:not(.tiptap-toolbar):not(.tiptap-editor-wrapper) {
+.org-context-editor
+  > div:empty:not(.tiptap-toolbar):not(.tiptap-editor-wrapper) {
   display: none;
   flex: 0;
   height: 0;

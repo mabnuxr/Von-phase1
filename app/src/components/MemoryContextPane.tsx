@@ -95,7 +95,8 @@ export function MemoryContextPane({
     editingKey.trim().length > 0 &&
     (isUserMemory || editingDescription.trim().length > 0) &&
     editingKey.length <= MEMORY_CONTEXT_LIMITS.key &&
-    (isUserMemory || editingDescription.length <= MEMORY_CONTEXT_LIMITS.description) &&
+    (isUserMemory ||
+      editingDescription.length <= MEMORY_CONTEXT_LIMITS.description) &&
     editingContent.length <= MEMORY_CONTEXT_LIMITS.value;
 
   const footer = (
