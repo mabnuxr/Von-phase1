@@ -82,6 +82,7 @@
   flex: 1;
   overflow-y: auto;
   border: none;
+  max-height: none;
 }
 
 /* Thin scrollbar with no track */
