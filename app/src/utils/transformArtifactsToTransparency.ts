@@ -46,15 +46,33 @@ interface RagArtifactContent {
 interface SqlArtifactContent {
   success?: boolean;
   query?: string;
+  row_count?: number;
+  execution_time_ms?: number;
+  error?: string;
+  // Legacy format - columns/rows at top level
   columns?: Array<{
     name: string;
     display_name?: string;
     type?: string;
   }>;
   rows?: Array<Record<string, unknown>>;
-  row_count?: number;
-  execution_time_ms?: number;
-  error?: string;
+  // New format - columns/rows nested under sample
+  sample?: {
+    columns: Array<{
+      name: string;
+      display_name?: string;
+      type?: string;
+    }>;
+    rows: Array<Record<string, unknown>>;
+    size?: number;
+    is_complete?: boolean;
+  };
+  // New format - queries array with statement
+  queries?: Array<{
+    label?: string;
+    dialect?: string;
+    statement: string;
+  }>;
 }
 
 /**
@@ -128,18 +146,22 @@ function transformArtifactToQueryResult(
   if (tool_name === "execute_sql_query") {
     const sqlContent = content as unknown as SqlArtifactContent;
 
-    if (!sqlContent.columns || !sqlContent.rows) {
+    // Support both formats: nested under sample or at top level
+    const rawColumns = sqlContent.sample?.columns || sqlContent.columns;
+    const rawRows = sqlContent.sample?.rows || sqlContent.rows;
+
+    if (!rawColumns || !rawRows) {
       return null;
     }
 
-    const columns: QueryColumn[] = sqlContent.columns.map((col) => ({
+    const columns: QueryColumn[] = rawColumns.map((col) => ({
       key: col.name,
       label: col.display_name || col.name,
       type: (col.type as QueryColumn["type"]) || "string",
     }));
 
     // Transform rows to string values for display
-    const rows = sqlContent.rows.map((row) => {
+    const rows = rawRows.map((row) => {
       const transformedRow: Record<string, string | number> = {};
       for (const [key, value] of Object.entries(row)) {
         if (value === null || value === undefined) {
@@ -153,11 +175,14 @@ function transformArtifactToQueryResult(
       return transformedRow;
     });
 
+    // Get query from either format: queries[0].statement or query
+    const queryStatement = sqlContent.queries?.[0]?.statement || sqlContent.query;
+
     return {
       id: artifact_id,
       name: getToolDisplayName(tool_name),
       description: `${sqlContent.row_count ?? rows.length} rows returned`,
-      query: sqlContent.query,
+      query: queryStatement,
       columns,
       rows,
       executedAt: new Date(persisted_at),
@@ -320,6 +345,7 @@ export interface ArtifactSummary {
   tool_call_id: string;
   tool_name: string;
   artifact_type: string;
+  category?: string;
   size_bytes: number;
   persisted_at: string;
 }

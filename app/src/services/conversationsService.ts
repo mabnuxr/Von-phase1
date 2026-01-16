@@ -33,6 +33,7 @@ export interface ArtifactSummary {
   tool_call_id: string;
   tool_name: string;
   artifact_type: string;
+  category?: string;
   size_bytes: number;
   persisted_at: string;
 }

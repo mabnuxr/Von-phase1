@@ -43,6 +43,12 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   artifactSummaries,
   isListLoading,
 }) => {
+  // Filter out e2b artifacts from the summaries
+  const filteredArtifactSummaries = useMemo(
+    () => artifactSummaries.filter((summary) => summary.category !== 'e2b'),
+    [artifactSummaries]
+  );
+
   // Track which artifact is currently selected (for lazy loading)
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
 
@@ -71,10 +77,10 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
 
   // When drawer opens with summaries, auto-select the first artifact
   useEffect(() => {
-    if (isOpen && artifactSummaries.length > 0 && !selectedArtifactId) {
-      setSelectedArtifactId(artifactSummaries[0].artifact_id);
+    if (isOpen && filteredArtifactSummaries.length > 0 && !selectedArtifactId) {
+      setSelectedArtifactId(filteredArtifactSummaries[0].artifact_id);
     }
-  }, [isOpen, artifactSummaries, selectedArtifactId]);
+  }, [isOpen, filteredArtifactSummaries, selectedArtifactId]);
 
   // Reset state when drawer closes
   useEffect(() => {
@@ -102,11 +108,11 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
 
   // Transform loaded artifacts and summaries into QueryResults
   const queries: TransparencyQueryResult[] = useMemo(() => {
-    if (artifactSummaries.length === 0) {
+    if (filteredArtifactSummaries.length === 0) {
       return [];
     }
 
-    return artifactSummaries.map((summary) => {
+    return filteredArtifactSummaries.map((summary) => {
       const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
 
       if (loadedArtifact) {

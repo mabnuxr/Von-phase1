@@ -24,7 +24,7 @@ interface CallItemProps {
 
 const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast }) => {
   return (
-    <div className="relative flex gap-3">
+    <div className="relative flex gap-3 overflow-hidden">
       {/* Timeline line and icon */}
       <div className="flex flex-col items-center">
         <button
@@ -49,10 +49,10 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
       </div>
 
       {/* Content */}
-      <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
+      <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
         {/* Header row */}
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-medium text-gray-900 flex-1 truncate">{call.title}</span>
+        <div className="flex items-center gap-2 mb-1 overflow-hidden">
+          <span className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate">{call.title}</span>
           {call.sourceUrl && (
             <a
               href={call.sourceUrl}
@@ -81,7 +81,7 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2">
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2 overflow-hidden">
                 {/* Time and Duration */}
                 {(call.timeRange || call.duration) && (
                   <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -97,16 +97,16 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
                 {/* Participants */}
                 {call.participants && call.participants.length > 0 && (
                   <div className="flex items-center gap-2 text-xs text-gray-600">
-                    <UsersIcon size={12} className="text-gray-500" />
-                    <span>{call.participants.join(', ')}</span>
+                    <UsersIcon size={12} className="text-gray-500 flex-shrink-0" />
+                    <span className="truncate">{call.participants.join(', ')}</span>
                   </div>
                 )}
 
                 {/* Account / Opportunity */}
                 {(call.accountName || call.opportunityName) && (
                   <div className="flex items-center gap-2 text-xs text-gray-600">
-                    <TableIcon size={12} className="text-gray-500" />
-                    <span>
+                    <TableIcon size={12} className="text-gray-500 flex-shrink-0" />
+                    <span className="truncate">
                       {call.accountName}
                       {call.accountName && call.opportunityName && ' · '}
                       {call.opportunityName}
@@ -124,8 +124,8 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
 
                 {/* Summary */}
                 {call.summary && (
-                  <div className="pt-2 mt-2 border-t border-gray-200">
-                    <p className="text-xs text-gray-700 leading-relaxed">{call.summary}</p>
+                  <div className="pt-2 mt-2 border-t border-gray-200 overflow-hidden">
+                    <p className="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-wrap">{call.summary}</p>
                   </div>
                 )}
               </div>
@@ -175,7 +175,7 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
       {Object.entries(grouped).map(([monthYear, monthCalls]) => (
         <div key={monthYear} className="mb-6 last:mb-0">
           {/* Month Header */}
