@@ -7,8 +7,10 @@ import {
   FunctionIcon,
   CaretDownIcon,
   CheckIcon,
+  SparkleIcon,
+  PencilSimpleIcon,
 } from '@phosphor-icons/react';
-import { TertiaryIconButton, SecondaryButton } from '../forms/buttons';
+import { TertiaryIconButton, SecondaryButton, GhostButton, PrimaryButton } from '../forms/buttons';
 
 // ============================================================================
 // Types
@@ -35,6 +37,13 @@ export interface WidgetDrilldownSheetProps {
   rows: Record<string, unknown>[];
   filters?: DrilldownFilter[];
   formula?: string;
+}
+
+/** AI-generated column */
+export interface AIColumn {
+  id: string;
+  name: string;
+  prompt: string;
 }
 
 // ============================================================================
@@ -189,6 +198,202 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({ isOpen, onClose, anchor
 };
 
 // ============================================================================
+// AI Column Popover Component
+// ============================================================================
+
+interface AIColumnPopoverProps {
+  isOpen: boolean;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  column: AIColumn | null;
+  onSave: (column: AIColumn) => void;
+  onDelete?: (columnId: string) => void;
+}
+
+const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
+  isOpen,
+  onClose,
+  anchorRef,
+  column,
+  onSave,
+  onDelete,
+}) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [columnName, setColumnName] = useState(column?.name || '');
+  const [prompt, setPrompt] = useState(column?.prompt || '');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reasoning, setReasoning] = useState<string[]>([]);
+
+  const isEditing = !!column;
+
+  useEffect(() => {
+    if (isOpen) {
+      setColumnName(column?.name || '');
+      setPrompt(column?.prompt || '');
+      setIsGenerating(false);
+      setReasoning([]);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen, column]);
+
+  useEffect(() => {
+    if (isOpen && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 8,
+        left: Math.max(16, Math.min(rect.left - 150, window.innerWidth - 400 - 16)),
+      });
+    }
+  }, [isOpen, anchorRef]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, onClose, anchorRef]);
+
+  const handleGenerate = () => {
+    if (!columnName.trim() || !prompt.trim()) return;
+
+    setIsGenerating(true);
+    setReasoning([]);
+
+    const reasoningSteps = [
+      'Analyzing the data structure...',
+      'Processing prompt requirements...',
+      `Generating "${columnName}" values...`,
+      'Validating generated results...',
+    ];
+
+    let stepIndex = 0;
+    const interval = setInterval(() => {
+      if (stepIndex < reasoningSteps.length) {
+        setReasoning((prev) => [...prev, reasoningSteps[stepIndex]]);
+        stepIndex++;
+      } else {
+        clearInterval(interval);
+        setIsGenerating(false);
+        onSave({
+          id: column?.id || `ai-col-${Date.now()}`,
+          name: columnName,
+          prompt: prompt,
+        });
+        onClose();
+      }
+    }, 350);
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <motion.div
+      ref={popoverRef}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.15 }}
+      className="fixed w-[380px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000]"
+      style={{ top: position.top, left: position.left }}
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <SparkleIcon size={16} className="text-indigo-600" />
+          <span className="text-[13px] font-medium text-gray-900">
+            {isEditing ? 'Edit AI Column' : 'Add AI Column'}
+          </span>
+        </div>
+        {isEditing && onDelete && (
+          <button
+            onClick={() => {
+              onDelete(column.id);
+              onClose();
+            }}
+            className="text-[12px] text-red-600 hover:text-red-700 cursor-pointer"
+          >
+            Delete
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 space-y-3">
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+            Column Name
+          </label>
+          <input
+            ref={inputRef}
+            type="text"
+            value={columnName}
+            onChange={(e) => setColumnName(e.target.value)}
+            placeholder="e.g., Risk Score, Next Action"
+            disabled={isGenerating}
+            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+            Generation Prompt
+          </label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe how to generate values for this column..."
+            disabled={isGenerating}
+            rows={2}
+            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none disabled:opacity-50"
+          />
+        </div>
+
+        {reasoning.length > 0 && (
+          <div className="bg-gray-50 rounded-lg p-3">
+            <p className="text-[11px] font-medium text-gray-700 mb-1.5">AI Reasoning</p>
+            <div className="space-y-1">
+              {reasoning.map((step, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-start gap-1.5 text-[11px] text-gray-600"
+                >
+                  <span className="text-indigo-500">•</span>
+                  <span>{step}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+        <GhostButton onClick={onClose} disabled={isGenerating}>Cancel</GhostButton>
+        <PrimaryButton
+          onClick={handleGenerate}
+          disabled={!columnName.trim() || !prompt.trim() || isGenerating}
+        >
+          {isGenerating ? 'Generating...' : isEditing ? 'Update Column' : 'Generate Column'}
+        </PrimaryButton>
+      </div>
+    </motion.div>,
+    document.body
+  );
+};
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -203,8 +408,13 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
 }) => {
   const [showFilterPopover, setShowFilterPopover] = useState(false);
   const [showFormulaPopover, setShowFormulaPopover] = useState(false);
+  const [aiColumns, setAiColumns] = useState<AIColumn[]>([]);
+  const [aiColumnData, setAiColumnData] = useState<Record<string, Record<number, string>>>({});
+  const [showAIColumnPopover, setShowAIColumnPopover] = useState(false);
+  const [editingAIColumn, setEditingAIColumn] = useState<AIColumn | null>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const formulaButtonRef = useRef<HTMLButtonElement>(null);
+  const aiColumnButtonRef = useRef<HTMLButtonElement>(null);
 
   const formatValue = (value: unknown, type?: string): string => {
     if (value === null || value === undefined) return '—';
@@ -229,8 +439,50 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
     if (!isOpen) {
       setShowFilterPopover(false);
       setShowFormulaPopover(false);
+      setShowAIColumnPopover(false);
     }
   }, [isOpen]);
+
+  // Handle AI column save
+  const handleAIColumnSave = (column: AIColumn) => {
+    setAiColumns((prev) => {
+      const exists = prev.find((c) => c.id === column.id);
+      if (exists) {
+        return prev.map((c) => (c.id === column.id ? column : c));
+      }
+      return [...prev, column];
+    });
+
+    // Generate sample data for the column
+    const sampleValues = [
+      '8/10 - High',
+      '6/10 - Medium',
+      '9/10 - Strong',
+      '4/10 - Low',
+      '7/10 - Good',
+    ];
+
+    setTimeout(() => {
+      const newData: Record<number, string> = {};
+      rows.forEach((_, idx) => {
+        newData[idx] = sampleValues[idx % sampleValues.length];
+      });
+      setAiColumnData((prev) => ({
+        ...prev,
+        [column.id]: newData,
+      }));
+    }, 500);
+  };
+
+  // Handle AI column delete
+  const handleAIColumnDelete = (columnId: string) => {
+    setAiColumns((prev) => prev.filter((c) => c.id !== columnId));
+    setAiColumnData((prev) => {
+      const newData = { ...prev };
+      delete newData[columnId];
+      return newData;
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -327,6 +579,39 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                         {col.label}
                       </th>
                     ))}
+                    {/* AI Columns Headers */}
+                    {aiColumns.map((aiCol) => (
+                      <th
+                        key={aiCol.id}
+                        className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide whitespace-nowrap group"
+                      >
+                        <button
+                          onClick={() => {
+                            setEditingAIColumn(aiCol);
+                            setShowAIColumnPopover(true);
+                          }}
+                          className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                        >
+                          <SparkleIcon size={12} />
+                          <span>{aiCol.name}</span>
+                          <PencilSimpleIcon size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      </th>
+                    ))}
+                    {/* Add AI Column Button */}
+                    <th className="text-left px-4 py-2.5 whitespace-nowrap">
+                      <button
+                        ref={aiColumnButtonRef}
+                        onClick={() => {
+                          setEditingAIColumn(null);
+                          setShowAIColumnPopover(true);
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                      >
+                        <SparkleIcon size={12} />
+                        <span>Add AI Column</span>
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -342,6 +627,19 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                           {formatValue(row[col.id], col.type)}
                         </td>
                       ))}
+                      {/* AI Columns Data */}
+                      {aiColumns.map((aiCol) => (
+                        <td
+                          key={aiCol.id}
+                          className="px-4 py-2.5 text-gray-900 whitespace-nowrap"
+                        >
+                          {aiColumnData[aiCol.id]?.[idx] || (
+                            <span className="text-gray-400 italic">Generating...</span>
+                          )}
+                        </td>
+                      ))}
+                      {/* Empty cell for the "Add AI Column" header */}
+                      <td className="px-4 py-2.5" />
                     </tr>
                   ))}
                 </tbody>
@@ -374,6 +672,21 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                   formula={formula}
                 />
               )}
+            </AnimatePresence>
+
+            {/* AI Column Popover */}
+            <AnimatePresence>
+              <AIColumnPopover
+                isOpen={showAIColumnPopover}
+                onClose={() => {
+                  setShowAIColumnPopover(false);
+                  setEditingAIColumn(null);
+                }}
+                anchorRef={aiColumnButtonRef}
+                column={editingAIColumn}
+                onSave={handleAIColumnSave}
+                onDelete={handleAIColumnDelete}
+              />
             </AnimatePresence>
           </motion.div>
         </>

@@ -13,7 +13,7 @@ import {
   type PaginationState,
   type ColumnOrderState,
 } from '@tanstack/react-table';
-import { CaretUp, CaretDown, ArrowSquareOut, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretUp, CaretDown, ArrowSquareOut, CaretLeft, CaretRight, SparkleIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton, SecondaryIconButton } from '../forms/buttons/IconButtons';
 import { LOGO_STATIC_URL } from '../../constants';
 
@@ -51,6 +51,10 @@ export interface ReportColumn {
    */
   isAI?: boolean;
   /**
+   * AI reasoning prompt/description for the column
+   */
+  aiReasoning?: string;
+  /**
    * Whether sorting is enabled for this column
    * @default true
    */
@@ -63,6 +67,21 @@ export interface ReportColumn {
    * Minimum column width
    */
   minWidth?: number;
+}
+
+export interface AIReasoningData {
+  /**
+   * The reasoning/explanation for how AI arrived at this value
+   */
+  reasoning: string;
+  /**
+   * Confidence score (0-1)
+   */
+  confidence?: number;
+  /**
+   * Data sources used for this calculation
+   */
+  sources?: string[];
 }
 
 export interface ReportTableProps<TData extends Record<string, unknown>> {
@@ -113,6 +132,16 @@ export interface ReportTableProps<TData extends Record<string, unknown>> {
    * @default true
    */
   showPagination?: boolean;
+  /**
+   * AI reasoning data for cells - keyed by `${columnId}-${rowIndex}`
+   * Used to display reasoning popovers on AI column cells
+   */
+  aiReasoningData?: Record<string, AIReasoningData>;
+  /**
+   * Whether to show AI indicators on AI column cells
+   * @default true
+   */
+  showAIIndicators?: boolean;
 }
 
 // ============================================================================
@@ -273,6 +302,83 @@ const ColumnResizer: React.FC<ColumnResizerProps> = ({ onMouseDown, isResizing }
 };
 
 // ============================================================================
+// AI Cell Indicator with Hover Popover
+// ============================================================================
+
+interface AICellIndicatorProps {
+  reasoning?: AIReasoningData;
+}
+
+const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
+  const [showPopover, setShowPopover] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
+  const indicatorRef = useRef<HTMLButtonElement>(null);
+
+  const handleMouseEnter = () => {
+    if (indicatorRef.current && reasoning) {
+      const rect = indicatorRef.current.getBoundingClientRect();
+      setPopoverPosition({
+        top: rect.bottom + 4,
+        left: Math.min(rect.left, window.innerWidth - 280),
+      });
+      setShowPopover(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowPopover(false);
+  };
+
+  return (
+    <>
+      <button
+        ref={indicatorRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="ml-1.5 p-0.5 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors cursor-pointer flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SparkleIcon size={12} weight="fill" />
+      </button>
+      {showPopover && reasoning && (
+        <div
+          className="fixed w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] p-3"
+          style={{ top: popoverPosition.top, left: popoverPosition.left }}
+          onMouseEnter={() => setShowPopover(true)}
+          onMouseLeave={() => setShowPopover(false)}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <SparkleIcon size={14} className="text-indigo-600" />
+            <span className="text-[11px] font-medium text-gray-900">AI Reasoning</span>
+          </div>
+          <p className="text-[12px] text-gray-600 leading-relaxed">{reasoning.reasoning}</p>
+          {reasoning.confidence !== undefined && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-gray-500">Confidence</span>
+                <span className="font-medium text-gray-900">{Math.round(reasoning.confidence * 100)}%</span>
+              </div>
+            </div>
+          )}
+          {reasoning.sources && reasoning.sources.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <p className="text-[11px] text-gray-500 mb-1">Sources</p>
+              <div className="flex flex-wrap gap-1">
+                {reasoning.sources.map((source, idx) => (
+                  <span key={idx} className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">
+                    {source}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+};
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -288,6 +394,8 @@ export function ReportTable<TData extends Record<string, unknown>>({
   emptyMessage = 'No data available',
   pageSize = 12,
   showPagination = true,
+  aiReasoningData = {},
+  showAIIndicators = true,
 }: ReportTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -364,6 +472,19 @@ export function ReportTable<TData extends Record<string, unknown>>({
             cell: (info) => {
               const value = info.getValue();
               const formattedValue = formatValue(value, col.type);
+              const rowIndex = info.row.index;
+              const reasoningKey = `${col.id}-${rowIndex}`;
+              const reasoning = aiReasoningData[reasoningKey];
+
+              // For AI columns, show indicator with reasoning popover
+              if (col.isAI && showAIIndicators) {
+                return (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-900">{formattedValue}</span>
+                    <AICellIndicator reasoning={reasoning} />
+                  </div>
+                );
+              }
 
               return <span className="text-gray-900">{formattedValue}</span>;
             },
@@ -376,7 +497,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
     ];
 
     return cols;
-  }, [columns, columnHelper, hoveredRowId, selectedRows, rowIdKey, onRowSelect, onRowOpen]);
+  }, [columns, columnHelper, hoveredRowId, selectedRows, rowIdKey, onRowSelect, onRowOpen, aiReasoningData, showAIIndicators]);
 
   const table = useReactTable({
     data,

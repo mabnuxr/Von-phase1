@@ -16,7 +16,7 @@ import type { ThinkingStep, DashboardPlan } from '../../../components/Jan17Demo/
 import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
 import type { ChatMessage, ReferenceContext } from '../../../components/Jan17Demo/ChatPaneV2';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
-import type { KPICardData, ChartData, TableData, TimelineFilter, DashboardFilter, OwnerOption } from '../../../components/Jan17Demo/DashboardV2';
+import type { KPICardData, ChartData, TableData, TimelineFilter, DashboardFilter, OwnerOption, TextWidgetData } from '../../../components/Jan17Demo/DashboardV2';
 import { InlineDrilldownPanel } from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import type { DrilldownFilter, DrilldownColumn } from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import { WidgetConfigModal } from '../../../components/Jan17Demo/WidgetConfigModal';
@@ -104,6 +104,8 @@ const kpiCards: KPICardData[] = [
     change: '+12.5%',
     changeDirection: 'up',
     subtitle: 'vs last quarter',
+    progress: 78,
+    target: '$15M',
   },
   {
     id: 'kpi-deal-count',
@@ -112,6 +114,8 @@ const kpiCards: KPICardData[] = [
     change: '+8',
     changeDirection: 'up',
     subtitle: 'new deals',
+    progress: 92,
+    target: '50 deals',
   },
   {
     id: 'kpi-avg-size',
@@ -120,6 +124,8 @@ const kpiCards: KPICardData[] = [
     change: '-2.3%',
     changeDirection: 'down',
     subtitle: 'vs last quarter',
+    progress: 45,
+    target: '$400K',
   },
 ];
 
@@ -189,6 +195,23 @@ const tableData: TableData = {
     probability: opp.probability,
     stage: opp.stage,
   })),
+};
+
+// Text widget data
+const textWidgetData: TextWidgetData = {
+  id: 'text-insights',
+  title: 'AI Insights',
+  content: `Key observations for Q1 2026:
+
+• Pipeline value is 12.5% higher than last quarter, driven primarily by enterprise deals in the Negotiation stage.
+
+• High-risk deals represent 23% of total pipeline — recommend scheduling review meetings for these accounts.
+
+• Top performers this quarter: Sarah Chen (5 deals, $2.1M) and Mike Johnson (4 deals, $1.8M).
+
+• Average deal cycle has increased by 8 days compared to Q4 2025.`,
+  maxCharacters: 1000,
+  isAIGenerated: true,
 };
 
 // Dashboard plan
@@ -564,6 +587,11 @@ const DashboardV2Demo = () => {
   // Chat pane state
   const [isChatPaneCollapsed, setIsChatPaneCollapsed] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatPaneWidth, setChatPaneWidth] = useState(380);
+  const chatPaneResizeRef = useRef<HTMLDivElement>(null);
+  const isResizingChatPane = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
 
   // Dashboard build state
   const [visibleWidgets, setVisibleWidgets] = useState<string[]>([]);
@@ -726,6 +754,7 @@ const DashboardV2Demo = () => {
       barChart.id,
       pieChart.id,
       tableData.id,
+      textWidgetData.id,
     ];
 
     // Build widgets one by one
@@ -825,6 +854,38 @@ const DashboardV2Demo = () => {
     console.log('Sharing dashboard with config:', config);
     alert(`Dashboard shared with ${config.recipients.length} recipient(s)!`);
   };
+
+  // Handle chat pane resize
+  const handleChatPaneResizeStart = useCallback((e: React.MouseEvent) => {
+    isResizingChatPane.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = chatPaneWidth;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+  }, [chatPaneWidth]);
+
+  const handleChatPaneResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizingChatPane.current) return;
+    const deltaX = startXRef.current - e.clientX;
+    const newWidth = Math.min(600, Math.max(280, startWidthRef.current + deltaX));
+    setChatPaneWidth(newWidth);
+  }, []);
+
+  const handleChatPaneResizeEnd = useCallback(() => {
+    isResizingChatPane.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // Attach global listeners for chat pane resize
+  useLayoutEffect(() => {
+    document.addEventListener('mousemove', handleChatPaneResizeMove);
+    document.addEventListener('mouseup', handleChatPaneResizeEnd);
+    return () => {
+      document.removeEventListener('mousemove', handleChatPaneResizeMove);
+      document.removeEventListener('mouseup', handleChatPaneResizeEnd);
+    };
+  }, [handleChatPaneResizeMove, handleChatPaneResizeEnd]);
 
   // Handle widget edit
   const handleWidgetEdit = (widgetId: string) => {
@@ -970,6 +1031,9 @@ const DashboardV2Demo = () => {
     } else if (widgetId === tableData.id) {
       widgetType = 'table';
       widgetName = tableData.title;
+    } else if (widgetId === textWidgetData.id) {
+      widgetType = 'widget';
+      widgetName = textWidgetData.title;
     }
 
     setReferenceContext({
@@ -1101,6 +1165,8 @@ const DashboardV2Demo = () => {
               barChart={barChart}
               pieChart={pieChart}
               table={tableData}
+              textWidget={textWidgetData}
+              onTextWidgetChange={(content) => console.log('Text widget updated:', content)}
               isBuilding={phase === 'building'}
               visibleWidgets={visibleWidgets}
               onWidgetDrillDown={handleWidgetDrillDown}
@@ -1192,17 +1258,29 @@ const DashboardV2Demo = () => {
         )}
       </div>
 
-      {/* ChatPaneV2 - Collapsed during dashboard view */}
+      {/* ChatPaneV2 - Resizable and collapsible */}
       {showDashboard && (
         <div
           style={{
             height: showAgentBar ? 'calc(100% - 48px)' : '100%',
             marginTop: showAgentBar ? '48px' : '0',
-            width: isChatPaneCollapsed ? '48px' : '380px',
-            transition: 'width 0.3s ease, height 0.3s ease, margin-top 0.3s ease',
+            width: isChatPaneCollapsed ? '48px' : `${chatPaneWidth}px`,
+            transition: isResizingChatPane.current ? 'none' : 'width 0.3s ease, height 0.3s ease, margin-top 0.3s ease',
             flexShrink: 0,
+            position: 'relative',
           }}
         >
+          {/* Resize Handle */}
+          {!isChatPaneCollapsed && (
+            <div
+              ref={chatPaneResizeRef}
+              onMouseDown={handleChatPaneResizeStart}
+              className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-indigo-500/30 transition-colors z-10 group"
+              style={{ marginLeft: '-3px' }}
+            >
+              <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
+            </div>
+          )}
           <ChatPaneV2
             conversationName="Build with Von"
             messages={chatMessages}

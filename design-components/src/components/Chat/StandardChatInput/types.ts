@@ -196,4 +196,13 @@ export interface StandardChatInputProps {
    * Callback when user submits feedback in the popover
    */
   onPopoverFeedback?: (feedback: string) => void;
+
+  // ============================================================================
+  // Agent Props
+  // ============================================================================
+
+  /**
+   * Callback when Build Dashboard agent is selected from the menu
+   */
+  onBuildDashboard?: () => void;
 }
