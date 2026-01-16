@@ -979,7 +979,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
           includeMove: true,
           isInFolder: !!contextMenu.item?.folderId,
         })}
-        position={contextMenu.position}
+        fixedPosition={contextMenu.position}
         onItemClick={(menuItem) => {
           if (!contextMenu.item) return;
           if (menuItem.id === 'rename') {
@@ -1003,7 +1003,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
           { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
           { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' },
         ]}
-        position={folderContextMenu.position}
+        fixedPosition={folderContextMenu.position}
         onItemClick={(menuItem) => {
           if (!folderContextMenu.folder) return;
           if (menuItem.id === 'rename') {
@@ -1018,25 +1018,25 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
       {/* Delete Confirmation for Items */}
       <DeleteConfirmationPopup
         isOpen={deleteConfirmation.isOpen}
-        onClose={handleCancelDelete}
+        onCancel={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        itemName={deleteConfirmation.item?.label || ''}
+        itemLabel={deleteConfirmation.item?.label || ''}
         itemType="chat"
       />
 
       {/* Delete Confirmation for Folders */}
       <DeleteConfirmationPopup
         isOpen={folderDeleteConfirmation.isOpen}
-        onClose={handleCancelFolderDelete}
+        onCancel={handleCancelFolderDelete}
         onConfirm={handleConfirmFolderDelete}
-        itemName={folderDeleteConfirmation.folder?.label || ''}
+        itemLabel={folderDeleteConfirmation.folder?.label || ''}
         itemType="folder"
       />
 
       {/* Move to Folder Modal */}
       <MoveToFolderModal
         isOpen={moveToFolderModal.isOpen}
-        onClose={handleCancelMoveToFolder}
+        onCancel={handleCancelMoveToFolder}
         onConfirm={handleConfirmMoveToFolder}
         itemName={moveToFolderModal.item?.label || ''}
         folders={getAvailableFoldersForMove()}
