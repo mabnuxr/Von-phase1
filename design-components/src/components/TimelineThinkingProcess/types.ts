@@ -13,6 +13,11 @@ export type StepType = 'reasoning' | 'tool_call' | 'code_execution' | 'output' |
 export type SourceType = 'salesforce' | 'gong' | 'email' | 'voniq' | 'calendar' | 'generic';
 
 /**
+ * event category
+ */
+export type EventCategory = 'e2b' | 'sql' | 'rag' | 'soql';
+
+/**
  * Status of a step in the timeline
  */
 export type StepStatus =
@@ -81,6 +86,10 @@ export interface TimelineStep {
    * Approval data for approval steps
    */
   approval?: ApprovalData;
+  /**
+   * Event category
+   */
+  category?: EventCategory;
 }
 
 /**

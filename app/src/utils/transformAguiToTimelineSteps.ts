@@ -11,21 +11,22 @@ import type {
   StepStatus,
   StepType,
   SourceType,
-} from "@vonlabs/design-components";
+  EventCategory,
+} from '@vonlabs/design-components';
 
 // Extended event types for STEP_STARTED/STEP_FINISHED with step_number
 // These events provide step boundaries for timing and tracking
 interface StepStartedEventWithNumber {
-  type: "STEP_STARTED";
+  type: 'STEP_STARTED';
   step_number: number;
   step_name: string;
   metadata?: {
-    category?: string;
+    category?: EventCategory;
   };
 }
 
 interface StepFinishedEventWithNumber {
-  type: "STEP_FINISHED";
+  type: 'STEP_FINISHED';
   step_number: number;
   step_name: string;
   metadata?: {
@@ -38,27 +39,27 @@ interface StepFinishedEventWithNumber {
  */
 const TOOL_SOURCE_MAP: Record<string, SourceType> = {
   // Salesforce tools
-  execute_sql_query: "salesforce",
-  request_salesforce_approval: "salesforce",
+  execute_sql_query: 'salesforce',
+  request_salesforce_approval: 'salesforce',
 
   // Gong tools
-  search_gong_calls: "gong",
-  get_gong_call_transcript: "gong",
+  search_gong_calls: 'gong',
+  get_gong_call_transcript: 'gong',
 
   // Email tools
-  search_emails: "email",
-  get_email_content: "email",
+  search_emails: 'email',
+  get_email_content: 'email',
 
   // Calendar tools
-  get_calendar_events: "calendar",
-  request_google_calendar_approval: "calendar",
+  get_calendar_events: 'calendar',
+  request_google_calendar_approval: 'calendar',
 };
 
 /**
  * Get the source type for a tool name
  */
 function getToolSource(toolName: string): SourceType {
-  return TOOL_SOURCE_MAP[toolName] || "generic";
+  return TOOL_SOURCE_MAP[toolName] || 'generic';
 }
 
 /**
@@ -66,21 +67,20 @@ function getToolSource(toolName: string): SourceType {
  */
 function getToolDescription(toolName: string, args?: string): string {
   const baseDescriptions: Record<string, string> = {
-    execute_sql_query: "Querying data from Salesforce",
-    request_salesforce_approval: "Requesting approval for Salesforce changes",
-    search_gong_calls: "Searching through Gong call recordings",
-    get_gong_call_transcript: "Retrieving call transcript",
-    search_emails: "Searching through emails",
-    get_email_content: "Retrieving email content",
-    get_calendar_events: "Checking calendar events",
-    request_google_calendar_approval:
-      "Requesting approval for calendar changes",
+    execute_sql_query: 'Querying data from Salesforce',
+    request_salesforce_approval: 'Requesting approval for Salesforce changes',
+    search_gong_calls: 'Searching through Gong call recordings',
+    get_gong_call_transcript: 'Retrieving call transcript',
+    search_emails: 'Searching through emails',
+    get_email_content: 'Retrieving email content',
+    get_calendar_events: 'Checking calendar events',
+    request_google_calendar_approval: 'Requesting approval for calendar changes',
   };
 
   let description = baseDescriptions[toolName] || `Executing ${toolName}`;
 
   // Add query preview for SQL queries
-  if (toolName === "execute_sql_query" && args) {
+  if (toolName === 'execute_sql_query' && args) {
     try {
       const parsed = JSON.parse(args);
       if (parsed.dataset_name) {
@@ -99,17 +99,17 @@ function getToolDescription(toolName: string, args?: string): string {
  */
 function getToolDisplayText(toolName: string): string {
   const displayNames: Record<string, string> = {
-    execute_sql_query: "Fetching data from Salesforce",
-    request_salesforce_approval: "Requesting approval",
-    search_gong_calls: "Searching Gong calls",
-    get_gong_call_transcript: "Getting transcript",
-    search_emails: "Searching emails",
-    get_email_content: "Getting email",
-    get_calendar_events: "Checking calendar",
-    request_google_calendar_approval: "Calendar approval",
+    execute_sql_query: 'Fetching data from Salesforce',
+    request_salesforce_approval: 'Requesting approval',
+    search_gong_calls: 'Searching Gong calls',
+    get_gong_call_transcript: 'Getting transcript',
+    search_emails: 'Searching emails',
+    get_email_content: 'Getting email',
+    get_calendar_events: 'Checking calendar',
+    request_google_calendar_approval: 'Calendar approval',
   };
 
-  return displayNames[toolName] || toolName.replace(/_/g, " ");
+  return displayNames[toolName] || toolName.replace(/_/g, ' ');
 }
 
 export interface TransformResult {
@@ -120,11 +120,12 @@ export interface TransformResult {
 /**
  * Transform AGUI events into TimelineStep[] format
  *
+ *
  * @param events - Array of AGUI event wrappers from Pusher
  * @returns Object with steps array and isThinking status
  */
 export function transformAguiToTimelineSteps(
-  events: AguiEventWrapper[] | null | undefined,
+  events: AguiEventWrapper[] | null | undefined
 ): TransformResult {
   if (!events || events.length === 0) {
     return { steps: [], isThinking: false };
@@ -134,16 +135,20 @@ export function transformAguiToTimelineSteps(
   const sortedEvents = [...events].sort((a, b) => a.sequence - b.sequence);
 
   const steps: TimelineStep[] = [];
-  const stepMap = new Map<string, TimelineStep>();
-  const toolArgsMap = new Map<string, string>();
-  // Map to track steps by step_number for STEP_STARTED/STEP_FINISHED correlation
+  // Map step_number to step for STEP_STARTED/STEP_FINISHED correlation
   const stepNumberMap = new Map<number, TimelineStep>();
-  // Track step_numbers that belong to e2b category (to be skipped)
-  const skippedStepNumbers = new Set<number>();
-  let currentReasoningStep: TimelineStep | null = null;
+  // Map tool_call_id to step_number for tool event -> step correlation
+  const toolCallToStepMap = new Map<string, number>();
+  // Map message_id to step for TEXT_MESSAGE events
+  const textMessageStepMap = new Map<string, TimelineStep>();
+  // Accumulate tool arguments
+  const toolArgsMap = new Map<string, string>();
+  // Track the current active step (from STEP_STARTED, for tool calls only)
+  let currentStep: TimelineStep | null = null;
+  let currentStepNumber: number | null = null;
+  // Track current text message step (separate from tool steps)
+  let currentTextStep: TimelineStep | null = null;
   let isThinking = true;
-  let stepCounter = 0;
-
   let runFinished = false;
 
   for (const wrapper of sortedEvents) {
@@ -155,157 +160,138 @@ export function transformAguiToTimelineSteps(
     }
 
     switch (event.type) {
-      case "RUN_STARTED": {
+      case 'RUN_STARTED': {
         // Initialize - no step created yet
         break;
       }
 
-      case "STEP_STARTED": {
-        // Create a new step when STEP_STARTED arrives
-        // This provides a step boundary with step_number for tracking
+      case 'STEP_STARTED': {
+        // Create a new step when STEP_STARTED arrives (for tool calls)
         const stepEvent = event as StepStartedEventWithNumber;
-
-        // Skip steps with e2b category
-        if (stepEvent.metadata?.category === "e2b") {
-          skippedStepNumbers.add(stepEvent.step_number);
-          break;
-        }
-
-        stepCounter++;
         const stepId = `step-${stepEvent.step_number}`;
 
         const step: TimelineStep = {
           id: stepId,
           text: stepEvent.step_name,
-          status: "in-progress" as StepStatus,
-          type: "reasoning" as StepType,
-          description: "",
+          status: 'in-progress' as StepStatus,
+          type: 'reasoning' as StepType,
+          category: stepEvent.metadata?.category as EventCategory,
+          description: '',
         };
 
-        stepMap.set(stepId, step);
         stepNumberMap.set(stepEvent.step_number, step);
         steps.push(step);
 
-        // Track as current reasoning step so TEXT_MESSAGE events can append to it
-        currentReasoningStep = step;
+        // Track as current step for subsequent tool events
+        currentStep = step;
+        currentStepNumber = stepEvent.step_number;
         break;
       }
 
-      case "STEP_FINISHED": {
+      case 'STEP_FINISHED': {
         // Mark the step as complete when STEP_FINISHED arrives
         const finishedEvent = event as StepFinishedEventWithNumber;
-
-        // Skip if this step was marked as e2b category
-        if (skippedStepNumbers.has(finishedEvent.step_number)) {
-          break;
-        }
-
         const step = stepNumberMap.get(finishedEvent.step_number);
+
         if (step) {
-          step.status = "complete" as StepStatus;
+          // Only mark complete if not awaiting approval
+          if (step.status !== 'awaiting-approval') {
+            step.status = 'complete' as StepStatus;
+          }
         }
 
-        // Clear current reasoning step if it matches
-        if (
-          currentReasoningStep &&
-          currentReasoningStep.id === `step-${finishedEvent.step_number}`
-        ) {
-          currentReasoningStep = null;
+        // Clear current step if it matches
+        if (currentStepNumber === finishedEvent.step_number) {
+          currentStep = null;
+          currentStepNumber = null;
         }
         break;
       }
 
-      case "TEXT_MESSAGE_START": {
-        // Create a new reasoning step
-        stepCounter++;
-        const stepId = `reasoning-${event.message_id || stepCounter}`;
+      case 'TEXT_MESSAGE_START': {
+        // Text messages are NOT wrapped in STEP_STARTED/STEP_FINISHED
+        // Create a new reasoning step for the text message
+        const stepId = `reasoning-${event.message_id}`;
 
-        currentReasoningStep = {
+        const textStep: TimelineStep = {
           id: stepId,
-          text: "Analyzing your request",
-          status: "in-progress" as StepStatus,
-          type: "reasoning" as StepType,
-          description: "",
+          text: 'Analyzing your request',
+          status: 'in-progress' as StepStatus,
+          type: 'reasoning' as StepType,
+          description: '',
         };
 
-        stepMap.set(stepId, currentReasoningStep);
-        steps.push(currentReasoningStep);
+        textMessageStepMap.set(event.message_id, textStep);
+        steps.push(textStep);
+        currentTextStep = textStep;
         break;
       }
 
-      case "TEXT_MESSAGE_CONTENT": {
-        // Update current reasoning step with content
-        if (currentReasoningStep) {
-          currentReasoningStep.description =
-            (currentReasoningStep.description || "") + (event.delta || "");
+      case 'TEXT_MESSAGE_CONTENT': {
+        // Update the text message step with content
+        if (currentTextStep) {
+          currentTextStep.description = (currentTextStep.description || '') + (event.delta || '');
 
           // Update the display text based on content
-          const content = currentReasoningStep.description;
+          const content = currentTextStep.description;
           if (content.length > 10) {
             // Extract first sentence or truncate
             const firstSentence = content.split(/[.!?]/)[0];
             if (firstSentence && firstSentence.length > 5) {
-              currentReasoningStep.text =
-                firstSentence.length > 50
-                  ? firstSentence.slice(0, 50) + "..."
-                  : firstSentence;
+              currentTextStep.text =
+                firstSentence.length > 50 ? firstSentence.slice(0, 50) + '...' : firstSentence;
             }
           }
         }
         break;
       }
 
-      case "TEXT_MESSAGE_END": {
-        // Mark reasoning step as complete
-        if (currentReasoningStep) {
-          currentReasoningStep.status = "complete" as StepStatus;
-          currentReasoningStep = null;
+      case 'TEXT_MESSAGE_END': {
+        // Mark text message step as complete
+        if (currentTextStep) {
+          currentTextStep.status = 'complete' as StepStatus;
+          currentTextStep = null;
         }
         break;
       }
 
-      case "TOOL_CALL_START": {
-        // Mark any current reasoning step as complete
-        if (currentReasoningStep) {
-          currentReasoningStep.status = "complete" as StepStatus;
-          currentReasoningStep = null;
+      case 'TOOL_CALL_START': {
+        // Tool calls are wrapped in STEP_STARTED/STEP_FINISHED
+        // Update the current step to be a tool_call type
+        if (currentStep && currentStepNumber !== null) {
+          const toolName = event.tool_call_name || 'unknown';
+
+          // Transform step to tool_call type
+          currentStep.type = 'tool_call' as StepType;
+          currentStep.source = getToolSource(toolName);
+          currentStep.text = getToolDisplayText(toolName);
+          currentStep.description = getToolDescription(toolName);
+
+          // Map tool_call_id to current step for subsequent tool events
+          if (event.tool_call_id) {
+            toolCallToStepMap.set(event.tool_call_id, currentStepNumber);
+            toolArgsMap.set(event.tool_call_id, '');
+          }
         }
-
-        // Create a new tool call step
-        stepCounter++;
-        const toolStepId = `tool-${event.tool_call_id || stepCounter}`;
-        const toolName = event.tool_call_name || "unknown";
-
-        const toolStep: TimelineStep = {
-          id: toolStepId,
-          text: getToolDisplayText(toolName),
-          status: "in-progress" as StepStatus,
-          type: "tool_call" as StepType,
-          source: getToolSource(toolName),
-          description: getToolDescription(toolName),
-        };
-
-        stepMap.set(event.tool_call_id || toolStepId, toolStep);
-        toolArgsMap.set(event.tool_call_id || toolStepId, "");
-        steps.push(toolStep);
         break;
       }
 
-      case "TOOL_CALL_ARGS": {
-        // Accumulate tool arguments
+      case 'TOOL_CALL_ARGS': {
+        // Accumulate tool arguments and update step
         const toolId = event.tool_call_id;
         if (toolId) {
-          const currentArgs = toolArgsMap.get(toolId) || "";
-          toolArgsMap.set(toolId, currentArgs + (event.delta || ""));
+          const currentArgs = toolArgsMap.get(toolId) || '';
+          toolArgsMap.set(toolId, currentArgs + (event.delta || ''));
 
-          // Update the step with parsed args for description
-          const step = stepMap.get(toolId);
+          // Find the step for this tool call
+          const stepNumber = toolCallToStepMap.get(toolId);
+          const step = stepNumber !== undefined ? stepNumberMap.get(stepNumber) : null;
+
           if (step) {
-            const accumulatedArgs = toolArgsMap.get(toolId) || "";
+            const accumulatedArgs = toolArgsMap.get(toolId) || '';
             try {
               const parsed = JSON.parse(accumulatedArgs);
               if (parsed.query) {
-                // Show SQL query preview
                 step.code = parsed.query;
               }
               if (parsed.dataset_name) {
@@ -319,93 +305,94 @@ export function transformAguiToTimelineSteps(
         break;
       }
 
-      case "TOOL_CALL_END": {
+      case 'TOOL_CALL_END': {
         // Tool call submitted, waiting for result
-        const step = stepMap.get(event.tool_call_id || "");
-        if (step) {
-          // Parse final args
-          const argsJson = toolArgsMap.get(event.tool_call_id || "") || "{}";
-          try {
-            const parsed = JSON.parse(argsJson);
-            if (parsed.query) {
-              step.code = parsed.query;
-            }
-            if (parsed.dataset_name) {
-              step.description = `Querying: ${parsed.dataset_name}`;
-            }
-            // For approval tools, extract approval data
-            if (parsed.operations && parsed.summary) {
-              step.type = "approval" as StepType;
-              step.status = "awaiting-approval" as StepStatus;
-              step.approval = {
-                summary: parsed.summary,
-                objectType:
-                  parsed.operations[0]?.sobject_type || "Salesforce Record",
-                recordName: parsed.operations[0]?.record_name,
-                operation: parsed.operations[0]?.operation || "update",
-                changes: parsed.operations[0]?.changes,
-              };
-            }
-          } catch {
-            // Ignore parse errors
-          }
-        }
-        break;
-      }
+        const toolId = event.tool_call_id;
+        if (toolId) {
+          const stepNumber = toolCallToStepMap.get(toolId);
+          const step = stepNumber !== undefined ? stepNumberMap.get(stepNumber) : null;
 
-      case "TOOL_CALL_RESULT": {
-        // Tool execution complete
-        const step = stepMap.get(event.tool_call_id || "");
-        if (step && step.status !== "awaiting-approval") {
-          try {
-            const result = event.content ? JSON.parse(event.content) : {};
-
-            // Check for artifact (success case)
-            if (result._artifact) {
-              step.status = result._artifact.success
-                ? ("complete" as StepStatus)
-                : ("error" as StepStatus);
-              if (result._artifact.artifact_type === "table") {
-                step.artifactName = `${result._artifact.tool_name} results`;
+          if (step) {
+            const argsJson = toolArgsMap.get(toolId) || '{}';
+            try {
+              const parsed = JSON.parse(argsJson);
+              if (parsed.query) {
+                step.code = parsed.query;
               }
-            } else if (result.success === false) {
-              step.status = "error" as StepStatus;
-            } else {
-              step.status = "complete" as StepStatus;
+              if (parsed.dataset_name) {
+                step.description = `Querying: ${parsed.dataset_name}`;
+              }
+              // For approval tools, extract approval data
+              if (parsed.operations && parsed.summary) {
+                step.type = 'approval' as StepType;
+                step.status = 'awaiting-approval' as StepStatus;
+                step.approval = {
+                  summary: parsed.summary,
+                  objectType: parsed.operations[0]?.sobject_type || 'Salesforce Record',
+                  recordName: parsed.operations[0]?.record_name,
+                  operation: parsed.operations[0]?.operation || 'update',
+                  changes: parsed.operations[0]?.changes,
+                };
+              }
+            } catch {
+              // Ignore parse errors
             }
-          } catch {
-            step.status = "complete" as StepStatus;
           }
         }
         break;
       }
 
-      case "RUN_FINISHED":
-      case "RUN_ERROR": {
+      case 'TOOL_CALL_RESULT': {
+        // Tool execution complete
+        const toolId = event.tool_call_id;
+        if (toolId) {
+          const stepNumber = toolCallToStepMap.get(toolId);
+          const step = stepNumber !== undefined ? stepNumberMap.get(stepNumber) : null;
+
+          if (step && step.status !== 'awaiting-approval') {
+            try {
+              const result = event.content ? JSON.parse(event.content) : {};
+
+              // Check for artifact (success case)
+              if (result._artifact) {
+                step.status = result._artifact.success
+                  ? ('complete' as StepStatus)
+                  : ('error' as StepStatus);
+                if (result._artifact.artifact_type === 'table') {
+                  step.artifactName = `${result._artifact.tool_name} results`;
+                }
+              } else if (result.success === false) {
+                step.status = 'error' as StepStatus;
+              } else {
+                step.status = 'complete' as StepStatus;
+              }
+            } catch {
+              step.status = 'complete' as StepStatus;
+            }
+          }
+        }
+        break;
+      }
+
+      case 'RUN_FINISHED':
+      case 'RUN_ERROR': {
         // Mark all steps as complete and stop processing
         isThinking = false;
         runFinished = true;
 
         // Mark any in-progress steps as complete (or error for RUN_ERROR)
         const finalStatus =
-          event.type === "RUN_ERROR"
-            ? ("error" as StepStatus)
-            : ("complete" as StepStatus);
+          event.type === 'RUN_ERROR' ? ('error' as StepStatus) : ('complete' as StepStatus);
 
         for (const step of steps) {
-          if (
-            step.status === "in-progress" ||
-            step.status === ("pending" as StepStatus)
-          ) {
+          if (step.status === 'in-progress' || step.status === ('pending' as StepStatus)) {
             step.status = finalStatus;
           }
         }
 
-        // Also complete any current reasoning step
-        if (currentReasoningStep) {
-          currentReasoningStep.status = finalStatus;
-          currentReasoningStep = null;
-        }
+        currentStep = null;
+        currentStepNumber = null;
+        currentTextStep = null;
         break;
       }
     }
@@ -417,9 +404,7 @@ export function transformAguiToTimelineSteps(
 /**
  * Get elapsed time in seconds from events
  */
-export function getElapsedTimeFromEvents(
-  events: AguiEventWrapper[] | null | undefined,
-): number {
+export function getElapsedTimeFromEvents(events: AguiEventWrapper[] | null | undefined): number {
   if (!events || events.length === 0) return 0;
 
   const sortedEvents = [...events].sort((a, b) => a.sequence - b.sequence);

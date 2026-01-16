@@ -244,6 +244,7 @@ export type {
   StepType,
   StepStatus,
   SourceType,
+  EventCategory,
   ApprovalData,
   QueryResult,
 } from './TimelineThinkingProcess';

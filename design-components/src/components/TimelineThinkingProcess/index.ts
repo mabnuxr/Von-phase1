@@ -5,6 +5,7 @@ export type {
   ApprovalData,
   StepType,
   SourceType,
+  EventCategory,
   StepStatus,
   QueryResult,
   StepRowProps,
