@@ -1,4 +1,5 @@
 export { StandardChatInput } from './StandardChatInput';
+export type { AgentMode } from './StandardChatInput';
 export type {
   StandardChatInputProps,
   ReferenceContext,
