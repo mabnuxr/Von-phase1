@@ -1,7 +1,7 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircleIcon, CaretLeftIcon, CaretRightIcon, StarIcon, XIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, CaretLeftIcon, CaretRightIcon, StarIcon } from '@phosphor-icons/react';
 import { ChatSidebarV4 } from '../../../components/Jan17Demo/ChatSidebarV4';
 import type { SidebarItem, Folder, ItemType } from '../../../components/Jan17Demo/ChatSidebarV4';
 import { StandardChatInput } from '../../../components/Chat/StandardChatInput';
@@ -19,13 +19,15 @@ import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
 import type { KPICardData, ChartData, TableData, TimelineFilter, DashboardFilter, OwnerOption, TextWidgetData } from '../../../components/Jan17Demo/DashboardV2';
 import { InlineDrilldownPanel } from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import type { DrilldownFilter, DrilldownColumn } from '../../../components/Jan17Demo/InlineDrilldownPanel';
+import { TransparencyDrawer } from '../../../components/Jan17Demo/TransparencyDrawer';
+import type { QueryResult, CallTranscript } from '../../../components/Jan17Demo/TransparencyDrawer';
 import { WidgetConfigModal } from '../../../components/Jan17Demo/WidgetConfigModal';
 import type { WidgetConfigData, ChartType } from '../../../components/Jan17Demo/WidgetConfigModal';
 import { WidgetEditSheet } from '../../../components/Jan17Demo/WidgetEditSheet';
 import type { WidgetConfigData as WidgetEditConfigData } from '../../../components/Jan17Demo/WidgetEditSheet';
-import { AmbientGlow } from '../../../components/DashboardBuilder/InteractivePrototype/AmbientGlow';
-import { AgentProgressBar } from '../../../components/DashboardBuilder/InteractivePrototype/AgentProgressBar';
-import type { AgentStatus } from '../../../components/DashboardBuilder/InteractivePrototype/AgentProgressBar';
+import { AmbientGlow } from '../../../components/Jan17Demo/AmbientGlow';
+import { AgentProgressBar } from '../../../components/Jan17Demo/AgentProgressBar';
+import type { AgentStatus } from '../../../components/Jan17Demo/AgentProgressBar';
 import {
   DashboardFilterModal,
   type DashboardFilterConfig,
@@ -173,7 +175,21 @@ const pieChart: ChartData = {
   ],
 };
 
-// Table data
+// AI column value generators
+const aiDealHealthScores = ['Strong', 'At Risk', 'Healthy', 'Needs Attention', 'On Track'];
+const aiNextActions = [
+  'Schedule executive alignment call',
+  'Send updated proposal',
+  'Follow up on legal review',
+  'Demo additional features',
+  'Negotiate final terms',
+  'Address pricing concerns',
+  'Connect with champion',
+  'Share customer references',
+];
+const aiCallSentiments = ['Positive', 'Neutral', 'Concerned', 'Excited', 'Hesitant'];
+
+// Table data with AI columns
 const tableData: TableData = {
   id: 'table-deals',
   title: 'Deals Closing This Quarter',
@@ -185,8 +201,12 @@ const tableData: TableData = {
     { id: 'closeDate', label: 'Close Date', type: 'date' },
     { id: 'probability', label: 'Probability', type: 'number' },
     { id: 'stage', label: 'Stage', type: 'string' },
+    // AI-generated columns
+    { id: 'dealHealth', label: 'Deal Health', type: 'string', isAI: true, aiSource: 'Von IQ' },
+    { id: 'nextAction', label: 'Next Best Action', type: 'string', isAI: true, aiSource: 'Von IQ' },
+    { id: 'callSentiment', label: 'Last Call Sentiment', type: 'string', isAI: true, aiSource: 'Gong' },
   ],
-  rows: dealsThisQuarter.map((opp) => ({
+  rows: dealsThisQuarter.map((opp, idx) => ({
     name: opp.name,
     accountName: opp.accountName,
     owner: opp.owner,
@@ -194,6 +214,10 @@ const tableData: TableData = {
     closeDate: opp.closeDate,
     probability: opp.probability,
     stage: opp.stage,
+    // AI-generated values
+    dealHealth: aiDealHealthScores[idx % aiDealHealthScores.length],
+    nextAction: aiNextActions[idx % aiNextActions.length],
+    callSentiment: aiCallSentiments[idx % aiCallSentiments.length],
   })),
 };
 
@@ -288,6 +312,149 @@ const availableFilterFields = [
   'Stage',
   'Probability',
   'Deal Risk',
+];
+
+// ============================================================================
+// Transparency Drawer Mock Data
+// ============================================================================
+
+const mockQueries: QueryResult[] = [
+  {
+    id: 'query-1',
+    name: 'Pipeline Deals',
+    description: 'All deals closing this quarter',
+    query: `SELECT Id, Name, Amount, CloseDate, StageName, Probability, Owner.Name
+FROM Opportunity
+WHERE CloseDate >= 2026-01-01 AND CloseDate <= 2026-03-31
+  AND IsClosed = false
+ORDER BY Amount DESC`,
+    duration: 245,
+    columns: [
+      { key: 'name', label: 'Deal Name', type: 'string' },
+      { key: 'accountName', label: 'Account', type: 'string' },
+      { key: 'amount', label: 'Amount', type: 'currency' },
+      { key: 'closeDate', label: 'Close Date', type: 'date' },
+      { key: 'stage', label: 'Stage', type: 'string' },
+      { key: 'probability', label: 'Probability', type: 'percentage' },
+    ],
+    rows: dealsThisQuarter.slice(0, 15).map((opp) => ({
+      name: opp.name,
+      accountName: opp.accountName,
+      amount: opp.amount,
+      closeDate: opp.closeDate,
+      stage: opp.stage,
+      probability: opp.probability,
+    })),
+  },
+  {
+    id: 'query-2',
+    name: 'Stage Summary',
+    description: 'Pipeline grouped by stage',
+    query: `SELECT StageName, COUNT(Id) as DealCount, SUM(Amount) as TotalValue
+FROM Opportunity
+WHERE CloseDate >= 2026-01-01 AND CloseDate <= 2026-03-31
+GROUP BY StageName
+ORDER BY TotalValue DESC`,
+    duration: 128,
+    columns: [
+      { key: 'stage', label: 'Stage', type: 'string' },
+      { key: 'count', label: 'Deal Count', type: 'number' },
+      { key: 'value', label: 'Total Value', type: 'currency' },
+    ],
+    rows: Object.entries(stageData).map(([stage, value]) => ({
+      stage,
+      count: dealsThisQuarter.filter((d) => d.stage === stage).length,
+      value,
+    })),
+  },
+  {
+    id: 'query-3',
+    name: 'Risk Analysis',
+    description: 'Deals grouped by risk level',
+    query: `SELECT Deal_Risk__c, COUNT(Id) as DealCount, SUM(Amount) as TotalValue
+FROM Opportunity
+WHERE CloseDate >= 2026-01-01 AND CloseDate <= 2026-03-31
+GROUP BY Deal_Risk__c`,
+    duration: 98,
+    columns: [
+      { key: 'risk', label: 'Risk Level', type: 'string' },
+      { key: 'count', label: 'Deal Count', type: 'number' },
+      { key: 'value', label: 'Total Value', type: 'currency' },
+    ],
+    rows: Object.entries(riskData).map(([risk, count]) => ({
+      risk,
+      count,
+      value: dealsThisQuarter.filter((d) => d.dealRisk === risk).reduce((sum, d) => sum + d.amount, 0),
+    })),
+  },
+];
+
+const mockCalls: CallTranscript[] = [
+  {
+    id: 'call-1',
+    title: 'Q1 Pipeline Review - Enterprise Accounts',
+    date: '2026-01-14',
+    duration: '45 min',
+    timeRange: '10:00 AM - 10:45 AM',
+    participants: ['Sarah Chen', 'Mike Johnson', 'VP Sales'],
+    accountName: 'Acme Corp',
+    opportunityName: 'Acme Enterprise Deal',
+    sentiment: 'positive',
+    summary: 'Discussed the $2.1M enterprise deal with Acme. Customer is very engaged and moving towards final approval. Legal review expected to complete by end of week. Strong likelihood of close by Jan 31.',
+    sourceUrl: 'https://example.com/calls/1',
+  },
+  {
+    id: 'call-2',
+    title: 'TechStart Renewal Discussion',
+    date: '2026-01-12',
+    duration: '30 min',
+    timeRange: '2:00 PM - 2:30 PM',
+    participants: ['Emily Davis', 'Customer Success'],
+    accountName: 'TechStart Inc',
+    opportunityName: 'TechStart Annual Renewal',
+    sentiment: 'neutral',
+    summary: 'Customer expressed some concerns about pricing for the renewal. They mentioned competitor offerings. Recommended scheduling a product roadmap session to demonstrate upcoming value.',
+    sourceUrl: 'https://example.com/calls/2',
+  },
+  {
+    id: 'call-3',
+    title: 'GlobalTech Expansion Opportunity',
+    date: '2026-01-10',
+    duration: '1 hr',
+    timeRange: '11:00 AM - 12:00 PM',
+    participants: ['John Doe', 'Solutions Engineer', 'GlobalTech CTO'],
+    accountName: 'GlobalTech Solutions',
+    opportunityName: 'GlobalTech APAC Expansion',
+    sentiment: 'positive',
+    summary: 'Technical deep dive for APAC expansion. Customer is very impressed with our scalability features. They want to move fast - aiming for contract signature by end of January.',
+    sourceUrl: 'https://example.com/calls/3',
+  },
+  {
+    id: 'call-4',
+    title: 'StartupXYZ Demo Follow-up',
+    date: '2026-01-08',
+    duration: '20 min',
+    timeRange: '3:30 PM - 3:50 PM',
+    participants: ['Mike Johnson'],
+    accountName: 'StartupXYZ',
+    opportunityName: 'StartupXYZ Initial Contract',
+    sentiment: 'negative',
+    summary: 'Customer is pushing back on timeline. They mentioned budget constraints and may need to delay the decision to Q2. Recommended offering flexible payment terms.',
+    sourceUrl: 'https://example.com/calls/4',
+  },
+  {
+    id: 'call-5',
+    title: 'MegaCorp Strategic Partnership',
+    date: '2025-12-20',
+    duration: '1.5 hrs',
+    timeRange: '9:00 AM - 10:30 AM',
+    participants: ['Sarah Chen', 'CEO', 'MegaCorp VP Engineering'],
+    accountName: 'MegaCorp Industries',
+    opportunityName: 'MegaCorp Multi-Year Deal',
+    sentiment: 'positive',
+    summary: 'Executive alignment meeting for the $5M multi-year partnership. Both leadership teams are aligned on vision. Legal teams to begin contract review in January.',
+    sourceUrl: 'https://example.com/calls/5',
+  },
 ];
 
 // ============================================================================
@@ -599,6 +766,7 @@ const DashboardV2Demo = () => {
   const [agentMessage, setAgentMessage] = useState('');
   const [agentProgress, setAgentProgress] = useState(0);
   const [ambientGlowActive, setAmbientGlowActive] = useState(false);
+  const [dashboardName, setDashboardName] = useState('Deals Closing This Quarter');
 
   // Drilldown state
   const [drilldownWidget, setDrilldownWidget] = useState<string | null>(null);
@@ -608,10 +776,7 @@ const DashboardV2Demo = () => {
 
   // Dashboard action popovers state
   const [showFilterPopover, setShowFilterPopover] = useState(false);
-  const [filterPopoverPosition, setFilterPopoverPosition] = useState<{ top: number; right: number }>({
-    top: 60,
-    right: 20,
-  });
+  const filterPopoverPosition = { top: 60, right: 20 };
   const [showSharePopover, setShowSharePopover] = useState(false);
   const [sharePopoverPosition, setSharePopoverPosition] = useState<{ top: number; right: number }>({
     top: 60,
@@ -635,6 +800,9 @@ const DashboardV2Demo = () => {
 
   // Widget Edit Sheet state (new side sheet)
   const [showWidgetEditSheet, setShowWidgetEditSheet] = useState(false);
+
+  // Transparency Drawer state
+  const [showTransparencyDrawer, setShowTransparencyDrawer] = useState(false);
 
   // Drilldown with chart segment click state
   const [drilldownSegmentFilter, setDrilldownSegmentFilter] = useState<{ name: string; value: number } | null>(null);
@@ -1160,7 +1328,8 @@ const DashboardV2Demo = () => {
         {showDashboard && (
           <div className="relative h-full w-full overflow-hidden rounded-xl">
             <DashboardV2
-              name="Deals Closing This Quarter"
+              name={dashboardName}
+              onNameChange={setDashboardName}
               kpiCards={kpiCards}
               barChart={barChart}
               pieChart={pieChart}
@@ -1254,6 +1423,15 @@ const DashboardV2Demo = () => {
               mode="edit"
               availableFilterFields={availableFilterFields}
             />
+
+            {/* Transparency Drawer - Shows data sources and calls */}
+            <TransparencyDrawer
+              isOpen={showTransparencyDrawer}
+              onClose={() => setShowTransparencyDrawer(false)}
+              queries={mockQueries}
+              calls={mockCalls}
+              title="Sources"
+            />
           </div>
         )}
       </div>
@@ -1288,6 +1466,7 @@ const DashboardV2Demo = () => {
             onToggleCollapse={() => setIsChatPaneCollapsed(!isChatPaneCollapsed)}
             placeholder="Make changes to this dashboard..."
             referenceContext={referenceContext}
+            onSourcesClick={() => setShowTransparencyDrawer(true)}
           />
         </div>
       )}

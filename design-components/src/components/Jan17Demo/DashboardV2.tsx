@@ -25,9 +25,8 @@ import {
 } from '@phosphor-icons/react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { SecondaryIconButton, AddButton, GhostButton, PrimaryButton } from '../forms/buttons';
+import { SecondaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../popups';
-import { FilterRow } from '../forms/filter';
 
 // ============================================================================
 // Types
@@ -67,6 +66,10 @@ export interface TableColumn {
   id: string;
   label: string;
   type?: 'string' | 'number' | 'currency' | 'date';
+  /** Whether this is an AI-generated column */
+  isAI?: boolean;
+  /** Data source for AI columns (e.g., 'Snowflake', 'Gong Calls', 'Von IQ') */
+  aiSource?: string;
 }
 
 export interface TableData {
@@ -264,142 +267,6 @@ function FilterDropdownPopover<T extends string>({
     document.body
   );
 }
-
-// ============================================================================
-// Advanced Filters Popover Component
-// ============================================================================
-
-interface AdvancedFiltersPopoverProps {
-  isOpen: boolean;
-  onClose: () => void;
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-  filters: DashboardFilter[];
-  fieldOptions: { value: string; label: string }[];
-  onFiltersChange: (filters: DashboardFilter[]) => void;
-}
-
-const AdvancedFiltersPopover: React.FC<AdvancedFiltersPopoverProps> = ({
-  isOpen,
-  onClose,
-  anchorRef,
-  filters,
-  fieldOptions,
-  onFiltersChange,
-}) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [localFilters, setLocalFilters] = useState<DashboardFilter[]>(filters);
-
-  // Reset local filters when popover opens
-  useEffect(() => {
-    if (isOpen) {
-      setLocalFilters(filters);
-    }
-  }, [isOpen, filters]);
-
-  useEffect(() => {
-    if (isOpen && anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 8,
-        left: Math.max(16, rect.left),
-      });
-    }
-  }, [isOpen, anchorRef]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, anchorRef]);
-
-  const addFilter = () => {
-    const newFilter: DashboardFilter = {
-      id: `filter-${Date.now()}`,
-      field: fieldOptions[0]?.value || '',
-      operator: 'equals',
-      value: '',
-    };
-    setLocalFilters([...localFilters, newFilter]);
-  };
-
-  const updateFilter = (id: string, updates: Partial<DashboardFilter>) => {
-    setLocalFilters(localFilters.map((f) => (f.id === id ? { ...f, ...updates } : f)));
-  };
-
-  const removeFilter = (id: string) => {
-    setLocalFilters(localFilters.filter((f) => f.id !== id));
-  };
-
-  const handleApply = () => {
-    onFiltersChange(localFilters);
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return createPortal(
-    <motion.div
-      ref={popoverRef}
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.15 }}
-      className="fixed w-[420px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000]"
-      style={{ top: position.top, left: position.left }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-[13px] font-medium text-gray-900">Edit Filters</span>
-        <AddButton onClick={addFilter}>Add Filter</AddButton>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto">
-        {localFilters.length === 0 ? (
-          <p className="text-[13px] text-gray-500 text-center py-4">
-            No filters applied. Click "Add Filter" to create one.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {localFilters.map((filter) => (
-              <FilterRow
-                key={filter.id}
-                fields={fieldOptions}
-                field={filter.field}
-                operator={filter.operator}
-                value={filter.value}
-                onFieldChange={(field) => updateFilter(filter.id, { field })}
-                onOperatorChange={(operator) => updateFilter(filter.id, { operator })}
-                onValueChange={(value) => updateFilter(filter.id, { value })}
-                onRemove={() => removeFilter(filter.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <GhostButton onClick={onClose}>Cancel</GhostButton>
-        <PrimaryButton onClick={handleApply}>Apply Filters</PrimaryButton>
-      </div>
-    </motion.div>,
-    document.body
-  );
-};
 
 // ============================================================================
 // Prompt-Based Filter Popover Component
@@ -926,7 +793,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDow
 };
 
 // ============================================================================
-// Settings Panel Component
+// Settings Panel Component (Slide-up Panel)
 // ============================================================================
 
 type SettingsTab = 'refresh' | 'sharing' | 'details';
@@ -940,200 +807,323 @@ interface SettingsPanelProps {
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isOpen,
   onClose,
-  anchorRef,
 }) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, right: 0 });
   const [activeTab, setActiveTab] = useState<SettingsTab>('refresh');
   const [refreshFrequency, setRefreshFrequency] = useState('daily');
-
-  useEffect(() => {
-    if (isOpen && anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
-    }
-  }, [isOpen, anchorRef]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, anchorRef]);
+  const [visibility, setVisibility] = useState('private');
 
   if (!isOpen) return null;
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'refresh', label: 'Refresh', icon: <ArrowsClockwiseIcon size={14} /> },
-    { id: 'sharing', label: 'Sharing', icon: <UsersIcon size={14} /> },
-    { id: 'details', label: 'Details', icon: <InfoIcon size={14} /> },
+    { id: 'refresh', label: 'Refresh', icon: <ArrowsClockwiseIcon size={16} /> },
+    { id: 'sharing', label: 'Sharing', icon: <UsersIcon size={16} /> },
+    { id: 'details', label: 'Details', icon: <InfoIcon size={16} /> },
   ];
 
-  return createPortal(
-    <motion.div
-      ref={popoverRef}
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.15 }}
-      className="fixed w-[320px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000] overflow-hidden"
-      style={{ top: position.top, right: position.right }}
-    >
-      {/* Header with pill tabs */}
-      <div className="px-4 py-3 border-b border-gray-100">
-        <div className="flex items-center gap-1 p-0.5 bg-gray-100 rounded-lg">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                flex items-center gap-1.5 flex-1 justify-center px-3 py-1.5 text-[12px] font-medium rounded-md transition-all cursor-pointer
-                ${
-                  activeTab === tab.id
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }
-              `}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+  return (
+    <>
+      {/* Backdrop with blur */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-40"
+        onClick={onClose}
+      />
 
-      {/* Content */}
-      <div className="p-4">
-        {activeTab === 'refresh' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">
-                Refresh Frequency
-              </label>
-              <div className="space-y-2">
-                {[
-                  { value: 'realtime', label: 'Real-time', desc: 'Updates as data changes' },
-                  { value: 'hourly', label: 'Hourly', desc: 'Every hour' },
-                  { value: 'daily', label: 'Daily', desc: 'Once per day at midnight' },
-                  { value: 'weekly', label: 'Weekly', desc: 'Every Monday' },
-                  { value: 'manual', label: 'Manual only', desc: 'Click refresh to update' },
-                ].map((option) => (
-                  <label
-                    key={option.value}
-                    className={`
-                      flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors
-                      ${
-                        refreshFrequency === option.value
-                          ? 'border-indigo-200 bg-indigo-50'
-                          : 'border-gray-100 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <input
-                      type="radio"
-                      name="refreshFrequency"
-                      value={option.value}
-                      checked={refreshFrequency === option.value}
-                      onChange={(e) => setRefreshFrequency(e.target.value)}
-                      className="sr-only"
-                    />
-                    <div
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50 overflow-hidden"
+        style={{ height: '90%' }}
+      >
+        {/* Resize Handle */}
+        <div className="absolute -top-2 left-0 right-0 h-4 flex justify-center items-center">
+          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <GearIcon size={20} className="text-gray-700" />
+            <span className="text-[15px] font-semibold text-gray-900">Dashboard Settings</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+          >
+            <XIcon size={18} />
+          </button>
+        </div>
+
+        {/* Content Area with Sidebar Navigation */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar Navigation */}
+          <div className="w-56 border-r border-gray-100 bg-gray-50 p-4 flex-shrink-0">
+            <div className="space-y-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-lg transition-all cursor-pointer
+                    ${
+                      activeTab === tab.id
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                    }
+                  `}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'refresh' && (
+              <div className="max-w-2xl">
+                <div className="mb-6">
+                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">Refresh Frequency</h3>
+                  <p className="text-[13px] text-gray-500">Choose how often this dashboard should refresh its data.</p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    { value: 'realtime', label: 'Real-time', desc: 'Updates automatically as data changes in your connected sources', recommended: true },
+                    { value: 'hourly', label: 'Hourly', desc: 'Refreshes every hour on the hour' },
+                    { value: 'daily', label: 'Daily', desc: 'Refreshes once per day at midnight in your timezone' },
+                    { value: 'weekly', label: 'Weekly', desc: 'Refreshes every Monday at 9:00 AM' },
+                    { value: 'manual', label: 'Manual only', desc: 'Only refreshes when you click the refresh button' },
+                  ].map((option) => (
+                    <label
+                      key={option.value}
                       className={`
-                        w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0
+                        flex items-start gap-4 px-4 py-4 rounded-xl border cursor-pointer transition-all
                         ${
                           refreshFrequency === option.value
-                            ? 'border-indigo-600'
-                            : 'border-gray-300'
+                            ? 'border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200'
+                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                         }
                       `}
                     >
-                      {refreshFrequency === option.value && (
-                        <div className="w-2 h-2 rounded-full bg-indigo-600" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[13px] font-medium text-gray-900">{option.label}</p>
-                      <p className="text-[11px] text-gray-500">{option.desc}</p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+                      <input
+                        type="radio"
+                        name="refreshFrequency"
+                        value={option.value}
+                        checked={refreshFrequency === option.value}
+                        onChange={(e) => setRefreshFrequency(e.target.value)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`
+                          w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+                          ${
+                            refreshFrequency === option.value
+                              ? 'border-indigo-600'
+                              : 'border-gray-300'
+                          }
+                        `}
+                      >
+                        {refreshFrequency === option.value && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[14px] font-medium text-gray-900">{option.label}</p>
+                          {option.recommended && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium text-indigo-700 bg-indigo-100 rounded-full">
+                              Recommended
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[13px] text-gray-500 mt-0.5">{option.desc}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
 
-        {activeTab === 'sharing' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">
-                Visibility
-              </label>
-              <div className="space-y-2">
-                {[
-                  { value: 'private', label: 'Private', desc: 'Only you can view' },
-                  { value: 'team', label: 'Team', desc: 'All team members can view' },
-                  { value: 'org', label: 'Organization', desc: 'Everyone in organization' },
-                ].map((option) => (
-                  <div
-                    key={option.value}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <UsersIcon size={16} className="text-gray-400" />
-                    <div className="flex-1">
-                      <p className="text-[13px] font-medium text-gray-900">{option.label}</p>
-                      <p className="text-[11px] text-gray-500">{option.desc}</p>
+                <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <InfoIcon size={18} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[13px] font-medium text-gray-700">About data refresh</p>
+                      <p className="text-[12px] text-gray-500 mt-1">
+                        Real-time refresh may increase data usage and API calls to your connected sources.
+                        Consider using hourly or daily refresh for dashboards that don't require live data.
+                      </p>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-            <div className="pt-2 border-t border-gray-100">
-              <button className="flex items-center gap-2 text-[13px] text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer">
-                <PaperPlaneTiltIcon size={14} />
-                <span>Invite collaborators</span>
-              </button>
-            </div>
-          </div>
-        )}
+            )}
 
-        {activeTab === 'details' && (
-          <div className="space-y-3">
-            {[
-              { label: 'Created', value: 'Jan 15, 2025' },
-              { label: 'Last modified', value: '2 hours ago' },
-              { label: 'Owner', value: 'John Doe' },
-              { label: 'Data sources', value: 'Salesforce, HubSpot' },
-              { label: 'Widgets', value: '6 widgets' },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-1.5">
-                <span className="text-[12px] text-gray-500">{item.label}</span>
-                <span className="text-[13px] text-gray-900 font-medium">{item.value}</span>
+            {activeTab === 'sharing' && (
+              <div className="max-w-2xl">
+                <div className="mb-6">
+                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">Visibility & Access</h3>
+                  <p className="text-[13px] text-gray-500">Control who can view and interact with this dashboard.</p>
+                </div>
+
+                <div className="space-y-3 mb-8">
+                  {[
+                    { value: 'private', label: 'Private', desc: 'Only you can view this dashboard', icon: <UserIcon size={18} /> },
+                    { value: 'team', label: 'Team', desc: 'All members of your team can view', icon: <UsersIcon size={18} /> },
+                    { value: 'org', label: 'Organization', desc: 'Everyone in your organization can view', icon: <UsersIcon size={18} /> },
+                  ].map((option) => (
+                    <label
+                      key={option.value}
+                      className={`
+                        flex items-start gap-4 px-4 py-4 rounded-xl border cursor-pointer transition-all
+                        ${
+                          visibility === option.value
+                            ? 'border-indigo-300 bg-indigo-50/50 ring-1 ring-indigo-200'
+                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                        }
+                      `}
+                    >
+                      <input
+                        type="radio"
+                        name="visibility"
+                        value={option.value}
+                        checked={visibility === option.value}
+                        onChange={(e) => setVisibility(e.target.value)}
+                        className="sr-only"
+                      />
+                      <div
+                        className={`
+                          w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
+                          ${
+                            visibility === option.value
+                              ? 'bg-indigo-100 text-indigo-600'
+                              : 'bg-gray-100 text-gray-500'
+                          }
+                        `}
+                      >
+                        {option.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[14px] font-medium text-gray-900">{option.label}</p>
+                        <p className="text-[13px] text-gray-500 mt-0.5">{option.desc}</p>
+                      </div>
+                      {visibility === option.value && (
+                        <CheckIcon size={20} className="text-indigo-600 flex-shrink-0" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">Invite Collaborators</h4>
+                  <div className="flex gap-3">
+                    <input
+                      type="email"
+                      placeholder="Enter email address..."
+                      className="flex-1 px-4 py-2.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <PrimaryButton>
+                      <span className="flex items-center gap-2">
+                        <PaperPlaneTiltIcon size={14} />
+                        Invite
+                      </span>
+                    </PrimaryButton>
+                  </div>
+                  <p className="text-[12px] text-gray-500 mt-2">
+                    Invited collaborators will receive an email with a link to view this dashboard.
+                  </p>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6 mt-6">
+                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">Current Access</h4>
+                  <div className="space-y-3">
+                    {[
+                      { name: 'John Doe', email: 'john@example.com', role: 'Owner', avatar: 'JD' },
+                      { name: 'Sarah Chen', email: 'sarah@example.com', role: 'Editor', avatar: 'SC' },
+                      { name: 'Mike Johnson', email: 'mike@example.com', role: 'Viewer', avatar: 'MJ' },
+                    ].map((user) => (
+                      <div key={user.email} className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-semibold text-indigo-600">
+                            {user.avatar}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-medium text-gray-900">{user.name}</p>
+                            <p className="text-[12px] text-gray-500">{user.email}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${
+                          user.role === 'Owner' ? 'bg-indigo-100 text-indigo-700' :
+                          user.role === 'Editor' ? 'bg-emerald-100 text-emerald-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {user.role}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )}
 
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex justify-end">
-        <GhostButton onClick={onClose}>Close</GhostButton>
-      </div>
-    </motion.div>,
-    document.body
+            {activeTab === 'details' && (
+              <div className="max-w-2xl">
+                <div className="mb-6">
+                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">Dashboard Details</h3>
+                  <p className="text-[13px] text-gray-500">View information about this dashboard.</p>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
+                  {[
+                    { label: 'Dashboard Name', value: 'Deals Closing This Quarter' },
+                    { label: 'Created', value: 'January 15, 2025 at 10:30 AM' },
+                    { label: 'Last Modified', value: '2 hours ago' },
+                    { label: 'Owner', value: 'John Doe' },
+                    { label: 'Data Sources', value: 'Salesforce, HubSpot, Snowflake' },
+                    { label: 'Widgets', value: '6 widgets (3 KPIs, 2 Charts, 1 Table)' },
+                    { label: 'Refresh Rate', value: 'Daily at midnight' },
+                    { label: 'Last Refreshed', value: 'Today at 12:00 AM' },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between px-4 py-3.5">
+                      <span className="text-[13px] text-gray-500">{item.label}</span>
+                      <span className="text-[13px] text-gray-900 font-medium">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8">
+                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">Danger Zone</h4>
+                  <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[13px] font-medium text-red-900">Delete this dashboard</p>
+                        <p className="text-[12px] text-red-700 mt-0.5">
+                          Once deleted, this dashboard cannot be recovered. All widgets and configurations will be permanently removed.
+                        </p>
+                      </div>
+                      <button className="px-3 py-1.5 text-[13px] font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors cursor-pointer flex-shrink-0">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3 flex-shrink-0">
+          <GhostButton onClick={onClose}>Cancel</GhostButton>
+          <PrimaryButton onClick={onClose}>Save Changes</PrimaryButton>
+        </div>
+      </motion.div>
+    </>
   );
 };
 
@@ -1453,25 +1443,36 @@ const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDow
               {data.columns.map((col) => (
                 <th
                   key={col.id}
-                  className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide"
+                  className="text-left px-4 py-2 text-xs font-medium whitespace-nowrap"
                 >
-                  {col.label}
+                  {col.isAI ? (
+                    <span className="flex items-center gap-1.5">
+                      <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
+                      <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+                        {col.label}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">{col.label}</span>
+                  )}
                 </th>
               ))}
               {/* AI Columns Headers */}
               {aiColumns.map((aiCol) => (
-                <th key={aiCol.id} className="text-left px-4 py-2 text-xs font-medium uppercase tracking-wide group">
+                <th key={aiCol.id} className="text-left px-4 py-2 text-xs font-medium whitespace-nowrap group">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingAIColumn(aiCol);
                       setShowAIColumnPopover(true);
                     }}
-                    className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                    className="flex items-center gap-1.5 cursor-pointer"
                   >
-                    <SparkleIcon size={10} />
-                    <span>{aiCol.name}</span>
-                    <PencilSimpleIcon size={10} className="opacity-0 group-hover:opacity-100" />
+                    <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
+                    <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+                      {aiCol.name}
+                    </span>
+                    <PencilSimpleIcon size={10} className="text-gray-400 opacity-0 group-hover:opacity-100" />
                   </button>
                 </th>
               ))}
@@ -1701,8 +1702,10 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
   onExportClick,
   onRefreshClick,
   onShareClick,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onEditClick,
   onNameChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isEditMode = false,
   timelineFilter = 'this-quarter',
   onTimelineFilterChange,
@@ -1722,6 +1725,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
   const timelineButtonRef = useRef<HTMLButtonElement>(null);
   const ownerButtonRef = useRef<HTMLButtonElement>(null);
   const shareButtonRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const editButtonRef = useRef<HTMLDivElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [isEditingName, setIsEditingName] = useState(false);

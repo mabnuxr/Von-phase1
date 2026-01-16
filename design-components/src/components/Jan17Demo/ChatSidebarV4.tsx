@@ -5,7 +5,6 @@ import {
   SidebarSimpleIcon,
   FolderSimpleIcon,
   CaretDownIcon,
-  CaretRightIcon,
   DotsThreeIcon,
   PencilSimpleIcon,
   TrashIcon,

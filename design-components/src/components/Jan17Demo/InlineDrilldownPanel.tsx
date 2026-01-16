@@ -11,8 +11,7 @@ import {
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
-import { TertiaryIconButton, GhostButton, PrimaryButton, AddButton } from '../forms/buttons';
-import { FilterRow as FormFilterRow } from '../forms/filter';
+import { TertiaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { Select } from '../forms/dropdown';
 
 // ============================================================================
@@ -30,6 +29,10 @@ export interface DrilldownColumn {
   id: string;
   label: string;
   type?: 'string' | 'number' | 'currency' | 'date';
+  /** Whether this is an AI-generated column */
+  isAI?: boolean;
+  /** Data source for AI columns (e.g., 'Snowflake', 'Gong Calls', 'Von IQ') */
+  aiSource?: string;
 }
 
 /** Table data for tabs */
@@ -77,142 +80,6 @@ const FORMULA_FUNCTIONS = [
   { value: 'MAX(field)', label: 'MAX - Maximum value' },
   { value: 'MIN(field)', label: 'MIN - Minimum value' },
 ];
-
-// ============================================================================
-// Filter Popover Component
-// ============================================================================
-
-interface FilterPopoverProps {
-  isOpen: boolean;
-  onClose: () => void;
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-  filters: DrilldownFilter[];
-  fieldOptions: { value: string; label: string }[];
-  onFiltersChange: (filters: DrilldownFilter[]) => void;
-}
-
-const FilterPopover: React.FC<FilterPopoverProps> = ({
-  isOpen,
-  onClose,
-  anchorRef,
-  filters,
-  fieldOptions,
-  onFiltersChange,
-}) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [localFilters, setLocalFilters] = useState<DrilldownFilter[]>(filters);
-
-  // Reset local filters when popover opens
-  useEffect(() => {
-    if (isOpen) {
-      setLocalFilters(filters);
-    }
-  }, [isOpen, filters]);
-
-  useEffect(() => {
-    if (isOpen && anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 8,
-        left: Math.max(16, rect.left),
-      });
-    }
-  }, [isOpen, anchorRef]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, anchorRef]);
-
-  const addFilter = () => {
-    const newFilter: DrilldownFilter = {
-      id: `filter-${Date.now()}`,
-      field: fieldOptions[0]?.value || '',
-      operator: 'equals',
-      value: '',
-    };
-    setLocalFilters([...localFilters, newFilter]);
-  };
-
-  const updateFilter = (id: string, updates: Partial<DrilldownFilter>) => {
-    setLocalFilters(localFilters.map((f) => (f.id === id ? { ...f, ...updates } : f)));
-  };
-
-  const removeFilter = (id: string) => {
-    setLocalFilters(localFilters.filter((f) => f.id !== id));
-  };
-
-  const handleApply = () => {
-    onFiltersChange(localFilters);
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return createPortal(
-    <motion.div
-      ref={popoverRef}
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.15 }}
-      className="fixed w-[420px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000]"
-      style={{ top: position.top, left: position.left }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-[13px] font-medium text-gray-900">Edit Filters</span>
-        <AddButton onClick={addFilter}>Add Filter</AddButton>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 space-y-3 max-h-[300px] overflow-y-auto">
-        {localFilters.length === 0 ? (
-          <p className="text-[13px] text-gray-500 text-center py-4">
-            No filters applied. Click "Add Filter" to create one.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {localFilters.map((filter) => (
-              <FormFilterRow
-                key={filter.id}
-                fields={fieldOptions}
-                field={filter.field}
-                operator={filter.operator}
-                value={filter.value}
-                onFieldChange={(field) => updateFilter(filter.id, { field })}
-                onOperatorChange={(operator) => updateFilter(filter.id, { operator })}
-                onValueChange={(value) => updateFilter(filter.id, { value })}
-                onRemove={() => removeFilter(filter.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <GhostButton onClick={onClose}>Cancel</GhostButton>
-        <PrimaryButton onClick={handleApply}>Apply Filters</PrimaryButton>
-      </div>
-    </motion.div>,
-    document.body
-  );
-};
 
 // ============================================================================
 // Prompt-Based Filter Popover Component
@@ -1147,27 +1014,38 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
               {columns.map((col) => (
                 <th
                   key={col.id}
-                  className="text-left px-4 py-2.5 text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap"
+                  className="text-left px-4 py-2.5 text-xs font-medium whitespace-nowrap"
                 >
-                  {col.label}
+                  {col.isAI ? (
+                    <span className="flex items-center gap-1.5">
+                      <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
+                      <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+                        {col.label}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">{col.label}</span>
+                  )}
                 </th>
               ))}
               {/* AI Columns Headers */}
               {aiColumns.map((aiCol) => (
                 <th
                   key={aiCol.id}
-                  className="text-left px-4 py-2.5 text-xs font-medium uppercase tracking-wide whitespace-nowrap group"
+                  className="text-left px-4 py-2.5 text-xs font-medium whitespace-nowrap group"
                 >
                   <button
                     onClick={() => {
                       setEditingAIColumn(aiCol);
                       setShowAIColumnPopover(true);
                     }}
-                    className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                    className="flex items-center gap-1.5 cursor-pointer"
                   >
-                    <SparkleIcon size={12} />
-                    <span>{aiCol.name}</span>
-                    <PencilSimpleIcon size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
+                    <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+                      {aiCol.name}
+                    </span>
+                    <PencilSimpleIcon size={10} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 </th>
               ))}

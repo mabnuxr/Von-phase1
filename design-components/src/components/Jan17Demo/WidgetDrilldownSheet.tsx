@@ -5,12 +5,10 @@ import {
   XIcon,
   FunnelIcon,
   FunctionIcon,
-  CaretDownIcon,
-  CheckIcon,
   SparkleIcon,
   PencilSimpleIcon,
 } from '@phosphor-icons/react';
-import { TertiaryIconButton, SecondaryButton, GhostButton, PrimaryButton } from '../forms/buttons';
+import { TertiaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 
 // ============================================================================
 // Types

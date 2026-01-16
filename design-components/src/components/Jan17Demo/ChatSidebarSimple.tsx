@@ -12,7 +12,6 @@ import {
   MagnifyingGlassIcon,
   PlusIcon,
   ArrowsInLineVerticalIcon,
-  CaretUpDownIcon,
 } from '@phosphor-icons/react';
 import {
   PrimaryButton,

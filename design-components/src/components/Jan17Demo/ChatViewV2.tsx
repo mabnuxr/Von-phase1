@@ -9,6 +9,9 @@ import {
   TableIcon,
   ChartBarIcon,
   DatabaseIcon,
+  GitBranchIcon,
+  ThumbsUpIcon,
+  ThumbsDownIcon,
 } from '@phosphor-icons/react';
 import { PrimaryButton } from '../forms/buttons';
 
@@ -57,6 +60,8 @@ export interface ChatViewV2Props {
   elapsedTime?: number;
   onBuildDashboard?: () => void;
   userName?: string;
+  /** Callback when sources button is clicked */
+  onSourcesClick?: () => void;
 }
 
 // ============================================================================
@@ -362,6 +367,10 @@ interface AssistantMessageProps {
   plan?: DashboardPlan;
   onBuildDashboard?: () => void;
   artifact?: DashboardArtifact;
+  /** Callback when sources button is clicked */
+  onSourcesClick?: () => void;
+  /** Whether to show the feedback row (thumbs up/down + sources) */
+  showFeedbackRow?: boolean;
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({
@@ -372,6 +381,8 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
   plan,
   onBuildDashboard,
   artifact,
+  onSourcesClick,
+  showFeedbackRow = false,
 }) => {
   // Auto-collapse thinking block when all steps are complete
   const allStepsComplete = thinkingSteps?.every((s) => s.status === 'complete') ?? false;
@@ -402,6 +413,37 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
       {plan && onBuildDashboard && (
         <PlanCard plan={plan} onBuild={onBuildDashboard} />
       )}
+
+      {/* Feedback Row - Thumbs up/down + Sources button */}
+      {showFeedbackRow && (
+        <div className="flex items-center gap-1 pt-1">
+          <button
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            title="Good response"
+          >
+            <ThumbsUpIcon size={14} weight="regular" />
+          </button>
+          <button
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            title="Bad response"
+          >
+            <ThumbsDownIcon size={14} weight="regular" />
+          </button>
+          {onSourcesClick && (
+            <>
+              <div className="w-px h-4 bg-gray-200 mx-1" />
+              <button
+                onClick={onSourcesClick}
+                className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                title="View sources"
+              >
+                <GitBranchIcon size={14} weight="regular" />
+                <span>Sources</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -416,6 +458,7 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
   thinkingSteps = [],
   elapsedTime = 0,
   onBuildDashboard,
+  onSourcesClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -430,23 +473,30 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4">
       <div className="max-w-2xl mx-auto space-y-4">
-        {messages.map((message) => (
-          <div key={message.id}>
-            {message.type === 'user' ? (
-              <UserMessage content={message.content} />
-            ) : (
-              <AssistantMessage
-                content={message.content}
-                thinkingSteps={message.thinkingSteps}
-                isThinking={isThinking && message.id === messages[messages.length - 1]?.id}
-                elapsedTime={elapsedTime}
-                plan={message.plan}
-                onBuildDashboard={message.showBuildButton ? onBuildDashboard : undefined}
-                artifact={message.artifact}
-              />
-            )}
-          </div>
-        ))}
+        {messages.map((message) => {
+          // Show feedback row on assistant messages that have an artifact or plan (completed responses)
+          const showFeedback = message.type === 'assistant' && !!(message.artifact || message.plan);
+
+          return (
+            <div key={message.id}>
+              {message.type === 'user' ? (
+                <UserMessage content={message.content} />
+              ) : (
+                <AssistantMessage
+                  content={message.content}
+                  thinkingSteps={message.thinkingSteps}
+                  isThinking={isThinking && message.id === messages[messages.length - 1]?.id}
+                  elapsedTime={elapsedTime}
+                  plan={message.plan}
+                  onBuildDashboard={message.showBuildButton ? onBuildDashboard : undefined}
+                  artifact={message.artifact}
+                  onSourcesClick={onSourcesClick}
+                  showFeedbackRow={showFeedback}
+                />
+              )}
+            </div>
+          );
+        })}
 
         {/* Active thinking (for streaming) */}
         {isThinking && thinkingSteps.length > 0 && !messages.some(m => m.thinkingSteps?.length) && (

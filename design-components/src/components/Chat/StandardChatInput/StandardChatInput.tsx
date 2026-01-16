@@ -8,7 +8,6 @@ import {
   FileText,
   X,
   XIcon,
-  UploadSimpleIcon,
   AtomIcon,
   CheckIcon,
   ChartLineIcon,
@@ -163,7 +162,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
             >
-              <UploadSimpleIcon size={16} className="text-gray-600" />
+              {/* <UploadSimpleIcon size={16} className="text-gray-600" /> */}
               <span>Upload files and photos</span>
             </button>
 
@@ -178,7 +177,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                 className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
               >
                 <div className="flex items-center gap-2.5">
-                  <RobotIcon size={16} className="text-gray-600" />
+                  {/* <RobotIcon size={16} className="text-gray-600" /> */}
                   <span>Agents</span>
                 </div>
                 <CaretRightIcon size={12} className="text-gray-400" />
@@ -200,7 +199,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
-                        <RobotIcon size={16} className="text-gray-600" />
+                        {/* <RobotIcon size={16} className="text-gray-600" /> */}
                         <span>Auto</span>
                       </div>
                       {selectedAgentMode === 'auto' && (
@@ -214,7 +213,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
-                        <ChartBarIcon size={16} className="text-gray-600" />
+                        {/* <ChartBarIcon size={16} className="text-gray-600" /> */}
                         <span>Build Dashboard</span>
                       </div>
                       {selectedAgentMode === 'build-dashboard' && (
@@ -228,7 +227,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
-                        <AtomIcon size={16} className="text-gray-600" />
+                        {/* <AtomIcon size={16} className="text-gray-600" /> */}
                         <span>Deep Research</span>
                       </div>
                       {selectedAgentMode === 'deep-research' && (

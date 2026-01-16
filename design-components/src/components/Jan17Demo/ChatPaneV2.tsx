@@ -25,6 +25,8 @@ export interface ChatPaneV2Props {
   referenceContext?: ReferenceContext;
   /** Callback when user removes the reference */
   onRemoveReference?: () => void;
+  /** Callback when sources button is clicked */
+  onSourcesClick?: () => void;
 }
 
 // Re-export types for convenience
@@ -82,6 +84,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
   placeholder = 'Type a message...',
   referenceContext,
   onRemoveReference,
+  onSourcesClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -154,6 +157,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
             thinkingSteps={thinkingSteps}
             elapsedTime={elapsedTime}
             onBuildDashboard={onBuildDashboard}
+            onSourcesClick={onSourcesClick}
           />
         )}
         <div ref={messagesEndRef} />
