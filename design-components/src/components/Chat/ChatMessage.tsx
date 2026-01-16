@@ -482,64 +482,64 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                     />
                                   )}
 
-                              {/* Final Message - Rendered outside ThinkingBlock after completion */}
-                              {(() => {
-                                const finalStep = stepMessages[stepMessages.length - 1];
-                                return (
-                                  <div className="space-y-3">
-                                    {/* Final step content */}
-                                    {finalStep.content && (
-                                      <div className="prose-sm markdown-body max-w-none">
-                                        <Streamdown
-                                          parseIncompleteMarkdown={false}
-                                          isAnimating={false}
-                                          controls={{ table: true }}
-                                          components={{ a: SalesforceLink }}
-                                        >
-                                          {finalStep.content}
-                                        </Streamdown>
-                                      </div>
-                                    )}
+                                  {/* Final Message - Rendered outside ThinkingBlock after completion */}
+                                  {(() => {
+                                    const finalStep = stepMessages[stepMessages.length - 1];
+                                    return (
+                                      <div className="space-y-3">
+                                        {/* Final step content */}
+                                        {finalStep.content && (
+                                          <div className="prose-sm markdown-body max-w-none">
+                                            <Streamdown
+                                              parseIncompleteMarkdown={false}
+                                              isAnimating={false}
+                                              controls={{ table: true }}
+                                              components={{ a: SalesforceLink }}
+                                            >
+                                              {finalStep.content}
+                                            </Streamdown>
+                                          </div>
+                                        )}
 
-                                    {/* Tool calls for final step */}
-                                    {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
-                                      <div className="space-y-2">
-                                        {finalStep.toolCalls.map((toolCall) => (
-                                          <ToolCallItem
-                                            key={toolCall.id}
-                                            toolCall={toolCall}
-                                            onArtifactClick={handleArtifactClick}
-                                            isStreaming={false}
-                                            isLatestMessage={isLatestMessage}
-                                            onApprove={onApprove}
-                                            onReject={onReject}
-                                            runId={runId}
-                                            salesforceInstanceUrl={salesforceInstanceUrl}
-                                          />
-                                        ))}
+                                        {/* Tool calls for final step */}
+                                        {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
+                                          <div className="space-y-2">
+                                            {finalStep.toolCalls.map((toolCall) => (
+                                              <ToolCallItem
+                                                key={toolCall.id}
+                                                toolCall={toolCall}
+                                                onArtifactClick={handleArtifactClick}
+                                                isStreaming={false}
+                                                isLatestMessage={isLatestMessage}
+                                                onApprove={onApprove}
+                                                onReject={onReject}
+                                                runId={runId}
+                                                salesforceInstanceUrl={salesforceInstanceUrl}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </>
+                                    );
+                                  })()}
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            /* Fallback: render plain content if no stepMessages */
+                            content && (
+                              <div className="prose-sm markdown-body max-w-none">
+                                <Streamdown
+                                  parseIncompleteMarkdown={isStreaming}
+                                  isAnimating={isStreaming}
+                                  controls={{ table: true }}
+                                  components={{ a: SalesforceLink }}
+                                >
+                                  {content}
+                                </Streamdown>
+                              </div>
+                            )
                           )}
-                        </div>
-                      ) : (
-                        /* Fallback: render plain content if no stepMessages */
-                        content && (
-                          <div className="prose-sm markdown-body max-w-none">
-                            <Streamdown
-                              parseIncompleteMarkdown={isStreaming}
-                              isAnimating={isStreaming}
-                              controls={{ table: true }}
-                              components={{ a: SalesforceLink }}
-                            >
-                              {content}
-                            </Streamdown>
-                          </div>
-                        )
-                      )}
                         </>
                       )}
                     </div>

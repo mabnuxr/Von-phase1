@@ -258,7 +258,9 @@ function extractCallTranscripts(
           ? String(row.start_time_iso)
           : new Date((row.start_time as number) * 1000).toISOString(),
         sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
-        summary: row.chunk_text ? String(row.chunk_text).slice(0, 500) : undefined,
+        summary: row.chunk_text
+          ? String(row.chunk_text).slice(0, 500)
+          : undefined,
       };
 
       // Avoid duplicates

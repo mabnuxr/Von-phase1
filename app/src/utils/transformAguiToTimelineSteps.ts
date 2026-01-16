@@ -19,12 +19,18 @@ interface StepStartedEventWithNumber {
   type: "STEP_STARTED";
   step_number: number;
   step_name: string;
+  metadata?: {
+    category?: string;
+  };
 }
 
 interface StepFinishedEventWithNumber {
   type: "STEP_FINISHED";
   step_number: number;
   step_name: string;
+  metadata?: {
+    category?: string;
+  };
 }
 
 /**
@@ -46,11 +52,6 @@ const TOOL_SOURCE_MAP: Record<string, SourceType> = {
   // Calendar tools
   get_calendar_events: "calendar",
   request_google_calendar_approval: "calendar",
-
-  // VonIQ internal tools
-  write_file: "voniq",
-  execute_bash: "voniq",
-  read_file: "voniq",
 };
 
 /**
@@ -74,9 +75,6 @@ function getToolDescription(toolName: string, args?: string): string {
     get_calendar_events: "Checking calendar events",
     request_google_calendar_approval:
       "Requesting approval for calendar changes",
-    write_file: "Writing analysis file",
-    execute_bash: "Running analysis script",
-    read_file: "Reading file contents",
   };
 
   let description = baseDescriptions[toolName] || `Executing ${toolName}`;
@@ -109,9 +107,6 @@ function getToolDisplayText(toolName: string): string {
     get_email_content: "Getting email",
     get_calendar_events: "Checking calendar",
     request_google_calendar_approval: "Calendar approval",
-    write_file: "Writing file",
-    execute_bash: "Running script",
-    read_file: "Reading file",
   };
 
   return displayNames[toolName] || toolName.replace(/_/g, " ");
@@ -143,6 +138,8 @@ export function transformAguiToTimelineSteps(
   const toolArgsMap = new Map<string, string>();
   // Map to track steps by step_number for STEP_STARTED/STEP_FINISHED correlation
   const stepNumberMap = new Map<number, TimelineStep>();
+  // Track step_numbers that belong to e2b category (to be skipped)
+  const skippedStepNumbers = new Set<number>();
   let currentReasoningStep: TimelineStep | null = null;
   let isThinking = true;
   let stepCounter = 0;
@@ -167,6 +164,13 @@ export function transformAguiToTimelineSteps(
         // Create a new step when STEP_STARTED arrives
         // This provides a step boundary with step_number for tracking
         const stepEvent = event as StepStartedEventWithNumber;
+
+        // Skip steps with e2b category
+        if (stepEvent.metadata?.category === "e2b") {
+          skippedStepNumbers.add(stepEvent.step_number);
+          break;
+        }
+
         stepCounter++;
         const stepId = `step-${stepEvent.step_number}`;
 
@@ -190,6 +194,12 @@ export function transformAguiToTimelineSteps(
       case "STEP_FINISHED": {
         // Mark the step as complete when STEP_FINISHED arrives
         const finishedEvent = event as StepFinishedEventWithNumber;
+
+        // Skip if this step was marked as e2b category
+        if (skippedStepNumbers.has(finishedEvent.step_number)) {
+          break;
+        }
+
         const step = stepNumberMap.get(finishedEvent.step_number);
         if (step) {
           step.status = "complete" as StepStatus;

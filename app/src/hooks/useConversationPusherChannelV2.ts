@@ -45,7 +45,7 @@ export interface UseConversationPusherChannelV2Return {
  * V2 Pusher hook that transforms AGUI events to TimelineStep[] format
  */
 export function useConversationPusherChannelV2(
-  config: UseConversationPusherChannelV2Config
+  config: UseConversationPusherChannelV2Config,
 ): UseConversationPusherChannelV2Return {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -57,7 +57,7 @@ export function useConversationPusherChannelV2(
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
   const prevConfigRef = useRef<UseConversationPusherChannelV2Config | null>(
-    null
+    null,
   );
   const connectionEventsBound = useRef(false);
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,7 +104,7 @@ export function useConversationPusherChannelV2(
           console.log(
             "[V2 Pusher] Ignoring event for finished run:",
             run_id,
-            event.type
+            event.type,
           );
           return;
         }
@@ -123,7 +123,7 @@ export function useConversationPusherChannelV2(
 
         // Deduplicate by sequence
         const exists = runEvents.some(
-          (e) => e.run_id === run_id && e.sequence === sequence
+          (e) => e.run_id === run_id && e.sequence === sequence,
         );
         if (exists) return;
 
@@ -152,17 +152,17 @@ export function useConversationPusherChannelV2(
           }
           console.log(
             "[V2 Pusher] Run finished, total events:",
-            runEvents.length
+            runEvents.length,
           );
         }
       } catch (error) {
         console.error(
           "[useConversationPusherChannelV2] Error handling event:",
-          error
+          error,
         );
       }
     },
-    [config.conversationId, startElapsedTimer, stopElapsedTimer]
+    [config.conversationId, startElapsedTimer, stopElapsedTimer],
   );
 
   // Reset state when conversation changes
@@ -218,7 +218,7 @@ export function useConversationPusherChannelV2(
 
       if (!accessToken || accessToken.trim() === "") {
         console.warn(
-          "[useConversationPusherChannelV2] No access token available"
+          "[useConversationPusherChannelV2] No access token available",
         );
         setError(new Error("No access token available"));
         return;
@@ -263,9 +263,9 @@ export function useConversationPusherChannelV2(
             (err: { error?: { message?: string } }) => {
               console.error("[V2 Pusher] Connection error:", err);
               setError(
-                new Error(err.error?.message || "Pusher connection error")
+                new Error(err.error?.message || "Pusher connection error"),
               );
-            }
+            },
           );
 
           connectionEventsBound.current = true;
@@ -278,7 +278,7 @@ export function useConversationPusherChannelV2(
       if (channelRef.current && channelRef.current.name !== channelName) {
         console.log(
           "[V2 Pusher] Unsubscribing from old channel:",
-          channelRef.current.name
+          channelRef.current.name,
         );
         pusher.unsubscribe(channelRef.current.name);
         channelRef.current = null;
@@ -324,7 +324,7 @@ export function useConversationPusherChannelV2(
     } catch (err) {
       console.error("[V2 Pusher] Error initializing:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to initialize Pusher")
+        err instanceof Error ? err : new Error("Failed to initialize Pusher"),
       );
     }
 

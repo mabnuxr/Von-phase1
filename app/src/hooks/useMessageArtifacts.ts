@@ -117,8 +117,7 @@ export function useTransparencyArtifacts(
   const listQuery = useMessageArtifacts(conversationId, runId);
 
   // Extract artifact IDs from the list
-  const artifactIds =
-    listQuery.data?.artifacts.map((a) => a.artifact_id) ?? [];
+  const artifactIds = listQuery.data?.artifacts.map((a) => a.artifact_id) ?? [];
 
   // Fetch all artifact contents in parallel
   const contentQueries = useArtifactContents(
