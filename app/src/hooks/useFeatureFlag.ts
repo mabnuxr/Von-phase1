@@ -63,9 +63,9 @@ export function useFeatureFlag() {
     isDeepLinksEnabled: flags[FEATURE_FLAGS.DEEP_LINKS] === true,
 
     /**
-     * Controls if we need to show new chat UI experience
+     * Controls if we need to show new sidebar UI experience
      */
-    isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
 
     /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
