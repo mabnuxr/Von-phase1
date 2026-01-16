@@ -39,6 +39,19 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
 
   const totalRows = query.rows.length;
 
+  // Check if content is still loading (empty columns/rows with "Loading..." description)
+  const isContentLoading = query.columns.length === 0 && query.description?.includes('Loading');
+
+  // Show loading state for lazy-loaded content
+  if (isContentLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-center p-6">
+        <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3" />
+        <p className="text-sm text-gray-500">Loading artifact data...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* SQL Query Section - Collapsible, collapsed by default */}

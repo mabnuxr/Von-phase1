@@ -26,9 +26,11 @@ import {
 export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
   isOpen,
   onClose,
-  queries,
+  queries = [],
   calls = [],
   title = 'Sources',
+  isLoading = false,
+  onQuerySelect,
 }) => {
   const [activeTopTab, setActiveTopTab] = useState<TopLevelTab>('data');
   const [activeQueryId, setActiveQueryId] = useState<string>(queries[0]?.id || '');
@@ -69,7 +71,9 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
 
   const handleQuerySelect = useCallback((queryId: string) => {
     setActiveQueryId(queryId);
-  }, []);
+    // Notify parent for lazy loading
+    onQuerySelect?.(queryId);
+  }, [onQuerySelect]);
 
   return (
     <AnimatePresence>
@@ -152,7 +156,12 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
 
                       {/* Query Content */}
                       <div className="flex-1 overflow-hidden">
-                        {queries.length === 0 ? (
+                        {isLoading ? (
+                          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                            <div className="w-8 h-8 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3" />
+                            <p className="text-sm text-gray-500">Loading data sources...</p>
+                          </div>
+                        ) : queries.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-full text-center p-6">
                             <DatabaseIcon
                               size={48}

@@ -166,6 +166,76 @@ export function useTransparencyArtifacts(
 }
 
 /**
+ * Hook for fetching a single artifact's content on demand
+ *
+ * Used for lazy loading artifact content when the user clicks on
+ * a specific artifact in the transparency drawer.
+ *
+ * @param conversationId - ID of the conversation
+ * @param runId - Run ID of the message
+ * @param artifactId - ID of the artifact to fetch (null to disable)
+ * @returns React Query result with artifact content
+ */
+export function useLazyArtifactContent(
+  conversationId: string | null,
+  runId: string | null,
+  artifactId: string | null,
+) {
+  return useQuery({
+    queryKey: ["artifact-content", conversationId, runId, artifactId],
+    queryFn: async () => {
+      if (!conversationId || !runId || !artifactId) {
+        throw new Error("Missing required parameters for artifact fetch");
+      }
+      return conversationsService.getArtifactByRunId(
+        conversationId,
+        runId,
+        artifactId,
+      );
+    },
+    enabled: !!(conversationId && runId && artifactId),
+    staleTime: ARTIFACT_STALE_TIME,
+    gcTime: ARTIFACT_GC_TIME,
+    retry: ARTIFACT_RETRY_COUNT,
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
+  });
+}
+
+/**
+ * Hook for lazy loading artifacts - only fetches list initially,
+ * then content is fetched on demand when user clicks on an artifact
+ *
+ * @param conversationId - ID of the conversation
+ * @param runId - Run ID of the message (null to disable)
+ * @returns Result with artifact summaries and function to fetch content
+ */
+export function useLazyTransparencyArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+) {
+  // Only fetch the list of artifacts initially
+  const listQuery = useMessageArtifacts(conversationId, runId);
+
+  return {
+    // List metadata
+    conversationId: listQuery.data?.conversation_id ?? conversationId,
+    runId: listQuery.data?.run_id ?? runId,
+    totalCount: listQuery.data?.total_count ?? 0,
+    // Artifact summaries (without content)
+    artifactSummaries: listQuery.data?.artifacts ?? [],
+    // Loading states
+    isLoading: listQuery.isLoading,
+    isListLoading: listQuery.isLoading,
+    // Error states
+    isError: listQuery.isError,
+    error: listQuery.error,
+    // Refetch function
+    refetch: listQuery.refetch,
+  };
+}
+
+/**
  * Type re-exports for convenience
  */
 export type { MessageArtifactsResponse, ArtifactResponse };

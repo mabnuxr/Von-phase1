@@ -39,8 +39,8 @@ import { useConversationPusherChannelV2 } from '../hooks/useConversationPusherCh
 import { UserChannelEvents, type ConversationTitleUpdatedEvent } from '../types/userChannelEvents';
 import type { MessageWithStreaming } from '../types/conversation';
 import { useArtifact } from '../hooks/useArtifact';
-import { useTransparencyArtifacts } from '../hooks/useMessageArtifacts';
-import { transformArtifactsToTransparency } from '../utils/transformArtifactsToTransparency';
+import { useLazyTransparencyArtifacts } from '../hooks/useMessageArtifacts';
+import { LazyTransparencyDrawer } from '../components/LazyTransparencyDrawer';
 // Import Message type from design-components (includes events field)
 import type { Message as ChatMessage } from '@vonlabs/design-components';
 import {
@@ -51,7 +51,6 @@ import {
   ChatSkeleton,
   Banner,
   DashboardCanvas,
-  TransparencyDrawer,
 } from '@vonlabs/design-components';
 import { motion } from 'framer-motion';
 import {
@@ -623,20 +622,12 @@ const Dashboard = () => {
     setDashboardMessageContent(null);
   }, []);
 
-  // Fetch transparency artifacts when drawer is open
-  const { artifacts: transparencyArtifacts, isLoading: isTransparencyLoading } =
-    useTransparencyArtifacts(
+  // Fetch transparency artifact summaries when drawer is open (lazy loading)
+  const { artifactSummaries: transparencyArtifactSummaries, isLoading: isTransparencyLoading } =
+    useLazyTransparencyArtifacts(
       isTransparencyOpen ? currentConversationId : null,
       isTransparencyOpen ? transparencyRunId : null
     );
-
-  // Transform artifacts for TransparencyDrawer
-  const transparencyData = useMemo(() => {
-    if (!transparencyArtifacts || transparencyArtifacts.length === 0) {
-      return { queries: [], calls: [] };
-    }
-    return transformArtifactsToTransparency(transparencyArtifacts);
-  }, [transparencyArtifacts]);
 
   // Handle transparency button click
   const handleTransparencyClick = useCallback(
@@ -938,12 +929,14 @@ const Dashboard = () => {
           </motion.div>
         </div>
 
-        {/* Transparency Drawer - shows data sources for a message */}
-        <TransparencyDrawer
+        {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
+        <LazyTransparencyDrawer
           isOpen={isTransparencyOpen}
           onClose={handleCloseTransparency}
-          queries={transparencyData.queries}
-          calls={transparencyData.calls}
+          conversationId={currentConversationId}
+          runId={transparencyRunId}
+          artifactSummaries={transparencyArtifactSummaries}
+          isListLoading={isTransparencyLoading}
           title="Data Sources"
         />
       </div>

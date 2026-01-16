@@ -313,6 +313,51 @@ export function transformArtifactsToTransparency(
 }
 
 /**
+ * Artifact summary type for lazy loading
+ */
+export interface ArtifactSummary {
+  artifact_id: string;
+  tool_call_id: string;
+  tool_name: string;
+  artifact_type: string;
+  size_bytes: number;
+  persisted_at: string;
+}
+
+/**
+ * Transform a single artifact into a QueryResult
+ * Exported for use in lazy loading scenarios
+ *
+ * @param artifact - Single artifact response from the API
+ * @returns QueryResult for display, or null if cannot be transformed
+ */
+export function transformSingleArtifact(
+  artifact: ArtifactResponse,
+): QueryResult | null {
+  return transformArtifactToQueryResult(artifact);
+}
+
+/**
+ * Transform artifact summaries into placeholder QueryResults for lazy loading
+ * These don't have actual data but can be displayed as tabs/pills
+ *
+ * @param summaries - Array of artifact summaries (without content)
+ * @returns Array of placeholder QueryResults with loading-friendly structure
+ */
+export function transformSummariesToPlaceholders(
+  summaries: ArtifactSummary[],
+): QueryResult[] {
+  return summaries.map((summary) => ({
+    id: summary.artifact_id,
+    name: getToolDisplayName(summary.tool_name),
+    description: `Loading...`,
+    columns: [],
+    rows: [],
+    executedAt: new Date(summary.persisted_at),
+  }));
+}
+
+/**
  * Re-export types for convenience
  */
 export type { QueryResult, QueryColumn, CallTranscript };

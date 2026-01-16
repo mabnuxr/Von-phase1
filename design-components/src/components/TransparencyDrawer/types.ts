@@ -53,6 +53,31 @@ export interface CallTranscript {
 export type TopLevelTab = 'data' | 'calls';
 
 /**
+ * Artifact summary for lazy loading (without full content)
+ */
+export interface ArtifactSummary {
+  artifact_id: string;
+  tool_call_id: string;
+  tool_name: string;
+  artifact_type: string;
+  size_bytes: number;
+  persisted_at: string;
+}
+
+/**
+ * Full artifact response with content
+ */
+export interface ArtifactResponse {
+  artifact_id: string;
+  tool_call_id: string;
+  tool_name: string;
+  artifact_type: string;
+  content: Record<string, unknown>;
+  size_bytes: number;
+  persisted_at: string;
+}
+
+/**
  * Props for the TransparencyDrawer component
  */
 export interface TransparencyDrawerProps {
@@ -68,8 +93,9 @@ export interface TransparencyDrawerProps {
 
   /**
    * List of query results to display in the Data tab
+   * @deprecated Use artifactSummaries for lazy loading instead
    */
-  queries: QueryResult[];
+  queries?: QueryResult[];
 
   /**
    * List of call transcripts to display in the Calls tab
@@ -80,6 +106,31 @@ export interface TransparencyDrawerProps {
    * Title of the drawer
    */
   title?: string;
+
+  /**
+   * Artifact summaries for lazy loading (without full content)
+   */
+  artifactSummaries?: ArtifactSummary[];
+
+  /**
+   * Conversation ID for fetching artifact content
+   */
+  conversationId?: string | null;
+
+  /**
+   * Run ID for fetching artifact content
+   */
+  runId?: string | null;
+
+  /**
+   * Whether the artifact list is loading
+   */
+  isLoading?: boolean;
+
+  /**
+   * Callback when a query tab is selected (for lazy loading)
+   */
+  onQuerySelect?: (queryId: string) => void;
 }
 
 /**
