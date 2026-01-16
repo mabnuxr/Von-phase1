@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { ThumbsUpIcon, DownloadSimpleIcon, GitBranchIcon, CopyIcon, CheckIcon } from '@phosphor-icons/react';
+import {
+  ThumbsUpIcon,
+  DownloadSimpleIcon,
+  GitBranchIcon,
+  CopyIcon,
+  CheckIcon,
+} from '@phosphor-icons/react';
 
 export interface ChatResponseActionsProps {
   /**
@@ -99,17 +105,17 @@ export const ChatResponseActions: React.FC<ChatResponseActionsProps> = ({
           className={isCopied ? buttonActiveClass : buttonDefaultClass}
           title={isCopied ? 'Copied!' : 'Copy response'}
         >
-          {isCopied ? <CheckIcon size={16} weight="bold" /> : <CopyIcon size={16} weight="regular" />}
+          {isCopied ? (
+            <CheckIcon size={16} weight="bold" />
+          ) : (
+            <CopyIcon size={16} weight="regular" />
+          )}
         </button>
       )}
 
       {/* Download */}
       {showDownload && (
-        <button
-          onClick={onDownload}
-          className={buttonDefaultClass}
-          title="Download response"
-        >
+        <button onClick={onDownload} className={buttonDefaultClass} title="Download response">
           <DownloadSimpleIcon size={16} weight="regular" />
         </button>
       )}

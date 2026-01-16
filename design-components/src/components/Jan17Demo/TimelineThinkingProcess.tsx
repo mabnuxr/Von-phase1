@@ -32,7 +32,13 @@ export type StepType = 'reasoning' | 'tool_call' | 'code_execution' | 'output' |
 
 export type SourceType = 'salesforce' | 'gong' | 'email' | 'voniq' | 'calendar' | 'generic';
 
-export type StepStatus = 'pending' | 'in-progress' | 'complete' | 'warning' | 'error' | 'awaiting-approval';
+export type StepStatus =
+  | 'pending'
+  | 'in-progress'
+  | 'complete'
+  | 'warning'
+  | 'error'
+  | 'awaiting-approval';
 
 export interface ApprovalData {
   summary: string;
@@ -151,14 +157,15 @@ export interface TimelineThinkingProcessProps {
 
 const CONTAINER_HEIGHT = 320;
 
-const SOURCE_CONFIG: Record<SourceType, { icon: React.ElementType; label: string; color: string }> = {
-  salesforce: { icon: CloudIcon, label: 'Salesforce', color: 'text-blue-600' },
-  gong: { icon: PhoneIcon, label: 'Gong', color: 'text-purple-600' },
-  email: { icon: EnvelopeIcon, label: 'Email', color: 'text-gray-600' },
-  voniq: { icon: SparkleIcon, label: 'VonIQ', color: 'text-teal-600' },
-  calendar: { icon: CalendarIcon, label: 'Calendar', color: 'text-orange-500' },
-  generic: { icon: WrenchIcon, label: 'Tool', color: 'text-gray-600' },
-};
+const SOURCE_CONFIG: Record<SourceType, { icon: React.ElementType; label: string; color: string }> =
+  {
+    salesforce: { icon: CloudIcon, label: 'Salesforce', color: 'text-blue-600' },
+    gong: { icon: PhoneIcon, label: 'Gong', color: 'text-purple-600' },
+    email: { icon: EnvelopeIcon, label: 'Email', color: 'text-gray-600' },
+    voniq: { icon: SparkleIcon, label: 'VonIQ', color: 'text-teal-600' },
+    calendar: { icon: CalendarIcon, label: 'Calendar', color: 'text-orange-500' },
+    generic: { icon: WrenchIcon, label: 'Tool', color: 'text-gray-600' },
+  };
 
 const TYPE_CONFIG: Record<StepType, { icon: React.ElementType; label: string }> = {
   reasoning: { icon: BrainIcon, label: 'Thinking' },
@@ -219,13 +226,29 @@ const StepTypeIcon: React.FC<{
   if ((type === 'tool_call' || type === 'approval') && source) {
     const config = SOURCE_CONFIG[source];
     const Icon = config.icon;
-    return <Icon size={16} weight="regular" className={status === 'in-progress' || status === 'awaiting-approval' ? config.color : 'text-gray-500'} />;
+    return (
+      <Icon
+        size={16}
+        weight="regular"
+        className={
+          status === 'in-progress' || status === 'awaiting-approval'
+            ? config.color
+            : 'text-gray-500'
+        }
+      />
+    );
   }
 
   // For other types, show the type icon
   const config = TYPE_CONFIG[type];
   const Icon = config.icon;
-  return <Icon size={16} weight="regular" className={status === 'in-progress' ? 'text-indigo-600' : 'text-gray-500'} />;
+  return (
+    <Icon
+      size={16}
+      weight="regular"
+      className={status === 'in-progress' ? 'text-indigo-600' : 'text-gray-500'}
+    />
+  );
 };
 
 // Compact Approval Card for inline use
@@ -236,7 +259,12 @@ const CompactApprovalCard: React.FC<{
   isApproved?: boolean;
   isRejected?: boolean;
 }> = ({ approval, onApprove, onReject, isApproved, isRejected }) => {
-  const operationLabel = approval.operation === 'create' ? 'Create' : approval.operation === 'update' ? 'Update' : 'Delete';
+  const operationLabel =
+    approval.operation === 'create'
+      ? 'Create'
+      : approval.operation === 'update'
+        ? 'Update'
+        : 'Delete';
 
   if (isApproved || isRejected) {
     return (
@@ -290,7 +318,9 @@ const CompactApprovalCard: React.FC<{
             </div>
           ))}
           {approval.changes.length > 2 && (
-            <p className="text-[10px] text-gray-500 mt-1">+{approval.changes.length - 2} more changes</p>
+            <p className="text-[10px] text-gray-500 mt-1">
+              +{approval.changes.length - 2} more changes
+            </p>
           )}
         </div>
       )}
@@ -298,14 +328,20 @@ const CompactApprovalCard: React.FC<{
       {/* Action buttons */}
       <div className="flex items-center gap-2 mt-2.5">
         <button
-          onClick={(e) => { e.stopPropagation(); onReject(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onReject();
+          }}
           className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <XIcon size={12} weight="bold" />
           Reject
         </button>
         <button
-          onClick={(e) => { e.stopPropagation(); onApprove(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onApprove();
+          }}
           className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors cursor-pointer"
         >
           <CheckIcon size={12} weight="bold" />
@@ -326,8 +362,17 @@ interface StepRowProps {
   onReject?: () => void;
 }
 
-const StepRow: React.FC<StepRowProps> = ({ step, isExpanded, onToggle, onExpand, isLast, onApprove, onReject }) => {
-  const hasExpandableContent = step.description || step.code || (step.subSteps && step.subSteps.length > 0) || step.approval;
+const StepRow: React.FC<StepRowProps> = ({
+  step,
+  isExpanded,
+  onToggle,
+  onExpand,
+  isLast,
+  onApprove,
+  onReject,
+}) => {
+  const hasExpandableContent =
+    step.description || step.code || (step.subSteps && step.subSteps.length > 0) || step.approval;
   const isInProgress = step.status === 'in-progress';
   const isComplete = step.status === 'complete';
   const isAwaitingApproval = step.status === 'awaiting-approval';
@@ -354,9 +399,7 @@ const StepRow: React.FC<StepRowProps> = ({ step, isExpanded, onToggle, onExpand,
         >
           <StepTypeIcon type={step.type} source={step.source} status={step.status} />
         </div>
-        {!isLast && (
-          <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />
-        )}
+        {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
       </div>
 
       {/* Content */}
@@ -445,7 +488,10 @@ const StepRow: React.FC<StepRowProps> = ({ step, isExpanded, onToggle, onExpand,
                       </span>
                     </div>
                     <pre className="px-3 py-2 text-[11px] text-gray-300 font-mono overflow-hidden max-h-[80px]">
-                      <code>{step.code.slice(0, 200)}{step.code.length > 200 ? '...' : ''}</code>
+                      <code>
+                        {step.code.slice(0, 200)}
+                        {step.code.length > 200 ? '...' : ''}
+                      </code>
                     </pre>
                   </div>
                 )}
@@ -454,12 +500,13 @@ const StepRow: React.FC<StepRowProps> = ({ step, isExpanded, onToggle, onExpand,
                 {step.subSteps && step.subSteps.length > 0 && (
                   <div className="space-y-1.5 mt-1">
                     {step.subSteps.map((subStep) => (
-                      <div
-                        key={subStep.id}
-                        className="flex items-center gap-2 text-[12px]"
-                      >
+                      <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
                         <StatusIcon status={subStep.status} size={12} />
-                        <span className={subStep.status === 'complete' ? 'text-gray-700' : 'text-gray-500'}>
+                        <span
+                          className={
+                            subStep.status === 'complete' ? 'text-gray-700' : 'text-gray-500'
+                          }
+                        >
                           {subStep.text}
                         </span>
                       </div>
@@ -629,7 +676,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
   // Auto-expand current in-progress or awaiting-approval step
   useEffect(() => {
-    const currentStep = steps.find((s) => s.status === 'in-progress' || s.status === 'awaiting-approval');
+    const currentStep = steps.find(
+      (s) => s.status === 'in-progress' || s.status === 'awaiting-approval'
+    );
     if (currentStep) {
       setExpandedSteps((prev) => new Set(prev).add(currentStep.id));
     }
@@ -659,7 +708,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     id: step.id,
     title: step.text,
     description: step.description || step.text,
-    status: step.status === 'warning' || step.status === 'error' || step.status === 'awaiting-approval' ? 'complete' : step.status,
+    status:
+      step.status === 'warning' || step.status === 'error' || step.status === 'awaiting-approval'
+        ? 'complete'
+        : step.status,
     queryId: step.queryId,
   }));
 
@@ -758,7 +810,11 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                       {visibleSteps.map((step, idx) => {
                         const displayMode = getStepDisplayMode(step, idx);
 
-                        if (displayMode === 'collapsed' && !expandedSteps.has(step.id) && focusedStepId !== step.id) {
+                        if (
+                          displayMode === 'collapsed' &&
+                          !expandedSteps.has(step.id) &&
+                          focusedStepId !== step.id
+                        ) {
                           return (
                             <CollapsedStepRow
                               key={step.id}

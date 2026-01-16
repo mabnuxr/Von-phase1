@@ -173,9 +173,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
               onMouseLeave={() => setShowAgentsSubmenu(false)}
               className="relative"
             >
-              <button
-                className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-              >
+              <button className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
                 <div className="flex items-center gap-2.5">
                   {/* <RobotIcon size={16} className="text-gray-600" /> */}
                   <span>Agents</span>
@@ -243,12 +241,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
       </AnimatePresence>
 
       {/* Click outside to close */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={onClose} />}
     </div>
   );
 };

@@ -150,9 +150,15 @@ const QueryTab: React.FC<QueryTabProps> = ({ query, isActive, onClick }) => {
         }
       `}
     >
-      <TableIcon size={14} weight={isActive ? 'fill' : 'regular'} className={isActive ? 'text-white' : 'text-gray-500'} />
+      <TableIcon
+        size={14}
+        weight={isActive ? 'fill' : 'regular'}
+        className={isActive ? 'text-white' : 'text-gray-500'}
+      />
       <span className="truncate max-w-[120px]">{query.name}</span>
-      <span className={`text-[11px] ${isActive ? 'text-gray-300' : 'text-gray-400'}`}>({query.rows.length})</span>
+      <span className={`text-[11px] ${isActive ? 'text-gray-300' : 'text-gray-400'}`}>
+        ({query.rows.length})
+      </span>
     </button>
   );
 };
@@ -171,7 +177,11 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
     switch (type) {
       case 'currency':
         return typeof value === 'number'
-          ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
+          ? new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              maximumFractionDigits: 0,
+            }).format(value)
           : String(value);
       case 'percentage':
         return typeof value === 'number' ? `${value.toFixed(1)}%` : String(value);
@@ -185,7 +195,7 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
           return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
           });
         }
         return String(value);
@@ -216,7 +226,9 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
               ) : (
                 <CaretRightIcon size={12} weight="bold" className="text-gray-500" />
               )}
-              <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">SQL Query</span>
+              <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">
+                SQL Query
+              </span>
             </div>
             {query.duration && (
               <span className="text-[11px] text-gray-500 tabular-nums">{query.duration}ms</span>
@@ -300,7 +312,7 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
         {totalPages > 1 && (
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
@@ -310,7 +322,7 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
               {currentPage} / {totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
@@ -363,7 +375,9 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
         <div key={monthYear} className="mb-6 last:mb-0">
           {/* Month Header */}
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">{monthYear}</h3>
+            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              {monthYear}
+            </h3>
             <div className="flex items-center gap-1 text-xs text-gray-400">
               <PhoneIcon size={12} weight="regular" />
               <span>{monthCalls.length}</span>
@@ -385,9 +399,10 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
                       className={`
                         relative z-10 w-7 h-7 flex items-center justify-center rounded-full border bg-white
                         cursor-pointer transition-colors duration-150
-                        ${isExpanded
-                          ? 'border-indigo-300 bg-indigo-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        ${
+                          isExpanded
+                            ? 'border-indigo-300 bg-indigo-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }
                       `}
                     >
@@ -397,9 +412,7 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
                         className={isExpanded ? 'text-indigo-600' : 'text-gray-600'}
                       />
                     </button>
-                    {!isLast && (
-                      <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />
-                    )}
+                    {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />}
                   </div>
 
                   {/* Content */}
@@ -422,7 +435,7 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
                       <span className="text-xs text-gray-500 flex-shrink-0">
                         {new Date(call.date).toLocaleDateString('en-US', {
                           month: 'short',
-                          day: 'numeric'
+                          day: 'numeric',
                         })}
                       </span>
                     </div>
@@ -526,12 +539,12 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
 
   // Update active query when queries change
   React.useEffect(() => {
-    if (queries.length > 0 && !queries.find(q => q.id === activeQueryId)) {
+    if (queries.length > 0 && !queries.find((q) => q.id === activeQueryId)) {
       setActiveQueryId(queries[0].id);
     }
   }, [queries, activeQueryId]);
 
-  const activeQuery = queries.find(q => q.id === activeQueryId);
+  const activeQuery = queries.find((q) => q.id === activeQueryId);
 
   const topTabs: { id: TopLevelTab; label: string; icon: React.ReactNode; count: number }[] = [
     {
@@ -581,7 +594,8 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                   <div>
                     <h2 className="text-base font-semibold text-gray-900">{title}</h2>
                     <p className="text-xs text-gray-500">
-                      {queries.length} {queries.length === 1 ? 'query' : 'queries'}, {calls.length} {calls.length === 1 ? 'call' : 'calls'}
+                      {queries.length} {queries.length === 1 ? 'query' : 'queries'}, {calls.length}{' '}
+                      {calls.length === 1 ? 'call' : 'calls'}
                     </p>
                   </div>
                 </div>
@@ -603,19 +617,23 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       className={`
                         flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
                         transition-colors duration-150 cursor-pointer
-                        ${activeTopTab === tab.id
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                        ${
+                          activeTopTab === tab.id
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        }
                       `}
                     >
                       {tab.icon}
                       {tab.label}
                       {tab.count > 0 && (
-                        <span className={`text-[11px] px-1.5 py-0.5 rounded-md ${
-                          activeTopTab === tab.id
-                            ? 'bg-gray-900 text-white'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <span
+                          className={`text-[11px] px-1.5 py-0.5 rounded-md ${
+                            activeTopTab === tab.id
+                              ? 'bg-gray-900 text-white'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
                           {tab.count}
                         </span>
                       )}
@@ -639,7 +657,10 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       {/* Query Pills Navigation */}
                       {queries.length > 0 && (
                         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
-                          <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                          <div
+                            className="flex items-center gap-2 overflow-x-auto"
+                            style={{ scrollbarWidth: 'none' }}
+                          >
                             {queries.map((query) => (
                               <QueryTab
                                 key={query.id}
@@ -656,7 +677,11 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       <div className="flex-1 overflow-hidden">
                         {queries.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                            <DatabaseIcon size={48} weight="duotone" className="text-gray-300 mb-3" />
+                            <DatabaseIcon
+                              size={48}
+                              weight="duotone"
+                              className="text-gray-300 mb-3"
+                            />
                             <p className="text-sm text-gray-500">No data queries executed</p>
                           </div>
                         ) : activeQuery ? (

@@ -13,7 +13,14 @@ import {
   type PaginationState,
   type ColumnOrderState,
 } from '@tanstack/react-table';
-import { CaretUp, CaretDown, ArrowSquareOut, CaretLeft, CaretRight, SparkleIcon } from '@phosphor-icons/react';
+import {
+  CaretUp,
+  CaretDown,
+  ArrowSquareOut,
+  CaretLeft,
+  CaretRight,
+  SparkleIcon,
+} from '@phosphor-icons/react';
 import { TertiaryIconButton, SecondaryIconButton } from '../forms/buttons/IconButtons';
 import { LOGO_STATIC_URL } from '../../constants';
 
@@ -356,7 +363,9 @@ const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
             <div className="mt-2 pt-2 border-t border-gray-100">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-gray-500">Confidence</span>
-                <span className="font-medium text-gray-900">{Math.round(reasoning.confidence * 100)}%</span>
+                <span className="font-medium text-gray-900">
+                  {Math.round(reasoning.confidence * 100)}%
+                </span>
               </div>
             </div>
           )}
@@ -365,7 +374,10 @@ const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
               <p className="text-[11px] text-gray-500 mb-1">Sources</p>
               <div className="flex flex-wrap gap-1">
                 {reasoning.sources.map((source, idx) => (
-                  <span key={idx} className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">
+                  <span
+                    key={idx}
+                    className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded"
+                  >
                     {source}
                   </span>
                 ))}
@@ -497,7 +509,17 @@ export function ReportTable<TData extends Record<string, unknown>>({
     ];
 
     return cols;
-  }, [columns, columnHelper, hoveredRowId, selectedRows, rowIdKey, onRowSelect, onRowOpen, aiReasoningData, showAIIndicators]);
+  }, [
+    columns,
+    columnHelper,
+    hoveredRowId,
+    selectedRows,
+    rowIdKey,
+    onRowSelect,
+    onRowOpen,
+    aiReasoningData,
+    showAIIndicators,
+  ]);
 
   const table = useReactTable({
     data,

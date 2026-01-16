@@ -233,7 +233,9 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
                         `}
                       >
                         <span
-                          className={chartType === option.value ? 'text-indigo-600' : 'text-gray-500'}
+                          className={
+                            chartType === option.value ? 'text-indigo-600' : 'text-gray-500'
+                          }
                         >
                           {option.icon}
                         </span>
@@ -284,9 +286,7 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
                       ) : (
                         <DatabaseIcon size={12} />
                       )}
-                      <span>
-                        {selectedDataSource.columnCount} columns available
-                      </span>
+                      <span>{selectedDataSource.columnCount} columns available</span>
                     </div>
                   )}
                 </div>

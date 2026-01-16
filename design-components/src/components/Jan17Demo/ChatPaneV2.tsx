@@ -1,7 +1,13 @@
 import { useRef, useLayoutEffect } from 'react';
 import { SidebarSimpleIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../forms/buttons';
-import { ChatViewV2, type ChatMessage, type ThinkingStep, type DashboardPlan, type DashboardArtifact } from './ChatViewV2';
+import {
+  ChatViewV2,
+  type ChatMessage,
+  type ThinkingStep,
+  type DashboardPlan,
+  type DashboardArtifact,
+} from './ChatViewV2';
 import { StandardChatInput, type ReferenceContext } from '../Chat/StandardChatInput';
 
 // ============================================================================
@@ -41,16 +47,11 @@ interface ChatPaneHeaderProps {
   onCollapse?: () => void;
 }
 
-const ChatPaneHeader: React.FC<ChatPaneHeaderProps> = ({
-  conversationName,
-  onCollapse,
-}) => {
+const ChatPaneHeader: React.FC<ChatPaneHeaderProps> = ({ conversationName, onCollapse }) => {
   return (
     <div className="flex items-center justify-between px-3 pt-1 pb-3 border-b border-gray-100 flex-shrink-0">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="text-[13px] font-medium text-gray-900 truncate">
-          {conversationName}
-        </span>
+        <span className="text-[13px] font-medium text-gray-900 truncate">{conversationName}</span>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         {onCollapse && (
@@ -118,10 +119,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
   return (
     <div className="px-2 py-3 h-full w-full bg-white flex text-[13px] rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
       {/* Header - Simplified without new chat button and history */}
-      <ChatPaneHeader
-        conversationName={conversationName}
-        onCollapse={onToggleCollapse}
-      />
+      <ChatPaneHeader conversationName={conversationName} onCollapse={onToggleCollapse} />
 
       {/* Messages area using ChatViewV2 */}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden">

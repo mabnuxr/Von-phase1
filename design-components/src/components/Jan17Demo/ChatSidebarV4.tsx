@@ -16,12 +16,7 @@ import {
   UsersIcon,
 } from '@phosphor-icons/react';
 // CaretDownIcon and CaretRightIcon used in FolderSection for expand/collapse
-import {
-  PrimaryButton,
-  AddButton,
-  PrimaryIconButton,
-  TertiaryIconButton,
-} from '../forms/buttons';
+import { PrimaryButton, AddButton, PrimaryIconButton, TertiaryIconButton } from '../forms/buttons';
 import {
   ProfilePopover,
   ContextMenu,
@@ -535,7 +530,6 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
     folder: Folder | null;
   }>({ isOpen: false, folder: null });
 
-
   const [moveToFolderModal, setMoveToFolderModal] = useState<{
     isOpen: boolean;
     item: SidebarItem | null;
@@ -925,11 +919,7 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
         {/* Projects Section (formerly Folders) */}
         {!isLoading && folders.length > 0 && (
           <div className="mb-2">
-            <SectionHeader
-              label="Projects"
-              onAdd={onNewChatFolderClick}
-              addButtonLabel="Add"
-            />
+            <SectionHeader label="Projects" onAdd={onNewChatFolderClick} addButtonLabel="Add" />
             <div>
               {folders.map((folder) => {
                 const folderItemsList = itemsByFolder[folder.id] || [];

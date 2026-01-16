@@ -296,30 +296,37 @@ export const ThinkingDrawer: React.FC<ThinkingDrawerProps> = ({
                             <div
                               className={`
                                 relative z-10 w-6 h-6 flex items-center justify-center rounded-full
-                                ${isComplete
-                                  ? 'bg-emerald-50'
-                                  : isInProgress
-                                    ? 'bg-indigo-50'
-                                    : 'bg-gray-100'
+                                ${
+                                  isComplete
+                                    ? 'bg-emerald-50'
+                                    : isInProgress
+                                      ? 'bg-indigo-50'
+                                      : 'bg-gray-100'
                                 }
                               `}
                             >
                               {isComplete ? (
-                                <CheckCircleIcon size={16} weight="fill" className="text-emerald-600" />
+                                <CheckCircleIcon
+                                  size={16}
+                                  weight="fill"
+                                  className="text-emerald-600"
+                                />
                               ) : isInProgress ? (
                                 <motion.div
                                   animate={{ rotate: 360 }}
                                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                                 >
-                                  <SpinnerGapIcon size={14} weight="regular" className="text-indigo-600" />
+                                  <SpinnerGapIcon
+                                    size={14}
+                                    weight="regular"
+                                    className="text-indigo-600"
+                                  />
                                 </motion.div>
                               ) : (
                                 <div className="w-2 h-2 rounded-full bg-gray-300" />
                               )}
                             </div>
-                            {!isLast && (
-                              <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />
-                            )}
+                            {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />}
                           </div>
 
                           {/* Content */}

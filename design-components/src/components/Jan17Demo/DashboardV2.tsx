@@ -32,7 +32,12 @@ import { ContextMenu, type ContextMenuItem } from '../popups';
 // Types
 // ============================================================================
 
-export type TimelineFilter = 'this-quarter' | 'next-quarter' | 'last-quarter' | 'this-month' | 'this-year';
+export type TimelineFilter =
+  | 'this-quarter'
+  | 'next-quarter'
+  | 'last-quarter'
+  | 'this-month'
+  | 'this-year';
 export type OwnerFilter = string; // owner id or 'all'
 
 export interface DashboardFilter {
@@ -241,7 +246,9 @@ function FilterDropdownPopover<T extends string>({
     >
       {/* Header */}
       <div className="px-3 py-2 border-b border-gray-100">
-        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{title}</span>
+        <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+          {title}
+        </span>
       </div>
 
       {/* Options */}
@@ -370,7 +377,10 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
             id: `filter-${Date.now()}-2`,
             field: 'Amount',
             operator: 'greater than',
-            value: value.includes('k') || lowerPrompt.includes('k') ? `${parseInt(value) * 1000}` : value,
+            value:
+              value.includes('k') || lowerPrompt.includes('k')
+                ? `${parseInt(value) * 1000}`
+                : value,
           });
         }
       }
@@ -513,7 +523,13 @@ interface KPICardProps {
   onClick?: () => void;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ data, isAnimating, onDrillDown, onContextMenu, onClick }) => {
+const KPICard: React.FC<KPICardProps> = ({
+  data,
+  isAnimating,
+  onDrillDown,
+  onContextMenu,
+  onClick,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -604,7 +620,9 @@ const KPICard: React.FC<KPICardProps> = ({ data, isAnimating, onDrillDown, onCon
             />
           </div>
           <div className="flex items-center justify-end mt-0.5">
-            <span className="text-[10px] font-medium text-gray-600">{Math.round(data.progress)}%</span>
+            <span className="text-[10px] font-medium text-gray-600">
+              {Math.round(data.progress)}%
+            </span>
           </div>
         </div>
       )}
@@ -625,7 +643,14 @@ interface ChartWidgetProps {
   onClick?: () => void;
 }
 
-const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDown, onContextMenu, onSegmentClick, onClick }) => {
+const ChartWidget: React.FC<ChartWidgetProps> = ({
+  data,
+  isAnimating,
+  onDrillDown,
+  onContextMenu,
+  onSegmentClick,
+  onClick,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -653,7 +678,10 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ data, isAnimating, onDrillDow
     };
 
     if (data.type === 'bar') {
-      const barData = data.data as { categories: string[]; series: { name: string; data: number[] }[] };
+      const barData = data.data as {
+        categories: string[];
+        series: { name: string; data: number[] }[];
+      };
       return {
         ...baseOptions,
         chart: { ...baseOptions.chart, type: 'column' },
@@ -804,10 +832,7 @@ interface SettingsPanelProps {
   anchorRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({
-  isOpen,
-  onClose,
-}) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('refresh');
   const [refreshFrequency, setRefreshFrequency] = useState('daily');
   const [visibility, setVisibility] = useState('private');
@@ -889,17 +914,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {activeTab === 'refresh' && (
               <div className="max-w-2xl">
                 <div className="mb-6">
-                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">Refresh Frequency</h3>
-                  <p className="text-[13px] text-gray-500">Choose how often this dashboard should refresh its data.</p>
+                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">
+                    Refresh Frequency
+                  </h3>
+                  <p className="text-[13px] text-gray-500">
+                    Choose how often this dashboard should refresh its data.
+                  </p>
                 </div>
 
                 <div className="space-y-3">
                   {[
-                    { value: 'realtime', label: 'Real-time', desc: 'Updates automatically as data changes in your connected sources', recommended: true },
+                    {
+                      value: 'realtime',
+                      label: 'Real-time',
+                      desc: 'Updates automatically as data changes in your connected sources',
+                      recommended: true,
+                    },
                     { value: 'hourly', label: 'Hourly', desc: 'Refreshes every hour on the hour' },
-                    { value: 'daily', label: 'Daily', desc: 'Refreshes once per day at midnight in your timezone' },
+                    {
+                      value: 'daily',
+                      label: 'Daily',
+                      desc: 'Refreshes once per day at midnight in your timezone',
+                    },
                     { value: 'weekly', label: 'Weekly', desc: 'Refreshes every Monday at 9:00 AM' },
-                    { value: 'manual', label: 'Manual only', desc: 'Only refreshes when you click the refresh button' },
+                    {
+                      value: 'manual',
+                      label: 'Manual only',
+                      desc: 'Only refreshes when you click the refresh button',
+                    },
                   ].map((option) => (
                     <label
                       key={option.value}
@@ -955,8 +997,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     <div>
                       <p className="text-[13px] font-medium text-gray-700">About data refresh</p>
                       <p className="text-[12px] text-gray-500 mt-1">
-                        Real-time refresh may increase data usage and API calls to your connected sources.
-                        Consider using hourly or daily refresh for dashboards that don't require live data.
+                        Real-time refresh may increase data usage and API calls to your connected
+                        sources. Consider using hourly or daily refresh for dashboards that don't
+                        require live data.
                       </p>
                     </div>
                   </div>
@@ -967,15 +1010,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {activeTab === 'sharing' && (
               <div className="max-w-2xl">
                 <div className="mb-6">
-                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">Visibility & Access</h3>
-                  <p className="text-[13px] text-gray-500">Control who can view and interact with this dashboard.</p>
+                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">
+                    Visibility & Access
+                  </h3>
+                  <p className="text-[13px] text-gray-500">
+                    Control who can view and interact with this dashboard.
+                  </p>
                 </div>
 
                 <div className="space-y-3 mb-8">
                   {[
-                    { value: 'private', label: 'Private', desc: 'Only you can view this dashboard', icon: <UserIcon size={18} /> },
-                    { value: 'team', label: 'Team', desc: 'All members of your team can view', icon: <UsersIcon size={18} /> },
-                    { value: 'org', label: 'Organization', desc: 'Everyone in your organization can view', icon: <UsersIcon size={18} /> },
+                    {
+                      value: 'private',
+                      label: 'Private',
+                      desc: 'Only you can view this dashboard',
+                      icon: <UserIcon size={18} />,
+                    },
+                    {
+                      value: 'team',
+                      label: 'Team',
+                      desc: 'All members of your team can view',
+                      icon: <UsersIcon size={18} />,
+                    },
+                    {
+                      value: 'org',
+                      label: 'Organization',
+                      desc: 'Everyone in your organization can view',
+                      icon: <UsersIcon size={18} />,
+                    },
                   ].map((option) => (
                     <label
                       key={option.value}
@@ -1020,7 +1082,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
-                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">Invite Collaborators</h4>
+                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">
+                    Invite Collaborators
+                  </h4>
                   <div className="flex gap-3">
                     <input
                       type="email"
@@ -1044,8 +1108,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="space-y-3">
                     {[
                       { name: 'John Doe', email: 'john@example.com', role: 'Owner', avatar: 'JD' },
-                      { name: 'Sarah Chen', email: 'sarah@example.com', role: 'Editor', avatar: 'SC' },
-                      { name: 'Mike Johnson', email: 'mike@example.com', role: 'Viewer', avatar: 'MJ' },
+                      {
+                        name: 'Sarah Chen',
+                        email: 'sarah@example.com',
+                        role: 'Editor',
+                        avatar: 'SC',
+                      },
+                      {
+                        name: 'Mike Johnson',
+                        email: 'mike@example.com',
+                        role: 'Viewer',
+                        avatar: 'MJ',
+                      },
                     ].map((user) => (
                       <div key={user.email} className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-3">
@@ -1057,11 +1131,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                             <p className="text-[12px] text-gray-500">{user.email}</p>
                           </div>
                         </div>
-                        <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${
-                          user.role === 'Owner' ? 'bg-indigo-100 text-indigo-700' :
-                          user.role === 'Editor' ? 'bg-emerald-100 text-emerald-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
+                        <span
+                          className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${
+                            user.role === 'Owner'
+                              ? 'bg-indigo-100 text-indigo-700'
+                              : user.role === 'Editor'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
                           {user.role}
                         </span>
                       </div>
@@ -1074,8 +1152,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
             {activeTab === 'details' && (
               <div className="max-w-2xl">
                 <div className="mb-6">
-                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">Dashboard Details</h3>
-                  <p className="text-[13px] text-gray-500">View information about this dashboard.</p>
+                  <h3 className="text-[14px] font-semibold text-gray-900 mb-1">
+                    Dashboard Details
+                  </h3>
+                  <p className="text-[13px] text-gray-500">
+                    View information about this dashboard.
+                  </p>
                 </div>
 
                 <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
@@ -1101,9 +1183,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="p-4 bg-red-50 rounded-xl border border-red-200">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[13px] font-medium text-red-900">Delete this dashboard</p>
+                        <p className="text-[13px] font-medium text-red-900">
+                          Delete this dashboard
+                        </p>
                         <p className="text-[12px] text-red-700 mt-0.5">
-                          Once deleted, this dashboard cannot be recovered. All widgets and configurations will be permanently removed.
+                          Once deleted, this dashboard cannot be recovered. All widgets and
+                          configurations will be permanently removed.
                         </p>
                       </div>
                       <button className="px-3 py-1.5 text-[13px] font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors cursor-pointer flex-shrink-0">
@@ -1320,7 +1405,9 @@ const TableAIColumnPopover: React.FC<TableAIColumnPopoverProps> = ({
       </div>
 
       <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <GhostButton onClick={onClose} disabled={isGenerating}>Cancel</GhostButton>
+        <GhostButton onClick={onClose} disabled={isGenerating}>
+          Cancel
+        </GhostButton>
         <PrimaryButton
           onClick={handleGenerate}
           disabled={!columnName.trim() || !prompt.trim() || isGenerating}
@@ -1345,7 +1432,13 @@ interface TableWidgetProps {
   onClick?: () => void;
 }
 
-const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDown, onContextMenu, onClick }) => {
+const TableWidget: React.FC<TableWidgetProps> = ({
+  data,
+  isAnimating,
+  onDrillDown,
+  onContextMenu,
+  onClick,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [aiColumns, setAiColumns] = useState<AIColumnConfig[]>([]);
   const [aiColumnData, setAiColumnData] = useState<Record<string, Record<number, string>>>({});
@@ -1359,7 +1452,11 @@ const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDow
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
     }
     if (type === 'date' && typeof value === 'string') {
-      return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return new Date(value).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
     }
     return String(value);
   };
@@ -1459,7 +1556,10 @@ const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDow
               ))}
               {/* AI Columns Headers */}
               {aiColumns.map((aiCol) => (
-                <th key={aiCol.id} className="text-left px-4 py-2 text-xs font-medium whitespace-nowrap group">
+                <th
+                  key={aiCol.id}
+                  className="text-left px-4 py-2 text-xs font-medium whitespace-nowrap group"
+                >
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1472,7 +1572,10 @@ const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDow
                     <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
                       {aiCol.name}
                     </span>
-                    <PencilSimpleIcon size={10} className="text-gray-400 opacity-0 group-hover:opacity-100" />
+                    <PencilSimpleIcon
+                      size={10}
+                      className="text-gray-400 opacity-0 group-hover:opacity-100"
+                    />
                   </button>
                 </th>
               ))}
@@ -1507,7 +1610,9 @@ const TableWidget: React.FC<TableWidgetProps> = ({ data, isAnimating, onDrillDow
                 {/* AI Columns Data */}
                 {aiColumns.map((aiCol) => (
                   <td key={aiCol.id} className="px-4 py-2 text-gray-900">
-                    {aiColumnData[aiCol.id]?.[idx] || <span className="text-gray-400 italic text-[11px]">...</span>}
+                    {aiColumnData[aiCol.id]?.[idx] || (
+                      <span className="text-gray-400 italic text-[11px]">...</span>
+                    )}
                   </td>
                 ))}
                 <td className="px-4 py-2" />
@@ -1552,7 +1657,13 @@ interface TextWidgetProps {
   onChange?: (content: string) => void;
 }
 
-const TextWidget: React.FC<TextWidgetProps> = ({ data, isAnimating, onContextMenu, onClick, onChange }) => {
+const TextWidget: React.FC<TextWidgetProps> = ({
+  data,
+  isAnimating,
+  onContextMenu,
+  onClick,
+  onChange,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [content, setContent] = useState(data.content);
@@ -1656,7 +1767,9 @@ const TextWidget: React.FC<TextWidgetProps> = ({ data, isAnimating, onContextMen
               onClick={(e) => e.stopPropagation()}
             />
             <div className="flex items-center justify-between">
-              <span className={`text-[11px] ${isOverLimit ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+              <span
+                className={`text-[11px] ${isOverLimit ? 'text-red-500 font-medium' : 'text-gray-500'}`}
+              >
                 {charCount}/{maxChars} characters
               </span>
               <div className="flex items-center gap-2">
@@ -1670,7 +1783,9 @@ const TextWidget: React.FC<TextWidgetProps> = ({ data, isAnimating, onContextMen
         ) : (
           <div>
             {content ? (
-              <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">{content}</p>
+              <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {content}
+              </p>
             ) : (
               <p className="text-[13px] text-gray-400 italic">Click edit to add notes...</p>
             )}
@@ -1751,8 +1866,10 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
   }, [availableFilterFields]);
 
   // Get display labels for current filter values
-  const timelineLabel = TIMELINE_OPTIONS.find((o) => o.value === timelineFilter)?.label || 'This Quarter';
-  const ownerLabel = ownerDropdownOptions.find((o) => o.value === ownerFilter)?.label || 'All Owners';
+  const timelineLabel =
+    TIMELINE_OPTIONS.find((o) => o.value === timelineFilter)?.label || 'This Quarter';
+  const ownerLabel =
+    ownerDropdownOptions.find((o) => o.value === ownerFilter)?.label || 'All Owners';
 
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -1903,9 +2020,10 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             onClick={() => setShowSettingsPanel(!showSettingsPanel)}
             className={`
               p-2 rounded-lg transition-colors cursor-pointer
-              ${showSettingsPanel
-                ? 'text-indigo-600 bg-indigo-50'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              ${
+                showSettingsPanel
+                  ? 'text-indigo-600 bg-indigo-50'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }
             `}
             title="Settings"

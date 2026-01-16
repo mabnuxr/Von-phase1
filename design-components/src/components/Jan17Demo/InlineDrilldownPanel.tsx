@@ -648,7 +648,8 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
             className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow resize-none disabled:opacity-50"
           />
           <p className="mt-1.5 text-[11px] text-gray-500">
-            Example: "Calculate a risk score (1-10) based on deal size, stage, and days since last activity"
+            Example: "Calculate a risk score (1-10) based on deal size, stage, and days since last
+            activity"
           </p>
         </div>
 
@@ -756,11 +757,12 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
   const filterButtonRef = useRef<HTMLButtonElement>(null);
 
   // Normalize tables - support both single table mode and multi-table mode
-  const normalizedTables: DrilldownTable[] = tables && tables.length > 0
-    ? tables
-    : singleColumns && singleRows
-      ? [{ id: 'main', name: widgetName, columns: singleColumns, rows: singleRows }]
-      : [];
+  const normalizedTables: DrilldownTable[] =
+    tables && tables.length > 0
+      ? tables
+      : singleColumns && singleRows
+        ? [{ id: 'main', name: widgetName, columns: singleColumns, rows: singleRows }]
+        : [];
 
   // Set initial active tab
   useEffect(() => {
@@ -921,26 +923,26 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
         className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50 overflow-hidden"
         style={{ height: `${panelHeight}%` }}
       >
-      {/* Resize Handle */}
-      <div
-        ref={resizeRef}
-        onMouseDown={handleMouseDown}
-        className="absolute -top-2 left-0 right-0 h-4 cursor-ns-resize flex justify-center items-center group"
-      >
-        <div className="w-10 h-1 bg-gray-300 rounded-full group-hover:bg-gray-400 transition-colors" />
-      </div>
+        {/* Resize Handle */}
+        <div
+          ref={resizeRef}
+          onMouseDown={handleMouseDown}
+          className="absolute -top-2 left-0 right-0 h-4 cursor-ns-resize flex justify-center items-center group"
+        >
+          <div className="w-10 h-1 bg-gray-300 rounded-full group-hover:bg-gray-400 transition-colors" />
+        </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Widget Name or Tabs */}
-          {normalizedTables.length > 1 ? (
-            <div className="flex items-center gap-1 p-0.5 bg-gray-100 rounded-lg">
-              {normalizedTables.map((table) => (
-                <button
-                  key={table.id}
-                  onClick={() => setActiveTabId(table.id)}
-                  className={`
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Widget Name or Tabs */}
+            {normalizedTables.length > 1 ? (
+              <div className="flex items-center gap-1 p-0.5 bg-gray-100 rounded-lg">
+                {normalizedTables.map((table) => (
+                  <button
+                    key={table.id}
+                    onClick={() => setActiveTabId(table.id)}
+                    className={`
                     px-3 py-1 text-[13px] font-medium rounded-md transition-all cursor-pointer
                     ${
                       activeTabId === table.id
@@ -948,23 +950,23 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                         : 'text-gray-600 hover:text-gray-900'
                     }
                   `}
-                >
-                  {table.name}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <span className="text-[13px] font-medium text-gray-900 truncate">{widgetName}</span>
-          )}
+                  >
+                    {table.name}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[13px] font-medium text-gray-900 truncate">{widgetName}</span>
+            )}
 
-          {/* Filters Button */}
-          <button
-            ref={filterButtonRef}
-            onClick={() => {
-              setShowFilterPopover(!showFilterPopover);
-              setShowFormulaPopover(false);
-            }}
-            className={`
+            {/* Filters Button */}
+            <button
+              ref={filterButtonRef}
+              onClick={() => {
+                setShowFilterPopover(!showFilterPopover);
+                setShowFormulaPopover(false);
+              }}
+              className={`
               flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
               ${
                 showFilterPopover || localFilters.length > 0
@@ -972,24 +974,24 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                   : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
               }
             `}
-          >
-            <FunnelIcon size={14} />
-            <span>Filters</span>
-            {localFilters.length > 0 && (
-              <span className="px-1.5 py-0.5 text-[11px] font-medium bg-indigo-600 text-white rounded-full">
-                {localFilters.length}
-              </span>
-            )}
-          </button>
+            >
+              <FunnelIcon size={14} />
+              <span>Filters</span>
+              {localFilters.length > 0 && (
+                <span className="px-1.5 py-0.5 text-[11px] font-medium bg-indigo-600 text-white rounded-full">
+                  {localFilters.length}
+                </span>
+              )}
+            </button>
 
-          {/* Formula Button */}
-          <button
-            ref={formulaButtonRef}
-            onClick={() => {
-              setShowFormulaPopover(!showFormulaPopover);
-              setShowFilterPopover(false);
-            }}
-            className={`
+            {/* Formula Button */}
+            <button
+              ref={formulaButtonRef}
+              onClick={() => {
+                setShowFormulaPopover(!showFormulaPopover);
+                setShowFilterPopover(false);
+              }}
+              className={`
               flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
               ${
                 showFormulaPopover
@@ -997,152 +999,152 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                   : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
               }
             `}
-          >
-            <FunctionIcon size={14} />
-            <span>Formula</span>
-          </button>
+            >
+              <FunctionIcon size={14} />
+              <span>Formula</span>
+            </button>
+          </div>
+
+          <TertiaryIconButton icon={<XIcon size={16} />} onClick={onClose} title="Close" />
         </div>
 
-        <TertiaryIconButton icon={<XIcon size={16} />} onClick={onClose} title="Close" />
-      </div>
-
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-[13px]">
-          <thead className="sticky top-0 bg-gray-50">
-            <tr>
-              {columns.map((col) => (
-                <th
-                  key={col.id}
-                  className="text-left px-4 py-2.5 text-xs font-medium whitespace-nowrap"
-                >
-                  {col.isAI ? (
-                    <span className="flex items-center gap-1.5">
+        {/* Table */}
+        <div className="flex-1 overflow-auto">
+          <table className="w-full text-[13px]">
+            <thead className="sticky top-0 bg-gray-50">
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={col.id}
+                    className="text-left px-4 py-2.5 text-xs font-medium whitespace-nowrap"
+                  >
+                    {col.isAI ? (
+                      <span className="flex items-center gap-1.5">
+                        <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
+                        <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
+                          {col.label}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">{col.label}</span>
+                    )}
+                  </th>
+                ))}
+                {/* AI Columns Headers */}
+                {aiColumns.map((aiCol) => (
+                  <th
+                    key={aiCol.id}
+                    className="text-left px-4 py-2.5 text-xs font-medium whitespace-nowrap group"
+                  >
+                    <button
+                      onClick={() => {
+                        setEditingAIColumn(aiCol);
+                        setShowAIColumnPopover(true);
+                      }}
+                      className="flex items-center gap-1.5 cursor-pointer"
+                    >
                       <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
                       <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
-                        {col.label}
+                        {aiCol.name}
                       </span>
-                    </span>
-                  ) : (
-                    <span className="text-gray-500">{col.label}</span>
-                  )}
-                </th>
-              ))}
-              {/* AI Columns Headers */}
-              {aiColumns.map((aiCol) => (
-                <th
-                  key={aiCol.id}
-                  className="text-left px-4 py-2.5 text-xs font-medium whitespace-nowrap group"
-                >
+                      <PencilSimpleIcon
+                        size={10}
+                        className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      />
+                    </button>
+                  </th>
+                ))}
+                {/* Add AI Column Button */}
+                <th className="text-left px-4 py-2.5 whitespace-nowrap">
                   <button
+                    ref={aiColumnButtonRef}
                     onClick={() => {
-                      setEditingAIColumn(aiCol);
+                      setEditingAIColumn(null);
                       setShowAIColumnPopover(true);
                     }}
-                    className="flex items-center gap-1.5 cursor-pointer"
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
                   >
-                    <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
-                    <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
-                      {aiCol.name}
-                    </span>
-                    <PencilSimpleIcon size={10} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <SparkleIcon size={12} />
+                    <span>Add AI Column</span>
                   </button>
                 </th>
-              ))}
-              {/* Add AI Column Button */}
-              <th className="text-left px-4 py-2.5 whitespace-nowrap">
-                <button
-                  ref={aiColumnButtonRef}
-                  onClick={() => {
-                    setEditingAIColumn(null);
-                    setShowAIColumnPopover(true);
-                  }}
-                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
-                >
-                  <SparkleIcon size={12} />
-                  <span>Add AI Column</span>
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((row, idx) => (
-              <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                {columns.map((col) => (
-                  <td
-                    key={col.id}
-                    className={`px-4 py-2.5 text-gray-900 whitespace-nowrap ${
-                      col.type === 'currency' || col.type === 'number' ? 'tabular-nums' : ''
-                    }`}
-                  >
-                    {formatValue(row[col.id], col.type)}
-                  </td>
-                ))}
-                {/* AI Columns Data */}
-                {aiColumns.map((aiCol) => (
-                  <td
-                    key={aiCol.id}
-                    className="px-4 py-2.5 text-gray-900 whitespace-nowrap"
-                  >
-                    {aiColumnData[aiCol.id]?.[idx] || (
-                      <span className="text-gray-400 italic">Generating...</span>
-                    )}
-                  </td>
-                ))}
-                {/* Empty cell for the "Add AI Column" header */}
-                <td className="px-4 py-2.5" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map((row, idx) => (
+                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                  {columns.map((col) => (
+                    <td
+                      key={col.id}
+                      className={`px-4 py-2.5 text-gray-900 whitespace-nowrap ${
+                        col.type === 'currency' || col.type === 'number' ? 'tabular-nums' : ''
+                      }`}
+                    >
+                      {formatValue(row[col.id], col.type)}
+                    </td>
+                  ))}
+                  {/* AI Columns Data */}
+                  {aiColumns.map((aiCol) => (
+                    <td key={aiCol.id} className="px-4 py-2.5 text-gray-900 whitespace-nowrap">
+                      {aiColumnData[aiCol.id]?.[idx] || (
+                        <span className="text-gray-400 italic">Generating...</span>
+                      )}
+                    </td>
+                  ))}
+                  {/* Empty cell for the "Add AI Column" header */}
+                  <td className="px-4 py-2.5" />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
-        <span className="text-[13px] text-gray-500">
-          {rows.length} row{rows.length !== 1 ? 's' : ''}
-        </span>
-        <div className="text-xs text-gray-400">Drag the top edge to resize</div>
-      </div>
+        {/* Footer */}
+        <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
+          <span className="text-[13px] text-gray-500">
+            {rows.length} row{rows.length !== 1 ? 's' : ''}
+          </span>
+          <div className="text-xs text-gray-400">Drag the top edge to resize</div>
+        </div>
 
-      {/* Prompt-Based Filter Popover */}
-      <AnimatePresence>
-        <PromptBasedFilterPopover
-          isOpen={showFilterPopover}
-          onClose={() => setShowFilterPopover(false)}
-          anchorRef={filterButtonRef}
-          filters={localFilters}
-          onFiltersChange={handleFiltersChange}
-        />
-      </AnimatePresence>
+        {/* Prompt-Based Filter Popover */}
+        <AnimatePresence>
+          <PromptBasedFilterPopover
+            isOpen={showFilterPopover}
+            onClose={() => setShowFilterPopover(false)}
+            anchorRef={filterButtonRef}
+            filters={localFilters}
+            onFiltersChange={handleFiltersChange}
+          />
+        </AnimatePresence>
 
-      {/* Formula Popover */}
-      <AnimatePresence>
-        <FormulaPopover
-          isOpen={showFormulaPopover}
-          onClose={() => setShowFormulaPopover(false)}
-          anchorRef={formulaButtonRef}
-          formula={localFormula}
-          fieldOptions={fieldOptions}
-          onFormulaChange={handleFormulaChange}
-        />
-      </AnimatePresence>
+        {/* Formula Popover */}
+        <AnimatePresence>
+          <FormulaPopover
+            isOpen={showFormulaPopover}
+            onClose={() => setShowFormulaPopover(false)}
+            anchorRef={formulaButtonRef}
+            formula={localFormula}
+            fieldOptions={fieldOptions}
+            onFormulaChange={handleFormulaChange}
+          />
+        </AnimatePresence>
 
-      {/* AI Column Popover */}
-      <AnimatePresence>
-        <AIColumnPopover
-          isOpen={showAIColumnPopover}
-          onClose={() => {
-            setShowAIColumnPopover(false);
-            setEditingAIColumn(null);
-          }}
-          anchorRef={aiColumnButtonRef}
-          column={editingAIColumn}
-          onSave={handleAIColumnSave}
-          onDelete={handleAIColumnDelete}
-        />
-      </AnimatePresence>
-    </motion.div>
+        {/* AI Column Popover */}
+        <AnimatePresence>
+          <AIColumnPopover
+            isOpen={showAIColumnPopover}
+            onClose={() => {
+              setShowAIColumnPopover(false);
+              setEditingAIColumn(null);
+            }}
+            anchorRef={aiColumnButtonRef}
+            column={editingAIColumn}
+            onSave={handleAIColumnSave}
+            onDelete={handleAIColumnDelete}
+          />
+        </AnimatePresence>
+      </motion.div>
     </>
   );
 };

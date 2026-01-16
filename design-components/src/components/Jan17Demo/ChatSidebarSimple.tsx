@@ -89,7 +89,9 @@ export interface ChatSidebarSimpleProps {
 // Sub-components
 // ============================================================================
 
-const getContextMenuItems = (options: { includeMove?: boolean; isInFolder?: boolean } = {}): ContextMenuItem[] => {
+const getContextMenuItems = (
+  options: { includeMove?: boolean; isInFolder?: boolean } = {}
+): ContextMenuItem[] => {
   const { includeMove = true, isInFolder = false } = options;
   return [
     { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
@@ -97,7 +99,13 @@ const getContextMenuItems = (options: { includeMove?: boolean; isInFolder?: bool
       ? [{ id: 'move', label: 'Move', icon: <ArrowBendUpRightIcon size={14} /> }]
       : []),
     ...(isInFolder
-      ? [{ id: 'remove-from-folder', label: 'Remove from Folder', icon: <FolderSimpleIcon size={14} /> }]
+      ? [
+          {
+            id: 'remove-from-folder',
+            label: 'Remove from Folder',
+            icon: <FolderSimpleIcon size={14} />,
+          },
+        ]
       : []),
     { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' as const },
   ];
@@ -352,7 +360,11 @@ const FolderSection: React.FC<FolderSectionProps> = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <FolderSimpleIcon size={16} weight="regular" className="text-gray-800 mb-[1px] flex-shrink-0" />
+          <FolderSimpleIcon
+            size={16}
+            weight="regular"
+            className="text-gray-800 mb-[1px] flex-shrink-0"
+          />
           {isFolderEditing ? (
             <input
               ref={inputRef}
@@ -367,7 +379,9 @@ const FolderSection: React.FC<FolderSectionProps> = ({
           ) : (
             <>
               <span className="text-left truncate">{folder.label}</span>
-              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">({items.length})</span>
+              <span className="text-[11px] font-mono text-gray-700 -ml-1.5 -mb-1">
+                ({items.length})
+              </span>
             </>
           )}
         </div>
@@ -725,7 +739,11 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
                             onClick={() => onItemClick?.(item.id)}
                             title={item.label}
                           >
-                            <ChatTextIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />
+                            <ChatTextIcon
+                              size={16}
+                              weight="regular"
+                              className="text-gray-800 flex-shrink-0"
+                            />
                             <span className="truncate font-medium">{item.label}</span>
                           </div>
                         );

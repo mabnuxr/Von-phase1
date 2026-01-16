@@ -181,9 +181,7 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({ isOpen, onClose, anchor
       style={{ top: position.top, left: position.left }}
     >
       <div className="px-3 py-2 border-b border-gray-100">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Formula
-        </span>
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Formula</span>
       </div>
       <div className="p-3">
         <div className="bg-gray-900 rounded-lg p-3 font-mono text-[13px] text-emerald-400 overflow-x-auto">
@@ -378,7 +376,9 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
       </div>
 
       <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <GhostButton onClick={onClose} disabled={isGenerating}>Cancel</GhostButton>
+        <GhostButton onClick={onClose} disabled={isGenerating}>
+          Cancel
+        </GhostButton>
         <PrimaryButton
           onClick={handleGenerate}
           disabled={!columnName.trim() || !prompt.trim() || isGenerating}
@@ -512,9 +512,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="text-[13px] font-medium text-gray-900 truncate">
-                  {widgetName}
-                </span>
+                <span className="text-[13px] font-medium text-gray-900 truncate">{widgetName}</span>
 
                 {/* Filters Button */}
                 <button
@@ -557,11 +555,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                 )}
               </div>
 
-              <TertiaryIconButton
-                icon={<XIcon size={16} />}
-                onClick={onClose}
-                title="Close"
-              />
+              <TertiaryIconButton icon={<XIcon size={16} />} onClick={onClose} title="Close" />
             </div>
 
             {/* Table */}
@@ -592,7 +586,10 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                         >
                           <SparkleIcon size={12} />
                           <span>{aiCol.name}</span>
-                          <PencilSimpleIcon size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <PencilSimpleIcon
+                            size={10}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
                         </button>
                       </th>
                     ))}
@@ -627,10 +624,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                       ))}
                       {/* AI Columns Data */}
                       {aiColumns.map((aiCol) => (
-                        <td
-                          key={aiCol.id}
-                          className="px-4 py-2.5 text-gray-900 whitespace-nowrap"
-                        >
+                        <td key={aiCol.id} className="px-4 py-2.5 text-gray-900 whitespace-nowrap">
                           {aiColumnData[aiCol.id]?.[idx] || (
                             <span className="text-gray-400 italic">Generating...</span>
                           )}

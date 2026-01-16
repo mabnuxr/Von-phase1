@@ -96,11 +96,41 @@ const defaultDataSources: DataSourceOption[] = [
         { id: 'closeDate', label: 'Close Date', type: 'date' },
       ],
       rows: [
-        { name: 'Enterprise Deal', account: 'Acme Corp', amount: 150000, stage: 'Negotiation', closeDate: '2026-02-15' },
-        { name: 'Mid-Market Expansion', account: 'TechStart Inc', amount: 75000, stage: 'Proposal', closeDate: '2026-01-30' },
-        { name: 'SMB Upsell', account: 'Local Biz', amount: 25000, stage: 'Discovery', closeDate: '2026-03-01' },
-        { name: 'Strategic Partnership', account: 'Global Corp', amount: 500000, stage: 'Closed Won', closeDate: '2026-01-10' },
-        { name: 'Renewal Deal', account: 'Existing Co', amount: 45000, stage: 'Closed Won', closeDate: '2026-02-28' },
+        {
+          name: 'Enterprise Deal',
+          account: 'Acme Corp',
+          amount: 150000,
+          stage: 'Negotiation',
+          closeDate: '2026-02-15',
+        },
+        {
+          name: 'Mid-Market Expansion',
+          account: 'TechStart Inc',
+          amount: 75000,
+          stage: 'Proposal',
+          closeDate: '2026-01-30',
+        },
+        {
+          name: 'SMB Upsell',
+          account: 'Local Biz',
+          amount: 25000,
+          stage: 'Discovery',
+          closeDate: '2026-03-01',
+        },
+        {
+          name: 'Strategic Partnership',
+          account: 'Global Corp',
+          amount: 500000,
+          stage: 'Closed Won',
+          closeDate: '2026-01-10',
+        },
+        {
+          name: 'Renewal Deal',
+          account: 'Existing Co',
+          amount: 45000,
+          stage: 'Closed Won',
+          closeDate: '2026-02-28',
+        },
       ],
     },
     chartData: {
@@ -201,7 +231,11 @@ const DataTablePreview: React.FC<DataTablePreviewProps> = ({ columns, rows }) =>
       return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
     }
     if (type === 'date' && typeof value === 'string') {
-      return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return new Date(value).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
     }
     if (type === 'number' && typeof value === 'number') {
       return new Intl.NumberFormat('en-US').format(value);
@@ -279,7 +313,10 @@ const ChartPreview: React.FC<ChartPreviewProps> = ({ chartType, chartData }) => 
     };
 
     if (chartType === 'bar' || chartType === 'line') {
-      const data = chartData as { categories: string[]; series: { name: string; data: number[] }[] };
+      const data = chartData as {
+        categories: string[];
+        series: { name: string; data: number[] }[];
+      };
       return {
         ...baseOptions,
         chart: { ...baseOptions.chart, type: chartType === 'bar' ? 'column' : 'line' },
@@ -304,7 +341,10 @@ const ChartPreview: React.FC<ChartPreviewProps> = ({ chartType, chartData }) => 
     }
 
     if (chartType === 'pie' || chartType === 'donut') {
-      const data = chartData as { categories: string[]; series: { name: string; data: number[] }[] };
+      const data = chartData as {
+        categories: string[];
+        series: { name: string; data: number[] }[];
+      };
       const pieData = (data?.categories || []).map((name, i) => ({
         name,
         y: data?.series?.[0]?.data?.[i] || 0,
@@ -493,9 +533,7 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                 <div className="p-4 space-y-4 flex-1">
                   {/* Widget Name */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                      Name
-                    </label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Name</label>
                     <input
                       type="text"
                       value={name}
@@ -523,7 +561,8 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                         value={dataSourceId}
                         onChange={(e) => {
                           setDataSourceId(e.target.value);
-                          if (errors.dataSource) setErrors((prev) => ({ ...prev, dataSource: undefined }));
+                          if (errors.dataSource)
+                            setErrors((prev) => ({ ...prev, dataSource: undefined }));
                         }}
                         className={`
                           w-full px-3 py-2 text-[13px] text-gray-900 bg-white border rounded-lg
@@ -543,10 +582,16 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                       />
                     </div>
-                    {errors.dataSource && <p className="text-xs text-red-600 mt-1">{errors.dataSource}</p>}
+                    {errors.dataSource && (
+                      <p className="text-xs text-red-600 mt-1">{errors.dataSource}</p>
+                    )}
                     {selectedDataSource && (
                       <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                        {selectedDataSource.type === 'subreport' ? <LinkIcon size={12} /> : <DatabaseIcon size={12} />}
+                        {selectedDataSource.type === 'subreport' ? (
+                          <LinkIcon size={12} />
+                        ) : (
+                          <DatabaseIcon size={12} />
+                        )}
                         <span>{selectedDataSource.columnCount} columns available</span>
                       </div>
                     )}
@@ -578,7 +623,9 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                         >
                           <div className="space-y-2 mt-2">
                             {filters.length === 0 ? (
-                              <p className="text-xs text-gray-500 text-center py-2">No filters applied</p>
+                              <p className="text-xs text-gray-500 text-center py-2">
+                                No filters applied
+                              </p>
                             ) : (
                               filters.map((filter) => (
                                 <FilterRow
@@ -587,9 +634,15 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                                   field={filter.field}
                                   operator={filter.operator}
                                   value={filter.value}
-                                  onFieldChange={(field) => handleUpdateFilter(filter.id, { field })}
-                                  onOperatorChange={(operator) => handleUpdateFilter(filter.id, { operator })}
-                                  onValueChange={(value) => handleUpdateFilter(filter.id, { value })}
+                                  onFieldChange={(field) =>
+                                    handleUpdateFilter(filter.id, { field })
+                                  }
+                                  onOperatorChange={(operator) =>
+                                    handleUpdateFilter(filter.id, { operator })
+                                  }
+                                  onValueChange={(value) =>
+                                    handleUpdateFilter(filter.id, { value })
+                                  }
                                   onRemove={() => handleRemoveFilter(filter.id)}
                                   usePortal
                                 />
@@ -621,7 +674,11 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                             }
                           `}
                         >
-                          <span className={chartType === option.value ? 'text-indigo-600' : 'text-gray-500'}>
+                          <span
+                            className={
+                              chartType === option.value ? 'text-indigo-600' : 'text-gray-500'
+                            }
+                          >
                             {option.icon}
                           </span>
                           <span className="text-[10px] font-medium">{option.label}</span>
@@ -633,7 +690,9 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
 
                 {/* Footer - Buttons in left panel */}
                 <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100 flex-shrink-0">
-                  <GhostButton onClick={onClose} className="flex-1">Cancel</GhostButton>
+                  <GhostButton onClick={onClose} className="flex-1">
+                    Cancel
+                  </GhostButton>
                   <PrimaryButton onClick={handleSave} className="flex-1">
                     {mode === 'create' ? 'Add Widget' : 'Save Changes'}
                   </PrimaryButton>
@@ -648,7 +707,11 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                     {name || 'Widget Preview'}
                   </span>
                   {selectedDataSource && chartType !== 'table' && chartType !== 'metric' && (
-                    <PreviewToggle mode={previewMode} chartType={chartType} onChange={setPreviewMode} />
+                    <PreviewToggle
+                      mode={previewMode}
+                      chartType={chartType}
+                      onChange={setPreviewMode}
+                    />
                   )}
                 </div>
 

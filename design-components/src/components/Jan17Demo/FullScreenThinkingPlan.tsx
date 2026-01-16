@@ -110,13 +110,7 @@ ${chartList}
 
 const VonLogo: React.FC = () => (
   <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
         fill="url(#paint0_radial_thinking)"
@@ -302,11 +296,7 @@ export const FullScreenThinkingPlan: React.FC<FullScreenThinkingPlanProps> = ({
                           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                           className="flex-shrink-0"
                         >
-                          <SpinnerGapIcon
-                            size={18}
-                            weight="regular"
-                            className="text-indigo-600"
-                          />
+                          <SpinnerGapIcon size={18} weight="regular" className="text-indigo-600" />
                         </motion.div>
                       )}
 

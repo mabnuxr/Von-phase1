@@ -132,7 +132,12 @@ interface ThinkingBlockProps {
   defaultCollapsed?: boolean;
 }
 
-const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ steps, isThinking, elapsedTime, defaultCollapsed = false }) => {
+const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
+  steps,
+  isThinking,
+  elapsedTime,
+  defaultCollapsed = false,
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const completedCount = steps.filter((s) => s.status === 'complete').length;
@@ -176,7 +181,8 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ steps, isThinking, elapse
               <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">Thinking</span>
               <span className="text-[13px] text-gray-500">·</span>
               <span className="text-[13px] text-gray-700 truncate">
-                {steps.find((s) => s.status === 'in-progress')?.text || `${completedCount}/${totalCount} steps`}
+                {steps.find((s) => s.status === 'in-progress')?.text ||
+                  `${completedCount}/${totalCount} steps`}
               </span>
             </div>
           )}
@@ -221,7 +227,9 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({ steps, isThinking, elapse
                     </div>
 
                     {/* Content */}
-                    <div className={`flex-1 flex items-center justify-between ${idx < visibleSteps.length - 1 ? 'pb-2' : ''}`}>
+                    <div
+                      className={`flex-1 flex items-center justify-between ${idx < visibleSteps.length - 1 ? 'pb-2' : ''}`}
+                    >
                       <span
                         className={`
                           text-[13px]
@@ -265,7 +273,9 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, onBuild }) => {
       <div className="px-4 py-3 space-y-3">
         {/* KPIs */}
         <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">KPI Cards</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+            KPI Cards
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {plan.kpis.map((kpi, idx) => (
               <span
@@ -295,7 +305,9 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, onBuild }) => {
 
         {/* Table */}
         <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Data Table</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+            Data Table
+          </p>
           <span className="inline-flex items-center px-2 py-0.5 text-xs text-gray-700 bg-gray-100 rounded">
             {plan.table}
           </span>
@@ -410,9 +422,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
       {artifact && <ArtifactCard artifact={artifact} />}
 
       {/* Plan Card with Build Button */}
-      {plan && onBuildDashboard && (
-        <PlanCard plan={plan} onBuild={onBuildDashboard} />
-      )}
+      {plan && onBuildDashboard && <PlanCard plan={plan} onBuild={onBuildDashboard} />}
 
       {/* Feedback Row - Thumbs up/down + Sources button */}
       {showFeedbackRow && (
@@ -499,9 +509,15 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
         })}
 
         {/* Active thinking (for streaming) */}
-        {isThinking && thinkingSteps.length > 0 && !messages.some(m => m.thinkingSteps?.length) && (
-          <ThinkingBlock steps={thinkingSteps} isThinking={isThinking} elapsedTime={elapsedTime} />
-        )}
+        {isThinking &&
+          thinkingSteps.length > 0 &&
+          !messages.some((m) => m.thinkingSteps?.length) && (
+            <ThinkingBlock
+              steps={thinkingSteps}
+              isThinking={isThinking}
+              elapsedTime={elapsedTime}
+            />
+          )}
 
         <div ref={messagesEndRef} />
       </div>

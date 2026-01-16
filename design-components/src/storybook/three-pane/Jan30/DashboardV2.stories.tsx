@@ -12,13 +12,27 @@ import {
   type TemplateCategory,
 } from '../../../components/Templates';
 import { FullScreenThinkingPlan } from '../../../components/Jan17Demo/FullScreenThinkingPlan';
-import type { ThinkingStep, DashboardPlan } from '../../../components/Jan17Demo/FullScreenThinkingPlan';
+import type {
+  ThinkingStep,
+  DashboardPlan,
+} from '../../../components/Jan17Demo/FullScreenThinkingPlan';
 import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
 import type { ChatMessage, ReferenceContext } from '../../../components/Jan17Demo/ChatPaneV2';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
-import type { KPICardData, ChartData, TableData, TimelineFilter, DashboardFilter, OwnerOption, TextWidgetData } from '../../../components/Jan17Demo/DashboardV2';
+import type {
+  KPICardData,
+  ChartData,
+  TableData,
+  TimelineFilter,
+  DashboardFilter,
+  OwnerOption,
+  TextWidgetData,
+} from '../../../components/Jan17Demo/DashboardV2';
 import { InlineDrilldownPanel } from '../../../components/Jan17Demo/InlineDrilldownPanel';
-import type { DrilldownFilter, DrilldownColumn } from '../../../components/Jan17Demo/InlineDrilldownPanel';
+import type {
+  DrilldownFilter,
+  DrilldownColumn,
+} from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import { TransparencyDrawer } from '../../../components/Jan17Demo/TransparencyDrawer';
 import type { QueryResult, CallTranscript } from '../../../components/Jan17Demo/TransparencyDrawer';
 import { WidgetConfigModal } from '../../../components/Jan17Demo/WidgetConfigModal';
@@ -61,12 +75,7 @@ const FullLayoutDecorator: Decorator = (Story) => (
 // Types
 // ============================================================================
 
-type DashboardPhase =
-  | 'landing'
-  | 'thinking'
-  | 'planning'
-  | 'building'
-  | 'complete';
+type DashboardPhase = 'landing' | 'thinking' | 'planning' | 'building' | 'complete';
 
 // ============================================================================
 // Sidebar Data
@@ -77,12 +86,16 @@ const dummySidebarItems: SidebarItem[] = [
   { id: 'chat-2', label: 'Win Rate Optimization', type: 'chat' },
   { id: 'chat-3', label: 'Revenue Forecast Discussion', type: 'chat' },
   { id: 'dash-1', label: 'Sales Overview', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-2', label: 'Team Performance', type: 'dashboard', ownership: 'shared', ownerName: 'Sarah Chen' },
+  {
+    id: 'dash-2',
+    label: 'Team Performance',
+    type: 'dashboard',
+    ownership: 'shared',
+    ownerName: 'Sarah Chen',
+  },
 ];
 
-const dummyFolders: Folder[] = [
-  { id: 'folder-1', label: 'Q4 Analysis', isExpanded: false },
-];
+const dummyFolders: Folder[] = [{ id: 'folder-1', label: 'Q4 Analysis', isExpanded: false }];
 
 // ============================================================================
 // Dashboard Data
@@ -204,7 +217,13 @@ const tableData: TableData = {
     // AI-generated columns
     { id: 'dealHealth', label: 'Deal Health', type: 'string', isAI: true, aiSource: 'Von IQ' },
     { id: 'nextAction', label: 'Next Best Action', type: 'string', isAI: true, aiSource: 'Von IQ' },
-    { id: 'callSentiment', label: 'Last Call Sentiment', type: 'string', isAI: true, aiSource: 'Gong' },
+    {
+      id: 'callSentiment',
+      label: 'Last Call Sentiment',
+      type: 'string',
+      isAI: true,
+      aiSource: 'Gong',
+    },
   ],
   rows: dealsThisQuarter.map((opp, idx) => ({
     name: opp.name,
@@ -292,7 +311,8 @@ const drilldownFilters: DrilldownFilter[] = [
   { id: 'filter-2', field: 'Stage', operator: 'not equals', value: 'Closed Lost' },
 ];
 
-const drilldownFormula = 'SUM(Amount) WHERE CloseDate >= "2026-01-01" AND CloseDate <= "2026-03-31"';
+const drilldownFormula =
+  'SUM(Amount) WHERE CloseDate >= "2026-01-01" AND CloseDate <= "2026-03-31"';
 
 // Owner options for filter
 const ownerOptions: OwnerOption[] = [
@@ -384,7 +404,9 @@ GROUP BY Deal_Risk__c`,
     rows: Object.entries(riskData).map(([risk, count]) => ({
       risk,
       count,
-      value: dealsThisQuarter.filter((d) => d.dealRisk === risk).reduce((sum, d) => sum + d.amount, 0),
+      value: dealsThisQuarter
+        .filter((d) => d.dealRisk === risk)
+        .reduce((sum, d) => sum + d.amount, 0),
     })),
   },
 ];
@@ -400,7 +422,8 @@ const mockCalls: CallTranscript[] = [
     accountName: 'Acme Corp',
     opportunityName: 'Acme Enterprise Deal',
     sentiment: 'positive',
-    summary: 'Discussed the $2.1M enterprise deal with Acme. Customer is very engaged and moving towards final approval. Legal review expected to complete by end of week. Strong likelihood of close by Jan 31.',
+    summary:
+      'Discussed the $2.1M enterprise deal with Acme. Customer is very engaged and moving towards final approval. Legal review expected to complete by end of week. Strong likelihood of close by Jan 31.',
     sourceUrl: 'https://example.com/calls/1',
   },
   {
@@ -413,7 +436,8 @@ const mockCalls: CallTranscript[] = [
     accountName: 'TechStart Inc',
     opportunityName: 'TechStart Annual Renewal',
     sentiment: 'neutral',
-    summary: 'Customer expressed some concerns about pricing for the renewal. They mentioned competitor offerings. Recommended scheduling a product roadmap session to demonstrate upcoming value.',
+    summary:
+      'Customer expressed some concerns about pricing for the renewal. They mentioned competitor offerings. Recommended scheduling a product roadmap session to demonstrate upcoming value.',
     sourceUrl: 'https://example.com/calls/2',
   },
   {
@@ -426,7 +450,8 @@ const mockCalls: CallTranscript[] = [
     accountName: 'GlobalTech Solutions',
     opportunityName: 'GlobalTech APAC Expansion',
     sentiment: 'positive',
-    summary: 'Technical deep dive for APAC expansion. Customer is very impressed with our scalability features. They want to move fast - aiming for contract signature by end of January.',
+    summary:
+      'Technical deep dive for APAC expansion. Customer is very impressed with our scalability features. They want to move fast - aiming for contract signature by end of January.',
     sourceUrl: 'https://example.com/calls/3',
   },
   {
@@ -439,7 +464,8 @@ const mockCalls: CallTranscript[] = [
     accountName: 'StartupXYZ',
     opportunityName: 'StartupXYZ Initial Contract',
     sentiment: 'negative',
-    summary: 'Customer is pushing back on timeline. They mentioned budget constraints and may need to delay the decision to Q2. Recommended offering flexible payment terms.',
+    summary:
+      'Customer is pushing back on timeline. They mentioned budget constraints and may need to delay the decision to Q2. Recommended offering flexible payment terms.',
     sourceUrl: 'https://example.com/calls/4',
   },
   {
@@ -452,7 +478,8 @@ const mockCalls: CallTranscript[] = [
     accountName: 'MegaCorp Industries',
     opportunityName: 'MegaCorp Multi-Year Deal',
     sentiment: 'positive',
-    summary: 'Executive alignment meeting for the $5M multi-year partnership. Both leadership teams are aligned on vision. Legal teams to begin contract review in January.',
+    summary:
+      'Executive alignment meeting for the $5M multi-year partnership. Both leadership teams are aligned on vision. Legal teams to begin contract review in January.',
     sourceUrl: 'https://example.com/calls/5',
   },
 ];
@@ -499,7 +526,9 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
-  const [inputValue, setInputValue] = useState('Build me a dashboard showing deals closing this quarter');
+  const [inputValue, setInputValue] = useState(
+    'Build me a dashboard showing deals closing this quarter'
+  );
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>('Popular');
 
   // Template state
@@ -554,9 +583,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
     setInputValue(template.prompt);
   }, []);
 
-  const handleSend = useCallback((message: string) => {
-    onSendMessage(message);
-  }, [onSendMessage]);
+  const handleSend = useCallback(
+    (message: string) => {
+      onSendMessage(message);
+    },
+    [onSendMessage]
+  );
 
   return (
     <motion.div
@@ -791,7 +823,9 @@ const DashboardV2Demo = () => {
   // Widget config modal state
   const [showWidgetConfigModal, setShowWidgetConfigModal] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
-  const [editingWidgetConfig, setEditingWidgetConfig] = useState<Partial<WidgetConfigData> | undefined>(undefined);
+  const [editingWidgetConfig, setEditingWidgetConfig] = useState<
+    Partial<WidgetConfigData> | undefined
+  >(undefined);
 
   // New filter state for dashboard
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('this-quarter');
@@ -805,7 +839,10 @@ const DashboardV2Demo = () => {
   const [showTransparencyDrawer, setShowTransparencyDrawer] = useState(false);
 
   // Drilldown with chart segment click state
-  const [drilldownSegmentFilter, setDrilldownSegmentFilter] = useState<{ name: string; value: number } | null>(null);
+  const [drilldownSegmentFilter, setDrilldownSegmentFilter] = useState<{
+    name: string;
+    value: number;
+  } | null>(null);
 
   // Reference context state for Pane3
   const [referenceContext, setReferenceContext] = useState<ReferenceContext>({
@@ -852,24 +889,30 @@ const DashboardV2Demo = () => {
     let time = 0;
     thinkingStepsConfig.forEach((step, idx) => {
       // Start step
-      addTimeout(() => {
-        setThinkingSteps((prev) =>
-          prev.map((s, i) => ({
-            ...s,
-            status: i === idx ? 'in-progress' : i < idx ? 'complete' : 'pending',
-          }))
-        );
-      }, (time += 800));
+      addTimeout(
+        () => {
+          setThinkingSteps((prev) =>
+            prev.map((s, i) => ({
+              ...s,
+              status: i === idx ? 'in-progress' : i < idx ? 'complete' : 'pending',
+            }))
+          );
+        },
+        (time += 800)
+      );
 
       // Complete step
-      addTimeout(() => {
-        setThinkingSteps((prev) =>
-          prev.map((s, i) => ({
-            ...s,
-            status: i <= idx ? 'complete' : 'pending',
-          }))
-        );
-      }, (time += 600));
+      addTimeout(
+        () => {
+          setThinkingSteps((prev) =>
+            prev.map((s, i) => ({
+              ...s,
+              status: i <= idx ? 'complete' : 'pending',
+            }))
+          );
+        },
+        (time += 600)
+      );
     });
 
     // Show plan after thinking
@@ -927,11 +970,14 @@ const DashboardV2Demo = () => {
 
     // Build widgets one by one
     allWidgetIds.forEach((widgetId, idx) => {
-      addTimeout(() => {
-        setAgentMessage(`Adding widget ${idx + 1} of ${allWidgetIds.length}...`);
-        setAgentProgress(((idx + 1) / allWidgetIds.length) * 100);
-        setVisibleWidgets((prev) => [...prev, widgetId]);
-      }, (time += 600));
+      addTimeout(
+        () => {
+          setAgentMessage(`Adding widget ${idx + 1} of ${allWidgetIds.length}...`);
+          setAgentProgress(((idx + 1) / allWidgetIds.length) * 100);
+          setVisibleWidgets((prev) => [...prev, widgetId]);
+        },
+        (time += 600)
+      );
     });
 
     // Complete
@@ -1024,13 +1070,16 @@ const DashboardV2Demo = () => {
   };
 
   // Handle chat pane resize
-  const handleChatPaneResizeStart = useCallback((e: React.MouseEvent) => {
-    isResizingChatPane.current = true;
-    startXRef.current = e.clientX;
-    startWidthRef.current = chatPaneWidth;
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-  }, [chatPaneWidth]);
+  const handleChatPaneResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      isResizingChatPane.current = true;
+      startXRef.current = e.clientX;
+      startWidthRef.current = chatPaneWidth;
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [chatPaneWidth]
+  );
 
   const handleChatPaneResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizingChatPane.current) return;
@@ -1102,7 +1151,10 @@ const DashboardV2Demo = () => {
   };
 
   // Handle chart segment click (opens drilldown with additional filter)
-  const handleChartSegmentClick = (widgetId: string, segmentData: { name: string; value: number }) => {
+  const handleChartSegmentClick = (
+    widgetId: string,
+    segmentData: { name: string; value: number }
+  ) => {
     console.log('Chart segment clicked:', widgetId, segmentData);
     setDrilldownSegmentFilter(segmentData);
     setDrilldownWidget(widgetId);
@@ -1259,7 +1311,9 @@ const DashboardV2Demo = () => {
 
       {/* Toast */}
       <AnimatePresence>
-        {showToast && <SuccessToast message="Dashboard created" onDismiss={() => setShowToast(false)} />}
+        {showToast && (
+          <SuccessToast message="Dashboard created" onDismiss={() => setShowToast(false)} />
+        )}
       </AnimatePresence>
 
       {/* ChatSidebarV4 - Always collapsed */}
@@ -1443,7 +1497,9 @@ const DashboardV2Demo = () => {
             height: showAgentBar ? 'calc(100% - 48px)' : '100%',
             marginTop: showAgentBar ? '48px' : '0',
             width: isChatPaneCollapsed ? '48px' : `${chatPaneWidth}px`,
-            transition: isResizingChatPane.current ? 'none' : 'width 0.3s ease, height 0.3s ease, margin-top 0.3s ease',
+            transition: isResizingChatPane.current
+              ? 'none'
+              : 'width 0.3s ease, height 0.3s ease, margin-top 0.3s ease',
             flexShrink: 0,
             position: 'relative',
           }}
