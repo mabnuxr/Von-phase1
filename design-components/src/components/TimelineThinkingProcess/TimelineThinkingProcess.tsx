@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircleIcon,
-  SpinnerGapIcon,
   CaretDownIcon,
   CaretRightIcon,
   BellIcon,
@@ -13,6 +12,7 @@ import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
 import { StepRow, CollapsedStepRow } from './components';
 import { ThinkingDrawer, type ThinkingStepDetail } from '../ThinkingDrawer';
+import { EngagingMessage } from '../Chat/EngagingMessage';
 
 // ============================================================================
 // Main Component
@@ -61,7 +61,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     visibleSteps,
     awaitingApprovalStep,
     getStepDisplayMode,
-    getSummary,
   } = useTimelineState({
     steps,
     isThinking,
@@ -88,6 +87,13 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     [steps]
   );
 
+  // Compute content signature for EngagingMessage - changes when steps update
+  const contentSignature = useMemo(() => {
+    const stepCount = steps.length;
+    const lastStepDescription = steps[steps.length - 1]?.description?.length || 0;
+    return `${stepCount}-${lastStepDescription}`;
+  }, [steps]);
+
   return (
     <>
       <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
@@ -104,30 +110,23 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               <CaretDownIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
             )}
 
-            {/* Status indicator */}
+            {/* Status indicator and title */}
             {allComplete ? (
-              <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
+              <>
+                <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
+                <span className="text-[13px] text-gray-700">
+                  {title} · {formatElapsedTime(elapsedTime)}
+                </span>
+              </>
             ) : (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              <EngagingMessage
+                isActive={isThinking}
+                spinnerSize="sm"
+                textSize="xs"
+                contentSignature={contentSignature}
+                showDelay={0}
                 className="flex-shrink-0"
-              >
-                <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
-              </motion.div>
-            )}
-
-            {/* Title and summary */}
-            {allComplete ? (
-              <span className="text-[13px] text-gray-700">
-                {title} · {formatElapsedTime(elapsedTime)}
-              </span>
-            ) : (
-              <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">{title}</span>
-                <span className="text-[13px] text-gray-500">·</span>
-                <span className="text-[13px] text-gray-600 truncate">{getSummary()}</span>
-              </div>
+              />
             )}
           </div>
 
