@@ -491,16 +491,24 @@ const Dashboard = () => {
     [currentConversationId, refetchMessages]
   );
 
+  // V2 Pusher channel config - must be memoized to prevent constant effect re-runs
+  const v2ChannelConfig = useMemo(
+    () => ({
+      conversationId: isThinkingProcessV2 ? currentConversationId : null,
+      tenantId: user?.tenantId,
+      userId: user?.id,
+    }),
+    [isThinkingProcessV2, currentConversationId, user?.tenantId, user?.id]
+  );
+
   // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
   const {
     timelineSteps: v2TimelineSteps,
     isThinking: v2IsThinking,
     elapsedTime: v2ElapsedTime,
-  } = useConversationPusherChannelV2({
-    conversationId: isThinkingProcessV2 ? currentConversationId : null,
-    tenantId: user?.tenantId,
-    userId: user?.id,
-  });
+    finalResponse: v2FinalResponse,
+    isFinalResponseStreaming: v2IsFinalResponseStreaming,
+  } = useConversationPusherChannelV2(v2ChannelConfig);
 
   // Transform backend messages to Chat component format
   // Replay events if backend hasn't persisted stepMessages/toolCalls
@@ -510,6 +518,21 @@ const Dashboard = () => {
     const usableV2TimelineSteps = v2TimelineSteps.filter(
       (timelineStep) => timelineStep.category !== 'e2b'
     );
+
+    // Debug: Log timeline steps
+    if (usableV2TimelineSteps.length > 0) {
+      console.log('[Dashboard] V2 Timeline Steps:', {
+        total: v2TimelineSteps.length,
+        usable: usableV2TimelineSteps.length,
+        steps: usableV2TimelineSteps.map(s => ({
+          id: s.id,
+          type: s.type,
+          text: s.text?.slice(0, 30),
+          hasDescription: !!s.description,
+          descriptionLength: s.description?.length || 0,
+        })),
+      });
+    }
 
     if (!isThinkingProcessV2) {
       return messages;
@@ -532,30 +555,35 @@ const Dashboard = () => {
         return false;
       })();
 
-      // If this is the latest message and we have live timeline steps from Pusher, use those
-      if (isLastAssistant && usableV2TimelineSteps.length > 0) {
+      // If this is the latest message and we have live V2 data from Pusher, use it
+      // Apply V2 data when: timeline steps exist, OR final response exists, OR agent is thinking
+      if (isLastAssistant && (usableV2TimelineSteps.length > 0 || v2FinalResponse || v2IsThinking)) {
         return {
           ...msg,
           timelineSteps: usableV2TimelineSteps,
           thinkingElapsedTime: v2ElapsedTime,
+          v2FinalResponse,
+          v2FinalResponseStreaming: v2IsFinalResponseStreaming,
         };
       }
 
       // For persisted messages, transform events to timeline steps
       if (msg.events && msg.events.length > 0) {
-        const { steps } = transformAguiToTimelineSteps(msg.events);
+        const { steps, finalResponse, isFinalResponseStreaming } = transformAguiToTimelineSteps(msg.events);
         const usableSteps = steps.filter((step) => step.category !== 'e2b');
         const elapsed = getElapsedTimeFromEvents(msg.events);
         return {
           ...msg,
           timelineSteps: usableSteps,
           thinkingElapsedTime: elapsed,
+          v2FinalResponse: finalResponse,
+          v2FinalResponseStreaming: isFinalResponseStreaming,
         };
       }
 
       return msg;
     });
-  }, [conversationMessages, isThinkingProcessV2, v2TimelineSteps, v2ElapsedTime]);
+  }, [conversationMessages, isThinkingProcessV2, v2TimelineSteps, v2ElapsedTime, v2FinalResponse, v2IsFinalResponseStreaming]);
 
   // Force complete message handler for timeout
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout

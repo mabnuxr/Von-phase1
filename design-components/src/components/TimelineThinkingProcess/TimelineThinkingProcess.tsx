@@ -184,18 +184,8 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         const displayMode = getStepDisplayMode(step, idx);
                         const isExpanded = displayMode === 'expanded';
 
-                        // Use CollapsedStepRow for collapsed steps (compact view)
-                        // Use toggleStep so clicking toggles expand/collapse
-                        if (!isExpanded) {
-                          return (
-                            <CollapsedStepRow
-                              key={step.id}
-                              step={step}
-                              onClick={() => toggleStep(step.id)}
-                            />
-                          );
-                        }
-
+                        // Always use StepRow - description is always visible outside expanded block
+                        // The isExpanded prop controls whether code/approval/sub-steps are shown
                         return (
                           <StepRow
                             key={step.id}

@@ -39,6 +39,10 @@ export interface UseConversationPusherChannelV2Return {
   isThinking: boolean;
   elapsedTime: number;
   currentRunId: string | null;
+  /** Final response content (separated from reasoning) */
+  finalResponse: string;
+  /** Whether final response is still streaming */
+  isFinalResponseStreaming: boolean;
 }
 
 /**
@@ -53,6 +57,8 @@ export function useConversationPusherChannelV2(
   const [isThinking, setIsThinking] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [finalResponse, setFinalResponse] = useState('');
+  const [isFinalResponseStreaming, setIsFinalResponseStreaming] = useState(false);
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -91,23 +97,13 @@ export function useConversationPusherChannelV2(
 
   // Process AGUI event and transform to timeline steps
   const handleAguiEvent = useCallback(
-    (eventName: string) => (data: string | AguiEventWrapper) => {
+    (_eventName: string) => (data: string | AguiEventWrapper) => {
       try {
         const wrapper: AguiEventWrapper =
           typeof data === "string" ? JSON.parse(data) : data;
-        const { run_id, sequence, event } = wrapper;
+        const { run_id, sequence } = wrapper;
 
         if (!config.conversationId || !run_id) return;
-
-        // Ignore events for runs that have already finished
-        if (finishedRunsRef.current.has(run_id)) {
-          console.log(
-            "[V2 Pusher] Ignoring event for finished run:",
-            run_id,
-            event.type,
-          );
-          return;
-        }
 
         // Get or create events array for this run
         let runEvents = eventsRef.current.get(run_id);
@@ -132,19 +128,23 @@ export function useConversationPusherChannelV2(
         runEvents.sort((a, b) => a.sequence - b.sequence);
 
         // Transform to timeline steps
-        const { steps, isThinking: thinking } =
+        const { steps, isThinking: thinking, finalResponse: response, isFinalResponseStreaming: responseStreaming } =
           transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
         flushSync(() => {
           setTimelineSteps(steps);
           setIsThinking(thinking);
+          setFinalResponse(response);
+          setIsFinalResponseStreaming(responseStreaming);
         });
 
-        // Mark run as finished and stop timer
-        if (!thinking) {
+        // Stop timer and update elapsed time when run finishes
+        // We only do this once per run to avoid resetting the elapsed time
+        if (!thinking && !finishedRunsRef.current.has(run_id)) {
           finishedRunsRef.current.add(run_id);
           stopElapsedTimer();
+
           // Update elapsed time from actual events
           const actualElapsed = getElapsedTimeFromEvents(runEvents);
           if (actualElapsed > 0) {
@@ -172,6 +172,8 @@ export function useConversationPusherChannelV2(
       setIsThinking(false);
       setElapsedTime(0);
       setCurrentRunId(null);
+      setFinalResponse('');
+      setIsFinalResponseStreaming(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stopElapsedTimer();
@@ -347,5 +349,7 @@ export function useConversationPusherChannelV2(
     isThinking,
     elapsedTime,
     currentRunId,
+    finalResponse,
+    isFinalResponseStreaming,
   };
 }

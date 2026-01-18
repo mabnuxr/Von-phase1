@@ -243,6 +243,17 @@ export interface ChatMessageProps {
    * Elapsed time in seconds for v2 thinking process
    */
   thinkingElapsedTime?: number;
+
+  /**
+   * Final response content for v2 (separated from reasoning steps)
+   * This is the content from TEXT_MESSAGE with parent_message_id
+   */
+  v2FinalResponse?: string;
+
+  /**
+   * Whether the v2 final response is still streaming
+   */
+  v2FinalResponseStreaming?: boolean;
 }
 
 /**
@@ -278,6 +289,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   thinkingProcessVersion = 'v1',
   timelineSteps,
   thinkingElapsedTime = 0,
+  v2FinalResponse,
+  v2FinalResponseStreaming = false,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -405,16 +418,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             onApprove={(stepId) => onApprove?.(stepId, runId)}
                             onReject={(stepId) => onReject?.(stepId, runId)}
                           />
-                          {/* Content after thinking - only show when not streaming */}
-                          {!isStreaming && content && (
+                          {/* Final response - shown after thinking process */}
+                          {v2FinalResponse && (
                             <div className="prose-sm markdown-body max-w-none">
                               <Streamdown
-                                parseIncompleteMarkdown={false}
-                                isAnimating={false}
-                                controls={{ table: true }}
-                                components={{ a: SalesforceLink }}
+                                parseIncompleteMarkdown={v2FinalResponseStreaming}
+                                isAnimating={v2FinalResponseStreaming}
                               >
-                                {content}
+                                {v2FinalResponse}
                               </Streamdown>
                             </div>
                           )}

@@ -139,6 +139,15 @@ export interface Message {
    * Elapsed time in seconds for v2 thinking process
    */
   thinkingElapsedTime?: number;
+  /**
+   * Final response content for v2 (separated from reasoning steps)
+   * This is the content from TEXT_MESSAGE with parent_message_id
+   */
+  v2FinalResponse?: string;
+  /**
+   * Whether the v2 final response is still streaming
+   */
+  v2FinalResponseStreaming?: boolean;
 }
 
 export interface ChatSession {
@@ -261,6 +270,8 @@ export interface TextMessageStartEvent {
   type: 'TEXT_MESSAGE_START';
   message_id: string;
   role: 'assistant';
+  /** Present for final response messages, points to the thinking message_id */
+  parent_message_id?: string;
 }
 
 export interface TextMessageContentEvent {

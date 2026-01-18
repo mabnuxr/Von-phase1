@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
+import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { SOURCE_CONFIG } from '../constants';
 import { StatusIcon } from './StatusIcon';
@@ -23,13 +24,25 @@ import { CompactApprovalCard } from './CompactApprovalCard';
  */
 export const StepRow = React.memo<StepRowProps>(
   ({ step, isExpanded, onToggle, onExpand, isLast, onApprove, onReject }) => {
+    // Don't show expandable content for final response steps (shown below timeline)
+    const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
+
     const hasExpandableContent = useMemo(
       () =>
-        step.description ||
-        step.code ||
-        (step.subSteps && step.subSteps.length > 0) ||
+        !isFinalResponse &&
+        (step.description ||
+          step.code ||
+          (step.subSteps && step.subSteps.length > 0) ||
+          step.approval ||
+          step.artifactName),
+      [
+        isFinalResponse,
+        step.description,
+        step.code,
+        step.subSteps,
         step.approval,
-      [step.description, step.code, step.subSteps, step.approval]
+        step.artifactName,
+      ]
     );
 
     const isInProgress = step.status === 'in-progress';
@@ -103,7 +116,7 @@ export const StepRow = React.memo<StepRowProps>(
             </span>
           </button>
 
-          {/* Expanded content */}
+          {/* Expanded content (description, approval, code, sub-steps, artifacts) */}
           <AnimatePresence>
             {isExpanded && hasExpandableContent && (
               <motion.div
@@ -114,11 +127,11 @@ export const StepRow = React.memo<StepRowProps>(
                 className="overflow-hidden"
               >
                 <div className="mt-2 ml-4">
-                  {/* Description - improved contrast */}
+                  {/* Description - collapsible, with markdown support */}
                   {step.description && (
-                    <p className="text-[12px] text-gray-700 leading-relaxed mb-2">
-                      {step.description}
-                    </p>
+                    <div className="text-[12px] text-gray-700 leading-relaxed mb-2">
+                      <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
+                    </div>
                   )}
 
                   {/* Approval card */}

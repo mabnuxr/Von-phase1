@@ -136,7 +136,7 @@ export function useTransparencyArtifacts(
   // Build the artifacts with content
   const artifactsWithContent: ArtifactResponse[] = [];
   if (listQuery.data?.artifacts) {
-    listQuery.data.artifacts.forEach((artifact, index) => {
+    listQuery.data.artifacts.forEach((_artifact, index) => {
       const contentQuery = contentQueries[index];
       if (contentQuery?.data) {
         artifactsWithContent.push(contentQuery.data);

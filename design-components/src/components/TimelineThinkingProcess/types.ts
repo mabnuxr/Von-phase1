@@ -90,6 +90,10 @@ export interface TimelineStep {
    * Event category
    */
   category?: EventCategory;
+  /**
+   * Whether this step is the final response (shown below timeline, not in expandable area)
+   */
+  isFinalResponse?: boolean;
 }
 
 /**

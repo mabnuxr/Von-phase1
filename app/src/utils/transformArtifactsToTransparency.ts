@@ -9,7 +9,7 @@
 
 import type { ArtifactResponse } from "../services/conversationsService";
 import type {
-  QueryResult,
+  TransparencyQueryResult,
   QueryColumn,
   CallTranscript,
 } from "@vonlabs/design-components";
@@ -100,7 +100,7 @@ function getToolDisplayName(toolName: string): string {
  */
 function transformArtifactToQueryResult(
   artifact: ArtifactResponse,
-): QueryResult | null {
+): TransparencyQueryResult | null {
   const { artifact_id, tool_name, content, persisted_at } = artifact;
 
   // Handle RAG/conversation search artifacts
@@ -320,10 +320,10 @@ function extractCallTranscripts(
 export function transformArtifactsToTransparency(
   artifacts: ArtifactResponse[],
 ): {
-  queries: QueryResult[];
+  queries: TransparencyQueryResult[];
   calls: CallTranscript[];
 } {
-  const queries: QueryResult[] = [];
+  const queries: TransparencyQueryResult[] = [];
 
   for (const artifact of artifacts) {
     const queryResult = transformArtifactToQueryResult(artifact);
@@ -359,7 +359,7 @@ export interface ArtifactSummary {
  */
 export function transformSingleArtifact(
   artifact: ArtifactResponse,
-): QueryResult | null {
+): TransparencyQueryResult | null {
   return transformArtifactToQueryResult(artifact);
 }
 
@@ -372,7 +372,7 @@ export function transformSingleArtifact(
  */
 export function transformSummariesToPlaceholders(
   summaries: ArtifactSummary[],
-): QueryResult[] {
+): TransparencyQueryResult[] {
   return summaries.map((summary) => ({
     id: summary.artifact_id,
     name: getToolDisplayName(summary.tool_name),
@@ -386,4 +386,4 @@ export function transformSummariesToPlaceholders(
 /**
  * Re-export types for convenience
  */
-export type { QueryResult, QueryColumn, CallTranscript };
+export type { TransparencyQueryResult, QueryColumn, CallTranscript };
