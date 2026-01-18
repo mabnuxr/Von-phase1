@@ -11,6 +11,7 @@ export const FEATURE_FLAGS = {
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
   THINKING_PROCESS_V2: "agents-v2",
+  USER_MEMORY: "enableUserMemory",
 } as const;
 
 /**
@@ -72,6 +73,12 @@ export function useFeatureFlag() {
      * instead of the legacy ThinkingBlock component
      */
     isThinkingProcessV2: flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
+
+    /**
+     * Controls whether user memory feature is enabled
+     * (personal memory segment for each user)
+     */
+    isUserMemoryEnabled: flags[FEATURE_FLAGS.USER_MEMORY] === true,
 
     /**
      * Raw flags object for advanced usage

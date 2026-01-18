@@ -21,6 +21,10 @@ export interface ChatEmptyStateProps {
    */
   onSendMessage?: (message: string) => void;
   /**
+   * Default value to pre-fill the input (useful for demos)
+   */
+  defaultValue?: string;
+  /**
    * Whether the input/prompts are disabled
    */
   disabled?: boolean;
@@ -96,6 +100,7 @@ const getTimeBasedGreeting = (): string => {
 export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   userName,
   onSendMessage,
+  defaultValue = '',
   disabled = false,
   onDisabledClick,
   placeholder = 'Ask von anything',
@@ -114,7 +119,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   const displayName = userName || 'there';
 
   // Track input value for template filling
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(defaultValue);
 
   // Template state
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>('Popular');

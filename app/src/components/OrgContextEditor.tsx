@@ -99,8 +99,7 @@ export function OrgContextEditor({
     },
     editorProps: {
       attributes: {
-        class:
-          "tiptap-editor prose prose-sm max-w-none min-h-[200px] focus:outline-none px-4 py-3",
+        class: "tiptap-editor min-h-[200px] focus:outline-none px-4 pt-0 pb-3",
       },
     },
   });

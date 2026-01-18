@@ -1,11 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  PencilSimpleIcon,
-  BrainIcon,
-  TrashIcon,
-  InfoIcon,
-  LockKeyIcon,
-} from "@phosphor-icons/react";
+import { PencilSimpleIcon, BrainIcon } from "@phosphor-icons/react";
 import { ConfirmationModal } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import {
@@ -18,32 +12,53 @@ import { OrgContextDocumentList } from "../OrgContextDocumentList";
 import { MemoryContextPane } from "../MemoryContextPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
+import { useFeatureFlag } from "../../hooks/useFeatureFlag";
+import { usePermissions, Resource } from "../../hooks/usePermissions";
 import { ApiError } from "../../services/apiClient";
 
 export function OrgContextTab() {
-  // Selection state
-  const [selectedContextId, setSelectedContextId] = useState<string | null>(
-    null,
-  );
+  // Selection state for org memory
+  const [selectedOrgContextId, setSelectedOrgContextId] = useState<
+    string | null
+  >(null);
 
   // Pane state
   const [isPaneOpen, setIsPaneOpen] = useState(false);
   const [paneMode, setPaneMode] = useState<"create" | "edit">("create");
+  const [editingContext, setEditingContext] = useState<MemoryContext | null>(
+    null,
+  );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Toast notifications
   const { showToast } = useToast();
 
+  // Feature flags
+  const { isUserMemoryEnabled } = useFeatureFlag();
+
+  // Get permissions for org memory (tenant-level)
+  const { data: orgMemoryPermissions } = usePermissions(
+    Resource.MEMORY_CONTEXT,
+    { access_level: "tenant" },
+  );
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const prevPageRef = useRef(currentPage);
 
-  // Fetch memory contexts with pagination
+  // Fetch org memory contexts with pagination
   const { data, isLoading, error } = useMemoryContexts(
     "tenant",
     currentPage,
     20,
   );
+
+  // Fetch user memory (only when feature flag is enabled)
+  const {
+    data: userMemoryData,
+    isLoading: isUserMemoryLoading,
+    refetch: refetchUserMemory,
+  } = useMemoryContexts("user", 1, 1, { enabled: isUserMemoryEnabled });
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
@@ -52,22 +67,85 @@ export function OrgContextTab() {
   const contexts = useMemo(() => data?.data || [], [data?.data]);
   const pagination = data?.pagination;
 
-  // Auto-select first context when data loads or page changes
+  // Extract user memory (single item or null)
+  const userMemory = useMemo(
+    () => (isUserMemoryEnabled ? userMemoryData?.data?.[0] || null : null),
+    [userMemoryData?.data, isUserMemoryEnabled],
+  );
+
+  // Refresh user memory on mount to reflect updates made via chat
+  useEffect(() => {
+    if (isUserMemoryEnabled) {
+      refetchUserMemory();
+    }
+  }, [isUserMemoryEnabled, refetchUserMemory]);
+
+  // Auto-create user memory if feature is enabled but no user memory exists
+  const [isCreatingUserMemory, setIsCreatingUserMemory] = useState(false);
+  const hasAttemptedUserMemoryCreation = useRef(false);
+
+  useEffect(() => {
+    // Only proceed if we have loaded user memory data (not undefined)
+    // and it's empty (length === 0 means no user memory exists)
+    const userMemoryLoaded = userMemoryData !== undefined;
+    const hasNoUserMemory =
+      userMemoryLoaded && (userMemoryData?.data?.length ?? 0) === 0;
+
+    const shouldCreateUserMemory =
+      isUserMemoryEnabled &&
+      !isUserMemoryLoading &&
+      userMemoryLoaded &&
+      hasNoUserMemory &&
+      !isCreatingUserMemory &&
+      !hasAttemptedUserMemoryCreation.current;
+
+    if (shouldCreateUserMemory) {
+      hasAttemptedUserMemoryCreation.current = true;
+      setIsCreatingUserMemory(true);
+
+      createMutation
+        .mutateAsync({
+          key: "User Memory",
+          description:
+            "Personal context and preferences that apply only to your conversations",
+          value: "",
+          accessLevel: "user",
+        })
+        .then(() => {
+          console.log("[OrgContextTab] User memory created successfully");
+          refetchUserMemory();
+        })
+        .catch((error) => {
+          console.error("[OrgContextTab] Failed to create user memory:", error);
+        })
+        .finally(() => {
+          setIsCreatingUserMemory(false);
+        });
+    }
+  }, [
+    isUserMemoryEnabled,
+    isUserMemoryLoading,
+    userMemoryData,
+    isCreatingUserMemory,
+    createMutation,
+    refetchUserMemory,
+  ]);
+
+  // Combined loading state for org memory
+  const isOrgLoading = isLoading;
+
+  // Auto-select first org memory context when data loads or page changes
   useEffect(() => {
     const pageChanged = prevPageRef.current !== currentPage;
 
-    if (contexts.length > 0) {
-      // Select first context if:
-      // 1. No context is selected, OR
-      // 2. Page has changed
-      if (!selectedContextId || pageChanged) {
-        setSelectedContextId(contexts[0].id);
+    if (!selectedOrgContextId || pageChanged) {
+      if (contexts.length > 0) {
+        setSelectedOrgContextId(contexts[0].id);
       }
     }
 
-    // Update previous page reference
     prevPageRef.current = currentPage;
-  }, [contexts, selectedContextId, currentPage]);
+  }, [contexts, selectedOrgContextId, currentPage]);
 
   // Auto-navigate to previous page if current page is empty and not the first page
   useEffect(() => {
@@ -82,26 +160,44 @@ export function OrgContextTab() {
     }
   }, [contexts.length, currentPage, isLoading, pagination?.totalPages]);
 
-  // Get selected context
-  const selectedContext = contexts.find(
-    (ctx: MemoryContext) => ctx.id === selectedContextId,
-  );
+  // Get selected org context
+  const selectedOrgContext = useMemo(() => {
+    return contexts.find(
+      (ctx: MemoryContext) => ctx.id === selectedOrgContextId,
+    );
+  }, [selectedOrgContextId, contexts]);
 
-  // Handle context selection - just select, don't open pane
-  const handleSelectContext = (id: string) => {
-    setSelectedContextId(id);
+  // Permission flags derived from org memory permissions
+  const canCreateOrgMemory = orgMemoryPermissions?.create ?? false;
+  const canUpdateOrgMemory = orgMemoryPermissions?.update ?? false;
+  const canDeleteOrgMemory = orgMemoryPermissions?.delete ?? false;
+
+  // Handle org context selection
+  const handleSelectOrgContext = (id: string) => {
+    setSelectedOrgContextId(id);
   };
 
-  // Handle create click - open create pane
+  // Handle create click - open create pane for org memory
   const handleCreateClick = () => {
     setPaneMode("create");
+    setEditingContext(null);
     setIsPaneOpen(true);
   };
 
-  // Handle edit click - open edit pane
-  const handleEditClick = () => {
-    if (selectedContext) {
+  // Handle edit click for org memory
+  const handleEditOrgClick = () => {
+    if (selectedOrgContext) {
       setPaneMode("edit");
+      setEditingContext(selectedOrgContext);
+      setIsPaneOpen(true);
+    }
+  };
+
+  // Handle edit click for user memory
+  const handleEditUserClick = () => {
+    if (userMemory) {
+      setPaneMode("edit");
+      setEditingContext(userMemory);
       setIsPaneOpen(true);
     }
   };
@@ -109,6 +205,7 @@ export function OrgContextTab() {
   // Handle pane close
   const handlePaneClose = () => {
     setIsPaneOpen(false);
+    setEditingContext(null);
   };
 
   // Handle save from pane
@@ -127,12 +224,12 @@ export function OrgContextTab() {
           accessLevel: "tenant",
         });
 
-        setSelectedContextId(newMemory.id);
+        setSelectedOrgContextId(newMemory.id);
         showToast({
           message: "Memory created successfully",
           variant: "success",
         });
-      } else if (selectedContextId) {
+      } else if (editingContext) {
         // Update existing memory
         // Don't send key field for default context (it's readonly)
         const updateData: {
@@ -144,13 +241,16 @@ export function OrgContextTab() {
           value: data.value,
         };
 
-        // Only include key if not a default context
-        if (!selectedContext?.isDefault) {
+        // Only include key if not a default context or user memory
+        if (
+          !editingContext.isDefault &&
+          editingContext.accessLevel !== "user"
+        ) {
           updateData.key = data.key;
         }
 
         await updateMutation.mutateAsync({
-          id: selectedContextId,
+          id: editingContext.id,
           data: updateData,
         });
         showToast({
@@ -160,6 +260,7 @@ export function OrgContextTab() {
       }
 
       setIsPaneOpen(false);
+      setEditingContext(null);
     } catch (error) {
       console.error("Failed to save memory:", error);
 
@@ -198,18 +299,18 @@ export function OrgContextTab() {
 
   // Handle delete click - open confirmation modal
   const handleDeleteClick = () => {
-    if (selectedContext) {
+    if (selectedOrgContext) {
       setIsDeleteModalOpen(true);
     }
   };
 
   // Confirm delete action
   const confirmDelete = async () => {
-    if (!selectedContextId) return;
+    if (!selectedOrgContextId) return;
 
     try {
-      await deleteMutation.mutateAsync(selectedContextId);
-      setSelectedContextId(null);
+      await deleteMutation.mutateAsync(selectedOrgContextId);
+      setSelectedOrgContextId(null);
       setIsDeleteModalOpen(false);
       showToast({
         message: "Memory deleted successfully",
@@ -232,175 +333,189 @@ export function OrgContextTab() {
     }
   };
 
-  return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">Org Memory</h2>
-          <div className="flex flex-row items-center gap-2">
-            <div className="flex-shrink-0">
-              <InfoIcon size={20} className="text-indigo-600" />
-            </div>
-            <span className="mt-[2px] ml-auto text-xs font-medium text-indigo-600">
-              User memory coming soon
-            </span>
-          </div>
+  // Render content view for a memory context
+  const renderContentView = (context: MemoryContext | null | undefined) => {
+    if (!context) {
+      return (
+        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          Select a memory to view
         </div>
+      );
+    }
 
-        <div className="flex items-center mt-0.5">
-          <p className="text-sm text-gray-500">
-            Von extracts insights from your team's questions to better
-            understand your business.
+    return (
+      <div className="flex flex-col gap-4 w-full min-w-0 overflow-hidden">
+        {/* Description */}
+        <div className="bg-gray-50/60 rounded-xl p-4 w-full min-w-0 overflow-hidden">
+          <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
+            When should the agent use this?
+          </label>
+          <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">
+            {context.description || "—"}
           </p>
         </div>
+
+        {/* Memory Content */}
+        <div className="bg-gray-50/60 rounded-xl p-4 w-full min-w-0 overflow-hidden">
+          <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
+            Memory Content
+          </label>
+          <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
+            <Streamdown parseIncompleteMarkdown={false}>
+              {context.value || "No content yet"}
+            </Streamdown>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full p-2">
+      {/* Page Header */}
+      <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900">Memory</h2>
+        <p className="text-sm text-gray-600">
+          Configure context that helps Von understand you and your organization
+        </p>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden px-6 pb-6">
-        {/* Error state */}
-        {error && (
-          <div className="text-center py-8 px-6 bg-red-50/80 rounded-2xl backdrop-blur-sm">
-            <p className="text-sm text-red-500">Failed to load memory</p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && contexts.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-4">
-              <BrainIcon
-                size={32}
-                weight="duotone"
-                className="text-indigo-400"
-              />
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto settings-scrollbar px-6">
+        <div className="pt-6 pb-12 space-y-8 flex flex-col items-center">
+          {/* Error state */}
+          {error && (
+            <div className="text-center py-8 px-6 bg-red-50/80 rounded-2xl backdrop-blur-sm">
+              <p className="text-sm text-red-500">Failed to load memory</p>
             </div>
-            <h3 className="text-base font-medium text-gray-600 mb-1">
-              No memories yet
-            </h3>
-            <p className="text-sm text-gray-400 mb-4">
-              Insights will appear here as your team asks questions.
-            </p>
-            <button
-              onClick={handleCreateClick}
-              className="h-[32px] px-4 flex items-center justify-center gap-2 rounded-lg bg-gray-900 text-white text-sm font-medium transition-all duration-200 cursor-pointer hover:bg-gray-800"
-            >
-              Add new segment
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Two Column Layout */}
-        {(isLoading || contexts.length > 0) && (
-          <div className="mt-2 w-[75%] mx-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 h-full overflow-hidden">
-            <div className="flex h-full">
-              {/* Left Panel - Context List */}
-              <div className="w-60 border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0 flex flex-col">
-                <OrgContextDocumentList
-                  contexts={contexts}
-                  selectedContextId={selectedContextId}
-                  onSelectContext={handleSelectContext}
-                  onCreateClick={handleCreateClick}
-                  isLoading={isLoading}
-                  currentPage={pagination?.page || 1}
-                  totalPages={pagination?.totalPages || 1}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
+          {/* ===== ORG MEMORY SECTION ===== */}
+          <div className="w-[75%]">
+            {/* Section Header - Outside card */}
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-800">
+                Org Memory
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Define context shared across all users in your organization
+              </p>
+            </div>
 
-              {/* Right Panel - View Content */}
-              <div className="flex-1 flex flex-col min-w-0 bg-white/50">
-                {/* Toolbar */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
-                  <div />
-                  {/* Right - Edit & Delete Actions */}
-                  <div className="flex items-center gap-0.5">
-                    {selectedContext && (
-                      <>
-                        <button
-                          onClick={handleEditClick}
-                          className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50/50 rounded-xl transition-all duration-200 cursor-pointer"
-                          title="Edit"
-                        >
-                          <PencilSimpleIcon size={16} weight="regular" />
-                        </button>
-                        <button
-                          onClick={handleDeleteClick}
-                          disabled={
-                            deleteMutation.isPending ||
-                            selectedContext?.isDefault
-                          }
-                          className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50/50 rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={
-                            selectedContext?.isDefault
-                              ? "Cannot delete default context"
-                              : "Delete"
-                          }
-                        >
-                          <TrashIcon size={16} weight="regular" />
-                        </button>
-                      </>
+            {/* Org Memory Card */}
+            <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden">
+              <div
+                className={`flex w-full ${isUserMemoryEnabled ? "h-[50vh]" : "h-[70vh]"}`}
+              >
+                {/* Left Panel - Context List */}
+                <div className="w-60 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0 flex flex-col">
+                  <OrgContextDocumentList
+                    contexts={contexts}
+                    selectedContextId={selectedOrgContextId}
+                    onSelectContext={handleSelectOrgContext}
+                    onCreateClick={handleCreateClick}
+                    onEditClick={handleEditOrgClick}
+                    onDeleteClick={handleDeleteClick}
+                    isLoading={isOrgLoading}
+                    currentPage={pagination?.page || 1}
+                    totalPages={pagination?.totalPages || 1}
+                    onPageChange={setCurrentPage}
+                    canCreateOrgMemory={canCreateOrgMemory}
+                    canUpdateOrgMemory={canUpdateOrgMemory}
+                    canDeleteOrgMemory={canDeleteOrgMemory}
+                    isDeleting={deleteMutation.isPending}
+                  />
+                </div>
+
+                {/* Right Panel - View Content */}
+                <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50">
+                  {/* Content Area */}
+                  <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                    {isOrgLoading && contexts.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                        <span className="animate-pulse">Loading...</span>
+                      </div>
+                    ) : contexts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-3">
+                          <BrainIcon
+                            size={24}
+                            weight="duotone"
+                            className="text-indigo-400"
+                          />
+                        </div>
+                        <h4 className="text-sm font-medium text-gray-600 mb-1">
+                          No org memories yet
+                        </h4>
+                        <p className="text-xs text-gray-400 text-center">
+                          Insights will appear here as your team asks questions.
+                        </p>
+                      </div>
+                    ) : (
+                      renderContentView(selectedOrgContext)
                     )}
                   </div>
                 </div>
-
-                {/* Content Area - View Mode */}
-                <div className="flex-1 overflow-y-auto settings-scrollbar p-5">
-                  {selectedContext ? (
-                    <div className="flex flex-col gap-5 h-full">
-                      {/* Default Context Indicator */}
-                      {selectedContext.isDefault && (
-                        <div className="bg-indigo-50/60 rounded-xl p-3 border border-indigo-100">
-                          <div className="flex items-center gap-2">
-                            <LockKeyIcon
-                              size={16}
-                              className="text-indigo-600"
-                            />
-                            <span className="text-xs font-medium text-indigo-700">
-                              Default Memory
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Description */}
-                      <div className="bg-gray-50/60 rounded-xl p-4">
-                        <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
-                          When should the agent use this?
-                        </label>
-                        <p className="text-sm text-gray-700">
-                          {selectedContext.description || "—"}
-                        </p>
-                      </div>
-
-                      {/* Memory Content */}
-                      <div className="flex-1 flex flex-col min-h-0 bg-gray-50/60 rounded-xl p-4">
-                        <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
-                          Memory Content
-                        </label>
-                        <div className="flex-1 overflow-auto settings-scrollbar">
-                          <div className="prose prose-sm max-w-none text-sm [&>*]:text-sm [&>*]:leading-relaxed">
-                            <Streamdown parseIncompleteMarkdown={false}>
-                              {selectedContext.value || "No content yet"}
-                            </Streamdown>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                      {isLoading ? (
-                        <span className="animate-pulse">Loading...</span>
-                      ) : (
-                        "Select a memory to view"
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
-        )}
+
+          {/* ===== USER MEMORY SECTION ===== */}
+          {isUserMemoryEnabled && (
+            <div className="w-[75%]">
+              {/* Section Header - Outside card */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800">
+                  User Memory
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Manage your personal preferences and context
+                </p>
+              </div>
+
+              {/* User Memory Card - Fixed height with scroll */}
+              <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden h-[200px] relative">
+                {isUserMemoryLoading || isCreatingUserMemory ? (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <span className="animate-pulse">Loading...</span>
+                  </div>
+                ) : userMemory ? (
+                  <div className="h-full w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                    {/* Edit button - top right */}
+                    <button
+                      onClick={handleEditUserClick}
+                      className="absolute top-3 right-3 p-2 text-violet-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200 cursor-pointer z-10"
+                      title="Edit"
+                    >
+                      <PencilSimpleIcon size={14} weight="bold" />
+                    </button>
+                    <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
+                      <Streamdown parseIncompleteMarkdown={false}>
+                        {userMemory.value || "No content yet"}
+                      </Streamdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
+                      <BrainIcon
+                        size={24}
+                        weight="duotone"
+                        className="text-violet-400"
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium text-gray-600 mb-1">
+                      No user memory yet
+                    </h4>
+                    <p className="text-xs text-gray-400 text-center">
+                      Your personal memory will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Memory Context Pane (Sidebar for editing/creating) */}
@@ -408,7 +523,7 @@ export function OrgContextTab() {
         isOpen={isPaneOpen}
         onClose={handlePaneClose}
         mode={paneMode}
-        context={paneMode === "edit" ? selectedContext : null}
+        context={editingContext}
         onSave={handleSave}
         isSaving={createMutation.isPending || updateMutation.isPending}
       />

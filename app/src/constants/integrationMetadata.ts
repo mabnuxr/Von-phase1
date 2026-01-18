@@ -30,7 +30,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   salesforce: {
     id: "salesforce",
     name: "Salesforce",
-    description: "Sync opportunities, contacts, and accounts",
+    description:
+      "Ask anything about your CRM data. Connect your account to make updates",
     personalDescription: "Connect your Salesforce account",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/salesforce.svg",
@@ -48,7 +49,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   gong: {
     id: "gong",
     name: "Gong",
-    description: "Sync call recordings and transcripts",
+    description: "Ask about Gong calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
@@ -56,7 +57,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   fathom: {
     id: "fathom",
     name: "Fathom",
-    description: "Sync meeting recordings and summaries",
+    description: "Ask about Fathom calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/fathom.svg",
     category: "Call Recorder",
@@ -73,7 +74,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   googlecalendar: {
     id: "googlecalendar",
     name: "Google Calendar",
-    description: "Sync your calendar events and meetings",
+    description:
+      "Ask about past meetings, prep for upcoming ones, and create invites",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/googleCalender.svg",
     category: "Calendar",
@@ -91,8 +93,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   chorus: {
     id: "chorus",
     name: "Chorus",
-    description:
-      "Import call recordings and conversation intelligence from Chorus",
+    description: "Ask about Chorus calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Chorus.svg",
     category: "Call Recorder",
@@ -100,7 +101,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   claricopilot: {
     id: "claricopilot",
     name: "Clari Co-pilot",
-    description: "Sync call recordings and insights from Clari Co-pilot",
+    description: "Ask about Clari calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/ClariCopilot.svg",
     category: "Call Recorder",
@@ -109,7 +110,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     id: "attention",
     name: "Attention",
     description:
-      "Import AI-powered call insights and recordings from Attention",
+      "Ask about Attention calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
     category: "Call Recorder",

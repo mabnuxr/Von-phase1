@@ -192,6 +192,10 @@ export type {
   FolderLoadingMap,
 } from './ChatSidebarV2';
 
+// ChatSidebarV3 Organism (extended version for prototyping)
+export { ChatSidebarV3 } from './ChatSidebarV3';
+export type { ChatSidebarV3Props } from './ChatSidebarV3';
+
 // ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
 export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
@@ -261,3 +265,15 @@ export type {
   SentimentType,
   TopLevelTab,
 } from './TransparencyDrawer';
+
+// ============================================================================
+// TIPTAP EDITOR (Standalone rich text editor)
+// ============================================================================
+export { TiptapEditor, EditorToolbar } from './TiptapEditor';
+export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
+
+// ============================================================================
+// REPORT TABLE (TanStack Table for data reports)
+// ============================================================================
+export { ReportTable } from './ReportTable';
+export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';

@@ -187,39 +187,37 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop blur overlay */}
+          {/* Backdrop overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-[99] bg-white/10 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm"
             onClick={handleCancel}
           />
 
-          {/* Modal panel */}
+          {/* Modal panel - centered popup */}
           <motion.div
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute bottom-0 left-0 right-0 h-[90%] z-[100] px-2 flex flex-col rounded-t-2xl border border-gray-100 shadow-[0_-8px_30px_-8px_rgba(255,237,213,0.8)]"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md max-h-[85vh] z-[10000] flex flex-col rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
           >
-            {/* Blue to white gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white to-gray-50 rounded-t-2xl overflow-hidden" />
+            {/* Background */}
+            <div className="absolute inset-0 bg-white rounded-2xl overflow-hidden" />
 
             {/* Content */}
-            <div className="relative z-10 flex flex-col flex-1 py-3 overflow-hidden">
+            <div className="relative z-10 flex flex-col flex-1 p-5 overflow-hidden">
               {/* Header */}
-              <div className="flex flex-row items-center gap-2 px-1 pb-3 mb-3 border-b border-gray-100">
-                <SquaresFour size={18} weight="duotone" className="text-gray-700" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Create Dashboard</h3>
-                </div>
+              <div className="flex flex-row items-center gap-2 pb-4 mb-4 border-b border-gray-100">
+                <SquaresFour size={20} weight="duotone" className="text-gray-700" />
+                <h3 className="text-base font-medium text-gray-900">Create Dashboard</h3>
               </div>
 
               {/* Scrollable Form Content */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 space-y-4">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-4">
                 {/* Dashboard Name */}
                 <div className=" ">
                   <TextInput
@@ -305,13 +303,13 @@ export const NewDashboardModal: React.FC<NewDashboardModalProps> = ({
               </div>
 
               {/* Action buttons */}
-              <div className="flex flex-col items-center gap-2 pt-3 mt-3 border-t border-gray-100 px-1">
-                <PrimaryButton onClick={handleConfirm} fullWidth>
-                  Create Dashboard
-                </PrimaryButton>
+              <div className="flex items-center gap-2 pt-4 mt-auto">
                 <SecondaryButton onClick={handleCancel} fullWidth>
                   Cancel
                 </SecondaryButton>
+                <PrimaryButton onClick={handleConfirm} fullWidth>
+                  Create Dashboard
+                </PrimaryButton>
               </div>
             </div>
           </motion.div>

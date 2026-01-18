@@ -53,8 +53,10 @@ export function MemoryContextPane({
   // Key to force MDX editor remount when context changes
   const [editorKey, setEditorKey] = useState(0);
 
-  // Check if editing a default context
+  // Check if editing a default context or user memory (both have read-only title)
   const isDefault = mode === "edit" && context?.isDefault;
+  const isUserMemory = mode === "edit" && context?.accessLevel === "user";
+  const isTitleReadOnly = isDefault || isUserMemory;
 
   // Reset form when pane opens or context changes
   useEffect(() => {
@@ -91,9 +93,10 @@ export function MemoryContextPane({
 
   const isValid =
     editingKey.trim().length > 0 &&
-    editingDescription.trim().length > 0 &&
+    (isUserMemory || editingDescription.trim().length > 0) &&
     editingKey.length <= MEMORY_CONTEXT_LIMITS.key &&
-    editingDescription.length <= MEMORY_CONTEXT_LIMITS.description &&
+    (isUserMemory ||
+      editingDescription.length <= MEMORY_CONTEXT_LIMITS.description) &&
     editingContent.length <= MEMORY_CONTEXT_LIMITS.value;
 
   const footer = (
@@ -145,8 +148,10 @@ export function MemoryContextPane({
           <div className="flex items-center justify-between mb-1.5">
             <label className="block text-sm font-medium text-gray-700">
               Title <span className="text-red-500">*</span>
-              {isDefault && (
-                <span className="ml-2 text-xs text-indigo-600">
+              {isTitleReadOnly && (
+                <span
+                  className={`ml-2 text-xs ${isUserMemory ? "text-violet-600" : "text-indigo-600"}`}
+                >
                   (Read-only)
                 </span>
               )}
@@ -160,39 +165,43 @@ export function MemoryContextPane({
             type="text"
             value={editingKey}
             onChange={(e) => setEditingKey(e.target.value)}
-            disabled={isDefault}
+            disabled={isTitleReadOnly}
             className={`w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all ${
-              isDefault ? "opacity-60 cursor-not-allowed bg-gray-50" : ""
+              isTitleReadOnly ? "opacity-60 cursor-not-allowed bg-gray-50" : ""
             }`}
             placeholder="e.g., Pricing Structure"
           />
-          {isDefault && (
+          {isTitleReadOnly && (
             <p className="mt-1.5 text-xs text-gray-500">
-              The title of the default context cannot be changed.
+              {isUserMemory
+                ? "The title of user memory cannot be changed."
+                : "The title of the default context cannot be changed."}
             </p>
           )}
         </div>
 
-        {/* Description */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm font-medium text-gray-700">
-              When should the agent use this?{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <CharacterBudget
-              current={editingDescription.length}
-              max={MEMORY_CONTEXT_LIMITS.description}
+        {/* Description - Hidden for user memory */}
+        {!isUserMemory && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-medium text-gray-700">
+                When should the agent use this?{" "}
+                <span className="text-red-500">*</span>
+              </label>
+              <CharacterBudget
+                current={editingDescription.length}
+                max={MEMORY_CONTEXT_LIMITS.description}
+              />
+            </div>
+            <textarea
+              value={editingDescription}
+              onChange={(e) => setEditingDescription(e.target.value)}
+              rows={2}
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none"
+              placeholder="e.g., When answering questions about pricing or discounts"
             />
           </div>
-          <textarea
-            value={editingDescription}
-            onChange={(e) => setEditingDescription(e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all resize-none"
-            placeholder="e.g., When answering questions about pricing or discounts"
-          />
-        </div>
+        )}
 
         {/* Memory Content */}
         <div className="flex-1 flex flex-col min-h-0">

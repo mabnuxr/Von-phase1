@@ -8,9 +8,14 @@ import {
   FileText,
   X,
   XIcon,
-  UploadSimpleIcon,
   AtomIcon,
   CheckIcon,
+  ChartLineIcon,
+  HashIcon,
+  DatabaseIcon,
+  RobotIcon,
+  CaretRightIcon,
+  ChartBarIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -19,9 +24,13 @@ import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Toggle as _Toggle } from '../../forms/toggle';
 import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
-import { ContextMenu, type ContextMenuItem } from '../../popups';
+// ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
+import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
+import type { Editor } from '@tiptap/react';
+import { ModeSelector } from './ModeSelector';
+import { ChatInputPopover } from './ChatInputPopover';
 
 /**
  * Get icon for reference type
@@ -34,6 +43,14 @@ function getReferenceIcon(type: ReferenceContext['type']) {
       return <Table size={14} weight="regular" className="text-gray-800" />;
     case 'document':
       return <FileText size={14} weight="regular" className="text-gray-800" />;
+    case 'widget':
+      return <ChartLineIcon size={14} weight="regular" className="text-gray-800" />;
+    case 'kpi':
+      return <HashIcon size={14} weight="regular" className="text-gray-800" />;
+    case 'table':
+      return <Table size={14} weight="regular" className="text-gray-800" />;
+    case 'source':
+      return <DatabaseIcon size={14} weight="regular" className="text-gray-800" />;
     default:
       return <ChartBar size={14} weight="regular" className="text-gray-800" />;
   }
@@ -50,6 +67,14 @@ function getReferenceLabel(type: ReferenceContext['type']) {
       return 'Report';
     case 'document':
       return 'Document';
+    case 'widget':
+      return 'Widget';
+    case 'kpi':
+      return 'KPI';
+    case 'table':
+      return 'Table';
+    case 'source':
+      return 'Reference';
     default:
       return 'Reference';
   }
@@ -62,15 +87,21 @@ const _MODE_OPTIONS = [
 ];
 
 /**
- * PlusButtonMenu - Plus button with context menu for upload and deep research options
+ * Agent mode type
+ */
+export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
+
+/**
+ * PlusButtonMenu - Plus button with context menu for upload, deep research, and agents options
  */
 interface PlusButtonMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpen: () => void;
   onUpload: () => void;
-  onDeepResearch: () => void;
-  isDeepResearch: boolean;
+  onAgentModeChange: (mode: AgentMode) => void;
+  onBuildDashboard?: () => void;
+  selectedAgentMode: AgentMode;
   disabled?: boolean;
 }
 
@@ -79,34 +110,26 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   onClose,
   onOpen,
   onUpload,
-  onDeepResearch,
-  isDeepResearch,
+  onAgentModeChange,
+  onBuildDashboard,
+  selectedAgentMode,
   disabled = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [showAgentsSubmenu, setShowAgentsSubmenu] = useState(false);
+  const agentsItemRef = useRef<HTMLDivElement>(null);
 
-  const items: ContextMenuItem[] = [
-    {
-      id: 'upload',
-      label: 'Upload files and photos',
-      icon: <UploadSimpleIcon size={16} />,
-    },
-    {
-      id: 'deep-research',
-      label: 'Deep research',
-      icon: <AtomIcon size={16} />,
-      active: isDeepResearch,
-      rightContent: isDeepResearch ? (
-        <CheckIcon size={14} weight="bold" className="text-green-600" />
-      ) : undefined,
-    },
-  ];
+  // Close submenu when main menu closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowAgentsSubmenu(false);
+    }
+  }, [isOpen]);
 
-  const handleItemClick = (item: ContextMenuItem) => {
-    if (item.id === 'upload') {
-      onUpload();
-    } else if (item.id === 'deep-research') {
-      onDeepResearch();
+  const handleAgentSelect = (mode: AgentMode) => {
+    onAgentModeChange(mode);
+    if (mode === 'build-dashboard' && onBuildDashboard) {
+      onBuildDashboard();
     }
     onClose();
   };
@@ -121,15 +144,104 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
         className="w-8.5 h-8.5 rounded-xl"
       />
 
-      <ContextMenu
-        isOpen={isOpen}
-        onClose={onClose}
-        items={items}
-        anchorRef={containerRef}
-        position="top-start"
-        width={208}
-        onItemClick={handleItemClick}
-      />
+      {/* Main Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
+          >
+            {/* Upload option */}
+            <button
+              onClick={() => {
+                onUpload();
+                onClose();
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+            >
+              {/* <UploadSimpleIcon size={16} className="text-gray-600" /> */}
+              <span>Upload files and photos</span>
+            </button>
+
+            {/* Agents option with submenu */}
+            <div
+              ref={agentsItemRef}
+              onMouseEnter={() => setShowAgentsSubmenu(true)}
+              onMouseLeave={() => setShowAgentsSubmenu(false)}
+              className="relative"
+            >
+              <button className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
+                <div className="flex items-center gap-2.5">
+                  {/* <RobotIcon size={16} className="text-gray-600" /> */}
+                  <span>Agents</span>
+                </div>
+                <CaretRightIcon size={12} className="text-gray-400" />
+              </button>
+
+              {/* Agents Submenu */}
+              <AnimatePresence>
+                {showAgentsSubmenu && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -4 }}
+                    transition={{ duration: 0.1 }}
+                    className="absolute left-full top-0 ml-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
+                  >
+                    {/* Auto (default) */}
+                    <button
+                      onClick={() => handleAgentSelect('auto')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {/* <RobotIcon size={16} className="text-gray-600" /> */}
+                        <span>Auto</span>
+                      </div>
+                      {selectedAgentMode === 'auto' && (
+                        <CheckIcon size={14} weight="bold" className="text-green-600" />
+                      )}
+                    </button>
+
+                    {/* Build Dashboard */}
+                    <button
+                      onClick={() => handleAgentSelect('build-dashboard')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {/* <ChartBarIcon size={16} className="text-gray-600" /> */}
+                        <span>Build Dashboard</span>
+                      </div>
+                      {selectedAgentMode === 'build-dashboard' && (
+                        <CheckIcon size={14} weight="bold" className="text-green-600" />
+                      )}
+                    </button>
+
+                    {/* Deep Research */}
+                    <button
+                      onClick={() => handleAgentSelect('deep-research')}
+                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {/* <AtomIcon size={16} className="text-gray-600" /> */}
+                        <span>Deep Research</span>
+                      </div>
+                      {selectedAgentMode === 'deep-research' && (
+                        <CheckIcon size={14} weight="bold" className="text-green-600" />
+                      )}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Click outside to close */}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={onClose} />}
     </div>
   );
 };
@@ -167,12 +279,24 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onFileError,
   referenceContext,
   onRemoveReference,
+  showFormattingToolbar = false,
+  // Mode selector props
+  showModeSelector = false,
+  autoEditMode = 'off',
+  onAutoEditModeChange,
+  // Popover props
+  activePopover,
+  onPopoverClose,
+  onPopoverPrimaryAction,
+  onPopoverFeedback,
+  // Agent props
+  onBuildDashboard,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
-  const [isResearchTagHovered, setIsResearchTagHovered] = useState(false);
-  const [isDeepResearch, setIsDeepResearch] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
+  const [selectedAgentMode, setSelectedAgentMode] = useState<AgentMode>('auto');
+  const editorRef = useRef<Editor | null>(null);
 
   // File upload hook for uncontrolled mode
   const {
@@ -205,14 +329,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const isControlled = value !== undefined;
   const message = isControlled ? value : internalMessage;
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-    }
-  }, [message]);
-
   const handleChange = useCallback(
     (newValue: string) => {
       if (isControlled) {
@@ -227,7 +343,11 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const handleSend = useCallback(() => {
     if (disableSubmit) return;
 
-    const messageToSend = message.trim();
+    // Extract plain text from HTML content for sending
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = message;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    const messageToSend = plainText.trim();
     const hasContent = messageToSend || hasAttachments;
 
     if (hasContent && onSend) {
@@ -240,8 +360,9 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       if (!isAttachmentsControlled) {
         clearFiles();
       }
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+      // Clear the editor
+      if (editorRef.current) {
+        editorRef.current.commands.clearContent();
       }
     }
   }, [
@@ -256,17 +377,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     clearFiles,
   ]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (!isStreaming && !disableSubmit) {
-          handleSend();
-        }
-      }
-    },
-    [isStreaming, disableSubmit, handleSend]
-  );
+  // handleKeyDown is now managed by TiptapEditor
 
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,20 +411,47 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     openFilePicker();
   }, [openFilePicker]);
 
-  const handleDeepResearchClick = useCallback(() => {
-    setIsPlusMenuOpen(false);
-    setIsDeepResearch(true);
+  const handleAgentModeChange = useCallback((mode: AgentMode) => {
+    setSelectedAgentMode(mode);
   }, []);
 
-  const handleCancelDeepResearch = useCallback(() => {
-    setIsDeepResearch(false);
+  const handleCancelAgentMode = useCallback(() => {
+    setSelectedAgentMode('auto');
   }, []);
+
+  // Helper to get agent mode display label and icon
+  const getAgentModeDisplay = (mode: AgentMode) => {
+    switch (mode) {
+      case 'auto':
+        return { label: 'Auto', icon: RobotIcon };
+      case 'build-dashboard':
+        return { label: 'Build Dashboard', icon: ChartBarIcon };
+      case 'deep-research':
+        return { label: 'Research', icon: AtomIcon };
+    }
+  };
 
   return (
     <div className="w-full antialiased font-sf">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto relative">
+        {/* ChatInputPopover - shown above the input when active */}
+        {activePopover && (
+          <ChatInputPopover
+            isOpen={true}
+            onClose={onPopoverClose || (() => {})}
+            intent={activePopover.intent}
+            title={activePopover.title}
+            content={activePopover.content}
+            isStreaming={activePopover.isStreaming}
+            primaryActionLabel={activePopover.primaryActionLabel}
+            onPrimaryAction={onPopoverPrimaryAction || (() => {})}
+            onFeedbackSubmit={onPopoverFeedback}
+            hasUserEdits={activePopover.hasUserEdits}
+          />
+        )}
+
         {/* Reference tag - shown above the input when a reference is set */}
-        {referenceContext && (
+        {referenceContext && !activePopover && (
           <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
             <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
               <div className="flex items-center gap-1.5">
@@ -364,24 +502,22 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
               </div>
             )}
 
-            {/* Text input area */}
+            {/* Text input area - Tiptap Editor */}
             <div className="px-4 py-3">
-              <textarea
-                ref={textareaRef}
-                value={message}
-                onChange={(e) => handleChange(e.target.value)}
-                onKeyDown={handleKeyDown}
+              <TiptapEditor
+                content={message}
+                onChange={handleChange}
+                onSubmit={handleSend}
                 placeholder={placeholder}
                 disabled={disabled && !isStreaming}
-                className="w-full resize-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
-                style={{
-                  minHeight: '24px',
-                  maxHeight: '200px',
-                  lineHeight: '1.5',
-                }}
-                rows={1}
+                editorRef={editorRef}
               />
             </div>
+
+            {/* Formatting toolbar - Slack-style */}
+            {showFormattingToolbar && editorRef.current && (
+              <EditorToolbar editor={editorRef.current} />
+            )}
 
             {/* Bottom toolbar */}
             <div className="flex items-center justify-between px-3 pb-3">
@@ -393,33 +529,35 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   onClose={() => setIsPlusMenuOpen(false)}
                   onOpen={handlePlusButtonClick}
                   onUpload={handleUploadFilesClick}
-                  onDeepResearch={
-                    isDeepResearch ? handleCancelDeepResearch : handleDeepResearchClick
-                  }
-                  isDeepResearch={isDeepResearch}
+                  onAgentModeChange={handleAgentModeChange}
+                  onBuildDashboard={onBuildDashboard}
+                  selectedAgentMode={selectedAgentMode}
                   disabled={disabled && !isStreaming}
                 />
 
-                {/* Research tag - shown when deep research mode is active */}
+                {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
                 <AnimatePresence>
-                  {isDeepResearch && (
+                  {selectedAgentMode !== 'auto' && (
                     <motion.button
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.15 }}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 border border-gray-100 hover:bg-gray-50 text-[13px] font-medium rounded-xl transition-colors cursor-pointer"
-                      onClick={handleCancelDeepResearch}
-                      onMouseEnter={() => setIsResearchTagHovered(true)}
-                      onMouseLeave={() => setIsResearchTagHovered(false)}
-                      title="Click to cancel deep research"
+                      onClick={handleCancelAgentMode}
+                      onMouseEnter={() => setIsAgentTagHovered(true)}
+                      onMouseLeave={() => setIsAgentTagHovered(false)}
+                      title="Click to reset to Auto mode"
                     >
-                      {isResearchTagHovered ? (
+                      {isAgentTagHovered ? (
                         <XIcon size={14} weight="bold" className="text-gray-800" />
                       ) : (
-                        <AtomIcon size={14} weight="regular" className="text-gray-800" />
+                        (() => {
+                          const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
+                          return <AgentIcon size={14} weight="regular" className="text-gray-800" />;
+                        })()
                       )}
-                      Research
+                      {getAgentModeDisplay(selectedAgentMode).label}
                     </motion.button>
                   )}
                 </AnimatePresence>
@@ -434,13 +572,14 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   aria-hidden="true"
                 />
 
-                {/* Mode toggle (Ask/Build) using forms Toggle component */}
-                {/* <Toggle
-                  options={MODE_OPTIONS}
-                  value={mode}
-                  onChange={(newMode) => onModeChange?.(newMode)}
-                  disabled={disabled}
-                /> */}
+                {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                {showModeSelector && onAutoEditModeChange && (
+                  <ModeSelector
+                    mode={autoEditMode}
+                    onModeChange={onAutoEditModeChange}
+                    disabled={disabled && !isStreaming}
+                  />
+                )}
               </div>
 
               {/* Right side - Voice and Send buttons */}
