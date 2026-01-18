@@ -57,8 +57,12 @@ export const Chat: React.FC<ChatProps> = ({
   enableCommands = false,
   enableActions = false,
   onConvertToDashboard,
+  onTransparencyClick,
+  showTransparency = true,
   salesforceInstanceUrl,
   enableDeepLinks = false,
+  // V2 Thinking Process
+  thinkingProcessVersion = 'v1',
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -284,8 +288,16 @@ export const Chat: React.FC<ChatProps> = ({
                   runId={message.runId}
                   enableActions={enableActions}
                   onConvertToDashboard={onConvertToDashboard}
+                  onTransparencyClick={onTransparencyClick}
+                  showTransparency={showTransparency}
                   salesforceInstanceUrl={salesforceInstanceUrl}
                   enableDeepLinks={enableDeepLinks}
+                  // V2 Thinking Process props
+                  thinkingProcessVersion={thinkingProcessVersion}
+                  timelineSteps={message.timelineSteps}
+                  thinkingElapsedTime={message.thinkingElapsedTime}
+                  v2FinalResponse={message.v2FinalResponse}
+                  v2FinalResponseStreaming={message.v2FinalResponseStreaming}
                 />
               </div>
             ))}
