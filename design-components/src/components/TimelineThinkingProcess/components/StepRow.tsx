@@ -23,7 +23,7 @@ import { CompactApprovalCard } from './CompactApprovalCard';
  * - Expandable content area with description, approval card, code block, sub-steps
  */
 export const StepRow = React.memo<StepRowProps>(
-  ({ step, isExpanded, onToggle, onExpand, isLast, onApprove, onReject }) => {
+  ({ step, isExpanded, onToggle, onExpand, isLast, onApprove, onReject, onArtifactClick }) => {
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
 
@@ -34,14 +34,14 @@ export const StepRow = React.memo<StepRowProps>(
           step.code ||
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
-          step.artifactName),
+          step.artifact),
       [
         isFinalResponse,
         step.description,
         step.code,
         step.subSteps,
         step.approval,
-        step.artifactName,
+        step.artifact,
       ]
     );
 
@@ -184,14 +184,28 @@ export const StepRow = React.memo<StepRowProps>(
                     </div>
                   )}
 
-                  {/* Artifact reference */}
-                  {step.artifactName && (
+                  {/* Artifact reference - shown when artifact metadata is available */}
+                  {step.artifact && (
                     <div
                       className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
-                      onClick={onExpand}
+                      onClick={() => {
+                        if (onArtifactClick) {
+                          onArtifactClick(
+                            step.artifact!.artifact_id,
+                            step.artifact!.tool_name,
+                            step.artifact!.artifact_type,
+                            step.artifact!.run_id
+                          );
+                        } else {
+                          // Fallback to onExpand for backward compatibility
+                          onExpand?.();
+                        }
+                      }}
                     >
                       <FileTextIcon size={14} className="text-gray-600" />
-                      <span className="text-[12px] text-gray-800">{step.artifactName}</span>
+                      <span className="text-[12px] text-gray-800">
+                        {step.artifact.tool_name} results
+                      </span>
                     </div>
                   )}
                 </div>

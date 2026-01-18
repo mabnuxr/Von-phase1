@@ -446,9 +446,14 @@ export function transformAguiToTimelineSteps(
                 step.status = result._artifact.success
                   ? ("complete" as StepStatus)
                   : ("error" as StepStatus);
-                if (result._artifact.artifact_type === "table") {
-                  step.artifactName = `${result._artifact.tool_name} results`;
-                }
+                // Store artifact metadata for clickable links
+                // Display name is derived in the component from tool_name
+                step.artifact = {
+                  artifact_id: result._artifact.artifact_id,
+                  run_id: result._artifact.run_id,
+                  tool_name: result._artifact.tool_name,
+                  artifact_type: result._artifact.artifact_type,
+                };
               } else if (result.success === false) {
                 step.status = "error" as StepStatus;
               } else {

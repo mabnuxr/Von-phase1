@@ -417,6 +417,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             title="Thinking"
                             onApprove={(stepId) => onApprove?.(stepId, runId)}
                             onReject={(stepId) => onReject?.(stepId, runId)}
+                            onArtifactClick={handleArtifactClick}
                           />
                           {/* Final response - shown after thinking process */}
                           {v2FinalResponse && (
