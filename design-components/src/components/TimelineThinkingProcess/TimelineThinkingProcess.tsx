@@ -10,7 +10,7 @@ import type { TimelineThinkingProcessProps } from './types';
 import { CONTAINER_HEIGHT } from './constants';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
-import { StepRow, CollapsedStepRow } from './components';
+import { StepRow } from './components';
 import { ThinkingDrawer, type ThinkingStepDetail } from '../ThinkingDrawer';
 import { EngagingMessage } from '../Chat/EngagingMessage';
 
