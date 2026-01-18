@@ -1,11 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CheckCircleIcon,
-  CaretDownIcon,
-  CaretRightIcon,
-  BellIcon,
-} from '@phosphor-icons/react';
+import { CheckCircleIcon, CaretDownIcon, CaretRightIcon, BellIcon } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
 import { CONTAINER_HEIGHT } from './constants';
 import { formatElapsedTime } from './utils';
@@ -113,7 +108,11 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
             {/* Status indicator and title */}
             {allComplete ? (
               <>
-                <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
+                <CheckCircleIcon
+                  size={16}
+                  weight="fill"
+                  className="text-emerald-600 flex-shrink-0"
+                />
                 <span className="text-[13px] text-gray-700">
                   {title} · {formatElapsedTime(elapsedTime)}
                 </span>
