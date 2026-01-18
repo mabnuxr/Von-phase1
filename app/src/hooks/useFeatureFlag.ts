@@ -10,7 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
-  THINKING_PROCESS_V2: "agents-v2",
+  THINKING_PROCESS_V2: "agentsV2",
   USER_MEMORY: "enableUserMemory",
 } as const;
 
