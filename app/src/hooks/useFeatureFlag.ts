@@ -10,7 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
-  THINKING_PROCESS_V2: "agentsV2",
+  THINKING_PROCESS_V2: "agents-v2",
 } as const;
 
 /**
@@ -71,8 +71,7 @@ export function useFeatureFlag() {
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isThinkingProcessV2:
-      true || flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
+    isThinkingProcessV2: flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
 
     /**
      * Raw flags object for advanced usage

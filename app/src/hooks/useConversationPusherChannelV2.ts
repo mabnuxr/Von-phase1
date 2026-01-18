@@ -98,6 +98,7 @@ export function useConversationPusherChannelV2(
 
   // Process AGUI event and transform to timeline steps
   const handleAguiEvent = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (_eventName: string) => (data: string | AguiEventWrapper) => {
       try {
         const wrapper: AguiEventWrapper =

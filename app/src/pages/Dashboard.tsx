@@ -629,6 +629,7 @@ const Dashboard = () => {
     v2ElapsedTime,
     v2FinalResponse,
     v2IsFinalResponseStreaming,
+    v2IsThinking,
   ]);
 
   // Force complete message handler for timeout

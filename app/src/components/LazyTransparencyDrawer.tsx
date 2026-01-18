@@ -138,7 +138,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       return placeholder;
     });
   }, [
-    artifactSummaries,
+    filteredArtifactSummaries,
     loadedArtifacts,
     selectedArtifactId,
     isArtifactLoading,
