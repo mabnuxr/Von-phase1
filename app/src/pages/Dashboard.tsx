@@ -1014,7 +1014,7 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
-                onTransparencyClick={handleTransparencyClick}
+                onTransparencyClick={isThinkingProcessV2 ? handleTransparencyClick : undefined}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
                 thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
