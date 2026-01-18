@@ -57,8 +57,9 @@ export function useConversationPusherChannelV2(
   const [isThinking, setIsThinking] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [finalResponse, setFinalResponse] = useState('');
-  const [isFinalResponseStreaming, setIsFinalResponseStreaming] = useState(false);
+  const [finalResponse, setFinalResponse] = useState("");
+  const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
+    useState(false);
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -128,8 +129,12 @@ export function useConversationPusherChannelV2(
         runEvents.sort((a, b) => a.sequence - b.sequence);
 
         // Transform to timeline steps
-        const { steps, isThinking: thinking, finalResponse: response, isFinalResponseStreaming: responseStreaming } =
-          transformAguiToTimelineSteps(runEvents);
+        const {
+          steps,
+          isThinking: thinking,
+          finalResponse: response,
+          isFinalResponseStreaming: responseStreaming,
+        } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
         flushSync(() => {
@@ -172,7 +177,7 @@ export function useConversationPusherChannelV2(
       setIsThinking(false);
       setElapsedTime(0);
       setCurrentRunId(null);
-      setFinalResponse('');
+      setFinalResponse("");
       setIsFinalResponseStreaming(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();

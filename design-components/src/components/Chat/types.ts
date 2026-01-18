@@ -290,17 +290,23 @@ export interface ToolCallStartEvent {
   tool_call_id: string;
   tool_call_name: string;
   parent_message_id: string;
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface ToolCallArgsEvent {
   type: 'TOOL_CALL_ARGS';
   tool_call_id: string;
   delta: string;
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface ToolCallEndEvent {
   type: 'TOOL_CALL_END';
   tool_call_id: string;
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface ToolCallResultEvent {
@@ -309,6 +315,8 @@ export interface ToolCallResultEvent {
   tool_call_id: string;
   content: string;
   role: 'tool';
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface StepFinishedEvent {

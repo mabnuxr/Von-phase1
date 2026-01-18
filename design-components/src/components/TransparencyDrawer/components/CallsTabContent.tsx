@@ -52,7 +52,9 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
       <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
         {/* Header row */}
         <div className="flex items-center gap-2 mb-1 overflow-hidden">
-          <span className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate">{call.title}</span>
+          <span className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate">
+            {call.title}
+          </span>
           {call.sourceUrl && (
             <a
               href={call.sourceUrl}
@@ -125,7 +127,9 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
                 {/* Summary */}
                 {call.summary && (
                   <div className="pt-2 mt-2 border-t border-gray-200 overflow-hidden">
-                    <p className="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-wrap">{call.summary}</p>
+                    <p className="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-wrap">
+                      {call.summary}
+                    </p>
                   </div>
                 )}
               </div>

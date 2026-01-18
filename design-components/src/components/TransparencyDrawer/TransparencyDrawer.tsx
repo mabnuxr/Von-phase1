@@ -69,11 +69,14 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
     setActiveTopTab(tab);
   }, []);
 
-  const handleQuerySelect = useCallback((queryId: string) => {
-    setActiveQueryId(queryId);
-    // Notify parent for lazy loading
-    onQuerySelect?.(queryId);
-  }, [onQuerySelect]);
+  const handleQuerySelect = useCallback(
+    (queryId: string) => {
+      setActiveQueryId(queryId);
+      // Notify parent for lazy loading
+      onQuerySelect?.(queryId);
+    },
+    [onQuerySelect]
+  );
 
   return (
     <AnimatePresence>

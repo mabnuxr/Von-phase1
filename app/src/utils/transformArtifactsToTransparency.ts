@@ -176,7 +176,8 @@ function transformArtifactToQueryResult(
     });
 
     // Get query from either format: queries[0].statement or query
-    const queryStatement = sqlContent.queries?.[0]?.statement || sqlContent.query;
+    const queryStatement =
+      sqlContent.queries?.[0]?.statement || sqlContent.query;
 
     return {
       id: artifact_id,

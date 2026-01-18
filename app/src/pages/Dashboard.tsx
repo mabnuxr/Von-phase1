@@ -1,48 +1,54 @@
-import { authService } from '../services';
-import { config } from '../config';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useCreateConversation, conversationKeys } from '../hooks/useConversations';
-import { generateConversationTitle } from '../lib/conversationUtils';
-import useChatStore from '../store/chatStore';
-import { useUser } from '../hooks/useUser';
-import { AvatarMenu } from '../components/AvatarMenu';
-import { useMessages } from '../hooks/useMessages';
-import { useAuthCheck } from '../hooks/useAuthCheck';
-import { useSendMessage } from '../hooks/useSendMessage';
-import { useStopStreaming } from '../hooks/useStopStreaming';
-import { useStreamTimeout } from '../hooks/useStreamTimeout';
-import { useSidebarState } from '../hooks/useSidebarState';
-import { useSalesforceConnection } from '../hooks/useSalesforceConnection';
-import { useFeatureFlag } from '../hooks/useFeatureFlag';
-import { startProviderLogout } from '../lib/authFlow';
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import { useConversationInit } from '../hooks/useConversationInit';
-import { getUserInitials, getDisplayName } from '../lib/userUtils';
-import { useInfiniteConversations } from '../hooks/useInfiniteConversations';
-import { useChatSidebarV2 } from '../hooks/useChatSidebarV2';
+import { authService } from "../services";
+import { config } from "../config";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  useCreateConversation,
+  conversationKeys,
+} from "../hooks/useConversations";
+import { generateConversationTitle } from "../lib/conversationUtils";
+import useChatStore from "../store/chatStore";
+import { useUser } from "../hooks/useUser";
+import { AvatarMenu } from "../components/AvatarMenu";
+import { useMessages } from "../hooks/useMessages";
+import { useAuthCheck } from "../hooks/useAuthCheck";
+import { useSendMessage } from "../hooks/useSendMessage";
+import { useStopStreaming } from "../hooks/useStopStreaming";
+import { useStreamTimeout } from "../hooks/useStreamTimeout";
+import { useSidebarState } from "../hooks/useSidebarState";
+import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { startProviderLogout } from "../lib/authFlow";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useConversationInit } from "../hooks/useConversationInit";
+import { getUserInitials, getDisplayName } from "../lib/userUtils";
+import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
+import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import {
   transformMessagesToChatFormat,
   transformConversationsToChatItems,
   handleToolApproval,
   handleToolRejection,
-} from '../lib/dashboardUtils';
+} from "../lib/dashboardUtils";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
-} from '../utils/transformAguiToTimelineSteps';
-import { SalesforceConnectionBanner } from '../components/SalesforceConnectionBanner';
-import { useUserPusherChannel } from '../hooks/useUserPusherChannel';
-import { useConversationPusherChannel } from '../hooks/useConversationPusherChannel';
-import { useConversationPusherChannelV2 } from '../hooks/useConversationPusherChannelV2';
-import { UserChannelEvents, type ConversationTitleUpdatedEvent } from '../types/userChannelEvents';
-import type { MessageWithStreaming } from '../types/conversation';
-import { useArtifact } from '../hooks/useArtifact';
-import { useLazyTransparencyArtifacts } from '../hooks/useMessageArtifacts';
-import { LazyTransparencyDrawer } from '../components/LazyTransparencyDrawer';
+} from "../utils/transformAguiToTimelineSteps";
+import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
+import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
+import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
+import { useConversationPusherChannelV2 } from "../hooks/useConversationPusherChannelV2";
+import {
+  UserChannelEvents,
+  type ConversationTitleUpdatedEvent,
+} from "../types/userChannelEvents";
+import type { MessageWithStreaming } from "../types/conversation";
+import { useArtifact } from "../hooks/useArtifact";
+import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
+import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
 // Import Message type from design-components (includes events field)
-import type { Message as ChatMessage } from '@vonlabs/design-components';
+import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
   TopBar,
   ChatSidebar,
@@ -51,13 +57,13 @@ import {
   ChatSkeleton,
   Banner,
   DashboardCanvas,
-} from '@vonlabs/design-components';
-import { motion } from 'framer-motion';
+} from "@vonlabs/design-components";
+import { motion } from "framer-motion";
 import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
   STREAM_TIMEOUT_MS,
-} from '../config/constants';
+} from "../config/constants";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,21 +74,25 @@ const Dashboard = () => {
   const { user, isConnectionError, refetch } = useUser();
 
   // Chat state management
-  const { currentConversationId, setCurrentConversationId, messages } = useChatStore();
+  const { currentConversationId, setCurrentConversationId, messages } =
+    useChatStore();
   const conversationMessages = useMemo(
     () => (currentConversationId ? messages[currentConversationId] || [] : []),
-    [currentConversationId, messages]
+    [currentConversationId, messages],
   );
 
   // Initialize conversation (load latest or create new)
-  const { isInitializing, error: initError } = useConversationInit(urlConversationId);
+  const { isInitializing, error: initError } =
+    useConversationInit(urlConversationId);
 
   // New chat creation mutation
   const { mutateAsync: createConversation } = useCreateConversation();
 
   // Track new chat creation state (instant feedback + target tracking)
   const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const [pendingConversationId, setPendingConversationId] = useState<string | null>(null);
+  const [pendingConversationId, setPendingConversationId] = useState<
+    string | null
+  >(null);
 
   // Fetch conversations with infinite scroll for sidebar (V1)
   const {
@@ -178,18 +188,27 @@ const Dashboard = () => {
 
   // Dashboard canvas state
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [dashboardMessageId, setDashboardMessageId] = useState<string | null>(null);
-  const [dashboardMessageContent, setDashboardMessageContent] = useState<string | null>(null);
+  const [dashboardMessageId, setDashboardMessageId] = useState<string | null>(
+    null,
+  );
+  const [dashboardMessageContent, setDashboardMessageContent] = useState<
+    string | null
+  >(null);
 
   // Transparency drawer state
   const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
-  const [transparencyRunId, setTransparencyRunId] = useState<string | null>(null);
+  const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
+    null,
+  );
 
   // Sidebar collapse state
-  const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } = useSidebarState();
+  const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
+    useSidebarState();
 
   // Track animated titles for smooth typing effect
-  const [animatedTitles, setAnimatedTitles] = useState<Map<string, string>>(new Map());
+  const [animatedTitles, setAnimatedTitles] = useState<Map<string, string>>(
+    new Map(),
+  );
 
   // Message filtering state for ChatGPT-style visual clearing
   // Track which messages to show (index in messages array)
@@ -197,10 +216,10 @@ const Dashboard = () => {
   const [showMessagesFromIndex, setShowMessagesFromIndex] = useState<number>(0);
 
   // Auto-populate input when error occurs
-  const [autoPopulatedInput, setAutoPopulatedInput] = useState('');
+  const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
 
   // Track last user message for reliable error recovery
-  const lastUserMessageRef = useRef<string>('');
+  const lastUserMessageRef = useRef<string>("");
 
   // Simplified loading state - deterministic, no timers
   const isLoading =
@@ -222,10 +241,10 @@ const Dashboard = () => {
     const handleTitleUpdate = (data: ConversationTitleUpdatedEvent) => {
       if (import.meta.env.DEV) {
         console.log(
-          '[Dashboard] Title update received via user channel:',
+          "[Dashboard] Title update received via user channel:",
           data.title,
-          'for conversation:',
-          data.conversationId
+          "for conversation:",
+          data.conversationId,
         );
       }
 
@@ -236,20 +255,26 @@ const Dashboard = () => {
       });
 
       // Invalidate conversations cache to refetch with new title
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     };
 
     if (import.meta.env.DEV) {
       console.log(
-        '[Dashboard] Binding to user channel event:',
-        UserChannelEvents.CONVERSATION_TITLE_UPDATED
+        "[Dashboard] Binding to user channel event:",
+        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
       );
     }
 
-    userChannel.bind(UserChannelEvents.CONVERSATION_TITLE_UPDATED, handleTitleUpdate);
+    userChannel.bind(
+      UserChannelEvents.CONVERSATION_TITLE_UPDATED,
+      handleTitleUpdate,
+    );
 
     return () => {
-      userChannel.unbind(UserChannelEvents.CONVERSATION_TITLE_UPDATED, handleTitleUpdate);
+      userChannel.unbind(
+        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
+        handleTitleUpdate,
+      );
     };
   }, [userChannel, queryClient]);
 
@@ -308,7 +333,7 @@ const Dashboard = () => {
   // Handle retry connection
   const handleRetry = async () => {
     if (import.meta.env.DEV) {
-      console.log('[Dashboard] Retrying connection...');
+      console.log("[Dashboard] Retrying connection...");
     }
     await refetch();
   };
@@ -321,24 +346,27 @@ const Dashboard = () => {
 
   // Handle Settings click
   const handleSettingsClick = () => {
-    navigate('/settings');
+    navigate("/settings");
   };
 
   // Handle Logout click
   const handleLogoutClick = async () => {
     if (import.meta.env.DEV) {
-      console.log('[Dashboard] Logout clicked');
+      console.log("[Dashboard] Logout clicked");
     }
 
     try {
       // Call backend logout to invalidate token and get redirect URL
       const response = await authService.logout();
       if (import.meta.env.DEV) {
-        console.log('[Dashboard] Backend logout successful, redirect URL:', response.redirectUrl);
+        console.log(
+          "[Dashboard] Backend logout successful, redirect URL:",
+          response.redirectUrl,
+        );
       }
 
       // Clear all local auth tokens
-      const { clearAllAuth } = await import('../lib/auth');
+      const { clearAllAuth } = await import("../lib/auth");
       clearAllAuth();
 
       // Redirect to the URL provided by backend
@@ -347,14 +375,16 @@ const Dashboard = () => {
       } else {
         // Fallback to default logout flow if no redirect URL provided
         if (import.meta.env.DEV) {
-          console.warn('[Dashboard] No redirect URL provided, using default logout flow');
+          console.warn(
+            "[Dashboard] No redirect URL provided, using default logout flow",
+          );
         }
         startProviderLogout();
       }
     } catch (error) {
       // Log error but continue with logout flow
       if (import.meta.env.DEV) {
-        console.error('[Dashboard] Backend logout failed:', error);
+        console.error("[Dashboard] Backend logout failed:", error);
       }
       // Still clear local tokens and redirect, even if backend call fails
       startProviderLogout();
@@ -368,10 +398,10 @@ const Dashboard = () => {
     if (urlConversationId && urlConversationId !== currentConversationId) {
       if (import.meta.env.DEV) {
         console.log(
-          '[Dashboard] Switching conversation:',
+          "[Dashboard] Switching conversation:",
           currentConversationId,
-          '→',
-          urlConversationId
+          "→",
+          urlConversationId,
         );
       }
 
@@ -391,7 +421,10 @@ const Dashboard = () => {
 
   // Clear loading states when we arrive at the target conversation
   useEffect(() => {
-    if (pendingConversationId && currentConversationId === pendingConversationId) {
+    if (
+      pendingConversationId &&
+      currentConversationId === pendingConversationId
+    ) {
       setIsCreatingChat(false);
       setPendingConversationId(null);
     }
@@ -415,7 +448,7 @@ const Dashboard = () => {
       navigate(`/chat/${newId}`);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('[Dashboard] Failed to create conversation:', error);
+        console.error("[Dashboard] Failed to create conversation:", error);
       }
       setIsCreatingChat(false);
       setPendingConversationId(null);
@@ -440,15 +473,15 @@ const Dashboard = () => {
       stopStreaming(conversationId, {
         onSuccess: () => {
           if (import.meta.env.DEV) {
-            console.log('[Dashboard] Stop signal sent successfully');
+            console.log("[Dashboard] Stop signal sent successfully");
           }
         },
         onError: (error) => {
-          console.error('[Dashboard] Failed to stop streaming:', error);
+          console.error("[Dashboard] Failed to stop streaming:", error);
         },
       });
     },
-    [stopStreaming]
+    [stopStreaming],
   );
 
   // Auto-populate input when error occurs (handled by chatStore updates from hook)
@@ -460,7 +493,7 @@ const Dashboard = () => {
     const messages = storeMessages[currentConversationId] || [];
     const lastMessage = messages[messages.length - 1];
 
-    if (lastMessage?.status === 'failed' && lastMessage?.errorMessage) {
+    if (lastMessage?.status === "failed" && lastMessage?.errorMessage) {
       const userMessage = lastUserMessageRef.current;
 
       if (userMessage) {
@@ -480,7 +513,9 @@ const Dashboard = () => {
 
       // FIX: Force clear streaming state immediately (re-enables input)
       // This ensures the UI is responsive even if backend is down
-      useChatStore.getState().markMessageTimeout(currentConversationId, messageId);
+      useChatStore
+        .getState()
+        .markMessageTimeout(currentConversationId, messageId);
 
       // THEN refetch messages to get the latest status from backend
       // Backend will have marked this message as TIMEOUT or soft-deleted it
@@ -488,7 +523,7 @@ const Dashboard = () => {
         await refetchMessages();
       }
     },
-    [currentConversationId, refetchMessages]
+    [currentConversationId, refetchMessages],
   );
 
   // V2 Pusher channel config - must be memoized to prevent constant effect re-runs
@@ -498,7 +533,7 @@ const Dashboard = () => {
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [isThinkingProcessV2, currentConversationId, user?.tenantId, user?.id]
+    [isThinkingProcessV2, currentConversationId, user?.tenantId, user?.id],
   );
 
   // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
@@ -516,15 +551,15 @@ const Dashboard = () => {
   const transformedMessages: ChatMessage[] = useMemo(() => {
     const messages = transformMessagesToChatFormat(conversationMessages);
     const usableV2TimelineSteps = v2TimelineSteps.filter(
-      (timelineStep) => timelineStep.category !== 'e2b'
+      (timelineStep) => timelineStep.category !== "e2b",
     );
 
     // Debug: Log timeline steps
     if (usableV2TimelineSteps.length > 0) {
-      console.log('[Dashboard] V2 Timeline Steps:', {
+      console.log("[Dashboard] V2 Timeline Steps:", {
         total: v2TimelineSteps.length,
         usable: usableV2TimelineSteps.length,
-        steps: usableV2TimelineSteps.map(s => ({
+        steps: usableV2TimelineSteps.map((s) => ({
           id: s.id,
           type: s.type,
           text: s.text?.slice(0, 30),
@@ -541,14 +576,14 @@ const Dashboard = () => {
     // For v2: transform events to timeline steps for each message
     return messages.map((msg, index) => {
       // Only process assistant messages
-      if (msg.type !== 'assistant') {
+      if (msg.type !== "assistant") {
         return msg;
       }
 
       // Check if this is the latest assistant message and we have live streaming data
       const isLastAssistant = (() => {
         for (let i = messages.length - 1; i >= 0; i--) {
-          if (messages[i].type === 'assistant') {
+          if (messages[i].type === "assistant") {
             return i === index;
           }
         }
@@ -557,7 +592,10 @@ const Dashboard = () => {
 
       // If this is the latest message and we have live V2 data from Pusher, use it
       // Apply V2 data when: timeline steps exist, OR final response exists, OR agent is thinking
-      if (isLastAssistant && (usableV2TimelineSteps.length > 0 || v2FinalResponse || v2IsThinking)) {
+      if (
+        isLastAssistant &&
+        (usableV2TimelineSteps.length > 0 || v2FinalResponse || v2IsThinking)
+      ) {
         return {
           ...msg,
           timelineSteps: usableV2TimelineSteps,
@@ -569,8 +607,9 @@ const Dashboard = () => {
 
       // For persisted messages, transform events to timeline steps
       if (msg.events && msg.events.length > 0) {
-        const { steps, finalResponse, isFinalResponseStreaming } = transformAguiToTimelineSteps(msg.events);
-        const usableSteps = steps.filter((step) => step.category !== 'e2b');
+        const { steps, finalResponse, isFinalResponseStreaming } =
+          transformAguiToTimelineSteps(msg.events);
+        const usableSteps = steps.filter((step) => step.category !== "e2b");
         const elapsed = getElapsedTimeFromEvents(msg.events);
         return {
           ...msg,
@@ -583,31 +622,45 @@ const Dashboard = () => {
 
       return msg;
     });
-  }, [conversationMessages, isThinkingProcessV2, v2TimelineSteps, v2ElapsedTime, v2FinalResponse, v2IsFinalResponseStreaming]);
+  }, [
+    conversationMessages,
+    isThinkingProcessV2,
+    v2TimelineSteps,
+    v2ElapsedTime,
+    v2FinalResponse,
+    v2IsFinalResponseStreaming,
+  ]);
 
   // Force complete message handler for timeout
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
   const handleForceComplete = useCallback(
     (messageId: string) => {
       if (currentConversationId) {
-        useChatStore.getState().forceCompleteMessage(currentConversationId, messageId);
+        useChatStore
+          .getState()
+          .forceCompleteMessage(currentConversationId, messageId);
       }
     },
-    [currentConversationId]
+    [currentConversationId],
   );
 
   // Client-side timeout detection (5 minutes)
   // This triggers a refetch to get the latest status from backend
   // Use conversationMessages (MessageWithStreaming[]) instead of transformedMessages (Message[])
-  useStreamTimeout(conversationMessages as MessageWithStreaming[], currentConversationId, {
-    timeoutMs: STREAM_TIMEOUT_MS,
-    onTimeout: handleStreamTimeout,
-    onForceComplete: handleForceComplete,
-  });
+  useStreamTimeout(
+    conversationMessages as MessageWithStreaming[],
+    currentConversationId,
+    {
+      timeoutMs: STREAM_TIMEOUT_MS,
+      onTimeout: handleStreamTimeout,
+      onForceComplete: handleForceComplete,
+    },
+  );
 
   // Compute avatar props from user data
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
-  const avatarSrc = typeof user?.avatarUrl === 'string' ? user.avatarUrl : undefined;
+  const avatarSrc =
+    typeof user?.avatarUrl === "string" ? user.avatarUrl : undefined;
   const displayName = user
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
@@ -615,14 +668,14 @@ const Dashboard = () => {
   // Flatten paginated conversations data
   const allConversations = useMemo(
     () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
-    [infiniteConversationsData?.pages]
+    [infiniteConversationsData?.pages],
   );
 
   // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
   // Filter out conversations with empty titles (not yet named by LLM)
   const chatItems = useMemo(
     () => transformConversationsToChatItems(allConversations, animatedTitles),
-    [allConversations, animatedTitles]
+    [allConversations, animatedTitles],
   );
 
   // Handle convert to dashboard action
@@ -636,11 +689,14 @@ const Dashboard = () => {
         setIsDashboardOpen(true);
 
         if (import.meta.env.DEV) {
-          console.log('[Dashboard] Converting message to dashboard:', messageId);
+          console.log(
+            "[Dashboard] Converting message to dashboard:",
+            messageId,
+          );
         }
       }
     },
-    [transformedMessages]
+    [transformedMessages],
   );
 
   // Handle closing the dashboard canvas
@@ -651,11 +707,13 @@ const Dashboard = () => {
   }, []);
 
   // Fetch transparency artifact summaries when drawer is open (lazy loading)
-  const { artifactSummaries: transparencyArtifactSummaries, isLoading: isTransparencyLoading } =
-    useLazyTransparencyArtifacts(
-      isTransparencyOpen ? currentConversationId : null,
-      isTransparencyOpen ? transparencyRunId : null
-    );
+  const {
+    artifactSummaries: transparencyArtifactSummaries,
+    isLoading: isTransparencyLoading,
+  } = useLazyTransparencyArtifacts(
+    isTransparencyOpen ? currentConversationId : null,
+    isTransparencyOpen ? transparencyRunId : null,
+  );
 
   // Handle transparency button click
   const handleTransparencyClick = useCallback(
@@ -668,15 +726,15 @@ const Dashboard = () => {
 
         if (import.meta.env.DEV) {
           console.log(
-            '[Dashboard] Opening transparency drawer for message:',
+            "[Dashboard] Opening transparency drawer for message:",
             messageId,
-            'runId:',
-            message.runId
+            "runId:",
+            message.runId,
           );
         }
       }
     },
-    [transformedMessages]
+    [transformedMessages],
   );
 
   // Handle closing the transparency drawer
@@ -688,9 +746,9 @@ const Dashboard = () => {
   // Get conversation title for dashboard header
   const currentConversationTitle = useMemo(() => {
     const conversation = allConversations.find(
-      (conv) => conv.conversationId === currentConversationId
+      (conv) => conv.conversationId === currentConversationId,
     );
-    return conversation?.title || 'Dashboard';
+    return conversation?.title || "Dashboard";
   }, [allConversations, currentConversationId]);
 
   // Conversation-level Pusher channel (for AGUI events)
@@ -701,28 +759,32 @@ const Dashboard = () => {
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [currentConversationId, user?.tenantId, user?.id]
+    [currentConversationId, user?.tenantId, user?.id],
   );
 
-  const { error: conversationChannelError } =
-    useConversationPusherChannel(conversationChannelConfig);
+  const { error: conversationChannelError } = useConversationPusherChannel(
+    conversationChannelConfig,
+  );
 
   // Separate pusherConfig for Chat component
   const pusherConfig = useMemo(
     () => ({
-      key: import.meta.env.VITE_PUSHER_KEY || '',
-      cluster: import.meta.env.VITE_PUSHER_CLUSTER || '',
+      key: import.meta.env.VITE_PUSHER_KEY || "",
+      cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
       authEndpoint: `${config.apiBaseUrl}/api/v1/pusher/auth`,
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [user?.tenantId, user?.id]
+    [user?.tenantId, user?.id],
   );
 
   // Handle conversation channel errors
   useEffect(() => {
     if (conversationChannelError) {
-      console.error('[Dashboard] Conversation channel error:', conversationChannelError);
+      console.error(
+        "[Dashboard] Conversation channel error:",
+        conversationChannelError,
+      );
     }
   }, [conversationChannelError]);
 
@@ -737,10 +799,10 @@ const Dashboard = () => {
         toolCallId,
         runId,
         currentConversationId,
-        import.meta.env.VITE_API_BASE_URL
+        import.meta.env.VITE_API_BASE_URL,
       );
     },
-    [currentConversationId]
+    [currentConversationId],
   );
 
   // Tool rejection handler
@@ -751,10 +813,10 @@ const Dashboard = () => {
         toolCallId,
         runId,
         currentConversationId,
-        import.meta.env.VITE_API_BASE_URL
+        import.meta.env.VITE_API_BASE_URL,
       );
     },
-    [currentConversationId]
+    [currentConversationId],
   );
 
   // Create Salesforce connection banner
@@ -774,7 +836,7 @@ const Dashboard = () => {
           variant="error"
           message="Issue Connecting to Backend Services"
           onClose={() => setShowConnectionBanner(false)}
-          action={{ label: 'Retry', onClick: handleRetry }}
+          action={{ label: "Retry", onClick: handleRetry }}
           dismissible={true}
         />
       )}
@@ -794,7 +856,7 @@ const Dashboard = () => {
         {/* TopBar in White Rounded Container */}
         <div className="bg-transparent">
           <TopBar
-            onLogoClick={() => navigate('/chat')}
+            onLogoClick={() => navigate("/chat")}
             showMenu={false}
             onNewChatClick={handleNewChatClick}
           />
@@ -816,7 +878,7 @@ const Dashboard = () => {
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
           <div
             className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
-            style={{ width: isSidebarCollapsed ? '64px' : '240px' }}
+            style={{ width: isSidebarCollapsed ? "64px" : "240px" }}
           >
             {isSidebarV2 ? (
               <ChatSidebarV2
@@ -828,7 +890,7 @@ const Dashboard = () => {
                 selectedItemId={currentConversationId || undefined}
                 onItemClick={handleChatClick}
                 onNewChatClick={handleNewChatClick}
-                onNewChatFolderClick={() => createFolder('New Folder')}
+                onNewChatFolderClick={() => createFolder("New Folder")}
                 newlyCreatedFolderId={newlyCreatedFolderId}
                 onDeleteFolder={deleteFolder}
                 onRenameFolder={renameFolder}
@@ -841,7 +903,10 @@ const Dashboard = () => {
                   moveConversationToFolder(itemId, folderId, item?.folderId);
                   clearNewlyCreatedFolderId();
                 }}
-                onCreateFolderAndMoveItem={(itemId: string, folderName: string) => {
+                onCreateFolderAndMoveItem={(
+                  itemId: string,
+                  folderName: string,
+                ) => {
                   const item = [
                     ...sidebarV2Items,
                     ...Object.values(sidebarV2FolderItems).flat(),
@@ -895,7 +960,7 @@ const Dashboard = () => {
               messageId={dashboardMessageId}
               isOpen={isDashboardOpen}
               onClose={handleCloseDashboard}
-              thesysApiKey={import.meta.env.VITE_THESYS_API_KEY || ''}
+              thesysApiKey={import.meta.env.VITE_THESYS_API_KEY || ""}
             />
           )}
 
@@ -904,9 +969,9 @@ const Dashboard = () => {
             className="flex min-w-0"
             initial={false}
             animate={{
-              flex: isDashboardOpen ? '0 0 35%' : '1 1 auto',
+              flex: isDashboardOpen ? "0 0 35%" : "1 1 auto",
             }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             {isLoading ? (
               <ChatSkeleton messageCount={4} />
@@ -914,7 +979,7 @@ const Dashboard = () => {
               <Chat
                 title="von AI"
                 userId={user?.id}
-                userName={user?.firstName || user?.name?.split(' ')[0]}
+                userName={user?.firstName || user?.name?.split(" ")[0]}
                 userEmail={user?.email}
                 apiBaseUrl={config.apiBaseUrl}
                 pusherConfig={pusherConfig}
@@ -951,7 +1016,7 @@ const Dashboard = () => {
                 onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
-                thinkingProcessVersion={isThinkingProcessV2 ? 'v2' : 'v1'}
+                thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
               />
             )}
           </motion.div>

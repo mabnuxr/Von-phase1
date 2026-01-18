@@ -68,6 +68,9 @@ export function useTimelineState({
   const [selectedStepForDrawer, setSelectedStepForDrawer] = useState<TimelineStep | null>(null);
   const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Track if user has scrolled away from bottom (to prevent auto-scroll hijacking)
+  const userHasScrolledRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
 
   // Derived state
   const isCollapsed = useMemo(
@@ -183,11 +186,45 @@ export function useTimelineState({
 
   // Effects
 
-  // Auto-scroll to keep current step in view
+  // Track user scroll to detect when they've scrolled away from bottom
   useEffect(() => {
-    if (scrollContainerRef.current && !isCollapsed && isThinking) {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      // Consider "at bottom" if within 50px of the bottom
+      const isAtBottom = distanceFromBottom < 50;
+
+      // If user scrolled up (away from bottom), mark as user-scrolled
+      if (!isAtBottom && scrollTop < lastScrollTopRef.current) {
+        userHasScrolledRef.current = true;
+      }
+      // If user scrolled back to bottom, reset the flag
+      if (isAtBottom) {
+        userHasScrolledRef.current = false;
+      }
+
+      lastScrollTopRef.current = scrollTop;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Reset user scroll tracking when thinking starts
+  useEffect(() => {
+    if (isThinking) {
+      userHasScrolledRef.current = false;
+    }
+  }, [isThinking]);
+
+  // Auto-scroll to keep current step in view (only if user hasn't scrolled away)
+  useEffect(() => {
+    if (scrollContainerRef.current && !isCollapsed && isThinking && !userHasScrolledRef.current) {
       requestAnimationFrame(() => {
-        if (scrollContainerRef.current) {
+        if (scrollContainerRef.current && !userHasScrolledRef.current) {
           scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
         }
       });

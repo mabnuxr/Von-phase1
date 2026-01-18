@@ -147,8 +147,8 @@ export function transformAguiToTimelineSteps(
   // Final response tracking
   let finalResponse = "";
   let isFinalResponseStreaming = false;
-  // Track which message_ids are final responses (to extract ALL their steps at the end)
-  const finalResponseMessageIds = new Set<string>();
+  // Track the last TEXT_MESSAGE message_id (will become final response at RUN_FINISHED)
+  let lastTextMessageId: string | null = null;
 
   for (const wrapper of sortedEvents) {
     const event = wrapper.event;
@@ -210,18 +210,16 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_START": {
-        // Check if this is a final response (has parent_message_id)
-        const parentId = (event as { parent_message_id?: string })
-          .parent_message_id;
+        // All TEXT_MESSAGE content streams into reasoning steps during streaming
+        // The last one will be extracted as final response at RUN_FINISHED
+        lastTextMessageId = event.message_id;
 
-        // Always create a reasoning step for TEXT_MESSAGE_START
-        // All text content goes inside the thinking block during streaming
         reasoningStepCounter++;
         const stepId = `reasoning-${event.message_id}-${reasoningStepCounter}`;
 
         const textStep: TimelineStep = {
           id: stepId,
-          text: parentId ? "Preparing response" : "Analyzing your request",
+          text: "Analyzing your request",
           status: "in-progress" as StepStatus,
           type: "reasoning" as StepType,
           description: "",
@@ -230,17 +228,11 @@ export function transformAguiToTimelineSteps(
         textMessageStepMap.set(event.message_id, textStep);
         steps.push(textStep);
         currentTextStep = textStep;
-
-        // Mark this message_id as final response (to extract ALL its steps at RUN_FINISHED)
-        if (parentId) {
-          finalResponseMessageIds.add(event.message_id);
-          isFinalResponseStreaming = true;
-        }
         break;
       }
 
       case "TEXT_MESSAGE_CONTENT": {
-        // All TEXT_MESSAGE_CONTENT goes to reasoning steps (inside thinking block)
+        // All TEXT_MESSAGE_CONTENT streams into reasoning steps
         // If no current reasoning step exists, create a new one
         if (!currentTextStep) {
           reasoningStepCounter++;
@@ -253,6 +245,7 @@ export function transformAguiToTimelineSteps(
           };
           steps.push(newStep);
           currentTextStep = newStep;
+          textMessageStepMap.set(event.message_id, newStep);
         }
 
         // Accumulate content in the current reasoning step's description
@@ -285,17 +278,27 @@ export function transformAguiToTimelineSteps(
       case "TOOL_CALL_START": {
         const toolName = event.tool_call_name || "unknown";
         const toolId = event.tool_call_id;
+        // Use step_number from event for proper correlation in interleaved scenarios
+        const eventStepNumber = (event as { step_number?: number }).step_number;
 
-        // If there's a current step from STEP_STARTED, use it
-        // Otherwise, create a new step for this tool call
-        let step: TimelineStep;
+        // Find the step to associate this tool call with
+        // Priority: 1) step_number from event, 2) currentStep, 3) create new step
+        let step: TimelineStep | undefined;
         let stepNum: number;
 
-        if (currentStep && currentStepNumber !== null) {
-          // Use existing step from STEP_STARTED
+        if (eventStepNumber !== undefined) {
+          // Use step_number from event for proper correlation
+          step = stepNumberMap.get(eventStepNumber);
+          stepNum = eventStepNumber;
+        }
+
+        if (!step && currentStep && currentStepNumber !== null) {
+          // Fall back to current step from STEP_STARTED
           step = currentStep;
           stepNum = currentStepNumber;
-        } else {
+        }
+
+        if (!step) {
           // No STEP_STARTED - create a step for this tool call
           // Use a unique step number based on tool_call_id hash
           stepNum = steps.length + 1000; // Offset to avoid conflicts
@@ -328,9 +331,9 @@ export function transformAguiToTimelineSteps(
           toolArgsMap.get(toolId || ""),
         );
 
-        // Map tool_call_id to step for subsequent tool events
+        // Map tool_call_id to step_number for subsequent tool events
         if (toolId) {
-          toolCallToStepMap.set(toolId, stepNum);
+          toolCallToStepMap.set(toolId, stepNum!);
           toolArgsMap.set(toolId, "");
         }
         break;
@@ -339,12 +342,19 @@ export function transformAguiToTimelineSteps(
       case "TOOL_CALL_ARGS": {
         // Accumulate tool arguments and update step
         const toolId = event.tool_call_id;
+        // Use step_number from event for proper correlation in interleaved scenarios
+        const eventStepNumber = (event as { step_number?: number }).step_number;
+
         if (toolId) {
           const currentArgs = toolArgsMap.get(toolId) || "";
           toolArgsMap.set(toolId, currentArgs + (event.delta || ""));
 
           // Find the step for this tool call
-          const stepNumber = toolCallToStepMap.get(toolId);
+          // Priority: 1) step_number from event, 2) toolCallToStepMap lookup
+          let stepNumber = eventStepNumber;
+          if (stepNumber === undefined) {
+            stepNumber = toolCallToStepMap.get(toolId);
+          }
           const step =
             stepNumber !== undefined ? stepNumberMap.get(stepNumber) : null;
 
@@ -369,8 +379,15 @@ export function transformAguiToTimelineSteps(
       case "TOOL_CALL_END": {
         // Tool call submitted, waiting for result
         const toolId = event.tool_call_id;
+        // Use step_number from event for proper correlation in interleaved scenarios
+        const eventStepNumber = (event as { step_number?: number }).step_number;
+
         if (toolId) {
-          const stepNumber = toolCallToStepMap.get(toolId);
+          // Priority: 1) step_number from event, 2) toolCallToStepMap lookup
+          let stepNumber = eventStepNumber;
+          if (stepNumber === undefined) {
+            stepNumber = toolCallToStepMap.get(toolId);
+          }
           const step =
             stepNumber !== undefined ? stepNumberMap.get(stepNumber) : null;
 
@@ -408,8 +425,15 @@ export function transformAguiToTimelineSteps(
       case "TOOL_CALL_RESULT": {
         // Tool execution complete
         const toolId = event.tool_call_id;
+        // Use step_number from event for proper correlation in interleaved scenarios
+        const eventStepNumber = (event as { step_number?: number }).step_number;
+
         if (toolId) {
-          const stepNumber = toolCallToStepMap.get(toolId);
+          // Priority: 1) step_number from event, 2) toolCallToStepMap lookup
+          let stepNumber = eventStepNumber;
+          if (stepNumber === undefined) {
+            stepNumber = toolCallToStepMap.get(toolId);
+          }
           const step =
             stepNumber !== undefined ? stepNumberMap.get(stepNumber) : null;
 
@@ -444,26 +468,19 @@ export function transformAguiToTimelineSteps(
         isThinking = false;
         isFinalResponseStreaming = false;
 
-        // Find the LAST step belonging to final response message_id
-        // Only that last step is the actual final response; earlier ones are intermediate reasoning
-        // Step IDs are formatted as "reasoning-{message_id}-{counter}"
-        let lastFinalResponseStepIndex = -1;
-        for (let i = steps.length - 1; i >= 0; i--) {
-          const step = steps[i];
-          const isFinalResponseStep = Array.from(finalResponseMessageIds).some(
-            (msgId) => step.id.includes(msgId),
-          );
-          if (isFinalResponseStep) {
-            lastFinalResponseStepIndex = i;
-            break; // Found the last one, stop searching
+        // Extract the last TEXT_MESSAGE step as the final response
+        // Find the step associated with lastTextMessageId
+        if (lastTextMessageId) {
+          const lastTextStep = textMessageStepMap.get(lastTextMessageId);
+          if (lastTextStep) {
+            // Extract content as final response
+            finalResponse = lastTextStep.description || "";
+            // Remove this step from the steps array
+            const stepIndex = steps.indexOf(lastTextStep);
+            if (stepIndex !== -1) {
+              steps.splice(stepIndex, 1);
+            }
           }
-        }
-
-        // Extract only the last final response step
-        if (lastFinalResponseStepIndex >= 0) {
-          const step = steps[lastFinalResponseStepIndex];
-          finalResponse = step.description || "";
-          steps.splice(lastFinalResponseStepIndex, 1);
         }
 
         // Mark any in-progress steps as complete (or error for RUN_ERROR)

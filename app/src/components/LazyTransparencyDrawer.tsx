@@ -5,19 +5,19 @@
  * artifact content on-demand when the user clicks on a specific artifact tab.
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   TransparencyDrawer,
   type TransparencyQueryResult,
   type CallTranscript,
-} from '@vonlabs/design-components';
-import { useLazyArtifactContent } from '../hooks/useMessageArtifacts';
+} from "@vonlabs/design-components";
+import { useLazyArtifactContent } from "../hooks/useMessageArtifacts";
 import {
   transformSingleArtifact,
   transformSummariesToPlaceholders,
   type ArtifactSummary,
-} from '../utils/transformArtifactsToTransparency';
-import type { ArtifactResponse } from '../services/conversationsService';
+} from "../utils/transformArtifactsToTransparency";
+import type { ArtifactResponse } from "../services/conversationsService";
 
 interface LazyTransparencyDrawerProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ const artifactCache = new Map<string, ArtifactResponse>();
 export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   isOpen,
   onClose,
-  title = 'Sources',
+  title = "Sources",
   conversationId,
   runId,
   artifactSummaries,
@@ -45,22 +45,23 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
 }) => {
   // Filter out e2b artifacts from the summaries
   const filteredArtifactSummaries = useMemo(
-    () => artifactSummaries.filter((summary) => summary.category !== 'e2b'),
-    [artifactSummaries]
+    () => artifactSummaries.filter((summary) => summary.category !== "e2b"),
+    [artifactSummaries],
   );
 
   // Track which artifact is currently selected (for lazy loading)
-  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
+    null,
+  );
 
   // Track loaded artifacts content
-  const [loadedArtifacts, setLoadedArtifacts] = useState<Map<string, ArtifactResponse>>(new Map());
+  const [loadedArtifacts, setLoadedArtifacts] = useState<
+    Map<string, ArtifactResponse>
+  >(new Map());
 
   // Fetch the selected artifact's content
-  const { data: fetchedArtifact, isLoading: isArtifactLoading } = useLazyArtifactContent(
-    conversationId,
-    runId,
-    selectedArtifactId
-  );
+  const { data: fetchedArtifact, isLoading: isArtifactLoading } =
+    useLazyArtifactContent(conversationId, runId, selectedArtifactId);
 
   // When artifact is fetched, add it to our loaded artifacts map
   useEffect(() => {
@@ -129,21 +130,26 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
 
       // Update description based on loading state
       if (summary.artifact_id === selectedArtifactId && isArtifactLoading) {
-        placeholder.description = 'Loading...';
+        placeholder.description = "Loading...";
       } else if (!loadedArtifact) {
-        placeholder.description = 'Click to load';
+        placeholder.description = "Click to load";
       }
 
       return placeholder;
     });
-  }, [artifactSummaries, loadedArtifacts, selectedArtifactId, isArtifactLoading]);
+  }, [
+    artifactSummaries,
+    loadedArtifacts,
+    selectedArtifactId,
+    isArtifactLoading,
+  ]);
 
   // Extract calls from loaded artifacts
   const calls: CallTranscript[] = useMemo(() => {
     const allCalls: CallTranscript[] = [];
 
     for (const artifact of loadedArtifacts.values()) {
-      if (artifact.tool_name !== 'execute_conversation_search') continue;
+      if (artifact.tool_name !== "execute_conversation_search") continue;
 
       const content = artifact.content as {
         sample?: {
@@ -154,16 +160,18 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       if (!content.sample?.rows) continue;
 
       for (const row of content.sample.rows) {
-        if (row.type !== 'call') continue;
+        if (row.type !== "call") continue;
 
         const call: CallTranscript = {
           id: String(row.conversation_id || row.id),
-          title: String(row.chunk_text || '').slice(0, 100) + '...',
+          title: String(row.chunk_text || "").slice(0, 100) + "...",
           date: row.start_time_iso
             ? String(row.start_time_iso)
             : new Date((row.start_time as number) * 1000).toISOString(),
           sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
-          summary: row.chunk_text ? String(row.chunk_text).slice(0, 500) : undefined,
+          summary: row.chunk_text
+            ? String(row.chunk_text).slice(0, 500)
+            : undefined,
         };
 
         if (!allCalls.find((c) => c.id === call.id)) {
