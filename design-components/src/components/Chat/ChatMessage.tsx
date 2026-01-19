@@ -578,9 +578,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {!isUser && !isStreaming && (
                     <MessageActions
                       messageContent={
-                        stepMessages && stepMessages.length > 0
-                          ? stepMessages.map((s) => s.content).join('\n\n')
-                          : content
+                        // For v2 thinking process, only use the final response (not intermediate steps)
+                        thinkingProcessVersion === 'v2' && v2FinalResponse
+                          ? v2FinalResponse
+                          : stepMessages && stepMessages.length > 0
+                            ? stepMessages.map((s) => s.content).join('\n\n')
+                            : content
                       }
                       messageId={messageId || ''}
                       enableActions={enableActions}
