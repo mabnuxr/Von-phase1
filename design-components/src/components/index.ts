@@ -239,6 +239,34 @@ export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
 
 // ============================================================================
+// THINKING PROCESS V2 (Timeline-based thinking visualization)
+// ============================================================================
+export { TimelineThinkingProcess } from './TimelineThinkingProcess';
+export type {
+  TimelineThinkingProcessProps,
+  TimelineStep,
+  StepType,
+  StepStatus,
+  SourceType,
+  EventCategory,
+  ApprovalData,
+  QueryResult,
+} from './TimelineThinkingProcess';
+
+// ============================================================================
+// TRANSPARENCY DRAWER (Data sources and call recordings)
+// ============================================================================
+export { TransparencyDrawer } from './TransparencyDrawer';
+export type {
+  TransparencyDrawerProps,
+  QueryResult as TransparencyQueryResult,
+  QueryColumn,
+  CallTranscript,
+  SentimentType,
+  TopLevelTab,
+} from './TransparencyDrawer';
+
+// ============================================================================
 // TIPTAP EDITOR (Standalone rich text editor)
 // ============================================================================
 export { TiptapEditor, EditorToolbar } from './TiptapEditor';

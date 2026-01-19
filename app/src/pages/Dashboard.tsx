@@ -31,15 +31,22 @@ import {
   handleToolApproval,
   handleToolRejection,
 } from "../lib/dashboardUtils";
+import {
+  transformAguiToTimelineSteps,
+  getElapsedTimeFromEvents,
+} from "../utils/transformAguiToTimelineSteps";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
+import { useConversationPusherChannelV2 } from "../hooks/useConversationPusherChannelV2";
 import {
   UserChannelEvents,
   type ConversationTitleUpdatedEvent,
 } from "../types/userChannelEvents";
 import type { MessageWithStreaming } from "../types/conversation";
 import { useArtifact } from "../hooks/useArtifact";
+import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
+import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
 // Import Message type from design-components (includes events field)
 import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
@@ -162,7 +169,8 @@ const Dashboard = () => {
     isSlashCommandsEnabled,
     isActionsEnabled,
     isDeepLinksEnabled,
-    isChatV2,
+    isSidebarV2,
+    isThinkingProcessV2,
     isChatInputV2,
   } = useFeatureFlag();
 
@@ -187,6 +195,12 @@ const Dashboard = () => {
   const [dashboardMessageContent, setDashboardMessageContent] = useState<
     string | null
   >(null);
+
+  // Transparency drawer state
+  const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
+  const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
+    null,
+  );
 
   // Sidebar collapse state
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
@@ -513,12 +527,111 @@ const Dashboard = () => {
     [currentConversationId, refetchMessages],
   );
 
+  // V2 Pusher channel config - must be memoized to prevent constant effect re-runs
+  const v2ChannelConfig = useMemo(
+    () => ({
+      conversationId: isThinkingProcessV2 ? currentConversationId : null,
+      tenantId: user?.tenantId,
+      userId: user?.id,
+    }),
+    [isThinkingProcessV2, currentConversationId, user?.tenantId, user?.id],
+  );
+
+  // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
+  const {
+    timelineSteps: v2TimelineSteps,
+    isThinking: v2IsThinking,
+    elapsedTime: v2ElapsedTime,
+    finalResponse: v2FinalResponse,
+    isFinalResponseStreaming: v2IsFinalResponseStreaming,
+  } = useConversationPusherChannelV2(v2ChannelConfig);
+
   // Transform backend messages to Chat component format
   // Replay events if backend hasn't persisted stepMessages/toolCalls
-  const transformedMessages: ChatMessage[] = useMemo(
-    () => transformMessagesToChatFormat(conversationMessages),
-    [conversationMessages],
-  );
+  // For v2, transform events to timeline steps for each assistant message
+  const transformedMessages: ChatMessage[] = useMemo(() => {
+    const messages = transformMessagesToChatFormat(conversationMessages);
+    const usableV2TimelineSteps = v2TimelineSteps.filter(
+      (timelineStep) => timelineStep.category !== "e2b",
+    );
+
+    // Debug: Log timeline steps
+    if (usableV2TimelineSteps.length > 0) {
+      console.log("[Dashboard] V2 Timeline Steps:", {
+        total: v2TimelineSteps.length,
+        usable: usableV2TimelineSteps.length,
+        steps: usableV2TimelineSteps.map((s) => ({
+          id: s.id,
+          type: s.type,
+          text: s.text?.slice(0, 30),
+          hasDescription: !!s.description,
+          descriptionLength: s.description?.length || 0,
+        })),
+      });
+    }
+
+    if (!isThinkingProcessV2) {
+      return messages;
+    }
+
+    // For v2: transform events to timeline steps for each message
+    return messages.map((msg, index) => {
+      // Only process assistant messages
+      if (msg.type !== "assistant") {
+        return msg;
+      }
+
+      // Check if this is the latest assistant message and we have live streaming data
+      const isLastAssistant = (() => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].type === "assistant") {
+            return i === index;
+          }
+        }
+        return false;
+      })();
+
+      // If this is the latest message and we have live V2 data from Pusher, use it
+      // Apply V2 data when: timeline steps exist, OR final response exists, OR agent is thinking
+      if (
+        isLastAssistant &&
+        (usableV2TimelineSteps.length > 0 || v2FinalResponse || v2IsThinking)
+      ) {
+        return {
+          ...msg,
+          timelineSteps: usableV2TimelineSteps,
+          thinkingElapsedTime: v2ElapsedTime,
+          v2FinalResponse,
+          v2FinalResponseStreaming: v2IsFinalResponseStreaming,
+        };
+      }
+
+      // For persisted messages, transform events to timeline steps
+      if (msg.events && msg.events.length > 0) {
+        const { steps, finalResponse, isFinalResponseStreaming } =
+          transformAguiToTimelineSteps(msg.events);
+        const usableSteps = steps.filter((step) => step.category !== "e2b");
+        const elapsed = getElapsedTimeFromEvents(msg.events);
+        return {
+          ...msg,
+          timelineSteps: usableSteps,
+          thinkingElapsedTime: elapsed,
+          v2FinalResponse: finalResponse,
+          v2FinalResponseStreaming: isFinalResponseStreaming,
+        };
+      }
+
+      return msg;
+    });
+  }, [
+    conversationMessages,
+    isThinkingProcessV2,
+    v2TimelineSteps,
+    v2ElapsedTime,
+    v2FinalResponse,
+    v2IsFinalResponseStreaming,
+    v2IsThinking,
+  ]);
 
   // Force complete message handler for timeout
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
@@ -593,6 +706,43 @@ const Dashboard = () => {
     setIsDashboardOpen(false);
     setDashboardMessageId(null);
     setDashboardMessageContent(null);
+  }, []);
+
+  // Fetch transparency artifact summaries when drawer is open (lazy loading)
+  const {
+    artifactSummaries: transparencyArtifactSummaries,
+    isLoading: isTransparencyLoading,
+  } = useLazyTransparencyArtifacts(
+    isTransparencyOpen ? currentConversationId : null,
+    isTransparencyOpen ? transparencyRunId : null,
+  );
+
+  // Handle transparency button click
+  const handleTransparencyClick = useCallback(
+    (messageId: string) => {
+      // Find the message to get its runId
+      const message = transformedMessages.find((m) => m.id === messageId);
+      if (message?.runId) {
+        setTransparencyRunId(message.runId);
+        setIsTransparencyOpen(true);
+
+        if (import.meta.env.DEV) {
+          console.log(
+            "[Dashboard] Opening transparency drawer for message:",
+            messageId,
+            "runId:",
+            message.runId,
+          );
+        }
+      }
+    },
+    [transformedMessages],
+  );
+
+  // Handle closing the transparency drawer
+  const handleCloseTransparency = useCallback(() => {
+    setIsTransparencyOpen(false);
+    setTransparencyRunId(null);
   }, []);
 
   // Get conversation title for dashboard header
@@ -732,7 +882,7 @@ const Dashboard = () => {
             className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
             style={{ width: isSidebarCollapsed ? "64px" : "240px" }}
           >
-            {isChatV2 ? (
+            {isSidebarV2 ? (
               <ChatSidebarV2
                 items={sidebarV2Items}
                 folders={sidebarV2Folders}
@@ -740,17 +890,13 @@ const Dashboard = () => {
                 folderLoadingMap={sidebarV2FolderLoadingMap}
                 isLoading={isSidebarV2Loading}
                 selectedItemId={currentConversationId || undefined}
-                onItemClick={(id: string) => handleChatClick(id)}
+                onItemClick={handleChatClick}
                 onNewChatClick={handleNewChatClick}
                 onNewChatFolderClick={() => createFolder("New Folder")}
                 newlyCreatedFolderId={newlyCreatedFolderId}
-                onDeleteFolder={(folderId: string) => deleteFolder(folderId)}
-                onRenameFolder={(folderId: string, newName: string) =>
-                  renameFolder(folderId, newName)
-                }
-                onFolderToggle={(folderId: string) =>
-                  toggleFolderExpanded(folderId)
-                }
+                onDeleteFolder={deleteFolder}
+                onRenameFolder={renameFolder}
+                onFolderToggle={toggleFolderExpanded}
                 onMoveItemToFolder={(itemId: string, folderId: string) => {
                   const item = [
                     ...sidebarV2Items,
@@ -798,7 +944,7 @@ const Dashboard = () => {
                 loadMoreRef={loadMoreConversationsRef}
                 isFetchingMore={isFetchingNextPage}
                 hasNextPage={!!hasNextPage}
-                onLoadMore={() => fetchNextPage()}
+                onLoadMore={fetchNextPage}
                 avatarSrc={avatarSrc}
                 avatarLabel={avatarLabel}
                 userName={displayName}
@@ -869,13 +1015,27 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
+                showTransparency={isThinkingProcessV2}
+                onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
+                thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
                 useStandardInput={isChatInputV2}
               />
             )}
           </motion.div>
         </div>
+
+        {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
+        <LazyTransparencyDrawer
+          isOpen={isTransparencyOpen}
+          onClose={handleCloseTransparency}
+          conversationId={currentConversationId}
+          runId={transparencyRunId}
+          artifactSummaries={transparencyArtifactSummaries}
+          isListLoading={isTransparencyLoading}
+          title="Data Sources"
+        />
       </div>
     </div>
   );

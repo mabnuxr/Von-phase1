@@ -129,6 +129,25 @@ export interface Message {
    * Used to control visibility of approval buttons
    */
   isLatestMessage?: boolean;
+
+  // V2 Thinking Process fields
+  /**
+   * Timeline steps for v2 thinking process visualization
+   */
+  timelineSteps?: import('../TimelineThinkingProcess').TimelineStep[];
+  /**
+   * Elapsed time in seconds for v2 thinking process
+   */
+  thinkingElapsedTime?: number;
+  /**
+   * Final response content for v2 (separated from reasoning steps)
+   * This is the content from TEXT_MESSAGE with parent_message_id
+   */
+  v2FinalResponse?: string;
+  /**
+   * Whether the v2 final response is still streaming
+   */
+  v2FinalResponseStreaming?: boolean;
 }
 
 export interface ChatSession {
@@ -230,7 +249,8 @@ export type AguiEvent =
   | ToolCallEndEvent
   | ToolCallResultEvent
   | StepFinishedEvent
-  | RunFinishedEvent;
+  | RunFinishedEvent
+  | RunErrorEvent;
 
 // Individual event types
 export interface RunStartedEvent {
@@ -242,6 +262,7 @@ export interface RunStartedEvent {
 
 export interface StepStartedEvent {
   type: 'STEP_STARTED';
+  step_number: number;
   step_name: string;
 }
 
@@ -249,6 +270,8 @@ export interface TextMessageStartEvent {
   type: 'TEXT_MESSAGE_START';
   message_id: string;
   role: 'assistant';
+  /** Present for final response messages, points to the thinking message_id */
+  parent_message_id?: string;
 }
 
 export interface TextMessageContentEvent {
@@ -267,17 +290,23 @@ export interface ToolCallStartEvent {
   tool_call_id: string;
   tool_call_name: string;
   parent_message_id: string;
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface ToolCallArgsEvent {
   type: 'TOOL_CALL_ARGS';
   tool_call_id: string;
   delta: string;
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface ToolCallEndEvent {
   type: 'TOOL_CALL_END';
   tool_call_id: string;
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface ToolCallResultEvent {
@@ -286,10 +315,13 @@ export interface ToolCallResultEvent {
   tool_call_id: string;
   content: string;
   role: 'tool';
+  /** Step number for correlating tool calls with steps in interleaved scenarios */
+  step_number?: number;
 }
 
 export interface StepFinishedEvent {
   type: 'STEP_FINISHED';
+  step_number: number;
   step_name: string;
 }
 
@@ -301,6 +333,14 @@ export interface RunFinishedEvent {
     status: 'completed' | 'failed';
     stopped_by_user?: boolean;
   };
+}
+
+export interface RunErrorEvent {
+  type: 'RUN_ERROR';
+  thread_id?: string;
+  run_id?: string;
+  error?: string;
+  message?: string;
 }
 
 /**
@@ -1025,6 +1065,17 @@ export interface ChatProps {
   onConvertToDashboard?: (messageId: string) => void;
 
   /**
+   * Callback when transparency (data sources) button is clicked
+   */
+  onTransparencyClick?: (messageId: string) => void;
+
+  /**
+   * Whether to show the transparency button
+   * @default true
+   */
+  showTransparency?: boolean;
+
+  /**
    * Salesforce instance URL for building deep links in approval cards
    * Example: "https://mycompany.my.salesforce.com"
    * Used as fallback when instance_url is not available in streamed tool args
@@ -1050,6 +1101,13 @@ export interface ChatProps {
    * @default false
    */
   enableDeepLinks?: boolean;
+
+  /**
+   * Version of thinking process component to use
+   * 'v1' uses ThinkingBlock, 'v2' uses TimelineThinkingProcess
+   * @default 'v1'
+   */
+  thinkingProcessVersion?: 'v1' | 'v2';
 
   /**
    * Use the new StandardChatInput component with Tiptap editor

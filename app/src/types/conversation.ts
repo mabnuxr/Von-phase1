@@ -114,6 +114,10 @@ export interface MessageWithStreaming extends Message {
 
   // User-stopped indicator
   stoppedByUser?: boolean;
+
+  // V2 Thinking Process fields (TimelineThinkingProcess component)
+  timelineSteps?: import("@vonlabs/design-components").TimelineStep[];
+  thinkingElapsedTime?: number;
 }
 
 /**

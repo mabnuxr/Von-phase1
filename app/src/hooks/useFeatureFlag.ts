@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
+  THINKING_PROCESS_V2: "agentsV2",
   USER_MEMORY: "enableUserMemory",
   CHAT_INPUT_V2: "chatInputV2",
 } as const;
@@ -64,9 +65,15 @@ export function useFeatureFlag() {
     isDeepLinksEnabled: flags[FEATURE_FLAGS.DEEP_LINKS] === true,
 
     /**
-     * Controls if we need to show new chat UI experience
+     * Controls if we need to show new sidebar UI experience
      */
-    isChatV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+
+    /**
+     * Controls whether the new TimelineThinkingProcess v2 component is used
+     * instead of the legacy ThinkingBlock component
+     */
+    isThinkingProcessV2: flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
 
     /**
      * Controls if we need to show new chat input UI experience
