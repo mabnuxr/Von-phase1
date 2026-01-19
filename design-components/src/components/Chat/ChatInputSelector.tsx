@@ -3,6 +3,8 @@ import { ChatInput } from './ChatInput';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import { StandardChatInput, StandardChatInputWithCommands } from './StandardChatInput';
 import type { BuildMode } from '../DashboardBuilder';
+import type { FileAttachment } from './FileAttachment/types';
+import type { Command } from '../Commands/types';
 
 export interface ChatInputSelectorProps {
   /** Use StandardChatInput instead of ChatInput */
@@ -11,8 +13,8 @@ export interface ChatInputSelectorProps {
   enableCommands: boolean;
   /** Placeholder text for the input */
   placeholder?: string;
-  /** Callback when send/enter is pressed */
-  onSend?: (message: string) => void;
+  /** Callback when send/enter is pressed (with optional attachments and command when commands enabled) */
+  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
   /** Callback when stop button is clicked during streaming */
   onStop?: () => void;
   /** Whether the input is disabled */

@@ -11,9 +11,10 @@ import { CommandChip } from './CommandChip';
 import { CommandsOverlay } from './CommandsOverlay';
 import { useCommandsInput } from './useCommandsInput';
 import type { Command } from './types';
+import type { FileAttachment } from '../Chat/FileAttachment/types';
 
 export interface ChatInputWithCommandsProps extends Omit<ChatInputProps, 'onSend'> {
-  onSend?: (message: string, command?: Command) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
   /** Optional: Salesforce fields for selection in command drawer */
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
   /** Loading state for salesforce fields */

@@ -9,11 +9,12 @@ import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputProps } from './types';
 import { CommandChip, CommandsOverlay, useCommandsInput } from '../../Commands';
 import type { Command } from '../../Commands/types';
+import type { FileAttachment } from '../FileAttachment/types';
 import { SecondaryIconButton } from '../../forms/buttons';
 import { SendIcon } from '../icons';
 
 export interface StandardChatInputWithCommandsProps extends Omit<StandardChatInputProps, 'onSend'> {
-  onSend?: (message: string, command?: Command) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
   /** Optional: Salesforce fields for selection in command drawer */
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
   /** Loading state for salesforce fields */

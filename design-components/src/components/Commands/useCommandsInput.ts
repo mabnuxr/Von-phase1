@@ -7,6 +7,7 @@
 import { useState, useCallback } from 'react';
 import { useCommands } from './useCommands';
 import type { Command } from './types';
+import type { FileAttachment } from '../Chat/FileAttachment/types';
 
 /**
  * Extract plain text from a value that may be HTML (TipTap) or plain text (legacy textarea).
@@ -29,7 +30,7 @@ export interface UseCommandsInputOptions {
   /** Callback when value changes */
   onChange?: (value: string) => void;
   /** Callback when message is sent */
-  onSend?: (message: string, command?: Command) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
 }
 
 export interface UseCommandsInputReturn {
@@ -48,7 +49,7 @@ export interface UseCommandsInputReturn {
 
   // Handlers
   handleInputChange: (newValue: string) => void;
-  handleSend: (message: string) => void;
+  handleSend: (message: string, attachments?: FileAttachment[]) => void;
   handleSelectCommand: (command: Command) => void;
   handleRemoveCommand: () => void;
   handleNewCommand: () => void;
@@ -114,7 +115,7 @@ export function useCommandsInput({
   );
 
   const handleSend = useCallback(
-    (message: string) => {
+    (message: string, attachments?: FileAttachment[]) => {
       // Normalize to plain text (handles both HTML from TipTap and plain text)
       const plainText = getPlainText(message).trim();
 
@@ -124,7 +125,7 @@ export function useCommandsInput({
           ? `${selectedCommand.prompt}\n\nAdditional context: ${plainText}`
           : selectedCommand.prompt;
 
-        onSend?.(fullPrompt, selectedCommand);
+        onSend?.(fullPrompt, attachments, selectedCommand);
 
         // Clear selected command and input
         setSelectedCommand(null);
@@ -138,13 +139,13 @@ export function useCommandsInput({
         const command = commands.find((cmd) => cmd.name.toLowerCase() === commandName);
 
         if (command) {
-          onSend?.(command.prompt, command);
+          onSend?.(command.prompt, attachments, command);
           setShowCommandsList(false);
           return;
         }
       }
 
-      onSend?.(plainText);
+      onSend?.(plainText, attachments);
       setShowCommandsList(false);
     },
     [commands, onSend, selectedCommand, clearInput]
