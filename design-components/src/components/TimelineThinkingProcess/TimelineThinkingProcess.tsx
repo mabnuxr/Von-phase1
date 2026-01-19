@@ -30,10 +30,10 @@ import { EngagingMessage } from '../Chat/EngagingMessage';
 export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = ({
   steps,
   isThinking = false,
+  isStreaming = false,
   elapsedTime = 0,
   onQueryClick,
   queries = [],
-  title = 'Thinking',
   isCollapsed: controlledCollapsed,
   onToggleCollapse,
   onExpandStep,
@@ -115,7 +115,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   className="text-emerald-600 flex-shrink-0"
                 />
                 <span className="text-[13px] text-gray-700">
-                  {title} · {formatElapsedTime(elapsedTime)}
+                  Thought for {formatElapsedTime(elapsedTime)}
                 </span>
               </>
             ) : (
@@ -124,7 +124,8 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 spinnerSize="sm"
                 textSize="xs"
                 contentSignature={contentSignature}
-                showDelay={0}
+                showDelay={isStreaming ? Infinity : 2000}
+                initialText={visibleSteps.length === 0 ? 'Thinking' : undefined}
                 className="flex-shrink-0"
               />
             )}

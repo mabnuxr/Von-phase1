@@ -414,7 +414,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             steps={timelineSteps || []}
                             isThinking={isStreaming}
                             elapsedTime={thinkingElapsedTime}
-                            title="Thinking"
                             onApprove={(stepId) => onApprove?.(stepId, runId)}
                             onReject={(stepId) => onReject?.(stepId, runId)}
                             onArtifactClick={handleArtifactClick}
