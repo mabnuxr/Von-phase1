@@ -37,7 +37,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   enableVoiceInput = false,
   onVoiceInput,
   isRecording = false,
-  useArtifactHook,
+  onArtifactClick,
   conversationId,
   onApprove,
   onReject,
@@ -141,7 +141,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
                 userEmail={userEmail}
                 messageId={message.id}
                 conversationId={conversationId}
-                useArtifactHook={useArtifactHook}
+                onArtifactClick={onArtifactClick}
                 stoppedByUser={message.stoppedByUser}
                 isLatestMessage={index === messages.length - 1}
                 onApprove={onApprove}

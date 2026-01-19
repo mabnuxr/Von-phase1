@@ -10,6 +10,7 @@ import {
 import type { CallsTabContentProps, CallTranscript } from '../types';
 import { useCallsExpansion } from '../hooks';
 import { groupCallsByMonth, getSentimentIcon, getSentimentLabel } from '../utils';
+import { ChatMarkdown } from '../../Chat/ChatMarkdown';
 
 // ============================================================================
 // Internal Components
@@ -52,9 +53,12 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
       <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
         {/* Header row */}
         <div className="flex items-center gap-2 mb-1 overflow-hidden">
-          <span className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate">
+          <button
+            onClick={onToggle}
+            className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate text-left cursor-pointer hover:text-indigo-600 transition-colors"
+          >
             {call.title}
-          </span>
+          </button>
           {call.sourceUrl && (
             <a
               href={call.sourceUrl}
@@ -126,10 +130,11 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
 
                 {/* Summary */}
                 {call.summary && (
-                  <div className="pt-2 mt-2 border-t border-gray-200 overflow-hidden">
-                    <p className="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-wrap">
-                      {call.summary}
-                    </p>
+                  <div className="pt-2 mt-2 border-t border-gray-200 max-h-80 overflow-y-auto overflow-x-hidden">
+                    <ChatMarkdown
+                      content={call.summary}
+                      className="text-xs text-gray-700 leading-relaxed break-words [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-medium"
+                    />
                   </div>
                 )}
               </div>
@@ -179,7 +184,7 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
+    <div className="h-full overflow-y-auto overflow-x-hidden px-4 py-4">
       {Object.entries(grouped).map(([monthYear, monthCalls]) => (
         <div key={monthYear} className="mb-6 last:mb-0">
           {/* Month Header */}

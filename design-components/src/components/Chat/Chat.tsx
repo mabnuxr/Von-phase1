@@ -44,7 +44,7 @@ export const Chat: React.FC<ChatProps> = ({
   loadMoreRef,
   isFetchingMore = false,
   showMessagesFromIndex = 0,
-  useArtifactHook,
+  onArtifactClick,
   banner,
   topBanner,
   disableSubmit = false,
@@ -281,7 +281,7 @@ export const Chat: React.FC<ChatProps> = ({
                   errorMessage={message.errorMessage}
                   messageId={message.messageId || message.id}
                   conversationId={message.conversationId}
-                  useArtifactHook={useArtifactHook}
+                  onArtifactClick={onArtifactClick}
                   stoppedByUser={message.stoppedByUser}
                   isLatestMessage={message.isLatestMessage}
                   onApprove={onApprove}

@@ -162,16 +162,24 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       for (const row of content.sample.rows) {
         if (row.type !== "call") continue;
 
+        // Extract title from chunk_text - use the first line or a reasonable prefix
+        const chunkText = String(row.chunk_text || "");
+        // Try to extract a clean title (first heading or first line, without === markers)
+        const titleMatch = chunkText.match(/^(?:=+\s*)?(.+?)(?:\s*=+)?$/m);
+        const extractedTitle =
+          titleMatch?.[1]?.trim() || chunkText.slice(0, 100);
+
         const call: CallTranscript = {
           id: String(row.conversation_id || row.id),
-          title: String(row.chunk_text || "").slice(0, 100) + "...",
+          title:
+            extractedTitle.length > 100
+              ? extractedTitle.slice(0, 100) + "..."
+              : extractedTitle,
           date: row.start_time_iso
             ? String(row.start_time_iso)
             : new Date((row.start_time as number) * 1000).toISOString(),
           sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
-          summary: row.chunk_text
-            ? String(row.chunk_text).slice(0, 500)
-            : undefined,
+          summary: row.chunk_text ? String(row.chunk_text) : undefined,
         };
 
         if (!allCalls.find((c) => c.id === call.id)) {

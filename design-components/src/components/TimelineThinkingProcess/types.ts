@@ -125,6 +125,14 @@ export interface TimelineThinkingProcessProps {
   isThinking?: boolean;
 
   /**
+   * Whether content is actively being streamed (new tokens arriving)
+   * Used to differentiate between active streaming and waiting states:
+   * - isThinking=true, isStreaming=true → Only show spinner icon (content arriving)
+   * - isThinking=true, isStreaming=false → Show spinner with engaging messages (waiting)
+   */
+  isStreaming?: boolean;
+
+  /**
    * Elapsed time in seconds (for display)
    */
   elapsedTime?: number;

@@ -1,15 +1,7 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SpinningCircles } from './icons';
-
-// Engaging messages shown when there's a delay in token arrival
-export const ENGAGING_MESSAGES = [
-  'Contemplating, stand by...',
-  'Still working on it, stand by...',
-  'A bit longer, thanks for your patience...',
-  'Processing your request...',
-  'Almost there, hang tight...',
-];
+import { SpinningCircles } from '../icons';
+import { ENGAGING_MESSAGES } from './constants';
 
 export interface EngagingMessageProps {
   /**
@@ -59,6 +51,13 @@ export interface EngagingMessageProps {
   rotationInterval?: number;
 
   /**
+   * Initial text to show immediately (before delay kicks in)
+   * When provided, this text is shown right away, then switches to rotating messages after delay
+   * Useful for showing "Thinking" initially before engaging messages
+   */
+  initialText?: string;
+
+  /**
    * Whether user prefers reduced motion
    */
   prefersReducedMotion?: boolean;
@@ -97,10 +96,14 @@ export const EngagingMessage = memo<EngagingMessageProps>(
     contentSignature,
     showDelay = 2000,
     rotationInterval = 3000,
+    initialText,
     prefersReducedMotion = false,
     className = '',
   }) => {
-    const [showMessage, setShowMessage] = useState(false);
+    // showInitialText: whether to show initialText (before delay)
+    // showRotatingMessage: whether to show rotating engaging messages (after delay)
+    const [showInitialText, setShowInitialText] = useState(!!initialText);
+    const [showRotatingMessage, setShowRotatingMessage] = useState(false);
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
     const showTimerRef = useRef<number | null>(null);
     const rotationTimerRef = useRef<number | null>(null);
@@ -111,7 +114,7 @@ export const EngagingMessage = memo<EngagingMessageProps>(
       prevSignatureRef.current = contentSignature;
 
       if (!isActive) {
-        // Clear timers and hide message when not active
+        // Clear timers and reset state when not active
         if (showTimerRef.current !== null) {
           clearTimeout(showTimerRef.current);
           showTimerRef.current = null;
@@ -120,15 +123,32 @@ export const EngagingMessage = memo<EngagingMessageProps>(
           clearInterval(rotationTimerRef.current);
           rotationTimerRef.current = null;
         }
-        setShowMessage(false);
+        setShowInitialText(!!initialText);
+        setShowRotatingMessage(false);
         setCurrentMessageIndex(0);
         return;
       }
 
-      // If showDelay is 0, show message immediately when active
+      // If showDelay is Infinity, never show rotating messages (only show initialText if provided)
+      if (showDelay === Infinity) {
+        setShowRotatingMessage(false);
+        // Clear any existing timers
+        if (showTimerRef.current !== null) {
+          clearTimeout(showTimerRef.current);
+          showTimerRef.current = null;
+        }
+        if (rotationTimerRef.current !== null) {
+          clearInterval(rotationTimerRef.current);
+          rotationTimerRef.current = null;
+        }
+        return;
+      }
+
+      // If showDelay is 0, show rotating messages immediately when active
       if (showDelay === 0) {
-        if (!showMessage) {
-          setShowMessage(true);
+        if (!showRotatingMessage) {
+          setShowInitialText(false);
+          setShowRotatingMessage(true);
           // Start rotating messages if not already rotating
           if (rotationTimerRef.current === null) {
             rotationTimerRef.current = window.setInterval(() => {
@@ -139,14 +159,28 @@ export const EngagingMessage = memo<EngagingMessageProps>(
         return;
       }
 
-      // If new content arrived, hide the message and restart the delay timer
+      // Helper to schedule the rotating message timer
+      const scheduleRotatingMessages = () => {
+        showTimerRef.current = window.setTimeout(() => {
+          setShowInitialText(false);
+          setShowRotatingMessage(true);
+          // Start rotating messages
+          rotationTimerRef.current = window.setInterval(() => {
+            setCurrentMessageIndex((prev) => (prev + 1) % ENGAGING_MESSAGES.length);
+          }, rotationInterval);
+        }, showDelay);
+      };
+
+      // If new content arrived, hide rotating message, show initial text, and restart the delay timer
       if (hasNewContent) {
-        setShowMessage(false);
+        setShowInitialText(!!initialText);
+        setShowRotatingMessage(false);
         setCurrentMessageIndex(0);
 
         // Clear existing timers
         if (showTimerRef.current !== null) {
           clearTimeout(showTimerRef.current);
+          showTimerRef.current = null;
         }
         if (rotationTimerRef.current !== null) {
           clearInterval(rotationTimerRef.current);
@@ -154,13 +188,11 @@ export const EngagingMessage = memo<EngagingMessageProps>(
         }
 
         // Start timer to show engaging message after delay
-        showTimerRef.current = window.setTimeout(() => {
-          setShowMessage(true);
-          // Start rotating messages
-          rotationTimerRef.current = window.setInterval(() => {
-            setCurrentMessageIndex((prev) => (prev + 1) % ENGAGING_MESSAGES.length);
-          }, rotationInterval);
-        }, showDelay);
+        scheduleRotatingMessages();
+      } else if (!showRotatingMessage && showTimerRef.current === null) {
+        // No new content, but we're active, not showing rotating messages yet, and no timer is running.
+        // This handles the case where we transition from streaming to waiting state without content change.
+        scheduleRotatingMessages();
       }
 
       return () => {
@@ -173,11 +205,18 @@ export const EngagingMessage = memo<EngagingMessageProps>(
           rotationTimerRef.current = null;
         }
       };
-    }, [isActive, contentSignature, showDelay, rotationInterval, showMessage]);
+    }, [isActive, contentSignature, showDelay, rotationInterval, initialText, showRotatingMessage]);
 
     if (!isActive || prefersReducedMotion) {
       return null;
     }
+
+    // Determine what text to show
+    const displayText = showRotatingMessage
+      ? ENGAGING_MESSAGES[currentMessageIndex]
+      : showInitialText
+        ? initialText
+        : null;
 
     return (
       <div className={`flex items-center gap-2 ${className}`}>
@@ -190,9 +229,9 @@ export const EngagingMessage = memo<EngagingMessageProps>(
           </div>
         )}
         <AnimatePresence mode="wait">
-          {showMessage && (
+          {displayText && (
             <motion.span
-              key={currentMessageIndex}
+              key={showRotatingMessage ? `rotating-${currentMessageIndex}` : 'initial'}
               className={`${textSizeMap[textSize]} font-medium bg-clip-text text-transparent bg-gradient-to-r from-gray-700 via-purple-600 to-gray-700`}
               style={{
                 backgroundSize: '250% 100%',
@@ -204,7 +243,7 @@ export const EngagingMessage = memo<EngagingMessageProps>(
               exit={{ opacity: 0, y: -5 }}
               transition={{ duration: 0.3 }}
             >
-              {ENGAGING_MESSAGES[currentMessageIndex]}
+              {displayText}
             </motion.span>
           )}
         </AnimatePresence>

@@ -16,8 +16,12 @@ import {
 import { XCircleIcon } from './icons';
 import { ARTIFACT_PANE_WIDTH } from '../../constants';
 
+// ============================================================================
+// Types
+// ============================================================================
+
 /**
- * Artifact data structure returned from the API
+ * Artifact data structure - passed as prop from app layer
  */
 export interface ArtifactData {
   artifact_id: string;
@@ -29,33 +33,19 @@ export interface ArtifactData {
   persisted_at: string;
 }
 
-/**
- * Hook result structure for fetching artifacts
- * Compatible with React Query's useQuery return type
- */
-export interface UseArtifactResult {
-  data?: ArtifactData;
-  isLoading: boolean;
-  error?: Error | null;
-}
-
-interface ArtifactPaneProps {
-  conversationId: string;
-  runId: string; // Artifact's own run_id (not parent message id)
-  artifactId: string;
+export interface ArtifactPaneProps {
+  /** Whether the pane is open */
+  isOpen: boolean;
+  /** Tool name for display */
   toolName: string;
-  artifactType: string;
+  /** Callback when pane is closed */
   onClose: () => void;
-  /**
-   * Hook for fetching artifact data
-   * Should be provided by the parent component (e.g., from app layer)
-   * Example: useArtifact from @revenue-os/app
-   */
-  useArtifactHook: (
-    conversationId: string | null,
-    runId: string | null,
-    artifactId: string | null
-  ) => UseArtifactResult;
+  /** Artifact data - fetched by app layer */
+  artifact?: ArtifactData | null;
+  /** Whether artifact is loading */
+  isLoading?: boolean;
+  /** Error message if loading failed */
+  error?: string | null;
   /**
    * Enable deep links for Salesforce URLs in DataTable
    * When enabled, URLs are rendered as clickable links
@@ -63,6 +53,10 @@ interface ArtifactPaneProps {
    */
   enableDeepLinks?: boolean;
 }
+
+// ============================================================================
+// Subcomponents
+// ============================================================================
 
 /**
  * ErrorDisplay Component
@@ -104,26 +98,63 @@ function ErrorDisplay({ error, details, source }: ErrorDisplayProps) {
 }
 
 /**
+ * Loading skeleton component
+ */
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-4 w-full animate-pulse">
+      <div className="h-6 bg-gray-200 rounded w-3/4" />
+      <div className="h-4 bg-gray-200 rounded w-1/2" />
+      <div className="h-4 bg-gray-200 rounded w-2/3" />
+      <div className="h-4 bg-gray-200 rounded w-full" />
+      <div className="h-4 bg-gray-200 rounded w-2/3" />
+    </div>
+  );
+}
+
+/**
+ * Fetch error display
+ */
+function FetchErrorDisplay({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <svg
+        className="w-12 h-12 text-red-500 mb-4"
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        fill="none"
+      >
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+      <h4 className="text-lg font-semibold text-gray-900 mb-2">Failed to load artifact</h4>
+      <p className="text-sm text-gray-600">{message}</p>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+/**
  * ArtifactPane Component
  *
- * Side drawer that slides in from the right to display artifact content.
- * Fetches artifact data lazily when opened and renders it using existing
- * ToolResultRenderer component.
+ * Pure view component - Side drawer that slides in from the right to display artifact content.
+ * Data fetching is handled by the app layer (container component).
  *
- * Note: This component requires a useArtifactHook to be passed in,
- * allowing it to remain independent from the app layer.
+ * Uses existing ToolResultRenderer for consistent artifact display.
  */
 export function ArtifactPane({
-  conversationId,
-  runId,
-  artifactId,
+  isOpen,
   toolName,
   onClose,
-  useArtifactHook,
+  artifact,
+  isLoading = false,
+  error = null,
   enableDeepLinks = false,
 }: ArtifactPaneProps) {
-  const { data: artifact, isLoading, error } = useArtifactHook(conversationId, runId, artifactId);
-
   // Determine if queries exist
   const hasQueries =
     artifact && !isLoading && !error
@@ -147,10 +178,10 @@ export function ArtifactPane({
     }
   }, [artifact, hasQueries, isLoading, userChangedTab]);
 
-  // Reset userChangedTab when artifactId changes (new artifact opened)
+  // Reset userChangedTab when artifact changes (new artifact opened)
   useEffect(() => {
     setUserChangedTab(false);
-  }, [artifactId]);
+  }, [artifact?.artifact_id]);
 
   // Handler for tab changes that tracks user interaction
   const handleTabChange = (tab: 'result' | 'query') => {
@@ -374,36 +405,14 @@ export function ArtifactPane({
   const titleContent = <h3 className="text-lg font-semibold text-gray-900">{toolDisplayName}</h3>;
 
   return (
-    <SidePane isOpen={true} onClose={onClose} title={titleContent} width={ARTIFACT_PANE_WIDTH}>
+    <SidePane isOpen={isOpen} onClose={onClose} title={titleContent} width={ARTIFACT_PANE_WIDTH}>
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-12">
           <LoadingSkeleton />
         </div>
       )}
 
-      {error && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <svg
-            className="w-12 h-12 text-red-500 mb-4"
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-            <path
-              d="M12 8v4M12 16h.01"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">Failed to load artifact</h4>
-          <p className="text-sm text-gray-600">
-            {error instanceof Error ? error.message : 'An error occurred'}
-          </p>
-        </div>
-      )}
+      {error && <FetchErrorDisplay message={error} />}
 
       {/* Tool execution error - show error UI with SQL tab */}
       {artifact && hasExecutionError && errorInfo && !isLoading && !error && (
@@ -551,20 +560,5 @@ export function ArtifactPane({
         </div>
       )}
     </SidePane>
-  );
-}
-
-/**
- * Loading skeleton component
- */
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-4 w-full animate-pulse">
-      <div className="h-6 bg-gray-200 rounded w-3/4" />
-      <div className="h-4 bg-gray-200 rounded w-1/2" />
-      <div className="h-4 bg-gray-200 rounded w-2/3" />
-      <div className="h-4 bg-gray-200 rounded w-full" />
-      <div className="h-4 bg-gray-200 rounded w-2/3" />
-    </div>
   );
 }

@@ -973,27 +973,15 @@ export interface ChatProps {
   showMessagesFromIndex?: number;
 
   /**
-   * Hook for fetching artifact data
-   * Should be provided by the parent component (e.g., from app layer)
-   * Example: useArtifact from @revenue-os/app
+   * Callback when user clicks on an artifact (from either V1 or V2 thinking process)
+   * The consumer should render the appropriate UI with fetched data
    */
-  useArtifactHook?: (
-    conversationId: string | null,
-    messageId: string | null,
-    artifactId: string | null
-  ) => {
-    data?: {
-      artifact_id: string;
-      tool_call_id: string;
-      tool_name: string;
-      artifact_type: string;
-      content: Record<string, unknown>;
-      size_bytes: number;
-      persisted_at: string;
-    };
-    isLoading: boolean;
-    error?: Error | null;
-  };
+  onArtifactClick?: (
+    artifactId: string,
+    toolName: string,
+    artifactType: string,
+    runId: string
+  ) => void;
 
   /**
    * Banner element to show above the chat input

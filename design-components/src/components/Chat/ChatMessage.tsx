@@ -3,7 +3,6 @@ import { InfoIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
-import { ArtifactPane, type UseArtifactResult } from './ArtifactPane';
 import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
@@ -152,15 +151,15 @@ export interface ChatMessageProps {
   conversationId?: string;
 
   /**
-   * Hook for fetching artifact data
-   * Should be provided by the parent component (e.g., from app layer)
-   * Example: useArtifact from @revenue-os/app
+   * Callback when user clicks on an artifact (from either V1 or V2 thinking process)
+   * The consumer should render the appropriate UI with fetched data
    */
-  useArtifactHook?: (
-    conversationId: string | null,
-    messageId: string | null,
-    artifactId: string | null
-  ) => UseArtifactResult;
+  onArtifactClick?: (
+    artifactId: string,
+    toolName: string,
+    artifactType: string,
+    runId: string
+  ) => void;
 
   /**
    * Whether the response was stopped by user
@@ -271,9 +270,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   stepMessages,
   status,
   errorMessage,
-  conversationId,
   messageId,
-  useArtifactHook,
+  onArtifactClick,
   stoppedByUser,
   isLatestMessage,
   onApprove,
@@ -284,7 +282,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onTransparencyClick,
   showTransparency = true,
   salesforceInstanceUrl,
-  enableDeepLinks = false,
   // V2 Thinking Process props
   thinkingProcessVersion = 'v1',
   timelineSteps,
@@ -294,14 +291,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
-
-  // State for artifact pane
-  const [openArtifact, setOpenArtifact] = useState<{
-    artifactId: string;
-    toolName: string;
-    artifactType: string;
-    runId: string; // Artifact's own run_id
-  } | null>(null);
 
   // Ref and state for measuring user message height (for alignment)
   const userMessageRef = useRef<HTMLDivElement>(null);
@@ -316,14 +305,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     }
   }, [isUser, content]);
 
-  // Handle artifact click from timeline
+  // Handle artifact click (from either V1 ToolCallItem or V2 TimelineThinkingProcess)
+  // Delegates to parent via callback - parent decides how to render the artifact UI
   const handleArtifactClick = (
     artifactId: string,
     toolName: string,
     artifactType: string,
     runId: string
   ) => {
-    setOpenArtifact({ artifactId, toolName, artifactType, runId });
+    onArtifactClick?.(artifactId, toolName, artifactType, runId);
   };
 
   return (
@@ -414,7 +404,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             steps={timelineSteps || []}
                             isThinking={isStreaming}
                             elapsedTime={thinkingElapsedTime}
-                            title="Thinking"
                             onApprove={(stepId) => onApprove?.(stepId, runId)}
                             onReject={(stepId) => onReject?.(stepId, runId)}
                             onArtifactClick={handleArtifactClick}
@@ -587,9 +576,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {!isUser && !isStreaming && (
                     <MessageActions
                       messageContent={
-                        stepMessages && stepMessages.length > 0
-                          ? stepMessages.map((s) => s.content).join('\n\n')
-                          : content
+                        // For v2 thinking process, only use the final response (not intermediate steps)
+                        thinkingProcessVersion === 'v2' && v2FinalResponse
+                          ? v2FinalResponse
+                          : stepMessages && stepMessages.length > 0
+                            ? stepMessages.map((s) => s.content).join('\n\n')
+                            : content
                       }
                       messageId={messageId || ''}
                       enableActions={enableActions}
@@ -604,20 +596,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Artifact Pane - renders when user clicks on a tool call */}
-      {openArtifact && conversationId && useArtifactHook && (
-        <ArtifactPane
-          conversationId={conversationId}
-          runId={openArtifact.runId}
-          artifactId={openArtifact.artifactId}
-          toolName={openArtifact.toolName}
-          artifactType={openArtifact.artifactType}
-          onClose={() => setOpenArtifact(null)}
-          useArtifactHook={useArtifactHook}
-          enableDeepLinks={enableDeepLinks}
-        />
-      )}
     </div>
   );
 };
