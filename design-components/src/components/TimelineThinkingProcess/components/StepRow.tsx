@@ -35,14 +35,7 @@ export const StepRow = React.memo<StepRowProps>(
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
           step.artifact),
-      [
-        isFinalResponse,
-        step.description,
-        step.code,
-        step.subSteps,
-        step.approval,
-        step.artifact,
-      ]
+      [isFinalResponse, step.description, step.code, step.subSteps, step.approval, step.artifact]
     );
 
     const isInProgress = step.status === 'in-progress';
