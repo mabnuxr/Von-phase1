@@ -10,6 +10,7 @@ import {
 import type { CallsTabContentProps, CallTranscript } from '../types';
 import { useCallsExpansion } from '../hooks';
 import { groupCallsByMonth, getSentimentIcon, getSentimentLabel } from '../utils';
+import { ChatMarkdown } from '../../Chat/ChatMarkdown';
 
 // ============================================================================
 // Internal Components
@@ -126,10 +127,11 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
 
                 {/* Summary */}
                 {call.summary && (
-                  <div className="pt-2 mt-2 border-t border-gray-200 overflow-hidden">
-                    <p className="text-xs text-gray-700 leading-relaxed break-words whitespace-pre-wrap">
-                      {call.summary}
-                    </p>
+                  <div className="pt-2 mt-2 border-t border-gray-200 max-h-80 overflow-y-auto overflow-x-hidden">
+                    <ChatMarkdown
+                      content={call.summary}
+                      className="text-xs text-gray-700 leading-relaxed break-words [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-medium"
+                    />
                   </div>
                 )}
               </div>
