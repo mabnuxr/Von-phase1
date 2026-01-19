@@ -18,6 +18,8 @@ export interface StandardChatInputWithCommandsProps extends Omit<StandardChatInp
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
   /** Loading state for salesforce fields */
   isLoadingSalesforceFields?: boolean;
+  /** Callback when user attempts to submit while disabled */
+  onDisabledInput?: () => void;
 }
 
 export const StandardChatInputWithCommands: React.FC<StandardChatInputWithCommandsProps> = ({
@@ -31,6 +33,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
   disabled = false,
   isStreaming = false,
   disableSubmit = false,
+  onDisabledInput,
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,6 +118,10 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
+                      if (disableSubmit) {
+                        onDisabledInput?.();
+                        return;
+                      }
                       handleSend(inputValue);
                     }
                   }}
