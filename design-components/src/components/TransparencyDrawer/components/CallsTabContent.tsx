@@ -53,9 +53,12 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
       <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
         {/* Header row */}
         <div className="flex items-center gap-2 mb-1 overflow-hidden">
-          <span className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate">
+          <button
+            onClick={onToggle}
+            className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate text-left cursor-pointer hover:text-indigo-600 transition-colors"
+          >
             {call.title}
-          </span>
+          </button>
           {call.sourceUrl && (
             <a
               href={call.sourceUrl}
