@@ -1102,14 +1102,18 @@ export interface ChatProps {
    */
   enableDeepLinks?: boolean;
 
-  // ============================================================================
-  // V2 Thinking Process Props (TimelineThinkingProcess component)
-  // ============================================================================
-
   /**
    * Version of thinking process component to use
    * 'v1' uses ThinkingBlock, 'v2' uses TimelineThinkingProcess
    * @default 'v1'
    */
   thinkingProcessVersion?: 'v1' | 'v2';
+
+  /**
+   * Use the new StandardChatInput component with Tiptap editor
+   * When enabled, replaces ChatInput/ChatInputWithCommands with StandardChatInput
+   * This provides rich text editing, file upload UI, and voice input support
+   * @default false
+   */
+  useStandardInput?: boolean;
 }

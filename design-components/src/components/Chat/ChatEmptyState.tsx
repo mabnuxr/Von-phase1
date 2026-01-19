@@ -1,8 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CaretLeftIcon, CaretRightIcon, StarIcon } from '@phosphor-icons/react';
-import { ChatInput } from './ChatInput';
-import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
+import { ChatInputSelector } from './ChatInputSelector';
 import {
   DEFAULT_TEMPLATES,
   TEMPLATE_CATEGORIES,
@@ -76,6 +75,12 @@ export interface ChatEmptyStateProps {
    * Callback when mode changes
    */
   onModeChange?: (mode: BuildMode) => void;
+  /**
+   * Use the new StandardChatInput component with Tiptap editor
+   * When enabled, replaces ChatInput/ChatInputWithCommands with StandardChatInput
+   * @default false
+   */
+  useStandardInput?: boolean;
 }
 
 /**
@@ -114,6 +119,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   showModeToggle = false,
   mode = 'ask',
   onModeChange,
+  useStandardInput = false,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -283,45 +289,33 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         </motion.div>
       )}
 
-      {/* Input Field - Using ChatInput component */}
+      {/* Input Field - Using ChatInput or StandardChatInput component */}
       <motion.div
         className="w-full max-w-3xl mb-6"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.4 }}
       >
-        {enableCommands ? (
-          <ChatInputWithCommands
-            placeholder={placeholder}
-            onSend={handleSend}
-            disabled={disabled}
-            disableSubmit={disabled}
-            onDisabledInput={onDisabledClick}
-            value={inputValue}
-            onChange={handleInputChange}
-            hideDisclaimer
-            autoFocus
-          />
-        ) : (
-          <ChatInput
-            placeholder={placeholder}
-            onSend={handleSend}
-            disabled={disabled}
-            disableSubmit={disabled}
-            onDisabledInput={onDisabledClick}
-            value={inputValue}
-            onChange={handleInputChange}
-            hideDisclaimer
-            enableFileUpload={enableFileUpload}
-            onFileError={onFileError}
-            droppedFiles={droppedFiles}
-            onDroppedFilesProcessed={onDroppedFilesProcessed}
-            showModeToggle={showModeToggle}
-            mode={mode}
-            onModeChange={onModeChange}
-            autoFocus
-          />
-        )}
+        <ChatInputSelector
+          useStandardInput={useStandardInput}
+          enableCommands={enableCommands}
+          placeholder={placeholder}
+          onSend={handleSend}
+          disabled={disabled}
+          disableSubmit={disabled}
+          value={inputValue}
+          onChange={handleInputChange}
+          onDisabledInput={onDisabledClick}
+          hideDisclaimer
+          autoFocus
+          enableFileUpload={enableFileUpload}
+          onFileError={onFileError}
+          droppedFiles={droppedFiles}
+          onDroppedFilesProcessed={onDroppedFilesProcessed}
+          showModeToggle={showModeToggle}
+          mode={mode}
+          onModeChange={onModeChange}
+        />
       </motion.div>
 
       {/* Templates Section */}

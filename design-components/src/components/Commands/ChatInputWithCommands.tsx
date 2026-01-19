@@ -4,18 +4,17 @@
  * Commands appear as chips in the input when selected
  */
 
-import React, { useState, useCallback, useRef } from 'react';
-import { X } from '@phosphor-icons/react';
+import React, { useRef } from 'react';
 import type { ChatInputProps } from '../Chat/ChatInput';
 import { ChatInput } from '../Chat/ChatInput';
-import { CommandsList } from './CommandsList';
-import { CommandDrawer } from './CommandDrawer';
-import { ManageCommandsDrawer } from './ManageCommandsDrawer';
-import { useCommands } from './useCommands';
+import { CommandChip } from './CommandChip';
+import { CommandsOverlay } from './CommandsOverlay';
+import { useCommandsInput } from './useCommandsInput';
 import type { Command } from './types';
+import type { FileAttachment } from '../Chat/FileAttachment/types';
 
 export interface ChatInputWithCommandsProps extends Omit<ChatInputProps, 'onSend'> {
-  onSend?: (message: string, command?: Command) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
   /** Optional: Salesforce fields for selection in command drawer */
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
   /** Loading state for salesforce fields */
@@ -34,173 +33,55 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
   autoFocus = false,
   ...props
 }) => {
-  const { commands, addCommand, updateCommand, deleteCommand } = useCommands();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [showCommandsList, setShowCommandsList] = useState(false);
-  const [showCommandDrawer, setShowCommandDrawer] = useState(false);
-  const [showManageDrawer, setShowManageDrawer] = useState(false);
-  const [editingCommand, setEditingCommand] = useState<Command | null>(null);
-  const [internalValue, setInternalValue] = useState('');
-
-  // Selected command chip state
-  const [selectedCommand, setSelectedCommand] = useState<Command | null>(null);
-
-  // Track search query (text after '/')
-  const [commandSearch, setCommandSearch] = useState('');
-
-  const isControlled = value !== undefined;
-  const inputValue = isControlled ? value : internalValue;
-
-  const handleInputChange = useCallback(
-    (newValue: string) => {
-      if (isControlled && onChange) {
-        onChange(newValue);
-      } else {
-        setInternalValue(newValue);
-      }
-
-      // Check if input starts with '/' to show commands (only if no command selected)
-      if (!selectedCommand && newValue.startsWith('/')) {
-        setShowCommandsList(true);
-        setCommandSearch(newValue.slice(1)); // Text after '/'
-      } else {
-        setShowCommandsList(false);
-        setCommandSearch('');
-      }
-    },
-    [isControlled, onChange, selectedCommand]
-  );
-
-  const handleSend = useCallback(
-    (message: string) => {
-      if (selectedCommand) {
-        // Combine command prompt with any additional text
-        const additionalText = message.trim();
-        const fullPrompt = additionalText
-          ? `${selectedCommand.prompt}\n\nAdditional context: ${additionalText}`
-          : selectedCommand.prompt;
-
-        onSend?.(fullPrompt, selectedCommand);
-
-        // Clear selected command and input
-        setSelectedCommand(null);
-        if (isControlled && onChange) {
-          onChange('');
-        } else {
-          setInternalValue('');
-        }
-        return;
-      }
-
-      // If sending a slash command without chip selection, find and execute it
-      if (message.startsWith('/')) {
-        const commandName = message.slice(1).toLowerCase().trim();
-        const command = commands.find((cmd) => cmd.name.toLowerCase() === commandName);
-
-        if (command) {
-          onSend?.(command.prompt, command);
-          setShowCommandsList(false);
-          return;
-        }
-      }
-
-      onSend?.(message);
-      setShowCommandsList(false);
-    },
-    [commands, onSend, selectedCommand, isControlled, onChange]
-  );
-
-  const handleSelectCommand = useCallback(
-    (command: Command) => {
-      // Set the command as a chip instead of sending immediately
-      setSelectedCommand(command);
-
-      // Clear input (remove the '/' search text)
-      if (isControlled && onChange) {
-        onChange('');
-      } else {
-        setInternalValue('');
-      }
-
-      setShowCommandsList(false);
-    },
-    [isControlled, onChange]
-  );
-
-  const handleRemoveCommand = useCallback(() => {
-    setSelectedCommand(null);
-  }, []);
-
-  const handleNewCommand = useCallback(() => {
-    setShowCommandsList(false);
-    setShowManageDrawer(false); // Close manage drawer when opening new command drawer
-    setEditingCommand(null);
-    setShowCommandDrawer(true);
-  }, []);
-
-  const handleManageCommands = useCallback(() => {
-    setShowCommandsList(false);
-    setShowManageDrawer(true);
-  }, []);
-
-  const handleEditCommand = useCallback((command: Command) => {
-    setEditingCommand(command);
-    setShowManageDrawer(false);
-    setShowCommandDrawer(true);
-  }, []);
-
-  const handleSaveCommand = useCallback(
-    (commandData: Omit<Command, 'id' | 'createdAt' | 'updatedAt'>) => {
-      if (editingCommand) {
-        updateCommand(editingCommand.id, commandData);
-      } else {
-        addCommand(commandData);
-      }
-      setShowCommandDrawer(false);
-      setEditingCommand(null);
-    },
-    [editingCommand, addCommand, updateCommand]
-  );
-
-  const handleDeleteCommand = useCallback(
-    (id: string) => {
-      deleteCommand(id);
-    },
-    [deleteCommand]
-  );
-
-  const handleCloseCommandsList = useCallback(() => {
-    setShowCommandsList(false);
-    // Clear the '/' from input
-    if (isControlled && onChange) {
-      onChange('');
-    } else {
-      setInternalValue('');
-    }
-  }, [isControlled, onChange]);
-
-  // Custom placeholder when command is selected
-  const effectivePlaceholder = selectedCommand
-    ? 'Add additional context (optional)...'
-    : placeholder;
+  const {
+    commands,
+    inputValue,
+    selectedCommand,
+    commandSearch,
+    showCommandsList,
+    showCommandDrawer,
+    showManageDrawer,
+    editingCommand,
+    effectivePlaceholder,
+    handleInputChange,
+    handleSend,
+    handleSelectCommand,
+    handleRemoveCommand,
+    handleNewCommand,
+    handleManageCommands,
+    handleEditCommand,
+    handleSaveCommand,
+    handleDeleteCommand,
+    handleCloseCommandsList,
+    closeCommandDrawer,
+    closeManageDrawer,
+  } = useCommandsInput({ value, onChange, onSend });
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Commands List Dropdown - positioned above input */}
-      {showCommandsList && (
-        <div className="absolute bottom-full left-0 right-0 px-6 max-w-4xl mx-auto w-full mb-1 z-50">
-          <CommandsList
-            commands={commands}
-            onSelectCommand={handleSelectCommand}
-            onNewCommand={handleNewCommand}
-            onManageCommands={handleManageCommands}
-            onClose={handleCloseCommandsList}
-            searchQuery={commandSearch}
-            position="above"
-          />
-        </div>
-      )}
+      {/* Commands Overlay (List + Drawers) */}
+      <CommandsOverlay
+        commands={commands}
+        showCommandsList={showCommandsList}
+        commandSearch={commandSearch}
+        showCommandDrawer={showCommandDrawer}
+        showManageDrawer={showManageDrawer}
+        editingCommand={editingCommand}
+        onSelectCommand={handleSelectCommand}
+        onNewCommand={handleNewCommand}
+        onManageCommands={handleManageCommands}
+        onCloseCommandsList={handleCloseCommandsList}
+        onEditCommand={handleEditCommand}
+        onSaveCommand={handleSaveCommand}
+        onDeleteCommand={handleDeleteCommand}
+        onCloseCommandDrawer={closeCommandDrawer}
+        onCloseManageDrawer={closeManageDrawer}
+        salesforceFields={salesforceFields}
+        isLoadingSalesforceFields={isLoadingSalesforceFields}
+        commandsListClassName="absolute bottom-full left-0 right-0 px-6 max-w-4xl mx-auto w-full mb-1 z-50"
+      />
 
       {/* Command Chip + Input Area */}
       {selectedCommand ? (
@@ -215,21 +96,12 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
             >
               <div className="flex flex-col bg-white rounded-[15px] px-3 py-2">
                 {/* Command Chip Row */}
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg">
-                    <span className="text-sm font-medium text-indigo-700">
-                      {selectedCommand.name}
-                    </span>
-                    <button
-                      onClick={handleRemoveCommand}
-                      className="text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <span className="text-sm text-gray-400 truncate flex-1">
-                    {selectedCommand.name}
-                  </span>
+                <div className="pb-2 border-b border-gray-100">
+                  <CommandChip
+                    command={selectedCommand}
+                    onRemove={handleRemoveCommand}
+                    showDescription={false}
+                  />
                 </div>
 
                 {/* Text Input Row */}
@@ -243,7 +115,7 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
                         handleSend(inputValue);
                       }
                     }}
-                    placeholder={effectivePlaceholder}
+                    placeholder={effectivePlaceholder(placeholder)}
                     className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto settings-scrollbar"
                     style={{
                       minHeight: '20px',
@@ -286,29 +158,6 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
           autoFocus={autoFocus}
         />
       )}
-
-      {/* Command Drawer */}
-      <CommandDrawer
-        isOpen={showCommandDrawer}
-        onClose={() => {
-          setShowCommandDrawer(false);
-          setEditingCommand(null);
-        }}
-        onSave={handleSaveCommand}
-        editingCommand={editingCommand}
-        salesforceFields={salesforceFields}
-        isLoadingSalesforceFields={isLoadingSalesforceFields}
-      />
-
-      {/* Manage Commands Drawer */}
-      <ManageCommandsDrawer
-        isOpen={showManageDrawer}
-        onClose={() => setShowManageDrawer(false)}
-        commands={commands}
-        onNewCommand={handleNewCommand}
-        onEditCommand={handleEditCommand}
-        onDeleteCommand={handleDeleteCommand}
-      />
     </div>
   );
 };

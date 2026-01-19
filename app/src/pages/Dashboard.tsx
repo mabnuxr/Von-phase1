@@ -171,6 +171,7 @@ const Dashboard = () => {
     isDeepLinksEnabled,
     isSidebarV2,
     isThinkingProcessV2,
+    isChatInputV2,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -1019,6 +1020,7 @@ const Dashboard = () => {
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
                 thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
+                useStandardInput={isChatInputV2}
               />
             )}
           </motion.div>

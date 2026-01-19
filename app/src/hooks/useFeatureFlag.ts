@@ -12,6 +12,7 @@ export const FEATURE_FLAGS = {
   SIDE_BAR_V2: "sidebarV2",
   THINKING_PROCESS_V2: "agentsV2",
   USER_MEMORY: "enableUserMemory",
+  CHAT_INPUT_V2: "chatInputV2",
 } as const;
 
 /**
@@ -73,6 +74,11 @@ export function useFeatureFlag() {
      * instead of the legacy ThinkingBlock component
      */
     isThinkingProcessV2: flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
+
+    /**
+     * Controls if we need to show new chat input UI experience
+     */
+    isChatInputV2: flags[FEATURE_FLAGS.CHAT_INPUT_V2],
 
     /**
      * Controls whether user memory feature is enabled

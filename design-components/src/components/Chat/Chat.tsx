@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
-import { ChatInput } from './ChatInput';
 import { ChatEmptyState } from './ChatEmptyState';
 import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
-import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
+import { ChatInputSelector } from './ChatInputSelector';
 
 // Export types from types.ts
 export type {
@@ -63,6 +62,7 @@ export const Chat: React.FC<ChatProps> = ({
   enableDeepLinks = false,
   // V2 Thinking Process
   thinkingProcessVersion = 'v1',
+  useStandardInput = false,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -258,6 +258,7 @@ export const Chat: React.FC<ChatProps> = ({
             enableCommands={enableCommands}
             banner={banner}
             topBanner={topBanner}
+            useStandardInput={useStandardInput}
           />
         ) : (
           <div className="flex flex-col">
@@ -321,36 +322,23 @@ export const Chat: React.FC<ChatProps> = ({
       {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
 
       {/* Only show bottom input when there are messages (not in empty state) */}
-      {messages.length > 0 &&
-        (enableCommands ? (
-          <ChatInputWithCommands
-            placeholder={placeholder}
-            onSend={handleSendMessage}
-            onStop={handleStop}
-            disabled={
-              isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
-            }
-            isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
-            disableSubmit={disableSubmit}
-            value={inputValue}
-            onChange={setInputValue}
-            onDisabledInput={onInputWhileDisabled}
-          />
-        ) : (
-          <ChatInput
-            placeholder={placeholder}
-            onSend={handleSendMessage}
-            onStop={handleStop}
-            disabled={
-              isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
-            }
-            isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
-            disableSubmit={disableSubmit}
-            value={inputValue}
-            onChange={setInputValue}
-            onDisabledInput={onInputWhileDisabled}
-          />
-        ))}
+      {messages.length > 0 && (
+        <ChatInputSelector
+          useStandardInput={useStandardInput}
+          enableCommands={enableCommands}
+          placeholder={placeholder}
+          onSend={handleSendMessage}
+          onStop={handleStop}
+          disabled={
+            isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
+          }
+          isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+          disableSubmit={disableSubmit}
+          value={inputValue}
+          onChange={setInputValue}
+          onDisabledInput={onInputWhileDisabled}
+        />
+      )}
     </div>
   );
 };
