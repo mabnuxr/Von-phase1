@@ -173,7 +173,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
   error = null,
 }) => {
   const displayTitle = getToolDisplayName(toolName);
-  const hasData = columns.length > 0 && rows.length > 0;
+  const hasData = rows.length > 0;
 
   return (
     <AnimatePresence>
