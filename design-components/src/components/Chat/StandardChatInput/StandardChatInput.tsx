@@ -264,6 +264,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   disabled = false,
   isStreaming = false,
   disableSubmit = false,
+  onDisabledInput,
   value,
   onChange,
   onVoiceInput,
@@ -341,7 +342,10 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   );
 
   const handleSend = useCallback(() => {
-    if (disableSubmit) return;
+    if (disableSubmit) {
+      onDisabledInput?.();
+      return;
+    }
 
     // Extract plain text from HTML content for sending
     const tempDiv = document.createElement('div');
@@ -367,6 +371,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     }
   }, [
     disableSubmit,
+    onDisabledInput,
     message,
     hasAttachments,
     onSend,

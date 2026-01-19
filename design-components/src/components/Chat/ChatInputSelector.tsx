@@ -87,6 +87,7 @@ export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
   if (useStandardInput) {
     const standardProps = {
       ...commonProps,
+      onDisabledInput,
       onFileError,
       droppedFiles,
       onDroppedFilesProcessed,

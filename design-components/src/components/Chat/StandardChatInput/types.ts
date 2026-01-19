@@ -78,6 +78,11 @@ export interface StandardChatInputProps {
   disableSubmit?: boolean;
 
   /**
+   * Callback when user attempts to submit while disabled
+   */
+  onDisabledInput?: () => void;
+
+  /**
    * Controlled value for the input
    */
   value?: string;
