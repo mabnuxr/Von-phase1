@@ -71,9 +71,15 @@ export interface TimelineStep {
    */
   queryId?: string;
   /**
-   * Optional artifact/file reference for output steps
+   * Artifact metadata for clickable artifact links
+   * Display name is derived from tool_name (e.g., "execute_sql_query results")
    */
-  artifactName?: string;
+  artifact?: {
+    artifact_id: string;
+    run_id: string;
+    tool_name: string;
+    artifact_type: string;
+  };
   /**
    * Sub-steps for grouped operations
    */
@@ -162,6 +168,17 @@ export interface TimelineThinkingProcessProps {
    * Callback when an approval is rejected
    */
   onReject?: (stepId: string) => void;
+
+  /**
+   * Callback when an artifact is clicked in a step
+   * Opens the transparency drawer with the artifact data
+   */
+  onArtifactClick?: (
+    artifactId: string,
+    toolName: string,
+    artifactType: string,
+    runId: string
+  ) => void;
 }
 
 /**
@@ -175,6 +192,12 @@ export interface StepRowProps {
   isLast: boolean;
   onApprove?: () => void;
   onReject?: () => void;
+  onArtifactClick?: (
+    artifactId: string,
+    toolName: string,
+    artifactType: string,
+    runId: string
+  ) => void;
 }
 
 /**

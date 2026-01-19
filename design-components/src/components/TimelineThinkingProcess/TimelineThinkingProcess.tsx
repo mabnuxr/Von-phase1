@@ -39,6 +39,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onExpandStep,
   onApprove,
   onReject,
+  onArtifactClick,
 }) => {
   // Use custom hook for state management
   const {
@@ -194,6 +195,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                             isLast={idx === visibleSteps.length - 1}
                             onApprove={onApprove ? () => onApprove(step.id) : undefined}
                             onReject={onReject ? () => onReject(step.id) : undefined}
+                            onArtifactClick={onArtifactClick}
                           />
                         );
                       })}
