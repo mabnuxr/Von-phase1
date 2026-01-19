@@ -122,25 +122,15 @@ export interface ChatPaneProps {
   isRecording?: boolean;
 
   /**
-   * Hook for fetching artifact data (passed to messages)
+   * Callback when user clicks on an artifact
+   * The consumer should render the appropriate UI with fetched data
    */
-  useArtifactHook?: (
-    conversationId: string | null,
-    messageId: string | null,
-    artifactId: string | null
-  ) => {
-    data?: {
-      artifact_id: string;
-      tool_call_id: string;
-      tool_name: string;
-      artifact_type: string;
-      content: Record<string, unknown>;
-      size_bytes: number;
-      persisted_at: string;
-    };
-    isLoading: boolean;
-    error?: Error | null;
-  };
+  onArtifactClick?: (
+    artifactId: string,
+    toolName: string,
+    artifactType: string,
+    runId: string
+  ) => void;
 
   /**
    * Conversation ID (for artifact fetching)

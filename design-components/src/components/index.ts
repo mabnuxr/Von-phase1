@@ -94,6 +94,9 @@ export type { ChatMessageSkeletonProps } from './Chat/ChatMessageSkeleton';
 export { ChatSkeleton } from './Chat/ChatSkeleton';
 export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
 
+export { ArtifactPane } from './Chat/ArtifactPane';
+export type { ArtifactPaneProps, ArtifactData } from './Chat/ArtifactPane';
+
 // Icon Atoms
 // ----------
 export {
@@ -277,3 +280,14 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 // ============================================================================
 export { ReportTable } from './ReportTable';
 export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';
+
+// ============================================================================
+// ARTIFACT VIEWER (Single artifact display drawer)
+// ============================================================================
+export { SingleArtifactDrawer, ArtifactContentViewer, useArtifactContent } from './ArtifactViewer';
+export type {
+  SingleArtifactDrawerProps,
+  ArtifactContentViewerProps,
+  ArtifactContentData,
+  UseArtifactContentReturn,
+} from './ArtifactViewer';

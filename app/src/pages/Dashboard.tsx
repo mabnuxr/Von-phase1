@@ -44,9 +44,11 @@ import {
   type ConversationTitleUpdatedEvent,
 } from "../types/userChannelEvents";
 import type { MessageWithStreaming } from "../types/conversation";
-import { useArtifact } from "../hooks/useArtifact";
 import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
 import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
+import { ArtifactPaneContainer } from "../components/ArtifactPaneContainer";
+import { SingleArtifactDrawerContainer } from "../components/SingleArtifactDrawerContainer";
+import { useArtifactState } from "../hooks/useArtifactState";
 // Import Message type from design-components (includes events field)
 import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
@@ -201,6 +203,10 @@ const Dashboard = () => {
   const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
     null,
   );
+
+  // Unified artifact state - works for both V1 (ArtifactPane) and V2 (SingleArtifactDrawer)
+  const { artifactState, handleArtifactClick, closeArtifact } =
+    useArtifactState();
 
   // Sidebar collapse state
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
@@ -1004,7 +1010,7 @@ const Dashboard = () => {
                 height="100%"
                 width="100%"
                 showMessagesFromIndex={showMessagesFromIndex}
-                useArtifactHook={useArtifact}
+                onArtifactClick={handleArtifactClick}
                 banner={salesforceBanner}
                 disableSubmit={!isSalesforceReady}
                 examplePromptsDisabled={!isSalesforceReady}
@@ -1036,6 +1042,22 @@ const Dashboard = () => {
           isListLoading={isTransparencyLoading}
           title="Data Sources"
         />
+
+        {/* Artifact Viewer - renders V1 Pane or V2 Drawer based on thinking process version */}
+        {isThinkingProcessV2 ? (
+          <SingleArtifactDrawerContainer
+            conversationId={currentConversationId}
+            drawerState={artifactState}
+            onClose={closeArtifact}
+          />
+        ) : (
+          <ArtifactPaneContainer
+            conversationId={currentConversationId}
+            paneState={artifactState}
+            onClose={closeArtifact}
+            enableDeepLinks={isDeepLinksEnabled}
+          />
+        )}
       </div>
     </div>
   );
