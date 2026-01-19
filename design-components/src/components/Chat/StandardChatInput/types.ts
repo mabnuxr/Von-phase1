@@ -205,4 +205,15 @@ export interface StandardChatInputProps {
    * Callback when Build Dashboard agent is selected from the menu
    */
   onBuildDashboard?: () => void;
+
+  /**
+   * Current agent mode - controls which agent tag is shown
+   * @default 'auto'
+   */
+  agentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+
+  /**
+   * Callback when agent mode changes
+   */
+  onAgentModeChange?: (mode: 'auto' | 'build-dashboard' | 'deep-research') => void;
 }

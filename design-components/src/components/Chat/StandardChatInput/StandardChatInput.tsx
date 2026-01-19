@@ -291,12 +291,18 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onPopoverFeedback,
   // Agent props
   onBuildDashboard,
+  agentMode: controlledAgentMode,
+  onAgentModeChange: onControlledAgentModeChange,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-  const [selectedAgentMode, setSelectedAgentMode] = useState<AgentMode>('auto');
+  const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
   const editorRef = useRef<Editor | null>(null);
+
+  // Use controlled or internal agent mode
+  const isAgentModeControlled = controlledAgentMode !== undefined;
+  const selectedAgentMode = isAgentModeControlled ? controlledAgentMode : internalAgentMode;
 
   // File upload hook for uncontrolled mode
   const {
@@ -411,13 +417,24 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     openFilePicker();
   }, [openFilePicker]);
 
-  const handleAgentModeChange = useCallback((mode: AgentMode) => {
-    setSelectedAgentMode(mode);
-  }, []);
+  const handleAgentModeChange = useCallback(
+    (mode: AgentMode) => {
+      if (isAgentModeControlled) {
+        onControlledAgentModeChange?.(mode);
+      } else {
+        setInternalAgentMode(mode);
+      }
+    },
+    [isAgentModeControlled, onControlledAgentModeChange]
+  );
 
   const handleCancelAgentMode = useCallback(() => {
-    setSelectedAgentMode('auto');
-  }, []);
+    if (isAgentModeControlled) {
+      onControlledAgentModeChange?.('auto');
+    } else {
+      setInternalAgentMode('auto');
+    }
+  }, [isAgentModeControlled, onControlledAgentModeChange]);
 
   // Helper to get agent mode display label and icon
   const getAgentModeDisplay = (mode: AgentMode) => {
