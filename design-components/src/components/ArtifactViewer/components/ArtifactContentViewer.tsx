@@ -143,13 +143,13 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
     }
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full min-h-0">
         {/* SQL Query Section - Collapsible, collapsed by default */}
         {query && (
-          <div className="mx-4 mt-4 mb-3 rounded-lg border border-gray-200 overflow-hidden">
+          <div className="mx-4 mt-4 mb-3 rounded-lg border border-gray-200 overflow-hidden shrink-0 flex flex-col max-h-[40%]">
             <button
               onClick={toggleQueryExpanded}
-              className="w-full px-3 py-2 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
             >
               <div className="flex items-center gap-2">
                 {isQueryExpanded ? (
@@ -172,7 +172,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="overflow-hidden border-t border-gray-200"
+                  className="overflow-y-auto border-t border-gray-200 min-h-0"
                 >
                   <pre className="px-3 py-3 text-xs text-gray-800 font-mono bg-white overflow-x-auto whitespace-pre-wrap leading-relaxed">
                     {query}
@@ -184,14 +184,14 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
         )}
 
         {/* Query Info */}
-        <div className="px-4 pb-2 flex items-center gap-2">
+        <div className="px-4 pb-2 flex items-center gap-2 shrink-0">
           <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
           <span className="text-[13px] font-medium text-gray-900">{name}</span>
           {description && <span className="text-[11px] text-gray-500">— {description}</span>}
         </div>
 
         {/* Data Table */}
-        <div className="flex-1 overflow-auto mx-4 border border-gray-200 rounded-lg">
+        <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -236,7 +236,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
         </div>
 
         {/* Pagination Footer */}
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-3 flex items-center justify-between shrink-0">
           <span className="text-[11px] text-gray-500">
             Showing {startIndex + 1}–{endIndex} of {totalRows} {totalRows === 1 ? 'row' : 'rows'}
           </span>

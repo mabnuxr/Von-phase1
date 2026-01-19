@@ -179,7 +179,7 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
+    <div className="h-full overflow-y-auto overflow-x-hidden px-4 py-4">
       {Object.entries(grouped).map(([monthYear, monthCalls]) => (
         <div key={monthYear} className="mb-6 last:mb-0">
           {/* Month Header */}

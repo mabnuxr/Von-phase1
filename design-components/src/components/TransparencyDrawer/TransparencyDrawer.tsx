@@ -127,7 +127,7 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
               </div>
 
               {/* Tab Content */}
-              <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0 flex flex-col">
                 <AnimatePresence mode="wait">
                   {activeTopTab === 'data' && (
                     <motion.div
@@ -136,7 +136,7 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                       transition={{ duration: 0.15 }}
-                      className="flex-1 flex flex-col overflow-hidden"
+                      className="flex-1 min-h-0 flex flex-col"
                     >
                       {/* Query Pills Navigation */}
                       {queries.length > 0 && (
@@ -158,7 +158,7 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       )}
 
                       {/* Query Content */}
-                      <div className="flex-1 overflow-hidden">
+                      <div className="flex-1 min-h-0">
                         {isLoading ? (
                           <div className="flex flex-col h-full">
                             {/* Shimmer for Query Pills */}
@@ -238,7 +238,7 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.15 }}
-                            className="h-full"
+                            className="h-full flex flex-col"
                           >
                             <QueryContent query={activeQuery} />
                           </motion.div>
@@ -254,7 +254,7 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
                       transition={{ duration: 0.15 }}
-                      className="flex-1 overflow-hidden"
+                      className="flex-1 min-h-0"
                     >
                       <CallsTabContent calls={calls} />
                     </motion.div>

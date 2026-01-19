@@ -216,7 +216,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0 flex flex-col">
                 {isLoading ? (
                   <LoadingState />
                 ) : error ? (
