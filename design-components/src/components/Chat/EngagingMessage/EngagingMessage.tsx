@@ -159,6 +159,18 @@ export const EngagingMessage = memo<EngagingMessageProps>(
         return;
       }
 
+      // Helper to schedule the rotating message timer
+      const scheduleRotatingMessages = () => {
+        showTimerRef.current = window.setTimeout(() => {
+          setShowInitialText(false);
+          setShowRotatingMessage(true);
+          // Start rotating messages
+          rotationTimerRef.current = window.setInterval(() => {
+            setCurrentMessageIndex((prev) => (prev + 1) % ENGAGING_MESSAGES.length);
+          }, rotationInterval);
+        }, showDelay);
+      };
+
       // If new content arrived, hide rotating message, show initial text, and restart the delay timer
       if (hasNewContent) {
         setShowInitialText(!!initialText);
@@ -168,6 +180,7 @@ export const EngagingMessage = memo<EngagingMessageProps>(
         // Clear existing timers
         if (showTimerRef.current !== null) {
           clearTimeout(showTimerRef.current);
+          showTimerRef.current = null;
         }
         if (rotationTimerRef.current !== null) {
           clearInterval(rotationTimerRef.current);
@@ -175,14 +188,11 @@ export const EngagingMessage = memo<EngagingMessageProps>(
         }
 
         // Start timer to show engaging message after delay
-        showTimerRef.current = window.setTimeout(() => {
-          setShowInitialText(false);
-          setShowRotatingMessage(true);
-          // Start rotating messages
-          rotationTimerRef.current = window.setInterval(() => {
-            setCurrentMessageIndex((prev) => (prev + 1) % ENGAGING_MESSAGES.length);
-          }, rotationInterval);
-        }, showDelay);
+        scheduleRotatingMessages();
+      } else if (!showRotatingMessage && showTimerRef.current === null) {
+        // No new content, but we're active, not showing rotating messages yet, and no timer is running.
+        // This handles the case where we transition from streaming to waiting state without content change.
+        scheduleRotatingMessages();
       }
 
       return () => {

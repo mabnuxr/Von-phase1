@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
 
 // ============================================================================
@@ -66,6 +66,11 @@ export function useArtifactContent(
 
   const totalRows = rows.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+
+  // Reset to page 1 when rows change (e.g., switching to a different artifact)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rows]);
 
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
