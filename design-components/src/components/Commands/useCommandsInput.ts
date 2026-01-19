@@ -8,6 +8,21 @@ import { useState, useCallback } from 'react';
 import { useCommands } from './useCommands';
 import type { Command } from './types';
 
+/**
+ * Extract plain text from a value that may be HTML (TipTap) or plain text (legacy textarea).
+ * This normalizes the input for slash command detection.
+ */
+function getPlainText(value: string): string {
+  // If it looks like HTML (contains tags), extract text content
+  if (value.includes('<') && value.includes('>')) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = value;
+    return tempDiv.textContent || tempDiv.innerText || '';
+  }
+  // Otherwise return as-is (plain text from legacy textarea)
+  return value;
+}
+
 export interface UseCommandsInputOptions {
   /** Controlled value */
   value?: string;
@@ -83,10 +98,13 @@ export function useCommandsInput({
         setInternalValue(newValue);
       }
 
+      // Normalize to plain text for slash detection (handles both HTML from TipTap and plain text)
+      const plainText = getPlainText(newValue);
+
       // Check if input starts with '/' to show commands (only if no command selected)
-      if (!selectedCommand && newValue.startsWith('/')) {
+      if (!selectedCommand && plainText.startsWith('/')) {
         setShowCommandsList(true);
-        setCommandSearch(newValue.slice(1)); // Text after '/'
+        setCommandSearch(plainText.slice(1)); // Text after '/'
       } else {
         setShowCommandsList(false);
         setCommandSearch('');
@@ -97,11 +115,13 @@ export function useCommandsInput({
 
   const handleSend = useCallback(
     (message: string) => {
+      // Normalize to plain text (handles both HTML from TipTap and plain text)
+      const plainText = getPlainText(message).trim();
+
       if (selectedCommand) {
         // Combine command prompt with any additional text
-        const additionalText = message.trim();
-        const fullPrompt = additionalText
-          ? `${selectedCommand.prompt}\n\nAdditional context: ${additionalText}`
+        const fullPrompt = plainText
+          ? `${selectedCommand.prompt}\n\nAdditional context: ${plainText}`
           : selectedCommand.prompt;
 
         onSend?.(fullPrompt, selectedCommand);
@@ -113,8 +133,8 @@ export function useCommandsInput({
       }
 
       // If sending a slash command without chip selection, find and execute it
-      if (message.startsWith('/')) {
-        const commandName = message.slice(1).toLowerCase().trim();
+      if (plainText.startsWith('/')) {
+        const commandName = plainText.slice(1).toLowerCase().trim();
         const command = commands.find((cmd) => cmd.name.toLowerCase() === commandName);
 
         if (command) {
@@ -124,7 +144,7 @@ export function useCommandsInput({
         }
       }
 
-      onSend?.(message);
+      onSend?.(plainText);
       setShowCommandsList(false);
     },
     [commands, onSend, selectedCommand, clearInput]
