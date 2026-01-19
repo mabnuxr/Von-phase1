@@ -179,6 +179,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
           disabled={disabled}
           isStreaming={isStreaming}
           disableSubmit={disableSubmit}
+          onDisabledInput={onDisabledInput}
         />
       )}
     </div>
