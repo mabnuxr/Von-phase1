@@ -5,8 +5,6 @@ import {
   SpinnerGapIcon,
   CaretDownIcon,
   CaretRightIcon,
-  BrainIcon,
-  CodeIcon,
   WrenchIcon,
   FileTextIcon,
   CloudIcon,
@@ -167,13 +165,6 @@ const SOURCE_CONFIG: Record<SourceType, { icon: React.ElementType; label: string
     generic: { icon: WrenchIcon, label: 'Tool', color: 'text-gray-600' },
   };
 
-const TYPE_CONFIG: Record<StepType, { icon: React.ElementType; label: string }> = {
-  reasoning: { icon: BrainIcon, label: 'Thinking' },
-  tool_call: { icon: WrenchIcon, label: 'Tool' },
-  code_execution: { icon: CodeIcon, label: 'Code' },
-  output: { icon: FileTextIcon, label: 'Output' },
-  approval: { icon: CloudIcon, label: 'Approval' },
-};
 
 // ============================================================================
 // Helper Functions
@@ -217,38 +208,26 @@ const StatusIcon: React.FC<{ status: StepStatus; size?: number }> = ({ status, s
   }
 };
 
-const StepTypeIcon: React.FC<{
-  type?: StepType;
-  source?: SourceType;
+const StepIndicator: React.FC<{
   status: StepStatus;
-}> = ({ type = 'reasoning', source, status }) => {
-  // For tool calls and approval, show the source icon
-  if ((type === 'tool_call' || type === 'approval') && source) {
-    const config = SOURCE_CONFIG[source];
-    const Icon = config.icon;
-    return (
-      <Icon
-        size={16}
-        weight="regular"
-        className={
-          status === 'in-progress' || status === 'awaiting-approval'
-            ? config.color
-            : 'text-gray-500'
-        }
-      />
-    );
+}> = ({ status }) => {
+  if (status === 'in-progress') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
   }
-
-  // For other types, show the type icon
-  const config = TYPE_CONFIG[type];
-  const Icon = config.icon;
-  return (
-    <Icon
-      size={16}
-      weight="regular"
-      className={status === 'in-progress' ? 'text-indigo-600' : 'text-gray-500'}
-    />
-  );
+  if (status === 'complete') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
+  }
+  if (status === 'awaiting-approval') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
+  }
+  if (status === 'warning') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
+  }
+  if (status === 'error') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-red-200" />;
+  }
+  // pending
+  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
 };
 
 // Compact Approval Card for inline use
@@ -375,7 +354,6 @@ const StepRow: React.FC<StepRowProps> = ({
     step.description || step.code || (step.subSteps && step.subSteps.length > 0) || step.approval;
   const isInProgress = step.status === 'in-progress';
   const isComplete = step.status === 'complete';
-  const isAwaitingApproval = step.status === 'awaiting-approval';
 
   // Get source label for tool calls
   const getSourceLabel = () => {
@@ -391,13 +369,8 @@ const StepRow: React.FC<StepRowProps> = ({
     <div className="relative flex">
       {/* Timeline connector */}
       <div className="flex flex-col items-center mr-3 flex-shrink-0">
-        <div
-          className={`
-            w-6 h-6 rounded-full flex items-center justify-center
-            ${isInProgress ? 'bg-indigo-50' : isAwaitingApproval ? 'bg-amber-50' : 'bg-gray-50'}
-          `}
-        >
-          <StepTypeIcon type={step.type} source={step.source} status={step.status} />
+        <div className="w-6 h-6 rounded-full flex items-center justify-center">
+          <StepIndicator status={step.status} />
         </div>
         {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
       </div>
@@ -543,8 +516,8 @@ const CollapsedStepRow: React.FC<{
       onClick={onClick}
       className="w-full flex items-center gap-2 py-1.5 text-left hover:bg-gray-50 rounded transition-colors cursor-pointer"
     >
-      <div className="w-5 h-5 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
-        <StepTypeIcon type={step.type} source={step.source} status={step.status} />
+      <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
+        <StepIndicator status={step.status} />
       </div>
       <span className="flex-1 text-[12px] text-gray-700 truncate">{step.text}</span>
       <StatusIcon status={step.status} size={12} />
@@ -746,9 +719,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
             {/* Title and summary */}
             {allComplete ? (
-              <span className="text-[13px] text-gray-700">
-                {title} · {formatElapsedTime(elapsedTime)}
-              </span>
+              <span className="text-[13px] text-gray-700">{title}</span>
             ) : (
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">{title}</span>
@@ -776,12 +747,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               </motion.div>
             )}
 
-            {/* Elapsed time when in progress */}
-            {!allComplete && (
-              <span className="text-[11px] text-gray-500 tabular-nums">
-                {formatElapsedTime(elapsedTime)}
-              </span>
-            )}
+            {/* Elapsed time - always on far right */}
+            <span className="text-[11px] text-gray-500 tabular-nums">
+              {formatElapsedTime(elapsedTime)}
+            </span>
           </div>
         </button>
 

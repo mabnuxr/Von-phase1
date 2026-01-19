@@ -25,6 +25,9 @@ import {
 } from '@phosphor-icons/react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
+
+// Import Highcharts modules for waterfall chart support (v12+ auto-initializes on import)
+import 'highcharts/highcharts-more';
 import { SecondaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../popups';
 
@@ -60,10 +63,45 @@ export interface KPICardData {
   target?: string;
 }
 
+export interface WaterfallDataPoint {
+  name: string;
+  y?: number;
+  isIntermediateSum?: boolean;
+  isSum?: boolean;
+  color?: string;
+}
+
+export interface CombinationSeriesConfig {
+  name: string;
+  type: 'column' | 'spline' | 'line';
+  data: number[];
+  color?: string;
+  dashStyle?: 'Solid' | 'Dash' | 'Dot' | 'DashDot';
+  /** For stacking columns together */
+  stack?: string;
+  /** Y-axis index (0 = left, 1 = right) */
+  yAxis?: number;
+  /** Marker configuration for line/spline series */
+  marker?: {
+    enabled?: boolean;
+    symbol?: 'circle' | 'square' | 'diamond' | 'triangle';
+    radius?: number;
+  };
+}
+
+export interface CombinationChartData {
+  categories: string[];
+  series: CombinationSeriesConfig[];
+  /** Enable dual Y-axis */
+  dualAxis?: boolean;
+  /** Right Y-axis title */
+  rightAxisTitle?: string;
+}
+
 export interface ChartData {
   id: string;
   title: string;
-  type: 'bar' | 'pie';
+  type: 'bar' | 'pie' | 'waterfall' | 'combination';
   data: unknown;
 }
 
@@ -104,6 +142,10 @@ export interface DashboardV2Props {
   kpiCards: KPICardData[];
   barChart?: ChartData;
   pieChart?: ChartData;
+  /** Waterfall chart for showing cumulative financial data */
+  waterfallChart?: ChartData;
+  /** Combination chart with stacked bars and overlay lines (like forecast vs actual) */
+  combinationChart?: ChartData;
   table?: TableData;
   /** Text widget for notes or AI-generated content */
   textWidget?: TextWidgetData;
@@ -758,6 +800,203 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({
             data: pieData,
           },
         ],
+      };
+    }
+
+    if (data.type === 'waterfall') {
+      const waterfallData = data.data as WaterfallDataPoint[];
+      return {
+        ...baseOptions,
+        chart: { ...baseOptions.chart, type: 'waterfall' },
+        xAxis: {
+          type: 'category' as const,
+          labels: { style: { fontSize: '10px', color: '#6b7280' } },
+          lineColor: '#e5e7eb',
+          tickColor: '#e5e7eb',
+        },
+        yAxis: {
+          title: { text: undefined },
+          labels: {
+            style: { fontSize: '10px', color: '#6b7280' },
+            formatter: function (this: Highcharts.AxisLabelsFormatterContextObject): string {
+              const value = this.value as number;
+              if (Math.abs(value) >= 1000000) {
+                return `$${(value / 1000000).toFixed(1)}M`;
+              }
+              if (Math.abs(value) >= 1000) {
+                return `$${(value / 1000).toFixed(0)}K`;
+              }
+              return `$${value}`;
+            },
+          },
+          gridLineColor: '#f3f4f6',
+        },
+        plotOptions: {
+          waterfall: {
+            borderWidth: 0,
+            borderRadius: 4,
+            cursor: onSegmentClick ? 'pointer' : 'default',
+            dataLabels: {
+              enabled: true,
+              style: { fontSize: '10px', fontWeight: '500', color: '#374151' },
+              formatter: function (): string {
+                const value = (this as unknown as { y: number }).y;
+                if (Math.abs(value) >= 1000000) {
+                  return `$${(value / 1000000).toFixed(2)}M`;
+                }
+                if (Math.abs(value) >= 1000) {
+                  return `$${(value / 1000).toFixed(0)}K`;
+                }
+                return `$${value}`;
+              },
+            },
+            point: {
+              events: {
+                click: function (this: Highcharts.Point) {
+                  if (onSegmentClick) {
+                    onSegmentClick({
+                      name: this.name as string,
+                      value: this.y as number,
+                    });
+                  }
+                },
+              },
+            },
+          },
+        },
+        legend: { enabled: false },
+        // Waterfall-specific colors
+        colors: ['#4f46e5'], // Default positive color
+        series: [
+          {
+            type: 'waterfall',
+            name: 'Amount',
+            upColor: '#10b981', // Green for positive
+            color: '#ef4444', // Red for negative
+            data: waterfallData,
+          },
+        ],
+      };
+    }
+
+    if (data.type === 'combination') {
+      const comboData = data.data as CombinationChartData;
+
+      // Configure Y-axes
+      const yAxisConfig: Highcharts.YAxisOptions[] = [
+        {
+          title: { text: undefined },
+          labels: {
+            style: { fontSize: '10px', color: '#6b7280' },
+            formatter: function (this: Highcharts.AxisLabelsFormatterContextObject): string {
+              const value = this.value as number;
+              if (Math.abs(value) >= 1000000) {
+                return `$${(value / 1000000).toFixed(0)}M`;
+              }
+              if (Math.abs(value) >= 1000) {
+                return `$${(value / 1000).toFixed(0)}K`;
+              }
+              return `$${value}`;
+            },
+          },
+          gridLineColor: '#f3f4f6',
+        },
+      ];
+
+      // Add right axis if dual axis is enabled
+      if (comboData.dualAxis) {
+        yAxisConfig.push({
+          title: { text: comboData.rightAxisTitle || undefined },
+          labels: { style: { fontSize: '10px', color: '#6b7280' } },
+          gridLineColor: '#f3f4f6',
+          opposite: true,
+        });
+      }
+
+      return {
+        ...baseOptions,
+        chart: { ...baseOptions.chart },
+        xAxis: {
+          categories: comboData.categories,
+          labels: { style: { fontSize: '10px', color: '#6b7280' } },
+          lineColor: '#e5e7eb',
+          tickColor: '#e5e7eb',
+        },
+        yAxis: yAxisConfig,
+        plotOptions: {
+          column: {
+            borderRadius: 4,
+            borderWidth: 0,
+            stacking: 'normal',
+            cursor: onSegmentClick ? 'pointer' : 'default',
+            point: {
+              events: {
+                click: function (this: Highcharts.Point) {
+                  if (onSegmentClick) {
+                    onSegmentClick({
+                      name: this.category as string,
+                      value: this.y as number,
+                    });
+                  }
+                },
+              },
+            },
+          },
+          spline: {
+            lineWidth: 2,
+            marker: {
+              enabled: true,
+              radius: 4,
+              symbol: 'circle',
+            },
+          },
+          line: {
+            lineWidth: 2,
+            marker: {
+              enabled: true,
+              radius: 4,
+              symbol: 'circle',
+            },
+          },
+        },
+        tooltip: {
+          ...baseOptions.tooltip,
+          shared: true,
+          formatter: function (): string {
+            const ctx = this as unknown as {
+              x: string;
+              points?: Array<{
+                y: number;
+                color: string;
+                series: { name: string };
+              }>;
+            };
+            let tooltip = `<b>${ctx.x}</b><br/>`;
+            ctx.points?.forEach((point) => {
+              const value = point.y;
+              let formattedValue: string;
+              if (Math.abs(value) >= 1000000) {
+                formattedValue = `$${(value / 1000000).toFixed(2)}M`;
+              } else if (Math.abs(value) >= 1000) {
+                formattedValue = `$${(value / 1000).toFixed(0)}K`;
+              } else {
+                formattedValue = `$${value}`;
+              }
+              tooltip += `<span style="color:${point.color}">\u25CF</span> ${point.series.name}: <b>${formattedValue}</b><br/>`;
+            });
+            return tooltip;
+          },
+        },
+        series: comboData.series.map((s) => ({
+          type: s.type,
+          name: s.name,
+          data: s.data,
+          color: s.color,
+          dashStyle: s.dashStyle,
+          stack: s.stack,
+          yAxis: s.yAxis || 0,
+          marker: s.marker,
+        })) as Highcharts.SeriesOptionsType[],
       };
     }
 
@@ -1805,6 +2044,8 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
   kpiCards,
   barChart,
   pieChart,
+  waterfallChart,
+  combinationChart,
   table,
   textWidget,
   onTextWidgetChange,
@@ -2189,6 +2430,48 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
               </AnimatePresence>
             )}
           </div>
+
+          {/* Waterfall & Combination Charts Row */}
+          {(waterfallChart || combinationChart) && (
+            <div className="grid grid-cols-2 gap-4">
+              {waterfallChart && (
+                <AnimatePresence>
+                  {isWidgetVisible(waterfallChart.id) && (
+                    <ChartWidget
+                      data={waterfallChart}
+                      isAnimating={isBuilding}
+                      onDrillDown={() => onWidgetDrillDown?.(waterfallChart.id)}
+                      onContextMenu={(e) => handleContextMenu(e, waterfallChart.id)}
+                      onSegmentClick={
+                        onChartSegmentClick
+                          ? (segmentData) => onChartSegmentClick(waterfallChart.id, segmentData)
+                          : undefined
+                      }
+                      onClick={() => onWidgetClick?.(waterfallChart.id)}
+                    />
+                  )}
+                </AnimatePresence>
+              )}
+              {combinationChart && (
+                <AnimatePresence>
+                  {isWidgetVisible(combinationChart.id) && (
+                    <ChartWidget
+                      data={combinationChart}
+                      isAnimating={isBuilding}
+                      onDrillDown={() => onWidgetDrillDown?.(combinationChart.id)}
+                      onContextMenu={(e) => handleContextMenu(e, combinationChart.id)}
+                      onSegmentClick={
+                        onChartSegmentClick
+                          ? (segmentData) => onChartSegmentClick(combinationChart.id, segmentData)
+                          : undefined
+                      }
+                      onClick={() => onWidgetClick?.(combinationChart.id)}
+                    />
+                  )}
+                </AnimatePresence>
+              )}
+            </div>
+          )}
 
           {/* Table */}
           {table && (

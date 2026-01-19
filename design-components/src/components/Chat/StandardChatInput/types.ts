@@ -7,11 +7,13 @@ import type { BuildMode } from '../../DashboardBuilder/types';
  */
 export interface ReferenceContext {
   /** Type of reference */
-  type: 'dashboard' | 'report' | 'document' | 'widget' | 'kpi' | 'table' | 'source';
+  type: 'dashboard' | 'report' | 'document' | 'widget' | 'kpi' | 'table' | 'source' | 'quote';
   /** Display name of the reference */
   name: string;
   /** Unique identifier */
   id: string;
+  /** Full text content for quote references */
+  content?: string;
 }
 
 /**

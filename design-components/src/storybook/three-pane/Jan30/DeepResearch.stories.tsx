@@ -1,5 +1,5 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
-import { useState, useCallback, useRef, useMemo, useLayoutEffect } from 'react';
+import { useState, useCallback, useRef, useMemo, useLayoutEffect, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircleIcon,
@@ -9,20 +9,19 @@ import {
   SpinnerGapIcon,
   XIcon,
   DotsThreeIcon,
-  ArrowSquareOutIcon,
+  ArrowsOutIcon,
+  DownloadSimpleIcon,
   GridFourIcon,
   CaretDownIcon,
   ThumbsUpIcon,
   ThumbsDownIcon,
-  GitBranchIcon,
-  CloudIcon,
-  DatabaseIcon,
-  ChartBarIcon,
-  TableIcon,
+  CopyIcon,
+  FileMagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 import { ChatSidebarV4 } from '../../../components/Jan17Demo/ChatSidebarV4';
 import type { SidebarItem, Folder, ItemType } from '../../../components/Jan17Demo/ChatSidebarV4';
 import { StandardChatInput } from '../../../components/Chat/StandardChatInput';
+import type { ReferenceContext as InputReferenceContext } from '../../../components/Chat/StandardChatInput/types';
 import {
   DEFAULT_TEMPLATES,
   TEMPLATE_CATEGORIES,
@@ -648,6 +647,145 @@ GROUP BY Region__c`,
       { region: 'International', revenue: 1700000, deals: 104 },
     ],
   },
+  {
+    id: 'query-3',
+    name: 'Product Category Analysis',
+    description: 'Revenue by product category with YoY comparison',
+    query: `SELECT Product_Category__c, SUM(Amount) as Revenue,
+  COUNT(Id) as Deals, AVG(Days_to_Close__c) as AvgCycle
+FROM Opportunity
+WHERE CloseDate >= 2025-10-01 AND CloseDate <= 2025-12-31
+GROUP BY Product_Category__c
+ORDER BY Revenue DESC`,
+    duration: 428,
+    columns: [
+      { key: 'category', label: 'Category', type: 'string' },
+      { key: 'revenue', label: 'Revenue', type: 'currency' },
+      { key: 'deals', label: 'Deals', type: 'number' },
+      { key: 'avgCycle', label: 'Avg Cycle', type: 'number' },
+    ],
+    rows: [
+      { category: 'Enterprise', revenue: 5200000, deals: 156, avgCycle: 68 },
+      { category: 'Mid-Market', revenue: 3800000, deals: 312, avgCycle: 42 },
+      { category: 'SMB', revenue: 2100000, deals: 289, avgCycle: 21 },
+      { category: 'Strategic', revenue: 1700000, deals: 90, avgCycle: 95 },
+    ],
+  },
+  {
+    id: 'query-4',
+    name: 'Win Rate by Stage',
+    description: 'Conversion rates through sales pipeline stages',
+    query: `SELECT Stage, COUNT(Id) as Opps,
+  SUM(CASE WHEN IsWon THEN 1 ELSE 0 END) / COUNT(Id) as WinRate
+FROM Opportunity
+WHERE CreatedDate >= 2025-10-01 AND CreatedDate <= 2025-12-31
+GROUP BY Stage`,
+    duration: 189,
+    columns: [
+      { key: 'stage', label: 'Stage', type: 'string' },
+      { key: 'opps', label: 'Opportunities', type: 'number' },
+      { key: 'winRate', label: 'Win Rate', type: 'percentage' },
+    ],
+    rows: [
+      { stage: 'Discovery', opps: 1247, winRate: 0.68 },
+      { stage: 'Qualification', opps: 892, winRate: 0.72 },
+      { stage: 'Proposal', opps: 634, winRate: 0.78 },
+      { stage: 'Negotiation', opps: 412, winRate: 0.85 },
+      { stage: 'Closed Won', opps: 847, winRate: 1.0 },
+    ],
+  },
+  {
+    id: 'query-5',
+    name: 'Top Performing Reps',
+    description: 'Sales rep performance rankings for Q4',
+    query: `SELECT Owner.Name, SUM(Amount) as Revenue, COUNT(Id) as Deals,
+  AVG(Amount) as AvgDeal
+FROM Opportunity
+WHERE CloseDate >= 2025-10-01 AND IsWon = true
+GROUP BY Owner.Name
+ORDER BY Revenue DESC
+LIMIT 10`,
+    duration: 356,
+    columns: [
+      { key: 'rep', label: 'Sales Rep', type: 'string' },
+      { key: 'revenue', label: 'Revenue', type: 'currency' },
+      { key: 'deals', label: 'Deals', type: 'number' },
+      { key: 'avgDeal', label: 'Avg Deal', type: 'currency' },
+    ],
+    rows: [
+      { rep: 'Sarah Chen', revenue: 1850000, deals: 42, avgDeal: 44047 },
+      { rep: 'Marcus Johnson', revenue: 1620000, deals: 38, avgDeal: 42631 },
+      { rep: 'Emily Rodriguez', revenue: 1480000, deals: 51, avgDeal: 29019 },
+      { rep: 'David Kim', revenue: 1340000, deals: 45, avgDeal: 29777 },
+      { rep: 'Jessica Taylor', revenue: 1180000, deals: 36, avgDeal: 32777 },
+    ],
+  },
+  {
+    id: 'query-6',
+    name: 'Competitive Win/Loss',
+    description: 'Competitive displacement analysis',
+    query: `SELECT Competitor__c,
+  SUM(CASE WHEN IsWon THEN 1 ELSE 0 END) as Wins,
+  SUM(CASE WHEN IsClosed AND NOT IsWon THEN 1 ELSE 0 END) as Losses
+FROM Opportunity
+WHERE Competitor__c != null AND CloseDate >= 2025-10-01
+GROUP BY Competitor__c`,
+    duration: 278,
+    columns: [
+      { key: 'competitor', label: 'Competitor', type: 'string' },
+      { key: 'wins', label: 'Wins', type: 'number' },
+      { key: 'losses', label: 'Losses', type: 'number' },
+    ],
+    rows: [
+      { competitor: 'Competitor A', wins: 89, losses: 34 },
+      { competitor: 'Competitor B', wins: 67, losses: 52 },
+      { competitor: 'Competitor C', wins: 45, losses: 28 },
+      { competitor: 'No Competitor', wins: 646, losses: 187 },
+    ],
+  },
+  {
+    id: 'query-7',
+    name: 'Deal Velocity Trends',
+    description: 'Average days to close by month',
+    query: `SELECT MONTH(CloseDate) as Month, AVG(Days_to_Close__c) as AvgDays,
+  COUNT(Id) as Deals
+FROM Opportunity
+WHERE CloseDate >= 2025-10-01 AND IsWon = true
+GROUP BY MONTH(CloseDate)`,
+    duration: 167,
+    columns: [
+      { key: 'month', label: 'Month', type: 'string' },
+      { key: 'avgDays', label: 'Avg Days', type: 'number' },
+      { key: 'deals', label: 'Deals', type: 'number' },
+    ],
+    rows: [
+      { month: 'October', avgDays: 38, deals: 256 },
+      { month: 'November', avgDays: 35, deals: 289 },
+      { month: 'December', avgDays: 31, deals: 302 },
+    ],
+  },
+  {
+    id: 'query-8',
+    name: 'Marketing Attribution',
+    description: 'Revenue attributed to marketing campaigns',
+    query: `SELECT Campaign.Name, SUM(Amount) as Revenue, COUNT(Id) as Deals
+FROM Opportunity
+WHERE Campaign != null AND CloseDate >= 2025-10-01 AND IsWon = true
+GROUP BY Campaign.Name
+ORDER BY Revenue DESC`,
+    duration: 412,
+    columns: [
+      { key: 'campaign', label: 'Campaign', type: 'string' },
+      { key: 'revenue', label: 'Revenue', type: 'currency' },
+      { key: 'deals', label: 'Deals', type: 'number' },
+    ],
+    rows: [
+      { campaign: 'Q4 Enterprise Push', revenue: 2400000, deals: 78 },
+      { campaign: 'Product Launch Event', revenue: 1800000, deals: 92 },
+      { campaign: 'Webinar Series', revenue: 1200000, deals: 145 },
+      { campaign: 'Referral Program', revenue: 980000, deals: 67 },
+    ],
+  },
 ];
 
 const mockCalls: CallTranscript[] = [
@@ -661,8 +799,73 @@ const mockCalls: CallTranscript[] = [
     accountName: 'Internal',
     sentiment: 'positive',
     summary:
-      'Reviewed exceptional Q4 performance in West region. Discussed strategies for replicating success in other regions.',
+      'Reviewed exceptional Q4 performance in West region. Discussed strategies for replicating success in other regions. Key driver was faster deal cycles and higher average deal sizes.',
     sourceUrl: 'https://example.com/calls/1',
+  },
+  {
+    id: 'call-2',
+    title: 'Enterprise Deal Review - TechCorp',
+    date: '2026-01-08',
+    duration: '32 min',
+    timeRange: '2:00 PM - 2:32 PM',
+    participants: ['Marcus Johnson', 'Deal Desk'],
+    accountName: 'TechCorp Inc',
+    sentiment: 'positive',
+    summary:
+      'Closed $450K enterprise deal after 3-month negotiation. Customer cited product reliability and support quality as deciding factors over Competitor A.',
+    sourceUrl: 'https://example.com/calls/2',
+  },
+  {
+    id: 'call-3',
+    title: 'Lost Deal Analysis - GlobalBank',
+    date: '2026-01-05',
+    duration: '28 min',
+    timeRange: '11:00 AM - 11:28 AM',
+    participants: ['Emily Rodriguez', 'Sales Manager'],
+    accountName: 'GlobalBank',
+    sentiment: 'negative',
+    summary:
+      'Post-mortem on lost $320K deal. Customer went with Competitor B due to existing integration with their tech stack. Need to strengthen partnership ecosystem.',
+    sourceUrl: 'https://example.com/calls/3',
+  },
+  {
+    id: 'call-4',
+    title: 'Mid-Market Strategy Session',
+    date: '2026-01-03',
+    duration: '55 min',
+    timeRange: '3:00 PM - 3:55 PM',
+    participants: ['David Kim', 'Product Team', 'Sales Ops'],
+    accountName: 'Internal',
+    sentiment: 'neutral',
+    summary:
+      'Addressed 8% decline in mid-market segment. Identified pricing pressure and longer sales cycles as key issues. Proposed new packaging options for Q1.',
+    sourceUrl: 'https://example.com/calls/4',
+  },
+  {
+    id: 'call-5',
+    title: 'Customer Success Review - Acme Corp',
+    date: '2025-12-28',
+    duration: '40 min',
+    timeRange: '9:00 AM - 9:40 AM',
+    participants: ['Jessica Taylor', 'Customer Success'],
+    accountName: 'Acme Corp',
+    sentiment: 'positive',
+    summary:
+      'Upsell opportunity identified. Customer expanded from 50 to 200 seats after successful Q4 pilot. Potential $180K expansion in Q1.',
+    sourceUrl: 'https://example.com/calls/5',
+  },
+  {
+    id: 'call-6',
+    title: 'Competitive Intelligence Briefing',
+    date: '2025-12-20',
+    duration: '35 min',
+    timeRange: '4:00 PM - 4:35 PM',
+    participants: ['Sales Team', 'Product Marketing'],
+    accountName: 'Internal',
+    sentiment: 'neutral',
+    summary:
+      'Competitor A launched new feature set. Our win rate against them improved to 72% in Q4 due to our faster implementation time and better ROI story.',
+    sourceUrl: 'https://example.com/calls/6',
   },
 ];
 
@@ -705,6 +908,91 @@ const SuccessToast: React.FC<ToastProps> = ({ message, onDismiss }) => {
           ×
         </button>
       </div>
+    </motion.div>
+  );
+};
+
+// ============================================================================
+// Ask Von Popover Component (for text selection)
+// ============================================================================
+
+interface AskVonPopoverProps {
+  position: { x: number; y: number };
+  onAskVon: () => void;
+  onClose: () => void;
+}
+
+const AskVonPopover: React.FC<AskVonPopoverProps> = ({ position, onAskVon, onClose }) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <motion.div
+      ref={popoverRef}
+      initial={{ opacity: 0, scale: 0.95, y: 4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: 4 }}
+      transition={{ duration: 0.1 }}
+      className="fixed z-[100] flex items-center gap-1.5 bg-gray-900 text-white rounded-lg shadow-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-800 transition-colors"
+      style={{
+        left: position.x,
+        top: position.y,
+        transform: 'translateX(-50%)',
+      }}
+      onClick={onAskVon}
+    >
+      {/* Small Von Logo */}
+      <svg
+        width={16}
+        height={16}
+        viewBox="0 0 28 28"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="14" cy="14" r="14" fill="url(#paint0_radial_von_popover)" />
+        <path
+          d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+          stroke="white"
+          strokeWidth="1.33"
+        />
+        <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+        <defs>
+          <radialGradient
+            id="paint0_radial_von_popover"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
+          >
+            <stop stopColor="#FFF3EB" />
+            <stop offset="0.26" stopColor="#FF9042" />
+            <stop offset="1" stopColor="#854FFF" />
+          </radialGradient>
+        </defs>
+      </svg>
+      <span className="text-[12px] font-medium whitespace-nowrap">Ask Von</span>
     </motion.div>
   );
 };
@@ -764,25 +1052,18 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ initials, size = 24 }) => (
 );
 
 // ============================================================================
-// Step Icon Component (matches Dashboard V2)
+// Step Icon Component (indigo indicator circle)
 // ============================================================================
 
-const StepIcon: React.FC<{ icon?: string; status: string }> = ({ icon, status }) => {
-  const iconClass = status === 'in-progress' ? 'text-indigo-600' : 'text-gray-500';
-  const size = 16;
-
-  switch (icon) {
-    case 'salesforce':
-      return <CloudIcon size={size} weight="regular" className={iconClass} />;
-    case 'database':
-      return <DatabaseIcon size={size} weight="regular" className={iconClass} />;
-    case 'chart':
-      return <ChartBarIcon size={size} weight="regular" className={iconClass} />;
-    case 'table':
-      return <TableIcon size={size} weight="regular" className={iconClass} />;
-    default:
-      return <DatabaseIcon size={size} weight="regular" className={iconClass} />;
+const StepIcon: React.FC<{ icon?: string; status: string }> = ({ status }) => {
+  if (status === 'in-progress') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
   }
+  if (status === 'complete') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
+  }
+  // pending
+  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
 };
 
 // ============================================================================
@@ -832,6 +1113,7 @@ interface DeepResearchThinkingBlockProps {
   elapsedTime?: number;
   title?: string;
   showProgressBar?: boolean;
+  defaultCollapsed?: boolean;
 }
 
 const DeepResearchThinkingBlock: React.FC<DeepResearchThinkingBlockProps> = ({
@@ -842,8 +1124,9 @@ const DeepResearchThinkingBlock: React.FC<DeepResearchThinkingBlockProps> = ({
   elapsedTime = 0,
   title = 'Thinking',
   showProgressBar = true,
+  defaultCollapsed = false,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const prevAllCompleteRef = useRef(false);
   const visibleSteps = steps.filter((s) => s.status !== 'pending');
   const completedCount = steps.filter((s) => s.status === 'complete').length;
@@ -1064,6 +1347,7 @@ interface ReportCardProps {
   content: string;
   onExpand: () => void;
   onConvertToDashboard: () => void;
+  onDownload?: () => void;
   showActions?: boolean;
 }
 
@@ -1072,6 +1356,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
   content,
   onExpand,
   onConvertToDashboard,
+  onDownload,
   showActions = true,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -1088,23 +1373,26 @@ const ReportCard: React.FC<ReportCardProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleDownload = () => {
+    onDownload?.();
+    // Placeholder for PDF download functionality
+    console.log('Download PDF clicked');
+  };
+
   return (
-    <div
-      className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors cursor-pointer"
-      onClick={onExpand}
-    >
+    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors">
       {/* Header */}
       <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg font-medium text-gray-900">{title}</span>
         </div>
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1">
           <button
             onClick={onExpand}
             className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
             title="Expand"
           >
-            <ArrowSquareOutIcon size={16} />
+            <ArrowsOutIcon size={16} />
           </button>
           {showActions && (
             <div className="relative" ref={menuRef}>
@@ -1133,6 +1421,16 @@ const ReportCard: React.FC<ReportCardProps> = ({
                       <GridFourIcon size={14} className="text-gray-700" />
                       Convert to Dashboard
                     </button>
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleDownload();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                    >
+                      <DownloadSimpleIcon size={14} className="text-gray-700" />
+                      Download PDF
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1141,8 +1439,8 @@ const ReportCard: React.FC<ReportCardProps> = ({
         </div>
       </div>
 
-      {/* Content preview - show markdown content, 35-40vh height */}
-      <div className="px-3 py-3 min-h-[35vh] max-h-[40vh] overflow-hidden">
+      {/* Content preview - scrollable */}
+      <div className="px-4 py-3 min-h-[35vh] max-h-[40vh] overflow-y-auto">
         <div className="prose prose-sm max-w-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
             {content}
@@ -1197,6 +1495,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
           <h2 className="text-lg font-medium text-gray-900">{title}</h2>
           <div className="flex items-center gap-2">
             <PrimaryButton onClick={onConvertToDashboard}>Convert to Dashboard</PrimaryButton>
+            <button
+              onClick={() => console.log('Download PDF clicked')}
+              className="p-2 text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded-lg transition-colors cursor-pointer"
+              title="Download PDF"
+            >
+              <DownloadSimpleIcon size={16} />
+            </button>
             <button
               onClick={onClose}
               className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
@@ -1475,6 +1780,7 @@ interface DeepResearchChatViewProps {
   onExpandReport: () => void;
   onConvertToDashboard: () => void;
   onSourcesClick?: () => void;
+  onTextSelect?: (text: string) => void;
 }
 
 const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
@@ -1493,8 +1799,15 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
   onExpandReport,
   onConvertToDashboard,
   onSourcesClick,
+  onTextSelect,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [selectionPopover, setSelectionPopover] = useState<{
+    x: number;
+    y: number;
+    text: string;
+  } | null>(null);
 
   useLayoutEffect(() => {
     if (messagesEndRef.current) {
@@ -1502,9 +1815,52 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
     }
   }, [messages, phase]);
 
+  // Handle text selection
+  const handleMouseUp = useCallback(() => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim().length > 0) {
+      const selectedText = selection.toString().trim();
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+
+      // Position popover above the selection
+      setSelectionPopover({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8,
+        text: selectedText,
+      });
+    }
+  }, []);
+
+  // Handle Ask Von click
+  const handleAskVon = useCallback(() => {
+    if (selectionPopover && onTextSelect) {
+      onTextSelect(selectionPopover.text);
+    }
+    setSelectionPopover(null);
+    // Clear selection
+    window.getSelection()?.removeAllRanges();
+  }, [selectionPopover, onTextSelect]);
+
+  // Close popover
+  const handleClosePopover = useCallback(() => {
+    setSelectionPopover(null);
+  }, []);
+
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-4">
-      <div className="max-w-2xl mx-auto space-y-4">
+    <div className="flex-1 overflow-y-auto px-4 py-4" onMouseUp={handleMouseUp}>
+      {/* Ask Von Popover */}
+      <AnimatePresence>
+        {selectionPopover && (
+          <AskVonPopover
+            position={{ x: selectionPopover.x, y: selectionPopover.y }}
+            onAskVon={handleAskVon}
+            onClose={handleClosePopover}
+          />
+        )}
+      </AnimatePresence>
+
+      <div ref={contentRef} className="max-w-2xl mx-auto space-y-4">
         {/* User message */}
         {messages.length > 0 && messages[0].type === 'user' && (
           <div className="flex justify-end gap-2">
@@ -1556,6 +1912,47 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                     </PrimaryButton>
                     <GhostButton onClick={onDeclineFull}>No, this sample is sufficient</GhostButton>
                   </div>
+
+                  {/* Action icons */}
+                  <div className="flex items-center gap-1 pt-3">
+                    <button
+                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                      title="Copy"
+                    >
+                      <CopyIcon size={14} weight="regular" />
+                    </button>
+                    <button
+                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                      title="Download"
+                    >
+                      <DownloadSimpleIcon size={14} weight="regular" />
+                    </button>
+                    <button
+                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                      title="Good response"
+                    >
+                      <ThumbsUpIcon size={14} weight="regular" />
+                    </button>
+                    <button
+                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                      title="Bad response"
+                    >
+                      <ThumbsDownIcon size={14} weight="regular" />
+                    </button>
+                    {onSourcesClick && (
+                      <>
+                        <div className="w-px h-4 bg-gray-200 mx-1" />
+                        <button
+                          onClick={onSourcesClick}
+                          className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                          title="View sources"
+                        >
+                          <FileMagnifyingGlassIcon size={14} weight="regular" />
+                          <span>Sources</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -1583,6 +1980,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                   elapsedTime={sampleElapsedTime}
                   title="Thinking"
                   showProgressBar={false}
+                  defaultCollapsed={true}
                 />
 
                 {/* Sample content - inline without card styling */}
@@ -1597,6 +1995,47 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                   I've generated a sample analysis based on your request. This preview shows the
                   type of insights I can provide. Would you like me to proceed with the full
                   comprehensive research and generate the complete report?
+                </div>
+
+                {/* Action icons for sample message */}
+                <div className="flex items-center gap-1 pt-3">
+                  <button
+                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    title="Copy"
+                  >
+                    <CopyIcon size={14} weight="regular" />
+                  </button>
+                  <button
+                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    title="Download"
+                  >
+                    <DownloadSimpleIcon size={14} weight="regular" />
+                  </button>
+                  <button
+                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    title="Good response"
+                  >
+                    <ThumbsUpIcon size={14} weight="regular" />
+                  </button>
+                  <button
+                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    title="Bad response"
+                  >
+                    <ThumbsDownIcon size={14} weight="regular" />
+                  </button>
+                  {onSourcesClick && (
+                    <>
+                      <div className="w-px h-4 bg-gray-200 mx-1" />
+                      <button
+                        onClick={onSourcesClick}
+                        className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        title="View sources"
+                      >
+                        <FileMagnifyingGlassIcon size={14} weight="regular" />
+                        <span>Sources</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1648,13 +2087,25 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                     {/* Feedback row */}
                     <div className="flex items-center gap-1 pt-1">
                       <button
-                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        title="Copy"
+                      >
+                        <CopyIcon size={14} weight="regular" />
+                      </button>
+                      <button
+                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        title="Download"
+                      >
+                        <DownloadSimpleIcon size={14} weight="regular" />
+                      </button>
+                      <button
+                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                         title="Good response"
                       >
                         <ThumbsUpIcon size={14} weight="regular" />
                       </button>
                       <button
-                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                         title="Bad response"
                       >
                         <ThumbsDownIcon size={14} weight="regular" />
@@ -1664,10 +2115,10 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                           <div className="w-px h-4 bg-gray-200 mx-1" />
                           <button
                             onClick={onSourcesClick}
-                            className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                             title="View sources"
                           >
-                            <GitBranchIcon size={14} weight="regular" />
+                            <FileMagnifyingGlassIcon size={14} weight="regular" />
                             <span>Sources</span>
                           </button>
                         </>
@@ -1766,6 +2217,24 @@ const DeepResearchDemo = () => {
     name: 'Q4 Sales Performance Dashboard',
     id: 'dashboard-q4-performance',
   });
+
+  // Quote reference for chat input (Ask Von feature)
+  const [quoteReference, setQuoteReference] = useState<InputReferenceContext | null>(null);
+
+  // Handle text selection for Ask Von
+  const handleTextSelect = useCallback((selectedText: string) => {
+    setQuoteReference({
+      type: 'quote',
+      name: 'Selected text',
+      id: `quote-${Date.now()}`,
+      content: selectedText,
+    });
+  }, []);
+
+  // Handle removing quote reference
+  const handleRemoveQuoteReference = useCallback(() => {
+    setQuoteReference(null);
+  }, []);
 
   // Timeout refs
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
@@ -2224,6 +2693,7 @@ const DeepResearchDemo = () => {
               onExpandReport={handleExpandReport}
               onConvertToDashboard={handleConvertToDashboard}
               onSourcesClick={() => setShowTransparencyDrawer(true)}
+              onTextSelect={handleTextSelect}
             />
 
             {/* Input area */}
@@ -2236,8 +2706,19 @@ const DeepResearchDemo = () => {
                   console.log('Stop generation clicked');
                 }}
                 agentMode="deep-research"
+                referenceContext={quoteReference || undefined}
+                onRemoveReference={handleRemoveQuoteReference}
               />
             </div>
+
+            {/* Transparency Drawer for conversation view */}
+            <TransparencyDrawer
+              isOpen={showTransparencyDrawer}
+              onClose={() => setShowTransparencyDrawer(false)}
+              queries={mockQueries}
+              calls={mockCalls}
+              title="Sources"
+            />
           </div>
         )}
 

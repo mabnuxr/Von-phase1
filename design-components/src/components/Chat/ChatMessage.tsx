@@ -210,6 +210,11 @@ export interface ChatMessageProps {
    * @default false
    */
   enableDeepLinks?: boolean;
+
+  /**
+   * Callback when sources button is clicked in MessageActions
+   */
+  onSourcesClick?: () => void;
 }
 
 /**
@@ -239,6 +244,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onConvertToDashboard,
   salesforceInstanceUrl,
   enableDeepLinks = false,
+  onSourcesClick,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -513,6 +519,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       messageId={messageId || ''}
                       enableActions={enableActions}
                       onConvertToDashboard={onConvertToDashboard}
+                      onSourcesClick={onSourcesClick}
                     />
                   )}
                 </div>

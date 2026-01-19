@@ -16,6 +16,7 @@ import {
   RobotIcon,
   CaretRightIcon,
   ChartBarIcon,
+  QuotesIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -51,6 +52,8 @@ function getReferenceIcon(type: ReferenceContext['type']) {
       return <Table size={14} weight="regular" className="text-gray-800" />;
     case 'source':
       return <DatabaseIcon size={14} weight="regular" className="text-gray-800" />;
+    case 'quote':
+      return <QuotesIcon size={14} weight="regular" className="text-gray-800" />;
     default:
       return <ChartBar size={14} weight="regular" className="text-gray-800" />;
   }
@@ -75,6 +78,8 @@ function getReferenceLabel(type: ReferenceContext['type']) {
       return 'Table';
     case 'source':
       return 'Reference';
+    case 'quote':
+      return 'Quote';
     default:
       return 'Reference';
   }
@@ -470,19 +475,33 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
         {/* Reference tag - shown above the input when a reference is set */}
         {referenceContext && !activePopover && (
           <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
-            <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
-              <div className="flex items-center gap-1.5">
-                {getReferenceIcon(referenceContext.type)}
-                <span className="text-[13px] text-gray-900">
-                  {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
-                </span>
+            <div
+              className={`bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1 ${
+                referenceContext.type === 'quote' ? 'w-full' : ''
+              }`}
+            >
+              <div
+                className={`flex items-center gap-1.5 ${
+                  referenceContext.type === 'quote' ? 'flex-1 min-w-0' : ''
+                }`}
+              >
+                <span className="flex-shrink-0">{getReferenceIcon(referenceContext.type)}</span>
+                {referenceContext.type === 'quote' ? (
+                  <span className="text-[13px] text-gray-900 truncate min-w-0">
+                    "{referenceContext.content || referenceContext.name}"
+                  </span>
+                ) : (
+                  <span className="text-[13px] text-gray-900">
+                    {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
+                  </span>
+                )}
               </div>
               {onRemoveReference && (
                 <RemoveButton
                   icon={<X size={12} weight="bold" />}
                   onClick={onRemoveReference}
                   title="Remove reference"
-                  className="text-gray-800"
+                  className="text-gray-800 flex-shrink-0"
                 />
               )}
             </div>
@@ -568,6 +587,8 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                     >
                       {isAgentTagHovered ? (
                         <XIcon size={14} weight="bold" className="text-gray-800" />
+                      ) : selectedAgentMode === 'deep-research' ? (
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                       ) : (
                         (() => {
                           const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;

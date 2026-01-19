@@ -14,6 +14,7 @@ import {
   ThumbsDownIcon,
   DotsThreeIcon,
   ChartBarIcon,
+  FileMagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 
 /**
@@ -89,6 +90,11 @@ export interface MessageActionsProps {
    * Optional callback when convert to dashboard is clicked
    */
   onConvertToDashboard?: (messageId: string) => void;
+
+  /**
+   * Optional callback when sources button is clicked
+   */
+  onSourcesClick?: () => void;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -100,6 +106,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   onDislike,
   enableActions = false,
   onConvertToDashboard,
+  onSourcesClick,
 }) => {
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null);
@@ -228,7 +235,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   };
 
   const buttonClass =
-    'p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer';
+    'p-1.5 rounded hover:bg-gray-100 text-gray-700 hover:text-gray-900 transition-colors cursor-pointer';
   const activeButtonClass = 'p-1.5 rounded transition-colors cursor-pointer';
 
   return (
@@ -262,7 +269,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         onClick={handleLike}
         className={
           feedback === 'like'
-            ? `${activeButtonClass} bg-blue-50 text-blue-600 hover:bg-blue-100`
+            ? `${activeButtonClass} bg-indigo-50 text-indigo-600 hover:bg-indigo-100`
             : buttonClass
         }
         title="Like"
@@ -286,6 +293,22 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       >
         <ThumbsDownIcon size={16} weight={feedback === 'dislike' ? 'fill' : 'regular'} />
       </button>
+
+      {/* Vertical separator */}
+      <div className="w-px h-4 bg-gray-200 mx-1" />
+
+      {/* Sources button */}
+      {onSourcesClick && (
+        <button
+          onClick={onSourcesClick}
+          className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-100 text-gray-700 hover:text-gray-900 transition-colors cursor-pointer text-[13px]"
+          title="View sources"
+          aria-label="View sources"
+        >
+          <FileMagnifyingGlassIcon size={16} />
+          <span>Sources</span>
+        </button>
+      )}
 
       {/* More menu - only show when enableActions is true (controlled by feature flag) */}
       {enableActions && (

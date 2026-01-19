@@ -188,6 +188,88 @@ const pieChart: ChartData = {
   ],
 };
 
+// Waterfall chart: Revenue Bridge
+const waterfallChart: ChartData = {
+  id: 'chart-waterfall',
+  title: 'Q1 Revenue Bridge',
+  type: 'waterfall',
+  data: [
+    { name: 'Starting ARR', y: 12500000, color: '#4f46e5' },
+    { name: 'New Business', y: 2100000 },
+    { name: 'Expansion', y: 850000 },
+    { name: 'Subtotal', isIntermediateSum: true, color: '#6366f1' },
+    { name: 'Churn', y: -420000 },
+    { name: 'Contraction', y: -180000 },
+    { name: 'Ending ARR', isSum: true, color: '#4f46e5' },
+  ],
+};
+
+// Combination chart: Forecast vs Actuals (similar to the screenshot)
+const combinationChart: ChartData = {
+  id: 'chart-combination',
+  title: 'AI Projection & Forecast',
+  type: 'combination',
+  data: {
+    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    series: [
+      // Stacked column series for pipeline breakdown
+      {
+        type: 'column',
+        name: 'Closed Won',
+        data: [45000000, 42000000, 48000000, 38000000, 35000000, 32000000, 30000000, 28000000, 26000000, 24000000, 22000000, 20000000],
+        color: '#10b981',
+        stack: 'pipeline',
+      },
+      {
+        type: 'column',
+        name: 'Commit',
+        data: [25000000, 28000000, 22000000, 20000000, 22000000, 24000000, 22000000, 20000000, 18000000, 16000000, 14000000, 12000000],
+        color: '#6ee7b7',
+        stack: 'pipeline',
+      },
+      {
+        type: 'column',
+        name: 'Best Case',
+        data: [35000000, 32000000, 30000000, 25000000, 22000000, 20000000, 18000000, 16000000, 14000000, 12000000, 10000000, 8000000],
+        color: '#a7f3d0',
+        stack: 'pipeline',
+      },
+      {
+        type: 'column',
+        name: 'Pipeline',
+        data: [30000000, 31000000, 29000000, 19000000, 21000000, 22000000, 20000000, 20000000, 26000000, 30000000, 20000000, 18000000],
+        color: '#d1fae5',
+        stack: 'pipeline',
+      },
+      // Line series for forecasts
+      {
+        type: 'spline',
+        name: 'Team Call',
+        data: [75000000, 75000000, 75000000, 75000000, 75000000, 75000000, 75000000, 75000000, 75000000, 75000000, 75000000, 75000000],
+        color: '#3b82f6',
+        dashStyle: 'Solid',
+        marker: { enabled: true, symbol: 'circle', radius: 4 },
+      },
+      {
+        type: 'spline',
+        name: 'AI Projection',
+        data: [69120000, 68500000, 68000000, 67500000, 67000000, 66500000, 66000000, 65500000, 65000000, 64500000, 64000000, 63500000],
+        color: '#06b6d4',
+        dashStyle: 'Dash',
+        marker: { enabled: true, symbol: 'circle', radius: 4 },
+      },
+      {
+        type: 'spline',
+        name: 'Hard Commit',
+        data: [68330000, 67800000, 67200000, 66500000, 65800000, 65000000, 64200000, 63500000, 62800000, 62000000, 61200000, 60500000],
+        color: '#f59e0b',
+        dashStyle: 'Dot',
+        marker: { enabled: true, symbol: 'circle', radius: 4 },
+      },
+    ],
+  },
+};
+
 // AI column value generators
 const aiDealHealthScores = ['Strong', 'At Risk', 'Healthy', 'Needs Attention', 'On Track'];
 const aiNextActions = [
@@ -262,7 +344,12 @@ const dashboardPlan: DashboardPlan = {
   title: 'Deals Closing This Quarter Dashboard',
   description: `I'll create a dashboard showing ${dealsThisQuarter.length} deals totaling $${(totalValue / 1000000).toFixed(2)}M in pipeline value.`,
   kpis: ['Total Pipeline Value', 'Deal Count', 'Average Deal Size'],
-  charts: ['Pipeline by Stage (Bar)', 'Deals by Risk (Pie)'],
+  charts: [
+    'Pipeline by Stage (Bar)',
+    'Deals by Risk (Pie)',
+    'Q1 Revenue Bridge (Waterfall)',
+    'AI Projection & Forecast (Combination)',
+  ],
   table: 'Full Deal Details Table',
 };
 
@@ -964,6 +1051,8 @@ const DashboardV2Demo = () => {
       ...kpiCards.map((k) => k.id),
       barChart.id,
       pieChart.id,
+      waterfallChart.id,
+      combinationChart.id,
       tableData.id,
       textWidgetData.id,
     ];
@@ -999,7 +1088,7 @@ const DashboardV2Demo = () => {
           artifact: {
             type: 'dashboard',
             title: 'Deals Closing This Quarter',
-            description: `Dashboard with ${kpiCards.length} KPI cards, 2 charts, and a data table showing ${dealsThisQuarter.length} deals worth $${(totalValue / 1000000).toFixed(2)}M`,
+            description: `Dashboard with ${kpiCards.length} KPI cards, 4 charts (bar, pie, waterfall, combination), and a data table showing ${dealsThisQuarter.length} deals worth $${(totalValue / 1000000).toFixed(2)}M`,
             items: [
               { label: 'Total Pipeline Value', value: `$${(totalValue / 1000000).toFixed(2)}M` },
               { label: 'Deal Count', value: String(dealsThisQuarter.length) },
@@ -1387,6 +1476,8 @@ const DashboardV2Demo = () => {
               kpiCards={kpiCards}
               barChart={barChart}
               pieChart={pieChart}
+              waterfallChart={waterfallChart}
+              combinationChart={combinationChart}
               table={tableData}
               textWidget={textWidgetData}
               onTextWidgetChange={(content) => console.log('Text widget updated:', content)}
