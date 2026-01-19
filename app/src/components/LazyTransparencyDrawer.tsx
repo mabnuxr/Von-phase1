@@ -166,11 +166,15 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
         const chunkText = String(row.chunk_text || "");
         // Try to extract a clean title (first heading or first line, without === markers)
         const titleMatch = chunkText.match(/^(?:=+\s*)?(.+?)(?:\s*=+)?$/m);
-        const extractedTitle = titleMatch?.[1]?.trim() || chunkText.slice(0, 100);
+        const extractedTitle =
+          titleMatch?.[1]?.trim() || chunkText.slice(0, 100);
 
         const call: CallTranscript = {
           id: String(row.conversation_id || row.id),
-          title: extractedTitle.length > 100 ? extractedTitle.slice(0, 100) + "..." : extractedTitle,
+          title:
+            extractedTitle.length > 100
+              ? extractedTitle.slice(0, 100) + "..."
+              : extractedTitle,
           date: row.start_time_iso
             ? String(row.start_time_iso)
             : new Date((row.start_time as number) * 1000).toISOString(),

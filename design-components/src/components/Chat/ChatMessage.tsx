@@ -270,7 +270,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   stepMessages,
   status,
   errorMessage,
-  conversationId,
   messageId,
   onArtifactClick,
   stoppedByUser,
@@ -283,7 +282,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onTransparencyClick,
   showTransparency = true,
   salesforceInstanceUrl,
-  enableDeepLinks = false,
   // V2 Thinking Process props
   thinkingProcessVersion = 'v1',
   timelineSteps,
