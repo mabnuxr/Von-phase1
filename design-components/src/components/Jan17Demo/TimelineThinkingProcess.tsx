@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { ThinkingDrawer, type ThinkingStepDetail } from './ThinkingDrawer';
 import type { QueryResult } from './TransparencyDrawer';
+import { StepIndicator } from '../TimelineThinkingProcess';
 
 // ============================================================================
 // Types
@@ -167,32 +168,6 @@ const formatElapsedTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}m ${secs}s`;
-};
-
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-const StepIndicator: React.FC<{
-  status: StepStatus;
-}> = ({ status }) => {
-  if (status === 'in-progress') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
-  }
-  if (status === 'complete') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
-  }
-  if (status === 'awaiting-approval') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
-  }
-  if (status === 'warning') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
-  }
-  if (status === 'error') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-red-200" />;
-  }
-  // pending
-  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
 };
 
 // Compact Approval Card for inline use

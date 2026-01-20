@@ -16,7 +16,7 @@ export const StepIndicator = React.memo<StepIndicatorProps>(({ status }) => {
     return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
   }
   if (status === 'complete') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
+    return <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-emerald-200" />;
   }
   if (status === 'awaiting-approval') {
     return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
