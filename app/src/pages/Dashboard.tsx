@@ -172,8 +172,7 @@ const Dashboard = () => {
     isActionsEnabled,
     isDeepLinksEnabled,
     isSidebarV2,
-    isThinkingProcessV2,
-    isChatInputV2,
+    isAgentV2,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -536,11 +535,11 @@ const Dashboard = () => {
   // V2 Pusher channel config - must be memoized to prevent constant effect re-runs
   const v2ChannelConfig = useMemo(
     () => ({
-      conversationId: isThinkingProcessV2 ? currentConversationId : null,
+      conversationId: isAgentV2 ? currentConversationId : null,
       tenantId: user?.tenantId,
       userId: user?.id,
     }),
-    [isThinkingProcessV2, currentConversationId, user?.tenantId, user?.id],
+    [isAgentV2, currentConversationId, user?.tenantId, user?.id],
   );
 
   // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
@@ -576,7 +575,7 @@ const Dashboard = () => {
       });
     }
 
-    if (!isThinkingProcessV2) {
+    if (!isAgentV2) {
       return messages;
     }
 
@@ -631,7 +630,7 @@ const Dashboard = () => {
     });
   }, [
     conversationMessages,
-    isThinkingProcessV2,
+    isAgentV2,
     v2TimelineSteps,
     v2ElapsedTime,
     v2FinalResponse,
@@ -1021,12 +1020,12 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
-                showTransparency={isThinkingProcessV2}
+                showTransparency={isAgentV2}
                 onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
-                thinkingProcessVersion={isThinkingProcessV2 ? "v2" : "v1"}
-                useStandardInput={isChatInputV2}
+                thinkingProcessVersion={isAgentV2 ? "v2" : "v1"}
+                useStandardInput={isAgentV2}
               />
             )}
           </motion.div>
@@ -1044,7 +1043,7 @@ const Dashboard = () => {
         />
 
         {/* Artifact Viewer - renders V1 Pane or V2 Drawer based on thinking process version */}
-        {isThinkingProcessV2 ? (
+        {isAgentV2 ? (
           <SingleArtifactDrawerContainer
             conversationId={currentConversationId}
             drawerState={artifactState}
