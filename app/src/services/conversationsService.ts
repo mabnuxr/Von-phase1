@@ -165,6 +165,21 @@ class ConversationsService {
   }
 
   /**
+   * Fetch multiple artifacts in bulk by their IDs
+   * Used for transparency drawer Calls tab to load all RAG artifacts at once
+   */
+  async getBulkArtifacts(
+    conversationId: string,
+    runId: string,
+    artifactIds: string[],
+  ): Promise<ArtifactResponse[]> {
+    return apiClient.post<ArtifactResponse[]>(
+      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts/bulk`,
+      { artifact_ids: artifactIds },
+    );
+  }
+
+  /**
    * Send stop signal to interrupt streaming
    */
   async stopStreaming(conversationId: string): Promise<{ success: boolean }> {

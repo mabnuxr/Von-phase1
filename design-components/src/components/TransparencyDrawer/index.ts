@@ -1,6 +1,8 @@
 export { TransparencyDrawer, default } from './TransparencyDrawer';
 export type {
   TransparencyDrawerProps,
+  TransparencyDrawerTabProps,
+  TabConfig,
   QueryResult,
   QueryColumn,
   CallTranscript,
@@ -9,7 +11,7 @@ export type {
   QueryTabProps,
   QueryContentProps,
   CallsTabContentProps,
-  TabConfig,
+  DataTabContentProps,
   TabNavigationProps,
   DrawerBackdropProps,
   ArtifactSummary,
@@ -19,13 +21,17 @@ export type {
 // Re-export constants
 export { ROWS_PER_PAGE } from './constants';
 
-// Re-export components for potential external use
+// Re-export components for composition pattern
 export {
   DrawerBackdrop,
   QueryTab,
   QueryContent,
   CallsTabContent,
   TabNavigation,
+  DataTabContent,
+  DataTabShimmer,
+  CallsTabShimmer,
+  CallsTabError,
 } from './components';
 
 // Re-export hooks

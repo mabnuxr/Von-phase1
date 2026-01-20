@@ -236,6 +236,42 @@ export function useLazyTransparencyArtifacts(
 }
 
 /**
+ * Hook for fetching multiple artifacts in bulk
+ *
+ * Used for fetching all RAG artifacts at once for the Calls tab.
+ *
+ * @param conversationId - ID of the conversation
+ * @param runId - Run ID of the message
+ * @param artifactIds - Array of artifact IDs to fetch
+ * @returns React Query result with bulk artifact contents
+ */
+export function useBulkArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+  artifactIds: string[],
+) {
+  return useQuery({
+    queryKey: ["bulk-artifacts", conversationId, runId, artifactIds],
+    queryFn: async () => {
+      if (!conversationId || !runId || artifactIds.length === 0) {
+        return [];
+      }
+      return conversationsService.getBulkArtifacts(
+        conversationId,
+        runId,
+        artifactIds,
+      );
+    },
+    enabled: !!(conversationId && runId && artifactIds.length > 0),
+    staleTime: ARTIFACT_STALE_TIME,
+    gcTime: ARTIFACT_GC_TIME,
+    retry: ARTIFACT_RETRY_COUNT,
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
+  });
+}
+
+/**
  * Type re-exports for convenience
  */
 export type { MessageArtifactsResponse, ArtifactResponse };

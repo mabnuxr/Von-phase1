@@ -174,6 +174,7 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
     [toggleExpanded]
   );
 
+  // Empty state
   if (calls.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-6">
