@@ -1,17 +1,17 @@
-import { useFlags } from 'launchdarkly-react-client-sdk';
+import { useFlags } from "launchdarkly-react-client-sdk";
 
 /**
  * Feature flag keys used in the application
  */
 export const FEATURE_FLAGS = {
-  GOOGLE_CALENDAR_INTEGRATION: 'enableGoogleCalender',
-  EMAIL_CATEGORIZATION: 'enableEmailConfiguration',
-  SLASH_COMMANDS: 'enableSlashCommands',
-  ACTIONS: 'enableDashboards',
-  DEEP_LINKS: 'enableDeepLinks',
-  SIDE_BAR_V2: 'sidebarV2',
-  AGENT_V2: 'agentsV2',
-  USER_MEMORY: 'enableUserMemory',
+  GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
+  EMAIL_CATEGORIZATION: "enableEmailConfiguration",
+  SLASH_COMMANDS: "enableSlashCommands",
+  ACTIONS: "enableDashboards",
+  DEEP_LINKS: "enableDeepLinks",
+  SIDE_BAR_V2: "sidebarV2",
+  AGENT_V2: "agentsV2",
+  USER_MEMORY: "enableUserMemory",
 } as const;
 
 /**
@@ -38,12 +38,14 @@ export function useFeatureFlag() {
     /**
      * Controls whether Google Calendar integration is visible
      */
-    isGoogleCalendarEnabled: flags[FEATURE_FLAGS.GOOGLE_CALENDAR_INTEGRATION] === true,
+    isGoogleCalendarEnabled:
+      flags[FEATURE_FLAGS.GOOGLE_CALENDAR_INTEGRATION] === true,
 
     /**
      * Controls whether Email Categorization tab is visible
      */
-    isEmailCategorizationEnabled: flags[FEATURE_FLAGS.EMAIL_CATEGORIZATION] === true,
+    isEmailCategorizationEnabled:
+      flags[FEATURE_FLAGS.EMAIL_CATEGORIZATION] === true,
 
     /**
      * Controls whether Slash Commands feature is enabled in chat
@@ -97,7 +99,7 @@ export function useFeatureFlag() {
  */
 export function useFeatureFlagValue(
   flagKey: FeatureFlagKey | string,
-  defaultValue: boolean = false
+  defaultValue: boolean = false,
 ): boolean {
   const flags = useFlags();
   return flags[flagKey] ?? defaultValue;
