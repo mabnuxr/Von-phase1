@@ -1,11 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CheckCircleIcon,
-  CaretRightIcon,
-  CaretDownIcon,
-  CaretLeftIcon,
-} from '@phosphor-icons/react';
+import { CaretRightIcon, CaretDownIcon, CaretLeftIcon } from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
 import { useQueryPagination } from '../hooks';
 import { formatValue } from '../utils';
@@ -41,6 +36,9 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
 
   // Check if content is still loading (empty columns/rows with "Loading..." description)
   const isContentLoading = query.columns.length === 0 && query.description?.includes('Loading');
+
+  // Check if there's no data (columns exist but no rows, or no columns at all)
+  const hasNoData = query.rows.length === 0 && !isContentLoading;
 
   // Show shimmer loading state for lazy-loaded content
   if (isContentLoading) {
@@ -105,7 +103,7 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
     <div className="flex flex-col h-full min-h-0">
       {/* SQL Query Section - Collapsible, collapsed by default */}
       {query.query && (
-        <div className="mx-4 mt-4 mb-3 rounded-lg border border-gray-200 overflow-hidden shrink-0 flex flex-col max-h-[40%]">
+        <div className="mx-4 mt-4 rounded-lg border border-gray-200 overflow-hidden shrink-0 flex flex-col max-h-[40%]">
           <button
             onClick={toggleQueryExpanded}
             className="w-full px-3 py-2 bg-gray-50 flex items-center justify-between hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
@@ -142,85 +140,88 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
         </div>
       )}
 
-      {/* Query Info */}
-      <div className="px-4 pb-2 flex items-center gap-2 shrink-0">
-        <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
-        <span className="text-[13px] font-medium text-gray-900">{query.name}</span>
-        {query.description && (
-          <span className="text-[11px] text-gray-500">— {query.description}</span>
-        )}
-      </div>
-
-      {/* Data Table */}
-      <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-gray-50 border-b border-gray-200">
-              {query.columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap bg-gray-50 ${
-                    col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
-                      ? 'text-right'
-                      : ''
-                  }`}
-                >
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {currentRows.map((row, rowIndex) => (
-              <tr
-                key={startIndex + rowIndex}
-                className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
-              >
-                {query.columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={`px-3 py-2 text-[13px] whitespace-nowrap ${
-                      col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
-                        ? 'text-right tabular-nums'
-                        : 'text-left'
-                    } text-gray-700`}
+      {/* Data Table or Empty State */}
+      {hasNoData ? (
+        <div className="flex-1 flex items-center justify-center mx-4 mt-4 border border-gray-200 rounded-lg">
+          <p className="text-sm text-gray-500">No content found</p>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg mt-4">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  {query.columns.map((col) => (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap bg-gray-50 ${
+                        col.type === 'number' ||
+                        col.type === 'currency' ||
+                        col.type === 'percentage'
+                          ? 'text-right'
+                          : ''
+                      }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {currentRows.map((row, rowIndex) => (
+                  <tr
+                    key={startIndex + rowIndex}
+                    className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
                   >
-                    {formatValue(row[col.key], col.type)}
-                  </td>
+                    {query.columns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={`px-3 py-2 text-[13px] whitespace-nowrap ${
+                          col.type === 'number' ||
+                          col.type === 'currency' ||
+                          col.type === 'percentage'
+                            ? 'text-right tabular-nums'
+                            : 'text-left'
+                        } text-gray-700`}
+                      >
+                        {formatValue(row[col.key], col.type)}
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="px-4 py-3 flex items-center justify-between shrink-0">
-        <span className="text-[11px] text-gray-500">
-          Showing {startIndex + 1}–{endIndex} of {totalRows} {totalRows === 1 ? 'row' : 'rows'}
-        </span>
-        {totalPages > 1 && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={goToPrevPage}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <CaretLeftIcon size={14} weight="bold" />
-            </button>
-            <span className="text-[11px] text-gray-600 px-2 tabular-nums">
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={goToNextPage}
-              disabled={currentPage === totalPages}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              <CaretRightIcon size={14} weight="bold" />
-            </button>
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+
+          {/* Pagination Footer */}
+          <div className="px-4 py-3 flex items-center justify-between shrink-0">
+            <span className="text-[11px] text-gray-500">
+              Showing {startIndex + 1}–{endIndex} of {totalRows} {totalRows === 1 ? 'row' : 'rows'}
+            </span>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={goToPrevPage}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <CaretLeftIcon size={14} weight="bold" />
+                </button>
+                <span className="text-[11px] text-gray-600 px-2 tabular-nums">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <CaretRightIcon size={14} weight="bold" />
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 });

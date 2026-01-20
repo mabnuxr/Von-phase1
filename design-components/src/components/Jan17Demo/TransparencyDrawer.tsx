@@ -374,15 +374,7 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
       {Object.entries(grouped).map(([monthYear, monthCalls]) => (
         <div key={monthYear} className="mb-6 last:mb-0">
           {/* Month Header */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {monthYear}
-            </h3>
-            <div className="flex items-center gap-1 text-xs text-gray-400">
-              <PhoneIcon size={12} weight="regular" />
-              <span>{monthCalls.length}</span>
-            </div>
-          </div>
+          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">{monthYear}</h3>
 
           {/* Timeline Items */}
           <div className="relative">

@@ -1,11 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CheckCircleIcon,
-  CaretRightIcon,
-  CaretDownIcon,
-  CaretLeftIcon,
-} from '@phosphor-icons/react';
+import { CaretRightIcon, CaretDownIcon, CaretLeftIcon } from '@phosphor-icons/react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
 import { formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
@@ -15,12 +10,6 @@ import { useArtifactContent } from '../hooks/useArtifactContent';
 // ============================================================================
 
 export interface ArtifactContentViewerProps {
-  /** Unique identifier for the artifact */
-  id: string;
-  /** Display name for the artifact */
-  name: string;
-  /** Optional description */
-  description?: string;
   /** SQL query string (if applicable) */
   query?: string;
   /** Column definitions for the data table */
@@ -114,7 +103,7 @@ function LoadingSkeleton() {
  * - SingleArtifactDrawer (for thinking process steps)
  */
 export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
-  ({ name, description, query, columns, rows, duration, isLoading }) => {
+  ({ query, columns, rows, duration, isLoading }) => {
     const {
       isQueryExpanded,
       toggleQueryExpanded,
@@ -133,14 +122,8 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
       return <LoadingSkeleton />;
     }
 
-    // Show empty state if no columns
-    if (columns.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-6">
-          <p className="text-sm text-gray-500">No data available</p>
-        </div>
-      );
-    }
+    // Check if there's no data
+    const hasNoData = columns.length === 0 || rows.length === 0;
 
     return (
       <div className="flex flex-col h-full min-h-0">
@@ -183,85 +166,89 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
           </div>
         )}
 
-        {/* Query Info */}
-        <div className="px-4 pb-2 flex items-center gap-2 shrink-0">
-          <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
-          <span className="text-[13px] font-medium text-gray-900">{name}</span>
-          {description && <span className="text-[11px] text-gray-500">— {description}</span>}
-        </div>
-
-        {/* Data Table */}
-        <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-gray-50 border-b border-gray-200">
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap bg-gray-50 ${
-                      col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
-                        ? 'text-right'
-                        : ''
-                    }`}
-                  >
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {currentRows.map((row, rowIndex) => (
-                <tr
-                  key={startIndex + rowIndex}
-                  className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`px-3 py-2 text-[13px] whitespace-nowrap ${
-                        col.type === 'number' ||
-                        col.type === 'currency' ||
-                        col.type === 'percentage'
-                          ? 'text-right tabular-nums'
-                          : 'text-left'
-                      } text-gray-700`}
+        {/* Data Table or Empty State */}
+        {hasNoData ? (
+          <div className="flex-1 flex items-center justify-center mx-4 border border-gray-200 rounded-lg">
+            <p className="text-sm text-gray-500">No content found</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    {columns.map((col) => (
+                      <th
+                        key={col.key}
+                        className={`px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap bg-gray-50 ${
+                          col.type === 'number' ||
+                          col.type === 'currency' ||
+                          col.type === 'percentage'
+                            ? 'text-right'
+                            : ''
+                        }`}
+                      >
+                        {col.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentRows.map((row, rowIndex) => (
+                    <tr
+                      key={startIndex + rowIndex}
+                      className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
                     >
-                      {formatValue(row[col.key], col.type)}
-                    </td>
+                      {columns.map((col) => (
+                        <td
+                          key={col.key}
+                          className={`px-3 py-2 text-[13px] whitespace-nowrap ${
+                            col.type === 'number' ||
+                            col.type === 'currency' ||
+                            col.type === 'percentage'
+                              ? 'text-right tabular-nums'
+                              : 'text-left'
+                          } text-gray-700`}
+                        >
+                          {formatValue(row[col.key], col.type)}
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="px-4 py-3 flex items-center justify-between shrink-0">
-          <span className="text-[11px] text-gray-500">
-            Showing {startIndex + 1}–{endIndex} of {totalRows} {totalRows === 1 ? 'row' : 'rows'}
-          </span>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={goToPrevPage}
-                disabled={currentPage === 1}
-                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <CaretLeftIcon size={14} weight="bold" />
-              </button>
-              <span className="text-[11px] text-gray-600 px-2 tabular-nums">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={goToNextPage}
-                disabled={currentPage === totalPages}
-                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <CaretRightIcon size={14} weight="bold" />
-              </button>
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+
+            {/* Pagination Footer */}
+            <div className="px-4 py-3 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-gray-500">
+                Showing {startIndex + 1}–{endIndex} of {totalRows}{' '}
+                {totalRows === 1 ? 'row' : 'rows'}
+              </span>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <CaretLeftIcon size={14} weight="bold" />
+                  </button>
+                  <span className="text-[11px] text-gray-600 px-2 tabular-nums">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <CaretRightIcon size={14} weight="bold" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     );
   }

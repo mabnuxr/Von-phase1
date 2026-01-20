@@ -1,21 +1,9 @@
 import React, { useCallback } from 'react';
-import type { TabNavigationProps, TopLevelTab } from '../types';
+import type { TabNavigationProps } from '../types';
 
-// ============================================================================
-// Component
-// ============================================================================
-
-/**
- * TabNavigation - Top-level tab navigation for drawer
- *
- * Features:
- * - Icon + label + count display
- * - Active/inactive styling
- * - Accessible button-based navigation
- */
 export const TabNavigation = React.memo<TabNavigationProps>(({ tabs, activeTab, onTabChange }) => {
   const handleTabClick = useCallback(
-    (tabId: TopLevelTab) => {
+    (tabId: string) => {
       onTabChange(tabId);
     },
     [onTabChange]

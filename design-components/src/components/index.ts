@@ -259,14 +259,25 @@ export type {
 // ============================================================================
 // TRANSPARENCY DRAWER (Data sources and call recordings)
 // ============================================================================
-export { TransparencyDrawer } from './TransparencyDrawer';
+export {
+  TransparencyDrawer,
+  DataTabContent,
+  DataTabShimmer,
+  CallsTabContent,
+  CallsTabShimmer,
+  CallsTabError,
+} from './TransparencyDrawer';
 export type {
   TransparencyDrawerProps,
+  TransparencyDrawerTabProps,
+  TabConfig as TransparencyTabConfig,
   QueryResult as TransparencyQueryResult,
   QueryColumn,
   CallTranscript,
   SentimentType,
   TopLevelTab,
+  DataTabContentProps,
+  CallsTabContentProps,
 } from './TransparencyDrawer';
 
 // ============================================================================
