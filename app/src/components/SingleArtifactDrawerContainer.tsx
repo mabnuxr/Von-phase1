@@ -19,10 +19,6 @@ import {
 } from "../hooks/useMessageArtifacts";
 import type { ArtifactState } from "../hooks/useArtifactState";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface SingleArtifactDrawerContainerProps {
   /** Conversation ID for fetching artifact */
   conversationId: string | null;
@@ -32,33 +28,7 @@ export interface SingleArtifactDrawerContainerProps {
   onClose: () => void;
 }
 
-// ============================================================================
-// Transformation Utilities
-// ============================================================================
-
-/**
- * Human-readable tool name mapping
- */
-const TOOL_NAME_MAP: Record<string, string> = {
-  execute_sql_query: "SQL Query",
-  execute_conversation_search: "Conversation Search",
-  search_calls: "Call Search",
-  search_emails: "Email Search",
-  get_account_info: "Account Info",
-  get_opportunity_info: "Opportunity Info",
-  get_contact_info: "Contact Info",
-};
-
-/**
- * Get human-readable name for a tool
- */
-function getDisplayName(toolName: string): string {
-  return TOOL_NAME_MAP[toolName] || toolName.replace(/_/g, " ");
-}
-
 interface TransformedArtifact {
-  name: string;
-  description?: string;
   query?: string;
   columns: QueryColumn[];
   rows: Record<string, string | number>[];
@@ -100,8 +70,6 @@ function transformArtifactToDisplayFormat(
     // Check if query execution failed (success explicitly false)
     if (sqlContent.success === false) {
       return {
-        name: getDisplayName(tool_name),
-        description: "Query execution failed",
         query: queryStatement,
         columns: [],
         rows: [],
@@ -118,8 +86,6 @@ function transformArtifactToDisplayFormat(
     // This will show the "No data available" empty state in SingleArtifactDrawer
     if (!rawColumns || !rawRows || rawColumns.length === 0) {
       return {
-        name: getDisplayName(tool_name),
-        description: "0 rows returned",
         query: queryStatement,
         columns: [],
         rows: [],
@@ -149,8 +115,6 @@ function transformArtifactToDisplayFormat(
     });
 
     return {
-      name: getDisplayName(tool_name),
-      description: `${sqlContent.row_count ?? rows.length} rows returned`,
       query: queryStatement,
       columns,
       rows,
@@ -196,8 +160,6 @@ function transformArtifactToDisplayFormat(
     });
 
     return {
-      name: getDisplayName(tool_name),
-      description: `Found ${ragContent.row_count ?? rows.length} conversation chunks`,
       columns,
       rows,
     };
@@ -239,7 +201,6 @@ function transformArtifactToDisplayFormat(
       });
 
       return {
-        name: getDisplayName(tool_name),
         columns,
         rows,
       };
@@ -258,7 +219,6 @@ function transformArtifactToDisplayFormat(
     }));
 
     return {
-      name: getDisplayName(tool_name),
       columns,
       rows,
     };
@@ -304,8 +264,6 @@ export const SingleArtifactDrawerContainer: React.FC<
       isOpen={isOpen}
       onClose={onClose}
       toolName={toolName}
-      name={displayData?.name || toolName}
-      description={displayData?.description}
       query={displayData?.query}
       columns={displayData?.columns || []}
       rows={displayData?.rows || []}

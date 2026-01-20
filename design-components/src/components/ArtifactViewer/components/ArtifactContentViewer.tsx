@@ -10,12 +10,6 @@ import { useArtifactContent } from '../hooks/useArtifactContent';
 // ============================================================================
 
 export interface ArtifactContentViewerProps {
-  /** Unique identifier for the artifact */
-  id: string;
-  /** Display name for the artifact */
-  name: string;
-  /** Optional description */
-  description?: string;
   /** SQL query string (if applicable) */
   query?: string;
   /** Column definitions for the data table */
@@ -109,7 +103,7 @@ function LoadingSkeleton() {
  * - SingleArtifactDrawer (for thinking process steps)
  */
 export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
-  ({ name, description, query, columns, rows, duration, isLoading }) => {
+  ({ query, columns, rows, duration, isLoading }) => {
     const {
       isQueryExpanded,
       toggleQueryExpanded,

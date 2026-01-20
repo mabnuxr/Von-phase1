@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -757,12 +757,15 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
   const filterButtonRef = useRef<HTMLButtonElement>(null);
 
   // Normalize tables - support both single table mode and multi-table mode
-  const normalizedTables: DrilldownTable[] =
-    tables && tables.length > 0
-      ? tables
-      : singleColumns && singleRows
-        ? [{ id: 'main', name: widgetName, columns: singleColumns, rows: singleRows }]
-        : [];
+  const normalizedTables: DrilldownTable[] = useMemo(
+    () =>
+      tables && tables.length > 0
+        ? tables
+        : singleColumns && singleRows
+          ? [{ id: 'main', name: widgetName, columns: singleColumns, rows: singleRows }]
+          : [],
+    [tables, singleColumns, singleRows, widgetName]
+  );
 
   // Set initial active tab
   useEffect(() => {

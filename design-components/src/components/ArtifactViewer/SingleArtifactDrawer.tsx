@@ -16,10 +16,6 @@ export interface SingleArtifactDrawerProps {
   onClose: () => void;
   /** Tool name (used for title) */
   toolName: string;
-  /** Artifact display name */
-  name: string;
-  /** Optional description */
-  description?: string;
   /** SQL query string (if applicable) */
   query?: string;
   /** Column definitions for the data table */
@@ -163,8 +159,6 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
   isOpen,
   onClose,
   toolName,
-  name,
-  description,
   query,
   columns,
   rows,
@@ -218,9 +212,6 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
                   <EmptyState />
                 ) : (
                   <ArtifactContentViewer
-                    id={toolName}
-                    name={name}
-                    description={description}
                     query={query}
                     columns={columns}
                     rows={rows}

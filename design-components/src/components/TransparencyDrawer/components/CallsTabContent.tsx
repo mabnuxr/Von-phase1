@@ -6,7 +6,6 @@ import {
   UsersIcon,
   ArrowSquareOutIcon,
   TableIcon,
-  VideoCameraIcon,
   CaretDownIcon,
 } from '@phosphor-icons/react';
 import type { CallsTabContentProps, CallTranscript } from '../types';
