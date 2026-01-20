@@ -10,9 +10,8 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
-  THINKING_PROCESS_V2: "agentsV2",
+  AGENT_V2: "agentsV2",
   USER_MEMORY: "enableUserMemory",
-  CHAT_INPUT_V2: "chatInputV2",
 } as const;
 
 /**
@@ -73,13 +72,7 @@ export function useFeatureFlag() {
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isThinkingProcessV2: flags[FEATURE_FLAGS.THINKING_PROCESS_V2] === true,
-
-    /**
-     * Controls if we need to show new chat input UI experience
-     */
-    isChatInputV2: flags[FEATURE_FLAGS.CHAT_INPUT_V2],
-
+    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
     /**
      * Controls whether user memory feature is enabled
      * (personal memory segment for each user)

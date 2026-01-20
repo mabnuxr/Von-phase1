@@ -36,7 +36,7 @@ export interface ArtifactState {
  * return (
  *   <>
  *     <Chat onArtifactClick={handleArtifactClick} />
- *     {isThinkingProcessV2 ? (
+ *     {isAgentV2 ? (
  *       <SingleArtifactDrawerContainer
  *         drawerState={artifactState}
  *         onClose={closeArtifact}
