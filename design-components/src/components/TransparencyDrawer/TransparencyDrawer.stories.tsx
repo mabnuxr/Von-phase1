@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { TransparencyDrawer } from './TransparencyDrawer';
-import type { QueryResult, CallTranscript } from './types';
+import { DatabaseIcon, PhoneIcon } from '@phosphor-icons/react';
+import { TransparencyDrawer, DataTabContent, CallsTabContent } from './index';
+import type { QueryResult, CallTranscript, TabConfig } from './types';
 
 const meta = {
   title: 'Components/TransparencyDrawer',
@@ -207,6 +208,21 @@ const sampleCalls: CallTranscript[] = [
   },
 ];
 
+// Helper to create tab configs
+const createDataTabConfig = (queries: QueryResult[]): TabConfig => ({
+  id: 'data',
+  label: 'Data',
+  icon: <DatabaseIcon size={16} weight="duotone" />,
+  count: queries.length,
+});
+
+const createCallsTabConfig = (calls: CallTranscript[]): TabConfig => ({
+  id: 'calls',
+  label: 'Calls',
+  icon: <PhoneIcon size={16} weight="duotone" />,
+  count: calls.length,
+});
+
 // Wrapper component for interactive stories
 const DrawerWrapper = ({
   queries,
@@ -218,6 +234,9 @@ const DrawerWrapper = ({
   title?: string;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
+
+  const hasCalls = calls && calls.length > 0;
+  const hasQueries = queries.length > 0;
 
   return (
     <div style={{ height: '100vh', background: '#f5f5f5', padding: 20 }}>
@@ -234,13 +253,18 @@ const DrawerWrapper = ({
       >
         Open Drawer
       </button>
-      <TransparencyDrawer
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        queries={queries}
-        calls={calls}
-        title={title}
-      />
+      <TransparencyDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} title={title}>
+        {hasQueries && (
+          <TransparencyDrawer.Tab config={createDataTabConfig(queries)}>
+            <DataTabContent queries={queries} />
+          </TransparencyDrawer.Tab>
+        )}
+        {hasCalls && (
+          <TransparencyDrawer.Tab config={createCallsTabConfig(calls)}>
+            <CallsTabContent calls={calls} />
+          </TransparencyDrawer.Tab>
+        )}
+      </TransparencyDrawer>
     </div>
   );
 };
@@ -249,103 +273,143 @@ export const Default: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: sampleQueries,
-    calls: sampleCalls,
     title: 'Data Sources',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
+  render: () => <DrawerWrapper queries={sampleQueries} calls={sampleCalls} title="Data Sources" />,
 };
 
 export const QueriesOnly: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: sampleQueries,
     title: 'Query Results',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} title={args.title} />,
+  render: () => <DrawerWrapper queries={sampleQueries} title="Query Results" />,
 };
 
 export const CallsOnly: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: [],
-    calls: sampleCalls,
     title: 'Call Recordings',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
+  render: () => <DrawerWrapper queries={[]} calls={sampleCalls} title="Call Recordings" />,
 };
 
 export const SingleQuery: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: [sampleQueries[0]],
     title: 'Query Result',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} title={args.title} />,
+  render: () => <DrawerWrapper queries={[sampleQueries[0]]} title="Query Result" />,
 };
 
 export const LargeDataset: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: [
-      {
-        ...sampleQueries[0],
-        rows: Array.from({ length: 50 }, (_, i) => ({
-          name: `Opportunity ${i + 1}`,
-          amount: Math.floor(Math.random() * 200000) + 10000,
-          stage: ['Discovery', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'][
-            Math.floor(Math.random() * 5)
-          ],
-          closeDate: `2024-0${Math.floor(Math.random() * 3) + 1}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-          probability: Math.floor(Math.random() * 100),
-        })),
-      },
-    ],
     title: 'Large Dataset',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} title={args.title} />,
+  render: () => (
+    <DrawerWrapper
+      queries={[
+        {
+          ...sampleQueries[0],
+          rows: Array.from({ length: 50 }, (_, i) => ({
+            name: `Opportunity ${i + 1}`,
+            amount: Math.floor(Math.random() * 200000) + 10000,
+            stage: ['Discovery', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'][
+              Math.floor(Math.random() * 5)
+            ],
+            closeDate: `2024-0${Math.floor(Math.random() * 3) + 1}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+            probability: Math.floor(Math.random() * 100),
+          })),
+        },
+      ]}
+      title="Large Dataset"
+    />
+  ),
 };
 
 export const EmptyState: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: [],
-    calls: [],
     title: 'No Data',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
+  render: () => {
+    const [isOpen, setIsOpen] = useState(true);
+
+    return (
+      <div style={{ height: '100vh', background: '#f5f5f5', padding: 20 }}>
+        <button
+          onClick={() => setIsOpen(true)}
+          style={{
+            padding: '10px 20px',
+            background: '#4f46e5',
+            color: 'white',
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+          }}
+        >
+          Open Drawer
+        </button>
+        <TransparencyDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} title="No Data">
+          <TransparencyDrawer.Tab config={createDataTabConfig([])}>
+            <DataTabContent queries={[]} />
+          </TransparencyDrawer.Tab>
+          <TransparencyDrawer.Tab config={createCallsTabConfig([])}>
+            <CallsTabContent calls={[]} />
+          </TransparencyDrawer.Tab>
+        </TransparencyDrawer>
+      </div>
+    );
+  },
 };
 
 export const MixedSentiments: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: [],
-    calls: [
-      { ...sampleCalls[0], sentiment: 'positive' },
-      { ...sampleCalls[1], sentiment: 'neutral' },
-      { ...sampleCalls[3], sentiment: 'negative' },
-    ],
     title: 'Call Analysis',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} calls={args.calls} title={args.title} />,
+  render: () => (
+    <DrawerWrapper
+      queries={[]}
+      calls={[
+        { ...sampleCalls[0], sentiment: 'positive' },
+        { ...sampleCalls[1], sentiment: 'neutral' },
+        { ...sampleCalls[3], sentiment: 'negative' },
+      ]}
+      title="Call Analysis"
+    />
+  ),
 };
 
 export const WithLongQuery: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: [
-      {
-        id: 'complex-query',
-        name: 'Complex Analytics Query',
-        description: 'Aggregated revenue metrics with multiple joins',
-        query: `SELECT
+    title: 'Complex Query',
+    children: null,
+  },
+  render: () => (
+    <DrawerWrapper
+      queries={[
+        {
+          id: 'complex-query',
+          name: 'Complex Analytics Query',
+          description: 'Aggregated revenue metrics with multiple joins',
+          query: `SELECT
   a.Name AS AccountName,
   a.Industry,
   a.AnnualRevenue,
@@ -360,32 +424,32 @@ GROUP BY a.Id, a.Name, a.Industry, a.AnnualRevenue
 HAVING COUNT(o.Id) > 0
 ORDER BY TotalPipeline DESC
 LIMIT 100`,
-        columns: [
-          { key: 'account', label: 'Account', type: 'string' },
-          { key: 'industry', label: 'Industry', type: 'string' },
-          { key: 'pipeline', label: 'Pipeline', type: 'currency' },
-          { key: 'won', label: 'Won Revenue', type: 'currency' },
-        ],
-        rows: [
-          { account: 'Acme Corp', industry: 'Technology', pipeline: 500000, won: 250000 },
-          { account: 'Global Inc', industry: 'Finance', pipeline: 350000, won: 180000 },
-          { account: 'Tech Solutions', industry: 'Technology', pipeline: 280000, won: 120000 },
-        ],
-        executedAt: new Date(),
-        duration: 1250,
-      },
-    ],
-    title: 'Complex Query',
-  },
-  render: (args) => <DrawerWrapper queries={args.queries} title={args.title} />,
+          columns: [
+            { key: 'account', label: 'Account', type: 'string' },
+            { key: 'industry', label: 'Industry', type: 'string' },
+            { key: 'pipeline', label: 'Pipeline', type: 'currency' },
+            { key: 'won', label: 'Won Revenue', type: 'currency' },
+          ],
+          rows: [
+            { account: 'Acme Corp', industry: 'Technology', pipeline: 500000, won: 250000 },
+            { account: 'Global Inc', industry: 'Finance', pipeline: 350000, won: 180000 },
+            { account: 'Tech Solutions', industry: 'Technology', pipeline: 280000, won: 120000 },
+          ],
+          executedAt: new Date(),
+          duration: 1250,
+        },
+      ]}
+      title="Complex Query"
+    />
+  ),
 };
 
 export const MultipleQueries: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    queries: sampleQueries,
     title: 'Multiple Queries',
+    children: null,
   },
-  render: (args) => <DrawerWrapper queries={args.queries} title={args.title} />,
+  render: () => <DrawerWrapper queries={sampleQueries} title="Multiple Queries" />,
 };

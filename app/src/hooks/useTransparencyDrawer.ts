@@ -105,6 +105,7 @@ function transformArtifactsToCalls(
         title: extractCallTitle(row),
         date: extractCallDate(row),
         sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
+        meetingUrl: row.meeting_url ? String(row.meeting_url) : undefined,
         summary: row.chunk_text ? String(row.chunk_text) : undefined,
       });
     }
@@ -180,14 +181,17 @@ export function useTransparencyDrawer({
     Map<string, ArtifactResponse>
   >(new Map());
 
+  // Fetch RAG artifacts as soon as drawer opens to show proper count in Calls tab
+  const shouldFetchRagArtifacts = isOpen && ragArtifactIds.length > 0;
+
   const {
     data: bulkRagArtifacts,
     isLoading: isCallsLoading,
     error: callsError,
   } = useBulkArtifacts(
-    hasVisitedCallsTab ? conversationId : null,
-    hasVisitedCallsTab ? runId : null,
-    hasVisitedCallsTab ? ragArtifactIds : [],
+    shouldFetchRagArtifacts ? conversationId : null,
+    shouldFetchRagArtifacts ? runId : null,
+    shouldFetchRagArtifacts ? ragArtifactIds : [],
   );
 
   const { data: fetchedArtifact, isLoading: isArtifactLoading } =
@@ -219,6 +223,7 @@ export function useTransparencyDrawer({
   useEffect(() => {
     if (!isOpen) {
       setSelectedArtifactId(null);
+      setHasVisitedCallsTab(false);
     }
   }, [isOpen]);
 

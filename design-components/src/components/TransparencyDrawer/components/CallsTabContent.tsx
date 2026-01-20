@@ -6,15 +6,13 @@ import {
   UsersIcon,
   ArrowSquareOutIcon,
   TableIcon,
+  VideoCameraIcon,
+  CaretDownIcon,
 } from '@phosphor-icons/react';
 import type { CallsTabContentProps, CallTranscript } from '../types';
 import { useCallsExpansion } from '../hooks';
 import { groupCallsByMonth, getSentimentIcon, getSentimentLabel } from '../utils';
 import { ChatMarkdown } from '../../Chat/ChatMarkdown';
-
-// ============================================================================
-// Internal Components
-// ============================================================================
 
 interface CallItemProps {
   call: CallTranscript;
@@ -52,23 +50,34 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
       {/* Content */}
       <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
         {/* Header row */}
-        <div className="flex items-center gap-2 mb-1 overflow-hidden">
+        <div className="flex items-center gap-2 overflow-hidden">
           <button
             onClick={onToggle}
-            className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate text-left cursor-pointer hover:text-indigo-600 transition-colors"
+            className="flex items-center gap-1.5 flex-1 min-w-0 group cursor-pointer"
           >
-            {call.title}
+            <CaretDownIcon
+              size={12}
+              weight="bold"
+              className={`text-gray-400 group-hover:text-indigo-600 flex-shrink-0 transition-transform duration-150 ${
+                isExpanded ? 'rotate-0' : '-rotate-90'
+              }`}
+            />
+            <span className="text-sm font-medium text-gray-900 min-w-0 truncate text-left group-hover:text-indigo-600 transition-colors">
+              {call.title}
+            </span>
+            {call.meetingUrl && (
+              <a
+                href={call.meetingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="ml-1 text-gray-500 hover:text-indigo-600 flex-shrink-0 transition-colors"
+                title="Open meeting"
+              >
+                <ArrowSquareOutIcon size={16} weight="bold" />
+              </a>
+            )}
           </button>
-          {call.sourceUrl && (
-            <a
-              href={call.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-indigo-600 flex-shrink-0 transition-colors"
-            >
-              <ArrowSquareOutIcon size={14} />
-            </a>
-          )}
           <span className="text-xs text-gray-500 flex-shrink-0">
             {new Date(call.date).toLocaleDateString('en-US', {
               month: 'short',
@@ -189,15 +198,9 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
       {Object.entries(grouped).map(([monthYear, monthCalls]) => (
         <div key={monthYear} className="mb-6 last:mb-0">
           {/* Month Header */}
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-              {monthYear}
-            </h3>
-            <div className="flex items-center gap-1 text-xs text-gray-400">
-              <PhoneIcon size={12} weight="regular" />
-              <span>{monthCalls.length}</span>
-            </div>
-          </div>
+          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+            {monthYear}
+          </h3>
 
           {/* Timeline Items */}
           <div className="relative">

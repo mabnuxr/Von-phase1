@@ -198,14 +198,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
                   <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50">
                     <DatabaseIcon size={18} weight="duotone" className="text-indigo-600" />
                   </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900">{displayTitle}</h2>
-                    {!isLoading && !error && hasData && (
-                      <p className="text-xs text-gray-500">
-                        {rows.length} {rows.length === 1 ? 'row' : 'rows'}
-                      </p>
-                    )}
-                  </div>
+                  <h2 className="text-base font-semibold text-gray-900">{displayTitle}</h2>
                 </div>
                 <button
                   onClick={onClose}

@@ -57,10 +57,6 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
     [tabs, activeTabId]
   );
 
-  const totalCounts = useMemo(() => {
-    return tabs.map((tab) => `${tab.config.count} ${tab.config.label.toLowerCase()}`).join(', ');
-  }, [tabs]);
-
   const activeTabIndex = useMemo(
     () => tabs.findIndex((tab) => tab.config.id === activeTabId),
     [tabs, activeTabId]
@@ -85,10 +81,7 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
                   <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50">
                     <DatabaseIcon size={18} weight="duotone" className="text-indigo-600" />
                   </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900">{title}</h2>
-                    <p className="text-xs text-gray-500">{totalCounts}</p>
-                  </div>
+                  <h2 className="text-base font-semibold text-gray-900">{title}</h2>
                 </div>
                 <button
                   onClick={onClose}

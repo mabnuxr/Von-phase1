@@ -25,6 +25,7 @@ export interface CallTranscript {
   timeRange?: string;
   participants?: string[];
   sourceUrl?: string;
+  meetingUrl?: string;
   accountName?: string;
   opportunityName?: string;
   sentiment?: SentimentType;
