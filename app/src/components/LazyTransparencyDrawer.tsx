@@ -4,7 +4,7 @@
  * This component handles only rendering. Business logic is in useTransparencyDrawer hook.
  *
  * Data tab: Shows artifacts where category is NOT "RAG" (and not "e2b")
- * Calls tab: Shows artifacts where category IS "RAG", fetched via bulk API when tab is visited
+ * Calls tab: Shows artifacts where category IS "RAG", fetched via bulk API when drawer opens
  */
 
 import React, { useMemo } from "react";
