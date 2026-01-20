@@ -86,7 +86,9 @@
   position: relative;
 }
 
-.org-context-editor .tiptap-editor-wrapper > div:first-child:not(.tiptap-editor):not(.ProseMirror) {
+.org-context-editor
+  .tiptap-editor-wrapper
+  > div:first-child:not(.tiptap-editor):not(.ProseMirror) {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
