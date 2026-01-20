@@ -7,8 +7,8 @@
  * Calls tab: Shows artifacts where category IS "RAG", fetched via bulk API when tab is visited
  */
 
-import React, { useMemo } from 'react';
-import { DatabaseIcon, PhoneIcon } from '@phosphor-icons/react';
+import React, { useMemo } from "react";
+import { DatabaseIcon, PhoneIcon } from "@phosphor-icons/react";
 import {
   TransparencyDrawer,
   DataTabContent,
@@ -17,9 +17,9 @@ import {
   CallsTabShimmer,
   CallsTabError,
   type TransparencyTabConfig,
-} from '@vonlabs/design-components';
-import { useTransparencyDrawer } from '../hooks/useTransparencyDrawer';
-import type { ArtifactSummary } from '../utils/transformArtifactsToTransparency';
+} from "@vonlabs/design-components";
+import { useTransparencyDrawer } from "../hooks/useTransparencyDrawer";
+import type { ArtifactSummary } from "../utils/transformArtifactsToTransparency";
 
 const DATA_TAB_ICON = <DatabaseIcon size={14} weight="regular" />;
 const CALLS_TAB_ICON = <PhoneIcon size={14} weight="regular" />;
@@ -36,37 +36,38 @@ interface LazyTransparencyDrawerProps {
 export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   isOpen,
   onClose,
-  title = 'Sources',
+  title = "Sources",
   conversationId,
   runId,
   artifactSummaries,
   isListLoading,
 }) => {
-  const { queries, calls, isCallsLoading, callsError, handleQuerySelect } = useTransparencyDrawer({
-    isOpen,
-    conversationId,
-    runId,
-    artifactSummaries,
-  });
+  const { queries, calls, isCallsLoading, callsError, handleQuerySelect } =
+    useTransparencyDrawer({
+      isOpen,
+      conversationId,
+      runId,
+      artifactSummaries,
+    });
 
   const dataTabConfig: TransparencyTabConfig = useMemo(
     () => ({
-      id: 'data',
-      label: 'Data',
+      id: "data",
+      label: "Data",
       icon: DATA_TAB_ICON,
       count: queries.length,
     }),
-    [queries.length]
+    [queries.length],
   );
 
   const callsTabConfig: TransparencyTabConfig = useMemo(
     () => ({
-      id: 'calls',
-      label: 'Calls',
+      id: "calls",
+      label: "Calls",
       icon: CALLS_TAB_ICON,
       count: calls.length,
     }),
-    [calls.length]
+    [calls.length],
   );
 
   return (
