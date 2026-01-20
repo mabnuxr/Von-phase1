@@ -19,7 +19,7 @@ import {
   FileMagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 import { ChatSidebarV4 } from '../../../components/Jan17Demo/ChatSidebarV4';
-import type { SidebarItem, Folder, ItemType } from '../../../components/Jan17Demo/ChatSidebarV4';
+import type { SidebarItem, Folder, ItemType, ItemStatus } from '../../../components/Jan17Demo/ChatSidebarV4';
 import { StandardChatInput } from '../../../components/Chat/StandardChatInput';
 import type { ReferenceContext as InputReferenceContext } from '../../../components/Chat/StandardChatInput/types';
 import {
@@ -54,13 +54,28 @@ import { AgentProgressBar } from '../../../components/Jan17Demo/AgentProgressBar
 import type { AgentStatus } from '../../../components/Jan17Demo/AgentProgressBar';
 import { DashboardSharePopover, type ShareConfig } from '../../../components/popups';
 import { opportunities } from '../data/salesData';
-import { PrimaryButton, GhostButton } from '../../../components/forms/buttons';
+import { PrimaryButton } from '../../../components/forms/buttons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MarkdownActionCard } from '../components/chat/MarkdownActionCard';
+import { DeepResearchNotificationBar } from '../components/chat/DeepResearchNotificationBar';
+import { ReportTable } from '../../../components/ReportTable/ReportTable';
+import type { ReportColumn, AIReasoningData } from '../../../components/ReportTable/ReportTable';
+import {
+  topPerformersColumns,
+  topPerformersData,
+  topPerformersAIReasoning,
+  regionalPerformanceColumns,
+  regionalPerformanceData,
+  regionalPerformanceAIReasoning,
+  dealVelocityColumns,
+  dealVelocityData,
+  dealVelocityAIReasoning,
+} from './deepResearchReportData';
 
 // ============================================================================
 // Layout Decorator
-// ============================================================================
+// ========================================= ===================================
 
 const FullLayoutDecorator: Decorator = (Story) => (
   <div
@@ -205,7 +220,24 @@ Based on initial data review, here's a preview of the insights I can provide:
 
 ### Potential Areas of Concern
 - Mid-market segment showing 8% decline
-- Longer sales cycles in healthcare vertical`;
+- Longer sales cycles in healthcare vertical
+
+---
+
+### AI-Enhanced Columns in Full Report
+
+The full analysis will include AI-generated insights for each table:
+
+**Top Performers Table**
+- **Deal Health Score** — Calculate deal health (0-100) based on pipeline velocity, win rate trends, and engagement patterns
+- **Next Best Action** — Recommend the single most impactful action each rep should take this week
+
+**Regional Performance Table**
+- **Q1 Forecast** — Project Q1 revenue based on pipeline, seasonality, and growth trajectory
+- **Risk Level** — Assess risk (Low/Medium/High) based on pipeline coverage and deal concentration
+
+**Deal Velocity Table**
+- **Improvement Potential** — Identify biggest improvement opportunity at each stage based on win/loss analysis`;
 
 // Full comprehensive report
 const fullReportContent = `# Q4 2025 Sales Performance Analysis
@@ -896,7 +928,7 @@ const SuccessToast: React.FC<ToastProps> = ({ message, onDismiss }) => {
       exit={{ opacity: 0, y: -20 }}
       className="fixed top-16 left-1/2 -translate-x-1/2 z-[200]"
     >
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-lg border border-gray-100">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
           <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
         </div>
@@ -1272,7 +1304,7 @@ const DeepResearchThinkingBlock: React.FC<DeepResearchThinkingBlockProps> = ({
 
 const markdownComponents = {
   h1: ({ children }: { children?: React.ReactNode }) => (
-    <h1 className="text-xl font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+    <h1 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
       {children}
     </h1>
   ),
@@ -1349,6 +1381,10 @@ interface ReportCardProps {
   onConvertToDashboard: () => void;
   onDownload?: () => void;
   showActions?: boolean;
+  /** Called when user clicks Edit on a table */
+  onEditTable?: (tableTitle: string) => void;
+  /** Whether to show interactive tables instead of markdown */
+  useInteractiveTables?: boolean;
 }
 
 const ReportCard: React.FC<ReportCardProps> = ({
@@ -1358,6 +1394,8 @@ const ReportCard: React.FC<ReportCardProps> = ({
   onConvertToDashboard,
   onDownload,
   showActions = true,
+  onEditTable,
+  useInteractiveTables = false,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1384,7 +1422,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
       {/* Header */}
       <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg font-medium text-gray-900">{title}</span>
+          <span className="text-sm font-medium text-gray-900">{title}</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -1409,7 +1447,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.1 }}
-                    className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+                    className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-sm border border-gray-100 py-1 z-50"
                   >
                     <button
                       onClick={() => {
@@ -1419,7 +1457,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <GridFourIcon size={14} className="text-gray-700" />
-                      Convert to Dashboard
+                      Build Dashboard
                     </button>
                     <button
                       onClick={() => {
@@ -1441,11 +1479,56 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
       {/* Content preview - scrollable */}
       <div className="px-4 py-3 min-h-[35vh] max-h-[40vh] overflow-y-auto">
-        <div className="prose prose-sm max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
-            {content}
-          </ReactMarkdown>
-        </div>
+        {useInteractiveTables ? (
+          <div className="space-y-6">
+            {/* Executive Summary - markdown */}
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
+                {`## Executive Summary
+
+This comprehensive analysis examines sales performance across all regions and product categories for Q4 2025 (October - December). The quarter demonstrated strong overall growth with total revenue of **$12.8M**, representing a **15.2% increase** over Q4 2024 and **8.3% above target**.`}
+              </ReactMarkdown>
+            </div>
+
+            {/* Top Performers - Interactive Table */}
+            <div>
+              <h3 className="text-[15px] font-medium text-gray-900 mb-3">Top Performers (Q4 2025)</h3>
+              <ReportTable
+                title="Top Performers"
+                columns={topPerformersColumns}
+                data={topPerformersData as unknown as Record<string, unknown>[]}
+                aiReasoningData={topPerformersAIReasoning}
+                showAIIndicators={true}
+                showEditAction={!!onEditTable}
+                onEditTable={onEditTable}
+                pageSize={5}
+                showPagination={false}
+              />
+            </div>
+
+            {/* Regional Performance - Interactive Table */}
+            <div>
+              <h3 className="text-[15px] font-medium text-gray-900 mb-3">Regional Performance</h3>
+              <ReportTable
+                title="Regional Performance"
+                columns={regionalPerformanceColumns}
+                data={regionalPerformanceData as unknown as Record<string, unknown>[]}
+                aiReasoningData={regionalPerformanceAIReasoning}
+                showAIIndicators={true}
+                showEditAction={!!onEditTable}
+                onEditTable={onEditTable}
+                pageSize={5}
+                showPagination={false}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
+              {content}
+            </ReactMarkdown>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1461,6 +1544,10 @@ interface ReportModalProps {
   title: string;
   content: string;
   onConvertToDashboard: () => void;
+  /** Called when user clicks Edit on a table */
+  onEditTable?: (tableTitle: string) => void;
+  /** Whether to show interactive tables instead of markdown */
+  useInteractiveTables?: boolean;
 }
 
 const ReportModal: React.FC<ReportModalProps> = ({
@@ -1469,6 +1556,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
   title,
   content,
   onConvertToDashboard,
+  onEditTable,
+  useInteractiveTables = false,
 }) => {
   if (!isOpen) return null;
 
@@ -1494,7 +1583,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
           <h2 className="text-lg font-medium text-gray-900">{title}</h2>
           <div className="flex items-center gap-2">
-            <PrimaryButton onClick={onConvertToDashboard}>Convert to Dashboard</PrimaryButton>
+            <PrimaryButton onClick={onConvertToDashboard}>Build Dashboard</PrimaryButton>
             <button
               onClick={() => console.log('Download PDF clicked')}
               className="p-2 text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded-lg transition-colors cursor-pointer"
@@ -1513,11 +1602,109 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="prose prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-              {content}
-            </ReactMarkdown>
-          </div>
+          {useInteractiveTables ? (
+            <div className="space-y-8">
+              {/* Executive Summary */}
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {`# Q4 2025 Sales Performance Analysis
+
+## Executive Summary
+
+This comprehensive analysis examines sales performance across all regions and product categories for Q4 2025 (October - December). The quarter demonstrated strong overall growth with total revenue of **$12.8M**, representing a **15.2% increase** over Q4 2024 and **8.3% above target**.
+
+Key findings indicate significant regional disparities, with the West region outperforming all others by a considerable margin. Product mix has shifted notably toward enterprise solutions, while the mid-market segment requires strategic attention.
+
+---`}
+                </ReactMarkdown>
+              </div>
+
+              {/* Top Performers - Interactive Table */}
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Top Performers (Q4 2025)</h2>
+                <ReportTable
+                  title="Top Performers"
+                  columns={topPerformersColumns}
+                  data={topPerformersData as unknown as Record<string, unknown>[]}
+                  aiReasoningData={topPerformersAIReasoning}
+                  showAIIndicators={true}
+                  showEditAction={!!onEditTable}
+                  onEditTable={onEditTable}
+                  pageSize={5}
+                  showPagination={false}
+                />
+              </div>
+
+              {/* Regional Performance - Interactive Table */}
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Regional Performance</h2>
+                <ReportTable
+                  title="Regional Performance"
+                  columns={regionalPerformanceColumns}
+                  data={regionalPerformanceData as unknown as Record<string, unknown>[]}
+                  aiReasoningData={regionalPerformanceAIReasoning}
+                  showAIIndicators={true}
+                  showEditAction={!!onEditTable}
+                  onEditTable={onEditTable}
+                  pageSize={5}
+                  showPagination={false}
+                />
+              </div>
+
+              {/* Deal Velocity - Interactive Table */}
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">Deal Velocity Analysis</h2>
+                <ReportTable
+                  title="Deal Velocity"
+                  columns={dealVelocityColumns}
+                  data={dealVelocityData as unknown as Record<string, unknown>[]}
+                  aiReasoningData={dealVelocityAIReasoning}
+                  showAIIndicators={true}
+                  showEditAction={!!onEditTable}
+                  onEditTable={onEditTable}
+                  pageSize={5}
+                  showPagination={false}
+                />
+              </div>
+
+              {/* Recommendations Section */}
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {`---
+
+## Q1 2026 Strategic Recommendations
+
+### Immediate Actions (January)
+
+1. **Launch Mid-Market Recovery Initiative**
+   - Develop competitive pricing tiers for 100-500 employee companies
+   - Create dedicated mid-market sales team of 3 reps
+   - Target win-back campaign for churned accounts
+
+2. **Accelerate Enterprise Momentum**
+   - Increase enterprise SDR team by 2 headcount
+   - Launch enterprise-only feature preview program
+   - Develop 5 new enterprise case studies
+
+3. **Optimize Sales Enablement**
+   - Implement new onboarding curriculum (target: reduce ramp to 6 months)
+   - Launch weekly competitive intelligence briefings
+   - Deploy AI-powered email sequences
+
+---
+
+*Report generated by Von AI on January 15, 2026*
+*Data reflects sales performance through December 31, 2025*`}
+                </ReactMarkdown>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -1650,8 +1837,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
       >
-        <h2 className="text-3xl text-gray-900">Good afternoon, John</h2>
-        <p className="text-3xl text-gray-600">How can I help you today?</p>
+        <h2 className="text-3xl text-gray-800">Good afternoon, John</h2>
+        <p className="text-3xl text-gray-800">How can I help you today?</p>
       </motion.div>
 
       {/* Chat Input - with Deep Research agent mode pre-selected */}
@@ -1781,6 +1968,9 @@ interface DeepResearchChatViewProps {
   onConvertToDashboard: () => void;
   onSourcesClick?: () => void;
   onTextSelect?: (text: string) => void;
+  onSkipThinking?: () => void;
+  onSkipSampleThinking?: () => void;
+  onEditTable?: (tableTitle: string) => void;
 }
 
 const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
@@ -1800,6 +1990,9 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
   onConvertToDashboard,
   onSourcesClick,
   onTextSelect,
+  onSkipThinking,
+  onSkipSampleThinking,
+  onEditTable,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -1889,71 +2082,35 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                 showProgressBar={false}
               />
 
+              {/* Skip button for demo purposes */}
+              {phase === 'sample-thinking' && onSkipSampleThinking && (
+                <div className="flex justify-start">
+                  <button
+                    onClick={onSkipSampleThinking}
+                    className="text-xs text-gray-500 hover:text-gray-700 hover:underline transition-colors cursor-pointer"
+                  >
+                    Skip to result (demo)
+                  </button>
+                </div>
+              )}
+
               {phase === 'sample-complete' && (
-                <>
-                  {/* Sample content - inline without card styling */}
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                      {sampleAnalysisContent}
-                    </ReactMarkdown>
-                  </div>
+                <MarkdownActionCard
+                  variant="analysis-request"
+                  markdown={`${sampleAnalysisContent}
 
-                  {/* Confirmation prompt */}
-                  <div className="text-[13px] text-gray-700 mt-4">
-                    I've generated a sample analysis based on your request. This preview shows the
-                    type of insights I can provide. Would you like me to proceed with the full
-                    comprehensive research and generate the complete report?
-                  </div>
+---
 
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2 mt-3">
-                    <PrimaryButton onClick={onRunFullAnalysis}>
-                      Yes, run full analysis
-                    </PrimaryButton>
-                    <GhostButton onClick={onDeclineFull}>No, this sample is sufficient</GhostButton>
-                  </div>
-
-                  {/* Action icons */}
-                  <div className="flex items-center gap-1 pt-3">
-                    <button
-                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                      title="Copy"
-                    >
-                      <CopyIcon size={14} weight="regular" />
-                    </button>
-                    <button
-                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                      title="Download"
-                    >
-                      <DownloadSimpleIcon size={14} weight="regular" />
-                    </button>
-                    <button
-                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                      title="Good response"
-                    >
-                      <ThumbsUpIcon size={14} weight="regular" />
-                    </button>
-                    <button
-                      className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                      title="Bad response"
-                    >
-                      <ThumbsDownIcon size={14} weight="regular" />
-                    </button>
-                    {onSourcesClick && (
-                      <>
-                        <div className="w-px h-4 bg-gray-200 mx-1" />
-                        <button
-                          onClick={onSourcesClick}
-                          className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                          title="View sources"
-                        >
-                          <FileMagnifyingGlassIcon size={14} weight="regular" />
-                          <span>Sources</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </>
+I've generated a sample analysis based on your request. This preview shows the type of insights I can provide. Would you like me to proceed with the full comprehensive research and generate the complete report?`}
+                  primaryAction={{
+                    label: 'Run Full Analysis',
+                    onClick: onRunFullAnalysis,
+                  }}
+                  secondaryAction={{
+                    label: 'Skip',
+                    onClick: onDeclineFull,
+                  }}
+                />
               )}
             </div>
           </div>
@@ -2064,6 +2221,18 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                   showProgressBar={true}
                 />
 
+                {/* Skip button for demo purposes */}
+                {phase === 'full-thinking' && onSkipThinking && (
+                  <div className="flex justify-start">
+                    <button
+                      onClick={onSkipThinking}
+                      className="text-xs text-gray-500 hover:text-gray-700 hover:underline transition-colors cursor-pointer"
+                    >
+                      Skip to result (demo)
+                    </button>
+                  </div>
+                )}
+
                 {/* Report complete */}
                 {(phase === 'report-complete' ||
                   phase === 'building-dashboard' ||
@@ -2082,6 +2251,8 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                       onExpand={onExpandReport}
                       onConvertToDashboard={onConvertToDashboard}
                       showActions={phase === 'report-complete'}
+                      onEditTable={onEditTable}
+                      useInteractiveTables={true}
                     />
 
                     {/* Feedback row */}
@@ -2236,6 +2407,33 @@ const DeepResearchDemo = () => {
     setQuoteReference(null);
   }, []);
 
+  // Compute sidebar items with deep research status
+  const sidebarItems = useMemo((): SidebarItem[] => {
+    // Determine the status of the deep research item
+    const getDeepResearchStatus = (): ItemStatus | undefined => {
+      if (phase === 'full-thinking') return 'running';
+      if (phase === 'report-complete' || phase === 'building-dashboard' || phase === 'dashboard-complete') return 'complete';
+      return undefined;
+    };
+
+    const deepResearchStatus = getDeepResearchStatus();
+
+    // Only show deep research item in sidebar once we're past landing/sample phases
+    if (phase !== 'landing' && phase !== 'sample-thinking' && phase !== 'sample-complete') {
+      return [
+        {
+          id: 'deep-research-current',
+          label: 'Q4 Sales Performance Analysis',
+          type: 'chat' as const,
+          status: deepResearchStatus,
+        },
+        ...dummySidebarItems,
+      ];
+    }
+
+    return dummySidebarItems;
+  }, [phase]);
+
   // Timeout refs
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
@@ -2318,9 +2516,9 @@ const DeepResearchDemo = () => {
       setFullElapsedTime((prev) => prev + 1);
     }, 1000);
 
-    // Simulate full research thinking - approximately 60 seconds total
-    // 14 steps, so each step takes about 4.3 seconds
-    const stepDuration = 4300; // ms per step
+    // Simulate full research thinking - approximately 30 seconds total
+    // 14 steps, so each step takes about 2.1 seconds
+    const stepDuration = 2100; // ms per step
     let time = 0;
 
     fullResearchThinkingSteps.forEach((step, idx) => {
@@ -2373,6 +2571,24 @@ const DeepResearchDemo = () => {
     // Could reset to landing or keep sample - for now keep sample
     console.log('User declined full analysis');
   }, []);
+
+  // Handle skip thinking (demo purposes)
+  const handleSkipThinking = useCallback(() => {
+    clearAllTimeouts();
+    // Mark all steps as complete
+    setFullSteps((prev) => prev.map((s) => ({ ...s, status: 'complete' as const })));
+    setFullProgress(100);
+    setPhase('report-complete');
+  }, [clearAllTimeouts]);
+
+  // Handle skip sample thinking (demo purposes)
+  const handleSkipSampleThinking = useCallback(() => {
+    clearAllTimeouts();
+    // Mark all sample steps as complete
+    setSampleSteps((prev) => prev.map((s) => ({ ...s, status: 'complete' as const })));
+    setSampleProgress(100);
+    setPhase('sample-complete');
+  }, [clearAllTimeouts]);
 
   // Handle expand report
   const handleExpandReport = useCallback(() => {
@@ -2482,6 +2698,21 @@ const DeepResearchDemo = () => {
     setIsChatPaneCollapsed(true);
     setChatMessages([]);
   }, [clearAllTimeouts]);
+
+  // Handle edit table (sends table as reference to chat input)
+  const handleEditTable = useCallback((tableTitle: string) => {
+    // Close modal if open
+    setShowReportModal(false);
+    // Set the table as a reference in the chat input
+    setQuoteReference({
+      type: 'table',
+      name: tableTitle,
+      id: `table-${Date.now()}`,
+      content: `Table: ${tableTitle}`,
+    });
+    // Expand chat pane if collapsed
+    setIsChatPaneCollapsed(false);
+  }, []);
 
   // Handle sidebar item click
   const handleSidebarItemClick: (id: string, type: ItemType) => void = (id) => {
@@ -2618,6 +2849,8 @@ const DeepResearchDemo = () => {
             title="Q4 2025 Sales Performance Analysis"
             content={fullReportContent}
             onConvertToDashboard={handleConvertToDashboard}
+            onEditTable={handleEditTable}
+            useInteractiveTables={true}
           />
         )}
       </AnimatePresence>
@@ -2638,7 +2871,7 @@ const DeepResearchDemo = () => {
         }}
       >
         <ChatSidebarV4
-          items={dummySidebarItems}
+          items={sidebarItems}
           folders={folders}
           selectedItemId={selectedSidebarItem}
           isCollapsed={isSidebarCollapsed}
@@ -2694,10 +2927,19 @@ const DeepResearchDemo = () => {
               onConvertToDashboard={handleConvertToDashboard}
               onSourcesClick={() => setShowTransparencyDrawer(true)}
               onTextSelect={handleTextSelect}
+              onSkipThinking={handleSkipThinking}
+              onSkipSampleThinking={handleSkipSampleThinking}
+              onEditTable={handleEditTable}
             />
 
             {/* Input area */}
             <div className="px-4 py-3">
+              <div className="max-w-3xl mx-auto">
+                {/* Deep Research notification bar - shown during long-running research */}
+                <DeepResearchNotificationBar
+                  isVisible={phase === 'full-thinking'}
+                />
+              </div>
               <StandardChatInput
                 placeholder="Ask a follow-up question..."
                 isStreaming={phase === 'sample-thinking' || phase === 'full-thinking'}

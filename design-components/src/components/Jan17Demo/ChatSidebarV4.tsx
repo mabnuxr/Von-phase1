@@ -14,6 +14,7 @@ import {
   PlusIcon,
   CaretUpDownIcon,
   UsersIcon,
+  SpinnerGapIcon,
 } from '@phosphor-icons/react';
 // CaretDownIcon and CaretRightIcon used in FolderSection for expand/collapse
 import { PrimaryButton, AddButton, PrimaryIconButton, TertiaryIconButton } from '../forms/buttons';
@@ -38,6 +39,8 @@ const VON_COMBINATION_MARK_URL =
 export type ItemType = 'chat' | 'dashboard';
 export type OwnershipType = 'mine' | 'shared' | 'shared_by_me';
 
+export type ItemStatus = 'idle' | 'running' | 'complete';
+
 export interface SidebarItem {
   id: string;
   label: string;
@@ -46,6 +49,8 @@ export interface SidebarItem {
   ownership?: OwnershipType;
   ownerName?: string;
   folderId?: string | null;
+  /** Status indicator for the item (e.g., for long-running tasks like deep research) */
+  status?: ItemStatus;
 }
 
 export interface Folder {
@@ -231,7 +236,21 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       title={isEditing ? undefined : item.label}
     >
+      {/* Status indicator - spinning for running, green dot for complete */}
+      {item.status === 'running' && (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="flex-shrink-0"
+        >
+          <SpinnerGapIcon size={14} weight="regular" className="text-indigo-600" />
+        </motion.div>
+      )}
+      {item.status === 'complete' && (
+        <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+      )}
       {showIcon &&
+        !item.status &&
         (item.type === 'dashboard' ? (
           <span
             className="flex-shrink-0"

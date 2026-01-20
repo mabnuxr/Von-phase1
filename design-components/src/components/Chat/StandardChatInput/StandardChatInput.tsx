@@ -449,7 +449,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       case 'build-dashboard':
         return { label: 'Build Dashboard', icon: ChartBarIcon };
       case 'deep-research':
-        return { label: 'Research', icon: AtomIcon };
+        return { label: 'Deep Research', icon: AtomIcon };
     }
   };
 
@@ -579,7 +579,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.15 }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 border border-gray-100 hover:bg-gray-50 text-[13px] font-medium rounded-xl transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 text-[13px] font-medium rounded-xl transition-colors cursor-pointer"
                       onClick={handleCancelAgentMode}
                       onMouseEnter={() => setIsAgentTagHovered(true)}
                       onMouseLeave={() => setIsAgentTagHovered(false)}

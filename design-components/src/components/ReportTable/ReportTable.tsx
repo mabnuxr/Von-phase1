@@ -13,14 +13,7 @@ import {
   type PaginationState,
   type ColumnOrderState,
 } from '@tanstack/react-table';
-import {
-  CaretUp,
-  CaretDown,
-  ArrowSquareOut,
-  CaretLeft,
-  CaretRight,
-  SparkleIcon,
-} from '@phosphor-icons/react';
+import { CaretUp, CaretDown, ArrowSquareOut, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { TertiaryIconButton, SecondaryIconButton } from '../forms/buttons/IconButtons';
 import { LOGO_STATIC_URL } from '../../constants';
 
@@ -58,7 +51,15 @@ export interface ReportColumn {
    */
   isAI?: boolean;
   /**
-   * AI reasoning prompt/description for the column
+   * AI prompt used to generate this column (shown on header click)
+   */
+  aiPrompt?: string;
+  /**
+   * Data sources used for AI column generation
+   */
+  aiDataSources?: string[];
+  /**
+   * AI reasoning prompt/description for the column (deprecated, use aiPrompt)
    */
   aiReasoning?: string;
   /**
@@ -149,6 +150,20 @@ export interface ReportTableProps<TData extends Record<string, unknown>> {
    * @default true
    */
   showAIIndicators?: boolean;
+  /**
+   * Table title (used for edit reference)
+   */
+  title?: string;
+  /**
+   * Called when user clicks "Edit" on the table
+   * Receives the table title as reference
+   */
+  onEditTable?: (tableTitle: string) => void;
+  /**
+   * Whether to show the edit action on hover
+   * @default false
+   */
+  showEditAction?: boolean;
 }
 
 // ============================================================================
@@ -249,6 +264,55 @@ const VonIcon: React.FC<VonIconProps> = ({ size = 14, className = '' }) => {
   );
 };
 
+// AI Star Icon - StarFour shape with Von logo gradient fill
+interface AIStarIconProps {
+  size?: number;
+  className?: string;
+  id?: string;
+}
+
+// StarFour icon with gradient fill matching Von logo colors
+const AIStarIcon: React.FC<AIStarIconProps> = ({
+  size = 10,
+  className = '',
+  id = 'aiStarGradient',
+}) => {
+  return (
+    <div
+      className={`flex items-center justify-center ${className}`}
+      style={{ width: size + 6, height: size + 6 }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 256 256"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <radialGradient
+            id={id}
+            cx="0"
+            cy="0"
+            r="1"
+            gradientUnits="userSpaceOnUse"
+            gradientTransform="translate(200 16) rotate(120.964) scale(280)"
+          >
+            <stop stopColor="#FFF3EB" />
+            <stop offset="0.26" stopColor="#FF9042" />
+            <stop offset="1" stopColor="#854FFF" />
+          </radialGradient>
+        </defs>
+        <path
+          d="M240,128a8,8,0,0,1-8,8H179.31L136,179.31V232a8,8,0,0,1-16,0V179.31L76.69,136H24a8,8,0,0,1,0-16H76.69L120,76.69V24a8,8,0,0,1,16,0V76.69L179.31,120H232A8,8,0,0,1,240,128Z"
+          fill={`url(#${id})`}
+          fillOpacity="0.85"
+        />
+      </svg>
+    </div>
+  );
+};
+
 interface ActionsCellProps<TData extends Record<string, unknown>> {
   row: Row<TData>;
   isHovered: boolean;
@@ -342,10 +406,10 @@ const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
         ref={indicatorRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="ml-1.5 p-0.5 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors cursor-pointer flex-shrink-0"
+        className="ml-1.5 p-0.5 hover:bg-gray-100 rounded transition-colors cursor-pointer flex-shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <SparkleIcon size={12} weight="fill" />
+        <AIStarIcon size={10} id={`aiStar-cell-${Math.random().toString(36).slice(2, 11)}`} />
       </button>
       {showPopover && reasoning && (
         <div
@@ -355,7 +419,7 @@ const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
           onMouseLeave={() => setShowPopover(false)}
         >
           <div className="flex items-center gap-1.5 mb-2">
-            <SparkleIcon size={14} className="text-indigo-600" />
+            <AIStarIcon size={12} id="aiStar-reasoning" />
             <span className="text-[11px] font-medium text-gray-900">AI Reasoning</span>
           </div>
           <p className="text-[12px] text-gray-600 leading-relaxed">{reasoning.reasoning}</p>
@@ -391,6 +455,71 @@ const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
 };
 
 // ============================================================================
+// AI Column Header Popover (click to show prompt)
+// ============================================================================
+
+interface AIColumnHeaderPopoverProps {
+  column: ReportColumn;
+  onClose: () => void;
+  position: { top: number; left: number };
+}
+
+const AIColumnHeaderPopover: React.FC<AIColumnHeaderPopoverProps> = ({
+  column,
+  onClose,
+  position,
+}) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={popoverRef}
+      className="fixed w-72 bg-gray-900 rounded-lg shadow-xl z-[10000] p-3 text-white"
+      style={{ top: position.top, left: Math.min(position.left, window.innerWidth - 300) }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700">
+        <AIStarIcon size={12} id="aiStar-header-popover" />
+        <span className="text-[12px] font-medium">{column.label}</span>
+      </div>
+
+      {/* Prompt section */}
+      <div className="mb-3">
+        <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1.5">Prompt</p>
+        <p className="text-[12px] text-gray-200 leading-relaxed">
+          {column.aiPrompt || column.aiReasoning || 'Generate insights based on available data.'}
+        </p>
+      </div>
+
+      {/* Data Sources section */}
+      {column.aiDataSources && column.aiDataSources.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1.5">Data Sources</p>
+          <div className="flex flex-wrap gap-1">
+            {column.aiDataSources.map((source, idx) => (
+              <span key={idx} className="px-2 py-0.5 text-[11px] bg-gray-800 text-gray-300 rounded">
+                {source}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -408,6 +537,9 @@ export function ReportTable<TData extends Record<string, unknown>>({
   showPagination = true,
   aiReasoningData = {},
   showAIIndicators = true,
+  title,
+  onEditTable,
+  showEditAction = false,
 }: ReportTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -421,7 +553,13 @@ export function ReportTable<TData extends Record<string, unknown>>({
   });
   const [showLeftGradient, setShowLeftGradient] = useState(false);
   const [showRightGradient, setShowRightGradient] = useState(false);
+  const [isTableHovered, setIsTableHovered] = useState(false);
+  const [aiColumnPopover, setAiColumnPopover] = useState<{
+    column: ReportColumn;
+    position: { top: number; left: number };
+  } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const columnHelper = createColumnHelper<TData>();
 
@@ -479,6 +617,22 @@ export function ReportTable<TData extends Record<string, unknown>>({
                     {col.label}
                   </span>
                 </div>
+                {col.isAI && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = (e.target as HTMLElement).getBoundingClientRect();
+                      setAiColumnPopover({
+                        column: col,
+                        position: { top: rect.bottom + 4, left: rect.left },
+                      });
+                    }}
+                    className="p-0.5 hover:bg-gray-100 rounded transition-colors cursor-pointer flex-shrink-0"
+                    title="View AI column details"
+                  >
+                    <AIStarIcon size={10} id={`aiStar-col-${col.id}`} />
+                  </button>
+                )}
               </div>
             ),
             cell: (info) => {
@@ -681,7 +835,59 @@ export function ReportTable<TData extends Record<string, unknown>>({
   const totalPages = table.getPageCount();
 
   return (
-    <div className={`w-full flex flex-col ${className}`}>
+    <div
+      ref={tableContainerRef}
+      className={`w-full flex flex-col ${className}`}
+      onMouseEnter={() => setIsTableHovered(true)}
+      onMouseLeave={() => setIsTableHovered(false)}
+    >
+      {/* Title bar with ask Von action (shown on hover) */}
+      {title && (
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+          <span className="text-[13px] font-medium text-gray-900">{title}</span>
+          {showEditAction && onEditTable && (
+            <button
+              onClick={() => onEditTable(title)}
+              className={`flex items-center gap-1 px-2 py-1.5 bg-gray-900 text-white rounded-xl shadow-sm hover:bg-gray-800 transition-all cursor-pointer ${
+                isTableHovered ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {/* Von Logo */}
+              <svg
+                width={16}
+                height={16}
+                viewBox="0 0 28 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="14" cy="14" r="14" fill="url(#paint0_radial_von_table)" />
+                <path
+                  d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+                  stroke="white"
+                  strokeWidth="1.33"
+                />
+                <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+                <defs>
+                  <radialGradient
+                    id="paint0_radial_von_table"
+                    cx="0"
+                    cy="0"
+                    r="1"
+                    gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
+                  >
+                    <stop stopColor="#FFF3EB" />
+                    <stop offset="0.26" stopColor="#FF9042" />
+                    <stop offset="1" stopColor="#854FFF" />
+                  </radialGradient>
+                </defs>
+              </svg>
+              <span className="text-[12px] font-medium whitespace-nowrap">Ask Von</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="relative flex-1">
         {/* Left scroll gradient */}
         {showLeftGradient && (
@@ -816,6 +1022,15 @@ export function ReportTable<TData extends Record<string, unknown>>({
             />
           </div>
         </div>
+      )}
+
+      {/* AI Column Header Popover */}
+      {aiColumnPopover && (
+        <AIColumnHeaderPopover
+          column={aiColumnPopover.column}
+          position={aiColumnPopover.position}
+          onClose={() => setAiColumnPopover(null)}
+        />
       )}
     </div>
   );

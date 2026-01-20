@@ -5,6 +5,8 @@ import {
   TimelineThinkingProcess,
   type TimelineStep,
 } from '../../../../components/Jan17Demo/TimelineThinkingProcess';
+import { StandardChatInput } from '../../../../components/Chat/StandardChatInput';
+import { DeepResearchNotificationBar } from './DeepResearchNotificationBar';
 
 /**
  * ChatInteractionsDecorator - Wraps stories in a container that mimics the chat area
@@ -558,6 +560,108 @@ export const TimelineThinkingProcessCollapsed: Story = {
         title="Thinking"
         isCollapsed={true}
       />
+    </div>
+  ),
+};
+
+// ============================================================================
+// Deep Research Notification Bar with Chat Input
+// ============================================================================
+
+/**
+ * ChatInputWithNotificationBar - Deep Research Running
+ *
+ * Shows the chat input with a notification bar above it, indicating that
+ * a long-running deep research task is in progress. Users can continue
+ * with other conversations while waiting.
+ */
+export const ChatInputWithNotificationBar: Story = {
+  render: () => (
+    <div className="max-w-3xl mx-auto">
+      <DeepResearchNotificationBar isVisible={true} />
+      <StandardChatInput
+        placeholder="Ask a follow-up question..."
+        agentMode="deep-research"
+        isStreaming={true}
+        onStop={() => console.log('Stop clicked')}
+      />
+    </div>
+  ),
+};
+
+/**
+ * ChatInputWithNotificationBar - Custom Message
+ *
+ * Shows the notification bar with a custom message.
+ */
+export const ChatInputWithCustomNotification: Story = {
+  render: () => (
+    <div className="max-w-3xl mx-auto">
+      <DeepResearchNotificationBar
+        isVisible={true}
+        message="Your analysis is running in the background. We'll notify you when complete."
+      />
+      <StandardChatInput
+        placeholder="Ask something else while you wait..."
+        agentMode="deep-research"
+      />
+    </div>
+  ),
+};
+
+/**
+ * ConversationWithNotificationBar
+ *
+ * Shows a full conversation context with the notification bar,
+ * demonstrating how it appears during an active deep research session.
+ */
+export const ConversationWithNotificationBar: Story = {
+  render: () => (
+    <div className="space-y-4">
+      {/* Previous messages */}
+      <ChatMessage
+        type="user"
+        content="Perform a comprehensive analysis of our Q4 sales performance across all regions"
+        userName="John Doe"
+        userEmail="john@example.com"
+      />
+
+      {/* Thinking process in progress */}
+      <div className="flex gap-2">
+        <div className="flex-shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-200 via-orange-400 to-purple-500 flex items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 28 28" fill="none">
+              <path
+                d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+                stroke="white"
+                strokeWidth="1.33"
+              />
+              <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+            </svg>
+          </div>
+        </div>
+        <div className="flex-1">
+          <TimelineThinkingProcess
+            steps={inProgressThinkingSteps}
+            isThinking={true}
+            elapsedTime={45}
+            title="Deep Research"
+          />
+        </div>
+      </div>
+
+      {/* Chat input with notification bar */}
+      <div className="pt-4 border-t border-gray-100">
+        <div className="max-w-3xl mx-auto">
+          <DeepResearchNotificationBar isVisible={true} />
+          <StandardChatInput
+            placeholder="Ask a follow-up question..."
+            agentMode="deep-research"
+            isStreaming={true}
+            onStop={() => console.log('Stop clicked')}
+          />
+        </div>
+      </div>
     </div>
   ),
 };
