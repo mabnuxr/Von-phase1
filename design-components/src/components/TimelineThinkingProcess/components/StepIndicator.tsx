@@ -22,7 +22,7 @@ export const StepIndicator = React.memo<StepIndicatorProps>(({ status }) => {
     return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
   }
   if (status === 'warning') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
+    return <span className="w-2.5 h-2.5 rounded-full bg-orange-500 border-2 border-orange-200" />;
   }
   if (status === 'error') {
     return <span className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-red-200" />;
