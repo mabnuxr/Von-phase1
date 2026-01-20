@@ -3,27 +3,21 @@
  *
  * Handles:
  * - Artifact filtering by category (Data vs Calls/RAG)
- * - Lazy loading of artifact content
- * - Bulk fetching of RAG artifacts when Calls tab is visited
+ * - Lazy loading of artifact content for Data tab
+ * - Bulk fetching of RAG artifacts when drawer opens
  * - Caching of loaded artifacts
  * - Transformation of artifacts to QueryResults and CallTranscripts
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import type {
-  CallTranscript,
-  TransparencyQueryResult,
-} from "@vonlabs/design-components";
-import {
-  useLazyArtifactContent,
-  useBulkArtifacts,
-} from "./useMessageArtifacts";
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { CallTranscript, TransparencyQueryResult } from '@vonlabs/design-components';
+import { useLazyArtifactContent, useBulkArtifacts } from './useMessageArtifacts';
 import {
   transformSingleArtifact,
   transformSummariesToPlaceholders,
   type ArtifactSummary,
-} from "../utils/transformArtifactsToTransparency";
-import type { ArtifactResponse } from "../services/conversationsService";
+} from '../utils/transformArtifactsToTransparency';
+import type { ArtifactResponse } from '../services/conversationsService';
 
 export interface UseTransparencyDrawerParams {
   isOpen: boolean;
@@ -38,7 +32,6 @@ export interface UseTransparencyDrawerReturn {
   isCallsLoading: boolean;
   callsError: Error | null;
   handleQuerySelect: (queryId: string) => void;
-  handleTabChange: (tabId: string) => void;
 }
 
 const artifactCache = new Map<string, ArtifactResponse>();
@@ -46,17 +39,15 @@ const artifactCache = new Map<string, ArtifactResponse>();
 function extractCallTitle(row: Record<string, unknown>): string {
   if (row.conversation_title) {
     const title = String(row.conversation_title);
-    return title.length > 100 ? title.slice(0, 100) + "..." : title;
+    return title.length > 100 ? title.slice(0, 100) + '...' : title;
   }
 
-  const chunkText = String(row.chunk_text || "");
+  const chunkText = String(row.chunk_text || '');
   const titleMatch = chunkText.match(/^(?:=+\s*)?(.+?)(?:\s*=+)?$/m);
   const extractedTitle = titleMatch?.[1]?.trim() || chunkText.slice(0, 100);
 
-  if (!extractedTitle) return "Untitled Call";
-  return extractedTitle.length > 100
-    ? extractedTitle.slice(0, 100) + "..."
-    : extractedTitle;
+  if (!extractedTitle) return 'Untitled Call';
+  return extractedTitle.length > 100 ? extractedTitle.slice(0, 100) + '...' : extractedTitle;
 }
 
 function extractCallDate(row: Record<string, unknown>): string {
@@ -67,10 +58,7 @@ function extractCallDate(row: Record<string, unknown>): string {
 }
 
 function transformArtifactsToCalls(
-  bulkRagArtifacts:
-    | ArtifactResponse[]
-    | { artifacts?: ArtifactResponse[] }
-    | undefined,
+  bulkRagArtifacts: ArtifactResponse[] | { artifacts?: ArtifactResponse[] } | undefined
 ): CallTranscript[] {
   const artifacts = Array.isArray(bulkRagArtifacts)
     ? bulkRagArtifacts
@@ -93,7 +81,7 @@ function transformArtifactsToCalls(
     if (!content.sample?.rows) continue;
 
     for (const row of content.sample.rows) {
-      if (row.type !== "call") continue;
+      if (row.type !== 'call') continue;
 
       const callId = String(row.conversation_id || row.id);
 
@@ -111,16 +99,14 @@ function transformArtifactsToCalls(
     }
   }
 
-  return allCalls.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return allCalls.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 function transformArtifactsToQueries(
   dataArtifactSummaries: ArtifactSummary[],
   loadedArtifacts: Map<string, ArtifactResponse>,
   selectedArtifactId: string | null,
-  isArtifactLoading: boolean,
+  isArtifactLoading: boolean
 ): TransparencyQueryResult[] {
   if (dataArtifactSummaries.length === 0) {
     return [];
@@ -140,9 +126,9 @@ function transformArtifactsToQueries(
     const placeholder = placeholders[0];
 
     if (summary.artifact_id === selectedArtifactId && isArtifactLoading) {
-      placeholder.description = "Loading...";
+      placeholder.description = 'Loading...';
     } else if (!loadedArtifact) {
-      placeholder.description = "Click to load";
+      placeholder.description = 'Click to load';
     }
 
     return placeholder;
@@ -156,32 +142,24 @@ export function useTransparencyDrawer({
   artifactSummaries,
 }: UseTransparencyDrawerParams): UseTransparencyDrawerReturn {
   const dataArtifactSummaries = useMemo(
-    () =>
-      artifactSummaries.filter(
-        (s) => s.category !== "e2b" && s.category !== "rag",
-      ),
-    [artifactSummaries],
+    () => artifactSummaries.filter((s) => s.category !== 'e2b' && s.category !== 'rag'),
+    [artifactSummaries]
   );
 
   const ragArtifactSummaries = useMemo(
-    () => artifactSummaries.filter((s) => s.category === "rag"),
-    [artifactSummaries],
+    () => artifactSummaries.filter((s) => s.category === 'rag'),
+    [artifactSummaries]
   );
 
   const ragArtifactIds = useMemo(
     () => ragArtifactSummaries.map((s) => s.artifact_id),
-    [ragArtifactSummaries],
+    [ragArtifactSummaries]
   );
 
-  const [hasVisitedCallsTab, setHasVisitedCallsTab] = useState(false);
-  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
-    null,
-  );
-  const [loadedArtifacts, setLoadedArtifacts] = useState<
-    Map<string, ArtifactResponse>
-  >(new Map());
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
+  const [loadedArtifacts, setLoadedArtifacts] = useState<Map<string, ArtifactResponse>>(new Map());
 
-  // Fetch RAG artifacts as soon as drawer opens to show proper count in Calls tab
+  // Fetch RAG artifacts when drawer opens
   const shouldFetchRagArtifacts = isOpen && ragArtifactIds.length > 0;
 
   const {
@@ -191,14 +169,16 @@ export function useTransparencyDrawer({
   } = useBulkArtifacts(
     shouldFetchRagArtifacts ? conversationId : null,
     shouldFetchRagArtifacts ? runId : null,
-    shouldFetchRagArtifacts ? ragArtifactIds : [],
+    shouldFetchRagArtifacts ? ragArtifactIds : []
   );
 
-  const { data: fetchedArtifact, isLoading: isArtifactLoading } =
-    useLazyArtifactContent(conversationId, runId, selectedArtifactId);
+  const { data: fetchedArtifact, isLoading: isArtifactLoading } = useLazyArtifactContent(
+    conversationId,
+    runId,
+    selectedArtifactId
+  );
 
   useEffect(() => {
-    setHasVisitedCallsTab(false);
     setSelectedArtifactId(null);
     setLoadedArtifacts(new Map());
   }, [conversationId, runId]);
@@ -223,7 +203,6 @@ export function useTransparencyDrawer({
   useEffect(() => {
     if (!isOpen) {
       setSelectedArtifactId(null);
-      setHasVisitedCallsTab(false);
     }
   }, [isOpen]);
 
@@ -248,33 +227,16 @@ export function useTransparencyDrawer({
         dataArtifactSummaries,
         loadedArtifacts,
         selectedArtifactId,
-        isArtifactLoading,
+        isArtifactLoading
       ),
-    [
-      dataArtifactSummaries,
-      loadedArtifacts,
-      selectedArtifactId,
-      isArtifactLoading,
-    ],
+    [dataArtifactSummaries, loadedArtifacts, selectedArtifactId, isArtifactLoading]
   );
 
-  const calls = useMemo(
-    () => transformArtifactsToCalls(bulkRagArtifacts),
-    [bulkRagArtifacts],
-  );
+  const calls = useMemo(() => transformArtifactsToCalls(bulkRagArtifacts), [bulkRagArtifacts]);
 
   const handleQuerySelect = useCallback((queryId: string) => {
     setSelectedArtifactId(queryId);
   }, []);
-
-  const handleTabChange = useCallback(
-    (tabId: string) => {
-      if (tabId === "calls" && !hasVisitedCallsTab) {
-        setHasVisitedCallsTab(true);
-      }
-    },
-    [hasVisitedCallsTab],
-  );
 
   return {
     queries,
@@ -282,6 +244,5 @@ export function useTransparencyDrawer({
     isCallsLoading,
     callsError: callsError as Error | null,
     handleQuerySelect,
-    handleTabChange,
   };
 }
