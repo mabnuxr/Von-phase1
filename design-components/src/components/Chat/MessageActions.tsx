@@ -305,11 +305,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         <ThumbsDownIcon size={16} weight={feedback === 'dislike' ? 'fill' : 'regular'} />
       </button>
 
-      <div className="w-px h-4 bg-gray-200 mx-1"></div>
-
       {/* Transparency / Data Sources button */}
       {showTransparency && (
-        <button
+        <>
+          <div className="w-px h-4 bg-gray-200 mx-1"></div>
+          <button
           onClick={handleTransparencyClick}
           className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer text-[13px]"
           title="View sources"
@@ -318,6 +318,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           <FileMagnifyingGlassIcon size={16} />
           <span>Sources</span>
         </button>
+        </>
       )}
 
       {/* More menu - only show when enableActions is true (controlled by feature flag) */}
