@@ -377,11 +377,6 @@ const StepRow: React.FC<StepRowProps> = ({
               {sourceLabel}
             </span>
           )}
-
-          {/* Status indicator */}
-          <span className="flex-shrink-0">
-            <StepIndicator status={step.status} />
-          </span>
         </button>
 
         {/* Expanded content */}
@@ -485,7 +480,6 @@ const CollapsedStepRow: React.FC<{
         <StepIndicator status={step.status} />
       </div>
       <span className="flex-1 text-[12px] text-gray-700 truncate">{step.text}</span>
-      <StepIndicator status={step.status} />
     </button>
   );
 };

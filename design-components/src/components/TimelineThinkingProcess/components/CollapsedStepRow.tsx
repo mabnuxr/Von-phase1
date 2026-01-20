@@ -21,7 +21,6 @@ export const CollapsedStepRow = React.memo<CollapsedStepRowProps>(({ step, onCli
         <StepIndicator status={step.status} />
       </div>
       <span className="flex-1 text-[12px] text-gray-700 truncate">{step.text}</span>
-      <StepIndicator status={step.status} />
     </button>
   );
 });

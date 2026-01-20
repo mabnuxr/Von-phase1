@@ -95,11 +95,6 @@ export const StepRow = React.memo<StepRowProps>(
                 {sourceLabel}
               </span>
             )}
-
-            {/* Status indicator */}
-            <span className="flex-shrink-0">
-              <StepIndicator status={step.status} />
-            </span>
           </button>
 
           {/* Expanded content (description, approval, code, sub-steps, artifacts) */}
