@@ -11,21 +11,14 @@ export type {
   StepRowProps,
   CollapsedStepRowProps,
   CompactApprovalCardProps,
-  StepTypeIconProps,
-  StatusIconProps,
+  StepIndicatorProps,
 } from './types';
 
 // Re-export constants
-export { CONTAINER_HEIGHT, SOURCE_CONFIG, TYPE_CONFIG } from './constants';
+export { CONTAINER_HEIGHT, SOURCE_LABELS } from './constants';
 
 // Re-export components for potential external use
-export {
-  StatusIcon,
-  StepTypeIcon,
-  CompactApprovalCard,
-  StepRow,
-  CollapsedStepRow,
-} from './components';
+export { StepIndicator, CompactApprovalCard, StepRow, CollapsedStepRow } from './components';
 
 // Re-export hooks
 export { useTimelineState } from './hooks';

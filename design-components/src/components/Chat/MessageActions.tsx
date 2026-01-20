@@ -14,7 +14,7 @@ import {
   ThumbsDownIcon,
   DotsThreeIcon,
   ChartBarIcon,
-  GitBranchIcon,
+  FileMagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 
 /**
@@ -307,14 +307,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
 
       {/* Transparency / Data Sources button */}
       {showTransparency && (
-        <button
-          onClick={handleTransparencyClick}
-          className={buttonClass}
-          title="View data sources"
-          aria-label="View data sources"
-        >
-          <GitBranchIcon size={16} />
-        </button>
+        <>
+          <div className="w-px h-4 bg-gray-200 mx-1"></div>
+          <button
+            onClick={handleTransparencyClick}
+            className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer text-[13px]"
+            title="View sources"
+            aria-label="View sources"
+          >
+            <FileMagnifyingGlassIcon size={16} />
+            <span>Sources</span>
+          </button>
+        </>
       )}
 
       {/* More menu - only show when enableActions is true (controlled by feature flag) */}

@@ -228,18 +228,8 @@ export interface CompactApprovalCardProps {
 }
 
 /**
- * Props for StepTypeIcon component
+ * Props for StepIndicator component
  */
-export interface StepTypeIconProps {
-  type?: StepType;
-  source?: SourceType;
+export interface StepIndicatorProps {
   status: StepStatus;
-}
-
-/**
- * Props for StatusIcon component
- */
-export interface StatusIconProps {
-  status: StepStatus;
-  size?: number;
 }

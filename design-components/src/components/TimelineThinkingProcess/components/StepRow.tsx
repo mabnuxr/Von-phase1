@@ -3,9 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
-import { SOURCE_CONFIG } from '../constants';
-import { StatusIcon } from './StatusIcon';
-import { StepTypeIcon } from './StepTypeIcon';
+import { SOURCE_LABELS } from '../constants';
+import { StepIndicator } from './StepIndicator';
 import { CompactApprovalCard } from './CompactApprovalCard';
 
 // ============================================================================
@@ -40,12 +39,11 @@ export const StepRow = React.memo<StepRowProps>(
 
     const isInProgress = step.status === 'in-progress';
     const isComplete = step.status === 'complete';
-    const isAwaitingApproval = step.status === 'awaiting-approval';
 
     // Get source label for tool calls
     const sourceLabel = useMemo(() => {
       if ((step.type === 'tool_call' || step.type === 'approval') && step.source) {
-        return SOURCE_CONFIG[step.source].label;
+        return SOURCE_LABELS[step.source];
       }
       return null;
     }, [step.type, step.source]);
@@ -54,13 +52,8 @@ export const StepRow = React.memo<StepRowProps>(
       <div className="relative flex">
         {/* Timeline connector */}
         <div className="flex flex-col items-center mr-3 flex-shrink-0">
-          <div
-            className={`
-              w-6 h-6 rounded-full flex items-center justify-center
-              ${isInProgress ? 'bg-indigo-50' : isAwaitingApproval ? 'bg-amber-50' : 'bg-gray-50'}
-            `}
-          >
-            <StepTypeIcon type={step.type} source={step.source} status={step.status} />
+          <div className="w-6 h-6 rounded-full flex items-center justify-center">
+            <StepIndicator status={step.status} />
           </div>
           {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
         </div>
@@ -102,11 +95,6 @@ export const StepRow = React.memo<StepRowProps>(
                 {sourceLabel}
               </span>
             )}
-
-            {/* Status icon */}
-            <span className="flex-shrink-0">
-              <StatusIcon status={step.status} size={14} />
-            </span>
           </button>
 
           {/* Expanded content (description, approval, code, sub-steps, artifacts) */}
@@ -159,12 +147,12 @@ export const StepRow = React.memo<StepRowProps>(
                     </div>
                   )}
 
-                  {/* Sub-steps - improved contrast */}
+                  {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
                     <div className="space-y-1.5 mt-1">
                       {step.subSteps.map((subStep) => (
                         <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
-                          <StatusIcon status={subStep.status} size={12} />
+                          <StepIndicator status={subStep.status} />
                           <span
                             className={
                               subStep.status === 'complete' ? 'text-gray-700' : 'text-gray-500'

@@ -5,17 +5,7 @@ import {
   SpinnerGapIcon,
   CaretDownIcon,
   CaretRightIcon,
-  BrainIcon,
-  CodeIcon,
-  WrenchIcon,
   FileTextIcon,
-  CloudIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  SparkleIcon,
-  CalendarIcon,
-  WarningCircleIcon,
-  CircleIcon,
   XCircleIcon,
   BellIcon,
   CheckIcon,
@@ -23,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { ThinkingDrawer, type ThinkingStepDetail } from './ThinkingDrawer';
 import type { QueryResult } from './TransparencyDrawer';
+import { StepIndicator } from '../TimelineThinkingProcess';
 
 // ============================================================================
 // Types
@@ -157,22 +148,13 @@ export interface TimelineThinkingProcessProps {
 
 const CONTAINER_HEIGHT = 320;
 
-const SOURCE_CONFIG: Record<SourceType, { icon: React.ElementType; label: string; color: string }> =
-  {
-    salesforce: { icon: CloudIcon, label: 'Salesforce', color: 'text-blue-600' },
-    gong: { icon: PhoneIcon, label: 'Gong', color: 'text-purple-600' },
-    email: { icon: EnvelopeIcon, label: 'Email', color: 'text-gray-600' },
-    voniq: { icon: SparkleIcon, label: 'VonIQ', color: 'text-teal-600' },
-    calendar: { icon: CalendarIcon, label: 'Calendar', color: 'text-orange-500' },
-    generic: { icon: WrenchIcon, label: 'Tool', color: 'text-gray-600' },
-  };
-
-const TYPE_CONFIG: Record<StepType, { icon: React.ElementType; label: string }> = {
-  reasoning: { icon: BrainIcon, label: 'Thinking' },
-  tool_call: { icon: WrenchIcon, label: 'Tool' },
-  code_execution: { icon: CodeIcon, label: 'Code' },
-  output: { icon: FileTextIcon, label: 'Output' },
-  approval: { icon: CloudIcon, label: 'Approval' },
+const SOURCE_LABELS: Record<SourceType, string> = {
+  salesforce: 'Salesforce',
+  gong: 'Gong',
+  email: 'Email',
+  voniq: 'VonIQ',
+  calendar: 'Calendar',
+  generic: 'Tool',
 };
 
 // ============================================================================
@@ -186,69 +168,6 @@ const formatElapsedTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}m ${secs}s`;
-};
-
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-const StatusIcon: React.FC<{ status: StepStatus; size?: number }> = ({ status, size = 14 }) => {
-  switch (status) {
-    case 'complete':
-      return <CheckCircleIcon size={size} weight="fill" className="text-emerald-600" />;
-    case 'in-progress':
-      return (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <SpinnerGapIcon size={size} weight="regular" className="text-indigo-600" />
-        </motion.div>
-      );
-    case 'awaiting-approval':
-      return <BellIcon size={size} weight="fill" className="text-amber-500" />;
-    case 'warning':
-      return <WarningCircleIcon size={size} weight="fill" className="text-amber-500" />;
-    case 'error':
-      return <XCircleIcon size={size} weight="fill" className="text-red-500" />;
-    case 'pending':
-    default:
-      return <CircleIcon size={size} weight="regular" className="text-gray-300" />;
-  }
-};
-
-const StepTypeIcon: React.FC<{
-  type?: StepType;
-  source?: SourceType;
-  status: StepStatus;
-}> = ({ type = 'reasoning', source, status }) => {
-  // For tool calls and approval, show the source icon
-  if ((type === 'tool_call' || type === 'approval') && source) {
-    const config = SOURCE_CONFIG[source];
-    const Icon = config.icon;
-    return (
-      <Icon
-        size={16}
-        weight="regular"
-        className={
-          status === 'in-progress' || status === 'awaiting-approval'
-            ? config.color
-            : 'text-gray-500'
-        }
-      />
-    );
-  }
-
-  // For other types, show the type icon
-  const config = TYPE_CONFIG[type];
-  const Icon = config.icon;
-  return (
-    <Icon
-      size={16}
-      weight="regular"
-      className={status === 'in-progress' ? 'text-indigo-600' : 'text-gray-500'}
-    />
-  );
 };
 
 // Compact Approval Card for inline use
@@ -375,12 +294,11 @@ const StepRow: React.FC<StepRowProps> = ({
     step.description || step.code || (step.subSteps && step.subSteps.length > 0) || step.approval;
   const isInProgress = step.status === 'in-progress';
   const isComplete = step.status === 'complete';
-  const isAwaitingApproval = step.status === 'awaiting-approval';
 
   // Get source label for tool calls
   const getSourceLabel = () => {
     if ((step.type === 'tool_call' || step.type === 'approval') && step.source) {
-      return SOURCE_CONFIG[step.source].label;
+      return SOURCE_LABELS[step.source];
     }
     return null;
   };
@@ -391,13 +309,8 @@ const StepRow: React.FC<StepRowProps> = ({
     <div className="relative flex">
       {/* Timeline connector */}
       <div className="flex flex-col items-center mr-3 flex-shrink-0">
-        <div
-          className={`
-            w-6 h-6 rounded-full flex items-center justify-center
-            ${isInProgress ? 'bg-indigo-50' : isAwaitingApproval ? 'bg-amber-50' : 'bg-gray-50'}
-          `}
-        >
-          <StepTypeIcon type={step.type} source={step.source} status={step.status} />
+        <div className="w-6 h-6 rounded-full flex items-center justify-center">
+          <StepIndicator status={step.status} />
         </div>
         {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
       </div>
@@ -439,11 +352,6 @@ const StepRow: React.FC<StepRowProps> = ({
               {sourceLabel}
             </span>
           )}
-
-          {/* Status icon */}
-          <span className="flex-shrink-0">
-            <StatusIcon status={step.status} size={14} />
-          </span>
         </button>
 
         {/* Expanded content */}
@@ -496,12 +404,12 @@ const StepRow: React.FC<StepRowProps> = ({
                   </div>
                 )}
 
-                {/* Sub-steps - improved contrast */}
+                {/* Sub-steps */}
                 {step.subSteps && step.subSteps.length > 0 && (
                   <div className="space-y-1.5 mt-1">
                     {step.subSteps.map((subStep) => (
                       <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
-                        <StatusIcon status={subStep.status} size={12} />
+                        <StepIndicator status={subStep.status} />
                         <span
                           className={
                             subStep.status === 'complete' ? 'text-gray-700' : 'text-gray-500'
@@ -543,11 +451,10 @@ const CollapsedStepRow: React.FC<{
       onClick={onClick}
       className="w-full flex items-center gap-2 py-1.5 text-left hover:bg-gray-50 rounded transition-colors cursor-pointer"
     >
-      <div className="w-5 h-5 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
-        <StepTypeIcon type={step.type} source={step.source} status={step.status} />
+      <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0">
+        <StepIndicator status={step.status} />
       </div>
       <span className="flex-1 text-[12px] text-gray-700 truncate">{step.text}</span>
-      <StatusIcon status={step.status} size={12} />
     </button>
   );
 };
@@ -746,9 +653,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
             {/* Title and summary */}
             {allComplete ? (
-              <span className="text-[13px] text-gray-700">
-                {title} · {formatElapsedTime(elapsedTime)}
-              </span>
+              <span className="text-[13px] text-gray-700">{title}</span>
             ) : (
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">{title}</span>
@@ -776,12 +681,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               </motion.div>
             )}
 
-            {/* Elapsed time when in progress */}
-            {!allComplete && (
-              <span className="text-[11px] text-gray-500 tabular-nums">
-                {formatElapsedTime(elapsedTime)}
-              </span>
-            )}
+            {/* Elapsed time - always on far right */}
+            <span className="text-[11px] text-gray-500 tabular-nums">
+              {formatElapsedTime(elapsedTime)}
+            </span>
           </div>
         </button>
 
