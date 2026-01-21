@@ -243,8 +243,8 @@ export const GhostButton: React.FC<GhostButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl
-        hover:bg-gray-200 transition-colors cursor-pointer
+        px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-xl
+        hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${fullWidth ? 'flex-1 w-full' : ''}
         ${className}

@@ -5,13 +5,11 @@ import {
   CheckCircleIcon,
   CaretDownIcon,
   CaretRightIcon,
-  CloudIcon,
-  TableIcon,
-  ChartBarIcon,
-  DatabaseIcon,
-  GitBranchIcon,
+  FileMagnifyingGlassIcon,
   ThumbsUpIcon,
   ThumbsDownIcon,
+  CopyIcon,
+  DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import { PrimaryButton } from '../forms/buttons';
 
@@ -26,6 +24,10 @@ export interface ThinkingStep {
   text: string;
   status: 'pending' | 'in-progress' | 'complete';
   icon?: 'salesforce' | 'database' | 'chart' | 'table';
+  /** Optional subtitle/detail shown below the main text */
+  subtitle?: string;
+  /** Alias for subtitle for compatibility */
+  detail?: string;
 }
 
 export interface DashboardArtifact {
@@ -78,25 +80,19 @@ const formatElapsedTime = (seconds: number): string => {
 };
 
 // ============================================================================
-// Thinking Step Icon
+// Thinking Step Icon (indigo indicator circle - matches DeepResearch style)
 // ============================================================================
 
-const StepIcon: React.FC<{ icon?: string; status: string }> = ({ icon, status }) => {
-  const iconClass = status === 'in-progress' ? 'text-indigo-600' : 'text-gray-500';
-  const size = 16;
-
-  switch (icon) {
-    case 'salesforce':
-      return <CloudIcon size={size} weight="regular" className={iconClass} />;
-    case 'database':
-      return <DatabaseIcon size={size} weight="regular" className={iconClass} />;
-    case 'chart':
-      return <ChartBarIcon size={size} weight="regular" className={iconClass} />;
-    case 'table':
-      return <TableIcon size={size} weight="regular" className={iconClass} />;
-    default:
-      return <DatabaseIcon size={size} weight="regular" className={iconClass} />;
+const StepIcon: React.FC<{ icon?: string; status: string }> = ({ status }) => {
+  // Use indigo indicator circles like DeepResearch
+  if (status === 'in-progress') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
   }
+  if (status === 'complete') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
+  }
+  // pending
+  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
 };
 
 // ============================================================================
@@ -139,12 +135,25 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
   defaultCollapsed = false,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const prevAllCompleteRef = useRef(false);
 
   const completedCount = steps.filter((s) => s.status === 'complete').length;
   const totalCount = steps.length;
   const allComplete = completedCount === totalCount && totalCount > 0 && !isThinking;
 
   const visibleSteps = steps.filter((s) => s.status !== 'pending');
+
+  // Auto-collapse when thinking completes (like DeepResearch)
+  useLayoutEffect(() => {
+    if (allComplete && !prevAllCompleteRef.current) {
+      // Delay collapse slightly so user sees the completion state
+      const timeout = setTimeout(() => {
+        setIsCollapsed(true);
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+    prevAllCompleteRef.current = allComplete;
+  }, [allComplete]);
 
   return (
     <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
@@ -197,7 +206,7 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
         </div>
       </button>
 
-      {/* Steps */}
+      {/* Steps - Timeline style */}
       <AnimatePresence>
         {!isCollapsed && (
           <motion.div
@@ -208,7 +217,7 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
             className="overflow-hidden"
           >
             <div className="border border-gray-100 bg-white rounded-lg">
-              <div className="px-3 py-3 space-y-2">
+              <div className="px-3 py-3 space-y-0">
                 {visibleSteps.map((step, idx) => (
                   <div key={step.id} className="relative flex">
                     {/* Timeline connector */}
@@ -227,18 +236,24 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                     </div>
 
                     {/* Content */}
-                    <div
-                      className={`flex-1 flex items-center justify-between ${idx < visibleSteps.length - 1 ? 'pb-2' : ''}`}
-                    >
-                      <span
-                        className={`
-                          text-[13px]
-                          ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-700'}
-                        `}
-                      >
-                        {step.text}
-                      </span>
-                      <StatusIcon status={step.status} />
+                    <div className={`flex-1 ${idx < visibleSteps.length - 1 ? 'pb-3' : ''}`}>
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`
+                            text-[13px]
+                            ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-700'}
+                          `}
+                        >
+                          {step.text}
+                        </span>
+                        <StatusIcon status={step.status} />
+                      </div>
+                      {/* Subtitle/detail - shown below main text */}
+                      {(step.subtitle || step.detail) && (
+                        <p className="text-[12px] text-gray-500 mt-0.5">
+                          {step.subtitle || step.detail}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -424,17 +439,29 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
       {/* Plan Card with Build Button */}
       {plan && onBuildDashboard && <PlanCard plan={plan} onBuild={onBuildDashboard} />}
 
-      {/* Feedback Row - Thumbs up/down + Sources button */}
+      {/* Action icons row - Copy, Download, Thumbs up/down, Sources */}
       {showFeedbackRow && (
-        <div className="flex items-center gap-1 pt-1">
+        <div className="flex items-center gap-1 pt-3">
           <button
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            title="Copy"
+          >
+            <CopyIcon size={14} weight="regular" />
+          </button>
+          <button
+            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            title="Download"
+          >
+            <DownloadSimpleIcon size={14} weight="regular" />
+          </button>
+          <button
+            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
             title="Good response"
           >
             <ThumbsUpIcon size={14} weight="regular" />
           </button>
           <button
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
             title="Bad response"
           >
             <ThumbsDownIcon size={14} weight="regular" />
@@ -444,10 +471,10 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
               <div className="w-px h-4 bg-gray-200 mx-1" />
               <button
                 onClick={onSourcesClick}
-                className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
                 title="View sources"
               >
-                <GitBranchIcon size={14} weight="regular" />
+                <FileMagnifyingGlassIcon size={14} weight="regular" />
                 <span>Sources</span>
               </button>
             </>
