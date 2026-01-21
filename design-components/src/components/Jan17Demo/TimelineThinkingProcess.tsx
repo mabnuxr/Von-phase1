@@ -165,7 +165,6 @@ const SOURCE_CONFIG: Record<SourceType, { icon: React.ElementType; label: string
     generic: { icon: WrenchIcon, label: 'Tool', color: 'text-gray-600' },
   };
 
-
 // ============================================================================
 // Helper Functions
 // ============================================================================

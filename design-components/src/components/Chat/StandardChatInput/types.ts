@@ -7,13 +7,11 @@ import type { BuildMode } from '../../DashboardBuilder/types';
  */
 export interface ReferenceContext {
   /** Type of reference */
-  type: 'dashboard' | 'report' | 'document' | 'widget' | 'kpi' | 'table' | 'source' | 'quote';
+  type: 'dashboard' | 'report' | 'document';
   /** Display name of the reference */
   name: string;
   /** Unique identifier */
   id: string;
-  /** Full text content for quote references */
-  content?: string;
 }
 
 /**
@@ -198,24 +196,4 @@ export interface StandardChatInputProps {
    * Callback when user submits feedback in the popover
    */
   onPopoverFeedback?: (feedback: string) => void;
-
-  // ============================================================================
-  // Agent Props
-  // ============================================================================
-
-  /**
-   * Callback when Build Dashboard agent is selected from the menu
-   */
-  onBuildDashboard?: () => void;
-
-  /**
-   * Current agent mode - controls which agent tag is shown
-   * @default 'auto'
-   */
-  agentMode?: 'auto' | 'build-dashboard' | 'deep-research';
-
-  /**
-   * Callback when agent mode changes
-   */
-  onAgentModeChange?: (mode: 'auto' | 'build-dashboard' | 'deep-research') => void;
 }

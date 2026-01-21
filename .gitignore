@@ -59,3 +59,5 @@ design-components/node_modules/
 
 # claude.md
 claude.md
+.claude
+app/src/Report-table-spec

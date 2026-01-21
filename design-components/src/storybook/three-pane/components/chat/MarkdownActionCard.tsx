@@ -260,9 +260,7 @@ const CalendarEventRow: React.FC<CalendarEventRowProps> = ({ event, isExpanded, 
                     <ClockIcon size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-xs text-gray-800">{event.startTime}</p>
-                      {event.duration && (
-                        <p className="text-xs text-gray-800">{event.duration}</p>
-                      )}
+                      {event.duration && <p className="text-xs text-gray-800">{event.duration}</p>}
                     </div>
                   </div>
 
@@ -426,7 +424,9 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
       {/* Separator and Action Buttons */}
       <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
         {secondaryAction && (
-          <SecondaryButton onClick={secondaryAction.onClick}>{secondaryAction.label}</SecondaryButton>
+          <SecondaryButton onClick={secondaryAction.onClick}>
+            {secondaryAction.label}
+          </SecondaryButton>
         )}
         <PrimaryButton onClick={primaryAction.onClick}>{primaryAction.label}</PrimaryButton>
       </div>

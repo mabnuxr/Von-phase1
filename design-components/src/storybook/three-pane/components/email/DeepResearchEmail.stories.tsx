@@ -138,8 +138,7 @@ export const RawHTMLTemplate: Story = {
       <div
         style={{
           maxWidth: '800px',
-          fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         }}
       >
         <div

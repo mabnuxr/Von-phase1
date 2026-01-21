@@ -287,8 +287,7 @@ export const regionalPerformanceAIReasoning: Record<string, AIReasoningData> = {
     sources: ['$8.1M pipeline', 'Renewal calendar', 'Upsell opportunities'],
   },
   'q1Forecast-3': {
-    reasoning:
-      'International growth trajectory strong but execution risk in new APAC markets.',
+    reasoning: 'International growth trajectory strong but execution risk in new APAC markets.',
     confidence: 0.76,
     sources: ['$7.8M pipeline', 'APAC ramp plan', 'Currency considerations'],
   },
@@ -299,14 +298,12 @@ export const regionalPerformanceAIReasoning: Record<string, AIReasoningData> = {
     sources: ['Pipeline analysis', 'Deal concentration', 'Team tenure'],
   },
   'riskLevel-1': {
-    reasoning:
-      '2 deals represent 35% of pipeline. Loss of either significantly impacts forecast.',
+    reasoning: '2 deals represent 35% of pipeline. Loss of either significantly impacts forecast.',
     confidence: 0.86,
     sources: ['Deal concentration analysis', 'Competitive intelligence', 'Stage distribution'],
   },
   'riskLevel-2': {
-    reasoning:
-      'Heavy reliance on renewals (72%). New business pipeline below target coverage.',
+    reasoning: 'Heavy reliance on renewals (72%). New business pipeline below target coverage.',
     confidence: 0.84,
     sources: ['Revenue mix', 'Pipeline by source', 'Growth targets'],
   },

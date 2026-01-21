@@ -32,6 +32,7 @@ export type {
   CallTranscript,
   SentimentType,
   TopLevelTab,
+  DeepResearchTable,
 } from './TransparencyDrawer';
 
 export { ChatResponseActions } from './ChatResponseActions';

@@ -19,7 +19,12 @@ import {
   FileMagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 import { ChatSidebarV4 } from '../../../components/Jan17Demo/ChatSidebarV4';
-import type { SidebarItem, Folder, ItemType, ItemStatus } from '../../../components/Jan17Demo/ChatSidebarV4';
+import type {
+  SidebarItem,
+  Folder,
+  ItemType,
+  ItemStatus,
+} from '../../../components/Jan17Demo/ChatSidebarV4';
 import { StandardChatInput } from '../../../components/Chat/StandardChatInput';
 import type { ReferenceContext as InputReferenceContext } from '../../../components/Chat/StandardChatInput/types';
 import {
@@ -46,35 +51,62 @@ import type {
   DrilldownColumn,
 } from '../../../components/Jan17Demo/InlineDrilldownPanel';
 import { TransparencyDrawer } from '../../../components/Jan17Demo/TransparencyDrawer';
-import type { QueryResult, CallTranscript } from '../../../components/Jan17Demo/TransparencyDrawer';
+import type {
+  QueryResult,
+  CallTranscript,
+  DeepResearchTable,
+} from '../../../components/Jan17Demo/TransparencyDrawer';
 import { WidgetEditSheet } from '../../../components/Jan17Demo/WidgetEditSheet';
 import type { WidgetConfigData as WidgetEditConfigData } from '../../../components/Jan17Demo/WidgetEditSheet';
 import { AmbientGlow } from '../../../components/Jan17Demo/AmbientGlow';
 import { AgentProgressBar } from '../../../components/Jan17Demo/AgentProgressBar';
 import type { AgentStatus } from '../../../components/Jan17Demo/AgentProgressBar';
-import { DashboardSharePopover, type ShareConfig } from '../../../components/popups';
+import {
+  DashboardSharePopover,
+  type ShareConfig,
+  ExpensiveOperationModal,
+} from '../../../components/popups';
 import { opportunities } from '../data/salesData';
 import { PrimaryButton } from '../../../components/forms/buttons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MarkdownActionCard } from '../components/chat/MarkdownActionCard';
 import { DeepResearchNotificationBar } from '../components/chat/DeepResearchNotificationBar';
-import { ReportTable } from '../../../components/ReportTable/ReportTable';
-import type { ReportColumn, AIReasoningData } from '../../../components/ReportTable/ReportTable';
-import {
-  topPerformersColumns,
-  topPerformersData,
-  topPerformersAIReasoning,
-  regionalPerformanceColumns,
-  regionalPerformanceData,
-  regionalPerformanceAIReasoning,
-  dealVelocityColumns,
-  dealVelocityData,
-  dealVelocityAIReasoning,
-} from './deepResearchReportData';
 import { deepResearchTables } from './deepResearchTableData';
 import { DataTablesDrawer } from '../../../components/Jan17Demo/DataTablesDrawer';
 import { DataTablesCard } from '../../../components/Jan17Demo/DataTablesCard';
+
+// ============================================================================
+// Convert Deep Research Tables for Transparency Drawer
+// ============================================================================
+
+// Pre-applied filters for demo - showing opportunities in "Negotiation" stage
+const opportunitiesDefaultFilters = [
+  {
+    id: 'filter-1',
+    conditions: [{ id: 'cond-1', field: 'stage', operator: 'equals', value: 'Negotiation' }],
+    connector: 'and' as const,
+  },
+];
+
+const convertToDeepResearchTableFormat = (
+  tables: typeof deepResearchTables
+): DeepResearchTable[] => {
+  return tables.map((table) => ({
+    id: table.id,
+    name: table.name,
+    description: table.description,
+    // Pass through the columns directly - they're already in ReportColumn format
+    columns: table.columns,
+    data: table.data as Record<string, unknown>[],
+    aiReasoningData: table.aiReasoningData,
+    rowCount: table.rowCount,
+    // Add pre-applied filters for opportunities table
+    defaultFilters: table.id === 'opportunities' ? opportunitiesDefaultFilters : undefined,
+  }));
+};
+
+const deepResearchTablesForDrawer = convertToDeepResearchTableFormat(deepResearchTables);
 
 // ============================================================================
 // Layout Decorator
@@ -1384,10 +1416,6 @@ interface ReportCardProps {
   onConvertToDashboard: () => void;
   onDownload?: () => void;
   showActions?: boolean;
-  /** Called when user clicks Edit on a table */
-  onEditTable?: (tableTitle: string) => void;
-  /** Whether to show interactive tables instead of markdown */
-  useInteractiveTables?: boolean;
 }
 
 const ReportCard: React.FC<ReportCardProps> = ({
@@ -1397,8 +1425,6 @@ const ReportCard: React.FC<ReportCardProps> = ({
   onConvertToDashboard,
   onDownload,
   showActions = true,
-  onEditTable,
-  useInteractiveTables = false,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -1482,56 +1508,11 @@ const ReportCard: React.FC<ReportCardProps> = ({
 
       {/* Content preview - scrollable */}
       <div className="px-4 py-3 min-h-[35vh] max-h-[40vh] overflow-y-auto">
-        {useInteractiveTables ? (
-          <div className="space-y-6">
-            {/* Executive Summary - markdown */}
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
-                {`## Executive Summary
-
-This comprehensive analysis examines sales performance across all regions and product categories for Q4 2025 (October - December). The quarter demonstrated strong overall growth with total revenue of **$12.8M**, representing a **15.2% increase** over Q4 2024 and **8.3% above target**.`}
-              </ReactMarkdown>
-            </div>
-
-            {/* Top Performers - Interactive Table */}
-            <div>
-              <h3 className="text-[15px] font-medium text-gray-900 mb-3">Top Performers (Q4 2025)</h3>
-              <ReportTable
-                title="Top Performers"
-                columns={topPerformersColumns}
-                data={topPerformersData as unknown as Record<string, unknown>[]}
-                aiReasoningData={topPerformersAIReasoning}
-                showAIIndicators={true}
-                showEditAction={!!onEditTable}
-                onEditTable={onEditTable}
-                pageSize={5}
-                showPagination={false}
-              />
-            </div>
-
-            {/* Regional Performance - Interactive Table */}
-            <div>
-              <h3 className="text-[15px] font-medium text-gray-900 mb-3">Regional Performance</h3>
-              <ReportTable
-                title="Regional Performance"
-                columns={regionalPerformanceColumns}
-                data={regionalPerformanceData as unknown as Record<string, unknown>[]}
-                aiReasoningData={regionalPerformanceAIReasoning}
-                showAIIndicators={true}
-                showEditAction={!!onEditTable}
-                onEditTable={onEditTable}
-                pageSize={5}
-                showPagination={false}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="prose prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
-              {content}
-            </ReactMarkdown>
-          </div>
-        )}
+        <div className="prose prose-sm max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={cardMarkdownComponents}>
+            {content}
+          </ReactMarkdown>
+        </div>
       </div>
     </div>
   );
@@ -1547,10 +1528,6 @@ interface ReportModalProps {
   title: string;
   content: string;
   onConvertToDashboard: () => void;
-  /** Called when user clicks Edit on a table */
-  onEditTable?: (tableTitle: string) => void;
-  /** Whether to show interactive tables instead of markdown */
-  useInteractiveTables?: boolean;
 }
 
 const ReportModal: React.FC<ReportModalProps> = ({
@@ -1559,8 +1536,6 @@ const ReportModal: React.FC<ReportModalProps> = ({
   title,
   content,
   onConvertToDashboard,
-  onEditTable,
-  useInteractiveTables = false,
 }) => {
   if (!isOpen) return null;
 
@@ -1605,109 +1580,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {useInteractiveTables ? (
-            <div className="space-y-8">
-              {/* Executive Summary */}
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {`# Q4 2025 Sales Performance Analysis
-
-## Executive Summary
-
-This comprehensive analysis examines sales performance across all regions and product categories for Q4 2025 (October - December). The quarter demonstrated strong overall growth with total revenue of **$12.8M**, representing a **15.2% increase** over Q4 2024 and **8.3% above target**.
-
-Key findings indicate significant regional disparities, with the West region outperforming all others by a considerable margin. Product mix has shifted notably toward enterprise solutions, while the mid-market segment requires strategic attention.
-
----`}
-                </ReactMarkdown>
-              </div>
-
-              {/* Top Performers - Interactive Table */}
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Top Performers (Q4 2025)</h2>
-                <ReportTable
-                  title="Top Performers"
-                  columns={topPerformersColumns}
-                  data={topPerformersData as unknown as Record<string, unknown>[]}
-                  aiReasoningData={topPerformersAIReasoning}
-                  showAIIndicators={true}
-                  showEditAction={!!onEditTable}
-                  onEditTable={onEditTable}
-                  pageSize={5}
-                  showPagination={false}
-                />
-              </div>
-
-              {/* Regional Performance - Interactive Table */}
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Regional Performance</h2>
-                <ReportTable
-                  title="Regional Performance"
-                  columns={regionalPerformanceColumns}
-                  data={regionalPerformanceData as unknown as Record<string, unknown>[]}
-                  aiReasoningData={regionalPerformanceAIReasoning}
-                  showAIIndicators={true}
-                  showEditAction={!!onEditTable}
-                  onEditTable={onEditTable}
-                  pageSize={5}
-                  showPagination={false}
-                />
-              </div>
-
-              {/* Deal Velocity - Interactive Table */}
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Deal Velocity Analysis</h2>
-                <ReportTable
-                  title="Deal Velocity"
-                  columns={dealVelocityColumns}
-                  data={dealVelocityData as unknown as Record<string, unknown>[]}
-                  aiReasoningData={dealVelocityAIReasoning}
-                  showAIIndicators={true}
-                  showEditAction={!!onEditTable}
-                  onEditTable={onEditTable}
-                  pageSize={5}
-                  showPagination={false}
-                />
-              </div>
-
-              {/* Recommendations Section */}
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {`---
-
-## Q1 2026 Strategic Recommendations
-
-### Immediate Actions (January)
-
-1. **Launch Mid-Market Recovery Initiative**
-   - Develop competitive pricing tiers for 100-500 employee companies
-   - Create dedicated mid-market sales team of 3 reps
-   - Target win-back campaign for churned accounts
-
-2. **Accelerate Enterprise Momentum**
-   - Increase enterprise SDR team by 2 headcount
-   - Launch enterprise-only feature preview program
-   - Develop 5 new enterprise case studies
-
-3. **Optimize Sales Enablement**
-   - Implement new onboarding curriculum (target: reduce ramp to 6 months)
-   - Launch weekly competitive intelligence briefings
-   - Deploy AI-powered email sequences
-
----
-
-*Report generated by Von AI on January 15, 2026*
-*Data reflects sales performance through December 31, 2025*`}
-                </ReactMarkdown>
-              </div>
-            </div>
-          ) : (
-            <div className="prose prose-sm max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {content}
-              </ReactMarkdown>
-            </div>
-          )}
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {content}
+            </ReactMarkdown>
+          </div>
         </div>
       </motion.div>
     </motion.div>
@@ -1973,7 +1850,6 @@ interface DeepResearchChatViewProps {
   onTextSelect?: (text: string) => void;
   onSkipThinking?: () => void;
   onSkipSampleThinking?: () => void;
-  onEditTable?: (tableTitle: string) => void;
   onDataTablesClick?: () => void;
 }
 
@@ -1996,7 +1872,6 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
   onTextSelect,
   onSkipThinking,
   onSkipSampleThinking,
-  onEditTable,
   onDataTablesClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -2113,10 +1988,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                   }}
                   beforeActions={
                     onDataTablesClick && (
-                      <DataTablesCard
-                        tables={deepResearchTables}
-                        onClick={onDataTablesClick}
-                      />
+                      <DataTablesCard tables={deepResearchTables} onClick={onDataTablesClick} />
                     )
                   }
                 />
@@ -2260,8 +2132,6 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                       onExpand={onExpandReport}
                       onConvertToDashboard={onConvertToDashboard}
                       showActions={phase === 'report-complete'}
-                      onEditTable={onEditTable}
-                      useInteractiveTables={true}
                     />
 
                     {/* Feedback row */}
@@ -2343,6 +2213,7 @@ const DeepResearchDemo = () => {
 
   // Modal state
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showExpensiveOperationModal, setShowExpensiveOperationModal] = useState(false);
 
   // Chat messages
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -2424,7 +2295,12 @@ const DeepResearchDemo = () => {
     // Determine the status of the deep research item
     const getDeepResearchStatus = (): ItemStatus | undefined => {
       if (phase === 'full-thinking') return 'running';
-      if (phase === 'report-complete' || phase === 'building-dashboard' || phase === 'dashboard-complete') return 'complete';
+      if (
+        phase === 'report-complete' ||
+        phase === 'building-dashboard' ||
+        phase === 'dashboard-complete'
+      )
+        return 'complete';
       return undefined;
     };
 
@@ -2515,8 +2391,14 @@ const DeepResearchDemo = () => {
     }, time + 300);
   };
 
-  // Handle run full analysis
+  // Handle run full analysis - shows confirmation modal first
   const handleRunFullAnalysis = useCallback(() => {
+    setShowExpensiveOperationModal(true);
+  }, []);
+
+  // Actually start the full analysis (called after modal confirmation)
+  const startFullAnalysis = useCallback(() => {
+    setShowExpensiveOperationModal(false);
     setPhase('full-thinking');
     setFullElapsedTime(0);
 
@@ -2711,21 +2593,6 @@ const DeepResearchDemo = () => {
     setChatMessages([]);
   }, [clearAllTimeouts]);
 
-  // Handle edit table (sends table as reference to chat input)
-  const handleEditTable = useCallback((tableTitle: string) => {
-    // Close modal if open
-    setShowReportModal(false);
-    // Set the table as a reference in the chat input
-    setQuoteReference({
-      type: 'table',
-      name: tableTitle,
-      id: `table-${Date.now()}`,
-      content: `Table: ${tableTitle}`,
-    });
-    // Expand chat pane if collapsed
-    setIsChatPaneCollapsed(false);
-  }, []);
-
   // Handle sidebar item click
   const handleSidebarItemClick: (id: string, type: ItemType) => void = (id) => {
     setSelectedSidebarItem(id);
@@ -2861,8 +2728,6 @@ const DeepResearchDemo = () => {
             title="Q4 2025 Sales Performance Analysis"
             content={fullReportContent}
             onConvertToDashboard={handleConvertToDashboard}
-            onEditTable={handleEditTable}
-            useInteractiveTables={true}
           />
         )}
       </AnimatePresence>
@@ -2941,7 +2806,6 @@ const DeepResearchDemo = () => {
               onTextSelect={handleTextSelect}
               onSkipThinking={handleSkipThinking}
               onSkipSampleThinking={handleSkipSampleThinking}
-              onEditTable={handleEditTable}
               onDataTablesClick={() => setShowDataTablesDrawer(true)}
             />
 
@@ -2949,9 +2813,7 @@ const DeepResearchDemo = () => {
             <div className="px-4 py-3">
               <div className="max-w-3xl mx-auto">
                 {/* Deep Research notification bar - shown during long-running research */}
-                <DeepResearchNotificationBar
-                  isVisible={phase === 'full-thinking'}
-                />
+                <DeepResearchNotificationBar isVisible={phase === 'full-thinking'} />
               </div>
               <StandardChatInput
                 placeholder="Ask a follow-up question..."
@@ -2972,6 +2834,7 @@ const DeepResearchDemo = () => {
               onClose={() => setShowTransparencyDrawer(false)}
               queries={mockQueries}
               calls={mockCalls}
+              deepResearchTables={deepResearchTablesForDrawer}
               title="Sources"
             />
 
@@ -3051,6 +2914,15 @@ const DeepResearchDemo = () => {
                   onFiltersChange={(filters) => console.log('Filters changed:', filters)}
                   onFormulaChange={(formula) => console.log('Formula changed:', formula)}
                   availableFields={tableData.columns.map((c) => c.label)}
+                  defaultFilterGroups={[
+                    {
+                      id: 'drilldown-filter-1',
+                      conditions: [
+                        { id: 'cond-1', field: 'revenue', operator: 'greater_than', value: '500000' },
+                      ],
+                      connector: 'and',
+                    },
+                  ]}
                 />
               )}
             </AnimatePresence>
@@ -3076,6 +2948,7 @@ const DeepResearchDemo = () => {
               onClose={() => setShowTransparencyDrawer(false)}
               queries={mockQueries}
               calls={mockCalls}
+              deepResearchTables={deepResearchTablesForDrawer}
               title="Sources"
             />
           </div>
@@ -3129,6 +3002,16 @@ const DeepResearchDemo = () => {
         }}
         onShare={handleShare}
         onClose={() => setShowSharePopover(false)}
+      />
+
+      {/* Expensive Operation Modal - shown before running full analysis */}
+      <ExpensiveOperationModal
+        isOpen={showExpensiveOperationModal}
+        recordCount={2847}
+        estimatedTime="10-15 minutes"
+        operationName="Run Full Analysis"
+        onConfirm={startFullAnalysis}
+        onCancel={() => setShowExpensiveOperationModal(false)}
       />
     </div>
   );

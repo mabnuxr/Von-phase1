@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -13,9 +14,18 @@ import {
   type PaginationState,
   type ColumnOrderState,
 } from '@tanstack/react-table';
-import { CaretUp, CaretDown, ArrowSquareOut, CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretUp, CaretDown, ArrowUpRight, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { TertiaryIconButton, SecondaryIconButton } from '../forms/buttons/IconButtons';
-import { LOGO_STATIC_URL } from '../../constants';
+import {
+  OwnerCell,
+  MultiPicklistCell,
+  SentimentCell,
+  BooleanCell,
+  LongTextCell,
+  PicklistCell,
+  SourceIcon,
+} from './CellRenderers';
+import { VonLogoButton } from './SourcePopover';
 
 // ============================================================================
 // Types
@@ -31,139 +41,62 @@ export type ColumnType =
   | 'email'
   | 'phone'
   | 'url'
-  | 'picklist';
+  | 'picklist'
+  | 'owner'
+  | 'multiPicklist'
+  | 'sentiment'
+  | 'longText';
 
-export interface ReportColumn {
-  /**
-   * Unique identifier for the column (maps to data key)
-   */
-  id: string;
-  /**
-   * Display label for the column header
-   */
+export type DataSourceType = 'salesforce' | 'gong' | 'gmail' | 'calendar' | 'hubspot' | 'mixed';
+
+export interface SourceReference {
+  type: DataSourceType;
   label: string;
-  /**
-   * Data type for formatting
-   */
-  type: ColumnType;
-  /**
-   * Whether this is an AI-generated column (Von IQ)
-   */
-  isAI?: boolean;
-  /**
-   * AI prompt used to generate this column (shown on header click)
-   */
-  aiPrompt?: string;
-  /**
-   * Data sources used for AI column generation
-   */
-  aiDataSources?: string[];
-  /**
-   * AI reasoning prompt/description for the column (deprecated, use aiPrompt)
-   */
-  aiReasoning?: string;
-  /**
-   * Whether sorting is enabled for this column
-   * @default true
-   */
-  sortable?: boolean;
-  /**
-   * Column width (optional)
-   */
-  width?: number;
-  /**
-   * Minimum column width
-   */
-  minWidth?: number;
+  url?: string;
 }
 
 export interface AIReasoningData {
-  /**
-   * The reasoning/explanation for how AI arrived at this value
-   */
   reasoning: string;
-  /**
-   * Confidence score (0-1)
-   */
   confidence?: number;
-  /**
-   * Data sources used for this calculation
-   */
   sources?: string[];
+  sourceReferences?: SourceReference[];
+  recordName?: string;
+}
+
+export interface ReportColumn {
+  id: string;
+  label: string;
+  type: ColumnType;
+  isAI?: boolean;
+  sortable?: boolean;
+  width?: number;
+  minWidth?: number;
+  source?: DataSourceType;
+  aiPrompt?: string;
+  aiDataSources?: string[];
 }
 
 export interface ReportTableProps<TData extends Record<string, unknown>> {
-  /**
-   * Column definitions
-   */
   columns: ReportColumn[];
-  /**
-   * Table data
-   */
   data: TData[];
-  /**
-   * Called when a row is selected via checkbox
-   */
   onRowSelect?: (row: TData, selected: boolean) => void;
-  /**
-   * Called when the open action is clicked on a row
-   */
   onRowOpen?: (row: TData) => void;
-  /**
-   * Currently selected row IDs
-   */
   selectedRows?: string[];
-  /**
-   * Key to use for row identification
-   * @default 'id'
-   */
   rowIdKey?: string;
-  /**
-   * Additional class name
-   */
   className?: string;
-  /**
-   * Whether to show loading state
-   */
   isLoading?: boolean;
-  /**
-   * Empty state message
-   */
   emptyMessage?: string;
-  /**
-   * Number of rows per page
-   * @default 15
-   */
   pageSize?: number;
-  /**
-   * Whether to show pagination
-   * @default true
-   */
   showPagination?: boolean;
-  /**
-   * AI reasoning data for cells - keyed by `${columnId}-${rowIndex}`
-   * Used to display reasoning popovers on AI column cells
-   */
-  aiReasoningData?: Record<string, AIReasoningData>;
-  /**
-   * Whether to show AI indicators on AI column cells
-   * @default true
-   */
-  showAIIndicators?: boolean;
-  /**
-   * Table title (used for edit reference)
-   */
-  title?: string;
-  /**
-   * Called when user clicks "Edit" on the table
-   * Receives the table title as reference
-   */
-  onEditTable?: (tableTitle: string) => void;
-  /**
-   * Whether to show the edit action on hover
-   * @default false
-   */
-  showEditAction?: boolean;
+  rowSourceKey?: string;
+  aiReasoningKey?: string;
+  nameKey?: string;
+  /** Number of columns to freeze from the left (including actions column) @default 2 */
+  frozenColumns?: number;
+  /** Whether to prioritize AI columns (move them after first data column) @default true */
+  prioritizeAIColumns?: boolean;
+  /** Enable drag-and-drop column reordering @default true */
+  enableColumnReorder?: boolean;
 }
 
 // ============================================================================
@@ -227,13 +160,18 @@ const formatValue = (value: unknown, type: ColumnType): string => {
 // Sub-components
 // ============================================================================
 
-interface SortIndicatorProps {
+interface SortButtonProps {
   direction: 'asc' | 'desc' | false;
+  onClick: (e: React.MouseEvent) => void;
 }
 
-const SortIndicator: React.FC<SortIndicatorProps> = ({ direction }) => {
+const SortButton: React.FC<SortButtonProps> = ({ direction, onClick }) => {
   return (
-    <div className="flex flex-col items-center -space-y-1">
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center -space-y-1 p-1 hover:bg-gray-200/50 rounded transition-colors cursor-pointer flex-shrink-0"
+      title="Sort column"
+    >
       <CaretUp
         size={10}
         weight="fill"
@@ -244,74 +182,112 @@ const SortIndicator: React.FC<SortIndicatorProps> = ({ direction }) => {
         weight="fill"
         className={direction === 'desc' ? 'text-gray-900' : 'text-gray-300'}
       />
-    </div>
+    </button>
   );
 };
 
-interface VonIconProps {
-  size?: number;
-  className?: string;
+// ============================================================================
+// AI Header Popover
+// ============================================================================
+
+interface AIHeaderPopoverProps {
+  column: ReportColumn;
+  onClose: () => void;
+  position: { top: number; left: number };
 }
 
-const VonIcon: React.FC<VonIconProps> = ({ size = 14, className = '' }) => {
-  return (
-    <img
-      src={LOGO_STATIC_URL}
-      alt="Von"
-      style={{ width: size, height: size }}
-      className={`rounded-sm ${className}`}
-    />
-  );
-};
+const AIHeaderPopover: React.FC<AIHeaderPopoverProps> = ({ column, onClose, position }) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-// AI Star Icon - StarFour shape with Von logo gradient fill
-interface AIStarIconProps {
-  size?: number;
-  className?: string;
-  id?: string;
-}
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
 
-// StarFour icon with gradient fill matching Von logo colors
-const AIStarIcon: React.FC<AIStarIconProps> = ({
-  size = 10,
-  className = '',
-  id = 'aiStarGradient',
-}) => {
-  return (
+  return createPortal(
     <div
-      className={`flex items-center justify-center ${className}`}
-      style={{ width: size + 6, height: size + 6 }}
+      ref={popoverRef}
+      className="fixed w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-[10000] overflow-hidden"
+      style={{ top: position.top, left: Math.min(position.left, window.innerWidth - 340) }}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 256 256"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <radialGradient
-            id={id}
-            cx="0"
-            cy="0"
-            r="1"
-            gradientUnits="userSpaceOnUse"
-            gradientTransform="translate(200 16) rotate(120.964) scale(280)"
-          >
-            <stop stopColor="#FFF3EB" />
-            <stop offset="0.26" stopColor="#FF9042" />
-            <stop offset="1" stopColor="#854FFF" />
-          </radialGradient>
-        </defs>
-        <path
-          d="M240,128a8,8,0,0,1-8,8H179.31L136,179.31V232a8,8,0,0,1-16,0V179.31L76.69,136H24a8,8,0,0,1,0-16H76.69L120,76.69V24a8,8,0,0,1,16,0V76.69L179.31,120H232A8,8,0,0,1,240,128Z"
-          fill={`url(#${id})`}
-          fillOpacity="0.85"
-        />
-      </svg>
-    </div>
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
+        <SourcesLogoHeader size={16} />
+        <span className="text-[13px] font-medium text-gray-900">{column.label}</span>
+      </div>
+
+      {column.aiPrompt && (
+        <div className="px-3 py-2.5 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-700 mb-1.5">AI Prompt</p>
+          <p className="text-[13px] text-gray-900 leading-relaxed">{column.aiPrompt}</p>
+        </div>
+      )}
+
+      {column.aiDataSources && column.aiDataSources.length > 0 && (
+        <div className="px-3 py-2.5">
+          <p className="text-xs font-medium text-gray-700 mb-2">Data Sources</p>
+          <div className="flex flex-wrap gap-1">
+            {column.aiDataSources.map((source, idx) => (
+              <span
+                key={idx}
+                className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full"
+              >
+                {source}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!column.aiPrompt && (!column.aiDataSources || column.aiDataSources.length === 0) && (
+        <div className="px-3 py-2.5">
+          <p className="text-[13px] text-gray-700">AI-generated column</p>
+        </div>
+      )}
+    </div>,
+    document.body
   );
 };
+
+// Sources Logo - Fixed size that doesn't shrink
+const SourcesLogoHeader: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <div
+    className="flex-shrink-0"
+    style={{ width: size, height: size, minWidth: size, minHeight: size }}
+  >
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect width="24" height="24" rx="8" fill="url(#paint0_radial_sources_header)" />
+      <path
+        d="M11.9998 4.99981C15.8657 4.99981 18.9997 8.1339 18.9998 11.9998C18.9998 13.8225 18.3025 15.4818 17.1609 16.7273C17.0988 16.8085 17.0338 16.8877 16.9607 16.9607C16.8877 17.0338 16.8085 17.0988 16.7273 17.1609C15.4818 18.3025 13.8225 18.9998 11.9998 18.9998C8.1339 18.9997 4.9998 15.8657 4.9998 11.9998C4.99985 10.1789 5.6952 8.52031 6.83476 7.2752C6.89765 7.19266 6.96472 7.11302 7.03886 7.03887C7.11301 6.96472 7.19265 6.89766 7.27519 6.83477C8.5203 5.6952 10.1789 4.99986 11.9998 4.99981ZM6.36601 9.93047C6.12901 10.5755 5.99982 11.2726 5.9998 11.9998C5.9998 15.3135 8.68618 17.9997 11.9998 17.9998C12.7271 17.9998 13.424 17.8697 14.0691 17.6326C12.5215 17.3611 10.7262 16.3824 9.17168 14.8279C7.61709 13.2733 6.63739 11.4782 6.36601 9.93047ZM10.2283 7.45586C9.13908 7.15771 8.37496 7.284 7.92168 7.59942C7.81024 7.70275 7.70274 7.81024 7.59941 7.92168C7.284 8.37497 7.1577 9.13909 7.45586 10.2283C7.78805 11.4417 8.60897 12.8511 9.87871 14.1209C11.1486 15.3908 12.5588 16.2116 13.7723 16.5438C14.8593 16.8412 15.6215 16.7153 16.075 16.4012C16.1879 16.2966 16.2966 16.1879 16.4012 16.075C16.7153 15.6215 16.8412 14.8593 16.5437 13.7723C16.2116 12.5588 15.3908 11.1486 14.1209 9.87872C12.8511 8.60898 11.4417 7.78806 10.2283 7.45586ZM11.9998 5.99981C11.2726 5.99983 10.5755 6.12902 9.93047 6.36602C11.4782 6.6374 13.2733 7.6171 14.8279 9.17168C16.3824 10.7262 17.3611 12.5215 17.6326 14.0691C17.8697 13.4241 17.9998 12.7271 17.9998 11.9998C17.9997 8.68619 15.3134 5.99981 11.9998 5.99981Z"
+        fill="white"
+      />
+      <defs>
+        <radialGradient
+          id="paint0_radial_sources_header"
+          cx="0"
+          cy="0"
+          r="1"
+          gradientUnits="userSpaceOnUse"
+          gradientTransform="translate(18.75 1.5) rotate(120.964) scale(26.2393)"
+        >
+          <stop stopColor="#FFF3EB" />
+          <stop offset="0.26" stopColor="#FF9042" />
+          <stop offset="1" stopColor="#854FFF" />
+        </radialGradient>
+      </defs>
+    </svg>
+  </div>
+);
 
 interface ActionsCellProps<TData extends Record<string, unknown>> {
   row: Row<TData>;
@@ -341,7 +317,7 @@ function ActionsCell<TData extends Record<string, unknown>>({
         onClick={(e) => e.stopPropagation()}
       />
       <TertiaryIconButton
-        icon={<ArrowSquareOut size={14} />}
+        icon={<ArrowUpRight size={14} />}
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -373,153 +349,6 @@ const ColumnResizer: React.FC<ColumnResizerProps> = ({ onMouseDown, isResizing }
 };
 
 // ============================================================================
-// AI Cell Indicator with Hover Popover
-// ============================================================================
-
-interface AICellIndicatorProps {
-  reasoning?: AIReasoningData;
-}
-
-const AICellIndicator: React.FC<AICellIndicatorProps> = ({ reasoning }) => {
-  const [showPopover, setShowPopover] = useState(false);
-  const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
-  const indicatorRef = useRef<HTMLButtonElement>(null);
-
-  const handleMouseEnter = () => {
-    if (indicatorRef.current && reasoning) {
-      const rect = indicatorRef.current.getBoundingClientRect();
-      setPopoverPosition({
-        top: rect.bottom + 4,
-        left: Math.min(rect.left, window.innerWidth - 280),
-      });
-      setShowPopover(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setShowPopover(false);
-  };
-
-  return (
-    <>
-      <button
-        ref={indicatorRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className="ml-1.5 p-0.5 hover:bg-gray-100 rounded transition-colors cursor-pointer flex-shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <AIStarIcon size={10} id={`aiStar-cell-${Math.random().toString(36).slice(2, 11)}`} />
-      </button>
-      {showPopover && reasoning && (
-        <div
-          className="fixed w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] p-3"
-          style={{ top: popoverPosition.top, left: popoverPosition.left }}
-          onMouseEnter={() => setShowPopover(true)}
-          onMouseLeave={() => setShowPopover(false)}
-        >
-          <div className="flex items-center gap-1.5 mb-2">
-            <AIStarIcon size={12} id="aiStar-reasoning" />
-            <span className="text-[11px] font-medium text-gray-900">AI Reasoning</span>
-          </div>
-          <p className="text-[12px] text-gray-600 leading-relaxed">{reasoning.reasoning}</p>
-          {reasoning.confidence !== undefined && (
-            <div className="mt-2 pt-2 border-t border-gray-100">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-gray-500">Confidence</span>
-                <span className="font-medium text-gray-900">
-                  {Math.round(reasoning.confidence * 100)}%
-                </span>
-              </div>
-            </div>
-          )}
-          {reasoning.sources && reasoning.sources.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-gray-100">
-              <p className="text-[11px] text-gray-500 mb-1">Sources</p>
-              <div className="flex flex-wrap gap-1">
-                {reasoning.sources.map((source, idx) => (
-                  <span
-                    key={idx}
-                    className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded"
-                  >
-                    {source}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </>
-  );
-};
-
-// ============================================================================
-// AI Column Header Popover (click to show prompt)
-// ============================================================================
-
-interface AIColumnHeaderPopoverProps {
-  column: ReportColumn;
-  onClose: () => void;
-  position: { top: number; left: number };
-}
-
-const AIColumnHeaderPopover: React.FC<AIColumnHeaderPopoverProps> = ({
-  column,
-  onClose,
-  position,
-}) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
-
-  return (
-    <div
-      ref={popoverRef}
-      className="fixed w-72 bg-gray-900 rounded-lg shadow-xl z-[10000] p-3 text-white"
-      style={{ top: position.top, left: Math.min(position.left, window.innerWidth - 300) }}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700">
-        <AIStarIcon size={12} id="aiStar-header-popover" />
-        <span className="text-[12px] font-medium">{column.label}</span>
-      </div>
-
-      {/* Prompt section */}
-      <div className="mb-3">
-        <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1.5">Prompt</p>
-        <p className="text-[12px] text-gray-200 leading-relaxed">
-          {column.aiPrompt || column.aiReasoning || 'Generate insights based on available data.'}
-        </p>
-      </div>
-
-      {/* Data Sources section */}
-      {column.aiDataSources && column.aiDataSources.length > 0 && (
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1.5">Data Sources</p>
-          <div className="flex flex-wrap gap-1">
-            {column.aiDataSources.map((source, idx) => (
-              <span key={idx} className="px-2 py-0.5 text-[11px] bg-gray-800 text-gray-300 rounded">
-                {source}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -533,48 +362,154 @@ export function ReportTable<TData extends Record<string, unknown>>({
   className = '',
   isLoading = false,
   emptyMessage = 'No data available',
-  pageSize = 12,
+  pageSize = 10,
   showPagination = true,
-  aiReasoningData = {},
-  showAIIndicators = true,
-  title,
-  onEditTable,
-  showEditAction = false,
+  aiReasoningKey = '_aiReasoning',
+  nameKey = 'name',
+  frozenColumns = 2,
+  prioritizeAIColumns = true,
+  enableColumnReorder = true,
 }: ReportTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
   const [resizingColumnId, setResizingColumnId] = useState<string | null>(null);
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
-  const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize,
   });
-  const [showLeftGradient, setShowLeftGradient] = useState(false);
-  const [showRightGradient, setShowRightGradient] = useState(false);
-  const [isTableHovered, setIsTableHovered] = useState(false);
-  const [aiColumnPopover, setAiColumnPopover] = useState<{
+  const [aiHeaderPopover, setAiHeaderPopover] = useState<{
     column: ReportColumn;
     position: { top: number; left: number };
   } | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Column order state for drag-and-drop
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   const columnHelper = createColumnHelper<TData>();
+
+  // Reorder columns: put AI columns after first data column
+  const orderedColumns = useMemo(() => {
+    if (!prioritizeAIColumns) return columns;
+
+    const aiColumns = columns.filter((col) => col.isAI);
+    const nonAIColumns = columns.filter((col) => !col.isAI);
+
+    if (nonAIColumns.length > 0 && aiColumns.length > 0) {
+      const firstColumn = nonAIColumns[0];
+      const restColumns = nonAIColumns.slice(1);
+      return [firstColumn, ...aiColumns, ...restColumns];
+    }
+
+    return columns;
+  }, [columns, prioritizeAIColumns]);
+
+  // Initialize column order
+  React.useEffect(() => {
+    if (columnOrder.length === 0) {
+      setColumnOrder(['_actions', ...orderedColumns.map((c) => c.id)]);
+    }
+  }, [orderedColumns, columnOrder.length]);
+
+  // Get columns in current order
+  const displayColumns = useMemo(() => {
+    if (columnOrder.length === 0) return orderedColumns;
+
+    const orderedResult: ReportColumn[] = [];
+    columnOrder.forEach((colId) => {
+      if (colId === '_actions') return;
+      const col = orderedColumns.find((c) => c.id === colId);
+      if (col) orderedResult.push(col);
+    });
+
+    // Add any columns not in the order (newly added)
+    orderedColumns.forEach((col) => {
+      if (!orderedResult.find((c) => c.id === col.id)) {
+        orderedResult.push(col);
+      }
+    });
+
+    return orderedResult;
+  }, [orderedColumns, columnOrder]);
 
   // Default column sizes
   const defaultColumnSizes: Record<string, number> = useMemo(() => {
     const sizes: Record<string, number> = { _actions: 60 };
-    columns.forEach((col) => {
-      sizes[col.id] = col.width ?? col.minWidth ?? 120;
+    displayColumns.forEach((col) => {
+      sizes[col.id] = col.width ?? col.minWidth ?? 150;
     });
     return sizes;
-  }, [columns]);
+  }, [displayColumns]);
+
+  // Calculate frozen column widths for sticky positioning
+  const frozenColumnWidths = useMemo(() => {
+    const widths: number[] = [60]; // Actions column
+    for (let i = 0; i < Math.min(frozenColumns - 1, displayColumns.length); i++) {
+      const col = displayColumns[i];
+      widths.push(columnSizing[col.id] ?? defaultColumnSizes[col.id] ?? 150);
+    }
+    return widths;
+  }, [frozenColumns, displayColumns, columnSizing, defaultColumnSizes]);
+
+  // Render cell based on column type
+  const renderCellContent = (value: unknown, col: ReportColumn, row: TData): React.ReactNode => {
+    const aiReasoningData = row[aiReasoningKey] as Record<string, AIReasoningData> | undefined;
+    const reasoning = aiReasoningData?.[col.id];
+
+    let content: React.ReactNode;
+
+    switch (col.type) {
+      case 'owner':
+        content = <OwnerCell value={String(value ?? '')} />;
+        break;
+      case 'multiPicklist':
+        content = <MultiPicklistCell value={value as string | string[]} />;
+        break;
+      case 'sentiment':
+        content = <SentimentCell value={String(value ?? '')} />;
+        break;
+      case 'boolean':
+        content = <BooleanCell value={value as boolean | string} />;
+        break;
+      case 'longText':
+        content = <LongTextCell value={String(value ?? '')} />;
+        break;
+      case 'picklist':
+        content = value ? (
+          <PicklistCell value={String(value)} />
+        ) : (
+          <span className="text-gray-400">—</span>
+        );
+        break;
+      default:
+        content = <span className="text-gray-900">{formatValue(value, col.type)}</span>;
+    }
+
+    // For AI columns, add the Von logo button
+    if (col.isAI) {
+      const reasoningWithName: AIReasoningData = {
+        ...reasoning,
+        reasoning: reasoning?.reasoning || 'AI-generated content',
+        recordName: String(row[nameKey] ?? ''),
+      };
+
+      return (
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">{content}</div>
+          <div className="flex-shrink-0">
+            <VonLogoButton reasoning={reasoningWithName} />
+          </div>
+        </div>
+      );
+    }
+
+    return content;
+  };
 
   const tableColumns = useMemo((): ColumnDef<TData>[] => {
     const cols: ColumnDef<TData>[] = [
-      // Actions column (always first)
       columnHelper.display({
         id: '_actions',
         header: () => null,
@@ -598,81 +533,42 @@ export function ReportTable<TData extends Record<string, unknown>>({
         maxSize: 60,
         enableResizing: false,
       }),
-      // Data columns
-      ...columns.map(
+    ];
+
+    cols.push(
+      ...displayColumns.map(
         (col): ColumnDef<TData> =>
           columnHelper.accessor((row: TData) => row[col.id as keyof TData] as unknown, {
             id: col.id,
             header: () => (
-              <div className="flex items-center justify-between gap-2 w-full">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {col.isAI && <VonIcon size={14} className="flex-shrink-0" />}
-                  <span
-                    className={`truncate ${
-                      col.isAI
-                        ? 'bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent'
-                        : ''
-                    }`}
-                  >
-                    {col.label}
-                  </span>
-                </div>
-                {col.isAI && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rect = (e.target as HTMLElement).getBoundingClientRect();
-                      setAiColumnPopover({
-                        column: col,
-                        position: { top: rect.bottom + 4, left: rect.left },
-                      });
-                    }}
-                    className="p-0.5 hover:bg-gray-100 rounded transition-colors cursor-pointer flex-shrink-0"
-                    title="View AI column details"
-                  >
-                    <AIStarIcon size={10} id={`aiStar-col-${col.id}`} />
-                  </button>
-                )}
+              <div className="flex items-center gap-1.5 min-w-0">
+                {col.isAI && <SourcesLogoHeader size={16} />}
+                <span className="text-gray-800 truncate">{col.label}</span>
               </div>
             ),
             cell: (info) => {
               const value = info.getValue();
-              const formattedValue = formatValue(value, col.type);
-              const rowIndex = info.row.index;
-              const reasoningKey = `${col.id}-${rowIndex}`;
-              const reasoning = aiReasoningData[reasoningKey];
-
-              // For AI columns, show indicator with reasoning popover
-              if (col.isAI && showAIIndicators) {
-                return (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-900">{formattedValue}</span>
-                    <AICellIndicator reasoning={reasoning} />
-                  </div>
-                );
-              }
-
-              return <span className="text-gray-900">{formattedValue}</span>;
+              return renderCellContent(value, col, info.row.original);
             },
-            size: col.width ?? 120,
-            minSize: col.minWidth ?? 120,
+            size: col.width ?? 150,
+            minSize: col.minWidth ?? 100,
             enableSorting: col.sortable !== false,
             enableResizing: true,
           })
-      ),
-    ];
+      )
+    );
 
     return cols;
   }, [
-    columns,
+    displayColumns,
     columnHelper,
     hoveredRowId,
     selectedRows,
     rowIdKey,
     onRowSelect,
     onRowOpen,
-    aiReasoningData,
-    showAIIndicators,
+    aiReasoningKey,
+    nameKey,
   ]);
 
   const table = useReactTable({
@@ -697,11 +593,11 @@ export function ReportTable<TData extends Record<string, unknown>>({
       setResizingColumnId(columnId);
 
       const startX = e.clientX;
-      const startWidth = columnSizing[columnId] ?? defaultColumnSizes[columnId] ?? 120;
+      const startWidth = columnSizing[columnId] ?? defaultColumnSizes[columnId] ?? 150;
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const diff = moveEvent.clientX - startX;
-        const newWidth = Math.max(120, startWidth + diff);
+        const newWidth = Math.max(80, startWidth + diff);
         setColumnSizing((prev) => ({
           ...prev,
           [columnId]: newWidth,
@@ -720,90 +616,64 @@ export function ReportTable<TData extends Record<string, unknown>>({
     [columnSizing, defaultColumnSizes]
   );
 
-  // Handle column reorder via drag and drop
+  // Drag and drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, columnId: string) => {
-    e.stopPropagation();
-    setDraggedColumnId(columnId);
+    setDraggingColumnId(columnId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', columnId);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent, targetColumnId: string) => {
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, columnId: string) => {
       e.preventDefault();
-      e.stopPropagation();
-
-      if (!draggedColumnId || draggedColumnId === targetColumnId) {
-        setDraggedColumnId(null);
-        return;
+      e.dataTransfer.dropEffect = 'move';
+      if (columnId !== draggingColumnId && columnId !== '_actions') {
+        setDropTargetId(columnId);
       }
-
-      const currentOrder = table.getAllLeafColumns().map((col) => col.id);
-      const draggedIndex = currentOrder.indexOf(draggedColumnId);
-      const targetIndex = currentOrder.indexOf(targetColumnId);
-
-      if (draggedIndex === -1 || targetIndex === -1) {
-        setDraggedColumnId(null);
-        return;
-      }
-
-      // Don't allow reordering the actions column
-      if (draggedColumnId === '_actions' || targetColumnId === '_actions') {
-        setDraggedColumnId(null);
-        return;
-      }
-
-      const newOrder = [...currentOrder];
-      newOrder.splice(draggedIndex, 1);
-      newOrder.splice(targetIndex, 0, draggedColumnId);
-
-      setColumnOrder(newOrder);
-      setDraggedColumnId(null);
     },
-    [draggedColumnId, table]
+    [draggingColumnId]
   );
 
-  const handleDragEnd = useCallback((e: React.DragEvent) => {
-    e.stopPropagation();
-    setDraggedColumnId(null);
+  const handleDragLeave = useCallback(() => {
+    setDropTargetId(null);
   }, []);
 
-  // Check scroll position to show/hide gradients
-  const checkScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  const handleDrop = useCallback((e: React.DragEvent, targetColumnId: string) => {
+    e.preventDefault();
+    const sourceColumnId = e.dataTransfer.getData('text/plain');
 
-    const { scrollLeft, scrollWidth, clientWidth } = container;
-    const isScrollable = scrollWidth > clientWidth;
+    if (sourceColumnId && sourceColumnId !== targetColumnId && targetColumnId !== '_actions') {
+      setColumnOrder((prev) => {
+        const newOrder = [...prev];
+        const sourceIndex = newOrder.indexOf(sourceColumnId);
+        const targetIndex = newOrder.indexOf(targetColumnId);
 
-    setShowLeftGradient(isScrollable && scrollLeft > 0);
-    setShowRightGradient(isScrollable && scrollLeft < scrollWidth - clientWidth - 1);
+        if (sourceIndex !== -1 && targetIndex !== -1) {
+          newOrder.splice(sourceIndex, 1);
+          newOrder.splice(targetIndex, 0, sourceColumnId);
+        }
+
+        return newOrder;
+      });
+    }
+
+    setDraggingColumnId(null);
+    setDropTargetId(null);
   }, []);
 
-  // Check scroll on mount and when data/columns change
-  useEffect(() => {
-    checkScroll();
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  const handleDragEnd = useCallback(() => {
+    setDraggingColumnId(null);
+    setDropTargetId(null);
+  }, []);
 
-    const handleScroll = () => checkScroll();
-    container.addEventListener('scroll', handleScroll);
-
-    // Also check on resize
-    const resizeObserver = new ResizeObserver(checkScroll);
-    resizeObserver.observe(container);
-
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      resizeObserver.disconnect();
-    };
-  }, [checkScroll, data, columns, columnSizing]);
+  // Calculate left position for frozen columns
+  const getFrozenLeftPosition = (columnIndex: number): number => {
+    let left = 0;
+    for (let i = 0; i < columnIndex; i++) {
+      left += frozenColumnWidths[i] || 0;
+    }
+    return left;
+  };
 
   if (isLoading) {
     return (
@@ -833,174 +703,210 @@ export function ReportTable<TData extends Record<string, unknown>>({
   const totalRows = data.length;
   const currentPage = table.getState().pagination.pageIndex;
   const totalPages = table.getPageCount();
+  const startRow = currentPage * pagination.pageSize + 1;
+  const endRow = Math.min((currentPage + 1) * pagination.pageSize, totalRows);
 
   return (
-    <div
-      ref={tableContainerRef}
-      className={`w-full flex flex-col ${className}`}
-      onMouseEnter={() => setIsTableHovered(true)}
-      onMouseLeave={() => setIsTableHovered(false)}
-    >
-      {/* Title bar with ask Von action (shown on hover) */}
-      {title && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          <span className="text-[13px] font-medium text-gray-900">{title}</span>
-          {showEditAction && onEditTable && (
-            <button
-              onClick={() => onEditTable(title)}
-              className={`flex items-center gap-1 px-2 py-1.5 bg-gray-900 text-white rounded-xl shadow-sm hover:bg-gray-800 transition-all cursor-pointer ${
-                isTableHovered ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              {/* Von Logo */}
-              <svg
-                width={16}
-                height={16}
-                viewBox="0 0 28 28"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle cx="14" cy="14" r="14" fill="url(#paint0_radial_von_table)" />
-                <path
-                  d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-                  stroke="white"
-                  strokeWidth="1.33"
-                />
-                <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
-                <defs>
-                  <radialGradient
-                    id="paint0_radial_von_table"
-                    cx="0"
-                    cy="0"
-                    r="1"
-                    gradientUnits="userSpaceOnUse"
-                    gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
-                  >
-                    <stop stopColor="#FFF3EB" />
-                    <stop offset="0.26" stopColor="#FF9042" />
-                    <stop offset="1" stopColor="#854FFF" />
-                  </radialGradient>
-                </defs>
-              </svg>
-              <span className="text-[12px] font-medium whitespace-nowrap">Ask Von</span>
-            </button>
-          )}
-        </div>
-      )}
+    <div className={`w-full flex flex-col h-full ${className}`}>
+      {/* Custom scrollbar styles */}
+      <style>
+        {`
+          .report-table-scroll::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+          }
+          .report-table-scroll::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 4px;
+          }
+          .report-table-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+          }
+          .report-table-scroll::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+          }
+          .cell-scroll::-webkit-scrollbar {
+            height: 4px;
+          }
+          .cell-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .cell-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 2px;
+          }
+          .cell-scroll::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+          }
+        `}
+      </style>
 
-      <div className="relative flex-1">
-        {/* Left scroll gradient */}
-        {showLeftGradient && (
-          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
-        )}
+      <div className="overflow-x-auto flex-1 report-table-scroll rounded-lg">
+        <table className="w-full border-collapse" style={{ minWidth: 'max-content' }}>
+          <thead className="sticky top-0 z-20">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header, headerIndex) => {
+                  const canSort = header.column.getCanSort();
+                  const sortDirection = header.column.getIsSorted();
+                  const isActionsColumn = header.id === '_actions';
+                  const colWidth =
+                    columnSizing[header.column.id] ??
+                    defaultColumnSizes[header.column.id] ??
+                    header.getSize();
+                  const canResize = header.column.getCanResize();
 
-        {/* Right scroll gradient */}
-        {showRightGradient && (
-          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
-        )}
+                  const colDef = displayColumns.find((c) => c.id === header.id);
+                  const isAIColumn = colDef?.isAI;
+                  const columnSource = colDef?.source;
 
-        <div ref={scrollContainerRef} className="overflow-x-auto h-full">
-          <table className="w-full border-collapse table-fixed">
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="bg-gray-50">
-                  {headerGroup.headers.map((header) => {
-                    const canSort = header.column.getCanSort();
-                    const sortDirection = header.column.getIsSorted();
-                    const isActionsColumn = header.id === '_actions';
-                    const colWidth =
-                      columnSizing[header.column.id] ??
-                      defaultColumnSizes[header.column.id] ??
-                      header.getSize();
-                    const canResize = header.column.getCanResize();
+                  const isFrozen = headerIndex < frozenColumns;
+                  const frozenLeft = isFrozen ? getFrozenLeftPosition(headerIndex) : undefined;
+                  const isDropTarget = dropTargetId === header.id;
+                  const isDragging = draggingColumnId === header.id;
 
-                    return (
-                      <th
-                        key={header.id}
-                        draggable={!isActionsColumn}
-                        onDragStart={(e) =>
-                          !isActionsColumn && handleDragStart(e, header.column.id)
-                        }
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, header.column.id)}
-                        onDragEnd={handleDragEnd}
-                        className={`
-                        px-4 py-2.5 text-left text-xs font-medium text-gray-700 relative
-                        ${!isActionsColumn ? 'cursor-move' : ''}
-                        ${!isActionsColumn && canSort ? 'select-none hover:bg-gray-100 transition-colors' : ''}
-                        ${draggedColumnId === header.column.id ? 'opacity-50' : ''}
+                  const aiColumnStyle = isAIColumn
+                    ? {
+                        backgroundImage: `linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.2) 100%), url('data:image/svg+xml;utf8,<svg viewBox="0 0 260 42" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"><rect x="0" y="0" height="100%" width="100%" fill="url(%23grad)" opacity="0.15"/><defs><radialGradient id="grad" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="10" gradientTransform="matrix(-8.6861e-15 -4.2 17.554 2.0367e-14 6.418 42)"><stop stop-color="rgba(217,79,255,1)" offset="0"/><stop stop-color="rgba(226,123,255,0.75)" offset="0.25"/><stop stop-color="rgba(235,166,255,0.5)" offset="0.5"/><stop stop-color="rgba(253,253,254,0)" offset="1"/></radialGradient></defs></svg>'), url('data:image/svg+xml;utf8,<svg viewBox="0 0 260 42" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"><rect x="0" y="0" height="100%" width="100%" fill="url(%23grad)" opacity="0.5"/><defs><radialGradient id="grad" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="10" gradientTransform="matrix(8.4 1.9994 1.2515 3.8235 -24.5 6)"><stop stop-color="rgba(255,144,66,1)" offset="0"/><stop stop-color="rgba(255,171,113,0.75)" offset="0.25"/><stop stop-color="rgba(254,199,160,0.5)" offset="0.5"/><stop stop-color="rgba(253,253,254,0)" offset="1"/></radialGradient></defs></svg>'), url('data:image/svg+xml;utf8,<svg viewBox="0 0 260 42" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"><rect x="0" y="0" height="100%" width="100%" fill="url(%23grad)" opacity="0.5"/><defs><radialGradient id="grad" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="10" gradientTransform="matrix(1.9127e-15 5.05 -11.463 0.000001256 50.5 -15)"><stop stop-color="rgba(255,144,66,1)" offset="0"/><stop stop-color="rgba(255,171,113,0.75)" offset="0.25"/><stop stop-color="rgba(254,199,160,0.5)" offset="0.5"/><stop stop-color="rgba(253,253,254,0)" offset="1"/></radialGradient></defs></svg>'), linear-gradient(90deg, rgb(252, 252, 253) 0%, rgb(252, 252, 253) 100%)`,
+                      }
+                    : undefined;
+
+                  const handleAIHeaderClick = (e: React.MouseEvent) => {
+                    if (isAIColumn && colDef) {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setAiHeaderPopover({
+                        column: colDef,
+                        position: { top: rect.bottom + 4, left: rect.left },
+                      });
+                    }
+                  };
+
+                  const canDrag = enableColumnReorder && !isActionsColumn;
+
+                  return (
+                    <th
+                      key={header.id}
+                      draggable={canDrag}
+                      onDragStart={canDrag ? (e) => handleDragStart(e, header.id) : undefined}
+                      className={`
+                        px-3 py-2.5 text-left text-[13px] font-medium relative border-r border-gray-100
+                        ${isAIColumn ? 'text-gray-800 cursor-pointer' : 'bg-gray-50 text-gray-800'}
+                        ${isFrozen ? 'sticky z-30' : ''}
+                        ${isDropTarget ? 'bg-indigo-50 border-l-2 border-l-indigo-400' : ''}
+                        ${isDragging ? 'opacity-50 cursor-grabbing' : ''}
                       `}
-                        style={{
-                          width: colWidth,
-                          minWidth: header.column.columnDef.minSize,
-                        }}
-                        onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {!isActionsColumn && canSort && (
-                            <SortIndicator direction={sortDirection} />
+                      style={{
+                        width: colWidth,
+                        minWidth: colWidth,
+                        maxWidth: colWidth,
+                        ...(isFrozen
+                          ? {
+                              left: frozenLeft,
+                              backgroundColor: isAIColumn ? undefined : '#f9fafb',
+                            }
+                          : {}),
+                        ...aiColumnStyle,
+                      }}
+                      onClick={isAIColumn ? handleAIHeaderClick : undefined}
+                      onDragOver={(e) => handleDragOver(e, header.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, header.id)}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <div className="flex items-center justify-between gap-1 overflow-hidden">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                          {!isAIColumn && columnSource && (
+                            <div className="flex-shrink-0">
+                              <SourceIcon source={columnSource} size={14} />
+                            </div>
                           )}
+                          {flexRender(header.column.columnDef.header, header.getContext())}
                         </div>
-                        {canResize && (
-                          <ColumnResizer
-                            onMouseDown={(e) => handleResizeMouseDown(e, header.column.id)}
-                            isResizing={resizingColumnId === header.column.id}
+                        {!isActionsColumn && canSort && (
+                          <SortButton
+                            direction={sortDirection}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              header.column.toggleSorting();
+                            }}
                           />
                         )}
-                      </th>
-                    );
-                  })}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => {
-                const rowId = String(row.original[rowIdKey as keyof TData] ?? row.index);
-                const isSelected = selectedRows.includes(rowId);
+                      </div>
+                      {canResize && (
+                        <ColumnResizer
+                          onMouseDown={(e) => handleResizeMouseDown(e, header.column.id)}
+                          isResizing={resizingColumnId === header.column.id}
+                        />
+                      )}
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row) => {
+              const rowId = String(row.original[rowIdKey as keyof TData] ?? row.index);
+              const isSelected = selectedRows.includes(rowId);
+              const isHovered = hoveredRowId === rowId;
 
-                return (
-                  <tr
-                    key={row.id}
-                    className={`
+              return (
+                <tr
+                  key={row.id}
+                  className={`
                     border-b border-gray-100 transition-colors
                     ${isSelected ? 'bg-gray-50' : 'hover:bg-gray-50/50'}
                   `}
-                    onMouseEnter={() => setHoveredRowId(rowId)}
-                    onMouseLeave={() => setHoveredRowId(null)}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const colWidth =
-                        columnSizing[cell.column.id] ??
-                        defaultColumnSizes[cell.column.id] ??
-                        cell.column.getSize();
+                  onMouseEnter={() => setHoveredRowId(rowId)}
+                  onMouseLeave={() => setHoveredRowId(null)}
+                >
+                  {row.getVisibleCells().map((cell, cellIndex) => {
+                    const colWidth =
+                      columnSizing[cell.column.id] ??
+                      defaultColumnSizes[cell.column.id] ??
+                      cell.column.getSize();
 
-                      return (
-                        <td
-                          key={cell.id}
-                          className="px-4 py-3 text-[13px]"
-                          style={{
-                            width: colWidth,
-                            minWidth: cell.column.columnDef.minSize,
-                          }}
+                    const isFrozen = cellIndex < frozenColumns;
+                    const frozenLeft = isFrozen ? getFrozenLeftPosition(cellIndex) : undefined;
+
+                    return (
+                      <td
+                        key={cell.id}
+                        className={`
+                          px-3 py-2.5 text-[13px] font-medium border-r border-gray-100
+                          ${isFrozen ? 'sticky z-10' : ''}
+                          ${isFrozen && isSelected ? 'bg-gray-50' : isFrozen ? 'bg-white' : ''}
+                          ${isFrozen && isHovered && !isSelected ? 'bg-gray-50/50' : ''}
+                        `}
+                        style={{
+                          width: colWidth,
+                          minWidth: colWidth,
+                          maxWidth: colWidth,
+                          ...(isFrozen ? { left: frozenLeft } : {}),
+                        }}
+                      >
+                        <div
+                          className="overflow-x-auto cell-scroll whitespace-nowrap"
+                          style={{ scrollbarWidth: 'thin', paddingBottom: '2px' }}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}
       {showPagination && totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-white">
-          <div className="text-xs text-gray-600">
-            {totalRows} {totalRows === 1 ? 'result' : 'results'}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-white">
+          <div className="text-[13px] text-gray-700">
+            Showing {startRow} to {endRow} of {totalRows} results
           </div>
           <div className="flex items-center gap-2">
             <SecondaryIconButton
@@ -1010,9 +916,24 @@ export function ReportTable<TData extends Record<string, unknown>>({
               title="Previous page"
               size="small"
             />
-            <span className="text-xs text-gray-700 font-medium">
-              Page {currentPage + 1} of {totalPages}
-            </span>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => table.setPageIndex(i)}
+                  className={`
+                    min-w-[28px] h-7 px-2 text-[13px] font-medium rounded-lg transition-colors cursor-pointer
+                    ${
+                      currentPage === i
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
             <SecondaryIconButton
               icon={<CaretRight size={14} />}
               onClick={() => table.nextPage()}
@@ -1024,12 +945,12 @@ export function ReportTable<TData extends Record<string, unknown>>({
         </div>
       )}
 
-      {/* AI Column Header Popover */}
-      {aiColumnPopover && (
-        <AIColumnHeaderPopover
-          column={aiColumnPopover.column}
-          position={aiColumnPopover.position}
-          onClose={() => setAiColumnPopover(null)}
+      {/* AI Header Popover */}
+      {aiHeaderPopover && (
+        <AIHeaderPopover
+          column={aiHeaderPopover.column}
+          position={aiHeaderPopover.position}
+          onClose={() => setAiHeaderPopover(null)}
         />
       )}
     </div>

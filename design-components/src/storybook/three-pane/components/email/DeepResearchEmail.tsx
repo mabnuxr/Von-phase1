@@ -31,12 +31,7 @@ export const DeepResearchEmail: React.FC<DeepResearchEmailPreviewProps> = ({
     currentYear,
   });
 
-  const width =
-    previewWidth === 'mobile'
-      ? 375
-      : previewWidth === 'desktop'
-        ? 700
-        : previewWidth;
+  const width = previewWidth === 'mobile' ? 375 : previewWidth === 'desktop' ? 700 : previewWidth;
 
   return (
     <iframe

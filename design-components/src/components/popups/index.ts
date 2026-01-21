@@ -57,3 +57,6 @@ export type { DashboardFilterModalProps, DashboardFilterConfig } from './Dashboa
 
 export { DashboardSharePopover } from './DashboardSharePopover';
 export type { DashboardSharePopoverProps, ShareConfig, AccessLevel } from './DashboardSharePopover';
+
+export { ExpensiveOperationModal } from './ExpensiveOperationModal';
+export type { ExpensiveOperationModalProps } from './ExpensiveOperationModal';
