@@ -196,37 +196,6 @@ const DeduplicationNotice: React.FC<{
 };
 
 /**
- * View mode toggle
- */
-const ViewModeToggle: React.FC<{
-  viewMode: 'unified' | 'grouped';
-  onViewModeChange: (mode: 'unified' | 'grouped') => void;
-}> = ({ viewMode, onViewModeChange }) => (
-  <div className="flex gap-1">
-    <button
-      onClick={() => onViewModeChange('unified')}
-      className={`px-2 py-1 text-xs rounded transition-colors ${
-        viewMode === 'unified'
-          ? 'bg-indigo-600 text-white'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-      }`}
-    >
-      Unified
-    </button>
-    <button
-      onClick={() => onViewModeChange('grouped')}
-      className={`px-2 py-1 text-xs rounded transition-colors ${
-        viewMode === 'grouped'
-          ? 'bg-indigo-600 text-white'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-      }`}
-    >
-      By Source
-    </button>
-  </div>
-);
-
-/**
  * Format duration in minutes
  */
 const formatDuration = (minutes?: number): string => {
@@ -402,60 +371,6 @@ const UnifiedResultsView: React.FC<{
 };
 
 /**
- * Grouped results view (by match source)
- */
-const GroupedResultsView: React.FC<{
-  resultsBySource: CallSearchUnionResult['results_by_source'];
-  enableDeepLinks: boolean;
-}> = ({ resultsBySource, enableDeepLinks }) => {
-  const [expandedCallId, setExpandedCallId] = useState<string | null>(null);
-
-  const groups = (
-    Object.entries(resultsBySource) as [CallMatchSource, CallSearchResult[]][]
-  ).filter(([, results]) => results && results.length > 0);
-
-  if (groups.length === 0) {
-    return (
-      <div className="text-center py-6 text-gray-500 text-sm">
-        No calls found matching the search criteria.
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {groups.map(([source, results]) => {
-        const config = SOURCE_CONFIG[source];
-        return (
-          <div key={source}>
-            <div className="flex items-center gap-2 mb-2">
-              <span>{config?.icon || '📌'}</span>
-              <h4 className="font-semibold text-gray-900 text-sm">{config?.label || source}</h4>
-              <span className="text-xs text-gray-500">
-                ({results.length} result{results.length !== 1 ? 's' : ''})
-              </span>
-            </div>
-            <div className="space-y-2 pl-4 border-l-2 border-gray-200">
-              {results.map((call) => (
-                <CallResultCard
-                  key={call.call_id}
-                  call={call}
-                  isExpanded={expandedCallId === call.call_id}
-                  onToggleExpand={() =>
-                    setExpandedCallId(expandedCallId === call.call_id ? null : call.call_id)
-                  }
-                  enableDeepLinks={enableDeepLinks}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-/**
  * Union query details (expandable)
  */
 const UnionQueryDetails: React.FC<{
@@ -533,13 +448,11 @@ const UnionQueryDetails: React.FC<{
  * - Match source badges on each result
  * - Expandable union query details
  * - Deduplication summary
- * - Unified or grouped view modes
  */
 export const CallSearchUnionRenderer: React.FC<CallSearchUnionRendererProps> = ({
   result,
   enableDeepLinks = false,
 }) => {
-  const [viewMode, setViewMode] = useState<'unified' | 'grouped'>('unified');
   const [showQueryDetails, setShowQueryDetails] = useState(false);
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null);
 
@@ -548,26 +461,16 @@ export const CallSearchUnionRenderer: React.FC<CallSearchUnionRendererProps> = (
       {/* Summary Header */}
       <SummaryHeader result={result} />
 
-      {/* Controls Row */}
-      <div className="flex items-center justify-between">
-        <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-        <DeduplicationNotice deduplication={result.deduplication} />
-      </div>
+      {/* Deduplication Notice */}
+      <DeduplicationNotice deduplication={result.deduplication} />
 
       {/* Results Display */}
-      {viewMode === 'unified' ? (
-        <UnifiedResultsView
-          results={result.results}
-          expandedCallId={expandedCallId}
-          onExpandCall={setExpandedCallId}
-          enableDeepLinks={enableDeepLinks}
-        />
-      ) : (
-        <GroupedResultsView
-          resultsBySource={result.results_by_source}
-          enableDeepLinks={enableDeepLinks}
-        />
-      )}
+      <UnifiedResultsView
+        results={result.results}
+        expandedCallId={expandedCallId}
+        onExpandCall={setExpandedCallId}
+        enableDeepLinks={enableDeepLinks}
+      />
 
       {/* Union Query Details (Expandable) */}
       <UnionQueryDetails
