@@ -84,12 +84,12 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
         onCloseManageDrawer={closeManageDrawer}
         salesforceFields={salesforceFields}
         isLoadingSalesforceFields={isLoadingSalesforceFields}
-        commandsListClassName="absolute bottom-full left-0 right-0 max-w-3xl mx-auto w-full mb-1 z-50"
+        commandsListClassName="absolute bottom-full left-0 right-0 max-w-4xl mx-auto w-full mb-1 z-50"
       />
 
       {/* Command Chip + Input Area (when command is selected) */}
       {selectedCommand ? (
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Main input container with gradient border - matching StandardChatInput style */}
           <div
             className={`p-[1px] rounded-2xl transition-all duration-200 ${

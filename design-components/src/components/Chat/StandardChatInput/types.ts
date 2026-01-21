@@ -210,4 +210,10 @@ export interface StandardChatInputProps {
    * Callback when Build Dashboard agent is selected from the menu
    */
   onBuildDashboard?: () => void;
+
+  /**
+   * Hide the disclaimer text below the input
+   * @default false
+   */
+  hideDisclaimer?: boolean;
 }
