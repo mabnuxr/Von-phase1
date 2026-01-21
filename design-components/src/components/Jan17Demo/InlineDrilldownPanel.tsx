@@ -522,21 +522,25 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
   columns: singleColumns,
   rows: singleRows,
   tables,
-  filters = [],
+  filters: _filters = [],
   formula = '',
-  onFiltersChange,
+  onFiltersChange: _onFiltersChange,
   onFormulaChange,
   availableFields = [],
   defaultFilterGroups,
 }) => {
+  // Prefixed with _ to indicate intentionally unused (for future use)
+  void _filters;
+  void _onFiltersChange;
+
   const [localFormula, setLocalFormula] = useState(formula);
   const [showFormulaPopover, setShowFormulaPopover] = useState(false);
   const [panelHeight, setPanelHeight] = useState(90);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const [aiColumns, setAiColumns] = useState<AIColumn[]>([]);
+  const [, setAiColumns] = useState<AIColumn[]>([]);
   const [showAIColumnPopover, setShowAIColumnPopover] = useState(false);
   const [editingAIColumn, setEditingAIColumn] = useState<AIColumn | null>(null);
-  const [aiColumnData, setAiColumnData] = useState<Record<string, Record<number, string>>>({});
+  const [, setAiColumnData] = useState<Record<string, Record<number, string>>>({});
   const aiColumnButtonRef = useRef<HTMLButtonElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);

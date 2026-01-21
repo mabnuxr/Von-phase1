@@ -2918,7 +2918,12 @@ const DeepResearchDemo = () => {
                     {
                       id: 'drilldown-filter-1',
                       conditions: [
-                        { id: 'cond-1', field: 'revenue', operator: 'greater_than', value: '500000' },
+                        {
+                          id: 'cond-1',
+                          field: 'revenue',
+                          operator: 'greater_than',
+                          value: '500000',
+                        },
                       ],
                       connector: 'and',
                     },
