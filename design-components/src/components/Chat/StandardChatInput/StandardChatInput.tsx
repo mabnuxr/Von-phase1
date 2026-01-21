@@ -292,6 +292,8 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onPopoverFeedback,
   // Agent props
   onBuildDashboard,
+  // Disclaimer
+  hideDisclaimer = false,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
@@ -437,8 +439,8 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   };
 
   return (
-    <div className="w-full antialiased font-sf">
-      <div className="max-w-3xl mx-auto relative">
+    <div className="ml-2 p-3 bg-white antialiased font-sf">
+      <div className="px-6 max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
         {/* ChatInputPopover - shown above the input when active */}
         {activePopover && (
           <ChatInputPopover
@@ -635,6 +637,12 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
             </div>
           </div>
         </div>
+
+        {!hideDisclaimer && (
+          <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+            Von AI may make mistakes. Please recheck all important information.
+          </div>
+        )}
       </div>
     </div>
   );
