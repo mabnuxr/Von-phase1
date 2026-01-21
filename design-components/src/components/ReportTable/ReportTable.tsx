@@ -454,59 +454,62 @@ export function ReportTable<TData extends Record<string, unknown>>({
   }, [frozenColumns, displayColumns, columnSizing, defaultColumnSizes]);
 
   // Render cell based on column type
-  const renderCellContent = (value: unknown, col: ReportColumn, row: TData): React.ReactNode => {
-    const aiReasoningData = row[aiReasoningKey] as Record<string, AIReasoningData> | undefined;
-    const reasoning = aiReasoningData?.[col.id];
+  const renderCellContent = useCallback(
+    (value: unknown, col: ReportColumn, row: TData): React.ReactNode => {
+      const aiReasoningData = row[aiReasoningKey] as Record<string, AIReasoningData> | undefined;
+      const reasoning = aiReasoningData?.[col.id];
 
-    let content: React.ReactNode;
+      let content: React.ReactNode;
 
-    switch (col.type) {
-      case 'owner':
-        content = <OwnerCell value={String(value ?? '')} />;
-        break;
-      case 'multiPicklist':
-        content = <MultiPicklistCell value={value as string | string[]} />;
-        break;
-      case 'sentiment':
-        content = <SentimentCell value={String(value ?? '')} />;
-        break;
-      case 'boolean':
-        content = <BooleanCell value={value as boolean | string} />;
-        break;
-      case 'longText':
-        content = <LongTextCell value={String(value ?? '')} />;
-        break;
-      case 'picklist':
-        content = value ? (
-          <PicklistCell value={String(value)} />
-        ) : (
-          <span className="text-gray-400">—</span>
-        );
-        break;
-      default:
-        content = <span className="text-gray-900">{formatValue(value, col.type)}</span>;
-    }
+      switch (col.type) {
+        case 'owner':
+          content = <OwnerCell value={String(value ?? '')} />;
+          break;
+        case 'multiPicklist':
+          content = <MultiPicklistCell value={value as string | string[]} />;
+          break;
+        case 'sentiment':
+          content = <SentimentCell value={String(value ?? '')} />;
+          break;
+        case 'boolean':
+          content = <BooleanCell value={value as boolean | string} />;
+          break;
+        case 'longText':
+          content = <LongTextCell value={String(value ?? '')} />;
+          break;
+        case 'picklist':
+          content = value ? (
+            <PicklistCell value={String(value)} />
+          ) : (
+            <span className="text-gray-400">—</span>
+          );
+          break;
+        default:
+          content = <span className="text-gray-900">{formatValue(value, col.type)}</span>;
+      }
 
-    // For AI columns, add the Von logo button
-    if (col.isAI) {
-      const reasoningWithName: AIReasoningData = {
-        ...reasoning,
-        reasoning: reasoning?.reasoning || 'AI-generated content',
-        recordName: String(row[nameKey] ?? ''),
-      };
+      // For AI columns, add the Von logo button
+      if (col.isAI) {
+        const reasoningWithName: AIReasoningData = {
+          ...reasoning,
+          reasoning: reasoning?.reasoning || 'AI-generated content',
+          recordName: String(row[nameKey] ?? ''),
+        };
 
-      return (
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex-1 min-w-0">{content}</div>
-          <div className="flex-shrink-0">
-            <VonLogoButton reasoning={reasoningWithName} />
+        return (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">{content}</div>
+            <div className="flex-shrink-0">
+              <VonLogoButton reasoning={reasoningWithName} />
+            </div>
           </div>
-        </div>
-      );
-    }
+        );
+      }
 
-    return content;
-  };
+      return content;
+    },
+    [aiReasoningKey, nameKey]
+  );
 
   const tableColumns = useMemo((): ColumnDef<TData>[] => {
     const cols: ColumnDef<TData>[] = [
@@ -567,8 +570,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
     rowIdKey,
     onRowSelect,
     onRowOpen,
-    aiReasoningKey,
-    nameKey,
+    renderCellContent,
   ]);
 
   const table = useReactTable({
