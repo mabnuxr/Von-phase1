@@ -7,14 +7,10 @@ import {
   Database as DatabaseIcon,
   CaretLeft as CaretLeftIcon,
   CaretRight as CaretRightIcon,
-  CaretDown as CaretDownIcon,
-  CaretUp as CaretUpIcon,
   MagnifyingGlass as MagnifyingGlassIcon,
   Funnel as FunnelIcon,
   Plus as PlusIcon,
   Sparkle as SparkleIcon,
-  Star as StarIcon,
-  Trash as TrashIcon,
   SortAscending as SortAscendingIcon,
   SortDescending as SortDescendingIcon,
   ArrowsDownUp as ArrowsDownUpIcon,
@@ -143,6 +139,121 @@ const AIStarIcon: React.FC<AIStarIconProps> = ({
 };
 
 // ============================================================================
+// AI Column Header Popover (shows prompt on click)
+// ============================================================================
+
+interface AIColumnHeaderPopoverProps {
+  column: ReportColumn;
+  onClose: () => void;
+  position: { top: number; left: number };
+}
+
+const AIColumnHeaderPopover: React.FC<AIColumnHeaderPopoverProps> = ({
+  column,
+  onClose,
+  position,
+}) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      ref={popoverRef}
+      className="fixed w-72 bg-gray-900 rounded-lg shadow-xl z-[10002] p-3 text-white"
+      style={{ top: position.top, left: Math.min(position.left, window.innerWidth - 300) }}
+    >
+      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700">
+        <AIStarIcon size={12} id="aiStar-header-popover" />
+        <span className="text-[12px] font-medium">{column.label}</span>
+      </div>
+
+      <div className="mb-3">
+        <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1.5">Prompt</p>
+        <p className="text-[12px] text-gray-200 leading-relaxed">
+          {column.aiPrompt || 'Generate insights based on available data.'}
+        </p>
+      </div>
+
+      {column.aiDataSources && column.aiDataSources.length > 0 && (
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-gray-400 mb-1.5">Data Sources</p>
+          <div className="flex flex-wrap gap-1">
+            {column.aiDataSources.map((source, idx) => (
+              <span key={idx} className="px-2 py-0.5 text-[11px] bg-gray-800 text-gray-300 rounded">
+                {source}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+};
+
+// ============================================================================
+// AI Cell Reasoning Popover (shows reasoning on hover)
+// ============================================================================
+
+interface AICellReasoningPopoverProps {
+  reasoning: AIReasoningData;
+  position: { top: number; left: number };
+}
+
+const AICellReasoningPopover: React.FC<AICellReasoningPopoverProps> = ({
+  reasoning,
+  position,
+}) => {
+  return createPortal(
+    <div
+      className="fixed w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-[10002] p-3"
+      style={{ top: position.top, left: Math.min(position.left, window.innerWidth - 280) }}
+    >
+      <div className="flex items-center gap-1.5 mb-2">
+        <AIStarIcon size={12} id="aiStar-reasoning" />
+        <span className="text-[11px] font-medium text-gray-900">AI Reasoning</span>
+      </div>
+      <p className="text-[12px] text-gray-600 leading-relaxed">{reasoning.reasoning}</p>
+      {reasoning.confidence !== undefined && (
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-gray-500">Confidence</span>
+            <span className="font-medium text-gray-900">
+              {Math.round(reasoning.confidence * 100)}%
+            </span>
+          </div>
+        </div>
+      )}
+      {reasoning.sources && reasoning.sources.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <p className="text-[11px] text-gray-500 mb-1">Sources</p>
+          <div className="flex flex-wrap gap-1">
+            {reasoning.sources.map((source, idx) => (
+              <span
+                key={idx}
+                className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded"
+              >
+                {source}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+};
+
+// ============================================================================
 // Natural Language Filter Popover
 // ============================================================================
 
@@ -152,6 +263,8 @@ interface NLFilterPopoverProps {
   anchorRef: React.RefObject<HTMLButtonElement | null>;
   onApplyFilter: (filter: DataFilter) => void;
   columns: ReportColumn[];
+  existingFilters: DataFilter[];
+  onRemoveFilter: (filterId: string) => void;
 }
 
 const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
@@ -160,6 +273,8 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
   anchorRef,
   onApplyFilter,
   columns,
+  existingFilters,
+  onRemoveFilter,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -185,7 +300,7 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
       const rect = anchorRef.current.getBoundingClientRect();
       setPosition({
         top: rect.bottom + 8,
-        left: Math.max(16, Math.min(rect.left, window.innerWidth - 420)),
+        left: Math.max(16, Math.min(rect.right - 400, window.innerWidth - 420)),
       });
     }
   }, [isOpen, anchorRef]);
@@ -217,7 +332,6 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
       const lowerPrompt = promptValue.toLowerCase();
       let filter: DataFilter | null = null;
 
-      // Parse natural language filter
       if (lowerPrompt.includes('>') && (lowerPrompt.includes('$') || lowerPrompt.includes('amount'))) {
         const match = promptValue.match(/>\s*\$?([\d,]+)k?/i);
         if (match) {
@@ -284,7 +398,6 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
           };
         }
       } else {
-        // Default to text search on first text column
         const textCol = columns.find(c => c.type === 'text');
         filter = {
           id: `filter-${Date.now()}`,
@@ -298,8 +411,8 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
       if (filter) {
         onApplyFilter(filter);
       }
+      setPromptValue('');
       setIsProcessing(false);
-      onClose();
     }, 600);
   };
 
@@ -338,7 +451,7 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
             value={promptValue}
             onChange={(e) => setPromptValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder='e.g., "Deals > $100K in West region" or "High risk deals"'
+            placeholder='e.g., "Deals > $100K in West region"'
             disabled={isProcessing}
             className="w-full px-3 py-2.5 pr-10 text-[13px] text-gray-900 bg-gray-50 border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow disabled:opacity-50"
           />
@@ -357,6 +470,30 @@ const NLFilterPopover: React.FC<NLFilterPopoverProps> = ({
           Describe your filter in natural language. Press Enter to apply.
         </p>
       </div>
+
+      {existingFilters.length > 0 && (
+        <div className="px-4 pb-4">
+          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">
+            Active Filters ({existingFilters.length})
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {existingFilters.map((filter) => (
+              <span
+                key={filter.id}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-gray-100 text-gray-700 rounded-md"
+              >
+                {filter.field} {filter.operator} "{filter.value}"
+                <button
+                  onClick={() => onRemoveFilter(filter.id)}
+                  className="ml-0.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <XIcon size={10} weight="bold" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>,
     document.body
   );
@@ -371,7 +508,6 @@ interface AddAIColumnPopoverProps {
   onClose: () => void;
   anchorRef: React.RefObject<HTMLButtonElement | null>;
   onAddColumn: (column: ReportColumn) => void;
-  existingColumns: ReportColumn[];
 }
 
 const AddAIColumnPopover: React.FC<AddAIColumnPopoverProps> = ({
@@ -379,7 +515,6 @@ const AddAIColumnPopover: React.FC<AddAIColumnPopoverProps> = ({
   onClose,
   anchorRef,
   onAddColumn,
-  existingColumns,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -400,7 +535,7 @@ const AddAIColumnPopover: React.FC<AddAIColumnPopoverProps> = ({
       const rect = anchorRef.current.getBoundingClientRect();
       setPosition({
         top: rect.bottom + 8,
-        left: Math.max(16, Math.min(rect.left, window.innerWidth - 420)),
+        left: Math.max(16, Math.min(rect.right - 420, window.innerWidth - 440)),
       });
     }
   }, [isOpen, anchorRef]);
@@ -564,32 +699,6 @@ const TableTab: React.FC<TableTabProps> = ({ table, isActive, onClick }) => {
 };
 
 // ============================================================================
-// Filter Chip Component
-// ============================================================================
-
-interface FilterChipProps {
-  filter: DataFilter;
-  onRemove: () => void;
-}
-
-const FilterChip: React.FC<FilterChipProps> = ({ filter, onRemove }) => {
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded-md text-[12px]">
-      {filter.isAI && <AIStarIcon size={10} id={`filter-${filter.id}`} />}
-      <span className="text-gray-700 font-medium">{filter.field}</span>
-      <span className="text-gray-500">{filter.operator}</span>
-      <span className="text-gray-900">{filter.value}</span>
-      <button
-        onClick={onRemove}
-        className="ml-1 p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors cursor-pointer"
-      >
-        <XIcon size={10} weight="bold" />
-      </button>
-    </div>
-  );
-};
-
-// ============================================================================
 // Data Table Content Component
 // ============================================================================
 
@@ -599,6 +708,7 @@ interface DataTableContentProps {
   sortConfig: { column: string; direction: 'asc' | 'desc' } | null;
   onSort: (column: string) => void;
   addedColumns: ReportColumn[];
+  searchQuery: string;
 }
 
 const DataTableContent: React.FC<DataTableContentProps> = ({
@@ -607,17 +717,38 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
   sortConfig,
   onSort,
   addedColumns,
+  searchQuery,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [aiColumnPopover, setAiColumnPopover] = useState<{
+    column: ReportColumn;
+    position: { top: number; left: number };
+  } | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{
+    reasoning: AIReasoningData;
+    position: { top: number; left: number };
+  } | null>(null);
 
-  // Combine original columns with added AI columns
   const allColumns = useMemo(() => {
     return [...table.columns, ...addedColumns];
   }, [table.columns, addedColumns]);
 
-  // Filter data
+  // Filter by search query
+  const searchFilteredData = useMemo(() => {
+    if (!searchQuery.trim()) return table.data;
+
+    const query = searchQuery.toLowerCase();
+    return table.data.filter((row) => {
+      return Object.values(row).some((value) => {
+        if (value === null || value === undefined) return false;
+        return String(value).toLowerCase().includes(query);
+      });
+    });
+  }, [table.data, searchQuery]);
+
+  // Apply filters
   const filteredData = useMemo(() => {
-    let result = [...table.data];
+    let result = [...searchFilteredData];
 
     filters.forEach((filter) => {
       result = result.filter((row) => {
@@ -647,7 +778,7 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
     });
 
     return result;
-  }, [table.data, filters]);
+  }, [searchFilteredData, filters]);
 
   // Sort data
   const sortedData = useMemo(() => {
@@ -679,10 +810,9 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
   const endIndex = Math.min(startIndex + ROWS_PER_PAGE, totalRows);
   const currentRows = sortedData.slice(startIndex, endIndex);
 
-  // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters, searchQuery]);
 
   const getSortIcon = (columnId: string) => {
     if (sortConfig?.column !== columnId) {
@@ -695,13 +825,40 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
     );
   };
 
+  const handleColumnHeaderClick = (col: ReportColumn, e: React.MouseEvent) => {
+    if (col.isAI) {
+      e.stopPropagation();
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      setAiColumnPopover({
+        column: col,
+        position: { top: rect.bottom + 4, left: rect.left },
+      });
+    } else if (col.sortable) {
+      onSort(col.id);
+    }
+  };
+
+  const handleCellMouseEnter = (col: ReportColumn, rowIndex: number, e: React.MouseEvent) => {
+    if (col.isAI && table.aiReasoningData) {
+      const key = `${col.id}-${rowIndex}`;
+      const reasoning = table.aiReasoningData[key];
+      if (reasoning) {
+        const rect = (e.target as HTMLElement).getBoundingClientRect();
+        setHoveredCell({
+          reasoning,
+          position: { top: rect.bottom + 4, left: rect.left },
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Table Info */}
       <div className="px-4 py-2 flex items-center justify-between text-[11px] text-gray-500">
         <span>
-          Showing {startIndex + 1}–{endIndex} of {totalRows} rows
-          {filters.length > 0 && ` (filtered from ${table.rowCount})`}
+          Showing {totalRows > 0 ? startIndex + 1 : 0}–{endIndex} of {totalRows} rows
+          {(filters.length > 0 || searchQuery) && ` (filtered from ${table.rowCount})`}
         </span>
         <span>{allColumns.filter((c) => c.isAI).length} AI columns</span>
       </div>
@@ -718,9 +875,9 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
                     col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
                       ? 'text-right'
                       : ''
-                  } ${col.sortable ? 'cursor-pointer hover:bg-gray-100 select-none' : ''}`}
+                  } ${col.sortable || col.isAI ? 'cursor-pointer hover:bg-gray-100 select-none' : ''}`}
                   style={{ minWidth: col.width || 100 }}
-                  onClick={() => col.sortable && onSort(col.id)}
+                  onClick={(e) => handleColumnHeaderClick(col, e)}
                 >
                   <div className={`flex items-center gap-1.5 ${
                     col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
@@ -729,7 +886,7 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
                   }`}>
                     {col.isAI && <AIStarIcon size={10} id={`col-${col.id}`} />}
                     <span>{col.label}</span>
-                    {col.sortable && getSortIcon(col.id)}
+                    {col.sortable && !col.isAI && getSortIcon(col.id)}
                   </div>
                 </th>
               ))}
@@ -745,6 +902,7 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
                   const isAIColumn = col.isAI;
                   const value = row[col.id];
                   const hasValue = value !== null && value !== undefined;
+                  const actualRowIndex = startIndex + rowIndex;
 
                   return (
                     <td
@@ -753,13 +911,22 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
                         col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
                           ? 'text-right tabular-nums'
                           : 'text-left'
-                      } text-gray-700`}
+                      } text-gray-700 ${isAIColumn ? 'cursor-help' : ''}`}
+                      onMouseEnter={(e) => handleCellMouseEnter(col, actualRowIndex, e)}
+                      onMouseLeave={() => setHoveredCell(null)}
                     >
-                      {isAIColumn && !hasValue ? (
-                        <span className="text-gray-400 italic">Calculating...</span>
-                      ) : (
-                        formatValue(value, col.type)
-                      )}
+                      <div className="flex items-center gap-1">
+                        {isAIColumn && !hasValue ? (
+                          <span className="text-gray-400 italic">Calculating...</span>
+                        ) : (
+                          <>
+                            <span>{formatValue(value, col.type)}</span>
+                            {isAIColumn && hasValue && (
+                              <AIStarIcon size={8} id={`cell-${col.id}-${actualRowIndex}`} />
+                            )}
+                          </>
+                        )}
+                      </div>
                     </td>
                   );
                 })}
@@ -796,6 +963,23 @@ const DataTableContent: React.FC<DataTableContentProps> = ({
           </div>
         )}
       </div>
+
+      {/* AI Column Header Popover */}
+      {aiColumnPopover && (
+        <AIColumnHeaderPopover
+          column={aiColumnPopover.column}
+          position={aiColumnPopover.position}
+          onClose={() => setAiColumnPopover(null)}
+        />
+      )}
+
+      {/* AI Cell Reasoning Popover */}
+      {hoveredCell && (
+        <AICellReasoningPopover
+          reasoning={hoveredCell.reasoning}
+          position={hoveredCell.position}
+        />
+      )}
     </div>
   );
 };
@@ -816,6 +1000,7 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
   const [addedColumns, setAddedColumns] = useState<Record<string, ReportColumn[]>>({});
   const [showNLFilter, setShowNLFilter] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const nlFilterButtonRef = useRef<HTMLButtonElement>(null);
   const addColumnButtonRef = useRef<HTMLButtonElement>(null);
@@ -862,6 +1047,11 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
     }));
   }, [activeTableId]);
 
+  // Reset search when switching tables
+  React.useEffect(() => {
+    setSearchQuery('');
+  }, [activeTableId]);
+
   const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
 
   return (
@@ -884,14 +1074,14 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed right-0 top-0 h-full w-[800px] max-w-[95vw] pr-2 py-2 z-[9999]"
+            className="fixed right-0 top-0 h-full w-[900px] max-w-[95vw] pr-2 py-2 z-[9999]"
           >
             <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50">
-                    <DatabaseIcon size={18} weight="duotone" className="text-indigo-600" />
+                  <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gray-100">
+                    <DatabaseIcon size={18} weight="duotone" className="text-gray-600" />
                   </div>
                   <div>
                     <h2 className="text-base font-semibold text-gray-900">{title}</h2>
@@ -925,39 +1115,53 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Filter & Actions Bar */}
+              {/* Search & Filter Bar */}
               <div className="px-5 py-3 border-b border-gray-100 shrink-0">
-                <div className="flex items-center justify-between gap-4">
-                  {/* Filters */}
-                  <div className="flex items-center gap-2 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                <div className="flex items-center gap-3">
+                  {/* Search Bar - Left */}
+                  <div className="relative flex-1 max-w-sm">
+                    <MagnifyingGlassIcon
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search..."
+                      className="w-full pl-9 pr-3 py-2 text-[13px] text-gray-900 bg-gray-50 border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-shadow"
+                    />
+                  </div>
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Filters & AI Column - Right */}
+                  <div className="flex items-center gap-2">
                     <button
                       ref={nlFilterButtonRef}
                       onClick={() => setShowNLFilter(true)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <SparkleIcon size={14} weight="duotone" className="text-indigo-600" />
-                      Add Filter
+                      <FunnelIcon size={14} weight="regular" className="text-gray-500" />
+                      Filters
+                      {activeFilters.length > 0 && (
+                        <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-gray-900 text-white rounded">
+                          {activeFilters.length}
+                        </span>
+                      )}
                     </button>
 
-                    {activeFilters.map((filter) => (
-                      <FilterChip
-                        key={filter.id}
-                        filter={filter}
-                        onRemove={() => handleRemoveFilter(filter.id)}
-                      />
-                    ))}
+                    <button
+                      ref={addColumnButtonRef}
+                      onClick={() => setShowAddColumn(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <PlusIcon size={14} weight="bold" />
+                      <img src={LOGO_STATIC_URL} alt="Von" className="w-3.5 h-3.5 rounded-sm" />
+                      AI Column
+                    </button>
                   </div>
-
-                  {/* Add AI Column */}
-                  <button
-                    ref={addColumnButtonRef}
-                    onClick={() => setShowAddColumn(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    <PlusIcon size={14} weight="bold" />
-                    <img src={LOGO_STATIC_URL} alt="Von" className="w-3.5 h-3.5 rounded-sm" />
-                    AI Column
-                  </button>
                 </div>
               </div>
 
@@ -970,6 +1174,7 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
                     sortConfig={activeSortConfig}
                     onSort={handleSort}
                     addedColumns={activeAddedColumns}
+                    searchQuery={searchQuery}
                   />
                 )}
               </div>
@@ -983,6 +1188,8 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
             anchorRef={nlFilterButtonRef}
             onApplyFilter={handleAddFilter}
             columns={activeTable?.columns || []}
+            existingFilters={activeFilters}
+            onRemoveFilter={handleRemoveFilter}
           />
 
           <AddAIColumnPopover
@@ -990,7 +1197,6 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
             onClose={() => setShowAddColumn(false)}
             anchorRef={addColumnButtonRef}
             onAddColumn={handleAddColumn}
-            existingColumns={activeTable?.columns || []}
           />
         </>
       )}
