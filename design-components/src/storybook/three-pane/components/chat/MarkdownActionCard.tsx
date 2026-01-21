@@ -97,6 +97,11 @@ export interface MarkdownActionCardProps {
    * @default false
    */
   isStreaming?: boolean;
+
+  /**
+   * Content to render above the separator/action buttons
+   */
+  beforeActions?: React.ReactNode;
 }
 
 // ============================================================================
@@ -339,6 +344,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
   items,
   calendarEvents,
   isStreaming = false,
+  beforeActions,
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -359,6 +365,9 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
 
   return (
     <div className="overflow-hidden">
+      {/* Custom content at start */}
+      {beforeActions && <div className="mb-4">{beforeActions}</div>}
+
       {/* Markdown Content */}
       <div className="py-1">
         <div className="prose-sm markdown-body max-w-none">

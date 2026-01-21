@@ -72,6 +72,9 @@ import {
   dealVelocityData,
   dealVelocityAIReasoning,
 } from './deepResearchReportData';
+import { deepResearchTables } from './deepResearchTableData';
+import { DataTablesDrawer } from '../../../components/Jan17Demo/DataTablesDrawer';
+import { DataTablesCard } from '../../../components/Jan17Demo/DataTablesCard';
 
 // ============================================================================
 // Layout Decorator
@@ -1971,6 +1974,7 @@ interface DeepResearchChatViewProps {
   onSkipThinking?: () => void;
   onSkipSampleThinking?: () => void;
   onEditTable?: (tableTitle: string) => void;
+  onDataTablesClick?: () => void;
 }
 
 const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
@@ -1993,6 +1997,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
   onSkipThinking,
   onSkipSampleThinking,
   onEditTable,
+  onDataTablesClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -2097,11 +2102,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
               {phase === 'sample-complete' && (
                 <MarkdownActionCard
                   variant="analysis-request"
-                  markdown={`${sampleAnalysisContent}
-
----
-
-I've generated a sample analysis based on your request. This preview shows the type of insights I can provide. Would you like me to proceed with the full comprehensive research and generate the complete report?`}
+                  markdown={`${sampleAnalysisContent}`}
                   primaryAction={{
                     label: 'Run Full Analysis',
                     onClick: onRunFullAnalysis,
@@ -2110,6 +2111,14 @@ I've generated a sample analysis based on your request. This preview shows the t
                     label: 'Skip',
                     onClick: onDeclineFull,
                   }}
+                  beforeActions={
+                    onDataTablesClick && (
+                      <DataTablesCard
+                        tables={deepResearchTables}
+                        onClick={onDataTablesClick}
+                      />
+                    )
+                  }
                 />
               )}
             </div>
@@ -2381,6 +2390,9 @@ const DeepResearchDemo = () => {
 
   // Transparency Drawer state
   const [showTransparencyDrawer, setShowTransparencyDrawer] = useState(false);
+
+  // Data Tables Drawer state
+  const [showDataTablesDrawer, setShowDataTablesDrawer] = useState(false);
 
   // Reference context state
   const [referenceContext, setReferenceContext] = useState<ReferenceContext>({
@@ -2930,6 +2942,7 @@ const DeepResearchDemo = () => {
               onSkipThinking={handleSkipThinking}
               onSkipSampleThinking={handleSkipSampleThinking}
               onEditTable={handleEditTable}
+              onDataTablesClick={() => setShowDataTablesDrawer(true)}
             />
 
             {/* Input area */}
@@ -2960,6 +2973,14 @@ const DeepResearchDemo = () => {
               queries={mockQueries}
               calls={mockCalls}
               title="Sources"
+            />
+
+            {/* Data Tables Drawer for raw data reference */}
+            <DataTablesDrawer
+              isOpen={showDataTablesDrawer}
+              onClose={() => setShowDataTablesDrawer(false)}
+              tables={deepResearchTables}
+              title="Data Reference"
             />
           </div>
         )}
