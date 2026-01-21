@@ -26,6 +26,29 @@ export interface ArtifactResponse {
 }
 
 /**
+ * Summary of an artifact (without full content)
+ */
+export interface ArtifactSummary {
+  artifact_id: string;
+  tool_call_id: string;
+  tool_name: string;
+  artifact_type: string;
+  category?: string;
+  size_bytes: number;
+  persisted_at: string;
+}
+
+/**
+ * Response type for listing all artifacts for a message/run
+ */
+export interface MessageArtifactsResponse {
+  conversation_id: string;
+  run_id: string;
+  total_count: number;
+  artifacts: ArtifactSummary[];
+}
+
+/**
  * Service for managing conversations and messages
  * Uses ApiClient for consistent error handling and auth
  */
@@ -111,6 +134,48 @@ class ConversationsService {
   ): Promise<ArtifactResponse> {
     return apiClient.get<ArtifactResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages/${messageId}/artifacts/${artifactId}`,
+    );
+  }
+
+  /**
+   * Fetch list of all artifacts for a message/run
+   * Used for transparency drawer to show data sources
+   */
+  async getMessageArtifacts(
+    conversationId: string,
+    runId: string,
+  ): Promise<MessageArtifactsResponse> {
+    return apiClient.get<MessageArtifactsResponse>(
+      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts`,
+    );
+  }
+
+  /**
+   * Fetch full artifact content by ID (alternative signature using runId)
+   * Used for transparency drawer to load artifact content
+   */
+  async getArtifactByRunId(
+    conversationId: string,
+    runId: string,
+    artifactId: string,
+  ): Promise<ArtifactResponse> {
+    return apiClient.get<ArtifactResponse>(
+      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts/${artifactId}`,
+    );
+  }
+
+  /**
+   * Fetch multiple artifacts in bulk by their IDs
+   * Used for transparency drawer Calls tab to load all RAG artifacts at once
+   */
+  async getBulkArtifacts(
+    conversationId: string,
+    runId: string,
+    artifactIds: string[],
+  ): Promise<ArtifactResponse[]> {
+    return apiClient.post<ArtifactResponse[]>(
+      `/api/v1/chat/conversations/${conversationId}/messages/${runId}/artifacts/bulk`,
+      { artifact_ids: artifactIds },
     );
   }
 

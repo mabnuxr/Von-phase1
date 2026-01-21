@@ -241,13 +241,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      const isMobile =
-        typeof window !== 'undefined' &&
-        ('ontouchstart' in window ||
-          navigator.maxTouchPoints > 0 ||
-          window.matchMedia('(max-width: 768px)').matches);
+      // Detect actual mobile devices via user agent (phones/tablets)
+      // Touch capability alone is not reliable - many desktop browsers support touch
+      // iPadOS 13+ in desktop mode uses macOS-style UA, so also check for MacIntel with touch
+      const isMobileDevice =
+        typeof navigator !== 'undefined' &&
+        (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) ||
+          (navigator.platform === 'MacIntel' &&
+            typeof navigator.maxTouchPoints === 'number' &&
+            navigator.maxTouchPoints > 1));
 
-      if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+      if (!isMobileDevice && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         if (!isStreaming && !disableSubmit) {
           handleSend();

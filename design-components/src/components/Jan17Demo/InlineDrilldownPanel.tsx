@@ -556,12 +556,15 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
   );
 
   // Normalize tables - support both single table mode and multi-table mode
-  const normalizedTables: DrilldownTable[] =
-    tables && tables.length > 0
-      ? tables
-      : singleColumns && singleRows
-        ? [{ id: 'main', name: widgetName, columns: singleColumns, rows: singleRows }]
-        : [];
+  const normalizedTables: DrilldownTable[] = useMemo(
+    () =>
+      tables && tables.length > 0
+        ? tables
+        : singleColumns && singleRows
+          ? [{ id: 'main', name: widgetName, columns: singleColumns, rows: singleRows }]
+          : [],
+    [tables, singleColumns, singleRows, widgetName]
+  );
 
   // Set initial active tab
   useEffect(() => {

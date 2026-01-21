@@ -5,15 +5,7 @@ import {
   SpinnerGapIcon,
   CaretDownIcon,
   CaretRightIcon,
-  WrenchIcon,
   FileTextIcon,
-  CloudIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  SparkleIcon,
-  CalendarIcon,
-  WarningCircleIcon,
-  CircleIcon,
   XCircleIcon,
   BellIcon,
   CheckIcon,
@@ -21,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { ThinkingDrawer, type ThinkingStepDetail } from './ThinkingDrawer';
 import type { QueryResult } from './TransparencyDrawer';
+import { StepIndicator } from '../TimelineThinkingProcess';
 
 // ============================================================================
 // Types
@@ -155,15 +148,14 @@ export interface TimelineThinkingProcessProps {
 
 const CONTAINER_HEIGHT = 320;
 
-const SOURCE_CONFIG: Record<SourceType, { icon: React.ElementType; label: string; color: string }> =
-  {
-    salesforce: { icon: CloudIcon, label: 'Salesforce', color: 'text-blue-600' },
-    gong: { icon: PhoneIcon, label: 'Gong', color: 'text-purple-600' },
-    email: { icon: EnvelopeIcon, label: 'Email', color: 'text-gray-600' },
-    voniq: { icon: SparkleIcon, label: 'VonIQ', color: 'text-teal-600' },
-    calendar: { icon: CalendarIcon, label: 'Calendar', color: 'text-orange-500' },
-    generic: { icon: WrenchIcon, label: 'Tool', color: 'text-gray-600' },
-  };
+const SOURCE_LABELS: Record<SourceType, string> = {
+  salesforce: 'Salesforce',
+  gong: 'Gong',
+  email: 'Email',
+  voniq: 'VonIQ',
+  calendar: 'Calendar',
+  generic: 'Tool',
+};
 
 // ============================================================================
 // Helper Functions
@@ -176,57 +168,6 @@ const formatElapsedTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}m ${secs}s`;
-};
-
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-const StatusIcon: React.FC<{ status: StepStatus; size?: number }> = ({ status, size = 14 }) => {
-  switch (status) {
-    case 'complete':
-      return <CheckCircleIcon size={size} weight="fill" className="text-emerald-600" />;
-    case 'in-progress':
-      return (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <SpinnerGapIcon size={size} weight="regular" className="text-indigo-600" />
-        </motion.div>
-      );
-    case 'awaiting-approval':
-      return <BellIcon size={size} weight="fill" className="text-amber-500" />;
-    case 'warning':
-      return <WarningCircleIcon size={size} weight="fill" className="text-amber-500" />;
-    case 'error':
-      return <XCircleIcon size={size} weight="fill" className="text-red-500" />;
-    case 'pending':
-    default:
-      return <CircleIcon size={size} weight="regular" className="text-gray-300" />;
-  }
-};
-
-const StepIndicator: React.FC<{
-  status: StepStatus;
-}> = ({ status }) => {
-  if (status === 'in-progress') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
-  }
-  if (status === 'complete') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
-  }
-  if (status === 'awaiting-approval') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
-  }
-  if (status === 'warning') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border-2 border-amber-200" />;
-  }
-  if (status === 'error') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-red-200" />;
-  }
-  // pending
-  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
 };
 
 // Compact Approval Card for inline use
@@ -357,7 +298,7 @@ const StepRow: React.FC<StepRowProps> = ({
   // Get source label for tool calls
   const getSourceLabel = () => {
     if ((step.type === 'tool_call' || step.type === 'approval') && step.source) {
-      return SOURCE_CONFIG[step.source].label;
+      return SOURCE_LABELS[step.source];
     }
     return null;
   };
@@ -411,11 +352,6 @@ const StepRow: React.FC<StepRowProps> = ({
               {sourceLabel}
             </span>
           )}
-
-          {/* Status icon */}
-          <span className="flex-shrink-0">
-            <StatusIcon status={step.status} size={14} />
-          </span>
         </button>
 
         {/* Expanded content */}
@@ -468,12 +404,12 @@ const StepRow: React.FC<StepRowProps> = ({
                   </div>
                 )}
 
-                {/* Sub-steps - improved contrast */}
+                {/* Sub-steps */}
                 {step.subSteps && step.subSteps.length > 0 && (
                   <div className="space-y-1.5 mt-1">
                     {step.subSteps.map((subStep) => (
                       <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
-                        <StatusIcon status={subStep.status} size={12} />
+                        <StepIndicator status={subStep.status} />
                         <span
                           className={
                             subStep.status === 'complete' ? 'text-gray-700' : 'text-gray-500'
@@ -519,7 +455,6 @@ const CollapsedStepRow: React.FC<{
         <StepIndicator status={step.status} />
       </div>
       <span className="flex-1 text-[12px] text-gray-700 truncate">{step.text}</span>
-      <StatusIcon status={step.status} size={12} />
     </button>
   );
 };

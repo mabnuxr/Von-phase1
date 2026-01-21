@@ -8,6 +8,7 @@
  */
 
 import React, { useRef, useCallback, useLayoutEffect, forwardRef } from 'react';
+import { PLACEHOLDER_REGEX, hasPlaceholders } from './utils';
 
 export interface RichTextInputProps {
   value: string;
@@ -21,25 +22,6 @@ export interface RichTextInputProps {
 
 export interface RichTextInputRef {
   focus: () => void;
-}
-
-// Regex to match {{placeholder}} patterns
-const PLACEHOLDER_REGEX = /\{\{(\w+)\}\}/g;
-
-/**
- * Check if text contains any placeholders
- */
-export function hasPlaceholders(text: string): boolean {
-  const regex = /\{\{(\w+)\}\}/;
-  return regex.test(text);
-}
-
-/**
- * For backwards compatibility - just returns the value as-is
- * since we no longer store separate placeholder values
- */
-export function buildResolvedText(value: string): string {
-  return value;
 }
 
 /**

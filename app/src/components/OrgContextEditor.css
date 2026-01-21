@@ -77,20 +77,18 @@
   cursor: not-allowed;
 }
 
-/* Editor Content Wrapper */
-.tiptap-editor-wrapper {
+/* Editor Content Wrapper - scoped to org-context-editor to avoid affecting other TiptapEditor instances */
+.org-context-editor .tiptap-editor-wrapper {
   flex: 1;
   overflow-y: auto;
   border: none;
   max-height: none;
-}
-
-/* Tiptap's EditorContent wrapper - make it take no space */
-.tiptap-editor-wrapper {
   position: relative;
 }
 
-.tiptap-editor-wrapper > div:first-child:not(.tiptap-editor):not(.ProseMirror) {
+.org-context-editor
+  .tiptap-editor-wrapper
+  > div:first-child:not(.tiptap-editor):not(.ProseMirror) {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
@@ -112,37 +110,37 @@
   overflow: hidden;
 }
 
-/* ProseMirror reset */
-.tiptap-editor-wrapper .ProseMirror {
+/* ProseMirror reset - scoped to org-context-editor */
+.org-context-editor .tiptap-editor-wrapper .ProseMirror {
   background: white;
   outline: none;
   height: 100%;
 }
 
-.tiptap-editor-wrapper .ProseMirror > *:first-child {
+.org-context-editor .tiptap-editor-wrapper .ProseMirror > *:first-child {
   margin-top: 0;
 }
 
-/* Thin scrollbar with no track */
-.tiptap-editor-wrapper::-webkit-scrollbar {
+/* Thin scrollbar with no track - scoped to org-context-editor */
+.org-context-editor .tiptap-editor-wrapper::-webkit-scrollbar {
   width: 6px;
 }
 
-.tiptap-editor-wrapper::-webkit-scrollbar-track {
+.org-context-editor .tiptap-editor-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tiptap-editor-wrapper::-webkit-scrollbar-thumb {
+.org-context-editor .tiptap-editor-wrapper::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
-.tiptap-editor-wrapper::-webkit-scrollbar-thumb:hover {
+.org-context-editor .tiptap-editor-wrapper::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* Firefox thin scrollbar */
-.tiptap-editor-wrapper {
+/* Firefox thin scrollbar - scoped to org-context-editor */
+.org-context-editor .tiptap-editor-wrapper {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }

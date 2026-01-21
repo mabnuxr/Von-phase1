@@ -30,6 +30,9 @@ export type { ChatMarkdownProps } from './ChatMarkdown';
 export { ThinkingBlock } from './ThinkingBlock';
 export type { ThinkingBlockProps } from './ThinkingBlock';
 
+export { EngagingMessage, ENGAGING_MESSAGES } from './EngagingMessage';
+export type { EngagingMessageProps } from './EngagingMessage';
+
 export { ArtifactPane } from './ArtifactPane';
 
 export { ToolCallItem } from './ToolCallItem';

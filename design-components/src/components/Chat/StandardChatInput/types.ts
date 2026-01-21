@@ -7,7 +7,7 @@ import type { BuildMode } from '../../DashboardBuilder/types';
  */
 export interface ReferenceContext {
   /** Type of reference */
-  type: 'dashboard' | 'report' | 'document';
+  type: 'dashboard' | 'report' | 'document' | 'widget' | 'kpi' | 'table' | 'source';
   /** Display name of the reference */
   name: string;
   /** Unique identifier */
@@ -76,6 +76,11 @@ export interface StandardChatInputProps {
    * @default false
    */
   disableSubmit?: boolean;
+
+  /**
+   * Callback when user attempts to submit while disabled
+   */
+  onDisabledInput?: () => void;
 
   /**
    * Controlled value for the input
@@ -196,4 +201,19 @@ export interface StandardChatInputProps {
    * Callback when user submits feedback in the popover
    */
   onPopoverFeedback?: (feedback: string) => void;
+
+  // ============================================================================
+  // Agent Props
+  // ============================================================================
+
+  /**
+   * Callback when Build Dashboard agent is selected from the menu
+   */
+  onBuildDashboard?: () => void;
+
+  /**
+   * Hide the disclaimer text below the input
+   * @default false
+   */
+  hideDisclaimer?: boolean;
 }

@@ -94,6 +94,9 @@ export type { ChatMessageSkeletonProps } from './Chat/ChatMessageSkeleton';
 export { ChatSkeleton } from './Chat/ChatSkeleton';
 export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
 
+export { ArtifactPane } from './Chat/ArtifactPane';
+export type { ArtifactPaneProps, ArtifactData } from './Chat/ArtifactPane';
+
 // Icon Atoms
 // ----------
 export {
@@ -239,6 +242,45 @@ export { DashboardCanvas } from './DashboardCanvas';
 export type { DashboardCanvasProps } from './DashboardCanvas';
 
 // ============================================================================
+// THINKING PROCESS V2 (Timeline-based thinking visualization)
+// ============================================================================
+export { TimelineThinkingProcess } from './TimelineThinkingProcess';
+export type {
+  TimelineThinkingProcessProps,
+  TimelineStep,
+  StepType,
+  StepStatus,
+  SourceType,
+  EventCategory,
+  ApprovalData,
+  QueryResult,
+} from './TimelineThinkingProcess';
+
+// ============================================================================
+// TRANSPARENCY DRAWER (Data sources and call recordings)
+// ============================================================================
+export {
+  TransparencyDrawer,
+  DataTabContent,
+  DataTabShimmer,
+  CallsTabContent,
+  CallsTabShimmer,
+  CallsTabError,
+} from './TransparencyDrawer';
+export type {
+  TransparencyDrawerProps,
+  TransparencyDrawerTabProps,
+  TabConfig as TransparencyTabConfig,
+  QueryResult as TransparencyQueryResult,
+  QueryColumn,
+  CallTranscript,
+  SentimentType,
+  TopLevelTab,
+  DataTabContentProps,
+  CallsTabContentProps,
+} from './TransparencyDrawer';
+
+// ============================================================================
 // TIPTAP EDITOR (Standalone rich text editor)
 // ============================================================================
 export { TiptapEditor, EditorToolbar } from './TiptapEditor';
@@ -249,3 +291,14 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 // ============================================================================
 export { ReportTable } from './ReportTable';
 export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';
+
+// ============================================================================
+// ARTIFACT VIEWER (Single artifact display drawer)
+// ============================================================================
+export { SingleArtifactDrawer, ArtifactContentViewer, useArtifactContent } from './ArtifactViewer';
+export type {
+  SingleArtifactDrawerProps,
+  ArtifactContentViewerProps,
+  ArtifactContentData,
+  UseArtifactContentReturn,
+} from './ArtifactViewer';

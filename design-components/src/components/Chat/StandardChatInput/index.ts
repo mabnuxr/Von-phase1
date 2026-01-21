@@ -26,3 +26,5 @@ export type {
   AddWidgetPopoverProps,
   DeleteWidgetPopoverProps,
 } from './ChatInputPopover';
+export { StandardChatInputWithCommands } from './StandardChatInputWithCommands';
+export type { StandardChatInputWithCommandsProps } from './StandardChatInputWithCommands';
