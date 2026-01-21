@@ -3,7 +3,7 @@
  * Functions for generating CSV content from artifact data
  */
 
-import type { TableData, ValueData, StatisticsData, MetricData } from '../types';
+import type { TableData, ValueData, StatisticsData, MetricData, CallSearchResult } from '../types';
 
 /**
  * Escape a value for CSV format
@@ -120,8 +120,63 @@ export function generateCSVFilename(toolName: string, artifactType: string): str
 }
 
 /**
+ * Helper to format speakers (can be string or string[])
+ */
+function formatSpeakers(speakers?: string | string[]): string {
+  if (!speakers) return '';
+  if (Array.isArray(speakers)) return speakers.join('; ');
+  return speakers;
+}
+
+/**
+ * Convert call search results to CSV string
+ */
+export function callSearchResultsToCSV(results: CallSearchResult[]): string {
+  if (!results || results.length === 0) {
+    return '';
+  }
+
+  const header = [
+    'Call ID',
+    'Title',
+    'Date',
+    'Duration (min)',
+    'External Speakers',
+    'Internal Speakers',
+    'External Companies',
+    'Match Source',
+    'Match Reason',
+    'Deep Link',
+  ].join(',');
+
+  const dataRows = results.map((call) =>
+    [
+      escapeCsvValue(call.call_id),
+      escapeCsvValue(call.call_title),
+      escapeCsvValue(call.call_date),
+      escapeCsvValue(call.duration_minutes),
+      escapeCsvValue(formatSpeakers(call.external_speakers)),
+      escapeCsvValue(formatSpeakers(call.internal_speakers)),
+      escapeCsvValue(call.external_companies?.join('; ')),
+      escapeCsvValue(call.match_info?.source),
+      escapeCsvValue(call.match_info?.match_reason),
+      escapeCsvValue(call.deep_link || call.meeting_url),
+    ].join(',')
+  );
+
+  return [header, ...dataRows].join('\n');
+}
+
+/**
  * Check if an artifact type supports CSV export
  */
 export function isExportableType(artifactType: string): boolean {
   return ['table', 'values', 'statistics', 'metrics'].includes(artifactType);
+}
+
+/**
+ * Check if artifact content is call_search_union (for special handling)
+ */
+export function isCallSearchUnion(content: Record<string, unknown>): boolean {
+  return content.type === 'call_search_union' && Array.isArray(content.results);
 }

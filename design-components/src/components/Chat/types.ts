@@ -570,9 +570,6 @@ export interface CallSearchUnionResult {
   /** Unified results after deduplication, sorted by relevance */
   results: CallSearchResult[];
 
-  /** Results grouped by match source for visualization */
-  results_by_source: Partial<Record<CallMatchSource, CallSearchResult[]>>;
-
   /** Union query components for display */
   union_query: {
     /** Combined query (for debugging/transparency) */
