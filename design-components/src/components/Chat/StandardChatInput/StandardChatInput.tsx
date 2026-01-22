@@ -91,13 +91,12 @@ const _MODE_OPTIONS = [
 export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
 
 /**
- * PlusButtonMenu - Plus button with context menu for agent modes and upload options
+ * PlusButtonMenu - Plus button with context menu for agent modes
  */
 interface PlusButtonMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpen: () => void;
-  onUpload: () => void;
   onAgentModeChange: (mode: AgentMode) => void;
   onBuildDashboard?: () => void;
   selectedAgentMode: AgentMode;
@@ -184,19 +183,6 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                 <CheckIcon size={14} weight="bold" className="text-green-600" />
               )}
             </button>
-
-            {/* Divider */}
-            <div className="my-1.5 border-t border-gray-100" />
-
-            {/* Upload option - disabled */}
-            <button
-              disabled
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-400 cursor-not-allowed text-left"
-            >
-              <PlusIcon size={16} className="text-gray-300" />
-              <span>Upload files and photos</span>
-              <span className="ml-auto text-[11px] text-gray-400">Coming soon</span>
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -268,7 +254,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     addFiles,
     removeFile,
     clearFiles,
-    openFilePicker,
     fileInputRef,
   } = useFileUpload({
     onError: (error, message) => {
@@ -373,11 +358,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const handlePlusButtonClick = useCallback(() => {
     setIsPlusMenuOpen(true);
   }, []);
-
-  const handleUploadFilesClick = useCallback(() => {
-    setIsPlusMenuOpen(false);
-    openFilePicker();
-  }, [openFilePicker]);
 
   const handleAgentModeChange = useCallback((mode: AgentMode) => {
     setSelectedAgentMode(mode);
@@ -496,7 +476,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   isOpen={isPlusMenuOpen}
                   onClose={() => setIsPlusMenuOpen(false)}
                   onOpen={handlePlusButtonClick}
-                  onUpload={handleUploadFilesClick}
                   onAgentModeChange={handleAgentModeChange}
                   onBuildDashboard={onBuildDashboard}
                   selectedAgentMode={selectedAgentMode}
