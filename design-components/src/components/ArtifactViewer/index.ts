@@ -1,6 +1,11 @@
 // Main components
 export { SingleArtifactDrawer, default } from './SingleArtifactDrawer';
-export type { SingleArtifactDrawerProps } from './SingleArtifactDrawer';
+export type {
+  SingleArtifactDrawerProps,
+  DataViewProps,
+  CallsViewProps,
+  ArtifactViewMode,
+} from './SingleArtifactDrawer';
 
 // Sub-components
 export { ArtifactContentViewer } from './components';
