@@ -1,17 +1,31 @@
 import { useMutation } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import useChatStore from "../store/chatStore";
+import type { MessageWithStreaming } from "../types/conversation";
 
 /**
- * Hook to send messages via Pusher flow
+ * Generate a temporary ID for optimistic updates
+ * Uses a prefix to identify optimistic messages for reconciliation
+ */
+function generateOptimisticId(): string {
+  return `optimistic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Context returned from onMutate for use in onSuccess/onError
+ */
+interface MutationContext {
+  optimisticId: string;
+  optimisticAssistantId: string;
+  conversationId: string;
+}
+
+/**
+ * Hook to send messages via Pusher flow with optimistic updates
+ * - Immediately adds user message to UI (optimistic update)
  * - Sends message to backend
- * - Backend emits Pusher events:
- *   1. message.received (user's message with real ID)
- *   2. message.start (assistant placeholder)
- *   3. message.chunk (streaming content)
- *   4. message.complete (final message)
- * - Frontend listens to Pusher events and updates UI automatically
- * - No optimistic updates - single source of truth from backend
+ * - Backend emits Pusher events which reconcile the optimistic message
+ * - If error occurs, removes the optimistic message
  *
  * @returns Mutation object with sendMessage function
  *
@@ -37,8 +51,8 @@ export function useSendMessage() {
         console.log("[useSendMessage] Sending message:", content);
       }
 
-      // Send to backend - no optimistic update
-      // Backend will emit Pusher events that update the UI
+      // Send to backend
+      // Backend will emit Pusher events that add the real message
       return conversationsService.sendMessage(
         currentConversationId,
         content,
@@ -46,17 +60,125 @@ export function useSendMessage() {
       );
     },
 
-    onSuccess: (response) => {
+    // Optimistic update: Add message to UI immediately before API call
+    onMutate: async (content: string): Promise<MutationContext | undefined> => {
+      const conversationId = useChatStore.getState().currentConversationId;
+      if (!conversationId) {
+        return undefined;
+      }
+
+      // Generate optimistic IDs for tracking
+      const optimisticId = generateOptimisticId();
+      const optimisticAssistantId = generateOptimisticId();
+
+      // Create optimistic user message
+      const optimisticUserMessage: MessageWithStreaming = {
+        id: optimisticId,
+        runId: optimisticId,
+        conversationId: conversationId,
+        messageType: "text",
+        messageContent: content,
+        role: "user",
+        createdAt: new Date().toISOString(),
+        createdBy: null,
+        isStreaming: false,
+        status: "completed",
+      };
+
+      // Create optimistic assistant message with streaming state
+      // This triggers the TimelineThinkingProcess loading UI immediately
+      const optimisticAssistantMessage: MessageWithStreaming = {
+        id: optimisticAssistantId,
+        runId: optimisticAssistantId,
+        conversationId: conversationId,
+        messageType: "text",
+        messageContent: "",
+        role: "assistant",
+        createdAt: new Date().toISOString(),
+        createdBy: null,
+        isStreaming: true,
+        status: "streaming",
+      };
+
+      // Add both messages to store immediately
+      useChatStore.getState().addMessage(conversationId, optimisticUserMessage);
+      useChatStore
+        .getState()
+        .addMessage(conversationId, optimisticAssistantMessage);
+
+      // Trigger scroll to bottom to show the new message
+      useChatStore.getState().triggerScrollToBottom(conversationId);
+
+      if (import.meta.env.DEV) {
+        console.log(
+          "[useSendMessage] Added optimistic messages:",
+          optimisticId,
+          optimisticAssistantId,
+        );
+      }
+
+      // Return context for onSuccess/onError
+      return { optimisticId, optimisticAssistantId, conversationId };
+    },
+
+    onSuccess: (response, _, context) => {
       if (import.meta.env.DEV) {
         console.log(
           "[useSendMessage] Message acknowledged:",
           response.messageId,
         );
       }
+
+      // Update optimistic message ID to real ID for proper reconciliation
+      // When Pusher event arrives with the real message, it will find the
+      // existing message by ID and update it - no disappearance, no duplicates
+      if (context && response.messageId) {
+        useChatStore
+          .getState()
+          .updateMessageId(
+            context.conversationId,
+            context.optimisticId,
+            response.messageId,
+          );
+
+        if (import.meta.env.DEV) {
+          console.log(
+            "[useSendMessage] Updated optimistic ID to real ID:",
+            context.optimisticId,
+            "->",
+            response.messageId,
+          );
+        }
+      }
     },
 
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
       console.error("[useSendMessage] Error sending message:", error);
+
+      // Remove both optimistic messages on error
+      if (context) {
+        const { messages, setMessages } = useChatStore.getState();
+        const conversationMessages = messages[context.conversationId] || [];
+
+        // Filter out both optimistic messages
+        const filteredMessages = conversationMessages.filter(
+          (m) =>
+            m.id !== context.optimisticId &&
+            m.id !== context.optimisticAssistantId,
+        );
+
+        if (filteredMessages.length !== conversationMessages.length) {
+          setMessages(context.conversationId, filteredMessages);
+
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useSendMessage] Removed optimistic messages due to error:",
+              context.optimisticId,
+              context.optimisticAssistantId,
+            );
+          }
+        }
+      }
     },
   });
 }
