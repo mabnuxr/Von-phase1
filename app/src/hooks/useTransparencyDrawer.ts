@@ -23,6 +23,7 @@ import {
   transformSummariesToPlaceholders,
   type ArtifactSummary,
 } from "../utils/transformArtifactsToTransparency";
+import { transformBulkArtifactsToCalls } from "../utils/transformArtifactsToCalls";
 import type { ArtifactResponse } from "../services/conversationsService";
 
 export interface UseTransparencyDrawerParams {
@@ -41,79 +42,6 @@ export interface UseTransparencyDrawerReturn {
 }
 
 const artifactCache = new Map<string, ArtifactResponse>();
-
-function extractCallTitle(row: Record<string, unknown>): string {
-  if (row.conversation_title) {
-    const title = String(row.conversation_title);
-    return title.length > 100 ? title.slice(0, 100) + "..." : title;
-  }
-
-  const chunkText = String(row.chunk_text || "");
-  const titleMatch = chunkText.match(/^(?:=+\s*)?(.+?)(?:\s*=+)?$/m);
-  const extractedTitle = titleMatch?.[1]?.trim() || chunkText.slice(0, 100);
-
-  if (!extractedTitle) return "Untitled Call";
-  return extractedTitle.length > 100
-    ? extractedTitle.slice(0, 100) + "..."
-    : extractedTitle;
-}
-
-function extractCallDate(row: Record<string, unknown>): string {
-  if (row.start_time_iso) {
-    return String(row.start_time_iso);
-  }
-  return new Date((row.start_time as number) * 1000).toISOString();
-}
-
-function transformArtifactsToCalls(
-  bulkRagArtifacts:
-    | ArtifactResponse[]
-    | { artifacts?: ArtifactResponse[] }
-    | undefined,
-): CallTranscript[] {
-  const artifacts = Array.isArray(bulkRagArtifacts)
-    ? bulkRagArtifacts
-    : bulkRagArtifacts?.artifacts;
-
-  if (!artifacts || artifacts.length === 0) {
-    return [];
-  }
-
-  const allCalls: CallTranscript[] = [];
-  const seenIds = new Set<string>();
-
-  for (const artifact of artifacts) {
-    const content = artifact.content as {
-      sample?: {
-        rows?: Array<Record<string, unknown>>;
-      };
-    };
-
-    if (!content.sample?.rows) continue;
-
-    for (const row of content.sample.rows) {
-      if (row.type !== "call") continue;
-
-      const callId = String(row.conversation_id || row.id);
-
-      if (seenIds.has(callId)) continue;
-      seenIds.add(callId);
-
-      allCalls.push({
-        id: callId,
-        title: extractCallTitle(row),
-        date: extractCallDate(row),
-        sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
-        meetingUrl: row.meeting_url ? String(row.meeting_url) : undefined,
-        summary: row.chunk_text ? String(row.chunk_text) : undefined,
-      });
-    }
-  }
-
-  return allCalls.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
-}
 
 function transformArtifactsToQueries(
   dataArtifactSummaries: ArtifactSummary[],
@@ -255,7 +183,7 @@ export function useTransparencyDrawer({
   );
 
   const calls = useMemo(
-    () => transformArtifactsToCalls(bulkRagArtifacts),
+    () => transformBulkArtifactsToCalls(bulkRagArtifacts),
     [bulkRagArtifacts],
   );
 

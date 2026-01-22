@@ -298,6 +298,9 @@ export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';
 export { SingleArtifactDrawer, ArtifactContentViewer, useArtifactContent } from './ArtifactViewer';
 export type {
   SingleArtifactDrawerProps,
+  DataViewProps as ArtifactDataViewProps,
+  CallsViewProps as ArtifactCallsViewProps,
+  ArtifactViewMode,
   ArtifactContentViewerProps,
   ArtifactContentData,
   UseArtifactContentReturn,

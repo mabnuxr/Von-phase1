@@ -1,11 +1,47 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
+import {
+  CaretDownIcon,
+  FileTextIcon,
+  GearIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  CalendarIcon,
+  LightbulbIcon,
+  ShieldCheckIcon,
+  CodeIcon,
+  ChatTextIcon,
+  CloudIcon,
+} from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
+import type { StepType, SourceType } from '../types';
 import { SOURCE_LABELS } from '../constants';
 import { StepIndicator } from './StepIndicator';
 import { CompactApprovalCard } from './CompactApprovalCard';
+
+// Get appropriate icon component based on step type and source
+const getStepIcon = (type?: StepType, source?: SourceType) => {
+  if (type === 'tool_call') {
+    switch (source) {
+      case 'salesforce':
+        return CloudIcon;
+      case 'gong':
+        return PhoneIcon;
+      case 'email':
+        return EnvelopeIcon;
+      case 'calendar':
+        return CalendarIcon;
+      default:
+        return GearIcon;
+    }
+  }
+  if (type === 'reasoning') return LightbulbIcon;
+  if (type === 'approval') return ShieldCheckIcon;
+  if (type === 'code_execution') return CodeIcon;
+  if (type === 'output') return ChatTextIcon;
+  return GearIcon; // default
+};
 
 // ============================================================================
 // Component
@@ -48,69 +84,89 @@ export const StepRow = React.memo<StepRowProps>(
       return null;
     }, [step.type, step.source]);
 
-    return (
-      <div className="relative flex">
-        {/* Timeline connector */}
-        <div className="flex flex-col items-center mr-3 flex-shrink-0">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <StepIndicator status={step.status} />
-          </div>
-          {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
-        </div>
+    // Get the icon component for this step
+    const IconComponent = useMemo(
+      () => getStepIcon(step.type, step.source),
+      [step.type, step.source]
+    );
 
-        {/* Content */}
-        <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
-          {/* Header */}
+    return (
+      <div className="relative flex gap-3 overflow-hidden">
+        {/* Timeline line and icon - matching CallsTabContent style */}
+        <div className="flex flex-col items-center">
           <button
             onClick={hasExpandableContent ? onToggle : undefined}
             className={`
-              w-full flex items-center gap-2 text-left group
+              relative z-10 w-7 h-7 flex items-center justify-center rounded-full border bg-white
+              transition-colors duration-150
               ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
+              ${
+                isExpanded
+                  ? 'border-indigo-300 bg-indigo-50'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }
             `}
           >
-            {/* Expand caret */}
-            {hasExpandableContent && (
-              <span className="flex-shrink-0">
-                {isExpanded ? (
-                  <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
-                ) : (
-                  <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
-                )}
-              </span>
-            )}
+            <IconComponent
+              size={14}
+              weight={isExpanded ? 'duotone' : 'regular'}
+              className={isExpanded ? 'text-indigo-600' : 'text-gray-600'}
+            />
+          </button>
+          {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />}
+        </div>
 
-            {/* Step text - improved contrast */}
-            <span
-              className={`
-                flex-1 text-[13px] truncate
-                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-800' : 'text-gray-600'}
-              `}
+        {/* Content */}
+        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
+          {/* Header row */}
+          <div className="flex items-center gap-2 overflow-hidden">
+            <button
+              onClick={hasExpandableContent ? onToggle : undefined}
+              className={`flex items-center gap-1.5 flex-1 min-w-0 group ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}`}
             >
-              {step.text}
-            </span>
-
+              {hasExpandableContent && (
+                <CaretDownIcon
+                  size={12}
+                  weight="bold"
+                  className={`text-gray-400 group-hover:text-indigo-600 flex-shrink-0 transition-transform duration-150 ${
+                    isExpanded ? 'rotate-0' : '-rotate-90'
+                  }`}
+                />
+              )}
+              <span
+                className={`text-sm font-medium min-w-0 truncate text-left transition-colors ${
+                  isInProgress
+                    ? 'text-gray-900'
+                    : isComplete
+                      ? 'text-gray-900 group-hover:text-indigo-600'
+                      : 'text-gray-600'
+                }`}
+              >
+                {step.text}
+              </span>
+            </button>
             {/* Source badge */}
             {sourceLabel && (
               <span className="flex-shrink-0 text-[11px] text-gray-600 px-1.5 py-0.5 bg-gray-100 rounded">
                 {sourceLabel}
               </span>
             )}
-          </button>
+          </div>
 
-          {/* Expanded content (description, approval, code, sub-steps, artifacts) */}
+          {/* Expanded content - card style matching CallsTabContent */}
           <AnimatePresence>
             {isExpanded && hasExpandableContent && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2 ml-4">
-                  {/* Description - collapsible, with markdown support */}
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2 overflow-hidden">
+                  {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-[12px] text-gray-700 leading-relaxed mb-2">
+                    <div className="text-xs text-gray-700 leading-relaxed">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
@@ -149,9 +205,9 @@ export const StepRow = React.memo<StepRowProps>(
 
                   {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
-                    <div className="space-y-1.5 mt-1">
+                    <div className="space-y-1.5 pt-2 border-t border-gray-200">
                       {step.subSteps.map((subStep) => (
-                        <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
+                        <div key={subStep.id} className="flex items-center gap-2 text-xs">
                           <StepIndicator status={subStep.status} />
                           <span
                             className={
@@ -168,7 +224,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Artifact reference - shown when artifact metadata is available */}
                   {step.artifact && (
                     <div
-                      className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
+                      className="flex items-center gap-2 pt-2 border-t border-gray-200 cursor-pointer hover:text-indigo-600 transition-colors"
                       onClick={() => {
                         if (onArtifactClick) {
                           onArtifactClick(
@@ -183,9 +239,9 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                       }}
                     >
-                      <FileTextIcon size={14} className="text-gray-600" />
-                      <span className="text-[12px] text-gray-800">
-                        {step.artifact.tool_name} results
+                      <FileTextIcon size={12} className="text-gray-500" />
+                      <span className="text-xs text-gray-600 hover:text-indigo-600">
+                        View {step.artifact.tool_name} results
                       </span>
                     </div>
                   )}
