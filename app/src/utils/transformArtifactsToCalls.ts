@@ -53,15 +53,18 @@ export function transformRowsToCalls(
   const calls: CallTranscript[] = [];
 
   for (const row of rows) {
-    if (row.type !== "call") continue;
+    const callId =
+      row.conversation_id || row.id || row.deep_link || row.meeting_url;
 
-    const callId = String(row.conversation_id || row.id || Math.random());
+    if (!callId) continue;
 
-    if (seen.has(callId)) continue;
-    seen.add(callId);
+    const callIdStr = String(callId);
+
+    if (seen.has(callIdStr)) continue;
+    seen.add(callIdStr);
 
     calls.push({
-      id: callId,
+      id: callIdStr,
       title: extractCallTitle(row),
       date: extractCallDate(row),
       sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
@@ -119,26 +122,12 @@ export function transformBulkArtifactsToCalls(
 export function transformSingleArtifactToCalls(
   artifact: ArtifactResponse,
 ): CallTranscript[] {
-  const content = artifact.content as {
-    sample?: {
-      rows?: Array<Record<string, unknown>>;
-    };
-  };
-
-  if (!content.sample?.rows) {
-    return [];
-  }
-
-  const calls = transformRowsToCalls(content.sample.rows);
-
-  return calls.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return transformBulkArtifactsToCalls([artifact]);
 }
 
 /**
  * Check if the artifact is a RAG/conversation search artifact
  */
-export function isRagArtifact(toolName: string): boolean {
-  return toolName === "execute_conversation_search";
+export function isRagArtifact(category: string): boolean {
+  return category === "rag";
 }

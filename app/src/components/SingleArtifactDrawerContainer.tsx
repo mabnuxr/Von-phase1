@@ -55,10 +55,10 @@ type TransformedArtifact = TransformedDataArtifact | TransformedCallsArtifact;
 function transformArtifactToDisplayFormat(
   artifact: ArtifactResponse,
 ): TransformedArtifact | null {
-  const { tool_name, content } = artifact;
+  const { tool_name, category, content } = artifact;
 
   // Handle RAG/conversation search artifacts - render as calls timeline
-  if (isRagArtifact(tool_name)) {
+  if (category && isRagArtifact(category)) {
     return {
       viewMode: "calls",
       calls: transformSingleArtifactToCalls(artifact),
