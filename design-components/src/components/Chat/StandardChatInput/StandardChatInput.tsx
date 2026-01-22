@@ -14,7 +14,6 @@ import {
   HashIcon,
   DatabaseIcon,
   RobotIcon,
-  CaretRightIcon,
   ChartBarIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
@@ -92,7 +91,7 @@ const _MODE_OPTIONS = [
 export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
 
 /**
- * PlusButtonMenu - Plus button with context menu for upload, deep research, and agents options
+ * PlusButtonMenu - Plus button with context menu for agent modes and upload options
  */
 interface PlusButtonMenuProps {
   isOpen: boolean;
@@ -109,22 +108,12 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   isOpen,
   onClose,
   onOpen,
-  onUpload,
   onAgentModeChange,
   onBuildDashboard,
   selectedAgentMode,
   disabled = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showAgentsSubmenu, setShowAgentsSubmenu] = useState(false);
-  const agentsItemRef = useRef<HTMLDivElement>(null);
-
-  // Close submenu when main menu closes
-  useEffect(() => {
-    if (!isOpen) {
-      setShowAgentsSubmenu(false);
-    }
-  }, [isOpen]);
 
   const handleAgentSelect = (mode: AgentMode) => {
     onAgentModeChange(mode);
@@ -152,90 +141,62 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
+            className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50 max-h-64 overflow-y-auto"
           >
-            {/* Upload option */}
+            {/* Auto (default) */}
             <button
-              onClick={() => {
-                onUpload();
-                onClose();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+              onClick={() => handleAgentSelect('auto')}
+              className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
             >
-              {/* <UploadSimpleIcon size={16} className="text-gray-600" /> */}
-              <span>Upload files and photos</span>
+              <div className="flex items-center gap-2.5">
+                <RobotIcon size={16} className="text-gray-500" />
+                <span>Auto</span>
+              </div>
+              {selectedAgentMode === 'auto' && (
+                <CheckIcon size={14} weight="bold" className="text-green-600" />
+              )}
             </button>
 
-            {/* Agents option with submenu */}
-            <div
-              ref={agentsItemRef}
-              onMouseEnter={() => setShowAgentsSubmenu(true)}
-              onMouseLeave={() => setShowAgentsSubmenu(false)}
-              className="relative"
+            {/* Build Dashboard */}
+            <button
+              onClick={() => handleAgentSelect('build-dashboard')}
+              className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
             >
-              <button className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
-                <div className="flex items-center gap-2.5">
-                  {/* <RobotIcon size={16} className="text-gray-600" /> */}
-                  <span>Agents</span>
-                </div>
-                <CaretRightIcon size={12} className="text-gray-400" />
-              </button>
+              <div className="flex items-center gap-2.5">
+                <ChartBarIcon size={16} className="text-gray-500" />
+                <span>Build Dashboard</span>
+              </div>
+              {selectedAgentMode === 'build-dashboard' && (
+                <CheckIcon size={14} weight="bold" className="text-green-600" />
+              )}
+            </button>
 
-              {/* Agents Submenu */}
-              <AnimatePresence>
-                {showAgentsSubmenu && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -4 }}
-                    transition={{ duration: 0.1 }}
-                    className="absolute left-full top-0 ml-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
-                  >
-                    {/* Auto (default) */}
-                    <button
-                      onClick={() => handleAgentSelect('auto')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        {/* <RobotIcon size={16} className="text-gray-600" /> */}
-                        <span>Auto</span>
-                      </div>
-                      {selectedAgentMode === 'auto' && (
-                        <CheckIcon size={14} weight="bold" className="text-green-600" />
-                      )}
-                    </button>
+            {/* Deep Research */}
+            <button
+              onClick={() => handleAgentSelect('deep-research')}
+              className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <AtomIcon size={16} className="text-gray-500" />
+                <span>Deep Research</span>
+              </div>
+              {selectedAgentMode === 'deep-research' && (
+                <CheckIcon size={14} weight="bold" className="text-green-600" />
+              )}
+            </button>
 
-                    {/* Build Dashboard */}
-                    <button
-                      onClick={() => handleAgentSelect('build-dashboard')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        {/* <ChartBarIcon size={16} className="text-gray-600" /> */}
-                        <span>Build Dashboard</span>
-                      </div>
-                      {selectedAgentMode === 'build-dashboard' && (
-                        <CheckIcon size={14} weight="bold" className="text-green-600" />
-                      )}
-                    </button>
+            {/* Divider */}
+            <div className="my-1.5 border-t border-gray-100" />
 
-                    {/* Deep Research */}
-                    <button
-                      onClick={() => handleAgentSelect('deep-research')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        {/* <AtomIcon size={16} className="text-gray-600" /> */}
-                        <span>Deep Research</span>
-                      </div>
-                      {selectedAgentMode === 'deep-research' && (
-                        <CheckIcon size={14} weight="bold" className="text-green-600" />
-                      )}
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Upload option - disabled */}
+            <button
+              disabled
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-400 cursor-not-allowed text-left"
+            >
+              <PlusIcon size={16} className="text-gray-300" />
+              <span>Upload files and photos</span>
+              <span className="ml-auto text-[11px] text-gray-400">Coming soon</span>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -434,7 +395,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       case 'build-dashboard':
         return { label: 'Build Dashboard', icon: ChartBarIcon };
       case 'deep-research':
-        return { label: 'Research', icon: AtomIcon };
+        return { label: 'Deep Research', icon: AtomIcon };
     }
   };
 
