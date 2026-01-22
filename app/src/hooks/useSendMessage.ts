@@ -97,7 +97,7 @@ export function useSendMessage() {
       return { optimisticId, conversationId };
     },
 
-    onSuccess: (response, _content, context) => {
+    onSuccess: (response, _content, _context) => {
       if (import.meta.env.DEV) {
         console.log(
           "[useSendMessage] Message acknowledged:",
@@ -105,29 +105,11 @@ export function useSendMessage() {
         );
       }
 
-      // Remove the optimistic message now that the backend has confirmed
-      // The real message will come via Pusher's user_message event
-      if (context) {
-        const { messages, setMessages } = useChatStore.getState();
-        const conversationMessages = messages[context.conversationId] || [];
-
-        // Filter out the optimistic message
-        const filteredMessages = conversationMessages.filter(
-          (m) => m.id !== context.optimisticId,
-        );
-
-        // Only update if we actually removed something
-        if (filteredMessages.length !== conversationMessages.length) {
-          setMessages(context.conversationId, filteredMessages);
-
-          if (import.meta.env.DEV) {
-            console.log(
-              "[useSendMessage] Removed optimistic message:",
-              context.optimisticId,
-            );
-          }
-        }
-      }
+      // NOTE: We intentionally do NOT remove the optimistic message here.
+      // The optimistic message will remain visible until the Pusher user_message
+      // event arrives and reconciles it via upsertMessage in the store.
+      // This prevents the message from briefly disappearing between the HTTP
+      // response and the Pusher event.
     },
 
     onError: (error: Error, _content, context) => {
