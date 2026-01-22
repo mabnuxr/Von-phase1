@@ -90,10 +90,7 @@ export function useSendMessage() {
       useChatStore.getState().triggerScrollToBottom(conversationId);
 
       if (import.meta.env.DEV) {
-        console.log(
-          "[useSendMessage] Added optimistic message:",
-          optimisticId,
-        );
+        console.log("[useSendMessage] Added optimistic message:", optimisticId);
       }
 
       // Return context for onSuccess/onError
