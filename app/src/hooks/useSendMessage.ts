@@ -16,6 +16,7 @@ function generateOptimisticId(): string {
  */
 interface MutationContext {
   optimisticId: string;
+  optimisticAssistantId: string;
   conversationId: string;
 }
 
@@ -66,11 +67,12 @@ export function useSendMessage() {
         return undefined;
       }
 
-      // Generate optimistic ID for tracking
+      // Generate optimistic IDs for tracking
       const optimisticId = generateOptimisticId();
+      const optimisticAssistantId = generateOptimisticId();
 
       // Create optimistic user message
-      const optimisticMessage: MessageWithStreaming = {
+      const optimisticUserMessage: MessageWithStreaming = {
         id: optimisticId,
         runId: optimisticId,
         conversationId: conversationId,
@@ -83,21 +85,43 @@ export function useSendMessage() {
         status: "completed",
       };
 
-      // Add optimistic message to store immediately
-      useChatStore.getState().addMessage(conversationId, optimisticMessage);
+      // Create optimistic assistant message with streaming state
+      // This triggers the TimelineThinkingProcess loading UI immediately
+      const optimisticAssistantMessage: MessageWithStreaming = {
+        id: optimisticAssistantId,
+        runId: optimisticAssistantId,
+        conversationId: conversationId,
+        messageType: "text",
+        messageContent: "",
+        role: "assistant",
+        createdAt: new Date().toISOString(),
+        createdBy: null,
+        isStreaming: true,
+        status: "streaming",
+      };
+
+      // Add both messages to store immediately
+      useChatStore.getState().addMessage(conversationId, optimisticUserMessage);
+      useChatStore
+        .getState()
+        .addMessage(conversationId, optimisticAssistantMessage);
 
       // Trigger scroll to bottom to show the new message
       useChatStore.getState().triggerScrollToBottom(conversationId);
 
       if (import.meta.env.DEV) {
-        console.log("[useSendMessage] Added optimistic message:", optimisticId);
+        console.log(
+          "[useSendMessage] Added optimistic messages:",
+          optimisticId,
+          optimisticAssistantId,
+        );
       }
 
       // Return context for onSuccess/onError
-      return { optimisticId, conversationId };
+      return { optimisticId, optimisticAssistantId, conversationId };
     },
 
-    onSuccess: (response, _content, _context) => {
+    onSuccess: (response, _, context) => {
       if (import.meta.env.DEV) {
         console.log(
           "[useSendMessage] Message acknowledged:",
@@ -105,24 +129,42 @@ export function useSendMessage() {
         );
       }
 
-      // NOTE: We intentionally do NOT remove the optimistic message here.
-      // The optimistic message will remain visible until the Pusher user_message
-      // event arrives and reconciles it via upsertMessage in the store.
-      // This prevents the message from briefly disappearing between the HTTP
-      // response and the Pusher event.
+      // Update optimistic message ID to real ID for proper reconciliation
+      // When Pusher event arrives with the real message, it will find the
+      // existing message by ID and update it - no disappearance, no duplicates
+      if (context && response.messageId) {
+        useChatStore
+          .getState()
+          .updateMessageId(
+            context.conversationId,
+            context.optimisticId,
+            response.messageId,
+          );
+
+        if (import.meta.env.DEV) {
+          console.log(
+            "[useSendMessage] Updated optimistic ID to real ID:",
+            context.optimisticId,
+            "->",
+            response.messageId,
+          );
+        }
+      }
     },
 
-    onError: (error: Error, _content, context) => {
+    onError: (error: Error, _, context) => {
       console.error("[useSendMessage] Error sending message:", error);
 
-      // Remove the optimistic message on error
+      // Remove both optimistic messages on error
       if (context) {
         const { messages, setMessages } = useChatStore.getState();
         const conversationMessages = messages[context.conversationId] || [];
 
-        // Filter out the optimistic message
+        // Filter out both optimistic messages
         const filteredMessages = conversationMessages.filter(
-          (m) => m.id !== context.optimisticId,
+          (m) =>
+            m.id !== context.optimisticId &&
+            m.id !== context.optimisticAssistantId,
         );
 
         if (filteredMessages.length !== conversationMessages.length) {
@@ -130,8 +172,9 @@ export function useSendMessage() {
 
           if (import.meta.env.DEV) {
             console.log(
-              "[useSendMessage] Removed optimistic message due to error:",
+              "[useSendMessage] Removed optimistic messages due to error:",
               context.optimisticId,
+              context.optimisticAssistantId,
             );
           }
         }
