@@ -10,7 +10,10 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { TransparencyQueryResult } from "@vonlabs/design-components";
+import type {
+  CallTranscript,
+  TransparencyQueryResult,
+} from "@vonlabs/design-components";
 import {
   useLazyArtifactContent,
   useBulkArtifacts,

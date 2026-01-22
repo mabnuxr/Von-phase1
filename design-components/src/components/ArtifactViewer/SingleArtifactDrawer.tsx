@@ -228,12 +228,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
 
     const { query, columns, rows, duration } = props as DataViewProps;
     return (
-      <ArtifactContentViewer
-        query={query}
-        columns={columns}
-        rows={rows}
-        duration={duration}
-      />
+      <ArtifactContentViewer query={query} columns={columns} rows={rows} duration={duration} />
     );
   };
 
