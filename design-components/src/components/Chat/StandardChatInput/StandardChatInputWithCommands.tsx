@@ -4,7 +4,7 @@
  * Commands appear as chips in the input when selected
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputProps } from './types';
 import { CommandChip, CommandsOverlay, useCommandsInput } from '../../Commands';
@@ -13,8 +13,17 @@ import type { FileAttachment } from '../FileAttachment/types';
 import { SecondaryIconButton } from '../../forms/buttons';
 import { SendIcon } from '../icons';
 
+import type { AgentMode } from './types';
+
+const DEFAULT_AGENT_MODE: AgentMode = 'auto';
+
 export interface StandardChatInputWithCommandsProps extends Omit<StandardChatInputProps, 'onSend'> {
-  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
+  onSend?: (
+    message: string,
+    attachments?: FileAttachment[],
+    command?: Command,
+    agentMode?: AgentMode
+  ) => void;
   /** Optional: Salesforce fields for selection in command drawer */
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
   /** Loading state for salesforce fields */
@@ -35,9 +44,16 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
   isStreaming = false,
   disableSubmit = false,
   onDisabledInput,
+  isAgentLocked = false,
+  lockedAgentMode = 'auto',
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Track agent mode at this level so it persists when switching to command mode
+  // When locked, always use the locked mode from backend
+  const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>(DEFAULT_AGENT_MODE);
+  const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
 
   const {
     commands,
@@ -62,6 +78,27 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
     closeCommandDrawer,
     closeManageDrawer,
   } = useCommandsInput({ value, onChange, onSend });
+
+  // Wrapper for StandardChatInput's onSend that captures agentMode changes
+  const handleStandardInputSend = useCallback(
+    (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+      // Update our tracked agent mode if user changed it (and not locked)
+      if (agentMode && !isAgentLocked) {
+        setInternalAgentMode(agentMode);
+      }
+      // Forward to useCommandsInput's handleSend with the agentMode
+      handleSend(message, attachments, agentMode);
+    },
+    [handleSend, isAgentLocked]
+  );
+
+  // Send with command - use the tracked agent mode
+  const handleSendWithCommand = useCallback(
+    (message: string) => {
+      handleSend(message, undefined, selectedAgentMode);
+    },
+    [handleSend, selectedAgentMode]
+  );
 
   return (
     <div ref={containerRef} className="relative w-full antialiased font-sf">
@@ -123,7 +160,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                         onDisabledInput?.();
                         return;
                       }
-                      handleSend(inputValue);
+                      handleSendWithCommand(inputValue);
                     }
                   }}
                   placeholder={effectivePlaceholder(placeholder)}
@@ -155,7 +192,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                 ) : (
                   <SecondaryIconButton
                     icon={<SendIcon size={16} />}
-                    onClick={() => handleSend(inputValue)}
+                    onClick={() => handleSendWithCommand(inputValue)}
                     disabled={disableSubmit}
                     title="Send message"
                     className={
@@ -174,12 +211,14 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
           {...props}
           value={inputValue}
           onChange={handleInputChange}
-          onSend={handleSend}
+          onSend={handleStandardInputSend}
           onStop={onStop}
           placeholder={effectivePlaceholder(placeholder)}
           disabled={disabled}
           isStreaming={isStreaming}
           disableSubmit={disableSubmit}
+          isAgentLocked={isAgentLocked}
+          lockedAgentMode={lockedAgentMode}
           onDisabledInput={onDisabledInput}
         />
       )}

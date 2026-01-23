@@ -122,10 +122,15 @@ export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
     };
 
     if (enableCommands) {
-      // StandardChatInputWithCommands passes (message, attachments, command)
+      // StandardChatInputWithCommands passes (message, attachments, command, agentMode)
       const commandOnSend = onSend
-        ? (message: string, attachments?: FileAttachment[], command?: Command) => {
-            onSend(message, attachments, { command });
+        ? (
+            message: string,
+            attachments?: FileAttachment[],
+            command?: Command,
+            agentMode?: AgentMode
+          ) => {
+            onSend(message, attachments, { command, agentMode });
           }
         : undefined;
 
@@ -143,10 +148,12 @@ export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
   }
 
   if (enableCommands) {
-    // For ChatInputWithCommands, onSend expects command as third param
-    const commandOnSend = onSend as
-      | ((message: string, attachments?: FileAttachment[], command?: Command) => void)
-      | undefined;
+    // ChatInputWithCommands passes (message, attachments, command) - wrap into SendMessageOptions
+    const commandOnSend = onSend
+      ? (message: string, attachments?: FileAttachment[], command?: Command) => {
+          onSend(message, attachments, { command });
+        }
+      : undefined;
 
     return (
       <ChatInputWithCommands

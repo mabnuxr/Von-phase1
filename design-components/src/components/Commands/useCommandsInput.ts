@@ -8,6 +8,7 @@ import { useState, useCallback } from 'react';
 import { useCommands } from './useCommands';
 import type { Command } from './types';
 import type { FileAttachment } from '../Chat/FileAttachment/types';
+import type { AgentMode } from '../Chat/StandardChatInput/types';
 
 /**
  * Extract plain text from a value that may be HTML (TipTap) or plain text (legacy textarea).
@@ -29,8 +30,13 @@ export interface UseCommandsInputOptions {
   value?: string;
   /** Callback when value changes */
   onChange?: (value: string) => void;
-  /** Callback when message is sent */
-  onSend?: (message: string, attachments?: FileAttachment[], command?: Command) => void;
+  /** Callback when message is sent (includes both command and agentMode) */
+  onSend?: (
+    message: string,
+    attachments?: FileAttachment[],
+    command?: Command,
+    agentMode?: AgentMode
+  ) => void;
 }
 
 export interface UseCommandsInputReturn {
@@ -49,7 +55,7 @@ export interface UseCommandsInputReturn {
 
   // Handlers
   handleInputChange: (newValue: string) => void;
-  handleSend: (message: string, attachments?: FileAttachment[]) => void;
+  handleSend: (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => void;
   handleSelectCommand: (command: Command) => void;
   handleRemoveCommand: () => void;
   handleNewCommand: () => void;
@@ -115,7 +121,7 @@ export function useCommandsInput({
   );
 
   const handleSend = useCallback(
-    (message: string, attachments?: FileAttachment[]) => {
+    (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
       // Normalize to plain text (handles both HTML from TipTap and plain text)
       const plainText = getPlainText(message).trim();
 
@@ -125,7 +131,7 @@ export function useCommandsInput({
           ? `${selectedCommand.prompt}\n\nAdditional context: ${plainText}`
           : selectedCommand.prompt;
 
-        onSend?.(fullPrompt, attachments, selectedCommand);
+        onSend?.(fullPrompt, attachments, selectedCommand, agentMode);
 
         // Clear selected command and input
         setSelectedCommand(null);
@@ -139,13 +145,13 @@ export function useCommandsInput({
         const command = commands.find((cmd) => cmd.name.toLowerCase() === commandName);
 
         if (command) {
-          onSend?.(command.prompt, attachments, command);
+          onSend?.(command.prompt, attachments, command, agentMode);
           setShowCommandsList(false);
           return;
         }
       }
 
-      onSend?.(plainText, attachments);
+      onSend?.(plainText, attachments, undefined, agentMode);
       setShowCommandsList(false);
     },
     [commands, onSend, selectedCommand, clearInput]
