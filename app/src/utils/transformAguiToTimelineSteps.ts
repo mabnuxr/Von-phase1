@@ -270,6 +270,8 @@ export interface TransformResult {
   finalResponse: string;
   /** Whether the final response is still streaming */
   isFinalResponseStreaming: boolean;
+  /** Whether we're waiting for user approval (intermediate state between runs) */
+  isAwaitingApproval: boolean;
 }
 
 /**
@@ -288,6 +290,7 @@ export function transformAguiToTimelineSteps(
       isThinking: false,
       finalResponse: "",
       isFinalResponseStreaming: false,
+      isAwaitingApproval: false,
     };
   }
 
@@ -550,16 +553,6 @@ export function transformAguiToTimelineSteps(
             operation: "update",
             approvalType: getApprovalType(toolName),
           };
-          if (import.meta.env.DEV) {
-            console.log(
-              "[transformAguiToTimelineSteps] TOOL_CALL_START - Detected approval tool:",
-              {
-                toolName,
-                toolId,
-                approvalType: getApprovalType(toolName),
-              },
-            );
-          }
         } else {
           step.type = "tool_call" as StepType;
         }
@@ -655,17 +648,6 @@ export function transformAguiToTimelineSteps(
                 if (approvalData) {
                   // Update with parsed data from arguments
                   step.approval = approvalData;
-                  if (import.meta.env.DEV) {
-                    console.log(
-                      "[transformAguiToTimelineSteps] TOOL_CALL_END - Updated approval data:",
-                      {
-                        stepId: step.id,
-                        toolCallId: approvalData.toolCallId,
-                        approvalType: approvalData.approvalType,
-                        summary: approvalData.summary,
-                      },
-                    );
-                  }
                 }
               } else {
                 // Fallback: detect generic approvals by argument patterns
@@ -675,17 +657,6 @@ export function transformAguiToTimelineSteps(
                   step.type = "approval" as StepType;
                   step.status = "awaiting-approval" as StepStatus;
                   step.approval = approvalData;
-                  if (import.meta.env.DEV) {
-                    console.log(
-                      "[transformAguiToTimelineSteps] TOOL_CALL_END - Detected approval from args:",
-                      {
-                        stepId: step.id,
-                        toolCallId: approvalData.toolCallId,
-                        approvalType: approvalData.approvalType,
-                        summary: approvalData.summary,
-                      },
-                    );
-                  }
                 }
               }
             } catch {
@@ -724,20 +695,8 @@ export function transformAguiToTimelineSteps(
               if (step.status === "awaiting-approval") {
                 if (result.approved === true) {
                   step.status = "complete" as StepStatus;
-                  if (import.meta.env.DEV) {
-                    console.log(
-                      "[transformAguiToTimelineSteps] TOOL_CALL_RESULT - Approval completed:",
-                      { stepId: step.id, toolId, approved: true },
-                    );
-                  }
                 } else if (result.approved === false) {
                   step.status = "error" as StepStatus;
-                  if (import.meta.env.DEV) {
-                    console.log(
-                      "[transformAguiToTimelineSteps] TOOL_CALL_RESULT - Approval rejected:",
-                      { stepId: step.id, toolId, approved: false },
-                    );
-                  }
                 }
                 // If result doesn't have approved field, keep awaiting-approval status
               } else {
@@ -774,6 +733,32 @@ export function transformAguiToTimelineSteps(
 
       case "RUN_FINISHED":
       case "RUN_ERROR": {
+        // Check if there's a pending approval step
+        // If so, this is an intermediate RUN_FINISHED (run paused for approval)
+        // Don't finalize - wait for the next RUN_FINISHED after approval
+        const hasPendingApproval = steps.some(
+          (s) => s.status === "awaiting-approval",
+        );
+
+        if (hasPendingApproval && event.type === "RUN_FINISHED") {
+          // Intermediate RUN_FINISHED - run paused for approval
+          // Keep isThinking as true so UI shows we're waiting for approval
+          // Don't extract final response yet - it will come with the next RUN_FINISHED
+          // Mark any in-progress steps (except approval steps) as complete
+          for (const step of steps) {
+            if (
+              step.status === "in-progress" ||
+              step.status === ("pending" as StepStatus)
+            ) {
+              step.status = "complete" as StepStatus;
+            }
+          }
+          // Don't set isThinking = false or extract final response
+          // The UI will continue showing the approval waiting state
+          break;
+        }
+
+        // No pending approval - this is the final RUN_FINISHED
         // Mark all steps as complete and stop processing
         isThinking = false;
         isFinalResponseStreaming = false;
@@ -816,7 +801,18 @@ export function transformAguiToTimelineSteps(
     }
   }
 
-  return { steps, isThinking, finalResponse, isFinalResponseStreaming };
+  // Check if there's a pending approval step (for UI to show appropriate state)
+  const isAwaitingApproval = steps.some(
+    (s) => s.status === "awaiting-approval",
+  );
+
+  return {
+    steps,
+    isThinking,
+    finalResponse,
+    isFinalResponseStreaming,
+    isAwaitingApproval,
+  };
 }
 
 /**
