@@ -308,3 +308,52 @@ export type {
   ArtifactContentData,
   UseArtifactContentReturn,
 } from './ArtifactViewer';
+
+// ============================================================================
+// DEEP RESEARCH (Research results streaming components)
+// ============================================================================
+export {
+  DeepResearchResults,
+  DeepResearchThinkingIndicator,
+  DeepResearchNotificationBar,
+  DataTablesCard,
+} from './Chat';
+export type { DeepResearchNotificationBarProps, DataTablesCardProps } from './Chat';
+export type {
+  // Event types
+  ResearchResultsMetadata,
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+  ResearchResultsEvent,
+  // State types
+  ResearchResultsStatus,
+  ResearchResultsState,
+  // Component props
+  DeepResearchResultsProps,
+  DeepResearchThinkingIndicatorProps,
+  // Hook types
+  UseDeepResearchStreamingReturn,
+  UseDeepResearchStreamingConfig,
+} from './Chat';
+export {
+  // Type guards
+  isResearchResultsStartEvent,
+  isResearchResultsContentEvent,
+  isResearchResultsEndEvent,
+  isResearchResultsEvent,
+  // Initial state
+  initialResearchResultsState,
+} from './Chat';
+
+// ============================================================================
+// POPUPS (Modals and Popovers)
+// ============================================================================
+export { ExpensiveOperationModal } from './popups';
+export type { ExpensiveOperationModalProps } from './popups';
+
+// ============================================================================
+// DATA TABLES (Review source data components)
+// ============================================================================
+export { DataTablesDrawer } from './Jan17Demo';
+export type { DataTablesDrawerProps, DataTableConfig } from './Jan17Demo';

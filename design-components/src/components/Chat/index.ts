@@ -175,3 +175,38 @@ export {
   isExportableType,
   escapeCsvValue,
 } from './utils/csvExport';
+
+// Export Deep Research components and types
+export {
+  DeepResearchResults,
+  DeepResearchThinkingIndicator,
+  DeepResearchNotificationBar,
+  DataTablesCard,
+} from './DeepResearch';
+export type { DeepResearchNotificationBarProps, DataTablesCardProps } from './DeepResearch';
+export type {
+  // Event types
+  ResearchResultsMetadata,
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+  ResearchResultsEvent,
+  // State types
+  ResearchResultsStatus,
+  ResearchResultsState,
+  // Component props
+  DeepResearchResultsProps,
+  DeepResearchThinkingIndicatorProps,
+  // Hook types
+  UseDeepResearchStreamingReturn,
+  UseDeepResearchStreamingConfig,
+} from './DeepResearch';
+export {
+  // Type guards
+  isResearchResultsStartEvent,
+  isResearchResultsContentEvent,
+  isResearchResultsEndEvent,
+  isResearchResultsEvent,
+  // Initial state
+  initialResearchResultsState,
+} from './DeepResearch';

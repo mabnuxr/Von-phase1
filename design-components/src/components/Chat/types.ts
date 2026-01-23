@@ -237,6 +237,22 @@ export interface EventMeta {
   };
 }
 
+// Import research results event types
+import type {
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+} from './DeepResearch/types';
+
+// Re-export research results event types
+export type {
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+  ResearchResultsEvent,
+  ResearchResultsMetadata,
+} from './DeepResearch/types';
+
 // Union type of all possible AGUI events
 export type AguiEvent =
   | RunStartedEvent
@@ -250,7 +266,11 @@ export type AguiEvent =
   | ToolCallResultEvent
   | StepFinishedEvent
   | RunFinishedEvent
-  | RunErrorEvent;
+  | RunErrorEvent
+  // Deep Research events
+  | ResearchResultsStartEvent
+  | ResearchResultsContentEvent
+  | ResearchResultsEndEvent;
 
 // Individual event types
 export interface RunStartedEvent {

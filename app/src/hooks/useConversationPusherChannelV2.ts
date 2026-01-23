@@ -17,6 +17,7 @@ import type { Channel } from "pusher-js";
 import type {
   AguiEventWrapper,
   TimelineStep,
+  ResearchResultsMetadata,
 } from "@vonlabs/design-components";
 
 import { config as appConfig } from "../config";
@@ -29,6 +30,22 @@ export interface UseConversationPusherChannelV2Config {
   conversationId: string | null;
   tenantId: string | undefined;
   userId: string | undefined;
+}
+
+/**
+ * Research results state for Deep Research workflow
+ */
+export interface ResearchResultsState {
+  /** Whether research results are currently streaming */
+  isStreaming: boolean;
+  /** Whether research results have completed */
+  isCompleted: boolean;
+  /** Accumulated research results content (markdown) */
+  content: string;
+  /** Metadata from RESEARCH_RESULTS_START event */
+  metadata: ResearchResultsMetadata | null;
+  /** Message ID for the research results */
+  messageId: string | null;
 }
 
 export interface UseConversationPusherChannelV2Return {
@@ -45,6 +62,10 @@ export interface UseConversationPusherChannelV2Return {
   isFinalResponseStreaming: boolean;
   /** Whether we're waiting for user approval (intermediate state between runs) */
   isAwaitingApproval: boolean;
+  /** Research results state for Deep Research workflow */
+  researchResults: ResearchResultsState;
+  /** Whether a long-running deep research is in progress (user can leave) */
+  isDeepResearchRunning: boolean;
 }
 
 /**
@@ -63,6 +84,16 @@ export function useConversationPusherChannelV2(
   const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
     useState(false);
   const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
+
+  // Research results state for Deep Research workflow
+  const [researchResults, setResearchResults] = useState<ResearchResultsState>({
+    isStreaming: false,
+    isCompleted: false,
+    content: "",
+    metadata: null,
+    messageId: null,
+  });
+  const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -98,6 +129,69 @@ export function useConversationPusherChannelV2(
       elapsedTimerRef.current = null;
     }
   }, []);
+
+  // Handle research results events separately (they use different event structure)
+  const handleResearchResultsEvent = useCallback(
+    (eventName: string) => (data: string | Record<string, unknown>) => {
+      try {
+        const wrapper = typeof data === "string" ? JSON.parse(data) : data;
+        const event = wrapper.event || wrapper;
+
+        switch (event.type) {
+          case "RESEARCH_RESULTS_START": {
+            console.log(
+              "[V2 Pusher] Research results started:",
+              event.message_id,
+            );
+            flushSync(() => {
+              setResearchResults({
+                isStreaming: true,
+                isCompleted: false,
+                content: "",
+                metadata: event.metadata || null,
+                messageId: event.message_id,
+              });
+            });
+            break;
+          }
+          case "RESEARCH_RESULTS_CONTENT": {
+            flushSync(() => {
+              setResearchResults((prev) => ({
+                ...prev,
+                content: event.snapshot || prev.content + (event.delta || ""),
+              }));
+            });
+            break;
+          }
+          case "RESEARCH_RESULTS_END": {
+            console.log(
+              "[V2 Pusher] Research results completed:",
+              event.message_id,
+              "length:",
+              event.total_length,
+            );
+            flushSync(() => {
+              setResearchResults((prev) => ({
+                ...prev,
+                isStreaming: false,
+                isCompleted: true,
+              }));
+              // If this was a long-running research, mark it as complete
+              setIsDeepResearchRunning(false);
+            });
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(
+          "[V2 Pusher] Error handling research results event:",
+          eventName,
+          error,
+        );
+      }
+    },
+    [],
+  );
 
   // Process AGUI event and transform to timeline steps
   const handleAguiEvent = useCallback(
@@ -181,6 +275,14 @@ export function useConversationPusherChannelV2(
       setFinalResponse("");
       setIsFinalResponseStreaming(false);
       setIsAwaitingApproval(false);
+      setResearchResults({
+        isStreaming: false,
+        isCompleted: false,
+        content: "",
+        metadata: null,
+        messageId: null,
+      });
+      setIsDeepResearchRunning(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stopElapsedTimer();
@@ -309,6 +411,17 @@ export function useConversationPusherChannelV2(
           channel.bind(eventName, handleAguiEvent(eventName));
         });
 
+        // Bind to research results events (Deep Research workflow)
+        const researchResultsEvents = [
+          "agent.research_results_start",
+          "agent.research_results_content",
+          "agent.research_results_end",
+        ];
+
+        researchResultsEvents.forEach((eventName) => {
+          channel.bind(eventName, handleResearchResultsEvent(eventName));
+        });
+
         // Handle subscription error
         channel.bind("pusher:subscription_error", (status: unknown) => {
           console.error("[V2 Pusher] ❌ Subscription failed:", status);
@@ -331,7 +444,7 @@ export function useConversationPusherChannelV2(
       }
       stopElapsedTimer();
     };
-  }, [config, handleAguiEvent, stopElapsedTimer]);
+  }, [config, handleAguiEvent, handleResearchResultsEvent, stopElapsedTimer]);
 
   return {
     isConnected,
@@ -344,5 +457,7 @@ export function useConversationPusherChannelV2(
     finalResponse,
     isFinalResponseStreaming,
     isAwaitingApproval,
+    researchResults,
+    isDeepResearchRunning,
   };
 }
