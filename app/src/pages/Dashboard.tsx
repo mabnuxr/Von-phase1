@@ -1115,12 +1115,15 @@ const Dashboard = () => {
                 lockedAgentMode={lockedAgentMode}
                 // Deep Research Results (V2 only)
                 researchResults={isAgentV2 ? v2ResearchResults : undefined}
-                isDeepResearchRunning={isAgentV2 ? v2IsDeepResearchRunning : undefined}
+                isDeepResearchRunning={
+                  isAgentV2 ? v2IsDeepResearchRunning : undefined
+                }
                 onDataTablesClick={handleDataTablesClick}
                 dataTablesInfo={
                   v2ResearchResults?.metadata?.data_sources
                     ? {
-                        tableCount: v2ResearchResults.metadata.data_sources.length,
+                        tableCount:
+                          v2ResearchResults.metadata.data_sources.length,
                         processedRecords: undefined,
                         totalRecords: v2ResearchResults.metadata.total_records,
                       }

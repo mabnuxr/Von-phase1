@@ -84,6 +84,7 @@ const VonLogo: React.FC<{ size?: number }> = ({ size = 32 }) => (
  */
 export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = ({
   isOpen,
+  recordCount,
   estimatedTime = '10-15 minutes',
   onConfirm,
   onCancel,
@@ -128,7 +129,10 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
 
               {/* Description */}
               <p className="text-[13px] text-gray-800 leading-relaxed mb-4">
-                This will analyze <span className="font-medium text-gray-900">900 records</span>{' '}
+                This will analyze{' '}
+                <span className="font-medium text-gray-900">
+                  {recordCount.toLocaleString()} records
+                </span>{' '}
                 across your connected data sources.
               </p>
 

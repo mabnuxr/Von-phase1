@@ -186,12 +186,14 @@ export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
   DeepResearchNotificationBar,
+  DeepResearchConfirmModal,
   DataTablesCard,
   DeepResearchApprovalCard,
   MarkdownActionCard,
 } from './DeepResearch';
 export type {
   DeepResearchNotificationBarProps,
+  DeepResearchConfirmModalProps,
   DataTablesCardProps,
   DeepResearchApprovalCardProps,
   DeepResearchAction,

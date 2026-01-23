@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
 import { DataTablesCard } from './DeepResearch/DataTablesCard';
 import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
+import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { Message } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
@@ -12,13 +13,7 @@ import type { ResearchResultsMetadata } from './DeepResearch/types';
  */
 const VonLogoAvatar: React.FC = () => (
   <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
         d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
         fill="url(#paint0_radial_deep_research_chat)"
@@ -113,6 +108,25 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onApprove,
   onReject,
 }) => {
+  // State for confirmation modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Handle run full analysis click - show confirmation modal
+  const handleRunFullAnalysisClick = () => {
+    setShowConfirmModal(true);
+  };
+
+  // Handle confirmation - send the message and close modal
+  const handleConfirmAnalysis = () => {
+    setShowConfirmModal(false);
+    onSendMessage?.('Accept plan and run full analysis');
+  };
+
+  // Handle cancel - just close the modal
+  const handleCancelAnalysis = () => {
+    setShowConfirmModal(false);
+  };
+
   // Find the last assistant message for approval flow
   const approvalMessage = useMemo(() => {
     // Don't show approval if research results are streaming/completed
@@ -257,7 +271,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
             isStreaming={false}
             primaryAction={{
               label: 'Run Full Analysis',
-              onClick: () => onSendMessage?.('Accept plan and run full analysis'),
+              onClick: handleRunFullAnalysisClick,
               disabled: isDeepResearchRunning,
               isLoading: isDeepResearchRunning,
             }}
@@ -285,6 +299,16 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           />
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ExpensiveOperationModal
+        isOpen={showConfirmModal}
+        recordCount={dataTablesInfo?.totalRecords || researchResults?.metadata?.total_records || 0}
+        estimatedTime={researchResults?.metadata?.estimated_time || '10-15 minutes'}
+        onConfirm={handleConfirmAnalysis}
+        onCancel={handleCancelAnalysis}
+        operationName="Run Full Analysis"
+      />
     </div>
   );
 };
