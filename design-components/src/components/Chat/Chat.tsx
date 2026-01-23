@@ -6,7 +6,7 @@ import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
-import type { SendMessageOptions } from './ChatInputSelector';
+import type { ChatProps, SendMessageOptions } from './types';
 import type { FileAttachment } from './FileAttachment/types';
 
 // Export types from types.ts
@@ -21,9 +21,8 @@ export type {
   ApiEndpoints,
   FixedPosition,
   ChatProps,
+  SendMessageOptions,
 } from './types';
-
-import type { ChatProps } from './types';
 
 /**
  * Chat component - pure rendering component
@@ -192,7 +191,18 @@ export const Chat: React.FC<ChatProps> = ({
         scrollOnNewUserMessage.current = false;
       }, SCROLL_LOCK_DURATION_MS);
 
-      onSendMessage?.(content, attachments, options);
+      // Convert FileAttachment[] to MessageFileAttachment[] (serializable version)
+      const messageAttachments = attachments?.map((a) => ({
+        id: a.id,
+        name: a.name,
+        size: a.size,
+        type: a.type,
+        extension: a.extension,
+        category: a.category,
+        previewUrl: a.previewUrl,
+      }));
+
+      onSendMessage?.(content, messageAttachments, options);
     },
     [onSendMessage]
   );

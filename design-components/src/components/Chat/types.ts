@@ -2,6 +2,19 @@
  * Type definitions for Chat component with backend integration
  */
 
+import type { AgentMode } from './StandardChatInput/types';
+import type { Command } from '../Commands/types';
+
+/**
+ * Additional options passed with the send message callback
+ */
+export interface SendMessageOptions {
+  /** Selected agent mode for the message */
+  agentMode?: AgentMode;
+  /** Selected command (when slash commands are enabled) */
+  command?: Command;
+}
+
 /**
  * Step message in a multi-step agent response
  * Each step has its own content and associated tool calls
@@ -853,12 +866,12 @@ export interface ChatProps {
   /**
    * Callback when a new message is sent
    * Includes optional file attachments when enableFileUpload is true
-   * Includes optional SendMessageOptions (agentMode, command) from ChatInputSelector
+   * Includes SendMessageOptions with agentMode when using StandardChatInput
    */
   onSendMessage?: (
     message: string,
     attachments?: MessageFileAttachment[],
-    options?: import('./ChatInputSelector').SendMessageOptions
+    options?: SendMessageOptions
   ) => void;
 
   /**
