@@ -550,7 +550,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                       transition={{ duration: 0.15 }}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium rounded-xl transition-colors cursor-pointer ${
                         selectedAgentMode === 'deep-research'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
                           : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
                       }`}
                       onClick={handleCancelAgentMode}
@@ -564,13 +564,13 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                           weight="bold"
                           className={
                             selectedAgentMode === 'deep-research'
-                              ? 'text-emerald-600'
+                              ? 'text-green-600'
                               : 'text-gray-800'
                           }
                         />
                       ) : selectedAgentMode === 'deep-research' ? (
                         // Green dot indicator for Deep Research
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-emerald-200" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                       ) : (
                         (() => {
                           const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
