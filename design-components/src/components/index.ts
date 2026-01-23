@@ -317,8 +317,15 @@ export {
   DeepResearchThinkingIndicator,
   DeepResearchNotificationBar,
   DataTablesCard,
+  DeepResearchApprovalCard,
 } from './Chat';
-export type { DeepResearchNotificationBarProps, DataTablesCardProps } from './Chat';
+export type {
+  DeepResearchNotificationBarProps,
+  DataTablesCardProps,
+  DeepResearchApprovalCardProps,
+  DeepResearchAction,
+  DataSourceInfo,
+} from './Chat';
 export type {
   // Event types
   ResearchResultsMetadata,
@@ -326,6 +333,9 @@ export type {
   ResearchResultsContentEvent,
   ResearchResultsEndEvent,
   ResearchResultsEvent,
+  // Metadata types
+  ResearchDataSource,
+  ResearchApprovalAction,
   // State types
   ResearchResultsStatus,
   ResearchResultsState,

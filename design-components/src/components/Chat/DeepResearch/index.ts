@@ -14,3 +14,19 @@ export { DeepResearchNotificationBar } from './DeepResearchNotificationBar';
 export type { DeepResearchNotificationBarProps } from './DeepResearchNotificationBar';
 export { DataTablesCard } from './DataTablesCard';
 export type { DataTablesCardProps } from './DataTablesCard';
+export { DeepResearchApprovalCard } from './DeepResearchApprovalCard';
+export type {
+  DeepResearchApprovalCardProps,
+  DeepResearchAction,
+  DataSourceInfo,
+} from './DeepResearchApprovalCard';
+export { MarkdownActionCard } from './MarkdownActionCard';
+export type {
+  MarkdownActionCardProps,
+  MarkdownActionCardVariant,
+  ActionButton,
+  BulkItemChange,
+  BulkItem,
+  CalendarOperationType,
+  CalendarEvent,
+} from './MarkdownActionCard';

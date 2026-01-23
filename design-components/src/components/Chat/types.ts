@@ -4,6 +4,7 @@
 
 import type { AgentMode } from './StandardChatInput/types';
 import type { Command } from '../Commands/types';
+import type { ResearchResultsMetadata } from './DeepResearch/types';
 
 /**
  * Additional options passed with the send message callback
@@ -825,6 +826,44 @@ export function parseGoogleCalendarApprovalArgs(
   }
 }
 
+/**
+ * Deep Research Approval Types
+ * Used for the request_deep_research_approval tool
+ * Allows users to accept/reject proceeding with full research after initial sample analysis
+ */
+
+/**
+ * Data source information for deep research
+ */
+export interface DeepResearchDataSource {
+  /** Name of the data source (e.g., "Salesforce Opportunities") */
+  name: string;
+  /** Number of records in this source */
+  record_count: number;
+  /** Description of what data will be analyzed */
+  description?: string;
+}
+
+/**
+ * Arguments for the request_deep_research_approval tool
+ */
+export interface DeepResearchApprovalToolArgs {
+  /** Brief summary of the research plan */
+  summary: string;
+  /** The research query/question being investigated */
+  research_query: string;
+  /** Estimated time for full analysis (e.g., "10-15 minutes") */
+  estimated_time?: string;
+  /** Data sources that will be analyzed */
+  data_sources?: DeepResearchDataSource[];
+  /** Total record count across all sources */
+  total_records?: number;
+  /** Sample analysis content (markdown) to show the user */
+  sample_content?: string;
+  /** Plan ID for tracking */
+  plan_id?: string;
+}
+
 export interface ChatProps {
   /**
    * Title displayed in the chat header
@@ -1157,4 +1196,39 @@ export interface ChatProps {
    * @default 'auto'
    */
   lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+
+  // ============================================================================
+  // Deep Research Results Props (V2 only)
+  // ============================================================================
+
+  /**
+   * Research results state from the transform/Pusher hook
+   * When present and isCompleted or isStreaming, shows the research results UI
+   */
+  researchResults?: {
+    isStreaming: boolean;
+    isCompleted: boolean;
+    content: string;
+    metadata: ResearchResultsMetadata | null;
+    messageId: string | null;
+  };
+
+  /**
+   * Whether deep research is currently running (for UI state)
+   */
+  isDeepResearchRunning?: boolean;
+
+  /**
+   * Callback when user clicks the DataTablesCard to review source data
+   */
+  onDataTablesClick?: () => void;
+
+  /**
+   * Information for the DataTablesCard (number of tables, records processed, etc.)
+   */
+  dataTablesInfo?: {
+    tableCount: number;
+    processedRecords?: number;
+    totalRecords?: number;
+  };
 }

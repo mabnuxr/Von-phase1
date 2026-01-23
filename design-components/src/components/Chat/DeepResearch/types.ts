@@ -12,6 +12,28 @@
 // ============================================================================
 
 /**
+ * Data source information for deep research
+ */
+export interface ResearchDataSource {
+  /** Name of the data source (e.g., "Salesforce Opportunities") */
+  name: string;
+  /** Number of records in this source */
+  record_count: number;
+  /** Description of what data will be analyzed */
+  description?: string;
+}
+
+/**
+ * Approval action configuration for deep research
+ */
+export interface ResearchApprovalAction {
+  /** Button label */
+  label: string;
+  /** Whether the action is enabled */
+  enabled?: boolean;
+}
+
+/**
  * Metadata about the research execution
  * Included in RESEARCH_RESULTS_START event
  */
@@ -26,6 +48,53 @@ export interface ResearchResultsMetadata {
   total_nodes?: number;
   /** Execution status */
   status?: 'completed' | 'partial_failure';
+
+  // ============================================================================
+  // Approval Flow Configuration
+  // ============================================================================
+
+  /**
+   * Whether this research results requires user approval to proceed with full analysis
+   * When true, show approval UI after results complete
+   * @default true for sample analysis results
+   */
+  requires_approval?: boolean;
+
+  /**
+   * The research query/question being investigated
+   */
+  research_query?: string;
+
+  /**
+   * Estimated time for full analysis (e.g., "10-15 minutes")
+   */
+  estimated_time?: string;
+
+  /**
+   * Total record count across all data sources
+   */
+  total_records?: number;
+
+  /**
+   * Data sources that will be analyzed in full research
+   */
+  data_sources?: ResearchDataSource[];
+
+  /**
+   * Run ID for the approval API call (to resume the workflow)
+   */
+  run_id?: string;
+
+  /**
+   * Primary action configuration (default: "Run Full Analysis")
+   */
+  primary_action?: ResearchApprovalAction;
+
+  /**
+   * Secondary action configuration (default: "Skip")
+   */
+  secondary_action?: ResearchApprovalAction;
+
   /** Extensible for future metadata */
   [key: string]: unknown;
 }

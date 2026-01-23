@@ -611,6 +611,8 @@ const Dashboard = () => {
     elapsedTime: v2ElapsedTime,
     finalResponse: v2FinalResponse,
     isFinalResponseStreaming: v2IsFinalResponseStreaming,
+    researchResults: v2ResearchResults,
+    isDeepResearchRunning: v2IsDeepResearchRunning,
   } = useConversationPusherChannelV2(v2ChannelConfig);
 
   // Transform backend messages to Chat component format
@@ -900,6 +902,15 @@ const Dashboard = () => {
     [currentConversationId],
   );
 
+  // Deep Research: Data Tables click handler
+  const handleDataTablesClick = useCallback(() => {
+    if (import.meta.env.DEV) {
+      console.log("[Dashboard] handleDataTablesClick called");
+    }
+    // TODO: Open a drawer/modal to show the data tables for review
+    // This could open the transparency drawer or a dedicated data review drawer
+  }, []);
+
   // Create Salesforce connection banner
   const salesforceBanner = (
     <SalesforceConnectionBanner
@@ -1102,6 +1113,19 @@ const Dashboard = () => {
                 useStandardInput={isAgentV2}
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
+                // Deep Research Results (V2 only)
+                researchResults={isAgentV2 ? v2ResearchResults : undefined}
+                isDeepResearchRunning={isAgentV2 ? v2IsDeepResearchRunning : undefined}
+                onDataTablesClick={handleDataTablesClick}
+                dataTablesInfo={
+                  v2ResearchResults?.metadata?.data_sources
+                    ? {
+                        tableCount: v2ResearchResults.metadata.data_sources.length,
+                        processedRecords: undefined,
+                        totalRecords: v2ResearchResults.metadata.total_records,
+                      }
+                    : undefined
+                }
               />
             )}
           </motion.div>

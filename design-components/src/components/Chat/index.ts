@@ -1,4 +1,6 @@
 export { Chat } from './Chat';
+export { DeepResearchChat } from './DeepResearchChat';
+export type { DeepResearchChatProps } from './DeepResearchChat';
 export type {
   ChatProps,
   Message,
@@ -137,6 +139,9 @@ export type {
   // Google Calendar approval types
   GoogleCalendarOperation,
   GoogleCalendarApprovalToolArgs,
+  // Deep Research approval types
+  DeepResearchDataSource,
+  DeepResearchApprovalToolArgs,
   // Call Search Union types
   CallMatchSource,
   CallSearchResult,
@@ -182,8 +187,23 @@ export {
   DeepResearchThinkingIndicator,
   DeepResearchNotificationBar,
   DataTablesCard,
+  DeepResearchApprovalCard,
+  MarkdownActionCard,
 } from './DeepResearch';
-export type { DeepResearchNotificationBarProps, DataTablesCardProps } from './DeepResearch';
+export type {
+  DeepResearchNotificationBarProps,
+  DataTablesCardProps,
+  DeepResearchApprovalCardProps,
+  DeepResearchAction,
+  DataSourceInfo,
+  MarkdownActionCardProps,
+  MarkdownActionCardVariant,
+  ActionButton,
+  BulkItemChange,
+  BulkItem,
+  CalendarOperationType,
+  CalendarEvent,
+} from './DeepResearch';
 export type {
   // Event types
   ResearchResultsMetadata,
@@ -191,6 +211,9 @@ export type {
   ResearchResultsContentEvent,
   ResearchResultsEndEvent,
   ResearchResultsEvent,
+  // Metadata types
+  ResearchDataSource,
+  ResearchApprovalAction,
   // State types
   ResearchResultsStatus,
   ResearchResultsState,

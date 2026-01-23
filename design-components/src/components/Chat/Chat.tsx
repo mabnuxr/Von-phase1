@@ -6,6 +6,7 @@ import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
+import { DeepResearchChat } from './DeepResearchChat';
 import type { ChatProps, SendMessageOptions } from './types';
 import type { FileAttachment } from './FileAttachment/types';
 
@@ -67,6 +68,11 @@ export const Chat: React.FC<ChatProps> = ({
   // Agent selection props
   isAgentLocked = false,
   lockedAgentMode = 'auto',
+  // Deep Research Results props (V2 only)
+  researchResults,
+  isDeepResearchRunning,
+  onDataTablesClick,
+  dataTablesInfo,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -168,6 +174,9 @@ export const Chat: React.FC<ChatProps> = ({
       isLatestMessage: visibleIndex === filtered.length - 1,
     }));
   }, [messages, isLoading, effectiveShowFromIndex]);
+
+  // Check if we're in deep research mode (V2 only)
+  const isDeepResearchMode = thinkingProcessVersion === 'v2' && lockedAgentMode === 'deep-research';
 
   // Handle stop streaming
   const handleStop = useCallback(() => {
@@ -277,7 +286,24 @@ export const Chat: React.FC<ChatProps> = ({
             isAgentLocked={isAgentLocked}
             lockedAgentMode={lockedAgentMode}
           />
+        ) : isDeepResearchMode ? (
+          /* Deep Research Mode - specialized UI */
+          <DeepResearchChat
+            messages={visibleMessages}
+            userName={userName}
+            userEmail={userEmail}
+            researchResults={researchResults}
+            isDeepResearchRunning={isDeepResearchRunning}
+            dataTablesInfo={dataTablesInfo}
+            onSendMessage={onSendMessage}
+            onDataTablesClick={onDataTablesClick}
+            onTransparencyClick={onTransparencyClick}
+            onArtifactClick={onArtifactClick}
+            onApprove={onApprove}
+            onReject={onReject}
+          />
         ) : (
+          /* Regular Mode - standard message rendering */
           <div className="flex flex-col">
             {visibleMessages.map((message) => (
               <div key={message.id} className="mb-4">
