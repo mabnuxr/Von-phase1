@@ -264,6 +264,8 @@ const Dashboard = () => {
             currentConversationId,
             backendMode,
           );
+          // Invalidate conversations cache so lockedAgentMode picks up the new value
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
           if (import.meta.env.DEV) {
             console.log(
               "[Dashboard] Synced agent mode to backend:",
@@ -275,7 +277,7 @@ const Dashboard = () => {
         }
       }
     },
-    [currentConversationId],
+    [currentConversationId, queryClient],
   );
 
   // Simplified loading state - deterministic, no timers
