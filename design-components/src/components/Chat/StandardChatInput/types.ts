@@ -218,12 +218,6 @@ export interface StandardChatInputProps {
   onBuildDashboard?: () => void;
 
   /**
-   * Pre-selected agent mode to show as active
-   * When set to 'deep-research', shows the Deep Research indicator button
-   */
-  agentMode?: 'auto' | 'build-dashboard' | 'deep-research';
-
-  /**
    * Hide the disclaimer text below the input
    * @default false
    */
