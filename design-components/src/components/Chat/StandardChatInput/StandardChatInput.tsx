@@ -16,6 +16,7 @@ import {
   ChartBarIcon,
   CaretRightIcon,
   UploadSimpleIcon,
+  AtomIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
