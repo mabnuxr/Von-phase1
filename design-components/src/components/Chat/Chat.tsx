@@ -63,6 +63,9 @@ export const Chat: React.FC<ChatProps> = ({
   // V2 Thinking Process
   thinkingProcessVersion = 'v1',
   useStandardInput = false,
+  // Agent selection props
+  isAgentLocked = false,
+  lockedAgentMode = 'auto',
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -259,6 +262,8 @@ export const Chat: React.FC<ChatProps> = ({
             banner={banner}
             topBanner={topBanner}
             useStandardInput={useStandardInput}
+            isAgentLocked={isAgentLocked}
+            lockedAgentMode={lockedAgentMode}
           />
         ) : (
           <div className="flex flex-col">
@@ -337,6 +342,8 @@ export const Chat: React.FC<ChatProps> = ({
           value={inputValue}
           onChange={setInputValue}
           onDisabledInput={onInputWhileDisabled}
+          isAgentLocked={isAgentLocked}
+          lockedAgentMode={lockedAgentMode}
         />
       )}
     </div>

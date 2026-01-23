@@ -21,6 +21,8 @@ export interface UseTimelineStateReturn {
   selectedStepForDrawer: TimelineStep | null;
   focusedStepId: string | null;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  // Local approval state (for optimistic UI updates)
+  localApprovalState: Map<string, 'approved' | 'rejected'>;
   // Setters
   setIsDrawerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedStepForDrawer: React.Dispatch<React.SetStateAction<TimelineStep | null>>;
@@ -29,6 +31,8 @@ export interface UseTimelineStateReturn {
   toggleStep: (stepId: string) => void;
   handleExpandStep: (step: TimelineStep) => void;
   focusOnStep: (stepId: string) => void;
+  markAsApproved: (stepId: string) => void;
+  markAsRejected: (stepId: string) => void;
   // Derived
   completedCount: number;
   totalCount: number;
@@ -71,6 +75,10 @@ export function useTimelineState({
   // Track if user has scrolled away from bottom (to prevent auto-scroll hijacking)
   const userHasScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  // Local approval state for optimistic UI updates (bell icon hides immediately)
+  const [localApprovalState, setLocalApprovalState] = useState<
+    Map<string, 'approved' | 'rejected'>
+  >(new Map());
 
   // Derived state
   const isCollapsed = useMemo(
@@ -92,10 +100,34 @@ export function useTimelineState({
 
   const visibleSteps = useMemo(() => steps.filter((s) => s.status !== 'pending'), [steps]);
 
-  const awaitingApprovalStep = useMemo(
-    () => steps.find((s) => s.status === 'awaiting-approval'),
-    [steps]
-  );
+  const awaitingApprovalStep = useMemo(() => {
+    const approvalStep = steps.find(
+      (s) =>
+        s.status === 'awaiting-approval' && !localApprovalState.has(s.approval?.toolCallId || s.id)
+    );
+
+    if (
+      import.meta.env.DEV &&
+      (approvalStep || steps.some((s) => s.status === 'awaiting-approval'))
+    ) {
+      console.log('[useTimelineState] Approval step check:', {
+        foundAwaitingApproval: !!approvalStep,
+        approvalStepId: approvalStep?.id,
+        approvalToolCallId: approvalStep?.approval?.toolCallId,
+        localApprovalStateSize: localApprovalState.size,
+        allStepsWithApproval: steps
+          .filter((s) => s.status === 'awaiting-approval')
+          .map((s) => ({
+            id: s.id,
+            status: s.status,
+            toolCallId: s.approval?.toolCallId,
+            approvalData: s.approval,
+          })),
+      });
+    }
+
+    return approvalStep;
+  }, [steps, localApprovalState]);
 
   // Handlers
   const handleToggleCollapse = useCallback(() => {
@@ -130,6 +162,16 @@ export function useTimelineState({
   const focusOnStep = useCallback((stepId: string) => {
     setFocusedStepId(stepId);
     setExpandedSteps((prev) => new Set(prev).add(stepId));
+  }, []);
+
+  // Mark a step as locally approved (for optimistic UI updates)
+  const markAsApproved = useCallback((toolCallId: string) => {
+    setLocalApprovalState((prev) => new Map(prev).set(toolCallId, 'approved'));
+  }, []);
+
+  // Mark a step as locally rejected (for optimistic UI updates)
+  const markAsRejected = useCallback((toolCallId: string) => {
+    setLocalApprovalState((prev) => new Map(prev).set(toolCallId, 'rejected'));
   }, []);
 
   // Helper functions
@@ -256,6 +298,7 @@ export function useTimelineState({
     selectedStepForDrawer,
     focusedStepId,
     scrollContainerRef,
+    localApprovalState,
     // Setters
     setIsDrawerOpen,
     setSelectedStepForDrawer,
@@ -264,6 +307,8 @@ export function useTimelineState({
     toggleStep,
     handleExpandStep,
     focusOnStep,
+    markAsApproved,
+    markAsRejected,
     // Derived
     completedCount,
     totalCount,

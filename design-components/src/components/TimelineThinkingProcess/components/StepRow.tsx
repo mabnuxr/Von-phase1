@@ -22,7 +22,18 @@ import { CompactApprovalCard } from './CompactApprovalCard';
  * - Expandable content area with description, approval card, code block, sub-steps
  */
 export const StepRow = React.memo<StepRowProps>(
-  ({ step, isExpanded, onToggle, onExpand, isLast, onApprove, onReject, onArtifactClick }) => {
+  ({
+    step,
+    isExpanded,
+    onToggle,
+    onExpand,
+    isLast,
+    onApprove,
+    onReject,
+    onArtifactClick,
+    isLocallyApproved,
+    isLocallyRejected,
+  }) => {
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
 
@@ -37,8 +48,16 @@ export const StepRow = React.memo<StepRowProps>(
       [isFinalResponse, step.description, step.code, step.subSteps, step.approval, step.artifact]
     );
 
-    const isInProgress = step.status === 'in-progress';
-    const isComplete = step.status === 'complete';
+    // Compute effective status - when locally approved/rejected, show as complete/error
+    // This ensures the indicator turns green after approval even before backend updates
+    const effectiveStatus = useMemo(() => {
+      if (isLocallyApproved) return 'complete';
+      if (isLocallyRejected) return 'error';
+      return step.status;
+    }, [isLocallyApproved, isLocallyRejected, step.status]);
+
+    const isInProgress = effectiveStatus === 'in-progress';
+    const isComplete = effectiveStatus === 'complete';
 
     // Get source label for tool calls
     const sourceLabel = useMemo(() => {
@@ -53,7 +72,7 @@ export const StepRow = React.memo<StepRowProps>(
         {/* Timeline connector */}
         <div className="flex flex-col items-center mr-3 flex-shrink-0">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <StepIndicator status={step.status} />
+            <StepIndicator status={effectiveStatus} />
           </div>
           {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
         </div>
@@ -121,8 +140,8 @@ export const StepRow = React.memo<StepRowProps>(
                       approval={step.approval}
                       onApprove={onApprove || (() => {})}
                       onReject={onReject || (() => {})}
-                      isApproved={step.status === 'complete'}
-                      isRejected={step.status === 'error'}
+                      isApproved={isLocallyApproved || step.status === 'complete'}
+                      isRejected={isLocallyRejected || step.status === 'error'}
                     />
                   )}
 

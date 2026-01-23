@@ -99,7 +99,7 @@ export function useConversationInit(urlConversationId?: string) {
           console.log(`[useConversationInit] Creating: ${title}`);
         }
 
-        const response = await createConversation(title);
+        const response = await createConversation({ title });
         const newConversationId = response.conversation.conversationId;
 
         if (import.meta.env.DEV) {

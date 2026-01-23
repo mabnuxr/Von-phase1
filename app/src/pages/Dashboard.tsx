@@ -1,4 +1,4 @@
-import { authService } from "../services";
+import { authService, conversationsService } from "../services";
 import { config } from "../config";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -32,6 +32,11 @@ import {
   handleToolRejection,
 } from "../lib/dashboardUtils";
 import {
+  agentModeToConversationMode,
+  conversationModeToAgentMode,
+  DEFAULT_AGENT_MODE,
+} from "../lib/conversationModeUtils";
+import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
 } from "../utils/transformAguiToTimelineSteps";
@@ -60,6 +65,7 @@ import {
   Banner,
   DashboardCanvas,
 } from "@vonlabs/design-components";
+import type { AgentMode, SendMessageOptions } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -226,6 +232,51 @@ const Dashboard = () => {
 
   // Track last user message for reliable error recovery
   const lastUserMessageRef = useRef<string>("");
+
+  // Agent is locked if conversation has any messages
+  const isAgentLocked = conversationMessages.length > 0;
+
+  // Get locked agent mode from backend (used when agent is locked)
+  const lockedAgentMode = useMemo(() => {
+    if (currentConversationId && infiniteConversationsData) {
+      const allConversations = infiniteConversationsData.pages.flatMap(
+        (page) => page.data,
+      );
+      const conversation = allConversations.find(
+        (conv) => conv.conversationId === currentConversationId,
+      );
+      if (conversation?.mode) {
+        return conversationModeToAgentMode(conversation.mode);
+      }
+    }
+    return DEFAULT_AGENT_MODE;
+  }, [currentConversationId, infiniteConversationsData]);
+
+  // Sync agent mode to backend when first message is sent
+  const syncAgentModeToBackend = useCallback(
+    async (agentMode: AgentMode) => {
+      if (!currentConversationId) return;
+
+      if (agentMode !== DEFAULT_AGENT_MODE) {
+        try {
+          const backendMode = agentModeToConversationMode(agentMode);
+          await conversationsService.updateConversationMode(
+            currentConversationId,
+            backendMode,
+          );
+          if (import.meta.env.DEV) {
+            console.log(
+              "[Dashboard] Synced agent mode to backend:",
+              backendMode,
+            );
+          }
+        } catch (error) {
+          console.error("[Dashboard] Failed to sync agent mode:", error);
+        }
+      }
+    },
+    [currentConversationId],
+  );
 
   // Simplified loading state - deterministic, no timers
   const isLoading =
@@ -445,7 +496,7 @@ const Dashboard = () => {
     setIsCreatingChat(true); // Instant skeleton
     try {
       const title = generateConversationTitle();
-      const response = await createConversation(title);
+      const response = await createConversation({ title });
       const newId = response.conversation.conversationId;
       setPendingConversationId(newId); // Track target
       await queryClient.refetchQueries({
@@ -461,7 +512,11 @@ const Dashboard = () => {
     }
   };
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (
+    content: string,
+    _attachments?: unknown,
+    options?: SendMessageOptions,
+  ) => {
     // Track last user message for error recovery
     lastUserMessageRef.current = content;
 
@@ -470,6 +525,11 @@ const Dashboard = () => {
     if (currentConversationId) {
       const currentMessages = messages[currentConversationId] || [];
       setShowMessagesFromIndex(currentMessages.length);
+
+      // Sync agent mode to backend if this is the first message
+      if (currentMessages.length === 0 && options?.agentMode) {
+        await syncAgentModeToBackend(options.agentMode);
+      }
     }
     sendMessage(content);
   };
@@ -604,6 +664,8 @@ const Dashboard = () => {
       ) {
         return {
           ...msg,
+          // Override isStreaming with v2IsThinking to ensure proper state during approval wait
+          isStreaming: v2IsThinking,
           timelineSteps: usableV2TimelineSteps,
           thinkingElapsedTime: v2ElapsedTime,
           v2FinalResponse,
@@ -801,13 +863,18 @@ const Dashboard = () => {
   // Tool approval handler
   const handleApproval = useCallback(
     async (toolCallId: string, runId: string) => {
-      if (!currentConversationId) return;
-      await handleToolApproval(
-        toolCallId,
-        runId,
-        currentConversationId,
-        import.meta.env.VITE_API_BASE_URL,
-      );
+      if (import.meta.env.DEV) {
+        console.log("[Dashboard] handleApproval called:", {
+          toolCallId,
+          runId,
+          currentConversationId,
+        });
+      }
+      if (!currentConversationId) {
+        console.warn("[Dashboard] handleApproval: No currentConversationId");
+        return;
+      }
+      await handleToolApproval(toolCallId, runId, currentConversationId);
     },
     [currentConversationId],
   );
@@ -815,13 +882,18 @@ const Dashboard = () => {
   // Tool rejection handler
   const handleRejection = useCallback(
     async (toolCallId: string, runId: string) => {
-      if (!currentConversationId) return;
-      await handleToolRejection(
-        toolCallId,
-        runId,
-        currentConversationId,
-        import.meta.env.VITE_API_BASE_URL,
-      );
+      if (import.meta.env.DEV) {
+        console.log("[Dashboard] handleRejection called:", {
+          toolCallId,
+          runId,
+          currentConversationId,
+        });
+      }
+      if (!currentConversationId) {
+        console.warn("[Dashboard] handleRejection: No currentConversationId");
+        return;
+      }
+      await handleToolRejection(toolCallId, runId, currentConversationId);
     },
     [currentConversationId],
   );
@@ -1026,6 +1098,8 @@ const Dashboard = () => {
                 enableDeepLinks={isDeepLinksEnabled}
                 thinkingProcessVersion={isAgentV2 ? "v2" : "v1"}
                 useStandardInput={isAgentV2}
+                isAgentLocked={isAgentLocked}
+                lockedAgentMode={lockedAgentMode}
               />
             )}
           </motion.div>

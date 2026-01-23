@@ -4,7 +4,17 @@
  */
 
 import type { Message } from '../Chat';
-import type { Conversation } from './api';
+
+/**
+ * Conversation data structure for localStorage persistence
+ */
+export interface Conversation {
+  conversationId: string;
+  title: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const STORAGE_PREFIX = 'chat_';
 const MAX_MESSAGES_PER_CONVERSATION = 100;

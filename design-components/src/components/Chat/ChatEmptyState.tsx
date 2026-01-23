@@ -9,6 +9,7 @@ import {
   type TemplateCategory,
 } from '../Templates';
 import type { BuildMode } from '../DashboardBuilder';
+import type { AgentMode } from './StandardChatInput/types';
 
 export interface ChatEmptyStateProps {
   /**
@@ -81,6 +82,14 @@ export interface ChatEmptyStateProps {
    * @default false
    */
   useStandardInput?: boolean;
+  /**
+   * Whether agent selection is locked (after first message)
+   */
+  isAgentLocked?: boolean;
+  /**
+   * The agent mode to display when locked (from backend)
+   */
+  lockedAgentMode?: AgentMode;
 }
 
 /**
@@ -120,6 +129,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   mode = 'ask',
   onModeChange,
   useStandardInput = false,
+  isAgentLocked,
+  lockedAgentMode,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -315,6 +326,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           showModeToggle={showModeToggle}
           mode={mode}
           onModeChange={onModeChange}
+          isAgentLocked={isAgentLocked}
+          lockedAgentMode={lockedAgentMode}
         />
       </motion.div>
 

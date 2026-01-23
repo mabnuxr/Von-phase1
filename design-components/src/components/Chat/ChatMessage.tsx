@@ -404,12 +404,30 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             steps={timelineSteps || []}
                             isThinking={isStreaming}
                             elapsedTime={thinkingElapsedTime}
-                            onApprove={(stepId) => onApprove?.(stepId, runId)}
-                            onReject={(stepId) => onReject?.(stepId, runId)}
+                            onApprove={(stepId) => {
+                              if (import.meta.env.DEV) {
+                                console.log('[ChatMessage] onApprove wrapper called:', {
+                                  stepId,
+                                  runId,
+                                  hasOnApprove: !!onApprove,
+                                });
+                              }
+                              onApprove?.(stepId, runId);
+                            }}
+                            onReject={(stepId) => {
+                              if (import.meta.env.DEV) {
+                                console.log('[ChatMessage] onReject wrapper called:', {
+                                  stepId,
+                                  runId,
+                                  hasOnReject: !!onReject,
+                                });
+                              }
+                              onReject?.(stepId, runId);
+                            }}
                             onArtifactClick={handleArtifactClick}
                           />
-                          {/* Final response - shown after thinking process */}
-                          {v2FinalResponse && (
+                          {/* Final response - shown only after thinking process is complete */}
+                          {!isStreaming && v2FinalResponse && (
                             <div className="prose-sm markdown-body max-w-none">
                               <Streamdown
                                 parseIncompleteMarkdown={v2FinalResponseStreaming}

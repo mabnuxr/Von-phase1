@@ -1101,4 +1101,22 @@ export interface ChatProps {
    * @default false
    */
   useStandardInput?: boolean;
+
+  // ============================================================================
+  // Agent Selection Props (for locking after first message)
+  // ============================================================================
+
+  /**
+   * Whether agent selection is locked (e.g., after first message in conversation)
+   * When true, the agent selector will be disabled and show lockedAgentMode
+   * @default false
+   */
+  isAgentLocked?: boolean;
+
+  /**
+   * The agent mode to display when locked (from backend/conversation data)
+   * Only used when isAgentLocked is true
+   * @default 'auto'
+   */
+  lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
 }

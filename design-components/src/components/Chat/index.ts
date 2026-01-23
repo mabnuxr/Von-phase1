@@ -12,6 +12,13 @@ export type {
   ApiEndpoints,
 } from './types';
 
+// Export AgentMode type for agent selection locking
+export type { AgentMode } from './StandardChatInput/types';
+
+// Export ChatInputSelector types
+export { ChatInputSelector } from './ChatInputSelector';
+export type { ChatInputSelectorProps, SendMessageOptions } from './ChatInputSelector';
+
 export { ChatHeader } from './ChatHeader';
 export type { ChatHeaderProps } from './ChatHeader';
 
@@ -146,23 +153,6 @@ export {
   isGoogleCalendarApprovalTool,
   parseGoogleCalendarApprovalArgs,
 } from './types';
-
-// Export API utilities
-export {
-  createConversation,
-  sendMessage,
-  fetchConversationHistory,
-  fetchUserConversations,
-  deleteConversation as deleteConversationApi,
-  updateConversationTitle,
-  resumeConversation,
-} from './utils/api';
-export type {
-  ApiEndpoints as ApiEndpointsConfig,
-  Conversation,
-  ApiMessage,
-  ResumeResponse,
-} from './utils/api';
 
 // Export localStorage utilities
 export {

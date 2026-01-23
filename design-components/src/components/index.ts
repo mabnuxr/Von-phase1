@@ -161,8 +161,8 @@ export { Header } from './Header';
 export type { HeaderProps } from './Header';
 
 // Chat Organism (uses: ChatHeader + ChatMessage + ChatInput, manages chat state & API)
-export { Chat, resumeConversation } from './Chat';
-export type { ChatProps, Message, FixedPosition } from './Chat';
+export { Chat } from './Chat';
+export type { ChatProps, Message, FixedPosition, AgentMode, SendMessageOptions } from './Chat';
 
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
 export type {
@@ -175,6 +175,9 @@ export type {
   QueryInfo,
   MetricData,
 } from './Chat/index';
+
+// Export approval utility functions
+export { isApprovalTool, isGoogleCalendarApprovalTool } from './Chat/index';
 
 // TopBar Organism (uses: TabPill + Avatar, manages tab state)
 export { TopBar } from './TopBar';

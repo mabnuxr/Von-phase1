@@ -32,6 +32,8 @@ export type StepStatus =
  * Data for approval steps
  */
 export interface ApprovalData {
+  /** The actual tool_call_id from the backend - used for approval/rejection API calls */
+  toolCallId: string;
   summary: string;
   objectType: string;
   recordName?: string;
@@ -41,6 +43,10 @@ export interface ApprovalData {
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
+  /** The type of approval - salesforce, calendar, bulk, generic, etc. */
+  approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'generic';
+  /** Number of records for bulk operations */
+  recordCount?: number;
 }
 
 /**
@@ -206,6 +212,10 @@ export interface StepRowProps {
     artifactType: string,
     runId: string
   ) => void;
+  /** Whether this step was locally approved (optimistic UI) */
+  isLocallyApproved?: boolean;
+  /** Whether this step was locally rejected (optimistic UI) */
+  isLocallyRejected?: boolean;
 }
 
 /**

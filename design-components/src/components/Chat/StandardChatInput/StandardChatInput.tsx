@@ -32,6 +32,7 @@ import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
 import { ChatInputPopover } from './ChatInputPopover';
+import type { AgentMode } from './types';
 
 /**
  * Get icon for reference type
@@ -87,10 +88,8 @@ const _MODE_OPTIONS = [
   { value: 'build' as BuildMode, label: 'Build' },
 ];
 
-/**
- * Agent mode type
- */
-export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
+// Re-export AgentMode type from types for external use
+export type { AgentMode } from './types';
 
 /**
  * PlusButtonMenu - Plus button with context menu for agent modes
@@ -295,12 +294,18 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onBuildDashboard,
   // Disclaimer
   hideDisclaimer = false,
+  // Agent selection props (for locking after first message)
+  isAgentLocked = false,
+  lockedAgentMode = 'auto',
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-  const [selectedAgentMode, setSelectedAgentMode] = useState<AgentMode>('auto');
+  const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
   const editorRef = useRef<Editor | null>(null);
+
+  // When locked, show the locked mode from backend; otherwise use internal state
+  const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
 
   // File upload hook for uncontrolled mode
   const {
@@ -357,7 +362,8 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     const hasContent = messageToSend || hasAttachments;
 
     if (hasContent && onSend) {
-      onSend(messageToSend, hasAttachments ? attachments : undefined);
+      // Include the selected agent mode when sending
+      onSend(messageToSend, hasAttachments ? attachments : undefined, selectedAgentMode);
       if (isControlled) {
         onChange?.('');
       } else {
@@ -382,6 +388,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     onChange,
     isAttachmentsControlled,
     clearFiles,
+    selectedAgentMode,
   ]);
 
   // handleKeyDown is now managed by TiptapEditor
@@ -413,13 +420,20 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     setIsPlusMenuOpen(true);
   }, []);
 
-  const handleAgentModeChange = useCallback((mode: AgentMode) => {
-    setSelectedAgentMode(mode);
-  }, []);
+  const handleAgentModeChange = useCallback(
+    (mode: AgentMode) => {
+      if (!isAgentLocked) {
+        setInternalAgentMode(mode);
+      }
+    },
+    [isAgentLocked]
+  );
 
   const handleCancelAgentMode = useCallback(() => {
-    setSelectedAgentMode('auto');
-  }, []);
+    if (!isAgentLocked) {
+      setInternalAgentMode('auto');
+    }
+  }, [isAgentLocked]);
 
   // Helper to get agent mode display label and icon
   const getAgentModeDisplay = (mode: AgentMode) => {
@@ -533,7 +547,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   onAgentModeChange={handleAgentModeChange}
                   onBuildDashboard={onBuildDashboard}
                   selectedAgentMode={selectedAgentMode}
-                  disabled={disabled && !isStreaming}
+                  disabled={(disabled && !isStreaming) || isAgentLocked}
                 />
 
                 {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
@@ -544,13 +558,22 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.15 }}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 border border-gray-100 hover:bg-gray-50 text-[13px] font-medium rounded-xl transition-colors cursor-pointer"
-                      onClick={handleCancelAgentMode}
-                      onMouseEnter={() => setIsAgentTagHovered(true)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 border border-gray-100 text-[13px] font-medium rounded-xl transition-colors ${
+                        isAgentLocked
+                          ? 'cursor-default opacity-70'
+                          : 'hover:bg-gray-50 cursor-pointer'
+                      }`}
+                      onClick={isAgentLocked ? undefined : handleCancelAgentMode}
+                      onMouseEnter={() => !isAgentLocked && setIsAgentTagHovered(true)}
                       onMouseLeave={() => setIsAgentTagHovered(false)}
-                      title="Click to reset to Auto mode"
+                      title={
+                        isAgentLocked
+                          ? 'Agent locked for this conversation'
+                          : 'Click to reset to Auto mode'
+                      }
+                      disabled={isAgentLocked}
                     >
-                      {isAgentTagHovered ? (
+                      {isAgentTagHovered && !isAgentLocked ? (
                         <XIcon size={14} weight="bold" className="text-gray-800" />
                       ) : (
                         (() => {
