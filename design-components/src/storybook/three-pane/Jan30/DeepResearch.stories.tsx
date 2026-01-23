@@ -1851,6 +1851,8 @@ interface DeepResearchChatViewProps {
   onSkipThinking?: () => void;
   onSkipSampleThinking?: () => void;
   onDataTablesClick?: () => void;
+  /** When true, disables auto-scroll to bottom on phase change */
+  disableAutoScroll?: boolean;
 }
 
 const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
@@ -1873,6 +1875,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
   onSkipThinking,
   onSkipSampleThinking,
   onDataTablesClick,
+  disableAutoScroll = false,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -1883,10 +1886,12 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
   } | null>(null);
 
   useLayoutEffect(() => {
+    // Don't auto-scroll if disabled (e.g., after skipping thinking)
+    if (disableAutoScroll) return;
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, phase]);
+  }, [messages, phase, disableAutoScroll]);
 
   // Handle text selection
   const handleMouseUp = useCallback(() => {
@@ -2215,6 +2220,9 @@ const DeepResearchDemo = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showExpensiveOperationModal, setShowExpensiveOperationModal] = useState(false);
 
+  // Flag to disable auto-scroll after skipping
+  const [disableAutoScroll, setDisableAutoScroll] = useState(false);
+
   // Chat messages
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
@@ -2324,10 +2332,22 @@ const DeepResearchDemo = () => {
 
   // Timeout refs
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  // Interval refs for elapsed time
+  const sampleElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fullElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearAllTimeouts = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
+    // Also clear elapsed time intervals
+    if (sampleElapsedIntervalRef.current) {
+      clearInterval(sampleElapsedIntervalRef.current);
+      sampleElapsedIntervalRef.current = null;
+    }
+    if (fullElapsedIntervalRef.current) {
+      clearInterval(fullElapsedIntervalRef.current);
+      fullElapsedIntervalRef.current = null;
+    }
   }, []);
 
   const addTimeout = useCallback((callback: () => void, delay: number) => {
@@ -2347,7 +2367,7 @@ const DeepResearchDemo = () => {
     setSampleSteps(sampleThinkingSteps.map((s) => ({ ...s, status: 'pending' as const })));
 
     // Start elapsed time counter
-    const elapsedInterval = setInterval(() => {
+    sampleElapsedIntervalRef.current = setInterval(() => {
       setSampleElapsedTime((prev) => prev + 1);
     }, 1000);
 
@@ -2387,7 +2407,10 @@ const DeepResearchDemo = () => {
     // Show sample complete
     addTimeout(() => {
       setPhase('sample-complete');
-      clearInterval(elapsedInterval);
+      if (sampleElapsedIntervalRef.current) {
+        clearInterval(sampleElapsedIntervalRef.current);
+        sampleElapsedIntervalRef.current = null;
+      }
     }, time + 300);
   };
 
@@ -2406,7 +2429,7 @@ const DeepResearchDemo = () => {
     setFullSteps(fullResearchThinkingSteps.map((s) => ({ ...s, status: 'pending' as const })));
 
     // Start elapsed time counter
-    const elapsedInterval = setInterval(() => {
+    fullElapsedIntervalRef.current = setInterval(() => {
       setFullElapsedTime((prev) => prev + 1);
     }, 1000);
 
@@ -2456,7 +2479,10 @@ const DeepResearchDemo = () => {
     // Show report complete
     addTimeout(() => {
       setPhase('report-complete');
-      clearInterval(elapsedInterval);
+      if (fullElapsedIntervalRef.current) {
+        clearInterval(fullElapsedIntervalRef.current);
+        fullElapsedIntervalRef.current = null;
+      }
     }, time + 500);
   }, [addTimeout]);
 
@@ -2469,6 +2495,8 @@ const DeepResearchDemo = () => {
   // Handle skip thinking (demo purposes)
   const handleSkipThinking = useCallback(() => {
     clearAllTimeouts();
+    // Disable auto-scroll when skipping
+    setDisableAutoScroll(true);
     // Mark all steps as complete
     setFullSteps((prev) => prev.map((s) => ({ ...s, status: 'complete' as const })));
     setFullProgress(100);
@@ -2478,6 +2506,8 @@ const DeepResearchDemo = () => {
   // Handle skip sample thinking (demo purposes)
   const handleSkipSampleThinking = useCallback(() => {
     clearAllTimeouts();
+    // Disable auto-scroll when skipping
+    setDisableAutoScroll(true);
     // Mark all sample steps as complete
     setSampleSteps((prev) => prev.map((s) => ({ ...s, status: 'complete' as const })));
     setSampleProgress(100);
@@ -2807,6 +2837,7 @@ const DeepResearchDemo = () => {
               onSkipThinking={handleSkipThinking}
               onSkipSampleThinking={handleSkipSampleThinking}
               onDataTablesClick={() => setShowDataTablesDrawer(true)}
+              disableAutoScroll={disableAutoScroll}
             />
 
             {/* Input area */}

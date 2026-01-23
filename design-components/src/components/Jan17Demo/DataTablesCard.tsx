@@ -23,6 +23,8 @@ export interface DataTablesCardProps {
 
 export const DataTablesCard: React.FC<DataTablesCardProps> = ({ tables, onClick }) => {
   const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
+  // Show a sample of records processed (30 per table as a representative sample)
+  const sampledRecords = tables.length * 30;
 
   return (
     <button
@@ -37,7 +39,7 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({ tables, onClick 
           </span>
         </div>
         <div className="text-[13px] text-gray-500 mt-0.5">
-          {tables.length} tables · {totalRows.toLocaleString()} rows queried
+          {tables.length} tables · {sampledRecords} of {totalRows.toLocaleString()} records processed. Please review.
         </div>
       </div>
 
