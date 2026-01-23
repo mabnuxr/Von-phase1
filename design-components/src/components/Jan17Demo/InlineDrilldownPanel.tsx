@@ -170,7 +170,7 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({
         {!isEditing && localFormula && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1 px-2 py-1 text-[13px] text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
           >
             <PencilSimpleIcon size={14} />
             <span>Edit</span>
@@ -193,7 +193,7 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({
             <p className="text-[13px] text-gray-500 mb-3">No formula defined.</p>
             <button
               onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-[13px] text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors cursor-pointer"
             >
               <PlusIcon size={14} weight="bold" />
               <span>Add Formula</span>
@@ -760,11 +760,11 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                     key={table.id}
                     onClick={() => setActiveTabId(table.id)}
                     className={`
-                    px-3 py-1 text-[13px] font-medium rounded-md transition-all cursor-pointer
+                    px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all cursor-pointer
                     ${
                       activeTabId === table.id
                         ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                        : 'text-gray-800 hover:text-gray-900'
                     }
                   `}
                   >
@@ -792,11 +792,11 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                 setShowFormulaPopover(!showFormulaPopover);
               }}
               className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[13px] transition-colors cursor-pointer
               ${
                 showFormulaPopover
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+                  : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-50 hover:border-gray-300'
               }
             `}
             >

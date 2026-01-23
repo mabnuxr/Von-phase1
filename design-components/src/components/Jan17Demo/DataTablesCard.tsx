@@ -22,8 +22,6 @@ export interface DataTablesCardProps {
 // ============================================================================
 
 export const DataTablesCard: React.FC<DataTablesCardProps> = ({ tables, onClick }) => {
-  const totalRows = tables.reduce((sum, t) => sum + t.rowCount, 0);
-
   return (
     <button
       onClick={onClick}
@@ -37,11 +35,11 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({ tables, onClick 
           </span>
         </div>
         <div className="text-[13px] text-gray-500 mt-0.5">
-          {tables.length} tables · {totalRows.toLocaleString()} rows queried
+          {tables.length} tables · 30 of 900 records processed. Please review.
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 rounded-lg text-[13px] font-medium text-white group-hover:bg-gray-800 transition-colors">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 rounded-xl text-[13px] font-medium text-white group-hover:bg-gray-800 transition-colors">
         <span>Review</span>
         <ArrowRightIcon size={14} weight="bold" />
       </div>

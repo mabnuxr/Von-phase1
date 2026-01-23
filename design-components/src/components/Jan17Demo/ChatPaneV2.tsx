@@ -33,6 +33,8 @@ export interface ChatPaneV2Props {
   onRemoveReference?: () => void;
   /** Callback when sources button is clicked */
   onSourcesClick?: () => void;
+  /** Callback when an artifact card is clicked (e.g., to open report modal) */
+  onArtifactClick?: (artifactId: string) => void;
 }
 
 // Re-export types for convenience
@@ -86,6 +88,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
   referenceContext,
   onRemoveReference,
   onSourcesClick,
+  onArtifactClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -156,6 +159,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
             elapsedTime={elapsedTime}
             onBuildDashboard={onBuildDashboard}
             onSourcesClick={onSourcesClick}
+            onArtifactClick={onArtifactClick}
           />
         )}
         <div ref={messagesEndRef} />

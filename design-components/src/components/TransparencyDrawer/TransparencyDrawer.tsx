@@ -76,7 +76,7 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
             className="fixed right-0 top-0 h-full w-[680px] max-w-[90vw] pr-2 py-2 z-[9999]"
           >
             <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50">
                     <DatabaseIcon size={18} weight="duotone" className="text-indigo-600" />

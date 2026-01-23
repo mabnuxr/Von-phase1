@@ -8,7 +8,6 @@ import {
   FileText,
   X,
   XIcon,
-  AtomIcon,
   CheckIcon,
   ChartLineIcon,
   HashIcon,
@@ -17,6 +16,7 @@ import {
   ChartBarIcon,
   CaretRightIcon,
   UploadSimpleIcon,
+  AtomIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -292,6 +292,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onPopoverFeedback,
   // Agent props
   onBuildDashboard,
+  agentMode,
   // Disclaimer
   hideDisclaimer = false,
   // Agent selection props (for locking after first message)
@@ -443,13 +444,13 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       case 'build-dashboard':
         return { label: 'Build Dashboard', icon: ChartBarIcon };
       case 'deep-research':
-        return { label: 'Deep Research', icon: AtomIcon };
+        return { label: 'Deep Research', icon: null }; // Uses green dot instead of icon
     }
   };
 
   return (
-    <div className="ml-2 p-3 bg-white antialiased font-sf">
-      <div className="px-6 max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
+    <div className="bg-white antialiased font-sf">
+      <div className="max-w-3xl mx-auto w-full flex flex-col gap-1.5 relative">
         {/* ChatInputPopover - shown above the input when active */}
         {activePopover && (
           <ChatInputPopover
@@ -558,13 +559,13 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.15 }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-gray-900 border border-gray-100 text-[13px] font-medium rounded-xl transition-colors ${
-                        isAgentLocked
-                          ? 'cursor-default opacity-70'
-                          : 'hover:bg-gray-50 cursor-pointer'
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium rounded-xl transition-colors cursor-pointer ${
+                        selectedAgentMode === 'deep-research'
+                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                          : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
                       }`}
-                      onClick={isAgentLocked ? undefined : handleCancelAgentMode}
-                      onMouseEnter={() => !isAgentLocked && setIsAgentTagHovered(true)}
+                      onClick={handleCancelAgentMode}
+                      onMouseEnter={() => setIsAgentTagHovered(true)}
                       onMouseLeave={() => setIsAgentTagHovered(false)}
                       title={
                         isAgentLocked
@@ -574,11 +575,24 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                       disabled={isAgentLocked}
                     >
                       {isAgentTagHovered && !isAgentLocked ? (
-                        <XIcon size={14} weight="bold" className="text-gray-800" />
+                        <XIcon
+                          size={14}
+                          weight="bold"
+                          className={
+                            selectedAgentMode === 'deep-research'
+                              ? 'text-green-600'
+                              : 'text-gray-800'
+                          }
+                        />
+                      ) : selectedAgentMode === 'deep-research' ? (
+                        // Green dot indicator for Deep Research
+                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                       ) : (
                         (() => {
                           const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
-                          return <AgentIcon size={14} weight="regular" className="text-gray-800" />;
+                          return AgentIcon ? (
+                            <AgentIcon size={14} weight="regular" className="text-gray-800" />
+                          ) : null;
                         })()
                       )}
                       {getAgentModeDisplay(selectedAgentMode).label}

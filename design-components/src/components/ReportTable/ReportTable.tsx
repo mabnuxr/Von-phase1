@@ -792,7 +792,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
                       draggable={canDrag}
                       onDragStart={canDrag ? (e) => handleDragStart(e, header.id) : undefined}
                       className={`
-                        px-3 py-2.5 text-left text-[13px] font-medium relative border-r border-gray-100
+                        px-3 py-1.5 text-left text-[13px] font-medium relative border-r border-gray-100
                         ${isAIColumn ? 'text-gray-800 cursor-pointer' : 'bg-gray-50 text-gray-800'}
                         ${isFrozen ? 'sticky z-30' : ''}
                         ${isDropTarget ? 'bg-indigo-50 border-l-2 border-l-indigo-400' : ''}
@@ -876,7 +876,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
                       <td
                         key={cell.id}
                         className={`
-                          px-3 py-2.5 text-[13px] font-medium border-r border-gray-100
+                          px-3 py-1.5 text-[13px] font-medium border-r border-gray-100
                           ${isFrozen ? 'sticky z-10' : ''}
                           ${isFrozen && isSelected ? 'bg-gray-50' : isFrozen ? 'bg-white' : ''}
                           ${isFrozen && isHovered && !isSelected ? 'bg-gray-50/50' : ''}

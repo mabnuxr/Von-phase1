@@ -53,7 +53,7 @@ const sizeClasses = {
 
 const variantClasses = {
   ghost: 'text-gray-800 hover:bg-gray-50',
-  bordered: 'text-gray-600 border border-gray-100 hover:bg-gray-50',
+  bordered: 'text-gray-800 border border-gray-100 hover:bg-gray-50',
   filled: 'text-white bg-gray-800 hover:bg-gray-700',
 };
 
@@ -280,7 +280,7 @@ export const SecondaryIconButton: React.FC<SecondaryIconButtonProps> = ({
       title={title}
       className={`
         ${sizeClasses[size]} flex items-center justify-center rounded-lg
-        text-gray-600 border border-gray-100 hover:bg-gray-50
+        text-gray-800 border border-gray-100 hover:bg-gray-50
         transition-colors cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
@@ -358,7 +358,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
       disabled={disabled}
       title={title}
       className={`
-        p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md
+        p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg
         transition-colors cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
@@ -416,7 +416,7 @@ export const RemoveButton: React.FC<RemoveButtonProps> = ({
       }}
       title={title}
       className={`
-        p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded
+        p-1 text-gray-800 hover:bg-gray-100 rounded-lg
         transition-all duration-150 cursor-pointer flex-shrink-0
         ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         ${className}

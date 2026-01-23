@@ -399,48 +399,47 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
               const isLast = idx === monthCalls.length - 1;
 
               return (
-                <div key={call.id} className="relative flex gap-3">
-                  {/* Timeline line and icon */}
-                  <div className="flex flex-col items-center">
-                    <button
-                      onClick={() => toggleExpanded(call.id)}
-                      className={`
-                        relative z-10 w-7 h-7 flex items-center justify-center rounded-full border bg-white
-                        cursor-pointer transition-colors duration-150
-                        ${
-                          isExpanded
-                            ? 'border-indigo-300 bg-indigo-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      <PhoneIcon
-                        size={14}
-                        weight={isExpanded ? 'duotone' : 'regular'}
-                        className={isExpanded ? 'text-indigo-600' : 'text-gray-600'}
-                      />
-                    </button>
-                    {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[16px]" />}
+                <div key={call.id} className="relative flex">
+                  {/* Timeline connector - small dot indicator (matching StepRow) */}
+                  <div className="flex flex-col items-center mr-3 flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-emerald-200" />
+                    </div>
+                    {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
                   </div>
 
                   {/* Content */}
-                  <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
+                  <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
                     {/* Header row */}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-gray-900 flex-1 truncate">
-                        {call.title}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleExpanded(call.id)}
+                        className="flex items-center gap-2 text-left group cursor-pointer flex-1 min-w-0"
+                      >
+                        {/* Expand caret */}
+                        <span className="flex-shrink-0">
+                          {isExpanded ? (
+                            <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
+                          ) : (
+                            <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
+                          )}
+                        </span>
+                        <span className="text-[13px] text-gray-800 flex-1 truncate">
+                          {call.title}
+                        </span>
+                      </button>
                       {call.sourceUrl && (
                         <a
                           href={call.sourceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-gray-400 hover:text-indigo-600 flex-shrink-0 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <ArrowSquareOutIcon size={14} />
                         </a>
                       )}
-                      <span className="text-xs text-gray-500 flex-shrink-0">
+                      <span className="text-[11px] text-gray-600 px-1.5 py-0.5 bg-gray-100 rounded flex-shrink-0">
                         {new Date(call.date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -452,13 +451,13 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
                     <AnimatePresence>
                       {isExpanded && (
                         <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.15 }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 space-y-2">
+                          <div className="mt-2 ml-4 space-y-1.5">
                             {/* Time and Duration */}
                             {(call.timeRange || call.duration) && (
                               <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -646,15 +645,10 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
     }));
   }, [table.columns, table.filterFields]);
 
-  const activeFilterCount = filterGroups.reduce(
-    (sum, g) => sum + g.conditions.filter((c) => c.field).length,
-    0
-  );
-
   return (
     <div className="flex flex-col h-full">
       {/* Table Info Header */}
-      <div className="px-4 py-2 flex items-center gap-2 border-b border-gray-100">
+      {/* <div className="px-4 py-2 flex items-center gap-2 border-b border-gray-100">
         <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
         <span className="text-[13px] font-medium text-gray-900">{table.name}</span>
         {table.description && (
@@ -666,10 +660,10 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
             <span className="text-gray-400"> of {table.data.length.toLocaleString()}</span>
           )}
         </span>
-      </div>
+      </div> */}
 
       {/* Search and Filter Bar */}
-      <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100 bg-gray-50/50">
+      <div className="px-4 py-3 flex justify-between items-center gap-3 border-b border-gray-100 bg-gray-50/50">
         {/* Search Input */}
         <div className="relative flex-1 max-w-xs">
           <MagnifyingGlassIcon
@@ -693,7 +687,7 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
           showAIPrompt={false}
         />
 
-        {/* Active filter indicator */}
+        {/* Active filter indicator
         {activeFilterCount > 0 && (
           <button
             onClick={() => setFilterGroups([])}
@@ -701,7 +695,7 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
           >
             Clear filters
           </button>
-        )}
+        )} */}
       </div>
 
       {/* ReportTable */}
@@ -804,12 +798,12 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed right-0 top-0 h-full w-[680px] max-w-[90vw] pr-2 py-2 z-[9999]"
+            className="fixed right-0 top-0 h-full w-[800px] max-w-[90vw] pr-2 py-2 z-[9999]"
           >
             {/* Inner Container */}
             <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+              <div className="flex items-center justify-between px-5 py-2 border-b border-gray-100 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50">
                     <DatabaseIcon size={18} weight="duotone" className="text-indigo-600" />
@@ -827,14 +821,14 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
               </div>
 
               {/* Top-Level Tab Navigation */}
-              <div className="px-5 py-3 border-b border-gray-100 shrink-0">
+              <div className="px-4 py-2 border-b border-gray-100 shrink-0">
                 <div className="flex items-center gap-1">
                   {topTabs.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTopTab(tab.id)}
                       className={`
-                        px-3 py-2 rounded-lg text-sm font-medium
+                        px-3 py-1.5 rounded-xl text-sm font-medium
                         transition-colors duration-150 cursor-pointer
                         ${
                           activeTopTab === tab.id
@@ -862,7 +856,7 @@ export const TransparencyDrawer: React.FC<TransparencyDrawerProps> = ({
                       className="flex-1 flex flex-col overflow-hidden"
                     >
                       {/* Table Pills Navigation */}
-                      <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
+                      <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50 shrink-0">
                         <div
                           className="flex items-center gap-2 overflow-x-auto"
                           style={{ scrollbarWidth: 'none' }}
