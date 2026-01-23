@@ -156,7 +156,7 @@ const FilterPreview: React.FC<FilterPreviewProps> = ({ groups, fields, onEdit })
         <button
           type="button"
           onClick={onEdit}
-          className="text-[13px] text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
+          className="text-[13px] text-gray-800 hover:text-gray-900 transition-colors cursor-pointer"
         >
           Add filter
         </button>
@@ -199,7 +199,7 @@ const FilterPreview: React.FC<FilterPreviewProps> = ({ groups, fields, onEdit })
       <button
         type="button"
         onClick={onEdit}
-        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+        className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
         title="Edit filters"
       >
         <PencilSimpleIcon size={14} />
@@ -301,8 +301,8 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
         onClick={onRemove}
         title="Remove condition"
         className={`
-          flex-shrink-0 p-1.5 rounded-md
-          text-gray-400 hover:text-gray-600
+          flex-shrink-0 p-1.5 rounded-lg
+          text-gray-800 hover:bg-gray-100
           transition-all duration-150 cursor-pointer
           ${isHovered && showRemove ? 'opacity-100' : 'opacity-0'}
         `}
@@ -415,7 +415,7 @@ const FilterGroupCard: React.FC<FilterGroupCardProps> = ({
             <button
               type="button"
               onClick={addCondition}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               title="Add condition to group"
             >
               <PlusIcon size={16} />
@@ -424,7 +424,7 @@ const FilterGroupCard: React.FC<FilterGroupCardProps> = ({
             <button
               type="button"
               onClick={onRemove}
-              className={`p-1 text-gray-400 hover:text-gray-600 transition-all cursor-pointer ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+              className={`p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-all cursor-pointer ${isHovered ? 'opacity-100' : 'opacity-0'}`}
               title="Remove group"
             >
               <TrashIcon size={16} />
@@ -605,7 +605,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
         <span className="text-[13px] font-medium text-gray-900">Filter</span>
         <button
           onClick={onClose}
-          className="p-1 text-gray-400 hover:text-gray-600 rounded-md transition-colors cursor-pointer"
+          className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
         >
           <XIcon size={16} />
         </button>
@@ -643,7 +643,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+              className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               title="Edit filters"
             >
               <PencilSimpleIcon size={14} />

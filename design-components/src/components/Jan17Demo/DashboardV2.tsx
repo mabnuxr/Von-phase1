@@ -17,7 +17,7 @@ import {
   CaretDownIcon,
   CheckIcon,
   XIcon,
-  SparkleIcon,
+  PlusIcon,
   GearIcon,
   UsersIcon,
   InfoIcon,
@@ -30,6 +30,10 @@ import HighchartsReact from 'highcharts-react-official';
 import 'highcharts/highcharts-more';
 import { SecondaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../popups';
+import { ReportTable, type ReportColumn } from '../ReportTable/ReportTable';
+import type { FilterField, FilterGroup, FilterCondition } from '../forms/filter/Filter';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ============================================================================
 // Types
@@ -318,7 +322,243 @@ function FilterDropdownPopover<T extends string>({
 }
 
 // ============================================================================
-// Prompt-Based Filter Popover Component
+// Von AI Logo Component (for Filter popover)
+// ============================================================================
+
+const VonAILogo: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 28 28"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
+      fill="url(#paint0_radial_dashboard_filter)"
+    />
+    <path
+      d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+      stroke="white"
+      strokeWidth="1.33"
+    />
+    <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+    <defs>
+      <radialGradient
+        id="paint0_radial_dashboard_filter"
+        cx="0"
+        cy="0"
+        r="1"
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
+      >
+        <stop stopColor="#FFF3EB" />
+        <stop offset="0.26" stopColor="#FF9042" />
+        <stop offset="1" stopColor="#854FFF" />
+      </radialGradient>
+    </defs>
+  </svg>
+);
+
+// ============================================================================
+// Filter Popover Helper Functions
+// ============================================================================
+
+const generateFilterId = () => Math.random().toString(36).substring(2, 9);
+
+// Convert DashboardFilter[] to FilterGroup[] for the filter component
+const dashboardFiltersToGroups = (filters: DashboardFilter[]): FilterGroup[] => {
+  if (filters.length === 0) {
+    return [
+      {
+        id: generateFilterId(),
+        conditions: [{ id: generateFilterId(), field: '', operator: 'contains', value: '' }],
+        connector: 'and',
+      },
+    ];
+  }
+
+  const conditions: FilterCondition[] = filters.map((f) => ({
+    id: f.id,
+    field: f.field,
+    operator: f.operator,
+    value: f.value,
+  }));
+
+  return [
+    {
+      id: generateFilterId(),
+      conditions,
+      connector: 'and',
+    },
+  ];
+};
+
+// Convert FilterGroup[] back to DashboardFilter[]
+const groupsToDashboardFilters = (groups: FilterGroup[]): DashboardFilter[] => {
+  const filters: DashboardFilter[] = [];
+  groups.forEach((group) => {
+    group.conditions.forEach((condition) => {
+      if (condition.field) {
+        filters.push({
+          id: condition.id,
+          field: condition.field,
+          operator: condition.operator,
+          value: condition.value,
+        });
+      }
+    });
+  });
+  return filters;
+};
+
+// ============================================================================
+// Filter Operators
+// ============================================================================
+
+const FILTER_OPERATORS = [
+  { value: 'equals', label: 'is' },
+  { value: 'not_equals', label: 'is not' },
+  { value: 'contains', label: 'contains' },
+  { value: 'not_contains', label: 'does not contain' },
+  { value: 'starts_with', label: 'starts with' },
+  { value: 'ends_with', label: 'ends with' },
+  { value: 'greater_than', label: 'is greater than' },
+  { value: 'less_than', label: 'is less than' },
+  { value: 'greater_or_equal', label: 'is at least' },
+  { value: 'less_or_equal', label: 'is at most' },
+  { value: 'is_any_of', label: 'is any of' },
+  { value: 'is_null', label: 'is empty' },
+  { value: 'is_not_null', label: 'is not empty' },
+];
+
+const FILTER_CONNECTOR_OPTIONS = [
+  { value: 'and', label: 'and' },
+  { value: 'or', label: 'or' },
+];
+
+const NULL_OPERATORS = ['is_null', 'is_not_null'];
+
+// ============================================================================
+// Filter Condition Row Component
+// ============================================================================
+
+interface FilterConditionRowProps {
+  condition: FilterCondition;
+  fields: FilterField[];
+  onChange: (condition: FilterCondition) => void;
+  onRemove: () => void;
+  showRemove: boolean;
+  rowPrefix: 'where' | 'connector';
+  connector?: 'and' | 'or';
+  onConnectorChange?: (connector: 'and' | 'or') => void;
+}
+
+const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
+  condition,
+  fields,
+  onChange,
+  onRemove,
+  showRemove,
+  rowPrefix,
+  connector = 'and',
+  onConnectorChange,
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const isNullOperator = NULL_OPERATORS.includes(condition.operator);
+
+  return (
+    <div
+      className="group flex items-center gap-2"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Row Prefix: "Where" or and/or dropdown */}
+      <div className="w-14 flex-shrink-0">
+        {rowPrefix === 'where' ? (
+          <span className="text-[13px] text-gray-700">Where</span>
+        ) : (
+          <select
+            value={connector}
+            onChange={(e) => onConnectorChange?.(e.target.value as 'and' | 'or')}
+            className="w-full px-2 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
+          >
+            {FILTER_CONNECTOR_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {/* Field Dropdown */}
+      <div className="w-28 flex-shrink-0">
+        <select
+          value={condition.field}
+          onChange={(e) => onChange({ ...condition, field: e.target.value })}
+          className="w-full px-2 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
+        >
+          <option value="">Select field</option>
+          {fields.map((f) => (
+            <option key={f.value} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Operator Dropdown */}
+      <div className="w-32 flex-shrink-0">
+        <select
+          value={condition.operator}
+          onChange={(e) => onChange({ ...condition, operator: e.target.value })}
+          className="w-full px-2 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
+        >
+          {FILTER_OPERATORS.map((op) => (
+            <option key={op.value} value={op.value}>
+              {op.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Value Input */}
+      {!isNullOperator && (
+        <div className="flex-1 min-w-[120px]">
+          <input
+            type="text"
+            value={condition.value}
+            onChange={(e) => onChange({ ...condition, value: e.target.value })}
+            placeholder="Enter a value"
+            className="w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
+          />
+        </div>
+      )}
+
+      {isNullOperator && <div className="flex-1" />}
+
+      {/* Delete Button */}
+      <button
+        type="button"
+        onClick={onRemove}
+        title="Remove condition"
+        className={`
+          flex-shrink-0 p-1.5 rounded-lg
+          text-gray-800 hover:bg-gray-100
+          transition-all duration-150 cursor-pointer
+          ${isHovered && showRemove ? 'opacity-100' : 'opacity-0'}
+        `}
+        disabled={!showRemove}
+      >
+        <TrashIcon size={16} />
+      </button>
+    </div>
+  );
+};
+
+// ============================================================================
+// Prompt-Based Filter Popover Component (using new Filter design)
 // ============================================================================
 
 interface PromptBasedFilterPopoverProps {
@@ -328,6 +568,7 @@ interface PromptBasedFilterPopoverProps {
   filters: DashboardFilter[];
   onFiltersChange: (filters: DashboardFilter[]) => void;
   placeholder?: string;
+  availableFields?: FilterField[];
 }
 
 const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
@@ -336,39 +577,46 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
   anchorRef,
   filters,
   onFiltersChange,
-  placeholder = 'e.g., "Deals closing this quarter with value > $100K"',
+  placeholder = 'Describe what you want to see',
+  availableFields,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [promptValue, setPromptValue] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [groups, setGroups] = useState<FilterGroup[]>(() => dashboardFiltersToGroups(filters));
 
-  // Focus input when popover opens
+  // Default fields if none provided
+  const fields: FilterField[] = availableFields || [
+    { value: 'name', label: 'Name' },
+    { value: 'stage', label: 'Stage' },
+    { value: 'amount', label: 'Amount' },
+    { value: 'close_date', label: 'Close Date' },
+    { value: 'owner', label: 'Owner' },
+    { value: 'account', label: 'Account' },
+    { value: 'probability', label: 'Probability' },
+  ];
+
+  // Sync groups when filters change externally
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+    if (isOpen) {
+      setGroups(dashboardFiltersToGroups(filters));
     }
-  }, [isOpen]);
+  }, [isOpen, filters]);
 
-  // Reset prompt when popover closes
-  useEffect(() => {
-    if (!isOpen) {
-      setPromptValue('');
-      setIsProcessing(false);
-    }
-  }, [isOpen]);
-
+  // Position calculation
   useEffect(() => {
     if (isOpen && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
+      const popoverWidth = 600;
+      const leftPosition = Math.max(16, rect.right - popoverWidth);
       setPosition({
         top: rect.bottom + 8,
-        left: Math.max(16, rect.left),
+        left: leftPosition,
       });
     }
   }, [isOpen, anchorRef]);
 
+  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -387,85 +635,111 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose, anchorRef]);
 
-  // Simulate converting prompt to structured filters
-  const handleApplyPrompt = () => {
-    if (!promptValue.trim()) return;
-
-    setIsProcessing(true);
-
-    // Simulate AI processing delay
-    setTimeout(() => {
-      // Parse the prompt and create structured filters
-      // This is a simple simulation - in reality, this would call an AI API
-      const newFilters: DashboardFilter[] = [];
-
-      // Simple keyword detection for demo
-      const lowerPrompt = promptValue.toLowerCase();
+  const handleAISubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (aiPrompt.trim()) {
+      // Simulate AI processing - create filter from prompt
+      const lowerPrompt = aiPrompt.toLowerCase();
+      const newConditions: FilterCondition[] = [];
 
       if (lowerPrompt.includes('this quarter') || lowerPrompt.includes('q1')) {
-        newFilters.push({
-          id: `filter-${Date.now()}-1`,
-          field: 'Close Date',
-          operator: 'in',
+        newConditions.push({
+          id: generateFilterId(),
+          field: 'close_date',
+          operator: 'equals',
           value: 'This Quarter',
         });
       }
 
       if (lowerPrompt.includes('>') && lowerPrompt.includes('$')) {
-        const match = promptValue.match(/>\s*\$?([\d,]+)k?/i);
+        const match = aiPrompt.match(/>\s*\$?([\d,]+)k?/i);
         if (match) {
           const value = match[1].replace(/,/g, '');
-          newFilters.push({
-            id: `filter-${Date.now()}-2`,
-            field: 'Amount',
-            operator: 'greater than',
-            value:
-              value.includes('k') || lowerPrompt.includes('k')
-                ? `${parseInt(value) * 1000}`
-                : value,
+          newConditions.push({
+            id: generateFilterId(),
+            field: 'amount',
+            operator: 'greater_than',
+            value: lowerPrompt.includes('k') ? `${parseInt(value) * 1000}` : value,
           });
         }
       }
 
-      if (lowerPrompt.includes('stage')) {
-        const stages = ['Closed Won', 'Negotiation', 'Proposal', 'Discovery'];
-        for (const stage of stages) {
-          if (lowerPrompt.includes(stage.toLowerCase())) {
-            newFilters.push({
-              id: `filter-${Date.now()}-3`,
-              field: 'Stage',
-              operator: 'equals',
-              value: stage,
-            });
-            break;
-          }
-        }
-      }
-
-      // If no specific filters detected, create a generic one
-      if (newFilters.length === 0) {
-        newFilters.push({
-          id: `filter-${Date.now()}`,
-          field: 'Name',
+      if (newConditions.length === 0) {
+        newConditions.push({
+          id: generateFilterId(),
+          field: 'name',
           operator: 'contains',
-          value: promptValue,
+          value: aiPrompt,
         });
       }
 
-      onFiltersChange([...filters, ...newFilters]);
-      setIsProcessing(false);
-      onClose();
-    }, 800);
+      const firstGroup = groups[0];
+      const updatedGroup = {
+        ...firstGroup,
+        conditions: [...firstGroup.conditions.filter((c) => c.field), ...newConditions],
+      };
+      setGroups([updatedGroup, ...groups.slice(1)]);
+      setAiPrompt('');
+    }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleApplyPrompt();
+  const firstGroup = groups[0];
+  const nestedGroups = groups.slice(1);
+
+  const addCondition = () => {
+    if (groups.length === 0) {
+      const newGroup: FilterGroup = {
+        id: generateFilterId(),
+        conditions: [{ id: generateFilterId(), field: '', operator: 'contains', value: '' }],
+        connector: 'and',
+      };
+      setGroups([newGroup]);
+    } else {
+      const updatedFirstGroup = {
+        ...firstGroup,
+        conditions: [
+          ...firstGroup.conditions,
+          { id: generateFilterId(), field: '', operator: 'contains', value: '' },
+        ],
+      };
+      setGroups([updatedFirstGroup, ...nestedGroups]);
     }
-    if (e.key === 'Escape') {
-      onClose();
+  };
+
+  const updateFirstGroupCondition = (index: number, updatedCondition: FilterCondition) => {
+    const newConditions = [...firstGroup.conditions];
+    newConditions[index] = updatedCondition;
+    const updatedFirstGroup = { ...firstGroup, conditions: newConditions };
+    setGroups([updatedFirstGroup, ...nestedGroups]);
+  };
+
+  const removeFirstGroupCondition = (index: number) => {
+    if (firstGroup.conditions.length === 1 && nestedGroups.length === 0) {
+      return;
     }
+    if (firstGroup.conditions.length === 1) {
+      setGroups(nestedGroups);
+    } else {
+      const newConditions = firstGroup.conditions.filter((_, i) => i !== index);
+      const updatedFirstGroup = { ...firstGroup, conditions: newConditions };
+      setGroups([updatedFirstGroup, ...nestedGroups]);
+    }
+  };
+
+  const updateFirstGroupConnector = (connector: 'and' | 'or') => {
+    const updatedFirstGroup = { ...firstGroup, connector };
+    setGroups([updatedFirstGroup, ...nestedGroups]);
+  };
+
+  const handleApply = () => {
+    const dashboardFilters = groupsToDashboardFilters(groups);
+    onFiltersChange(dashboardFilters);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    setGroups(dashboardFiltersToGroups(filters));
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -477,76 +751,80 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -4 }}
       transition={{ duration: 0.15 }}
-      className="fixed w-[400px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000] overflow-hidden"
-      style={{ top: position.top, left: position.left }}
+      className="fixed bg-white rounded-xl shadow-xl border border-gray-200 z-[10000] overflow-hidden"
+      style={{ top: position.top, left: position.left, minWidth: 600, maxWidth: 800 }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-        <SparkleIcon size={16} className="text-indigo-600" />
-        <span className="text-[13px] font-medium text-gray-900">Add Filter with AI</span>
-      </div>
-
-      {/* Prompt Input */}
-      <div className="p-4">
-        <div className="relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={promptValue}
-            onChange={(e) => setPromptValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={isProcessing}
-            className="w-full px-3 py-2.5 pr-10 text-[13px] text-gray-900 bg-gray-50 border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow disabled:opacity-50"
-          />
-          {isProcessing && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              >
-                <SparkleIcon size={16} className="text-indigo-600" />
-              </motion.div>
-            </div>
-          )}
+      <div className="flex flex-col gap-4 p-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-medium text-gray-900">Filter</span>
+          <button
+            onClick={handleCancel}
+            className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+          >
+            <XIcon size={16} />
+          </button>
         </div>
 
-        <p className="mt-2 text-[11px] text-gray-500">
-          Describe the filter in natural language. Press Enter to apply.
-        </p>
-      </div>
+        {/* AI Prompt Input */}
+        <form onSubmit={handleAISubmit}>
+          <div
+            className="p-[1px] rounded-lg"
+            style={{
+              background: 'linear-gradient(135deg, #FF9042 0%, #854FFF 100%)',
+            }}
+          >
+            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-[7px]">
+              <VonAILogo size={18} />
+              <input
+                type="text"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder={placeholder}
+                className="flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+        </form>
 
-      {/* Existing Filters Preview */}
-      {filters.length > 0 && (
-        <div className="px-4 pb-3">
-          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2">
-            Active Filters ({filters.length})
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {filters.map((filter) => (
-              <span
-                key={filter.id}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-gray-100 text-gray-700 rounded-md"
-              >
-                {filter.field} {filter.operator} "{filter.value}"
-                <button
-                  onClick={() => onFiltersChange(filters.filter((f) => f.id !== filter.id))}
-                  className="ml-0.5 text-gray-400 hover:text-gray-600 cursor-pointer"
-                >
-                  <XIcon size={10} weight="bold" />
-                </button>
-              </span>
+        {/* Section label */}
+        <div className="text-[13px] text-gray-700">In this view, show records</div>
+
+        {/* Filter Conditions */}
+        <div className="flex flex-col gap-2">
+          {firstGroup &&
+            firstGroup.conditions.map((condition, index) => (
+              <FilterConditionRow
+                key={condition.id}
+                condition={condition}
+                fields={fields}
+                onChange={(updated) => updateFirstGroupCondition(index, updated)}
+                onRemove={() => removeFirstGroupCondition(index)}
+                showRemove={firstGroup.conditions.length > 1 || nestedGroups.length > 0}
+                rowPrefix={index === 0 ? 'where' : 'connector'}
+                connector={firstGroup.connector}
+                onConnectorChange={updateFirstGroupConnector}
+              />
             ))}
+
+          {/* Add condition button */}
+          <div className="flex items-center gap-3 mt-2">
+            <button
+              type="button"
+              onClick={addCondition}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-800 bg-transparent border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <PlusIcon size={14} />
+              <span>Add condition</span>
+            </button>
           </div>
         </div>
-      )}
 
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <GhostButton onClick={onClose}>Cancel</GhostButton>
-        <PrimaryButton onClick={handleApplyPrompt} disabled={!promptValue.trim() || isProcessing}>
-          {isProcessing ? 'Processing...' : 'Apply Filter'}
-        </PrimaryButton>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+          <GhostButton onClick={handleCancel}>Cancel</GhostButton>
+          <PrimaryButton onClick={handleApply}>Apply</PrimaryButton>
+        </div>
       </div>
     </motion.div>,
     document.body
@@ -1117,7 +1395,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            className="p-2 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           >
             <XIcon size={18} />
           </button>
@@ -1133,11 +1411,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    w-full flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-lg transition-all cursor-pointer
+                    w-full flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-xl transition-all cursor-pointer
                     ${
                       activeTab === tab.id
                         ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                        : 'text-gray-800 hover:text-gray-900 hover:bg-white/50'
                     }
                   `}
                 >
@@ -1430,7 +1708,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                           configurations will be permanently removed.
                         </p>
                       </div>
-                      <button className="px-3 py-1.5 text-[13px] font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors cursor-pointer flex-shrink-0">
+                      <button className="px-3 py-2 text-[13px] font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors cursor-pointer flex-shrink-0">
                         Delete
                       </button>
                     </div>
@@ -1448,214 +1726,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
         </div>
       </motion.div>
     </>
-  );
-};
-
-// ============================================================================
-// AI Column Types for Tables
-// ============================================================================
-
-interface AIColumnConfig {
-  id: string;
-  name: string;
-  prompt: string;
-}
-
-// ============================================================================
-// AI Column Popover for Tables
-// ============================================================================
-
-interface TableAIColumnPopoverProps {
-  isOpen: boolean;
-  onClose: () => void;
-  anchorRef: React.RefObject<HTMLButtonElement | null>;
-  column: AIColumnConfig | null;
-  onSave: (column: AIColumnConfig) => void;
-  onDelete?: (columnId: string) => void;
-}
-
-const TableAIColumnPopover: React.FC<TableAIColumnPopoverProps> = ({
-  isOpen,
-  onClose,
-  anchorRef,
-  column,
-  onSave,
-  onDelete,
-}) => {
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-  const [columnName, setColumnName] = useState(column?.name || '');
-  const [prompt, setPrompt] = useState(column?.prompt || '');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [reasoning, setReasoning] = useState<string[]>([]);
-
-  const isEditing = !!column;
-
-  useEffect(() => {
-    if (isOpen) {
-      setColumnName(column?.name || '');
-      setPrompt(column?.prompt || '');
-      setIsGenerating(false);
-      setReasoning([]);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isOpen, column]);
-
-  useEffect(() => {
-    if (isOpen && anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 8,
-        left: Math.max(16, Math.min(rect.left - 150, window.innerWidth - 400 - 16)),
-      });
-    }
-  }, [isOpen, anchorRef]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        anchorRef.current &&
-        !anchorRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen, onClose, anchorRef]);
-
-  const handleGenerate = () => {
-    if (!columnName.trim() || !prompt.trim()) return;
-
-    setIsGenerating(true);
-    setReasoning([]);
-
-    const reasoningSteps = [
-      'Analyzing data structure...',
-      'Processing prompt...',
-      `Generating "${columnName}"...`,
-      'Validating results...',
-    ];
-
-    let stepIndex = 0;
-    const interval = setInterval(() => {
-      if (stepIndex < reasoningSteps.length) {
-        setReasoning((prev) => [...prev, reasoningSteps[stepIndex]]);
-        stepIndex++;
-      } else {
-        clearInterval(interval);
-        setIsGenerating(false);
-        onSave({
-          id: column?.id || `ai-col-${Date.now()}`,
-          name: columnName,
-          prompt: prompt,
-        });
-        onClose();
-      }
-    }, 300);
-  };
-
-  if (!isOpen) return null;
-
-  return createPortal(
-    <motion.div
-      ref={popoverRef}
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.15 }}
-      className="fixed w-[380px] bg-white rounded-xl shadow-xl border border-gray-200 z-[10000]"
-      style={{ top: position.top, left: position.left }}
-    >
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <SparkleIcon size={16} className="text-indigo-600" />
-          <span className="text-[13px] font-medium text-gray-900">
-            {isEditing ? 'Edit AI Column' : 'Add AI Column'}
-          </span>
-        </div>
-        {isEditing && onDelete && (
-          <button
-            onClick={() => {
-              onDelete(column.id);
-              onClose();
-            }}
-            className="text-[12px] text-red-600 hover:text-red-700 cursor-pointer"
-          >
-            Delete
-          </button>
-        )}
-      </div>
-
-      <div className="p-4 space-y-3">
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
-            Column Name
-          </label>
-          <input
-            ref={inputRef}
-            type="text"
-            value={columnName}
-            onChange={(e) => setColumnName(e.target.value)}
-            placeholder="e.g., Risk Score"
-            disabled={isGenerating}
-            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
-            Prompt
-          </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe how to generate values..."
-            disabled={isGenerating}
-            rows={2}
-            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none disabled:opacity-50"
-          />
-        </div>
-
-        {reasoning.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-[11px] font-medium text-gray-700 mb-1.5">AI Reasoning</p>
-            <div className="space-y-1">
-              {reasoning.map((step, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-start gap-1.5 text-[11px] text-gray-600"
-                >
-                  <span className="text-indigo-500">•</span>
-                  <span>{step}</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <GhostButton onClick={onClose} disabled={isGenerating}>
-          Cancel
-        </GhostButton>
-        <PrimaryButton
-          onClick={handleGenerate}
-          disabled={!columnName.trim() || !prompt.trim() || isGenerating}
-        >
-          {isGenerating ? 'Generating...' : isEditing ? 'Update' : 'Generate'}
-        </PrimaryButton>
-      </div>
-    </motion.div>,
-    document.body
   );
 };
 
@@ -1679,53 +1749,26 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   onClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [aiColumns, setAiColumns] = useState<AIColumnConfig[]>([]);
-  const [aiColumnData, setAiColumnData] = useState<Record<string, Record<number, string>>>({});
-  const [showAIColumnPopover, setShowAIColumnPopover] = useState(false);
-  const [editingAIColumn, setEditingAIColumn] = useState<AIColumnConfig | null>(null);
-  const aiColumnButtonRef = useRef<HTMLButtonElement>(null);
 
-  const formatValue = (value: unknown, type?: string): string => {
-    if (value === null || value === undefined) return '—';
-    if (type === 'currency' && typeof value === 'number') {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-    }
-    if (type === 'date' && typeof value === 'string') {
-      return new Date(value).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    }
-    return String(value);
-  };
+  // Convert TableData columns to ReportColumn format
+  const reportColumns: ReportColumn[] = useMemo(() => {
+    return data.columns.map((col) => ({
+      id: col.id,
+      label: col.label,
+      type: (col.type === 'string' ? 'text' : col.type) as ReportColumn['type'],
+      isAI: col.isAI,
+      sortable: true,
+      width: col.type === 'currency' ? 130 : col.type === 'number' ? 80 : 120,
+    }));
+  }, [data.columns]);
 
-  const handleAIColumnSave = (column: AIColumnConfig) => {
-    setAiColumns((prev) => {
-      const exists = prev.find((c) => c.id === column.id);
-      if (exists) return prev.map((c) => (c.id === column.id ? column : c));
-      return [...prev, column];
-    });
-
-    // Generate sample values
-    const samples = ['High', 'Medium', 'Low', 'Critical', 'Normal'];
-    setTimeout(() => {
-      const newData: Record<number, string> = {};
-      data.rows.forEach((_, idx) => {
-        newData[idx] = samples[idx % samples.length];
-      });
-      setAiColumnData((prev) => ({ ...prev, [column.id]: newData }));
-    }, 300);
-  };
-
-  const handleAIColumnDelete = (columnId: string) => {
-    setAiColumns((prev) => prev.filter((c) => c.id !== columnId));
-    setAiColumnData((prev) => {
-      const newData = { ...prev };
-      delete newData[columnId];
-      return newData;
-    });
-  };
+  // Convert rows to the format expected by ReportTable
+  const tableData = useMemo(() => {
+    return data.rows.map((row, idx) => ({
+      ...row,
+      id: row.id || `row-${idx}`,
+    }));
+  }, [data.rows]);
 
   return (
     <motion.div
@@ -1771,115 +1814,18 @@ const TableWidget: React.FC<TableWidgetProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto max-h-80">
-        <table className="w-full text-[13px]">
-          <thead className="sticky top-0 bg-gray-50">
-            <tr>
-              {data.columns.map((col) => (
-                <th
-                  key={col.id}
-                  className="text-left px-4 py-2 text-xs font-medium whitespace-nowrap"
-                >
-                  {col.isAI ? (
-                    <span className="flex items-center gap-1.5">
-                      <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
-                      <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
-                        {col.label}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="text-gray-500">{col.label}</span>
-                  )}
-                </th>
-              ))}
-              {/* AI Columns Headers */}
-              {aiColumns.map((aiCol) => (
-                <th
-                  key={aiCol.id}
-                  className="text-left px-4 py-2 text-xs font-medium whitespace-nowrap group"
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingAIColumn(aiCol);
-                      setShowAIColumnPopover(true);
-                    }}
-                    className="flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <SparkleIcon size={12} weight="fill" className="text-indigo-500" />
-                    <span className="bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
-                      {aiCol.name}
-                    </span>
-                    <PencilSimpleIcon
-                      size={10}
-                      className="text-gray-400 opacity-0 group-hover:opacity-100"
-                    />
-                  </button>
-                </th>
-              ))}
-              {/* Add AI Column */}
-              <th className="text-left px-4 py-2">
-                <button
-                  ref={aiColumnButtonRef}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingAIColumn(null);
-                    setShowAIColumnPopover(true);
-                  }}
-                  className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-indigo-600 bg-indigo-50 rounded hover:bg-indigo-100 cursor-pointer"
-                >
-                  <SparkleIcon size={10} />
-                  <span>AI</span>
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {data.rows.slice(0, 10).map((row, idx) => (
-              <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                {data.columns.map((col) => (
-                  <td
-                    key={col.id}
-                    className={`px-4 py-2 text-gray-900 ${col.type === 'currency' || col.type === 'number' ? 'tabular-nums' : ''}`}
-                  >
-                    {formatValue(row[col.id], col.type)}
-                  </td>
-                ))}
-                {/* AI Columns Data */}
-                {aiColumns.map((aiCol) => (
-                  <td key={aiCol.id} className="px-4 py-2 text-gray-900">
-                    {aiColumnData[aiCol.id]?.[idx] || (
-                      <span className="text-gray-400 italic text-[11px]">...</span>
-                    )}
-                  </td>
-                ))}
-                <td className="px-4 py-2" />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {data.rows.length > 10 && (
-          <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
-            Showing 10 of {data.rows.length} rows
-          </div>
-        )}
-      </div>
-
-      {/* AI Column Popover */}
-      <AnimatePresence>
-        <TableAIColumnPopover
-          isOpen={showAIColumnPopover}
-          onClose={() => {
-            setShowAIColumnPopover(false);
-            setEditingAIColumn(null);
-          }}
-          anchorRef={aiColumnButtonRef}
-          column={editingAIColumn}
-          onSave={handleAIColumnSave}
-          onDelete={handleAIColumnDelete}
+      {/* Table using ReportTable component */}
+      <div className="max-h-80 overflow-hidden">
+        <ReportTable
+          columns={reportColumns}
+          data={tableData}
+          pageSize={10}
+          showPagination={false}
+          frozenColumns={0}
+          prioritizeAIColumns={true}
+          enableColumnReorder={false}
         />
-      </AnimatePresence>
+      </div>
     </motion.div>
   );
 };
@@ -1887,6 +1833,38 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 // ============================================================================
 // Text Widget Component
 // ============================================================================
+
+// Von Minimal Logo component - inline SVG for AI-generated content
+const VonMinimalLogo: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 15 15"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M7.57031 0.00976562C11.3747 0.202421 14.4003 3.34798 14.4004 7.2002L14.3916 7.5498C14.3088 9.2802 13.6139 10.8497 12.5205 12.0488L12.418 12.1768C12.3818 12.2193 12.3437 12.2617 12.3027 12.3027C12.2209 12.3846 12.1333 12.4559 12.0488 12.5205C10.8497 13.6139 9.2802 14.3088 7.5498 14.3916L7.2002 14.4004C3.34798 14.4003 0.202421 11.3747 0.00976562 7.57031L0 7.2002C4.98797e-05 5.32944 0.71407 3.62479 1.88379 2.34473C1.94851 2.26043 2.01865 2.17666 2.09766 2.09766C2.17973 2.01559 2.26687 1.94274 2.35449 1.87598C3.63351 0.711246 5.33393 5.07565e-05 7.2002 0L7.57031 0.00976562ZM1.5459 5.90137C1.45048 6.31879 1.4004 6.75354 1.40039 7.2002C1.40039 10.4034 3.99702 12.9999 7.2002 13C7.64728 13 8.08216 12.9484 8.5 12.8525C7.09291 12.4323 5.56942 11.5089 4.23047 10.1699C2.89169 8.83108 1.96633 7.30834 1.5459 5.90137ZM5.37598 2.84961C4.32573 2.56213 3.63214 2.69284 3.24414 2.95801C3.1455 3.05003 3.05003 3.1455 2.95801 3.24414C2.69285 3.63214 2.56213 4.32573 2.84961 5.37598C3.17108 6.54998 3.97097 7.92989 5.2207 9.17969C6.47056 10.4295 7.85126 11.2293 9.02539 11.5508C10.0728 11.8374 10.7638 11.7063 11.1523 11.4424C11.2524 11.3491 11.3491 11.2524 11.4424 11.1523C11.7063 10.7638 11.8374 10.0728 11.5508 9.02539C11.2293 7.85126 10.4295 6.47056 9.17969 5.2207C7.92989 3.97097 6.54998 3.17108 5.37598 2.84961ZM7.2002 1.40039C6.75354 1.40041 6.31879 1.45048 5.90137 1.5459C7.30834 1.96633 8.83108 2.89169 10.1699 4.23047C11.5089 5.56942 12.4323 7.09291 12.8525 8.5C12.9484 8.08216 13 7.64728 13 7.2002C12.9999 3.99702 10.4034 1.40039 7.2002 1.40039Z"
+      fill="url(#paint0_radial_von_text_widget)"
+    />
+    <defs>
+      <radialGradient
+        id="paint0_radial_von_text_widget"
+        cx="0"
+        cy="0"
+        r="1"
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="translate(11.1377 1.0752) rotate(120.964) scale(15.3062)"
+      >
+        <stop stopColor="#FFF3EB" />
+        <stop offset="0.26" stopColor="#FF9042" />
+        <stop offset="1" stopColor="#854FFF" />
+      </radialGradient>
+    </defs>
+  </svg>
+);
 
 interface TextWidgetProps {
   data: TextWidgetData;
@@ -1947,14 +1925,12 @@ const TextWidget: React.FC<TextWidgetProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <NoteIcon size={16} className="text-gray-500" />
-          <span className="text-[13px] font-medium text-gray-900">{data.title}</span>
-          {data.isAIGenerated && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-50 rounded">
-              <SparkleIcon size={10} className="text-indigo-600" />
-              <span className="text-[10px] text-indigo-600 font-medium">AI</span>
-            </div>
+          {data.isAIGenerated ? (
+            <VonMinimalLogo size={16} />
+          ) : (
+            <NoteIcon size={16} className="text-gray-500" />
           )}
+          <span className="text-[13px] font-medium text-gray-900">{data.title}</span>
         </div>
         <AnimatePresence>
           {isHovered && !isEditing && (
@@ -2020,11 +1996,66 @@ const TextWidget: React.FC<TextWidgetProps> = ({
             </div>
           </div>
         ) : (
-          <div>
+          <div className="text-widget-content">
             {content ? (
-              <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  // Custom heading styles following design system
+                  h1: ({ children }) => (
+                    <h1 className="text-sm font-medium text-gray-900 mb-3">{children}</h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-[13px] font-medium text-gray-900 mb-2">{children}</h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-[13px] font-medium text-gray-900 mb-2">{children}</h3>
+                  ),
+                  // Paragraph styling
+                  p: ({ children }) => (
+                    <p className="text-[13px] text-gray-700 leading-relaxed mb-3 last:mb-0">
+                      {children}
+                    </p>
+                  ),
+                  // List styling
+                  ul: ({ children }) => (
+                    <ul className="text-[13px] text-gray-700 space-y-2 mb-3 last:mb-0">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="text-[13px] text-gray-700 space-y-2 mb-3 last:mb-0 list-decimal pl-4">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  // Strong/bold text
+                  strong: ({ children }) => (
+                    <span className="font-medium text-gray-900">{children}</span>
+                  ),
+                  // Emphasis/italic
+                  em: ({ children }) => <span className="italic text-gray-600">{children}</span>,
+                  // Code
+                  code: ({ children }) => (
+                    <code className="text-[12px] bg-gray-100 px-1 py-0.5 rounded text-gray-800">
+                      {children}
+                    </code>
+                  ),
+                  // Links
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      className="text-indigo-600 hover:text-indigo-700 hover:underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
                 {content}
-              </p>
+              </ReactMarkdown>
             ) : (
               <p className="text-[13px] text-gray-400 italic">Click edit to add notes...</p>
             )}
@@ -2194,11 +2225,11 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                 }
               }}
               autoFocus
-              className="text-[13px] font-medium text-gray-900 bg-transparent border-b border-indigo-500 outline-none px-0 py-0"
+              className="text-lg font-medium text-gray-900 bg-transparent border-b border-indigo-500 outline-none px-0 py-0"
             />
           ) : (
             <span
-              className={`text-[13px] font-medium text-gray-900 ${onNameChange ? 'cursor-pointer hover:text-indigo-600 transition-colors' : ''}`}
+              className={`text-lg font-medium text-gray-900 ${onNameChange ? 'cursor-pointer hover:text-indigo-600 transition-colors' : ''}`}
               onClick={() => {
                 if (onNameChange) {
                   setIsEditingName(true);
@@ -2212,11 +2243,11 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
 
           {/* Timestamp with Refresh */}
           {(timestamp || createdBy || onRefreshClick) && (
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 whitespace-nowrap">
+            <div className="flex items-center gap-1 tracking-tight text-[11px] text-gray-600 whitespace-nowrap">
               {onRefreshClick && (
                 <button
                   onClick={onRefreshClick}
-                  className="flex items-center gap-1 px-1.5 py-0.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+                  className="flex items-center gap-1 px-1.5 py-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                   title="Refresh now"
                 >
                   <ArrowsClockwiseIcon size={12} />
@@ -2264,7 +2295,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
               ${
                 showSettingsPanel
                   ? 'text-indigo-600 bg-indigo-50'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-800 hover:text-gray-700 hover:bg-gray-100'
               }
             `}
             title="Settings"
@@ -2279,7 +2310,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
           {onCancelClick && (
             <button
               onClick={onCancelClick}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              className="p-2 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               title="Close dashboard"
             >
               <XIcon size={16} />
@@ -2296,11 +2327,11 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             ref={timelineButtonRef}
             onClick={handleOpenTimelinePopover}
             className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[13px] transition-colors cursor-pointer
               ${
                 showTimelinePopover
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+                  : 'bg-white border-gray-100 text-gray-800 hover:bg-gray-50 hover:border-gray-200'
               }
             `}
           >
@@ -2316,11 +2347,11 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             ref={ownerButtonRef}
             onClick={handleOpenOwnerPopover}
             className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[13px] transition-colors cursor-pointer
               ${
                 showOwnerPopover
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+                  : 'bg-white border-gray-100 text-gray-800 hover:bg-gray-50 hover:border-gray-200'
               }
             `}
           >
@@ -2336,11 +2367,11 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             ref={filterButtonRef}
             onClick={handleOpenAdvancedFilters}
             className={`
-              flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[13px] transition-colors cursor-pointer
               ${
                 showAdvancedFilters || advancedFilters.length > 0
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                  : 'bg-white border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200'
+                  : 'bg-white border-gray-100 text-gray-800 hover:bg-gray-50 hover:border-gray-200'
               }
             `}
           >
@@ -2363,7 +2394,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                 onFilterClick(filterButtonRef.current.getBoundingClientRect());
               }
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-[13px] text-gray-700 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-800 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
           >
             <FunnelIcon size={14} />
             <span>Filter</span>

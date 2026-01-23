@@ -12,6 +12,8 @@ import {
   DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import { PrimaryButton } from '../forms/buttons';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ============================================================================
 // Types
@@ -42,6 +44,8 @@ export interface ChatMessage {
   type: MessageType;
   content: string;
   thinkingSteps?: ThinkingStep[];
+  /** Elapsed time in seconds for thinking steps */
+  thinkingElapsedTime?: number;
   showBuildButton?: boolean;
   plan?: DashboardPlan;
   artifact?: DashboardArtifact;
@@ -64,6 +68,8 @@ export interface ChatViewV2Props {
   userName?: string;
   /** Callback when sources button is clicked */
   onSourcesClick?: () => void;
+  /** Callback when an artifact card is clicked (e.g., to open report modal) */
+  onArtifactClick?: (artifactId: string) => void;
 }
 
 // ============================================================================
@@ -340,6 +346,59 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, onBuild }) => {
 };
 
 // ============================================================================
+// Von Logo Component - Uses the official Von logo with radial gradient
+// ============================================================================
+
+const VonLogo: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 28 28"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="flex-shrink-0"
+  >
+    <circle cx="14" cy="14" r="14" fill="url(#vonLogoChatGradient)" />
+    <path
+      d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+      stroke="white"
+      strokeWidth="1.33"
+    />
+    <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+    <defs>
+      <radialGradient
+        id="vonLogoChatGradient"
+        cx="0"
+        cy="0"
+        r="1"
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
+      >
+        <stop stopColor="#FFF3EB" />
+        <stop offset="0.26" stopColor="#FF9042" />
+        <stop offset="1" stopColor="#854FFF" />
+      </radialGradient>
+    </defs>
+  </svg>
+);
+
+// ============================================================================
+// User Avatar Component - Shows initials with purple gradient
+// ============================================================================
+
+const UserAvatar: React.FC<{ size?: number; initials?: string }> = ({
+  size = 24,
+  initials = 'JD',
+}) => (
+  <div
+    className="rounded-full bg-indigo-600 mt-1 flex items-center justify-center flex-shrink-0"
+    style={{ width: size, height: size }}
+  >
+    <span className="text-[10px] font-medium text-white">{initials}</span>
+  </div>
+);
+
+// ============================================================================
 // User Message Component
 // ============================================================================
 
@@ -349,10 +408,11 @@ interface UserMessageProps {
 
 const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[80%] bg-gray-100 rounded-2xl rounded-br-md px-3 py-2">
+    <div className="flex items-start gap-2 justify-end">
+      <div className="max-w-[80%] bg-gray-50 rounded-2xl px-3 py-2">
         <p className="text-[13px] text-gray-900">{content}</p>
       </div>
+      <UserAvatar size={24} />
     </div>
   );
 };
@@ -363,18 +423,23 @@ const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
 
 interface ArtifactCardProps {
   artifact: DashboardArtifact;
+  onClick?: () => void;
 }
 
-const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact }) => {
+const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onClick }) => {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+    <div
+      className={`bg-white rounded-xl border border-gray-100 overflow-hidden ${onClick ? 'cursor-pointer hover:border-gray-200 transition-colors' : ''}`}
+      onClick={onClick}
+    >
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-gray-100">
+      <div className="px-3 py-2.5">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 w-full justify-between">
             <h3 className="text-[13px] font-medium text-gray-900">{artifact.title}</h3>
-            <span className="text-[11px] text-gray-400">·</span>
-            <span className="text-[11px] text-gray-500 underline">View</span>
+            <span className="text-[11px] text-indigo-600 hover:text-indigo-700 cursor-pointer">
+              View
+            </span>
           </div>
         </div>
       </div>
@@ -398,6 +463,8 @@ interface AssistantMessageProps {
   onSourcesClick?: () => void;
   /** Whether to show the feedback row (thumbs up/down + sources) */
   showFeedbackRow?: boolean;
+  /** Callback when artifact is clicked */
+  onArtifactClick?: () => void;
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({
@@ -410,77 +477,81 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
   artifact,
   onSourcesClick,
   showFeedbackRow = false,
+  onArtifactClick,
 }) => {
   // Auto-collapse thinking block when all steps are complete
   const allStepsComplete = thinkingSteps?.every((s) => s.status === 'complete') ?? false;
 
   return (
-    <div className="space-y-3">
-      {/* Thinking Block */}
-      {thinkingSteps && thinkingSteps.length > 0 && (
-        <ThinkingBlock
-          steps={thinkingSteps}
-          isThinking={isThinking}
-          elapsedTime={elapsedTime}
-          defaultCollapsed={allStepsComplete && !isThinking}
-        />
-      )}
+    <div className="flex items-start gap-2">
+      <VonLogo size={24} />
+      <div className="flex-1 space-y-3 min-w-0">
+        {/* Thinking Block */}
+        {thinkingSteps && thinkingSteps.length > 0 && (
+          <ThinkingBlock
+            steps={thinkingSteps}
+            isThinking={isThinking}
+            elapsedTime={elapsedTime}
+            defaultCollapsed={allStepsComplete && !isThinking}
+          />
+        )}
 
-      {/* Message Content */}
-      {content && (
-        <div className="text-[13px] text-gray-900 leading-relaxed whitespace-pre-wrap">
-          {content}
-        </div>
-      )}
+        {/* Message Content - rendered as markdown */}
+        {content && (
+          <div className="markdown-content text-[13px]">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          </div>
+        )}
 
-      {/* Artifact Card */}
-      {artifact && <ArtifactCard artifact={artifact} />}
+        {/* Artifact Card */}
+        {artifact && <ArtifactCard artifact={artifact} onClick={onArtifactClick} />}
 
-      {/* Plan Card with Build Button */}
-      {plan && onBuildDashboard && <PlanCard plan={plan} onBuild={onBuildDashboard} />}
+        {/* Plan Card with Build Button */}
+        {plan && onBuildDashboard && <PlanCard plan={plan} onBuild={onBuildDashboard} />}
 
-      {/* Action icons row - Copy, Download, Thumbs up/down, Sources */}
-      {showFeedbackRow && (
-        <div className="flex items-center gap-1 pt-3">
-          <button
-            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-            title="Copy"
-          >
-            <CopyIcon size={14} weight="regular" />
-          </button>
-          <button
-            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-            title="Download"
-          >
-            <DownloadSimpleIcon size={14} weight="regular" />
-          </button>
-          <button
-            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-            title="Good response"
-          >
-            <ThumbsUpIcon size={14} weight="regular" />
-          </button>
-          <button
-            className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-            title="Bad response"
-          >
-            <ThumbsDownIcon size={14} weight="regular" />
-          </button>
-          {onSourcesClick && (
-            <>
-              <div className="w-px h-4 bg-gray-200 mx-1" />
-              <button
-                onClick={onSourcesClick}
-                className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                title="View sources"
-              >
-                <FileMagnifyingGlassIcon size={14} weight="regular" />
-                <span>Sources</span>
-              </button>
-            </>
-          )}
-        </div>
-      )}
+        {/* Action icons row - Copy, Download, Thumbs up/down, Sources */}
+        {showFeedbackRow && (
+          <div className="flex items-center gap-1 pt-1">
+            <button
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+              title="Copy"
+            >
+              <CopyIcon size={14} weight="regular" />
+            </button>
+            <button
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+              title="Download"
+            >
+              <DownloadSimpleIcon size={14} weight="regular" />
+            </button>
+            <button
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+              title="Good response"
+            >
+              <ThumbsUpIcon size={14} weight="regular" />
+            </button>
+            <button
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+              title="Bad response"
+            >
+              <ThumbsDownIcon size={14} weight="regular" />
+            </button>
+            {onSourcesClick && (
+              <>
+                <div className="w-px h-4 bg-gray-200 mx-1" />
+                <button
+                  onClick={onSourcesClick}
+                  className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                  title="View sources"
+                >
+                  <FileMagnifyingGlassIcon size={14} weight="regular" />
+                  <span>Sources</span>
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -496,6 +567,7 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
   elapsedTime = 0,
   onBuildDashboard,
   onSourcesClick,
+  onArtifactClick,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -523,12 +595,17 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
                   content={message.content}
                   thinkingSteps={message.thinkingSteps}
                   isThinking={isThinking && message.id === messages[messages.length - 1]?.id}
-                  elapsedTime={elapsedTime}
+                  elapsedTime={message.thinkingElapsedTime ?? elapsedTime}
                   plan={message.plan}
                   onBuildDashboard={message.showBuildButton ? onBuildDashboard : undefined}
                   artifact={message.artifact}
                   onSourcesClick={onSourcesClick}
                   showFeedbackRow={showFeedback}
+                  onArtifactClick={
+                    message.artifact && onArtifactClick
+                      ? () => onArtifactClick(message.id)
+                      : undefined
+                  }
                 />
               )}
             </div>

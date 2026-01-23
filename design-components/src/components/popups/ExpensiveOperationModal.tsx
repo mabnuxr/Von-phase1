@@ -119,10 +119,10 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
             </button>
 
             {/* Content */}
-            <div className="p-5">
+            <div className="px-4 py-3">
               {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <VonLogo size={32} />
+              <div className="flex items-center gap-1.5 pb-2 mb-3 border-b border-gray-100">
+                <VonLogo size={16} />
                 <h2 className="text-[15px] font-medium text-gray-900">{operationName}</h2>
               </div>
 
@@ -142,13 +142,13 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
               <div className="flex items-center gap-2">
                 <button
                   onClick={onCancel}
-                  className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onConfirm}
-                  className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+                  className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   Run Analysis
                 </button>
