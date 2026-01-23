@@ -1,7 +1,9 @@
-// Design components types and functions
+// Design components types
 import type { Message as ChatMessage } from "@vonlabs/design-components";
 import type { ChatItem } from "@vonlabs/design-components";
-import { resumeConversation } from "@vonlabs/design-components";
+
+// App services
+import { conversationsService } from "../services/conversationsService";
 
 // App types
 import type { MessageWithStreaming, Conversation } from "../types/conversation";
@@ -100,10 +102,9 @@ export async function handleToolApproval(
   toolCallId: string,
   runId: string,
   conversationId: string,
-  apiBaseUrl: string,
 ): Promise<void> {
   try {
-    await resumeConversation(apiBaseUrl, conversationId, true, runId);
+    await conversationsService.resumeConversation(conversationId, true, runId);
     if (import.meta.env.DEV) {
       console.log(
         "[Dashboard] Approval sent for tool:",
@@ -125,10 +126,9 @@ export async function handleToolRejection(
   toolCallId: string,
   runId: string,
   conversationId: string,
-  apiBaseUrl: string,
 ): Promise<void> {
   try {
-    await resumeConversation(apiBaseUrl, conversationId, false, runId);
+    await conversationsService.resumeConversation(conversationId, false, runId);
     if (import.meta.env.DEV) {
       console.log(
         "[Dashboard] Rejection sent for tool:",

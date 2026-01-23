@@ -43,6 +43,8 @@ export interface UseConversationPusherChannelV2Return {
   finalResponse: string;
   /** Whether final response is still streaming */
   isFinalResponseStreaming: boolean;
+  /** Whether we're waiting for user approval (intermediate state between runs) */
+  isAwaitingApproval: boolean;
 }
 
 /**
@@ -60,6 +62,7 @@ export function useConversationPusherChannelV2(
   const [finalResponse, setFinalResponse] = useState("");
   const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
     useState(false);
+  const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -116,7 +119,6 @@ export function useConversationPusherChannelV2(
           // New run started
           setCurrentRunId(run_id);
           startElapsedTimer();
-          console.log("[V2 Pusher] New run started:", run_id);
         }
 
         // Deduplicate by sequence
@@ -135,6 +137,7 @@ export function useConversationPusherChannelV2(
           isThinking: thinking,
           finalResponse: response,
           isFinalResponseStreaming: responseStreaming,
+          isAwaitingApproval: awaitingApproval,
         } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
@@ -143,6 +146,7 @@ export function useConversationPusherChannelV2(
           setIsThinking(thinking);
           setFinalResponse(response);
           setIsFinalResponseStreaming(responseStreaming);
+          setIsAwaitingApproval(awaitingApproval);
         });
 
         // Stop timer and update elapsed time when run finishes
@@ -156,10 +160,6 @@ export function useConversationPusherChannelV2(
           if (actualElapsed > 0) {
             setElapsedTime(actualElapsed);
           }
-          console.log(
-            "[V2 Pusher] Run finished, total events:",
-            runEvents.length,
-          );
         }
       } catch (error) {
         console.error(
@@ -180,22 +180,16 @@ export function useConversationPusherChannelV2(
       setCurrentRunId(null);
       setFinalResponse("");
       setIsFinalResponseStreaming(false);
+      setIsAwaitingApproval(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stopElapsedTimer();
-      console.log("[V2 Pusher] Conversation changed, state reset");
     }
   }, [config.conversationId, stopElapsedTimer]);
 
   // Pusher connection management
   useEffect(() => {
     if (!config.conversationId || !config.tenantId || !config.userId) {
-      console.log("[V2 Pusher] Missing required config:", {
-        conversationId: !!config.conversationId,
-        tenantId: !!config.tenantId,
-        userId: !!config.userId,
-      });
-
       // Clean up
       if (channelRef.current && pusherRef.current) {
         pusherRef.current.unsubscribe(channelRef.current.name);
@@ -241,7 +235,6 @@ export function useConversationPusherChannelV2(
           connectionEventsBound.current = false;
         }
 
-        console.log("[V2 Pusher] Creating new Pusher instance");
         pusher = new Pusher(appConfig.pusherKey, {
           cluster: appConfig.pusherCluster,
           authEndpoint: appConfig.pusherAuthEndpoint,
@@ -256,13 +249,11 @@ export function useConversationPusherChannelV2(
         // Bind connection events
         if (!connectionEventsBound.current) {
           pusher.connection.bind("connected", () => {
-            console.log("[V2 Pusher] Connected to Pusher");
             setIsConnected(true);
             setError(null);
           });
 
           pusher.connection.bind("disconnected", () => {
-            console.log("[V2 Pusher] Disconnected from Pusher");
             setIsConnected(false);
           });
 
@@ -284,17 +275,12 @@ export function useConversationPusherChannelV2(
 
       // Unsubscribe from old channel if switching
       if (channelRef.current && channelRef.current.name !== channelName) {
-        console.log(
-          "[V2 Pusher] Unsubscribing from old channel:",
-          channelRef.current.name,
-        );
         pusher.unsubscribe(channelRef.current.name);
         channelRef.current = null;
       }
 
       // Subscribe to channel
       if (!channelRef.current) {
-        console.log("[V2 Pusher] Subscribing to channel:", channelName);
         const channel = pusher.subscribe(channelName);
         channelRef.current = channel;
 
@@ -357,5 +343,6 @@ export function useConversationPusherChannelV2(
     currentRunId,
     finalResponse,
     isFinalResponseStreaming,
+    isAwaitingApproval,
   };
 }

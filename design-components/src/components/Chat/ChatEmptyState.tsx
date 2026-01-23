@@ -9,6 +9,9 @@ import {
   type TemplateCategory,
 } from '../Templates';
 import type { BuildMode } from '../DashboardBuilder';
+import type { AgentMode } from './StandardChatInput/types';
+import type { SendMessageOptions } from './ChatInputSelector';
+import type { FileAttachment } from './FileAttachment/types';
 
 export interface ChatEmptyStateProps {
   /**
@@ -17,8 +20,13 @@ export interface ChatEmptyStateProps {
   userName?: string;
   /**
    * Callback when a message is sent (from input or prompt click)
+   * Includes optional attachments and options (agentMode, command) from ChatInputSelector
    */
-  onSendMessage?: (message: string) => void;
+  onSendMessage?: (
+    message: string,
+    attachments?: FileAttachment[],
+    options?: SendMessageOptions
+  ) => void;
   /**
    * Default value to pre-fill the input (useful for demos)
    */
@@ -81,6 +89,14 @@ export interface ChatEmptyStateProps {
    * @default false
    */
   useStandardInput?: boolean;
+  /**
+   * Whether agent selection is locked (after first message)
+   */
+  isAgentLocked?: boolean;
+  /**
+   * The agent mode to display when locked (from backend)
+   */
+  lockedAgentMode?: AgentMode;
 }
 
 /**
@@ -120,6 +136,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   mode = 'ask',
   onModeChange,
   useStandardInput = false,
+  isAgentLocked,
+  lockedAgentMode,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -190,8 +208,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   );
 
   const handleSend = useCallback(
-    (message: string) => {
-      onSendMessage?.(message);
+    (message: string, attachments?: FileAttachment[], options?: SendMessageOptions) => {
+      onSendMessage?.(message, attachments, options);
       setInputValue('');
     },
     [onSendMessage]
@@ -315,6 +333,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           showModeToggle={showModeToggle}
           mode={mode}
           onModeChange={onModeChange}
+          isAgentLocked={isAgentLocked}
+          lockedAgentMode={lockedAgentMode}
         />
       </motion.div>
 

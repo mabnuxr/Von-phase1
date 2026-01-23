@@ -833,8 +833,13 @@ export interface ChatProps {
   /**
    * Callback when a new message is sent
    * Includes optional file attachments when enableFileUpload is true
+   * Includes optional SendMessageOptions (agentMode, command) from ChatInputSelector
    */
-  onSendMessage?: (message: string, attachments?: MessageFileAttachment[]) => void;
+  onSendMessage?: (
+    message: string,
+    attachments?: MessageFileAttachment[],
+    options?: import('./ChatInputSelector').SendMessageOptions
+  ) => void;
 
   /**
    * Callback when the add button is clicked
@@ -1101,4 +1106,22 @@ export interface ChatProps {
    * @default false
    */
   useStandardInput?: boolean;
+
+  // ============================================================================
+  // Agent Selection Props (for locking after first message)
+  // ============================================================================
+
+  /**
+   * Whether agent selection is locked (e.g., after first message in conversation)
+   * When true, the agent selector will be disabled and show lockedAgentMode
+   * @default false
+   */
+  isAgentLocked?: boolean;
+
+  /**
+   * The agent mode to display when locked (from backend/conversation data)
+   * Only used when isAgentLocked is true
+   * @default 'auto'
+   */
+  lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
 }

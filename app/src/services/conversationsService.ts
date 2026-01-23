@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import type {
   Conversation,
+  ConversationMode,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
   CreateConversationResponse,
@@ -11,6 +12,15 @@ import type {
   CreateFolderResponse,
   FolderConversationsResponse,
 } from "../types/chatSidebar";
+
+/**
+ * Response type for resuming an interrupted conversation
+ */
+export interface ResumeConversationResponse {
+  status: string;
+  conversationId: string;
+  error?: string;
+}
 
 /**
  * Response type for artifact retrieval
@@ -69,12 +79,34 @@ class ConversationsService {
 
   /**
    * Create a new conversation
-   * Backend expects: { title: string }
+   * Backend expects: { title: string, mode?: ConversationMode }
+   * @param title - Conversation title
+   * @param mode - Optional conversation mode (auto, deep_research, dashboard_builder)
    */
-  async createConversation(title: string): Promise<CreateConversationResponse> {
+  async createConversation(
+    title: string,
+    mode?: ConversationMode,
+  ): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
-      { title },
+      { title, mode },
+    );
+  }
+
+  /**
+   * Update a conversation's mode
+   * Backend expects: { mode: ConversationMode }
+   * Note: Frontend prevents mode changes after creation, but backend supports it
+   * @param conversationId - Conversation UUID
+   * @param mode - New conversation mode
+   */
+  async updateConversationMode(
+    conversationId: string,
+    mode: ConversationMode,
+  ): Promise<Conversation> {
+    return apiClient.patch<Conversation>(
+      `/api/v1/chat/conversations/${conversationId}`,
+      { mode },
     );
   }
 
@@ -257,6 +289,34 @@ class ConversationsService {
   ): Promise<void> {
     return apiClient.delete<void>(
       `/api/v1/folders/${folderId}/conversations/${conversationId}`,
+    );
+  }
+
+  /**
+   * Resume an interrupted conversation with user's approval decision
+   *
+   * Used when the agent has paused execution (e.g., for Salesforce CRUD approval)
+   * and needs the user's approval or rejection to continue.
+   *
+   * @param conversationId - ID of the conversation to resume
+   * @param approved - Whether the user approved the pending operation
+   * @param runId - The run_id of the interrupted workflow to continue
+   * @param message - Optional message from the user about their decision
+   * @returns Promise with the resume status
+   */
+  async resumeConversation(
+    conversationId: string,
+    approved: boolean,
+    runId: string,
+    message: string = "",
+  ): Promise<ResumeConversationResponse> {
+    return apiClient.post<ResumeConversationResponse>(
+      `/api/v1/chat/conversations/${conversationId}/resume`,
+      {
+        approved,
+        message,
+        run_id: runId,
+      },
     );
   }
 }

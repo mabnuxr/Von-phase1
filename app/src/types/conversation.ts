@@ -1,4 +1,13 @@
 /**
+ * Conversation mode values supported by the backend API
+ * Maps to frontend AgentMode:
+ *   - "auto" -> "auto"
+ *   - "deep_research" -> "deep-research"
+ *   - "dashboard_builder" -> "build-dashboard"
+ */
+export type ConversationMode = "auto" | "deep_research" | "dashboard_builder";
+
+/**
  * Conversation entity from backend
  * Sorted by updatedAt DESC by default from API
  */
@@ -7,6 +16,11 @@ export interface Conversation {
   userId: string;
   tenantId: string;
   title: string;
+  /**
+   * Conversation mode - determines which agent/workflow handles the conversation
+   * Default: "auto"
+   */
+  mode: ConversationMode;
   createdAt: string;
   createdBy: string | null; // Optional - can be null if context not set
   updatedAt: string | null;

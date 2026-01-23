@@ -42,6 +42,11 @@ export interface ActivePopover {
   hasUserEdits?: boolean;
 }
 
+/**
+ * Agent mode type for agent selection
+ */
+export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
+
 export interface StandardChatInputProps {
   /**
    * Placeholder text for the input
@@ -51,8 +56,9 @@ export interface StandardChatInputProps {
 
   /**
    * Callback when send/enter is pressed
+   * Includes the selected agent mode for the message
    */
-  onSend?: (message: string, attachments?: FileAttachment[]) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => void;
 
   /**
    * Callback when stop button is clicked during streaming
@@ -212,14 +218,26 @@ export interface StandardChatInputProps {
   onBuildDashboard?: () => void;
 
   /**
-   * Pre-selected agent mode to show as active
-   * When set to 'deep-research', shows the Deep Research indicator button
-   */
-  agentMode?: 'auto' | 'build-dashboard' | 'deep-research';
-
-  /**
    * Hide the disclaimer text below the input
    * @default false
    */
   hideDisclaimer?: boolean;
+
+  // ============================================================================
+  // Agent Selection Props (for locking after first message)
+  // ============================================================================
+
+  /**
+   * Whether agent selection is locked (e.g., after first message in conversation)
+   * When true, the agent selector will be disabled and show lockedAgentMode
+   * @default false
+   */
+  isAgentLocked?: boolean;
+
+  /**
+   * The agent mode to display when locked (from backend/conversation data)
+   * Only used when isAgentLocked is true
+   * @default 'auto'
+   */
+  lockedAgentMode?: AgentMode;
 }

@@ -5,6 +5,7 @@ export type {
   AutoEditMode,
   PopoverIntent,
   ActivePopover,
+  AgentMode,
 } from './types';
 
 // ModeSelector exports

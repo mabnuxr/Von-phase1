@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import type {
+  ConversationMode,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
 } from "../types/conversation";
@@ -10,6 +11,14 @@ import {
   CONVERSATIONS_PAGE_LIMIT,
   MESSAGES_PAGE_LIMIT,
 } from "../config/constants";
+
+/**
+ * Parameters for creating a conversation
+ */
+export interface CreateConversationParams {
+  title: string;
+  mode?: ConversationMode;
+}
 
 /**
  * Query keys for conversations
@@ -72,18 +81,21 @@ export function useConversationMessages(
 /**
  * Create a new conversation
  * Invalidates conversation list on success
+ * @param params - { title: string, mode?: ConversationMode }
  */
 export function useCreateConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (title: string) =>
-      conversationsService.createConversation(title),
+    mutationFn: (params: CreateConversationParams) =>
+      conversationsService.createConversation(params.title, params.mode),
     onSuccess: (data) => {
       if (import.meta.env.DEV) {
         console.log(
           "[useCreateConversation] Created:",
           data.conversation.conversationId,
+          "mode:",
+          data.conversation.mode,
         );
       }
       // Invalidate all conversation lists to refetch
