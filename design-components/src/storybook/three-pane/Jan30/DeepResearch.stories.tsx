@@ -5,7 +5,6 @@ import {
   CheckCircleIcon,
   CaretLeftIcon,
   CaretRightIcon,
-  StarIcon,
   SpinnerGapIcon,
   XIcon,
   DotsThreeIcon,
@@ -34,7 +33,7 @@ import {
   type TemplateCategory,
 } from '../../../components/Templates';
 import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
-import type { ChatMessage, ReferenceContext } from '../../../components/Jan17Demo/ChatPaneV2';
+import type { ChatMessage, ReferenceContext, ThinkingStep } from '../../../components/Jan17Demo/ChatPaneV2';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
 import type {
   KPICardData,
@@ -66,7 +65,6 @@ import {
   type ShareConfig,
   ExpensiveOperationModal,
 } from '../../../components/popups';
-import { opportunities } from '../data/salesData';
 import { PrimaryButton } from '../../../components/forms/buttons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -75,6 +73,7 @@ import { DeepResearchNotificationBar } from '../components/chat/DeepResearchNoti
 import { deepResearchTables } from './deepResearchTableData';
 import { DataTablesDrawer } from '../../../components/Jan17Demo/DataTablesDrawer';
 import { DataTablesCard } from '../../../components/Jan17Demo/DataTablesCard';
+import { generateDashboardFromData, type GeneratedDashboardData } from './deepResearchDashboardUtils';
 
 // ============================================================================
 // Convert Deep Research Tables for Transparency Drawer
@@ -495,160 +494,19 @@ Key findings indicate significant regional disparities, with the West region out
 *Data reflects sales performance through December 31, 2025*`;
 
 // ============================================================================
-// Dashboard Data (for conversion)
+// Dashboard Data (dynamically generated from 900 opportunity records)
 // ============================================================================
 
-const dealsThisQuarter = opportunities.filter((opp) => {
-  const closeDate = new Date(opp.closeDate);
-  return closeDate.getMonth() >= 0 && closeDate.getMonth() <= 2 && closeDate.getFullYear() === 2026;
-});
+// Generate dashboard data programmatically from the deep research data
+const generatedDashboardData: GeneratedDashboardData = generateDashboardFromData();
 
-const totalValue = dealsThisQuarter.reduce((sum, opp) => sum + opp.amount, 0);
-void totalValue; // Used in calculations
-
-const kpiCards: KPICardData[] = [
-  {
-    id: 'kpi-total-revenue',
-    title: 'Total Q4 Revenue',
-    value: '$12.8M',
-    change: '+15.2%',
-    changeDirection: 'up',
-    subtitle: 'vs Q4 2024',
-    progress: 108,
-    target: '$11.8M',
-  },
-  {
-    id: 'kpi-deals-closed',
-    title: 'Deals Closed',
-    value: '847',
-    change: '+12%',
-    changeDirection: 'up',
-    subtitle: 'vs Q4 2024',
-    progress: 106,
-    target: '800',
-  },
-  {
-    id: 'kpi-avg-deal',
-    title: 'Average Deal Size',
-    value: '$15.1K',
-    change: '+2.9%',
-    changeDirection: 'up',
-    subtitle: 'vs Q4 2024',
-    progress: 103,
-    target: '$14.75K',
-  },
-  {
-    id: 'kpi-win-rate',
-    title: 'Win Rate',
-    value: '28.4%',
-    change: '+1.3pp',
-    changeDirection: 'up',
-    subtitle: 'vs Q4 2024',
-    progress: 101,
-    target: '28%',
-  },
-];
-
-const barChart: ChartData = {
-  id: 'chart-by-region',
-  title: 'Revenue by Region',
-  type: 'bar',
-  data: {
-    categories: ['West', 'East', 'Central', 'International'],
-    series: [
-      {
-        name: 'Revenue ($K)',
-        data: [4900, 3800, 2400, 1700],
-      },
-    ],
-  },
-};
-
-const pieChart: ChartData = {
-  id: 'chart-by-product',
-  title: 'Revenue by Product Category',
-  type: 'pie',
-  data: [
-    { name: 'Enterprise SaaS', y: 42.2, color: '#6366f1' },
-    { name: 'Growth Platform', y: 30.5, color: '#10b981' },
-    { name: 'Starter Suite', y: 16.4, color: '#f59e0b' },
-    { name: 'Professional Services', y: 10.9, color: '#8b5cf6' },
-  ],
-};
-
-const tableData: TableData = {
-  id: 'table-top-performers',
-  title: 'Top Performing Sales Reps',
-  columns: [
-    { id: 'rank', label: 'Rank', type: 'number' },
-    { id: 'name', label: 'Rep', type: 'string' },
-    { id: 'revenue', label: 'Revenue', type: 'currency' },
-    { id: 'deals', label: 'Deals', type: 'number' },
-    { id: 'quotaAtt', label: 'Quota Att.', type: 'string' },
-    { id: 'avgDeal', label: 'Avg Deal', type: 'currency' },
-    { id: 'trend', label: 'Trend', type: 'string', isAI: true, aiSource: 'Von IQ' },
-  ],
-  rows: [
-    {
-      rank: 1,
-      name: 'Sarah Chen',
-      revenue: 1420000,
-      deals: 68,
-      quotaAtt: '142%',
-      avgDeal: 20882,
-      trend: 'Strong momentum',
-    },
-    {
-      rank: 2,
-      name: 'Marcus Johnson',
-      revenue: 1180000,
-      deals: 54,
-      quotaAtt: '118%',
-      avgDeal: 21852,
-      trend: 'Consistent',
-    },
-    {
-      rank: 3,
-      name: 'Emily Rodriguez',
-      revenue: 985000,
-      deals: 72,
-      quotaAtt: '109%',
-      avgDeal: 13681,
-      trend: 'High volume',
-    },
-    {
-      rank: 4,
-      name: 'David Kim',
-      revenue: 892000,
-      deals: 45,
-      quotaAtt: '99%',
-      avgDeal: 19822,
-      trend: 'Enterprise focus',
-    },
-    {
-      rank: 5,
-      name: 'Jennifer Walsh',
-      revenue: 856000,
-      deals: 61,
-      quotaAtt: '95%',
-      avgDeal: 14033,
-      trend: 'Improving',
-    },
-  ],
-};
-
+// Extract individual components for use in the dashboard
+const kpiCards: KPICardData[] = generatedDashboardData.kpiCards;
+const barChart: ChartData = generatedDashboardData.barChart;
+const pieChart: ChartData = generatedDashboardData.pieChart;
+const tableData: TableData = generatedDashboardData.tableData;
 const textWidgetData: TextWidgetData = {
-  id: 'text-recommendations',
-  title: 'Q1 Strategic Recommendations',
-  content: `Key priorities identified from the Q4 analysis:
-
-• **Launch Mid-Market Recovery Initiative** — Develop competitive pricing tiers and create a dedicated mid-market sales team to address the 8% segment decline.
-
-• **Accelerate Enterprise Momentum** — The West region's success with enterprise deals should be replicated. Increase enterprise SDR headcount and launch feature preview programs.
-
-• **Optimize Sales Enablement** — New rep ramp time of 8 months is too long. Implement enhanced onboarding to reduce to 6 months.
-
-• **APAC Expansion** — International region shows 22% growth and highest trajectory. Prioritize Q1 investment here.`,
+  ...generatedDashboardData.textWidget,
   maxCharacters: 1500,
   isAIGenerated: true,
 };
@@ -1456,7 +1314,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
         <div className="flex items-center gap-1">
           <button
             onClick={onExpand}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+            className="p-1.5 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
             title="Expand"
           >
             <ArrowsOutIcon size={16} />
@@ -1465,7 +1323,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+                className="p-1.5 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               >
                 <DotsThreeIcon size={16} weight="bold" />
               </button>
@@ -1747,7 +1605,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {TEMPLATE_CATEGORIES.map((category) => {
             const isActive = category === activeCategory;
-            const isPopular = category === 'Popular';
             return (
               <button
                 key={category}
@@ -1757,12 +1614,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
                   transition-all duration-200 inline-flex items-center gap-1 cursor-pointer
                   ${
                     isActive
-                      ? 'bg-gray-100 border border-gray-100 shadow-sm text-gray-900'
+                      ? 'bg-gray-100/70 border border-gray-200 text-gray-900'
                       : 'bg-white border border-gray-100 text-gray-600 hover:border-gray-200'
                   }
                 `}
               >
-                {isPopular && <StarIcon size={12} weight="fill" className="text-amber-500" />}
                 {category}
               </button>
             );
@@ -2043,25 +1899,25 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                 {/* Action icons for sample message */}
                 <div className="flex items-center gap-1 pt-3">
                   <button
-                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     title="Copy"
                   >
                     <CopyIcon size={14} weight="regular" />
                   </button>
                   <button
-                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     title="Download"
                   >
                     <DownloadSimpleIcon size={14} weight="regular" />
                   </button>
                   <button
-                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     title="Good response"
                   >
                     <ThumbsUpIcon size={14} weight="regular" />
                   </button>
                   <button
-                    className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                    className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     title="Bad response"
                   >
                     <ThumbsDownIcon size={14} weight="regular" />
@@ -2071,7 +1927,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                       <div className="w-px h-4 bg-gray-200 mx-1" />
                       <button
                         onClick={onSourcesClick}
-                        className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                         title="View sources"
                       >
                         <FileMagnifyingGlassIcon size={14} weight="regular" />
@@ -2142,25 +1998,25 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                     {/* Feedback row */}
                     <div className="flex items-center gap-1 pt-1">
                       <button
-                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                         title="Copy"
                       >
                         <CopyIcon size={14} weight="regular" />
                       </button>
                       <button
-                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                         title="Download"
                       >
                         <DownloadSimpleIcon size={14} weight="regular" />
                       </button>
                       <button
-                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                         title="Good response"
                       >
                         <ThumbsUpIcon size={14} weight="regular" />
                       </button>
                       <button
-                        className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                        className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                         title="Bad response"
                       >
                         <ThumbsDownIcon size={14} weight="regular" />
@@ -2170,7 +2026,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                           <div className="w-px h-4 bg-gray-200 mx-1" />
                           <button
                             onClick={onSourcesClick}
-                            className="flex items-center gap-1.5 px-2 py-1 text-[12px] text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                             title="View sources"
                           >
                             <FileMagnifyingGlassIcon size={14} weight="regular" />
@@ -2206,7 +2062,6 @@ const DeepResearchDemo = () => {
   const [folders, setFolders] = useState<Folder[]>(dummyFolders);
 
   // Thinking state
-  const [userMessage, setUserMessage] = useState('');
   const [sampleSteps, setSampleSteps] = useState<DeepResearchThinkingStep[]>([]);
   const [fullSteps, setFullSteps] = useState<DeepResearchThinkingStep[]>([]);
   const [sampleProgress, setSampleProgress] = useState(0);
@@ -2228,7 +2083,7 @@ const DeepResearchDemo = () => {
 
   // Chat pane state
   const [isChatPaneCollapsed, setIsChatPaneCollapsed] = useState(true);
-  const [chatPaneWidth, setChatPaneWidth] = useState(380);
+  const [chatPaneWidth, setChatPaneWidth] = useState(456); // Increased by 20% from 380
   const chatPaneResizeRef = useRef<HTMLDivElement>(null);
   const isResizingChatPane = useRef(false);
   const startXRef = useRef(0);
@@ -2358,7 +2213,6 @@ const DeepResearchDemo = () => {
 
   // Handle landing page message
   const handleLandingMessage = (content: string) => {
-    setUserMessage(content);
     setPhase('sample-thinking');
     setChatMessages([{ id: 'msg-1', type: 'user', content }]);
     setSampleElapsedTime(0);
@@ -2530,16 +2384,90 @@ const DeepResearchDemo = () => {
     setVisibleWidgets([]);
     setIsChatPaneCollapsed(false);
 
-    // Add chat messages for dashboard building
-    setChatMessages([
-      { id: 'msg-1', type: 'user', content: userMessage },
+    // Create full conversation history for the chat pane
+    // This shows the complete DeepResearch flow: user request → sample → full analysis → dashboard
+    const sampleThinkingStepsForChat: ThinkingStep[] = sampleThinkingSteps.map((step) => ({
+      id: step.id,
+      text: step.text,
+      status: 'complete' as const,
+      subtitle: step.subtitle,
+      icon: step.icon,
+    }));
+
+    const fullThinkingStepsForChat: ThinkingStep[] = fullResearchThinkingSteps.map((step) => ({
+      id: step.id,
+      text: step.text,
+      status: 'complete' as const,
+      subtitle: step.subtitle,
+      icon: step.icon,
+    }));
+
+    const fullConversation: ChatMessage[] = [
+      // 1. User's initial research request
       {
-        id: 'msg-2',
-        type: 'assistant',
-        content:
-          "I've completed the analysis. Now converting the report into an interactive dashboard...",
+        id: 'msg-1-user-request',
+        type: 'user',
+        content: DEEP_RESEARCH_PROMPT,
       },
-    ]);
+      // 2. Sample analysis with thinking steps (collapsed)
+      {
+        id: 'msg-2-sample-thinking',
+        type: 'assistant',
+        content: '',
+        thinkingSteps: sampleThinkingStepsForChat,
+        thinkingElapsedTime: sampleElapsedTime,
+      },
+      // 3. Sample preview output
+      {
+        id: 'msg-3-sample-preview',
+        type: 'assistant',
+        content: sampleAnalysisContent,
+      },
+      // 4. User confirms to run full analysis
+      {
+        id: 'msg-4-user-confirm',
+        type: 'user',
+        content: 'Run Full Analysis',
+      },
+      // 5. Full thinking process (collapsed)
+      {
+        id: 'msg-5-full-thinking',
+        type: 'assistant',
+        content: '',
+        thinkingSteps: fullThinkingStepsForChat,
+        thinkingElapsedTime: fullElapsedTime,
+      },
+      // 6. Full report complete message with artifact
+      {
+        id: 'msg-6-report-complete',
+        type: 'assistant',
+        content: "I've completed the comprehensive Q4 Sales Performance Analysis. The report includes detailed breakdowns by region, product category, sales team performance, and strategic recommendations.",
+        artifact: {
+          type: 'dashboard',
+          title: 'Q4 2025 Sales Performance Analysis',
+          description: 'Comprehensive research report with 10 sections covering all aspects of Q4 performance',
+          items: [
+            { label: 'Total Revenue', value: '$12.8M' },
+            { label: 'Deals Analyzed', value: '847' },
+            { label: 'Regions Covered', value: '4' },
+          ],
+        },
+      },
+      // 7. User requests dashboard
+      {
+        id: 'msg-7-user-dashboard',
+        type: 'user',
+        content: 'Build Dashboard',
+      },
+      // 8. Building dashboard message
+      {
+        id: 'msg-8-building-dashboard',
+        type: 'assistant',
+        content: "Converting the report into an interactive dashboard...",
+      },
+    ];
+
+    setChatMessages(fullConversation);
 
     let time = 0;
     const allWidgetIds = [
@@ -2570,11 +2498,18 @@ const DeepResearchDemo = () => {
       setAgentProgress(100);
       setShowToast(true);
 
-      // Add completion message
+      // Add completion message with dynamically computed KPI values
+      const computedKPIs = generatedDashboardData.computedKPIs;
+      const formatCurrency = (value: number): string => {
+        if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+        if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
+        return `$${value.toFixed(0)}`;
+      };
+
       setChatMessages((prev) => [
         ...prev,
         {
-          id: 'msg-3',
+          id: `msg-dashboard-complete-${Date.now()}`,
           type: 'assistant',
           content:
             "I've created your Q4 Sales Performance Dashboard based on the comprehensive research report.",
@@ -2582,11 +2517,11 @@ const DeepResearchDemo = () => {
             type: 'dashboard',
             title: 'Q4 Sales Performance Dashboard',
             description:
-              'Interactive dashboard with 4 KPIs, 2 charts, and detailed performance tables',
+              `Interactive dashboard with ${kpiCards.length} KPIs, 2 charts, and detailed performance tables`,
             items: [
-              { label: 'Total Q4 Revenue', value: '$12.8M' },
-              { label: 'Deals Closed', value: '847' },
-              { label: 'Win Rate', value: '28.4%' },
+              { label: 'Total Revenue (Won)', value: formatCurrency(computedKPIs.totalRevenue) },
+              { label: 'Deals Won', value: computedKPIs.dealsWon.toString() },
+              { label: 'Win Rate', value: `${computedKPIs.winRate.toFixed(1)}%` },
             ],
           },
         },
@@ -2602,13 +2537,12 @@ const DeepResearchDemo = () => {
     addTimeout(() => {
       setAgentStatus('idle');
     }, time + 2500);
-  }, [addTimeout, userMessage]);
+  }, [addTimeout]);
 
   // Reset to landing
   const handleReset = useCallback(() => {
     clearAllTimeouts();
     setPhase('landing');
-    setUserMessage('');
     setSampleSteps([]);
     setFullSteps([]);
     setSampleProgress(0);
@@ -2841,7 +2775,7 @@ const DeepResearchDemo = () => {
             />
 
             {/* Input area */}
-            <div className="px-4 py-3">
+            <div className="px-8 py-3">
               <div className="max-w-3xl mx-auto">
                 {/* Deep Research notification bar - shown during long-running research */}
                 <DeepResearchNotificationBar isVisible={phase === 'full-thinking'} />
@@ -3024,6 +2958,12 @@ const DeepResearchDemo = () => {
             placeholder="Ask about this dashboard..."
             referenceContext={referenceContext}
             onSourcesClick={() => setShowTransparencyDrawer(true)}
+            onArtifactClick={(messageId) => {
+              // Open report modal when clicking on the report artifact (msg-6-report-complete)
+              if (messageId === 'msg-6-report-complete') {
+                setShowReportModal(true);
+              }
+            }}
           />
         </div>
       )}

@@ -332,7 +332,7 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
               </div>
 
               {/* Table Content - Using ReportTable */}
-              <div className="flex-1 overflow-hidden p-4">
+              <div className="flex-1 overflow-hidden">
                 {activeTable && (
                   <ReportTable
                     columns={activeTable.columns}
