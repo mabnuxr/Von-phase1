@@ -2028,17 +2028,13 @@ const TextWidget: React.FC<TextWidgetProps> = ({
                       {children}
                     </ol>
                   ),
-                  li: ({ children }) => (
-                    <li className="leading-relaxed">{children}</li>
-                  ),
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                   // Strong/bold text
                   strong: ({ children }) => (
                     <span className="font-medium text-gray-900">{children}</span>
                   ),
                   // Emphasis/italic
-                  em: ({ children }) => (
-                    <span className="italic text-gray-600">{children}</span>
-                  ),
+                  em: ({ children }) => <span className="italic text-gray-600">{children}</span>,
                   // Code
                   code: ({ children }) => (
                     <code className="text-[12px] bg-gray-100 px-1 py-0.5 rounded text-gray-800">

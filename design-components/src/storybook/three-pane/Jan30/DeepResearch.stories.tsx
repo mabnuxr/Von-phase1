@@ -33,7 +33,11 @@ import {
   type TemplateCategory,
 } from '../../../components/Templates';
 import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
-import type { ChatMessage, ReferenceContext, ThinkingStep } from '../../../components/Jan17Demo/ChatPaneV2';
+import type {
+  ChatMessage,
+  ReferenceContext,
+  ThinkingStep,
+} from '../../../components/Jan17Demo/ChatPaneV2';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
 import type {
   KPICardData,
@@ -73,7 +77,10 @@ import { DeepResearchNotificationBar } from '../components/chat/DeepResearchNoti
 import { deepResearchTables } from './deepResearchTableData';
 import { DataTablesDrawer } from '../../../components/Jan17Demo/DataTablesDrawer';
 import { DataTablesCard } from '../../../components/Jan17Demo/DataTablesCard';
-import { generateDashboardFromData, type GeneratedDashboardData } from './deepResearchDashboardUtils';
+import {
+  generateDashboardFromData,
+  type GeneratedDashboardData,
+} from './deepResearchDashboardUtils';
 
 // ============================================================================
 // Convert Deep Research Tables for Transparency Drawer
@@ -2441,11 +2448,13 @@ const DeepResearchDemo = () => {
       {
         id: 'msg-6-report-complete',
         type: 'assistant',
-        content: "I've completed the comprehensive Q4 Sales Performance Analysis. The report includes detailed breakdowns by region, product category, sales team performance, and strategic recommendations.",
+        content:
+          "I've completed the comprehensive Q4 Sales Performance Analysis. The report includes detailed breakdowns by region, product category, sales team performance, and strategic recommendations.",
         artifact: {
           type: 'dashboard',
           title: 'Q4 2025 Sales Performance Analysis',
-          description: 'Comprehensive research report with 10 sections covering all aspects of Q4 performance',
+          description:
+            'Comprehensive research report with 10 sections covering all aspects of Q4 performance',
           items: [
             { label: 'Total Revenue', value: '$12.8M' },
             { label: 'Deals Analyzed', value: '847' },
@@ -2463,7 +2472,7 @@ const DeepResearchDemo = () => {
       {
         id: 'msg-8-building-dashboard',
         type: 'assistant',
-        content: "Converting the report into an interactive dashboard...",
+        content: 'Converting the report into an interactive dashboard...',
       },
     ];
 
@@ -2516,8 +2525,7 @@ const DeepResearchDemo = () => {
           artifact: {
             type: 'dashboard',
             title: 'Q4 Sales Performance Dashboard',
-            description:
-              `Interactive dashboard with ${kpiCards.length} KPIs, 2 charts, and detailed performance tables`,
+            description: `Interactive dashboard with ${kpiCards.length} KPIs, 2 charts, and detailed performance tables`,
             items: [
               { label: 'Total Revenue (Won)', value: formatCurrency(computedKPIs.totalRevenue) },
               { label: 'Deals Won', value: computedKPIs.dealsWon.toString() },

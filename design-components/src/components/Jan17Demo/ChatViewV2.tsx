@@ -386,7 +386,10 @@ const VonLogo: React.FC<{ size?: number }> = ({ size = 24 }) => (
 // User Avatar Component - Shows initials with purple gradient
 // ============================================================================
 
-const UserAvatar: React.FC<{ size?: number; initials?: string }> = ({ size = 24, initials = 'JD' }) => (
+const UserAvatar: React.FC<{ size?: number; initials?: string }> = ({
+  size = 24,
+  initials = 'JD',
+}) => (
   <div
     className="rounded-full bg-indigo-600 mt-1 flex items-center justify-center flex-shrink-0"
     style={{ width: size, height: size }}
@@ -434,7 +437,9 @@ const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onClick }) => {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 w-full justify-between">
             <h3 className="text-[13px] font-medium text-gray-900">{artifact.title}</h3>
-            <span className="text-[11px] text-indigo-600 hover:text-indigo-700 cursor-pointer">View</span>
+            <span className="text-[11px] text-indigo-600 hover:text-indigo-700 cursor-pointer">
+              View
+            </span>
           </div>
         </div>
       </div>

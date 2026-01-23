@@ -5,7 +5,12 @@
  * programmatically from the 900 opportunity records.
  */
 
-import type { KPICardData, ChartData, TableData, TextWidgetData } from '../../../components/Jan17Demo/DashboardV2';
+import type {
+  KPICardData,
+  ChartData,
+  TableData,
+  TextWidgetData,
+} from '../../../components/Jan17Demo/DashboardV2';
 import { deepResearchTables } from './deepResearchTableData';
 
 // Get the opportunity data from the deep research tables
@@ -66,7 +71,8 @@ export function computeKPIsFromData(): ComputedKPIs {
   const avgDealSize = dealsWon > 0 ? totalRevenue / dealsWon : 0;
   const winRate = totalClosedDeals > 0 ? (dealsWon / totalClosedDeals) * 100 : 0;
   const pipelineValue = openDeals.reduce((sum, opp) => sum + opp.amount, 0);
-  const avgDealScore = opportunities.reduce((sum, opp) => sum + opp.dealScore, 0) / opportunities.length;
+  const avgDealScore =
+    opportunities.reduce((sum, opp) => sum + opp.dealScore, 0) / opportunities.length;
   const highRiskDeals = opportunities.filter((opp) => opp.riskFlag === 'High').length;
 
   return {
@@ -192,8 +198,7 @@ export function generateRevenueByRegionChart(): ChartData {
   });
 
   // Sort by revenue descending
-  const sortedRegions = Object.entries(revenueByRegion)
-    .sort((a, b) => b[1] - a[1]);
+  const sortedRegions = Object.entries(revenueByRegion).sort((a, b) => b[1] - a[1]);
 
   return {
     id: 'chart-by-region',
@@ -251,7 +256,10 @@ export function generateTopPerformersTable(): TableData {
   const closedWon = opportunities.filter((opp) => opp.stage === 'Closed Won');
 
   // Group by owner
-  const performerStats: Record<string, { revenue: number; deals: number; avgDealScore: number; totalScore: number }> = {};
+  const performerStats: Record<
+    string,
+    { revenue: number; deals: number; avgDealScore: number; totalScore: number }
+  > = {};
 
   closedWon.forEach((opp) => {
     const owner = opp.ownerName;
@@ -321,7 +329,13 @@ export function generateTopPerformersTable(): TableData {
       { id: 'quotaAtt', label: 'Quota Att.', type: 'string' },
       { id: 'avgDeal', label: 'Avg Deal', type: 'currency' },
       { id: 'riskLevel', label: 'Risk', type: 'string', isAI: true, aiSource: 'Von IQ' },
-      { id: 'nextAction', label: 'Next Best Action', type: 'string', isAI: true, aiSource: 'Von IQ' },
+      {
+        id: 'nextAction',
+        label: 'Next Best Action',
+        type: 'string',
+        isAI: true,
+        aiSource: 'Von IQ',
+      },
       { id: 'winProb', label: 'Win Prob.', type: 'string', isAI: true, aiSource: 'Von IQ' },
     ],
     rows: sortedPerformers.map((performer, index) => ({
@@ -366,8 +380,14 @@ export function generateRecommendationsWidget(): TextWidgetData {
   closedWon.forEach((opp) => {
     revenueByRegion[opp.region] = (revenueByRegion[opp.region] || 0) + opp.amount;
   });
-  const [topRegion] = Object.entries(revenueByRegion).sort((a, b) => b[1] - a[1])[0] || ['Unknown', 0];
-  const [bottomRegion] = Object.entries(revenueByRegion).sort((a, b) => a[1] - b[1])[0] || ['Unknown', 0];
+  const [topRegion] = Object.entries(revenueByRegion).sort((a, b) => b[1] - a[1])[0] || [
+    'Unknown',
+    0,
+  ];
+  const [bottomRegion] = Object.entries(revenueByRegion).sort((a, b) => a[1] - b[1])[0] || [
+    'Unknown',
+    0,
+  ];
 
   const avgDealScore = Math.round(
     opportunities.reduce((sum, opp) => sum + opp.dealScore, 0) / opportunities.length

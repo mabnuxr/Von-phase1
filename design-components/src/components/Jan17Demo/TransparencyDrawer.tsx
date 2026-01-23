@@ -646,11 +646,6 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
     }));
   }, [table.columns, table.filterFields]);
 
-  const activeFilterCount = filterGroups.reduce(
-    (sum, g) => sum + g.conditions.filter((c) => c.field).length,
-    0
-  );
-
   return (
     <div className="flex flex-col h-full">
       {/* Table Info Header */}
