@@ -853,8 +853,13 @@ export interface ChatProps {
   /**
    * Callback when a new message is sent
    * Includes optional file attachments when enableFileUpload is true
+   * Includes optional SendMessageOptions (agentMode, command) from ChatInputSelector
    */
-  onSendMessage?: (message: string, attachments?: MessageFileAttachment[]) => void;
+  onSendMessage?: (
+    message: string,
+    attachments?: MessageFileAttachment[],
+    options?: import('./ChatInputSelector').SendMessageOptions
+  ) => void;
 
   /**
    * Callback when the add button is clicked

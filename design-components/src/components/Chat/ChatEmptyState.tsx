@@ -10,6 +10,8 @@ import {
 } from '../Templates';
 import type { BuildMode } from '../DashboardBuilder';
 import type { AgentMode } from './StandardChatInput/types';
+import type { SendMessageOptions } from './ChatInputSelector';
+import type { FileAttachment } from './FileAttachment/types';
 
 export interface ChatEmptyStateProps {
   /**
@@ -18,8 +20,13 @@ export interface ChatEmptyStateProps {
   userName?: string;
   /**
    * Callback when a message is sent (from input or prompt click)
+   * Includes optional attachments and options (agentMode, command) from ChatInputSelector
    */
-  onSendMessage?: (message: string) => void;
+  onSendMessage?: (
+    message: string,
+    attachments?: FileAttachment[],
+    options?: SendMessageOptions
+  ) => void;
   /**
    * Default value to pre-fill the input (useful for demos)
    */
@@ -201,8 +208,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   );
 
   const handleSend = useCallback(
-    (message: string) => {
-      onSendMessage?.(message);
+    (message: string, attachments?: FileAttachment[], options?: SendMessageOptions) => {
+      onSendMessage?.(message, attachments, options);
       setInputValue('');
     },
     [onSendMessage]

@@ -292,7 +292,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onPopoverFeedback,
   // Agent props
   onBuildDashboard,
-  agentMode,
   // Disclaimer
   hideDisclaimer = false,
   // Agent selection props (for locking after first message)
