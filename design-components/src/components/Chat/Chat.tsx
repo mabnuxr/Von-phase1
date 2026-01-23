@@ -6,6 +6,8 @@ import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
+import type { SendMessageOptions } from './ChatInputSelector';
+import type { FileAttachment } from './FileAttachment/types';
 
 // Export types from types.ts
 export type {
@@ -181,7 +183,7 @@ export const Chat: React.FC<ChatProps> = ({
 
   // Handle sending a message
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments?: FileAttachment[], options?: SendMessageOptions) => {
       // Scroll to the bottom before calling onSendMessage
       shouldAutoScrollRef.current = true;
       scrollOnNewUserMessage.current = true;
@@ -190,7 +192,7 @@ export const Chat: React.FC<ChatProps> = ({
         scrollOnNewUserMessage.current = false;
       }, SCROLL_LOCK_DURATION_MS);
 
-      onSendMessage?.(content);
+      onSendMessage?.(content, attachments, options);
     },
     [onSendMessage]
   );
