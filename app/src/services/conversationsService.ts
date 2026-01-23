@@ -20,6 +20,7 @@ export interface ArtifactResponse {
   tool_call_id: string;
   tool_name: string;
   artifact_type: string;
+  category?: string;
   content: Record<string, unknown>;
   size_bytes: number;
   persisted_at: string;

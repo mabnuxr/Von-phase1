@@ -12,12 +12,16 @@
 
 import React, { useMemo } from "react";
 import { SingleArtifactDrawer } from "@vonlabs/design-components";
-import type { QueryColumn } from "@vonlabs/design-components";
+import type { QueryColumn, CallTranscript } from "@vonlabs/design-components";
 import {
   useLazyArtifactContent,
   type ArtifactResponse,
 } from "../hooks/useMessageArtifacts";
 import type { ArtifactState } from "../hooks/useArtifactState";
+import {
+  isRagArtifact,
+  transformSingleArtifactToCalls,
+} from "../utils/transformArtifactsToCalls";
 
 export interface SingleArtifactDrawerContainerProps {
   /** Conversation ID for fetching artifact */
@@ -28,7 +32,8 @@ export interface SingleArtifactDrawerContainerProps {
   onClose: () => void;
 }
 
-interface TransformedArtifact {
+interface TransformedDataArtifact {
+  viewMode: "data";
   query?: string;
   columns: QueryColumn[];
   rows: Record<string, string | number>[];
@@ -37,13 +42,28 @@ interface TransformedArtifact {
   errorMessage?: string;
 }
 
+interface TransformedCallsArtifact {
+  viewMode: "calls";
+  calls: CallTranscript[];
+}
+
+type TransformedArtifact = TransformedDataArtifact | TransformedCallsArtifact;
+
 /**
  * Transform artifact content to display format
  */
 function transformArtifactToDisplayFormat(
   artifact: ArtifactResponse,
 ): TransformedArtifact | null {
-  const { tool_name, content } = artifact;
+  const { tool_name, category, content } = artifact;
+
+  // Handle RAG/conversation search artifacts - render as calls timeline
+  if (category && isRagArtifact(category)) {
+    return {
+      viewMode: "calls",
+      calls: transformSingleArtifactToCalls(artifact),
+    };
+  }
 
   // Handle SQL query artifacts
   if (tool_name === "execute_sql_query") {
@@ -70,6 +90,7 @@ function transformArtifactToDisplayFormat(
     // Check if query execution failed (success explicitly false)
     if (sqlContent.success === false) {
       return {
+        viewMode: "data",
         query: queryStatement,
         columns: [],
         rows: [],
@@ -86,6 +107,7 @@ function transformArtifactToDisplayFormat(
     // This will show the "No data available" empty state in SingleArtifactDrawer
     if (!rawColumns || !rawRows || rawColumns.length === 0) {
       return {
+        viewMode: "data",
         query: queryStatement,
         columns: [],
         rows: [],
@@ -115,53 +137,11 @@ function transformArtifactToDisplayFormat(
     });
 
     return {
+      viewMode: "data",
       query: queryStatement,
       columns,
       rows,
       duration: sqlContent.execution_time_ms,
-    };
-  }
-
-  // Handle RAG/conversation search artifacts
-  if (tool_name === "execute_conversation_search") {
-    const ragContent = content as {
-      success?: boolean;
-      row_count?: number;
-      sample?: {
-        columns: Array<{ name: string; display_name: string }>;
-        rows: Array<Record<string, unknown>>;
-        size: number;
-        is_complete: boolean;
-      };
-    };
-
-    if (!ragContent.sample?.columns || !ragContent.sample?.rows) {
-      return null;
-    }
-
-    const columns: QueryColumn[] = ragContent.sample.columns.map((col) => ({
-      key: col.name,
-      label: col.display_name,
-      type: "string" as const,
-    }));
-
-    const rows = ragContent.sample.rows.map((row) => {
-      const transformedRow: Record<string, string | number> = {};
-      for (const [key, value] of Object.entries(row)) {
-        if (value === null || value === undefined) {
-          transformedRow[key] = "";
-        } else if (typeof value === "object") {
-          transformedRow[key] = JSON.stringify(value);
-        } else {
-          transformedRow[key] = value as string | number;
-        }
-      }
-      return transformedRow;
-    });
-
-    return {
-      columns,
-      rows,
     };
   }
 
@@ -201,6 +181,7 @@ function transformArtifactToDisplayFormat(
       });
 
       return {
+        viewMode: "data",
         columns,
         rows,
       };
@@ -219,6 +200,7 @@ function transformArtifactToDisplayFormat(
     }));
 
     return {
+      viewMode: "data",
       columns,
       rows,
     };
@@ -257,16 +239,39 @@ export const SingleArtifactDrawerContainer: React.FC<
   }, [artifact]);
 
   // Determine error message: fetch error takes precedence, then artifact error
-  const errorMessage = error?.message || displayData?.errorMessage || null;
+  const errorMessage = useMemo(() => {
+    if (error?.message) return error.message;
+    if (displayData?.viewMode === "data" && displayData.errorMessage) {
+      return displayData.errorMessage;
+    }
+    return null;
+  }, [error, displayData]);
 
+  // Build props based on view mode (discriminated union pattern)
+  if (displayData?.viewMode === "calls") {
+    return (
+      <SingleArtifactDrawer
+        isOpen={isOpen}
+        onClose={onClose}
+        toolName={toolName}
+        viewMode="calls"
+        calls={displayData.calls}
+        isLoading={isLoading}
+        error={errorMessage}
+      />
+    );
+  }
+
+  // Default to data view (includes null displayData case)
   return (
     <SingleArtifactDrawer
       isOpen={isOpen}
       onClose={onClose}
       toolName={toolName}
+      viewMode="data"
       query={displayData?.query}
-      columns={displayData?.columns || []}
-      rows={displayData?.rows || []}
+      columns={displayData?.columns ?? []}
+      rows={displayData?.rows ?? []}
       duration={displayData?.duration}
       isLoading={isLoading}
       error={errorMessage}

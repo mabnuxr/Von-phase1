@@ -50,7 +50,7 @@ export const StepRow = React.memo<StepRowProps>(
 
     return (
       <div className="relative flex">
-        {/* Timeline connector */}
+        {/* Timeline connector - small dot indicator */}
         <div className="flex flex-col items-center mr-3 flex-shrink-0">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
             <StepIndicator status={step.status} />
@@ -79,7 +79,7 @@ export const StepRow = React.memo<StepRowProps>(
               </span>
             )}
 
-            {/* Step text - improved contrast */}
+            {/* Step text */}
             <span
               className={`
                 flex-1 text-[13px] truncate
@@ -97,7 +97,7 @@ export const StepRow = React.memo<StepRowProps>(
             )}
           </button>
 
-          {/* Expanded content (description, approval, code, sub-steps, artifacts) */}
+          {/* Expanded content */}
           <AnimatePresence>
             {isExpanded && hasExpandableContent && (
               <motion.div
@@ -108,9 +108,9 @@ export const StepRow = React.memo<StepRowProps>(
                 className="overflow-hidden"
               >
                 <div className="mt-2 ml-4">
-                  {/* Description - collapsible, with markdown support */}
+                  {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-[12px] text-gray-700 leading-relaxed mb-2">
+                    <div className="text-xs text-gray-700 leading-relaxed">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}

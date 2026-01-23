@@ -13,8 +13,9 @@ import {
   HashIcon,
   DatabaseIcon,
   RobotIcon,
-  CaretRightIcon,
   ChartBarIcon,
+  CaretRightIcon,
+  UploadSimpleIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -91,13 +92,12 @@ const _MODE_OPTIONS = [
 export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
 
 /**
- * PlusButtonMenu - Plus button with context menu for upload, deep research, and agents options
+ * PlusButtonMenu - Plus button with context menu for agent modes
  */
 interface PlusButtonMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpen: () => void;
-  onUpload: () => void;
   onAgentModeChange: (mode: AgentMode) => void;
   onBuildDashboard?: () => void;
   selectedAgentMode: AgentMode;
@@ -108,22 +108,13 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   isOpen,
   onClose,
   onOpen,
-  onUpload,
   onAgentModeChange,
   onBuildDashboard,
   selectedAgentMode,
   disabled = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showAgentsSubmenu, setShowAgentsSubmenu] = useState(false);
-  const agentsItemRef = useRef<HTMLDivElement>(null);
-
-  // Close submenu when main menu closes
-  useEffect(() => {
-    if (!isOpen) {
-      setShowAgentsSubmenu(false);
-    }
-  }, [isOpen]);
+  const [isAgentSubmenuOpen, setIsAgentSubmenuOpen] = useState(false);
 
   const handleAgentSelect = (mode: AgentMode) => {
     onAgentModeChange(mode);
@@ -131,6 +122,12 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
       onBuildDashboard();
     }
     onClose();
+    setIsAgentSubmenuOpen(false);
+  };
+
+  const handleMenuClose = () => {
+    onClose();
+    setIsAgentSubmenuOpen(false);
   };
 
   return (
@@ -153,42 +150,46 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
             transition={{ duration: 0.15 }}
             className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
           >
-            {/* Upload option */}
+            {/* Upload option - disabled with "Soon" tag */}
             <button
-              onClick={() => {
-                onUpload();
-                onClose();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+              disabled
+              className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-400 cursor-not-allowed text-left"
             >
-              {/* <UploadSimpleIcon size={16} className="text-gray-600" /> */}
-              <span>Upload files and photos</span>
+              <div className="flex items-center gap-2.5">
+                <UploadSimpleIcon size={16} className="text-gray-300" />
+                <span>Upload</span>
+              </div>
+              <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-md font-medium">
+                Soon
+              </span>
             </button>
 
-            {/* Agents option with submenu */}
+            {/* Divider */}
+            <div className="my-1.5 border-t border-gray-100" />
+
+            {/* Agents submenu trigger */}
             <div
-              ref={agentsItemRef}
-              onMouseEnter={() => setShowAgentsSubmenu(true)}
-              onMouseLeave={() => setShowAgentsSubmenu(false)}
               className="relative"
+              onMouseEnter={() => setIsAgentSubmenuOpen(true)}
+              onMouseLeave={() => setIsAgentSubmenuOpen(false)}
             >
               <button className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
                 <div className="flex items-center gap-2.5">
-                  {/* <RobotIcon size={16} className="text-gray-600" /> */}
+                  <RobotIcon size={16} className="text-gray-500" />
                   <span>Agents</span>
                 </div>
-                <CaretRightIcon size={12} className="text-gray-400" />
+                <CaretRightIcon size={14} className="text-gray-400" />
               </button>
 
-              {/* Agents Submenu */}
+              {/* Agents submenu */}
               <AnimatePresence>
-                {showAgentsSubmenu && (
+                {isAgentSubmenuOpen && (
                   <motion.div
                     initial={{ opacity: 0, x: -4 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -4 }}
                     transition={{ duration: 0.1 }}
-                    className="absolute left-full top-0 ml-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
+                    className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
                   >
                     {/* Auto (default) */}
                     <button
@@ -196,7 +197,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
-                        {/* <RobotIcon size={16} className="text-gray-600" /> */}
+                        <RobotIcon size={16} className="text-gray-500" />
                         <span>Auto</span>
                       </div>
                       {selectedAgentMode === 'auto' && (
@@ -210,7 +211,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
-                        {/* <ChartBarIcon size={16} className="text-gray-600" /> */}
+                        <ChartBarIcon size={16} className="text-gray-500" />
                         <span>Build Dashboard</span>
                       </div>
                       {selectedAgentMode === 'build-dashboard' && (
@@ -224,7 +225,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
-                        {/* <AtomIcon size={16} className="text-gray-600" /> */}
+                        <AtomIcon size={16} className="text-gray-500" />
                         <span>Deep Research</span>
                       </div>
                       {selectedAgentMode === 'deep-research' && (
@@ -240,7 +241,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
       </AnimatePresence>
 
       {/* Click outside to close */}
-      {isOpen && <div className="fixed inset-0 z-40" onClick={onClose} />}
+      {isOpen && <div className="fixed inset-0 z-40" onClick={handleMenuClose} />}
     </div>
   );
 };
@@ -310,7 +311,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
     addFiles,
     removeFile,
     clearFiles,
-    openFilePicker,
     fileInputRef,
   } = useFileUpload({
     onError: (error, message) => {
@@ -415,11 +415,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   const handlePlusButtonClick = useCallback(() => {
     setIsPlusMenuOpen(true);
   }, []);
-
-  const handleUploadFilesClick = useCallback(() => {
-    setIsPlusMenuOpen(false);
-    openFilePicker();
-  }, [openFilePicker]);
 
   const handleAgentModeChange = useCallback((mode: AgentMode) => {
     setSelectedAgentMode(mode);
@@ -538,7 +533,6 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                   isOpen={isPlusMenuOpen}
                   onClose={() => setIsPlusMenuOpen(false)}
                   onOpen={handlePlusButtonClick}
-                  onUpload={handleUploadFilesClick}
                   onAgentModeChange={handleAgentModeChange}
                   onBuildDashboard={onBuildDashboard}
                   selectedAgentMode={selectedAgentMode}

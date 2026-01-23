@@ -1,21 +1,36 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, DatabaseIcon } from '@phosphor-icons/react';
+import { XIcon, DatabaseIcon, PhoneIcon } from '@phosphor-icons/react';
 import { ArtifactContentViewer } from './components';
-import type { QueryColumn } from '../TransparencyDrawer/types';
+import type { QueryColumn, CallTranscript } from '../TransparencyDrawer/types';
+import { CallsTabContent } from '../TransparencyDrawer/components';
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface SingleArtifactDrawerProps {
+/** View mode for the artifact drawer */
+export type ArtifactViewMode = 'data' | 'calls';
+
+/** Base props shared by all view modes */
+interface BaseDrawerProps {
   /** Whether the drawer is open */
   isOpen: boolean;
   /** Callback when the drawer should close */
   onClose: () => void;
   /** Tool name (used for title) */
   toolName: string;
+  /** Whether the content is loading */
+  isLoading?: boolean;
+  /** Error message if loading failed */
+  error?: string | null;
+}
+
+/** Props for data/table view mode */
+export interface DataViewProps extends BaseDrawerProps {
+  /** View mode: 'data' for table view */
+  viewMode: 'data';
   /** SQL query string (if applicable) */
   query?: string;
   /** Column definitions for the data table */
@@ -24,11 +39,18 @@ export interface SingleArtifactDrawerProps {
   rows: Record<string, string | number>[];
   /** Query execution duration in ms */
   duration?: number;
-  /** Whether the content is loading */
-  isLoading?: boolean;
-  /** Error message if loading failed */
-  error?: string | null;
 }
+
+/** Props for calls/timeline view mode */
+export interface CallsViewProps extends BaseDrawerProps {
+  /** View mode: 'calls' for timeline view */
+  viewMode: 'calls';
+  /** Call transcripts */
+  calls: CallTranscript[];
+}
+
+/** Discriminated union: props depend on viewMode */
+export type SingleArtifactDrawerProps = DataViewProps | CallsViewProps;
 
 // ============================================================================
 // Subcomponents
@@ -147,7 +169,23 @@ function EmptyState() {
 // ============================================================================
 
 /**
+ * CallsEmptyState - Empty state when no calls data
+ */
+function CallsEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center p-6">
+      <PhoneIcon size={48} weight="duotone" className="text-gray-300 mb-3" />
+      <p className="text-sm text-gray-500">No call recordings available</p>
+    </div>
+  );
+}
+
+/**
  * SingleArtifactDrawer - Drawer for displaying a single artifact
+ *
+ * Supports two view modes:
+ * - 'data': Table view for SQL queries and other data artifacts
+ * - 'calls': Timeline view for RAG/conversation search artifacts
  *
  * Similar UI to TransparencyDrawer but without:
  * - Multiple artifact selection (pill tabs)
@@ -155,19 +193,44 @@ function EmptyState() {
  *
  * Used when clicking on artifact from thinking process steps.
  */
-export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
-  isOpen,
-  onClose,
-  toolName,
-  query,
-  columns,
-  rows,
-  duration,
-  isLoading = false,
-  error = null,
-}) => {
+export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props) => {
+  const { isOpen, onClose, toolName, viewMode, isLoading = false, error = null } = props;
+
   const displayTitle = getToolDisplayName(toolName);
-  const hasData = rows.length > 0;
+  const isCallsView = viewMode === 'calls';
+
+  // Determine if there's data based on view mode
+  const hasData = isCallsView
+    ? (props as CallsViewProps).calls.length > 0
+    : (props as DataViewProps).rows.length > 0;
+
+  // Header icon based on view mode
+  const HeaderIcon = isCallsView ? PhoneIcon : DatabaseIcon;
+
+  // Render content based on view mode
+  const renderContent = () => {
+    if (isLoading) {
+      return <LoadingState />;
+    }
+
+    if (error) {
+      return <ErrorState message={error} />;
+    }
+
+    if (!hasData) {
+      return isCallsView ? <CallsEmptyState /> : <EmptyState />;
+    }
+
+    if (isCallsView) {
+      const { calls } = props as CallsViewProps;
+      return <CallsTabContent calls={calls} />;
+    }
+
+    const { query, columns, rows, duration } = props as DataViewProps;
+    return (
+      <ArtifactContentViewer query={query} columns={columns} rows={rows} duration={duration} />
+    );
+  };
 
   return (
     <AnimatePresence>
@@ -190,7 +253,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-50">
-                    <DatabaseIcon size={18} weight="duotone" className="text-indigo-600" />
+                    <HeaderIcon size={18} weight="duotone" className="text-indigo-600" />
                   </div>
                   <h2 className="text-base font-semibold text-gray-900">{displayTitle}</h2>
                 </div>
@@ -203,22 +266,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = ({
               </div>
 
               {/* Content */}
-              <div className="flex-1 min-h-0 flex flex-col">
-                {isLoading ? (
-                  <LoadingState />
-                ) : error ? (
-                  <ErrorState message={error} />
-                ) : !hasData ? (
-                  <EmptyState />
-                ) : (
-                  <ArtifactContentViewer
-                    query={query}
-                    columns={columns}
-                    rows={rows}
-                    duration={duration}
-                  />
-                )}
-              </div>
+              <div className="flex-1 min-h-0 flex flex-col">{renderContent()}</div>
             </div>
           </motion.div>
         </>

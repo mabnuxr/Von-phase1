@@ -28,6 +28,11 @@ interface ChatState {
   ) => void;
   clearMessages: (conversationId: string) => void;
   clearAllMessagesExcept: (conversationId: string) => void;
+  updateMessageId: (
+    conversationId: string,
+    oldId: string,
+    newId: string,
+  ) => void;
 
   // Message loading state
   isLoadingMessages: boolean;
@@ -99,6 +104,28 @@ const useChatStoreBase = create<ChatState>((set) => ({
         existingIndex = existingMessages.findIndex((m) => m.id === message.id);
       }
 
+      // Fallback: For user messages, check for optimistic messages with same content
+      // This handles race condition where Pusher arrives before HTTP response
+      if (existingIndex < 0 && message.role === "user") {
+        existingIndex = existingMessages.findIndex(
+          (m) =>
+            m.id.startsWith("optimistic-") &&
+            m.role === "user" &&
+            m.messageContent === message.messageContent,
+        );
+      }
+
+      // Fallback: For assistant messages, check for optimistic streaming assistant message
+      // This reconciles the optimistic "thinking" message with the real assistant response
+      if (existingIndex < 0 && message.role === "assistant") {
+        existingIndex = existingMessages.findIndex(
+          (m) =>
+            m.id.startsWith("optimistic-") &&
+            m.role === "assistant" &&
+            m.isStreaming === true,
+        );
+      }
+
       let updatedConversationMessages: MessageWithStreaming[];
 
       if (existingIndex >= 0) {
@@ -166,6 +193,21 @@ const useChatStoreBase = create<ChatState>((set) => ({
         newMessages[keepConversationId] = state.messages[keepConversationId];
       }
       return { messages: newMessages };
+    }),
+
+  updateMessageId: (conversationId, oldId, newId) =>
+    set((state) => {
+      const messages = state.messages[conversationId];
+      if (!messages) return state;
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: messages.map((msg) =>
+            msg.id === oldId ? { ...msg, id: newId, runId: newId } : msg,
+          ),
+        },
+      };
     }),
 
   // Message loading state
