@@ -26,20 +26,16 @@ import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import {
-  transformMessagesToChatFormat,
   transformConversationsToChatItems,
   handleToolApproval,
   handleToolRejection,
+  transformConversationMessages,
 } from "../lib/dashboardUtils";
 import {
   agentModeToConversationMode,
   conversationModeToAgentMode,
   DEFAULT_AGENT_MODE,
 } from "../lib/conversationModeUtils";
-import {
-  transformAguiToTimelineSteps,
-  getElapsedTimeFromEvents,
-} from "../utils/transformAguiToTimelineSteps";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
@@ -54,8 +50,6 @@ import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
 import { ArtifactPaneContainer } from "../components/ArtifactPaneContainer";
 import { SingleArtifactDrawerContainer } from "../components/SingleArtifactDrawerContainer";
 import { useArtifactState } from "../hooks/useArtifactState";
-// Import Message type from design-components (includes events field)
-import type { Message as ChatMessage } from "@vonlabs/design-components";
 import {
   TopBar,
   ChatSidebar,
@@ -616,93 +610,31 @@ const Dashboard = () => {
   } = useConversationPusherChannelV2(v2ChannelConfig);
 
   // Transform backend messages to Chat component format
-  // Replay events if backend hasn't persisted stepMessages/toolCalls
-  // For v2, transform events to timeline steps for each assistant message
-  const transformedMessages: ChatMessage[] = useMemo(() => {
-    const messages = transformMessagesToChatFormat(conversationMessages);
-    const usableV2TimelineSteps = v2TimelineSteps.filter(
-      (timelineStep) => timelineStep.category !== "e2b",
-    );
-
-    // Debug: Log timeline steps
-    if (usableV2TimelineSteps.length > 0) {
-      console.log("[Dashboard] V2 Timeline Steps:", {
-        total: v2TimelineSteps.length,
-        usable: usableV2TimelineSteps.length,
-        steps: usableV2TimelineSteps.map((s) => ({
-          id: s.id,
-          type: s.type,
-          text: s.text?.slice(0, 30),
-          hasDescription: !!s.description,
-          descriptionLength: s.description?.length || 0,
-        })),
-      });
-    }
-
-    if (!isAgentV2) {
-      return messages;
-    }
-
-    // For v2: transform events to timeline steps for each message
-    return messages.map((msg, index) => {
-      // Only process assistant messages
-      if (msg.type !== "assistant") {
-        return msg;
-      }
-
-      // Check if this is the latest assistant message and we have live streaming data
-      const isLastAssistant = (() => {
-        for (let i = messages.length - 1; i >= 0; i--) {
-          if (messages[i].type === "assistant") {
-            return i === index;
-          }
-        }
-        return false;
-      })();
-
-      // If this is the latest message and we have live V2 data from Pusher, use it
-      // Apply V2 data when: timeline steps exist, OR final response exists, OR agent is thinking
-      if (
-        isLastAssistant &&
-        (usableV2TimelineSteps.length > 0 || v2FinalResponse || v2IsThinking)
-      ) {
-        return {
-          ...msg,
-          // Override isStreaming with v2IsThinking to ensure proper state during approval wait
-          isStreaming: v2IsThinking,
-          timelineSteps: usableV2TimelineSteps,
-          thinkingElapsedTime: v2ElapsedTime,
-          v2FinalResponse,
-          v2FinalResponseStreaming: v2IsFinalResponseStreaming,
-        };
-      }
-
-      // For persisted messages, transform events to timeline steps
-      if (msg.events && msg.events.length > 0) {
-        const { steps, finalResponse, isFinalResponseStreaming } =
-          transformAguiToTimelineSteps(msg.events);
-        const usableSteps = steps.filter((step) => step.category !== "e2b");
-        const elapsed = getElapsedTimeFromEvents(msg.events);
-        return {
-          ...msg,
-          timelineSteps: usableSteps,
-          thinkingElapsedTime: elapsed,
-          v2FinalResponse: finalResponse,
-          v2FinalResponseStreaming: isFinalResponseStreaming,
-        };
-      }
-
-      return msg;
-    });
-  }, [
-    conversationMessages,
-    isAgentV2,
-    v2TimelineSteps,
-    v2ElapsedTime,
-    v2FinalResponse,
-    v2IsFinalResponseStreaming,
-    v2IsThinking,
-  ]);
+  // Handles both V1 (simple) and V2 (timeline steps, research results) agents
+  const {
+    messages: transformedMessages,
+    researchResults: effectiveResearchResults,
+  } = useMemo(
+    () =>
+      transformConversationMessages(conversationMessages, isAgentV2, {
+        timelineSteps: v2TimelineSteps,
+        isThinking: v2IsThinking,
+        elapsedTime: v2ElapsedTime,
+        finalResponse: v2FinalResponse,
+        isFinalResponseStreaming: v2IsFinalResponseStreaming,
+        researchResults: v2ResearchResults,
+      }),
+    [
+      conversationMessages,
+      isAgentV2,
+      v2TimelineSteps,
+      v2ElapsedTime,
+      v2FinalResponse,
+      v2IsFinalResponseStreaming,
+      v2IsThinking,
+      v2ResearchResults,
+    ],
+  );
 
   // Force complete message handler for timeout
   // Wrapped in useCallback to prevent timer resets in useStreamTimeout
@@ -1114,18 +1046,23 @@ const Dashboard = () => {
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
                 // Deep Research Results (V2 only)
-                researchResults={isAgentV2 ? v2ResearchResults : undefined}
+                researchResults={
+                  isAgentV2
+                    ? (effectiveResearchResults ?? undefined)
+                    : undefined
+                }
                 isDeepResearchRunning={
                   isAgentV2 ? v2IsDeepResearchRunning : undefined
                 }
                 onDataTablesClick={handleDataTablesClick}
                 dataTablesInfo={
-                  v2ResearchResults?.metadata?.data_sources
+                  effectiveResearchResults?.metadata?.data_sources
                     ? {
                         tableCount:
-                          v2ResearchResults.metadata.data_sources.length,
+                          effectiveResearchResults.metadata.data_sources.length,
                         processedRecords: undefined,
-                        totalRecords: v2ResearchResults.metadata.total_records,
+                        totalRecords:
+                          effectiveResearchResults.metadata.total_records,
                       }
                     : undefined
                 }
