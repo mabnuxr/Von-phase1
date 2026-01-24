@@ -1,17 +1,19 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, DatabaseIcon, PhoneIcon } from '@phosphor-icons/react';
+import { XIcon, DatabaseIcon, PhoneIcon, BrainIcon } from '@phosphor-icons/react';
 import { ArtifactContentViewer } from './components';
 import type { QueryColumn, CallTranscript } from '../TransparencyDrawer/types';
 import { CallsTabContent } from '../TransparencyDrawer/components';
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
+import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
+import type { MemoryResultData } from '../Chat/types';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /** View mode for the artifact drawer */
-export type ArtifactViewMode = 'data' | 'calls';
+export type ArtifactViewMode = 'data' | 'calls' | 'memory';
 
 /** Base props shared by all view modes */
 interface BaseDrawerProps {
@@ -49,8 +51,16 @@ export interface CallsViewProps extends BaseDrawerProps {
   calls: CallTranscript[];
 }
 
+/** Props for memory view mode */
+export interface MemoryViewProps extends BaseDrawerProps {
+  /** View mode: 'memory' for memory artifact view */
+  viewMode: 'memory';
+  /** Memory operation data */
+  memoryData: MemoryResultData;
+}
+
 /** Discriminated union: props depend on viewMode */
-export type SingleArtifactDrawerProps = DataViewProps | CallsViewProps;
+export type SingleArtifactDrawerProps = DataViewProps | CallsViewProps | MemoryViewProps;
 
 // ============================================================================
 // Subcomponents
@@ -198,14 +208,17 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
 
   const displayTitle = getToolDisplayName(toolName);
   const isCallsView = viewMode === 'calls';
+  const isMemoryView = viewMode === 'memory';
 
   // Determine if there's data based on view mode
   const hasData = isCallsView
-    ? (props as CallsViewProps).calls.length > 0
-    : (props as DataViewProps).rows.length > 0;
+    ? ((props as CallsViewProps).calls?.length ?? 0) > 0
+    : isMemoryView
+      ? true // Memory always has data if we got here
+      : ((props as DataViewProps).rows?.length ?? 0) > 0;
 
   // Header icon based on view mode
-  const HeaderIcon = isCallsView ? PhoneIcon : DatabaseIcon;
+  const HeaderIcon = isMemoryView ? BrainIcon : isCallsView ? PhoneIcon : DatabaseIcon;
 
   // Render content based on view mode
   const renderContent = () => {
@@ -219,6 +232,15 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
 
     if (!hasData) {
       return isCallsView ? <CallsEmptyState /> : <EmptyState />;
+    }
+
+    if (isMemoryView) {
+      const { memoryData } = props as MemoryViewProps;
+      return (
+        <div className="p-4">
+          <MemoryResultRenderer result={{ type: 'memory', memory: memoryData, raw: {} }} />
+        </div>
+      );
     }
 
     if (isCallsView) {

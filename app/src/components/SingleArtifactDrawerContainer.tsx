@@ -47,7 +47,23 @@ interface TransformedCallsArtifact {
   calls: CallTranscript[];
 }
 
-type TransformedArtifact = TransformedDataArtifact | TransformedCallsArtifact;
+interface TransformedMemoryArtifact {
+  viewMode: "memory";
+  memoryData: {
+    operation: "retrieve" | "save" | "update";
+    success: boolean;
+    key: string;
+    value?: string;
+    char_count?: number;
+    appended?: boolean;
+    error?: string;
+  };
+}
+
+type TransformedArtifact =
+  | TransformedDataArtifact
+  | TransformedCallsArtifact
+  | TransformedMemoryArtifact;
 
 /**
  * Transform artifact content to display format
@@ -62,6 +78,24 @@ function transformArtifactToDisplayFormat(
     return {
       viewMode: "calls",
       calls: transformSingleArtifactToCalls(artifact),
+    };
+  }
+
+  // Handle memory artifacts - render with markdown support
+  if (category === "memory" && content.key !== undefined) {
+    return {
+      viewMode: "memory",
+      memoryData: {
+        operation: (content.memory_operation ||
+          content.operation ||
+          "retrieve") as "retrieve" | "save" | "update",
+        success: content.success as boolean,
+        key: content.key as string,
+        value: content.value as string | undefined,
+        char_count: content.char_count as number | undefined,
+        appended: content.appended as boolean | undefined,
+        error: content.error as string | undefined,
+      },
     };
   }
 
@@ -248,6 +282,20 @@ export const SingleArtifactDrawerContainer: React.FC<
   }, [error, displayData]);
 
   // Build props based on view mode (discriminated union pattern)
+  if (displayData?.viewMode === "memory") {
+    return (
+      <SingleArtifactDrawer
+        isOpen={isOpen}
+        onClose={onClose}
+        toolName={toolName}
+        viewMode="memory"
+        memoryData={displayData.memoryData}
+        isLoading={isLoading}
+        error={errorMessage}
+      />
+    );
+  }
+
   if (displayData?.viewMode === "calls") {
     return (
       <SingleArtifactDrawer

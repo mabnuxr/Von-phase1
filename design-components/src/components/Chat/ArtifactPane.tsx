@@ -31,6 +31,7 @@ export interface ArtifactData {
   tool_call_id: string;
   tool_name: string;
   artifact_type: string;
+  category?: string;
   content: Record<string, unknown>;
   size_bytes: number;
   persisted_at: string;
@@ -446,14 +447,14 @@ export function ArtifactPane({
                 queries: (artifact.content as Record<string, unknown>).queries as QueryInfo[],
               }
             : {}),
-          ...(artifact.artifact_type === 'memory' &&
-          (artifact.content as Record<string, unknown>).memory_operation
+          ...((artifact.artifact_type === 'memory' || artifact.category === 'memory') &&
+          (artifact.content as Record<string, unknown>).key !== undefined
             ? {
+                type: 'memory' as const,
                 memory: {
-                  operation: (artifact.content as Record<string, unknown>).memory_operation as
-                    | 'retrieve'
-                    | 'save'
-                    | 'update',
+                  operation: ((artifact.content as Record<string, unknown>).memory_operation ||
+                    (artifact.content as Record<string, unknown>).operation ||
+                    'retrieve') as 'retrieve' | 'save' | 'update',
                   success: (artifact.content as Record<string, unknown>).success as boolean,
                   key: (artifact.content as Record<string, unknown>).key as string,
                   value: (artifact.content as Record<string, unknown>).value as string | undefined,

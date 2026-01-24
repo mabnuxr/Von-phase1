@@ -41,8 +41,10 @@ export const MemoryResultRenderer: React.FC<MemoryResultRendererProps> = ({ resu
       {success && operation === 'retrieve' && value && (
         <div className="pl-6 space-y-2">
           <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-            <div className="text-sm [&>*]:text-sm [&>*]:leading-relaxed">
-              <Streamdown parseIncompleteMarkdown={false}>{value}</Streamdown>
+            <div className="prose-sm markdown-body max-w-none">
+              <Streamdown parseIncompleteMarkdown={false} controls={{ table: true }}>
+                {value}
+              </Streamdown>
             </div>
           </div>
           {char_count !== undefined && (
@@ -59,8 +61,10 @@ export const MemoryResultRenderer: React.FC<MemoryResultRendererProps> = ({ resu
       {success && operation !== 'retrieve' && value && (
         <div className="pl-6 space-y-2">
           <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-            <div className="text-sm [&>*]:text-sm [&>*]:leading-relaxed">
-              <Streamdown parseIncompleteMarkdown={true}>{value}</Streamdown>
+            <div className="prose-sm markdown-body max-w-none">
+              <Streamdown parseIncompleteMarkdown={true} controls={{ table: true }}>
+                {value}
+              </Streamdown>
             </div>
           </div>
           {char_count !== undefined && (
