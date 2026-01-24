@@ -179,6 +179,16 @@ export type {
 // Export approval utility functions
 export { isApprovalTool, isGoogleCalendarApprovalTool } from './Chat/index';
 
+// Export tool result renderers (for rendering agent tool outputs)
+export { ToolResultRenderer } from './Chat/ToolResultRenderer';
+export type { ToolResultRendererProps } from './Chat/ToolResultRenderer';
+
+export { CallSearchUnionRenderer } from './Chat/CallSearchUnionRenderer';
+export type { CallSearchUnionRendererProps } from './Chat/CallSearchUnionRenderer';
+
+export { ConversationSearchRenderer } from './Chat/ConversationSearchRenderer';
+export type { ConversationSearchRendererProps } from './Chat/ConversationSearchRenderer';
+
 // TopBar Organism (uses: TabPill + Avatar, manages tab state)
 export { TopBar } from './TopBar';
 export type { TopBarProps, Tab } from './TopBar';

@@ -113,6 +113,17 @@ function parseToolResult(resultJson: any): ToolResult | null {
       };
     }
 
+    // Detect consolidated conversation search results (calls + emails)
+    if (
+      resultJson.type === "consolidated_conversation_search" &&
+      (resultJson.calls || resultJson.emails)
+    ) {
+      return {
+        raw: resultJson,
+        type: "consolidated_conversation_search",
+      };
+    }
+
     // Detect query information
     if (resultJson.queries && Array.isArray(resultJson.queries)) {
       return {

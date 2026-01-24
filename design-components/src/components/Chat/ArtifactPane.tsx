@@ -336,8 +336,17 @@ export function ArtifactPane({
             | 'query'
             | 'table_list'
             | 'memory'
-            | 'call_search_union',
+            | 'call_search_union'
+            | 'consolidated_conversation_search',
           // Map artifact types to ToolResult structure
+          // Handle consolidated_conversation_search type (calls + emails with queries)
+          // Check content.type first since artifact_type may not match the actual result type
+          ...((artifact.content as Record<string, unknown>).type ===
+          'consolidated_conversation_search'
+            ? {
+                type: 'consolidated_conversation_search' as const,
+              }
+            : {}),
           // Handle call_search_union type (find_entity_conversations results) - render as flat table
           // Check content.type first since artifact_type may be 'table' but content is call_search_union
           ...((artifact.content as Record<string, unknown>).type === 'call_search_union' &&
@@ -456,6 +465,14 @@ export function ArtifactPane({
                     | undefined,
                   error: (artifact.content as Record<string, unknown>).error as string | undefined,
                 },
+              }
+            : {}),
+          // Handle when artifact_type is directly consolidated_conversation_search
+          ...(artifact.artifact_type === 'consolidated_conversation_search' &&
+          ((artifact.content as Record<string, unknown>).calls ||
+            (artifact.content as Record<string, unknown>).emails)
+            ? {
+                type: 'consolidated_conversation_search' as const,
               }
             : {}),
         }
