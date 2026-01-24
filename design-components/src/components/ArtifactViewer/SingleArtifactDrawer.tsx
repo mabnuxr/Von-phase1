@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, DatabaseIcon, PhoneIcon, BrainIcon } from '@phosphor-icons/react';
+import { XIcon, DatabaseIcon, PhoneIcon, Brain as BrainIcon } from '@phosphor-icons/react';
 import { ArtifactContentViewer } from './components';
 import type { QueryColumn, CallTranscript } from '../TransparencyDrawer/types';
 import { CallsTabContent } from '../TransparencyDrawer/components';
