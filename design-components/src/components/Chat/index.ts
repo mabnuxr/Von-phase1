@@ -84,6 +84,9 @@ export { MemoryResultRenderer } from './MemoryResultRenderer';
 export { CallSearchUnionRenderer } from './CallSearchUnionRenderer';
 export type { CallSearchUnionRendererProps } from './CallSearchUnionRenderer';
 
+export { ConversationSearchRenderer } from './ConversationSearchRenderer';
+export type { ConversationSearchRendererProps } from './ConversationSearchRenderer';
+
 export { ToolCallBlock } from './ToolCallBlock';
 export type { ToolCallBlockProps } from './ToolCallBlock';
 

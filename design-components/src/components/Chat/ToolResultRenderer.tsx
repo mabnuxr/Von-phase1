@@ -9,6 +9,7 @@ import { TableListRenderer } from './TableListRenderer';
 import { ValuesRenderer } from './ValuesRenderer';
 import { MemoryResultRenderer } from './MemoryResultRenderer';
 import { CallSearchUnionRenderer } from './CallSearchUnionRenderer';
+import { ConversationSearchRenderer } from './ConversationSearchRenderer';
 import type { ToolResult } from './types';
 
 export interface ToolResultRendererProps {
@@ -100,6 +101,10 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({
           enableDeepLinks={enableDeepLinks}
         />
       ) : null;
+
+    case 'consolidated_conversation_search':
+      // Render consolidated conversation search results (calls + emails with queries)
+      return <ConversationSearchRenderer result={result.raw} />;
 
     case 'json':
     default:

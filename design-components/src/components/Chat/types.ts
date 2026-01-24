@@ -406,7 +406,8 @@ export interface ToolResult {
     | 'table_list'
     | 'statistics'
     | 'memory'
-    | 'call_search_union';
+    | 'call_search_union'
+    | 'consolidated_conversation_search';
   table?: TableData;
   queries?: QueryInfo[];
   metrics?: MetricData[];
