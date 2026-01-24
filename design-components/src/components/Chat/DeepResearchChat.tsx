@@ -176,8 +176,19 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           );
         }
 
-        // Assistant message that triggers approval - render only thinking process
-        if (isApprovalMessage) {
+        // Check if this is the last assistant message (the one associated with current research flow)
+        const isLastAssistant = (() => {
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].type === 'assistant') {
+              return messages[i].id === message.id;
+            }
+          }
+          return false;
+        })();
+
+        // For deep research mode, render only thinking process (no message actions)
+        // This applies to: approval message OR last assistant when research is showing
+        if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
             <div key={message.id} className="w-full pt-6 bg-white font-sf">
               <div className="px-2">
@@ -211,7 +222,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           );
         }
 
-        // Regular assistant message (historical) - render with full ChatMessage
+        // Historical assistant messages - render with full ChatMessage
         return (
           <div key={message.id} className="mb-4">
             <ChatMessage
