@@ -130,7 +130,6 @@ const ColorControl = ({ label, value, onChange }: ColorControlProps) => (
       className="w-6 h-6 rounded border border-gray-200 cursor-pointer"
     />
     <input
-    <input
       type="text"
       value={value}
       onChange={(e) => {
@@ -140,7 +139,6 @@ const ColorControl = ({ label, value, onChange }: ColorControlProps) => (
         }
       }}
       className="w-16 px-1.5 py-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded"
-    />
     />
   </div>
 );
