@@ -1,7 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, useMemo } from 'react';
 import { Streamdown } from 'streamdown';
-import { CaretDown, CaretRight, Export, Copy, Check, X, PencilSimple, Eye } from '@phosphor-icons/react';
+import {
+  CaretDown,
+  CaretRight,
+  Export,
+  Copy,
+  Check,
+  X,
+  PencilSimple,
+  Eye,
+} from '@phosphor-icons/react';
 import { sampleMarkdownContent } from './sampleContent';
 
 /**
@@ -17,10 +26,26 @@ import { sampleMarkdownContent } from './sampleContent';
 // Font options with Google Fonts support
 const FONT_OPTIONS = [
   { name: 'Inter', value: "'Inter', sans-serif", googleFont: 'Inter:wght@400;500;600;700' },
-  { name: 'SF Pro', value: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif", googleFont: null },
-  { name: 'Source Sans Pro', value: "'Source Sans Pro', sans-serif", googleFont: 'Source+Sans+Pro:wght@400;500;600;700' },
-  { name: 'IBM Plex Sans', value: "'IBM Plex Sans', sans-serif", googleFont: 'IBM+Plex+Sans:wght@400;500;600;700' },
-  { name: 'Plus Jakarta Sans', value: "'Plus Jakarta Sans', sans-serif", googleFont: 'Plus+Jakarta+Sans:wght@400;500;600;700' },
+  {
+    name: 'SF Pro',
+    value: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif",
+    googleFont: null,
+  },
+  {
+    name: 'Source Sans Pro',
+    value: "'Source Sans Pro', sans-serif",
+    googleFont: 'Source+Sans+Pro:wght@400;500;600;700',
+  },
+  {
+    name: 'IBM Plex Sans',
+    value: "'IBM Plex Sans', sans-serif",
+    googleFont: 'IBM+Plex+Sans:wght@400;500;600;700',
+  },
+  {
+    name: 'Plus Jakarta Sans',
+    value: "'Plus Jakarta Sans', sans-serif",
+    googleFont: 'Plus+Jakarta+Sans:wght@400;500;600;700',
+  },
   { name: 'DM Sans', value: "'DM Sans', sans-serif", googleFont: 'DM+Sans:wght@400;500;600;700' },
   { name: 'Outfit', value: "'Outfit', sans-serif", googleFont: 'Outfit:wght@400;500;600;700' },
   { name: 'Figtree', value: "'Figtree', sans-serif", googleFont: 'Figtree:wght@400;500;600;700' },
@@ -60,7 +85,15 @@ interface SliderControlProps {
   onChange: (value: number) => void;
 }
 
-const SliderControl = ({ label, value, min, max, step, unit = '', onChange }: SliderControlProps) => (
+const SliderControl = ({
+  label,
+  value,
+  min,
+  max,
+  step,
+  unit = '',
+  onChange,
+}: SliderControlProps) => (
   <div className="mb-3">
     <div className="flex justify-between items-center mb-1">
       <label className="text-xs text-gray-600">{label}</label>
@@ -330,7 +363,11 @@ const MarkdownFormattingExperiment = () => {
 
           <div className="px-3">
             {/* Global Settings */}
-            <CollapsibleSection title="Global" isOpen={openSections.global} onToggle={() => toggleSection('global')}>
+            <CollapsibleSection
+              title="Global"
+              isOpen={openSections.global}
+              onToggle={() => toggleSection('global')}
+            >
               <SelectControl
                 label="Font Family"
                 value={fontFamily}
@@ -363,10 +400,42 @@ const MarkdownFormattingExperiment = () => {
               isOpen={openSections.headings}
               onToggle={() => toggleSection('headings')}
             >
-              <SliderControl label="H1 Size" value={h1Size} min={20} max={40} step={1} unit="px" onChange={setH1Size} />
-              <SliderControl label="H2 Size" value={h2Size} min={16} max={32} step={1} unit="px" onChange={setH2Size} />
-              <SliderControl label="H3 Size" value={h3Size} min={14} max={28} step={1} unit="px" onChange={setH3Size} />
-              <SliderControl label="H4 Size" value={h4Size} min={12} max={24} step={1} unit="px" onChange={setH4Size} />
+              <SliderControl
+                label="H1 Size"
+                value={h1Size}
+                min={20}
+                max={40}
+                step={1}
+                unit="px"
+                onChange={setH1Size}
+              />
+              <SliderControl
+                label="H2 Size"
+                value={h2Size}
+                min={16}
+                max={32}
+                step={1}
+                unit="px"
+                onChange={setH2Size}
+              />
+              <SliderControl
+                label="H3 Size"
+                value={h3Size}
+                min={14}
+                max={28}
+                step={1}
+                unit="px"
+                onChange={setH3Size}
+              />
+              <SliderControl
+                label="H4 Size"
+                value={h4Size}
+                min={12}
+                max={24}
+                step={1}
+                unit="px"
+                onChange={setH4Size}
+              />
               <ColorControl label="Heading Color" value={headingColor} onChange={setHeadingColor} />
             </CollapsibleSection>
 
@@ -388,7 +457,11 @@ const MarkdownFormattingExperiment = () => {
             </CollapsibleSection>
 
             {/* Lists */}
-            <CollapsibleSection title="Lists" isOpen={openSections.lists} onToggle={() => toggleSection('lists')}>
+            <CollapsibleSection
+              title="Lists"
+              isOpen={openSections.lists}
+              onToggle={() => toggleSection('lists')}
+            >
               <SliderControl
                 label="Left Padding"
                 value={listPadding}
@@ -410,12 +483,20 @@ const MarkdownFormattingExperiment = () => {
             </CollapsibleSection>
 
             {/* Links */}
-            <CollapsibleSection title="Links" isOpen={openSections.links} onToggle={() => toggleSection('links')}>
+            <CollapsibleSection
+              title="Links"
+              isOpen={openSections.links}
+              onToggle={() => toggleSection('links')}
+            >
               <ColorControl label="Link Color" value={linkColor} onChange={setLinkColor} />
             </CollapsibleSection>
 
             {/* Table */}
-            <CollapsibleSection title="Table" isOpen={openSections.table} onToggle={() => toggleSection('table')}>
+            <CollapsibleSection
+              title="Table"
+              isOpen={openSections.table}
+              onToggle={() => toggleSection('table')}
+            >
               <SliderControl
                 label="Cell Padding"
                 value={tableCellPadding}
@@ -425,7 +506,11 @@ const MarkdownFormattingExperiment = () => {
                 unit="em"
                 onChange={setTableCellPadding}
               />
-              <ColorControl label="Border Color" value={tableBorderColor} onChange={setTableBorderColor} />
+              <ColorControl
+                label="Border Color"
+                value={tableBorderColor}
+                onChange={setTableBorderColor}
+              />
               <ColorControl label="Header Bg" value={tableHeaderBg} onChange={setTableHeaderBg} />
             </CollapsibleSection>
           </div>
@@ -445,7 +530,9 @@ const MarkdownFormattingExperiment = () => {
               <button
                 onClick={() => setViewMode('preview')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  viewMode === 'preview' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  viewMode === 'preview'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Eye size={14} />
@@ -454,7 +541,9 @@ const MarkdownFormattingExperiment = () => {
               <button
                 onClick={() => setViewMode('edit')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                  viewMode === 'edit' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                  viewMode === 'edit'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <PencilSimple size={14} />
@@ -511,7 +600,9 @@ const MarkdownFormattingExperiment = () => {
                 Copy this CSS and paste it into index.css to update the markdown-content styles.
               </p>
               <div className="flex-1 min-h-0 overflow-auto bg-gray-50 rounded-lg border border-gray-200">
-                <pre className="p-4 text-xs font-mono text-gray-700 whitespace-pre">{getCssOutput()}</pre>
+                <pre className="p-4 text-xs font-mono text-gray-700 whitespace-pre">
+                  {getCssOutput()}
+                </pre>
               </div>
             </div>
             <div className="flex-shrink-0 flex justify-end gap-2 px-4 py-3 border-t border-gray-100">

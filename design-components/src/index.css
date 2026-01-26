@@ -330,7 +330,11 @@
  * Balanced colors for readability without harsh contrast
  */
 .markdown-content {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   color: #121212;
   font-size: 15px;
   line-height: 1.7;
@@ -532,7 +536,7 @@
 .prose table[data-streamdown='table'] {
   width: 100%;
   border-collapse: collapse;
-  margin: 0!important;
+  margin: 0 !important;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   overflow: hidden;
@@ -640,7 +644,7 @@ h2[data-streamdown='heading-2'] {
   color: #171717 !important;
   padding-bottom: 0;
   border-bottom: 1px solid #e5e5e5;
-  padding-bottom: 0.5em!important;
+  padding-bottom: 0.5em !important;
 }
 
 .markdown-body h3,
