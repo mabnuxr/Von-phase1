@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, useMemo } from 'react';
 import { Streamdown } from 'streamdown';
 import { CaretDown, CaretRight, Export, Copy, Check, X, PencilSimple, Eye } from '@phosphor-icons/react';
