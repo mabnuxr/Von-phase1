@@ -834,14 +834,13 @@ const Dashboard = () => {
     [currentConversationId],
   );
 
-  // Deep Research: Data Tables click handler
+  // Deep Research: Data Tables click handler - opens transparency drawer for the research message
   const handleDataTablesClick = useCallback(() => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] handleDataTablesClick called");
+    const latestResearchMessageId = effectiveResearchResults?.messageId;
+    if (latestResearchMessageId) {
+      handleTransparencyClick(latestResearchMessageId);
     }
-    // TODO: Open a drawer/modal to show the data tables for review
-    // This could open the transparency drawer or a dedicated data review drawer
-  }, []);
+  }, [effectiveResearchResults?.messageId, handleTransparencyClick]);
 
   // Create Salesforce connection banner
   const salesforceBanner = (
