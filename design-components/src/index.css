@@ -516,19 +516,25 @@
 }
 
 .markdown-content blockquote {
-  border-left: 4px solid #e5e7eb;
+  border-left: 4px solid #93c5fd;
   padding-left: 1em;
   margin: 1em 0;
-  color: #6b7280;
+  background-color: #ebf5ff;
+  color: #3a3a3c;
   font-style: italic;
+  padding: 0.75em 1em;
+  border-radius: 0 0.5rem 0.5rem 0;
 }
 
 .prose blockquote {
-  border-left: 4px solid #e5e7eb;
+  border-left: 4px solid #93c5fd;
   padding-left: 1em;
   margin: 1em 0;
-  color: #6b7280;
+  background-color: #ebf5ff;
+  color: #3a3a3c;
   font-style: italic;
+  padding: 0.75em 1em;
+  border-radius: 0 0.5rem 0.5rem 0;
 }
 
 .markdown-content table,
@@ -723,11 +729,14 @@ h6[data-streamdown='heading-6'] {
 }
 
 .markdown-body blockquote {
-  border-left: 4px solid #e5e7eb;
+  border-left: 4px solid #93c5fd;
   padding-left: 1em;
   margin: 1em 0;
-  color: #6b7280;
+  background-color: #ebf5ff;
+  color: #3a3a3c;
   font-style: italic;
+  padding: 0.75em 1em;
+  border-radius: 0 0.5rem 0.5rem 0;
 }
 
 .markdown-body pre {
