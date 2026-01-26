@@ -102,7 +102,7 @@ export const StepRow = React.memo<StepRowProps>(
             <span
               className={`
                 flex-1 text-[13px] truncate
-                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-800' : 'text-gray-600'}
+                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-800' : 'text-gray-900'}
               `}
             >
               {step.text}
@@ -110,7 +110,7 @@ export const StepRow = React.memo<StepRowProps>(
 
             {/* Source badge */}
             {sourceLabel && (
-              <span className="flex-shrink-0 text-[11px] text-gray-600 px-1.5 py-0.5 bg-gray-100 rounded">
+              <span className="flex-shrink-0 text-[11px] text-gray-800 px-1.5 py-0.5 bg-gray-50 rounded-full">
                 {sourceLabel}
               </span>
             )}
@@ -126,7 +126,7 @@ export const StepRow = React.memo<StepRowProps>(
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2 ml-4">
+                <div className="mt-0 ml-5">
                   {/* Description - with markdown support */}
                   {step.description && (
                     <div className="text-xs text-gray-700 leading-relaxed">

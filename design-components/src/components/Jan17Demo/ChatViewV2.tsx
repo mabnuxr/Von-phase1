@@ -498,7 +498,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
 
         {/* Message Content - rendered as markdown */}
         {content && (
-          <div className="markdown-content text-[13px]">
+          <div className="markdown-content">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </div>
         )}

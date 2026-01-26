@@ -127,8 +127,8 @@ const FullLayoutDecorator: Decorator = (Story) => (
       flexDirection: 'row',
       backgroundColor: '#f5f5f7',
       overflow: 'hidden',
-      padding: '12px',
-      gap: '8px',
+      padding: '8px',
+      gap: '4px',
     }}
   >
     <Story />
@@ -2672,7 +2672,7 @@ const DeepResearchDemo = () => {
   const drilldownData = getDrilldownData();
 
   return (
-    <div className="flex h-full w-full gap-2 relative">
+    <div className="flex h-full w-full gap-1 relative">
       {/* Ambient Glow */}
       <AmbientGlow isActive={ambientGlowActive} intensity={0.4} animationSpeed={3} />
 

@@ -428,7 +428,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           />
                           {/* Final response - shown only after thinking process is complete */}
                           {!isStreaming && v2FinalResponse && (
-                            <div className="prose-sm markdown-body max-w-none">
+                            <div className="markdown-content max-w-none">
                               <Streamdown
                                 parseIncompleteMarkdown={v2FinalResponseStreaming}
                                 isAnimating={v2FinalResponseStreaming}
@@ -508,7 +508,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                       <div className="space-y-3">
                                         {/* Final step content */}
                                         {finalStep.content && (
-                                          <div className="prose-sm markdown-body max-w-none">
+                                          <div className="markdown-content max-w-none">
                                             <Streamdown
                                               parseIncompleteMarkdown={false}
                                               isAnimating={false}
@@ -547,7 +547,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           ) : (
                             /* Fallback: render plain content if no stepMessages */
                             content && (
-                              <div className="prose-sm markdown-body max-w-none">
+                              <div className="markdown-content max-w-none">
                                 <Streamdown
                                   parseIncompleteMarkdown={isStreaming}
                                   isAnimating={isStreaming}
@@ -571,7 +571,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
                       {/* Text content */}
                       {content && (
-                        <div className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap">
+                        <div className="markdown-content max-w-none text-left whitespace-pre-wrap">
                           {content}
                         </div>
                       )}

@@ -251,7 +251,7 @@ const CompactApprovalCard: React.FC<{
             e.stopPropagation();
             onReject();
           }}
-          className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <XIcon size={12} weight="bold" />
           Reject
@@ -261,7 +261,7 @@ const CompactApprovalCard: React.FC<{
             e.stopPropagation();
             onApprove();
           }}
-          className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors cursor-pointer"
         >
           <CheckIcon size={12} weight="bold" />
           Approve
@@ -364,7 +364,7 @@ const StepRow: React.FC<StepRowProps> = ({
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div className="mt-2 ml-4">
+              <div className="mt-0 ml-5">
                 {/* Description - improved contrast */}
                 {step.description && (
                   <p className="text-[12px] text-gray-700 leading-relaxed mb-2">
