@@ -259,14 +259,16 @@ const OperationCard: React.FC<{
 
   const renderContent = () => {
     const normalized = operation.operation?.toLowerCase();
+    // Normalize operation to ensure changes is always an array
+    const normalizedOperation = { ...operation, changes: operation.changes ?? [] };
     switch (normalized) {
       case 'create':
-        return <CreateContent operation={operation} />;
+        return <CreateContent operation={normalizedOperation} />;
       case 'update':
-        return <UpdateContent operation={operation} />;
+        return <UpdateContent operation={normalizedOperation} />;
       default:
         // Default to simple field→value view (better than diff view for unknown actions)
-        return <CreateContent operation={operation} />;
+        return <CreateContent operation={normalizedOperation} />;
     }
   };
 
@@ -301,7 +303,7 @@ const OperationCard: React.FC<{
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">
-            {operation.changes.length} field{operation.changes.length !== 1 ? 's' : ''}
+            {`${operation.changes?.length ?? 0} field${(operation.changes?.length ?? 0) !== 1 ? 's' : ''}`}
           </span>
           <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDownIcon className="text-gray-400" size={16} />
