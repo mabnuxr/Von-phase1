@@ -234,9 +234,9 @@ function transformMessagesForV2(
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
 
-      // Extract persisted research results if not already found and no live data
+      // Extract persisted research results; prefer the latest completed run when no live data
+      // (allows full analysis to overwrite sample analysis after refresh)
       if (
-        !persistedResearchResults &&
         !hasLiveResearchResults &&
         researchResults.isCompleted &&
         researchResults.content
