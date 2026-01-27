@@ -78,7 +78,7 @@ export const StepRow = React.memo<StepRowProps>(
         </div>
 
         {/* Content */}
-        <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
+        <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
           {/* Header */}
           <button
             onClick={hasExpandableContent ? onToggle : undefined}
@@ -101,8 +101,8 @@ export const StepRow = React.memo<StepRowProps>(
             {/* Step text */}
             <span
               className={`
-                flex-1 text-[13px] truncate
-                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-800' : 'text-gray-900'}
+                flex-1 text-[15px] truncate w-full
+                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-900' : 'text-gray-900'}
               `}
             >
               {step.text}
@@ -110,7 +110,7 @@ export const StepRow = React.memo<StepRowProps>(
 
             {/* Source badge */}
             {sourceLabel && (
-              <span className="flex-shrink-0 text-[11px] text-gray-800 px-1.5 py-0.5 bg-gray-50 rounded-full">
+              <span className="flex-shrink-0 text-xs text-gray-900 px-1.5 py-0.5 bg-gray-50 border border-gray-200 rounded-full">
                 {sourceLabel}
               </span>
             )}
@@ -126,10 +126,10 @@ export const StepRow = React.memo<StepRowProps>(
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="mt-0 ml-5">
+                <div className="mt-1 ml-5">
                   {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-xs text-gray-700 leading-relaxed">
+                    <div className="text-xs italic text-gray-700 leading-relaxed">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
@@ -148,7 +148,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Code block preview */}
                   {step.code && (
                     <div
-                      className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code"
+                      className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code my-2"
                       onClick={onExpand}
                     >
                       <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
@@ -187,7 +187,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Artifact reference - shown when artifact metadata is available */}
                   {step.artifact && (
                     <div
-                      className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
+                      className="flex items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-gray-50 border border-gray-200  rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                       onClick={() => {
                         if (onArtifactClick) {
                           onArtifactClick(
@@ -202,8 +202,8 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                       }}
                     >
-                      <FileTextIcon size={14} className="text-gray-600" />
-                      <span className="text-[12px] text-gray-800">
+                      <FileTextIcon size={14} className="text-gray-800" />
+                      <span className="text-[15px] text-gray-900">
                         {step.artifact.tool_name} results
                       </span>
                     </div>

@@ -76,9 +76,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               </span>
             </div>
             {approval.recordName && (
-              <p className="text-[13px] font-medium text-gray-900 truncate">
-                {approval.recordName}
-              </p>
+              <p className="text-sm font-medium text-gray-900 truncate">{approval.recordName}</p>
             )}
             <p className="text-xs text-gray-800 mt-0.5">{approval.summary}</p>
           </div>

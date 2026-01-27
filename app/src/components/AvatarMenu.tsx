@@ -139,7 +139,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
               onClick={() => handleItemClick(onSettingsClick)}
               whileTap={{ scale: 0.98 }}
             >
-              <GearIcon size={20} weight="duotone" className="text-gray-700" />
+              <GearIcon size={20} weight="regular" className="text-gray-700" />
               Settings
             </motion.button>
 

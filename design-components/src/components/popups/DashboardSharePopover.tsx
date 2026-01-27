@@ -181,9 +181,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
             <div className="p-5 space-y-5">
               {/* Add People Section */}
               <div>
-                <label className="block text-[13px] font-medium text-gray-900 mb-2">
-                  Add people
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Add people</label>
                 <EmailTagInput
                   emails={recipients}
                   onChange={setRecipients}
@@ -194,7 +192,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
 
               {/* General Access Section */}
               <div>
-                <label className="block text-[13px] font-medium text-gray-900 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   General access
                 </label>
                 <div className="relative">
@@ -206,7 +204,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                       <SelectedIcon size={16} weight="regular" className="text-gray-600" />
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="text-[13px] font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900">
                         {selectedAccess?.label}
                       </div>
                       <div className="text-[11px] text-gray-500">{selectedAccess?.description}</div>
@@ -250,7 +248,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                               </div>
                               <div className="flex-1">
                                 <div
-                                  className={`text-[13px] font-medium ${
+                                  className={`text-sm font-medium ${
                                     isSelected ? 'text-indigo-700' : 'text-gray-900'
                                   }`}
                                 >
@@ -287,7 +285,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
               {/* People with access */}
               {recipients.length > 0 && (
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-900 mb-2">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
                     People with access
                   </label>
                   <div className="space-y-1">
@@ -299,7 +297,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
                         <div className="w-8 h-8 flex items-center justify-center bg-indigo-100 rounded-full text-[11px] font-semibold text-indigo-700">
                           {email.charAt(0).toUpperCase()}
                         </div>
-                        <span className="flex-1 text-[13px] text-gray-700">{email}</span>
+                        <span className="flex-1 text-sm text-gray-700">{email}</span>
                         <button
                           onClick={() => setRecipients(recipients.filter((r) => r !== email))}
                           className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-all cursor-pointer"
@@ -318,7 +316,7 @@ export const DashboardSharePopover: React.FC<DashboardSharePopoverProps> = ({
               <button
                 onClick={handleCopyLink}
                 disabled={isGeneratingLink}
-                className="flex items-center gap-2 px-3 py-2 text-[13px] font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               >
                 {linkCopied ? (
                   <>

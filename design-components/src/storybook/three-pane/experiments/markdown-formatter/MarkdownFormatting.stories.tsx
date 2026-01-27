@@ -64,7 +64,7 @@ const CollapsibleSection = ({ title, isOpen, onToggle, children }: CollapsibleSe
       onClick={onToggle}
       className="w-full flex items-center justify-between py-3 px-1 text-left hover:bg-gray-50 transition-colors"
     >
-      <span className="text-[13px] font-medium text-gray-900">{title}</span>
+      <span className="text-sm font-medium text-gray-900">{title}</span>
       {isOpen ? (
         <CaretDown size={14} className="text-gray-500" />
       ) : (

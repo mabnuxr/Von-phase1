@@ -832,7 +832,7 @@ const SuccessToast: React.FC<ToastProps> = ({ message, onDismiss }) => {
         <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
           <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
         </div>
-        <span className="text-[13px] font-medium text-gray-900">{message}</span>
+        <span className="text-sm font-medium text-gray-900">{message}</span>
         <button
           onClick={onDismiss}
           className="ml-2 text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -1104,11 +1104,11 @@ const DeepResearchThinkingBlock: React.FC<DeepResearchThinkingBlockProps> = ({
           )}
 
           {allComplete ? (
-            <span className="text-[13px] text-gray-700">
+            <span className="text-sm text-gray-700">
               {title} · {formatElapsedTime(elapsedTime)}
             </span>
           ) : (
-            <span className="text-[13px] font-medium text-gray-900">{title}</span>
+            <span className="text-sm font-medium text-gray-900">{title}</span>
           )}
         </div>
 
@@ -1155,7 +1155,7 @@ const DeepResearchThinkingBlock: React.FC<DeepResearchThinkingBlockProps> = ({
                       <div className="flex items-center justify-between">
                         <span
                           className={`
-                            text-[13px]
+                            text-sm
                             ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-700'}
                           `}
                         >
@@ -1215,23 +1215,23 @@ const markdownComponents = {
     <h3 className="text-[15px] font-medium text-gray-900 mt-4 mb-2">{children}</h3>
   ),
   p: ({ children }: { children?: React.ReactNode }) => (
-    <p className="text-[13px] text-gray-900 mb-3 leading-relaxed">{children}</p>
+    <p className="text-sm text-gray-900 mb-3 leading-relaxed">{children}</p>
   ),
   strong: ({ children }: { children?: React.ReactNode }) => (
     <strong className="font-medium text-gray-900">{children}</strong>
   ),
   ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="text-[13px] text-gray-900 mb-3 space-y-1 list-disc pl-4">{children}</ul>
+    <ul className="text-sm text-gray-900 mb-3 space-y-1 list-disc pl-4">{children}</ul>
   ),
   ol: ({ children }: { children?: React.ReactNode }) => (
-    <ol className="text-[13px] text-gray-900 mb-3 space-y-1 list-decimal pl-4">{children}</ol>
+    <ol className="text-sm text-gray-900 mb-3 space-y-1 list-decimal pl-4">{children}</ol>
   ),
   li: ({ children }: { children?: React.ReactNode }) => (
-    <li className="text-[13px] text-gray-900">{children}</li>
+    <li className="text-sm text-gray-900">{children}</li>
   ),
   table: ({ children }: { children?: React.ReactNode }) => (
     <div className="overflow-x-auto mb-4 rounded-lg border border-gray-200">
-      <table className="w-full text-[13px]">{children}</table>
+      <table className="w-full text-sm">{children}</table>
     </div>
   ),
   thead: ({ children }: { children?: React.ReactNode }) => (
@@ -1243,7 +1243,7 @@ const markdownComponents = {
     </th>
   ),
   td: ({ children }: { children?: React.ReactNode }) => (
-    <td className="px-3 py-2 text-[13px] text-gray-900 border-b border-gray-100">{children}</td>
+    <td className="px-3 py-2 text-sm text-gray-900 border-b border-gray-100">{children}</td>
   ),
   hr: () => <hr className="my-6 border-gray-200" />,
   blockquote: ({ children }: { children?: React.ReactNode }) => (
@@ -1348,7 +1348,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                         setShowMenu(false);
                         onConvertToDashboard();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <GridFourIcon size={14} className="text-gray-700" />
                       Build Dashboard
@@ -1358,7 +1358,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                         setShowMenu(false);
                         handleDownload();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <DownloadSimpleIcon size={14} className="text-gray-700" />
                       Download PDF
@@ -1806,7 +1806,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
         {messages.length > 0 && messages[0].type === 'user' && (
           <div className="flex justify-end gap-2">
             <div className="max-w-[80%] bg-gray-50 rounded-2xl rounded-br-md px-3 py-2">
-              <p className="text-[13px] text-gray-900">{messages[0].content}</p>
+              <p className="text-sm text-gray-900">{messages[0].content}</p>
             </div>
             <UserAvatar initials="JD" size={28} />
           </div>
@@ -1897,7 +1897,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                 </div>
 
                 {/* Confirmation prompt */}
-                <div className="text-[13px] text-gray-700 mt-4">
+                <div className="text-sm text-gray-700 mt-4">
                   I've generated a sample analysis based on your request. This preview shows the
                   type of insights I can provide. Would you like me to proceed with the full
                   comprehensive research and generate the complete report?
@@ -1949,7 +1949,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
             {/* User confirmation message */}
             <div className="flex justify-end gap-2">
               <div className="max-w-[80%] bg-gray-50 rounded-2xl rounded-br-md px-3 py-2">
-                <p className="text-[13px] text-gray-900">Yes, run full analysis</p>
+                <p className="text-sm text-gray-900">Yes, run full analysis</p>
               </div>
               <UserAvatar initials="JD" size={28} />
             </div>
@@ -1987,7 +1987,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                   phase === 'building-dashboard' ||
                   phase === 'dashboard-complete') && (
                   <>
-                    <div className="text-[13px] text-gray-700">
+                    <div className="text-sm text-gray-700">
                       I have completed the comprehensive analysis. I found strong Q4 performance
                       with $12.8M in revenue (+15.2% YoY), significant regional disparities favoring
                       the West, and a concerning 8% decline in mid-market. Click on the card to see
@@ -2545,7 +2545,7 @@ const DeepResearchDemo = () => {
     addTimeout(() => {
       setAgentStatus('idle');
     }, time + 2500);
-  }, [addTimeout]);
+  }, [addTimeout, sampleElapsedTime, fullElapsedTime]);
 
   // Reset to landing
   const handleReset = useCallback(() => {
@@ -2755,7 +2755,7 @@ const DeepResearchDemo = () => {
           <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
-              <h2 className="text-[13px] font-medium text-gray-900">Deep Research Analysis</h2>
+              <h2 className="text-sm font-medium text-gray-900">Deep Research Analysis</h2>
             </div>
 
             {/* Chat content */}

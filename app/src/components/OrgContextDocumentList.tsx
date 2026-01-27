@@ -76,7 +76,7 @@ export function OrgContextDocumentList({
             />
           )}
           <span
-            className={`flex-1 text-[13px] leading-snug line-clamp-2 transition-colors duration-200 ${
+            className={`flex-1 text-sm leading-snug line-clamp-2 transition-colors duration-200 ${
               isSelected
                 ? "text-gray-800 font-medium"
                 : isDefault

@@ -339,7 +339,7 @@ const StepRow: React.FC<StepRowProps> = ({
           {/* Step text - improved contrast */}
           <span
             className={`
-              flex-1 text-[13px] truncate
+              flex-1 text-sm truncate
               ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-800' : 'text-gray-600'}
             `}
           >
@@ -367,7 +367,7 @@ const StepRow: React.FC<StepRowProps> = ({
               <div className="mt-0 ml-5">
                 {/* Description - improved contrast */}
                 {step.description && (
-                  <p className="text-[12px] text-gray-700 leading-relaxed mb-2">
+                  <p className="text-[12px] italic text-gray-700 leading-relaxed mb-2">
                     {step.description}
                   </p>
                 )}
@@ -429,7 +429,7 @@ const StepRow: React.FC<StepRowProps> = ({
                     onClick={onExpand}
                   >
                     <FileTextIcon size={14} className="text-gray-600" />
-                    <span className="text-[12px] text-gray-800">{step.artifactName}</span>
+                    <span className="text-sm text-gray-800">{step.artifactName}</span>
                   </div>
                 )}
               </div>
@@ -653,12 +653,12 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
             {/* Title and summary */}
             {allComplete ? (
-              <span className="text-[13px] text-gray-700">{title}</span>
+              <span className="text-sm text-gray-700">{title}</span>
             ) : (
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">{title}</span>
-                <span className="text-[13px] text-gray-500">·</span>
-                <span className="text-[13px] text-gray-600 truncate">{getSummary()}</span>
+                <span className="text-sm font-medium text-gray-900 flex-shrink-0">{title}</span>
+                <span className="text-sm text-gray-500">·</span>
+                <span className="text-sm text-gray-600 truncate">{getSummary()}</span>
               </div>
             )}
           </div>
@@ -705,7 +705,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   style={{ maxHeight: CONTAINER_HEIGHT }}
                 >
                   {visibleSteps.length === 0 ? (
-                    <div className="flex items-center justify-center py-6 text-[13px] text-gray-500">
+                    <div className="flex items-center justify-center py-6 text-sm text-gray-500">
                       Starting...
                     </div>
                   ) : (

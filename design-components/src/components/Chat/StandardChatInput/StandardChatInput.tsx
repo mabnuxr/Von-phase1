@@ -131,14 +131,21 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative group/plusbtn">
       <SecondaryIconButton
         icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
         onClick={onOpen}
         disabled={disabled}
-        title="More options"
+        title=""
         className="w-8.5 h-8.5 rounded-xl"
       />
+      {/* Tooltip - shows on hover when disabled */}
+      {disabled && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/plusbtn:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
+          Source and file upload. Coming soon
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
 
       {/* Main Menu */}
       <AnimatePresence>
@@ -153,7 +160,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
             {/* Upload option - disabled with "Soon" tag */}
             <button
               disabled
-              className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-400 cursor-not-allowed text-left"
+              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 cursor-not-allowed text-left"
             >
               <div className="flex items-center gap-2.5">
                 <UploadSimpleIcon size={16} className="text-gray-300" />
@@ -173,7 +180,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
               onMouseEnter={() => setIsAgentSubmenuOpen(true)}
               onMouseLeave={() => setIsAgentSubmenuOpen(false)}
             >
-              <button className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
+              <button className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
                 <div className="flex items-center gap-2.5">
                   <RobotIcon size={16} className="text-gray-500" />
                   <span>Agents</span>
@@ -194,7 +201,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                     {/* Auto (default) */}
                     <button
                       onClick={() => handleAgentSelect('auto')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
                         <RobotIcon size={16} className="text-gray-500" />
@@ -208,7 +215,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                     {/* Build Dashboard */}
                     <button
                       onClick={() => handleAgentSelect('build-dashboard')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
                         <ChartBarIcon size={16} className="text-gray-500" />
@@ -222,7 +229,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                     {/* Deep Research */}
                     <button
                       onClick={() => handleAgentSelect('deep-research')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
                     >
                       <div className="flex items-center gap-2.5">
                         <AtomIcon size={16} className="text-gray-500" />
@@ -449,7 +456,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
 
   return (
     <div className="bg-white antialiased font-sf">
-      <div className="max-w-3xl mx-auto w-full flex flex-col gap-1.5 relative">
+      <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
         {/* ChatInputPopover - shown above the input when active */}
         {activePopover && (
           <ChatInputPopover
@@ -472,7 +479,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
             <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
               <div className="flex items-center gap-1.5">
                 {getReferenceIcon(referenceContext.type)}
-                <span className="text-[13px] text-gray-900">
+                <span className="text-sm text-gray-900">
                   {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
                 </span>
               </div>
@@ -558,7 +565,7 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.15 }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium rounded-xl transition-colors cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
                         selectedAgentMode === 'deep-research'
                           ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
                           : 'text-gray-900 border border-gray-100 hover:bg-gray-50'

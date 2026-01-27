@@ -139,13 +139,13 @@ export const ChatInputPopover: React.FC<ChatInputPopoverProps> = ({
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2">
               {getIntentIcon(intent)}
-              <span className="text-[13px] font-medium text-gray-900">{title}</span>
+              <span className="text-sm font-medium text-gray-900">{title}</span>
             </div>
             <div className="flex items-center gap-2">
               <PrimaryButton
                 onClick={onPrimaryAction}
                 disabled={primaryActionDisabled}
-                className="text-[13px] px-3 py-1.5"
+                className="text-sm px-3 py-1.5"
               >
                 {primaryActionLabel}
               </PrimaryButton>
@@ -160,13 +160,13 @@ export const ChatInputPopover: React.FC<ChatInputPopoverProps> = ({
 
           {/* Content area */}
           <div className="px-4 py-4 max-h-[300px] overflow-y-auto">
-            <ChatMarkdown content={content} isStreaming={isStreaming} className="text-[13px]" />
+            <ChatMarkdown content={content} isStreaming={isStreaming} className="text-sm" />
           </div>
 
           {/* User edits hint */}
           {hasUserEdits && (
             <div className="px-4 py-2 bg-amber-50 border-t border-amber-100">
-              <p className="text-[13px] text-amber-700">
+              <p className="text-sm text-amber-700">
                 You have made edits. Von will consider your changes while implementing.
               </p>
             </div>

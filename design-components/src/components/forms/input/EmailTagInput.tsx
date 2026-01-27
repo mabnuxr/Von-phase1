@@ -177,7 +177,7 @@ export const EmailTagInput: React.FC<EmailTagInputProps> = ({
             onBlur={handleBlur}
             placeholder={emails.length === 0 ? placeholder : ''}
             disabled={disabled}
-            className="flex-1 min-w-[120px] py-0.5 text-[13px] text-gray-900 bg-transparent border-0 outline-none placeholder:text-gray-400"
+            className="flex-1 min-w-[120px] py-0.5 text-sm text-gray-900 bg-transparent border-0 outline-none placeholder:text-gray-400"
           />
         </div>
       </div>

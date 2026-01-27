@@ -517,7 +517,7 @@ const InteractiveWrapper = () => {
 
       {/* Selection indicator */}
       {selectedRows.length > 0 && (
-        <div className="text-[13px] text-gray-700 px-1">
+        <div className="text-sm text-gray-700 px-1">
           {selectedRows.length} row{selectedRows.length > 1 ? 's' : ''} selected
         </div>
       )}

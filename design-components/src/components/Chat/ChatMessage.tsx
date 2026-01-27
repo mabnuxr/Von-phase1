@@ -317,16 +317,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   return (
-    <div className="w-full group font-sf">
+    <div className="w-full group ">
       {/* Full-width section with alternating backgrounds */}
       <div
         className={`
           w-full transition-all duration-300
-          ${
-            isUser
-              ? 'py-6 bg-white hover:bg-gray-50'
-              : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`
-          }
+          ${isUser ? 'py-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`}
         `}
       >
         {/* Centered container */}
@@ -584,7 +580,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <div className="flex-shrink-0 mt-0.5">
                         <InfoIcon size={20} className="text-indigo-600" />
                       </div>
-                      <span className="text-sm text-gray-800 font-sf leading-relaxed flex-1">
+                      <span className="text-sm text-gray-800  leading-relaxed flex-1">
                         Response stopped by the user
                       </span>
                     </div>

@@ -205,7 +205,6 @@ export const Chat: React.FC<ChatProps> = ({
     'overflow-hidden',
     'bg-white',
     'antialiased',
-    'font-sf',
     isFullPage ? 'w-screen h-screen rounded-none border-none' : `rounded-lg border border-gray-200`,
     isFixed && 'fixed z-[1000] shadow-xs',
     !isFixed && !isFullPage && 'shadow-xs',
@@ -235,7 +234,7 @@ export const Chat: React.FC<ChatProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="text-center py-3 text-xs text-gray-500 font-sf"
+              className="text-center py-3 text-xs text-gray-500"
             >
               <motion.div
                 animate={{ rotate: 360 }}

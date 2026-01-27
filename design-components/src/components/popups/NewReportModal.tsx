@@ -212,7 +212,7 @@ const RadioOption: React.FC<RadioOptionProps> = ({ selected, label, onClick }) =
     >
       {selected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
     </div>
-    <span className={`text-[13px] ${selected ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
+    <span className={`text-sm ${selected ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
       {label}
     </span>
   </button>
@@ -248,9 +248,7 @@ const CheckboxOption: React.FC<CheckboxOptionProps> = ({
     >
       {checked && <Check size={9} weight="bold" className="text-white" />}
     </div>
-    <span
-      className={`text-[13px] flex-1 ${checked ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
-    >
+    <span className={`text-sm flex-1 ${checked ? 'text-gray-900 font-medium' : 'text-gray-900'}`}>
       {label}
     </span>
     {description && <span className="text-[11px] text-gray-500">{description}</span>}
@@ -499,7 +497,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
 
             {filters.length === 0 ? (
               <div className="py-4 text-center">
-                <p className="text-[13px] text-gray-500">No filters added</p>
+                <p className="text-sm text-gray-500">No filters added</p>
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   Click "Add Filter" to filter your data
                 </p>
@@ -550,7 +548,7 @@ export const NewReportModal: React.FC<NewReportModalProps> = ({
 
             <button
               type="button"
-              className="flex items-center gap-2 px-3 py-2 text-[13px] text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
             >
               <Sparkle size={16} weight="duotone" />
               <span>Add AI Column</span>

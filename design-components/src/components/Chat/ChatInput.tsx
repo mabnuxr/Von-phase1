@@ -277,10 +277,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
 
   return (
-    <div className="ml-2 p-3 bg-white antialiased font-sf">
+    <div className="ml-2 p-3 bg-white antialiased ">
       <div className="px-6 max-w-4xl mx-auto w-full flex flex-col gap-1.5">
         {contextTag && (
-          <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600 font-sf mb-1">
+          <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600  mb-1">
             {contextTag}
           </div>
         )}
@@ -416,7 +416,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
 
         {!hideDisclaimer && (
-          <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+          <div className="text-xs leading-normal text-gray-500 text-center  mt-1">
             Von AI may make mistakes. Please recheck all important information.
           </div>
         )}

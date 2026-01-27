@@ -127,13 +127,13 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
               </div>
 
               {/* Description */}
-              <p className="text-[13px] text-gray-800 leading-relaxed mb-4">
+              <p className="text-sm text-gray-800 leading-relaxed mb-4">
                 This will analyze <span className="font-medium text-gray-900">900 records</span>{' '}
                 across your connected data sources.
               </p>
 
               {/* Time estimate */}
-              <div className="flex items-center gap-2 mb-5 text-[13px] text-gray-800">
+              <div className="flex items-center gap-2 mb-5 text-sm text-gray-800">
                 <Clock size={14} className="text-gray-600" />
                 <span>Estimated time: {estimatedTime}</span>
               </div>
@@ -142,13 +142,13 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
               <div className="flex items-center gap-2">
                 <button
                   onClick={onCancel}
-                  className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onConfirm}
-                  className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
+                  className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   Run Analysis
                 </button>

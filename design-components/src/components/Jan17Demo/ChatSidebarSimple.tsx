@@ -229,7 +229,7 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
   const content = (
     <div
       className={`
-        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-[13px]
+        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm
         transition-colors duration-150
         ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
       `}
@@ -249,12 +249,12 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
         <>
-          <span className="flex-1 text-[13px] truncate text-gray-900">{item.label}</span>
+          <span className="flex-1 text-sm truncate text-gray-900">{item.label}</span>
 
           <PrimaryIconButton
             icon={<DotsThreeIcon size={16} weight="bold" />}
@@ -353,7 +353,7 @@ const FolderSection: React.FC<FolderSectionProps> = ({
   return (
     <div className="mb-1">
       <div
-        className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-[13px] text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+        className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
         onClick={isFolderEditing ? undefined : () => onToggle(!isExpanded)}
         onContextMenu={isFolderEditing ? undefined : onFolderContextMenu}
         onMouseEnter={() => setIsHovered(true)}
@@ -373,7 +373,7 @@ const FolderSection: React.FC<FolderSectionProps> = ({
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleSave}
-              className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
@@ -675,7 +675,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
   // ============================================================================
   if (isCollapsed) {
     return (
-      <div className="px-2 py-3 h-full w-full bg-transparent flex text-[13px] flex-col antialiased font-sf">
+      <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
         <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-100 mb-2">
           <TertiaryIconButton
             icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
@@ -732,7 +732,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
                           <div
                             key={item.id}
                             className={`
-                              flex items-center gap-2.5 px-3 py-1.5 text-[13px]
+                              flex items-center gap-2.5 px-3 py-1.5 text-sm
                               transition-all duration-150 cursor-pointer
                               ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
                             `}
@@ -807,7 +807,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
   // Expanded State
   // ============================================================================
   return (
-    <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-[13px] flex-col overflow-hidden antialiased font-sf">
+    <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
       {/* Logo Row */}
       <div className="flex items-center justify-between mb-3 px-1">
         <img
@@ -835,7 +835,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
             placeholder="Search..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none text-[13px] text-gray-900 placeholder:text-gray-400"
+            className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
           />
         </div>
         <SecondaryIconButton
@@ -946,9 +946,7 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
               )}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              {userName && (
-                <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
-              )}
+              {userName && <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>}
               {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
             </div>
             <CaretRightIcon size={12} className="text-gray-400 flex-shrink-0" />

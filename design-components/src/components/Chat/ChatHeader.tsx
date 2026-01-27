@@ -85,7 +85,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div className="flex items-center justify-between py-4 px-5 border-b border-gray-200 bg-white">
-      <div className="text-lg leading-7 font-semibold text-gray-900 font-sf tracking-tight antialiased">
+      <div className="text-lg leading-7 font-semibold text-gray-900  tracking-tight antialiased">
         {title}
       </div>
       <div className="flex gap-2 items-center">

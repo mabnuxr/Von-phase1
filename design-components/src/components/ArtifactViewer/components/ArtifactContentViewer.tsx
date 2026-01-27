@@ -173,7 +173,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
           </div>
         ) : (
           <>
-            <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
+            <div className="flex-1 min-h-0 overflow-auto mx-4 mt-2 border border-gray-200 rounded-lg">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gray-50 border-b border-gray-200">
@@ -202,7 +202,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                       {columns.map((col) => (
                         <td
                           key={col.key}
-                          className={`px-3 py-2 text-[13px] whitespace-nowrap ${
+                          className={`px-3 py-2 text-sm whitespace-nowrap ${
                             col.type === 'number' ||
                             col.type === 'currency' ||
                             col.type === 'percentage'

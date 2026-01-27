@@ -140,9 +140,7 @@ export const SourcePopover: React.FC<SourcePopoverProps> = ({ reasoning, onClose
       <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
         <img src={LOGO_STATIC_URL} alt="Von" className="w-4 h-4 rounded-sm" />
         {reasoning.recordName && (
-          <span className="text-[13px] font-medium text-gray-900 truncate">
-            {reasoning.recordName}
-          </span>
+          <span className="text-sm font-medium text-gray-900 truncate">{reasoning.recordName}</span>
         )}
       </div>
 
@@ -150,11 +148,11 @@ export const SourcePopover: React.FC<SourcePopoverProps> = ({ reasoning, onClose
       {reasoning.reasoning && (
         <div className="px-3 py-2.5 border-b border-gray-100">
           <p className="text-xs font-medium text-gray-700 mb-1.5">AI Reasoning</p>
-          <p className="text-[13px] text-gray-900 leading-relaxed">{reasoning.reasoning}</p>
+          <p className="text-sm text-gray-900 leading-relaxed">{reasoning.reasoning}</p>
           {reasoning.confidence !== undefined && (
             <div className="mt-2 flex items-center gap-2">
               <span className="text-xs text-gray-700">Confidence:</span>
-              <span className="text-[13px] font-medium text-gray-900">
+              <span className="text-sm font-medium text-gray-900">
                 {Math.round(reasoning.confidence * 100)}%
               </span>
             </div>
@@ -176,13 +174,13 @@ export const SourcePopover: React.FC<SourcePopoverProps> = ({ reasoning, onClose
                     href={ref.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[13px] text-indigo-600 hover:text-indigo-700 hover:underline"
+                    className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700 hover:underline"
                   >
                     <span>{ref.label}</span>
                     <ArrowUpRight size={12} />
                   </a>
                 ) : (
-                  <span className="text-[13px] text-gray-900">{ref.label}</span>
+                  <span className="text-sm text-gray-900">{ref.label}</span>
                 )}
               </div>
             ))}
@@ -199,7 +197,7 @@ export const SourcePopover: React.FC<SourcePopoverProps> = ({ reasoning, onClose
             ))}
           </div>
         ) : (
-          <p className="text-[13px] text-gray-400 italic">No sources available</p>
+          <p className="text-sm text-gray-400 italic">No sources available</p>
         )}
       </div>
     </div>,

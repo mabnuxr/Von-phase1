@@ -75,7 +75,7 @@ const spinnerSizeMap = {
 };
 
 const textSizeMap = {
-  xs: 'text-[13px]',
+  xs: 'text-sm',
   sm: 'text-sm',
   md: 'text-base',
 };

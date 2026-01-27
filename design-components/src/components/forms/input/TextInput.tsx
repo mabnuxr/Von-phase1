@@ -38,7 +38,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
           id={inputId}
           type="text"
           className={`
-            w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white
+            w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white
             border rounded-lg placeholder:text-gray-400
             focus:outline-none focus:ring-1 transition-colors
             ${

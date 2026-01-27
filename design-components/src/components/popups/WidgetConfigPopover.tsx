@@ -212,7 +212,7 @@ export const WidgetConfigPopover: React.FC<WidgetConfigPopoverProps> = ({
                   <IconComponent size={18} weight="regular" className="text-gray-800" />
                 </div>
                 <div>
-                  <h3 className="text-[13px] font-medium text-gray-900">Configure Widget</h3>
+                  <h3 className="text-sm font-medium text-gray-900">Configure Widget</h3>
                   <p className="text-[11px] text-gray-500">{chartLabels[chartType]}</p>
                 </div>
               </div>
@@ -261,9 +261,7 @@ export const WidgetConfigPopover: React.FC<WidgetConfigPopoverProps> = ({
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="flex items-center gap-2 mb-2">
                     <IconComponent size={16} weight="regular" className="text-gray-600" />
-                    <span className="text-[13px] font-medium text-gray-900">
-                      {name || 'Untitled'}
-                    </span>
+                    <span className="text-sm font-medium text-gray-900">{name || 'Untitled'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-[11px] text-gray-500">
                     {selectedDataSource.type === 'subreport' ? (
