@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from '
 import { motion } from 'framer-motion';
 import { CaretLeftIcon, CaretRightIcon, StarIcon } from '@phosphor-icons/react';
 import { ChatInputSelector } from './ChatInputSelector';
+import type { SendMessageOptions } from './types';
 import {
   DEFAULT_TEMPLATES,
   TEMPLATE_CATEGORIES,
@@ -10,7 +11,6 @@ import {
 } from '../Templates';
 import type { BuildMode } from '../DashboardBuilder';
 import type { AgentMode } from './StandardChatInput/types';
-import type { SendMessageOptions } from './ChatInputSelector';
 import type { FileAttachment } from './FileAttachment/types';
 
 export interface ChatEmptyStateProps {
@@ -20,7 +20,7 @@ export interface ChatEmptyStateProps {
   userName?: string;
   /**
    * Callback when a message is sent (from input or prompt click)
-   * Includes optional attachments and options (agentMode, command) from ChatInputSelector
+   * Includes SendMessageOptions with agentMode when using StandardChatInput
    */
   onSendMessage?: (
     message: string,

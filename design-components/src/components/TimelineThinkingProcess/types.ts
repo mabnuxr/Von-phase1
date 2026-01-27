@@ -43,10 +43,19 @@ export interface ApprovalData {
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
-  /** The type of approval - salesforce, calendar, bulk, generic, etc. */
-  approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'generic';
+  /** The type of approval - salesforce, calendar, bulk, deep_research, generic, etc. */
+  approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'deep_research' | 'generic';
   /** Number of records for bulk operations */
   recordCount?: number;
+  /** Deep research specific fields */
+  researchQuery?: string;
+  estimatedTime?: string;
+  sampleContent?: string;
+  dataSources?: Array<{
+    name: string;
+    record_count: number;
+    description?: string;
+  }>;
 }
 
 /**

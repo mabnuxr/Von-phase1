@@ -6,7 +6,9 @@ import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
-import type { SendMessageOptions } from './ChatInputSelector';
+import { DeepResearchChat } from './DeepResearchChat';
+import { DeepResearchNotificationBar } from './DeepResearch/DeepResearchNotificationBar';
+import type { ChatProps, SendMessageOptions } from './types';
 import type { FileAttachment } from './FileAttachment/types';
 
 // Export types from types.ts
@@ -21,9 +23,8 @@ export type {
   ApiEndpoints,
   FixedPosition,
   ChatProps,
+  SendMessageOptions,
 } from './types';
-
-import type { ChatProps } from './types';
 
 /**
  * Chat component - pure rendering component
@@ -68,6 +69,11 @@ export const Chat: React.FC<ChatProps> = ({
   // Agent selection props
   isAgentLocked = false,
   lockedAgentMode = 'auto',
+  // Deep Research Results props (V2 only)
+  researchResults,
+  isDeepResearchRunning,
+  onDataTablesClick,
+  dataTablesInfo,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -170,6 +176,9 @@ export const Chat: React.FC<ChatProps> = ({
     }));
   }, [messages, isLoading, effectiveShowFromIndex]);
 
+  // Check if we're in deep research mode (V2 only)
+  const isDeepResearchMode = thinkingProcessVersion === 'v2' && lockedAgentMode === 'deep-research';
+
   // Handle stop streaming
   const handleStop = useCallback(() => {
     // Get conversationId from the last message if available
@@ -192,6 +201,8 @@ export const Chat: React.FC<ChatProps> = ({
         scrollOnNewUserMessage.current = false;
       }, SCROLL_LOCK_DURATION_MS);
 
+      // Pass original attachments with file property intact for upload pipeline
+      // The app layer (useSendMessage) needs the File object to build multipart payload
       onSendMessage?.(content, attachments, options);
     },
     [onSendMessage]
@@ -266,7 +277,24 @@ export const Chat: React.FC<ChatProps> = ({
             isAgentLocked={isAgentLocked}
             lockedAgentMode={lockedAgentMode}
           />
+        ) : isDeepResearchMode ? (
+          /* Deep Research Mode - specialized UI */
+          <DeepResearchChat
+            messages={visibleMessages}
+            userName={userName}
+            userEmail={userEmail}
+            researchResults={researchResults}
+            isDeepResearchRunning={isDeepResearchRunning}
+            dataTablesInfo={dataTablesInfo}
+            onSendMessage={onSendMessage}
+            onDataTablesClick={onDataTablesClick}
+            onTransparencyClick={onTransparencyClick}
+            onArtifactClick={onArtifactClick}
+            onApprove={onApprove}
+            onReject={onReject}
+          />
         ) : (
+          /* Regular Mode - standard message rendering */
           <div className="flex flex-col">
             {visibleMessages.map((message) => (
               <div key={message.id} className="mb-4">
@@ -326,6 +354,13 @@ export const Chat: React.FC<ChatProps> = ({
 
       {/* Banner above input (if provided) - only show when there are messages */}
       {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
+
+      {/* Deep Research Notification Bar - shows when research is running */}
+      {messages.length > 0 && isDeepResearchMode && (
+        <div className="px-4 max-w-4xl mx-auto w-full">
+          <DeepResearchNotificationBar isVisible={isDeepResearchRunning || false} />
+        </div>
+      )}
 
       {/* Only show bottom input when there are messages (not in empty state) */}
       {messages.length > 0 && (

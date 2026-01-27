@@ -2,6 +2,20 @@
  * Type definitions for Chat component with backend integration
  */
 
+import type { AgentMode } from './StandardChatInput/types';
+import type { Command } from '../Commands/types';
+import type { ResearchResultsMetadata } from './DeepResearch/types';
+
+/**
+ * Additional options passed with the send message callback
+ */
+export interface SendMessageOptions {
+  /** Selected agent mode for the message */
+  agentMode?: AgentMode;
+  /** Selected command (when slash commands are enabled) */
+  command?: Command;
+}
+
 /**
  * Step message in a multi-step agent response
  * Each step has its own content and associated tool calls
@@ -237,6 +251,22 @@ export interface EventMeta {
   };
 }
 
+// Import research results event types
+import type {
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+} from './DeepResearch/types';
+
+// Re-export research results event types
+export type {
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+  ResearchResultsEvent,
+  ResearchResultsMetadata,
+} from './DeepResearch/types';
+
 // Union type of all possible AGUI events
 export type AguiEvent =
   | RunStartedEvent
@@ -250,7 +280,11 @@ export type AguiEvent =
   | ToolCallResultEvent
   | StepFinishedEvent
   | RunFinishedEvent
-  | RunErrorEvent;
+  | RunErrorEvent
+  // Deep Research events
+  | ResearchResultsStartEvent
+  | ResearchResultsContentEvent
+  | ResearchResultsEndEvent;
 
 // Individual event types
 export interface RunStartedEvent {
@@ -793,6 +827,44 @@ export function parseGoogleCalendarApprovalArgs(
   }
 }
 
+/**
+ * Deep Research Approval Types
+ * Used for the request_deep_research_approval tool
+ * Allows users to accept/reject proceeding with full research after initial sample analysis
+ */
+
+/**
+ * Data source information for deep research
+ */
+export interface DeepResearchDataSource {
+  /** Name of the data source (e.g., "Salesforce Opportunities") */
+  name: string;
+  /** Number of records in this source */
+  record_count: number;
+  /** Description of what data will be analyzed */
+  description?: string;
+}
+
+/**
+ * Arguments for the request_deep_research_approval tool
+ */
+export interface DeepResearchApprovalToolArgs {
+  /** Brief summary of the research plan */
+  summary: string;
+  /** The research query/question being investigated */
+  research_query: string;
+  /** Estimated time for full analysis (e.g., "10-15 minutes") */
+  estimated_time?: string;
+  /** Data sources that will be analyzed */
+  data_sources?: DeepResearchDataSource[];
+  /** Total record count across all sources */
+  total_records?: number;
+  /** Sample analysis content (markdown) to show the user */
+  sample_content?: string;
+  /** Plan ID for tracking */
+  plan_id?: string;
+}
+
 export interface ChatProps {
   /**
    * Title displayed in the chat header
@@ -834,12 +906,12 @@ export interface ChatProps {
   /**
    * Callback when a new message is sent
    * Includes optional file attachments when enableFileUpload is true
-   * Includes optional SendMessageOptions (agentMode, command) from ChatInputSelector
+   * Includes SendMessageOptions with agentMode when using StandardChatInput
    */
   onSendMessage?: (
     message: string,
     attachments?: MessageFileAttachment[],
-    options?: import('./ChatInputSelector').SendMessageOptions
+    options?: SendMessageOptions
   ) => void;
 
   /**
@@ -1125,4 +1197,39 @@ export interface ChatProps {
    * @default 'auto'
    */
   lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+
+  // ============================================================================
+  // Deep Research Results Props (V2 only)
+  // ============================================================================
+
+  /**
+   * Research results state from the transform/Pusher hook
+   * When present and isCompleted or isStreaming, shows the research results UI
+   */
+  researchResults?: {
+    isStreaming: boolean;
+    isCompleted: boolean;
+    content: string;
+    metadata: ResearchResultsMetadata | null;
+    messageId: string | null;
+  };
+
+  /**
+   * Whether deep research is currently running (for UI state)
+   */
+  isDeepResearchRunning?: boolean;
+
+  /**
+   * Callback when user clicks the DataTablesCard to review source data
+   */
+  onDataTablesClick?: () => void;
+
+  /**
+   * Information for the DataTablesCard (number of tables, records processed, etc.)
+   */
+  dataTablesInfo?: {
+    tableCount: number;
+    processedRecords?: number;
+    totalRecords?: number;
+  };
 }
