@@ -691,14 +691,15 @@ export function transformAguiToTimelineSteps(
             try {
               const result = event.content ? JSON.parse(event.content) : {};
 
-              // Handle approval tool results - update status based on approved/rejected
+              // Handle approval tool results
               if (step.status === "awaiting-approval") {
-                if (result.approved === true) {
-                  step.status = "complete" as StepStatus;
-                } else if (result.approved === false) {
+                // TOOL_CALL_RESULT for approval tool = approval was accepted (otherwise tool wouldn't execute)
+                // Mark complete unless explicitly failed
+                if (result.approved === false || result.error) {
                   step.status = "error" as StepStatus;
+                } else {
+                  step.status = "complete" as StepStatus;
                 }
-                // If result doesn't have approved field, keep awaiting-approval status
               } else {
                 // Handle non-approval tool results
                 // Check for artifact (success case)
@@ -742,8 +743,9 @@ export function transformAguiToTimelineSteps(
 
         if (hasPendingApproval && event.type === "RUN_FINISHED") {
           // Intermediate RUN_FINISHED - run paused for approval
-          // Keep isThinking as true so UI shows we're waiting for approval
-          // Don't extract final response yet - it will come with the next RUN_FINISHED
+          // Stop thinking - run is complete, just waiting for user approval
+          isThinking = false;
+
           // Mark any in-progress steps (except approval steps) as complete
           for (const step of steps) {
             if (
@@ -753,8 +755,7 @@ export function transformAguiToTimelineSteps(
               step.status = "complete" as StepStatus;
             }
           }
-          // Don't set isThinking = false or extract final response
-          // The UI will continue showing the approval waiting state
+          // Don't extract final response yet - it will come with the next RUN_FINISHED
           break;
         }
 
