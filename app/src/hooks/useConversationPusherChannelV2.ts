@@ -23,6 +23,7 @@ import { config as appConfig } from "../config";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
+  type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 
 export interface UseConversationPusherChannelV2Config {
@@ -45,6 +46,10 @@ export interface UseConversationPusherChannelV2Return {
   isFinalResponseStreaming: boolean;
   /** Whether we're waiting for user approval (intermediate state between runs) */
   isAwaitingApproval: boolean;
+  /** Research results state for Deep Research workflow */
+  researchResults: ResearchResultsState;
+  /** Whether a long-running deep research is in progress (user can leave) */
+  isDeepResearchRunning: boolean;
 }
 
 /**
@@ -63,6 +68,16 @@ export function useConversationPusherChannelV2(
   const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
     useState(false);
   const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
+
+  // Research results state for Deep Research workflow
+  const [researchResults, setResearchResults] = useState<ResearchResultsState>({
+    isStreaming: false,
+    isCompleted: false,
+    content: "",
+    metadata: null,
+    messageId: null,
+  });
+  const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -138,6 +153,8 @@ export function useConversationPusherChannelV2(
           finalResponse: response,
           isFinalResponseStreaming: responseStreaming,
           isAwaitingApproval: awaitingApproval,
+          researchResults: research,
+          isDeepResearchRunning: deepResearchRunning,
         } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
@@ -147,6 +164,8 @@ export function useConversationPusherChannelV2(
           setFinalResponse(response);
           setIsFinalResponseStreaming(responseStreaming);
           setIsAwaitingApproval(awaitingApproval);
+          setResearchResults(research);
+          setIsDeepResearchRunning(deepResearchRunning);
         });
 
         // Stop timer and update elapsed time when run finishes
@@ -181,6 +200,14 @@ export function useConversationPusherChannelV2(
       setFinalResponse("");
       setIsFinalResponseStreaming(false);
       setIsAwaitingApproval(false);
+      setResearchResults({
+        isStreaming: false,
+        isCompleted: false,
+        content: "",
+        metadata: null,
+        messageId: null,
+      });
+      setIsDeepResearchRunning(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stopElapsedTimer();
@@ -303,6 +330,10 @@ export function useConversationPusherChannelV2(
           "agent.step_finished",
           "agent.run_finished",
           "agent.run_error",
+          // Research results events (Deep Research workflow)
+          "agent.research_results_start",
+          "agent.research_results_content",
+          "agent.research_results_end",
         ];
 
         events.forEach((eventName) => {
@@ -344,5 +375,7 @@ export function useConversationPusherChannelV2(
     finalResponse,
     isFinalResponseStreaming,
     isAwaitingApproval,
+    researchResults,
+    isDeepResearchRunning,
   };
 }

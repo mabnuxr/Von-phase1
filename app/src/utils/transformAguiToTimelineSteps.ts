@@ -12,11 +12,29 @@ import type {
   StepType,
   SourceType,
   EventCategory,
+  ResearchResultsMetadata,
 } from "@vonlabs/design-components";
 import {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
 } from "@vonlabs/design-components";
+
+/**
+ * Research results state for Deep Research workflow
+ * This is a simplified version for the transform output
+ */
+export interface ResearchResultsState {
+  /** Whether research results are currently streaming */
+  isStreaming: boolean;
+  /** Whether research results have completed */
+  isCompleted: boolean;
+  /** Accumulated research results content (markdown) */
+  content: string;
+  /** Metadata from RESEARCH_RESULTS_START event */
+  metadata: ResearchResultsMetadata | null;
+  /** Message ID for the research results */
+  messageId: string | null;
+}
 
 // Extended event types for STEP_STARTED/STEP_FINISHED with step_number
 // These events provide step boundaries for timing and tracking
@@ -39,7 +57,7 @@ interface StepFinishedEventWithNumber {
 }
 
 /**
- * Check if a tool is any type of approval tool (Salesforce or Google Calendar)
+ * Check if a tool is any type of approval tool (Salesforce, Google Calendar, or Deep Research)
  */
 function isAnyApprovalTool(toolName: string): boolean {
   return isApprovalTool(toolName) || isGoogleCalendarApprovalTool(toolName);
@@ -50,7 +68,7 @@ function isAnyApprovalTool(toolName: string): boolean {
  */
 function getApprovalType(
   toolName: string,
-): "salesforce" | "calendar" | "generic" {
+): "salesforce" | "calendar" | "deep_research" | "generic" {
   if (isApprovalTool(toolName)) return "salesforce";
   if (isGoogleCalendarApprovalTool(toolName)) return "calendar";
   return "generic";
@@ -98,7 +116,21 @@ interface DetectedApprovalData {
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
-  approvalType: "salesforce" | "calendar" | "bulk" | "generic";
+  approvalType:
+    | "salesforce"
+    | "calendar"
+    | "bulk"
+    | "deep_research"
+    | "generic";
+  // Deep research specific fields
+  researchQuery?: string;
+  estimatedTime?: string;
+  sampleContent?: string;
+  dataSources?: Array<{
+    name: string;
+    record_count: number;
+    description?: string;
+  }>;
 }
 
 /**
@@ -187,7 +219,23 @@ function detectApprovalFromArgs(
     };
   }
 
-  // Pattern 3: Generic approval with explicit approval_required or requires_approval flag
+  // Pattern 3: Deep Research approval (has research_query field)
+  if (parsed.summary && parsed.research_query) {
+    return {
+      toolCallId,
+      summary: parsed.summary,
+      objectType: "Deep Research",
+      recordName: parsed.research_query,
+      operation: "create", // Research is always a "create" operation conceptually
+      approvalType: "deep_research",
+      researchQuery: parsed.research_query,
+      estimatedTime: parsed.estimated_time,
+      sampleContent: parsed.sample_content,
+      dataSources: parsed.data_sources,
+    };
+  }
+
+  // Pattern 5: Generic approval with explicit approval_required or requires_approval flag
   if (
     (parsed.approval_required === true ||
       parsed.requires_approval === true ||
@@ -205,7 +253,7 @@ function detectApprovalFromArgs(
     };
   }
 
-  // Pattern 4: Generic approval with action/resource pattern
+  // Pattern 6: Generic approval with action/resource pattern
   if (
     parsed.summary &&
     parsed.action &&
@@ -272,6 +320,10 @@ export interface TransformResult {
   isFinalResponseStreaming: boolean;
   /** Whether we're waiting for user approval (intermediate state between runs) */
   isAwaitingApproval: boolean;
+  /** Research results state for Deep Research workflow */
+  researchResults: ResearchResultsState;
+  /** Whether a long-running deep research is in progress (user can leave) */
+  isDeepResearchRunning: boolean;
 }
 
 /**
@@ -291,6 +343,14 @@ export function transformAguiToTimelineSteps(
       finalResponse: "",
       isFinalResponseStreaming: false,
       isAwaitingApproval: false,
+      researchResults: {
+        isStreaming: false,
+        isCompleted: false,
+        content: "",
+        metadata: null,
+        messageId: null,
+      },
+      isDeepResearchRunning: false,
     };
   }
 
@@ -327,6 +387,14 @@ export function transformAguiToTimelineSteps(
   let isFinalResponseStreaming = false;
   // Track the last TEXT_MESSAGE message_id (will become final response at RUN_FINISHED)
   let lastTextMessageId: string | null = null;
+
+  // Research results tracking
+  let researchResultsIsStreaming = false;
+  let researchResultsIsCompleted = false;
+  let researchResultsContent = "";
+  let researchResultsMetadata: ResearchResultsMetadata | null = null;
+  let researchResultsMessageId: string | null = null;
+  let isDeepResearchRunning = false;
 
   for (const wrapper of sortedEvents) {
     const event = wrapper.event;
@@ -543,15 +611,22 @@ export function transformAguiToTimelineSteps(
           step.type = "approval" as StepType;
           step.status = "awaiting-approval" as StepStatus;
           // Initialize approval data with tool call info (will be populated with args later)
+          const approvalType = getApprovalType(toolName);
+          const objectType =
+            approvalType === "calendar"
+              ? "Calendar Event"
+              : approvalType === "deep_research"
+                ? "Deep Research"
+                : "Salesforce Record";
           step.approval = {
             toolCallId: toolId || "",
-            summary: "Requesting approval...",
-            objectType:
-              getApprovalType(toolName) === "calendar"
-                ? "Calendar Event"
-                : "Salesforce Record",
-            operation: "update",
-            approvalType: getApprovalType(toolName),
+            summary:
+              approvalType === "deep_research"
+                ? "Awaiting approval to proceed with full research..."
+                : "Requesting approval...",
+            objectType,
+            operation: approvalType === "deep_research" ? "create" : "update",
+            approvalType,
           };
         } else {
           step.type = "tool_call" as StepType;
@@ -732,6 +807,36 @@ export function transformAguiToTimelineSteps(
         break;
       }
 
+      case "RESEARCH_RESULTS_START": {
+        // Research results streaming started
+        researchResultsIsStreaming = true;
+        researchResultsIsCompleted = false;
+        researchResultsContent = "";
+        researchResultsMessageId = event.message_id;
+        researchResultsMetadata = event.metadata || null;
+        isDeepResearchRunning = true;
+        break;
+      }
+
+      case "RESEARCH_RESULTS_CONTENT": {
+        // Accumulate research results content
+        // Use snapshot if available (full content), otherwise append delta
+        if (event.snapshot) {
+          researchResultsContent = event.snapshot;
+        } else if (event.delta) {
+          researchResultsContent += event.delta;
+        }
+        break;
+      }
+
+      case "RESEARCH_RESULTS_END": {
+        // Research results streaming completed
+        researchResultsIsStreaming = false;
+        researchResultsIsCompleted = true;
+        isDeepResearchRunning = false;
+        break;
+      }
+
       case "RUN_FINISHED":
       case "RUN_ERROR": {
         // Check if there's a pending approval step
@@ -813,6 +918,14 @@ export function transformAguiToTimelineSteps(
     finalResponse,
     isFinalResponseStreaming,
     isAwaitingApproval,
+    researchResults: {
+      isStreaming: researchResultsIsStreaming,
+      isCompleted: researchResultsIsCompleted,
+      content: researchResultsContent,
+      metadata: researchResultsMetadata,
+      messageId: researchResultsMessageId,
+    },
+    isDeepResearchRunning,
   };
 }
 

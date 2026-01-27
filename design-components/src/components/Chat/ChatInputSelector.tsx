@@ -4,18 +4,12 @@ import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import { StandardChatInput, StandardChatInputWithCommands } from './StandardChatInput';
 import type { BuildMode } from '../DashboardBuilder';
 import type { FileAttachment } from './FileAttachment/types';
-import type { Command } from '../Commands/types';
 import type { AgentMode } from './StandardChatInput/types';
+import type { SendMessageOptions } from './types';
+import type { Command } from '../Commands/types';
 
-/**
- * Additional options passed with the send message callback
- */
-export interface SendMessageOptions {
-  /** Selected agent mode for the message */
-  agentMode?: AgentMode;
-  /** Selected command (when slash commands are enabled) */
-  command?: Command;
-}
+// Re-export SendMessageOptions for consumers who import from this file
+export type { SendMessageOptions } from './types';
 
 export interface ChatInputSelectorProps {
   /** Use StandardChatInput instead of ChatInput */

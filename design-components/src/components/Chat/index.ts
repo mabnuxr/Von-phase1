@@ -1,4 +1,6 @@
 export { Chat } from './Chat';
+export { DeepResearchChat } from './DeepResearchChat';
+export type { DeepResearchChatProps } from './DeepResearchChat';
 export type {
   ChatProps,
   Message,
@@ -140,6 +142,9 @@ export type {
   // Google Calendar approval types
   GoogleCalendarOperation,
   GoogleCalendarApprovalToolArgs,
+  // Deep Research approval types
+  DeepResearchDataSource,
+  DeepResearchApprovalToolArgs,
   // Call Search Union types
   CallMatchSource,
   CallSearchResult,
@@ -178,3 +183,56 @@ export {
   isExportableType,
   escapeCsvValue,
 } from './utils/csvExport';
+
+// Export Deep Research components and types
+export {
+  DeepResearchResults,
+  DeepResearchThinkingIndicator,
+  DeepResearchNotificationBar,
+  DataTablesCard,
+  DeepResearchApprovalCard,
+  MarkdownActionCard,
+} from './DeepResearch';
+export type {
+  DeepResearchNotificationBarProps,
+  DataTablesCardProps,
+  DeepResearchApprovalCardProps,
+  DeepResearchAction,
+  DataSourceInfo,
+  MarkdownActionCardProps,
+  MarkdownActionCardVariant,
+  ActionButton,
+  BulkItemChange,
+  BulkItem,
+  CalendarOperationType,
+  CalendarEvent,
+} from './DeepResearch';
+export type {
+  // Event types
+  ResearchResultsMetadata,
+  ResearchResultsStartEvent,
+  ResearchResultsContentEvent,
+  ResearchResultsEndEvent,
+  ResearchResultsEvent,
+  // Metadata types
+  ResearchDataSource,
+  ResearchApprovalAction,
+  // State types
+  ResearchResultsStatus,
+  ResearchResultsState,
+  // Component props
+  DeepResearchResultsProps,
+  DeepResearchThinkingIndicatorProps,
+  // Hook types
+  UseDeepResearchStreamingReturn,
+  UseDeepResearchStreamingConfig,
+} from './DeepResearch';
+export {
+  // Type guards
+  isResearchResultsStartEvent,
+  isResearchResultsContentEvent,
+  isResearchResultsEndEvent,
+  isResearchResultsEvent,
+  // Initial state
+  initialResearchResultsState,
+} from './DeepResearch';
