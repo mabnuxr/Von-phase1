@@ -129,9 +129,11 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
 
               {/* Description */}
               <p className="text-[13px] text-gray-800 leading-relaxed mb-4">
-                This will analyze{' '}
-                <span className="font-medium text-gray-900">
-                  {recordCount.toLocaleString()} records
+  const safeRecordCount = recordCount ?? 0;
+  ...
+  <span className="font-medium text-gray-900">
+    {safeRecordCount.toLocaleString()} records
+  </span>
                 </span>{' '}
                 across your connected data sources.
               </p>
