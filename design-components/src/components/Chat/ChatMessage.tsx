@@ -588,24 +588,26 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   )}
 
-                  {/* Message Actions - show for completed/stopped assistant messages */}
-                  {!isUser && !isStreaming && (
-                    <MessageActions
-                      messageContent={
-                        // For v2 thinking process, only use the final response (not intermediate steps)
-                        thinkingProcessVersion === 'v2' && v2FinalResponse
-                          ? v2FinalResponse
-                          : stepMessages && stepMessages.length > 0
-                            ? stepMessages.map((s) => s.content).join('\n\n')
-                            : content
-                      }
-                      messageId={messageId || ''}
-                      enableActions={enableActions}
-                      onConvertToDashboard={onConvertToDashboard}
-                      onTransparencyClick={onTransparencyClick}
-                      showTransparency={showTransparency}
-                    />
-                  )}
+                  {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
+                  {!isUser &&
+                    !isStreaming &&
+                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
+                      <MessageActions
+                        messageContent={
+                          // For v2 thinking process, only use the final response (not intermediate steps)
+                          thinkingProcessVersion === 'v2' && v2FinalResponse
+                            ? v2FinalResponse
+                            : stepMessages && stepMessages.length > 0
+                              ? stepMessages.map((s) => s.content).join('\n\n')
+                              : content
+                        }
+                        messageId={messageId || ''}
+                        enableActions={enableActions}
+                        onConvertToDashboard={onConvertToDashboard}
+                        onTransparencyClick={onTransparencyClick}
+                        showTransparency={showTransparency}
+                      />
+                    )}
                 </div>
               </div>
             </div>
