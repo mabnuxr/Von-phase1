@@ -1,9 +1,9 @@
+/* Inter font from Google Fonts - must be first to precede all rules */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @import 'tailwindcss';
 @source '../node_modules/streamdown/dist/index.js';
 @import 'github-markdown-css/github-markdown-light.css';
-
-/* Inter font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* RSuite Table Styles */
 @import 'rsuite-table/dist/css/rsuite-table.css';
