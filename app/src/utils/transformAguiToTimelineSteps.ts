@@ -837,8 +837,24 @@ export function transformAguiToTimelineSteps(
             }
 
             // Handle approval tool results that were accepted
+            // Still need to check for failures in the tool execution result
             if (step.status === "awaiting-approval") {
-              step.status = "complete" as StepStatus;
+              try {
+                const result = event.content ? JSON.parse(event.content) : {};
+                if (
+                  result.approved === false ||
+                  result.error ||
+                  result.success === false ||
+                  result._artifact?.success === false
+                ) {
+                  step.status = "error" as StepStatus;
+                } else {
+                  step.status = "complete" as StepStatus;
+                }
+              } catch {
+                // If we can't parse the content, assume success (approval was accepted)
+                step.status = "complete" as StepStatus;
+              }
               break;
             }
 
