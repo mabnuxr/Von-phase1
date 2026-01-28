@@ -1093,7 +1093,6 @@ const Dashboard = () => {
             conversationId={currentConversationId}
             paneState={artifactState}
             onClose={closeArtifact}
-            enableDeepLinks={isDeepLinksEnabled}
           />
         )}
       </div>

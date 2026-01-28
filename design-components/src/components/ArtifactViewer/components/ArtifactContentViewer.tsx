@@ -85,6 +85,46 @@ function LoadingSkeleton() {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Helper to detect if a value is a URL
+ */
+function isUrl(value: string): boolean {
+  return value.startsWith('http://') || value.startsWith('https://');
+}
+
+/**
+ * Format cell value with special handling for deep_link column
+ */
+function formatCellValue(
+  columnKey: string,
+  value: string | number,
+  columnType?: QueryColumn['type']
+): React.ReactNode {
+  const strValue = String(value);
+
+  // Special handling for deep_link column - render as clickable link
+  if (columnKey === 'deep_link' && isUrl(strValue)) {
+    return (
+      <a
+        href={strValue}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+        title="Open in Salesforce"
+      >
+        View in Salesforce
+      </a>
+    );
+  }
+
+  // Use existing formatValue for all other columns
+  return formatValue(value, columnType);
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -97,6 +137,7 @@ function LoadingSkeleton() {
  * - Pagination (10 rows per page)
  * - Type-specific column formatting (currency, percentage, date, number)
  * - Sticky table headers
+ * - Deep link rendering for Salesforce records
  *
  * Used by:
  * - TransparencyDrawer (QueryContent)
@@ -210,7 +251,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                               : 'text-left'
                           } text-gray-700`}
                         >
-                          {formatValue(row[col.key], col.type)}
+                          {formatCellValue(col.key, row[col.key], col.type)}
                         </td>
                       ))}
                     </tr>
