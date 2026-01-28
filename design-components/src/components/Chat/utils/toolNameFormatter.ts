@@ -15,6 +15,10 @@ const TOOL_NAME_MAP: Record<string, string> = {
   sql_get_distinct_values: 'Get Distinct Values',
   sql_discover_values: 'Discover Values',
 
+  // Query Tools
+  execute_salesforce_query: 'Query',
+  execute_sql_query: 'Query',
+
   // Search Tools
   search: 'Search',
   semantic_search: 'Semantic Search',

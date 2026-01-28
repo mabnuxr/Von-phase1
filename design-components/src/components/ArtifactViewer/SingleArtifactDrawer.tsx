@@ -234,6 +234,20 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       return <LoadingState />;
     }
 
+    // For data view with error, still show query but with error message in table area
+    if (error && !isCallsView && !isMemoryView) {
+      const { query, duration } = props as DataViewProps;
+      return (
+        <ArtifactContentViewer
+          query={query}
+          columns={[]}
+          rows={[]}
+          duration={duration}
+          errorMessage={error}
+        />
+      );
+    }
+
     if (error) {
       return <ErrorState message={error} />;
     }
