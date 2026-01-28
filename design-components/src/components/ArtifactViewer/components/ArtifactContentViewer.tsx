@@ -9,12 +9,9 @@ import {
 import type { QueryColumn } from '../../TransparencyDrawer/types';
 import { formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
-<<<<<<< HEAD
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
-=======
 import { isSalesforceUrl } from '../../Chat/utils/salesforceDeepLink';
->>>>>>> 9798a8b (Verifying the deep link)
 
 // ============================================================================
 // Types
