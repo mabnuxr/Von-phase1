@@ -247,7 +247,7 @@ export const LandingPage: Story = {
           >
             {/* Scrollable Content */}
             <motion.div
-              className="flex-1 flex flex-col items-center justify-start px-6 pt-6 overflow-y-auto font-sf"
+              className="flex-1 flex flex-col items-center justify-start px-6 pt-6 overflow-y-auto "
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -487,7 +487,7 @@ export const EmptyState: Story = {
 
         {/* Main Content Area */}
         <motion.div
-          className="flex-1 flex flex-col items-center justify-start px-6 pt-6 overflow-y-auto font-sf"
+          className="flex-1 flex flex-col items-center justify-start px-6 pt-6 overflow-y-auto "
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}

@@ -102,7 +102,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
   );
 
   return (
-    <div ref={containerRef} className="relative w-full antialiased font-sf">
+    <div ref={containerRef} className="relative w-full antialiased ">
       {/* Commands Overlay (List + Drawers) */}
       <CommandsOverlay
         commands={commands}

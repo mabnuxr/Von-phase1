@@ -307,7 +307,7 @@ function FilterDropdownPopover<T extends string>({
               onClose();
             }}
             className={`
-              w-full flex items-center justify-between px-3 py-2 text-[13px] transition-colors cursor-pointer
+              w-full flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer
               ${value === option.value ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-50'}
             `}
           >
@@ -476,12 +476,12 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
       {/* Row Prefix: "Where" or and/or dropdown */}
       <div className="w-14 flex-shrink-0">
         {rowPrefix === 'where' ? (
-          <span className="text-[13px] text-gray-700">Where</span>
+          <span className="text-sm text-gray-700">Where</span>
         ) : (
           <select
             value={connector}
             onChange={(e) => onConnectorChange?.(e.target.value as 'and' | 'or')}
-            className="w-full px-2 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
+            className="w-full px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
           >
             {FILTER_CONNECTOR_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -497,7 +497,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
         <select
           value={condition.field}
           onChange={(e) => onChange({ ...condition, field: e.target.value })}
-          className="w-full px-2 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
+          className="w-full px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
         >
           <option value="">Select field</option>
           {fields.map((f) => (
@@ -513,7 +513,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
         <select
           value={condition.operator}
           onChange={(e) => onChange({ ...condition, operator: e.target.value })}
-          className="w-full px-2 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
+          className="w-full px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 cursor-pointer"
         >
           {FILTER_OPERATORS.map((op) => (
             <option key={op.value} value={op.value}>
@@ -531,7 +531,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
             value={condition.value}
             onChange={(e) => onChange({ ...condition, value: e.target.value })}
             placeholder="Enter a value"
-            className="w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
+            className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
           />
         </div>
       )}
@@ -757,7 +757,7 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
       <div className="flex flex-col gap-4 p-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-medium text-gray-900">Filter</span>
+          <span className="text-sm font-medium text-gray-900">Filter</span>
           <button
             onClick={handleCancel}
             className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
@@ -781,14 +781,14 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder={placeholder}
-                className="flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
               />
             </div>
           </div>
         </form>
 
         {/* Section label */}
-        <div className="text-[13px] text-gray-700">In this view, show records</div>
+        <div className="text-sm text-gray-700">In this view, show records</div>
 
         {/* Filter Conditions */}
         <div className="flex flex-col gap-2">
@@ -812,7 +812,7 @@ const PromptBasedFilterPopover: React.FC<PromptBasedFilterPopoverProps> = ({
             <button
               type="button"
               onClick={addCondition}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-800 bg-transparent border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-800 bg-transparent border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <PlusIcon size={14} />
               <span>Add condition</span>
@@ -1293,7 +1293,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-[13px] font-medium text-gray-900">{data.title}</span>
+        <span className="text-sm font-medium text-gray-900">{data.title}</span>
         <AnimatePresence>
           {isHovered && (
             <motion.div
@@ -1411,7 +1411,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    w-full flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-xl transition-all cursor-pointer
+                    w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all cursor-pointer
                     ${
                       activeTab === tab.id
                         ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
@@ -1434,7 +1434,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   <h3 className="text-[14px] font-semibold text-gray-900 mb-1">
                     Refresh Frequency
                   </h3>
-                  <p className="text-[13px] text-gray-500">
+                  <p className="text-sm text-gray-500">
                     Choose how often this dashboard should refresh its data.
                   </p>
                 </div>
@@ -1502,7 +1502,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                             </span>
                           )}
                         </div>
-                        <p className="text-[13px] text-gray-500 mt-0.5">{option.desc}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{option.desc}</p>
                       </div>
                     </label>
                   ))}
@@ -1512,7 +1512,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   <div className="flex items-start gap-3">
                     <InfoIcon size={18} className="text-gray-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[13px] font-medium text-gray-700">About data refresh</p>
+                      <p className="text-sm font-medium text-gray-700">About data refresh</p>
                       <p className="text-[12px] text-gray-500 mt-1">
                         Real-time refresh may increase data usage and API calls to your connected
                         sources. Consider using hourly or daily refresh for dashboards that don't
@@ -1530,7 +1530,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   <h3 className="text-[14px] font-semibold text-gray-900 mb-1">
                     Visibility & Access
                   </h3>
-                  <p className="text-[13px] text-gray-500">
+                  <p className="text-sm text-gray-500">
                     Control who can view and interact with this dashboard.
                   </p>
                 </div>
@@ -1589,7 +1589,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                       </div>
                       <div className="flex-1">
                         <p className="text-[14px] font-medium text-gray-900">{option.label}</p>
-                        <p className="text-[13px] text-gray-500 mt-0.5">{option.desc}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{option.desc}</p>
                       </div>
                       {visibility === option.value && (
                         <CheckIcon size={20} className="text-indigo-600 flex-shrink-0" />
@@ -1599,14 +1599,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
-                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">
-                    Invite Collaborators
-                  </h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-4">Invite Collaborators</h4>
                   <div className="flex gap-3">
                     <input
                       type="email"
                       placeholder="Enter email address..."
-                      className="flex-1 px-4 py-2.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      className="flex-1 px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                     <PrimaryButton>
                       <span className="flex items-center gap-2">
@@ -1621,7 +1619,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="border-t border-gray-200 pt-6 mt-6">
-                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">Current Access</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-4">Current Access</h4>
                   <div className="space-y-3">
                     {[
                       { name: 'John Doe', email: 'john@example.com', role: 'Owner', avatar: 'JD' },
@@ -1644,7 +1642,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                             {user.avatar}
                           </div>
                           <div>
-                            <p className="text-[13px] font-medium text-gray-900">{user.name}</p>
+                            <p className="text-sm font-medium text-gray-900">{user.name}</p>
                             <p className="text-[12px] text-gray-500">{user.email}</p>
                           </div>
                         </div>
@@ -1672,9 +1670,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                   <h3 className="text-[14px] font-semibold text-gray-900 mb-1">
                     Dashboard Details
                   </h3>
-                  <p className="text-[13px] text-gray-500">
-                    View information about this dashboard.
-                  </p>
+                  <p className="text-sm text-gray-500">View information about this dashboard.</p>
                 </div>
 
                 <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
@@ -1689,26 +1685,24 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
                     { label: 'Last Refreshed', value: 'Today at 12:00 AM' },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between px-4 py-3.5">
-                      <span className="text-[13px] text-gray-500">{item.label}</span>
-                      <span className="text-[13px] text-gray-900 font-medium">{item.value}</span>
+                      <span className="text-sm text-gray-500">{item.label}</span>
+                      <span className="text-sm text-gray-900 font-medium">{item.value}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="mt-8">
-                  <h4 className="text-[13px] font-semibold text-gray-900 mb-4">Danger Zone</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-4">Danger Zone</h4>
                   <div className="p-4 bg-red-50 rounded-xl border border-red-200">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[13px] font-medium text-red-900">
-                          Delete this dashboard
-                        </p>
+                        <p className="text-sm font-medium text-red-900">Delete this dashboard</p>
                         <p className="text-[12px] text-red-700 mt-0.5">
                           Once deleted, this dashboard cannot be recovered. All widgets and
                           configurations will be permanently removed.
                         </p>
                       </div>
-                      <button className="px-3 py-2 text-[13px] font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors cursor-pointer flex-shrink-0">
+                      <button className="px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-colors cursor-pointer flex-shrink-0">
                         Delete
                       </button>
                     </div>
@@ -1782,7 +1776,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-[13px] font-medium text-gray-900">{data.title}</span>
+        <span className="text-sm font-medium text-gray-900">{data.title}</span>
         <AnimatePresence>
           {isHovered && (
             <motion.div
@@ -1930,7 +1924,7 @@ const TextWidget: React.FC<TextWidgetProps> = ({
           ) : (
             <NoteIcon size={16} className="text-gray-500" />
           )}
-          <span className="text-[13px] font-medium text-gray-900">{data.title}</span>
+          <span className="text-sm font-medium text-gray-900">{data.title}</span>
         </div>
         <AnimatePresence>
           {isHovered && !isEditing && (
@@ -1972,7 +1966,7 @@ const TextWidget: React.FC<TextWidgetProps> = ({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className={`
-                w-full px-3 py-2 text-[13px] text-gray-900 bg-gray-50 border rounded-lg
+                w-full px-3 py-2 text-sm text-gray-900 bg-gray-50 border rounded-lg
                 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500
                 resize-none min-h-[100px] leading-relaxed
                 ${isOverLimit ? 'border-red-300 focus:ring-red-500' : 'border-gray-200'}
@@ -2006,25 +2000,23 @@ const TextWidget: React.FC<TextWidgetProps> = ({
                     <h1 className="text-sm font-medium text-gray-900 mb-3">{children}</h1>
                   ),
                   h2: ({ children }) => (
-                    <h2 className="text-[13px] font-medium text-gray-900 mb-2">{children}</h2>
+                    <h2 className="text-sm font-medium text-gray-900 mb-2">{children}</h2>
                   ),
                   h3: ({ children }) => (
-                    <h3 className="text-[13px] font-medium text-gray-900 mb-2">{children}</h3>
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">{children}</h3>
                   ),
                   // Paragraph styling
                   p: ({ children }) => (
-                    <p className="text-[13px] text-gray-700 leading-relaxed mb-3 last:mb-0">
+                    <p className="text-sm text-gray-700 leading-relaxed mb-3 last:mb-0">
                       {children}
                     </p>
                   ),
                   // List styling
                   ul: ({ children }) => (
-                    <ul className="text-[13px] text-gray-700 space-y-2 mb-3 last:mb-0">
-                      {children}
-                    </ul>
+                    <ul className="text-sm text-gray-700 space-y-2 mb-3 last:mb-0">{children}</ul>
                   ),
                   ol: ({ children }) => (
-                    <ol className="text-[13px] text-gray-700 space-y-2 mb-3 last:mb-0 list-decimal pl-4">
+                    <ol className="text-sm text-gray-700 space-y-2 mb-3 last:mb-0 list-decimal pl-4">
                       {children}
                     </ol>
                   ),
@@ -2057,7 +2049,7 @@ const TextWidget: React.FC<TextWidgetProps> = ({
                 {content}
               </ReactMarkdown>
             ) : (
-              <p className="text-[13px] text-gray-400 italic">Click edit to add notes...</p>
+              <p className="text-sm text-gray-400 italic">Click edit to add notes...</p>
             )}
           </div>
         )}
@@ -2327,7 +2319,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             ref={timelineButtonRef}
             onClick={handleOpenTimelinePopover}
             className={`
-              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-sm transition-colors cursor-pointer
               ${
                 showTimelinePopover
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
@@ -2347,7 +2339,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             ref={ownerButtonRef}
             onClick={handleOpenOwnerPopover}
             className={`
-              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-sm transition-colors cursor-pointer
               ${
                 showOwnerPopover
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
@@ -2367,7 +2359,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
             ref={filterButtonRef}
             onClick={handleOpenAdvancedFilters}
             className={`
-              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-sm transition-colors cursor-pointer
               ${
                 showAdvancedFilters || advancedFilters.length > 0
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
@@ -2394,7 +2386,7 @@ export const DashboardV2: React.FC<DashboardV2Props> = ({
                 onFilterClick(filterButtonRef.current.getBoundingClientRect());
               }
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-gray-800 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-800 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
           >
             <FunnelIcon size={14} />
             <span>Filter</span>

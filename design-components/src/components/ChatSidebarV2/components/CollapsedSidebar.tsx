@@ -69,7 +69,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onSignOutClick,
 }) => {
   return (
-    <div className="px-2 py-3 h-full w-full bg-transparent flex text-[13px] flex-col antialiased font-sf">
+    <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
       <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-100 mb-2">
         <TertiaryIconButton
@@ -132,7 +132,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                         <div
                           key={item.id}
                           className={`
-                            flex items-center gap-2.5 px-3 py-1.5 text-[13px]
+                            flex items-center gap-2.5 px-3 py-1.5 text-sm
                             transition-all duration-150 cursor-pointer
                             ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
                           `}

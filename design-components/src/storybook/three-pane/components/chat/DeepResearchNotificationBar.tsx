@@ -40,7 +40,7 @@ export const DeepResearchNotificationBar: React.FC<DeepResearchNotificationBarPr
     >
       <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gray-900 rounded-xl">
         <EnvelopeSimpleIcon size={16} weight="regular" className="text-white flex-shrink-0" />
-        <span className="text-[13px] text-white">{message}</span>
+        <span className="text-sm text-white">{message}</span>
       </div>
     </motion.div>
   );

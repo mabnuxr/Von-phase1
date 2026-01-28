@@ -210,7 +210,7 @@ export const ReferenceInteraction: Story = {
                 });
                 setShowAddButton(false);
               }}
-              className="text-[13px] text-indigo-600 hover:text-indigo-700"
+              className="text-sm text-indigo-600 hover:text-indigo-700"
             >
               + Add reference back
             </button>

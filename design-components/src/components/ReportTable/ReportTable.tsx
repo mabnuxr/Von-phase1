@@ -217,13 +217,13 @@ const AIHeaderPopover: React.FC<AIHeaderPopoverProps> = ({ column, onClose, posi
     >
       <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
         <SourcesLogoHeader size={16} />
-        <span className="text-[13px] font-medium text-gray-900">{column.label}</span>
+        <span className="text-sm font-medium text-gray-900">{column.label}</span>
       </div>
 
       {column.aiPrompt && (
         <div className="px-3 py-2.5 border-b border-gray-100">
           <p className="text-xs font-medium text-gray-700 mb-1.5">AI Prompt</p>
-          <p className="text-[13px] text-gray-900 leading-relaxed">{column.aiPrompt}</p>
+          <p className="text-sm text-gray-900 leading-relaxed">{column.aiPrompt}</p>
         </div>
       )}
 
@@ -245,7 +245,7 @@ const AIHeaderPopover: React.FC<AIHeaderPopoverProps> = ({ column, onClose, posi
 
       {!column.aiPrompt && (!column.aiDataSources || column.aiDataSources.length === 0) && (
         <div className="px-3 py-2.5">
-          <p className="text-[13px] text-gray-700">AI-generated column</p>
+          <p className="text-sm text-gray-700">AI-generated column</p>
         </div>
       )}
     </div>,
@@ -695,7 +695,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
   if (data.length === 0) {
     return (
       <div className={`w-full ${className}`}>
-        <div className="flex items-center justify-center py-12 text-[13px] text-gray-700">
+        <div className="flex items-center justify-center py-12 text-sm text-gray-700">
           {emptyMessage}
         </div>
       </div>
@@ -792,7 +792,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
                       draggable={canDrag}
                       onDragStart={canDrag ? (e) => handleDragStart(e, header.id) : undefined}
                       className={`
-                        px-3 py-1.5 text-left text-[13px] font-medium relative border-r border-gray-100
+                        px-3 py-1.5 text-left text-sm font-medium relative border-r border-gray-100
                         ${isAIColumn ? 'text-gray-800 cursor-pointer' : 'bg-gray-50 text-gray-800'}
                         ${isFrozen ? 'sticky z-30' : ''}
                         ${isDropTarget ? 'bg-indigo-50 border-l-2 border-l-indigo-400' : ''}
@@ -876,7 +876,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
                       <td
                         key={cell.id}
                         className={`
-                          px-3 py-1.5 text-[13px] font-medium border-r border-gray-100
+                          px-3 py-1.5 text-sm font-medium border-r border-gray-100
                           ${isFrozen ? 'sticky z-10' : ''}
                           ${isFrozen && isSelected ? 'bg-gray-50' : isFrozen ? 'bg-white' : ''}
                           ${isFrozen && isHovered && !isSelected ? 'bg-gray-50/50' : ''}
@@ -907,7 +907,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
       {/* Pagination */}
       {showPagination && totalPages > 1 && (
         <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-white">
-          <div className="text-[13px] text-gray-700">
+          <div className="text-sm text-gray-700">
             Showing {startRow} to {endRow} of {totalRows} results
           </div>
           <div className="flex items-center gap-2">
@@ -924,7 +924,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
                   key={i}
                   onClick={() => table.setPageIndex(i)}
                   className={`
-                    min-w-[28px] h-7 px-2 text-[13px] font-medium rounded-lg transition-colors cursor-pointer
+                    min-w-[28px] h-7 px-2 text-sm font-medium rounded-lg transition-colors cursor-pointer
                     ${
                       currentPage === i
                         ? 'bg-gray-900 text-white'

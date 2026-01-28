@@ -154,7 +154,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
               value={condition.value}
               onChange={(e) => onUpdate({ ...condition, value: e.target.value })}
               placeholder="Value"
-              className="w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
+              className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
             />
           </div>
         )}
@@ -353,20 +353,20 @@ const FilterEditPanel: React.FC<FilterEditPanelProps> = ({
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <button
           onClick={handleClear}
-          className="px-3 py-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+          className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
         >
           Clear all
         </button>
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleApply}
-            className="px-3 py-1.5 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
           >
             Apply filters
           </button>
@@ -419,7 +419,7 @@ export const AIFilterPanel: React.FC<AIFilterPanelProps> = ({
           onKeyDown={handleKeyDown}
           placeholder="Describe what you want to see"
           disabled={isProcessing}
-          className="w-full pl-10 pr-4 py-2.5 text-[13px] text-gray-900 bg-gray-50 border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-shadow disabled:opacity-50"
+          className="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-shadow disabled:opacity-50"
         />
         {isProcessing && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">

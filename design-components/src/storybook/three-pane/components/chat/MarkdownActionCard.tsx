@@ -142,7 +142,7 @@ ${rows.join('\n')}`;
             <CaretRightIcon size={12} weight="bold" />
           )}
         </span>
-        <span className="flex-1 text-[13px] text-gray-900">{item.summary}</span>
+        <span className="flex-1 text-sm text-gray-900">{item.summary}</span>
       </button>
       <AnimatePresence>
         {isExpanded && (
@@ -212,7 +212,7 @@ const CalendarEventRow: React.FC<CalendarEventRowProps> = ({ event, isExpanded, 
             <CaretRightIcon size={12} weight="bold" />
           )}
         </span>
-        <span className="flex-1 text-[13px] text-gray-900 truncate">{event.summary}</span>
+        <span className="flex-1 text-sm text-gray-900 truncate">{event.summary}</span>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="text-xs font-medium text-gray-700">
             {getOperationLabel(event.operation)}

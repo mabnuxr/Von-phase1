@@ -152,11 +152,11 @@ const FilterPreview: React.FC<FilterPreviewProps> = ({ groups, fields, onEdit })
   if (!hasFilters) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
-        <span className="text-[13px] text-gray-500">No filters applied</span>
+        <span className="text-sm text-gray-500">No filters applied</span>
         <button
           type="button"
           onClick={onEdit}
-          className="text-[13px] text-gray-800 hover:text-gray-900 transition-colors cursor-pointer"
+          className="text-sm text-gray-800 hover:text-gray-900 transition-colors cursor-pointer"
         >
           Add filter
         </button>
@@ -181,11 +181,11 @@ const FilterPreview: React.FC<FilterPreviewProps> = ({ groups, fields, onEdit })
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-[13px] text-gray-500">Where</span>
+      <span className="text-sm text-gray-500">Where</span>
       {filterParts.map((part, index) => (
         <div key={index} className="flex items-center gap-1.5">
-          {part.connector && <span className="text-[13px] text-gray-500">{part.connector}</span>}
-          <span className="text-[13px] text-gray-700">
+          {part.connector && <span className="text-sm text-gray-500">{part.connector}</span>}
+          <span className="text-sm text-gray-700">
             <span className="font-medium">{part.field}</span> {part.operator}
             {part.value && (
               <>
@@ -247,7 +247,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
       {/* Row Prefix: "Where" or and/or dropdown */}
       <div className="w-14 flex-shrink-0">
         {rowPrefix === 'where' ? (
-          <span className="text-[13px] text-gray-700">Where</span>
+          <span className="text-sm text-gray-700">Where</span>
         ) : (
           <Dropdown
             options={CONNECTOR_OPTIONS}
@@ -288,7 +288,7 @@ const FilterConditionRow: React.FC<FilterConditionRowProps> = ({
             value={condition.value}
             onChange={(e) => onChange({ ...condition, value: e.target.value })}
             placeholder="Enter a value"
-            className="w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
+            className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
           />
         </div>
       )}
@@ -409,7 +409,7 @@ const FilterGroupCard: React.FC<FilterGroupCardProps> = ({
       <div className="flex-1 bg-gray-50 rounded-lg border border-gray-100">
         {/* Group header */}
         <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-[13px] text-gray-600">{groupLabel}</span>
+          <span className="text-sm text-gray-600">{groupLabel}</span>
           <div className="flex items-center gap-1">
             {/* Add condition to group */}
             <button
@@ -441,7 +441,7 @@ const FilterGroupCard: React.FC<FilterGroupCardProps> = ({
         {/* Group conditions */}
         {isEmpty || group.conditions.length === 0 ? (
           <div className="px-3 pb-3">
-            <div className="text-[13px] text-gray-400 py-2">
+            <div className="text-sm text-gray-400 py-2">
               Drag conditions here to add them to this group
             </div>
           </div>
@@ -602,7 +602,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
     <div className="flex flex-col gap-4 p-4 min-w-[600px] max-w-[800px]">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-medium text-gray-900">Filter</span>
+        <span className="text-sm font-medium text-gray-900">Filter</span>
         <button
           onClick={onClose}
           className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
@@ -628,7 +628,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder={aiPromptPlaceholder}
-                className="flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
               />
             </div>
           </div>
@@ -639,7 +639,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
       {hasAppliedFilters && !isEditing && (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium text-gray-700">Pre-applied filters</span>
+            <span className="text-sm font-medium text-gray-700">Pre-applied filters</span>
             <button
               type="button"
               onClick={() => setIsEditing(true)}
@@ -650,13 +650,11 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
             </button>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
-            <span className="text-[13px] text-gray-500">Where</span>
+            <span className="text-sm text-gray-500">Where</span>
             {filterParts.map((part, index) => (
               <span key={index} className="flex items-center gap-1">
-                {part.connector && (
-                  <span className="text-[13px] text-gray-500">{part.connector}</span>
-                )}
-                <span className="text-[13px] text-gray-700">
+                {part.connector && <span className="text-sm text-gray-500">{part.connector}</span>}
+                <span className="text-sm text-gray-700">
                   <span className="font-medium">{part.field}</span> {part.operator}
                   {part.value && (
                     <>
@@ -675,7 +673,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
       {(isEditing || !hasAppliedFilters) && (
         <>
           {/* Section label */}
-          <div className="text-[13px] text-gray-700">In this view, show records</div>
+          <div className="text-sm text-gray-700">In this view, show records</div>
 
           {/* Filter Conditions */}
           <div className="flex flex-col gap-2">
@@ -950,7 +948,7 @@ export const Filter: React.FC<FilterProps> = ({
     return (
       <div className="flex flex-col gap-3">
         {/* Header */}
-        <div className="text-[13px] font-medium text-gray-900">Filter</div>
+        <div className="text-sm font-medium text-gray-900">Filter</div>
 
         {/* Filter Preview */}
         <FilterPreview groups={groups} fields={fields} onEdit={() => setIsEditing(true)} />
@@ -962,7 +960,7 @@ export const Filter: React.FC<FilterProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {/* Header */}
-      <div className="text-[13px] font-medium text-gray-900">Filter</div>
+      <div className="text-sm font-medium text-gray-900">Filter</div>
 
       {/* AI Prompt Input */}
       {showAIPrompt && (
@@ -981,7 +979,7 @@ export const Filter: React.FC<FilterProps> = ({
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 placeholder={aiPromptPlaceholder}
-                className="flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
               />
             </div>
           </div>
@@ -989,7 +987,7 @@ export const Filter: React.FC<FilterProps> = ({
       )}
 
       {/* Section label */}
-      <div className="text-[13px] text-gray-700">In this view, show records</div>
+      <div className="text-sm text-gray-700">In this view, show records</div>
 
       {/* Filter Conditions */}
       <div className="flex flex-col gap-2">

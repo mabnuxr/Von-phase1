@@ -333,7 +333,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                       {columns.map((col) => (
                         <td
                           key={col.key}
-                          className={`px-3 py-2 text-[13px] whitespace-nowrap ${
+                          className={`px-3 py-2 text-sm whitespace-nowrap ${
                             col.type === 'number' ||
                             col.type === 'currency' ||
                             col.type === 'percentage'

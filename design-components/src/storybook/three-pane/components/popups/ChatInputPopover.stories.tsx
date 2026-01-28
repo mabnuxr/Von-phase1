@@ -131,7 +131,7 @@ export const ModeSelector: Story = {
 
     return (
       <div className="space-y-4">
-        <div className="text-[13px] text-gray-700 mb-4">
+        <div className="text-sm text-gray-700 mb-4">
           Current mode: <strong>{autoEditMode}</strong>
         </div>
         <StandardChatInput
@@ -450,7 +450,7 @@ export const InteractiveModeFlow: Story = {
 
     return (
       <div className="space-y-4">
-        <div className="text-[13px] text-gray-700 p-3 bg-gray-50 rounded-lg">
+        <div className="text-sm text-gray-700 p-3 bg-gray-50 rounded-lg">
           <strong>Instructions:</strong> Try switching modes using the "Auto edits" button. In "Plan
           Mode", a plan popover will appear. In "Auto edits: on" mode, send a message to see an edit
           request popover.

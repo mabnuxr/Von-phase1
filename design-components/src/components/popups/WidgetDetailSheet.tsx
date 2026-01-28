@@ -284,7 +284,7 @@ const GlassDataTable: React.FC<GlassDataTableProps> = ({ columns, data }) => {
         {data.map((row, rowIndex) => (
           <div key={row.id || rowIndex} className="flex hover:bg-white/30 transition-colors">
             {columns.map((col) => (
-              <div key={col.id} className="flex-1 px-4 py-3 text-[13px] text-gray-900">
+              <div key={col.id} className="flex-1 px-4 py-3 text-sm text-gray-900">
                 {formatValue(row[col.id], col.type)}
               </div>
             ))}
@@ -406,7 +406,7 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
                 {/* Expanded Chart View */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <span className="text-[13px] font-medium text-gray-900">{widget.name}</span>
+                    <span className="text-sm font-medium text-gray-900">{widget.name}</span>
                     <button className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 cursor-pointer">
                       <span>Options</span>
                       <CaretDownIcon size={12} />
@@ -422,7 +422,7 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
                     ) : (
                       <div className="h-full flex items-center justify-center">
                         <div className="text-center">
-                          <p className="text-[13px] text-gray-500">No data available</p>
+                          <p className="text-sm text-gray-500">No data available</p>
                           <p className="text-[11px] text-gray-400 mt-1">
                             Configure this widget with a data source
                           </p>
@@ -463,7 +463,7 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
                       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
                     </div>
                     <div className="text-center py-8">
-                      <p className="text-[13px] text-gray-500">No data source configured</p>
+                      <p className="text-sm text-gray-500">No data source configured</p>
                       <p className="text-[11px] text-gray-400 mt-1">
                         Configure this widget with a report to see data
                       </p>

@@ -581,7 +581,7 @@ const WidgetCard: React.FC<WidgetCardProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[13px] font-medium text-gray-900 truncate">{widget.title}</span>
+          <span className="text-sm font-medium text-gray-900 truncate">{widget.title}</span>
         </div>
         {/* Show "Editing" pill when in editing mode, otherwise show edit/delete icons */}
         {isEditing ? (
@@ -761,7 +761,7 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
             <div className="p-3 pb-4 rounded-b-xl">
               {filters.length === 0 ? (
                 <div className="py-6 text-center">
-                  <p className="text-[13px] text-gray-500">No filters applied</p>
+                  <p className="text-sm text-gray-500">No filters applied</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
                     Click "Add Filter" to filter your data
                   </p>
@@ -853,7 +853,7 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
 
                   {/* Label */}
                   <span
-                    className={`text-[13px] flex-1 ${column.isVisible ? 'text-gray-900' : 'text-gray-500'}`}
+                    className={`text-sm flex-1 ${column.isVisible ? 'text-gray-900' : 'text-gray-500'}`}
                   >
                     {column.label}
                   </span>
@@ -881,7 +881,7 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search..."
-          className="flex-1 bg-transparent border-0 outline-none text-[13px] text-gray-900 placeholder:text-gray-400"
+          className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
         />
         {searchValue && (
           <button
@@ -899,7 +899,7 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
           ref={filterButtonRef}
           onClick={() => setShowFilterDropdown(!showFilterDropdown)}
           className={`
-          flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[13px] font-medium transition-colors cursor-pointer
+          flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors cursor-pointer
           ${
             filters.length > 0
               ? 'bg-gray-100 border-gray-200 text-gray-900 hover:bg-gray-200'
@@ -920,7 +920,7 @@ const DataToolbar: React.FC<DataToolbarProps> = ({
         <button
           ref={columnButtonRef}
           onClick={() => setShowColumnDropdown(!showColumnDropdown)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-100 text-[13px] font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-100 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-200 transition-colors cursor-pointer"
         >
           <ColumnsIcon size={14} />
           <span>Columns</span>
@@ -1316,12 +1316,12 @@ export const Pane2: React.FC<Pane2Props> = ({
           {mode === 'dashboard' ? (
             <>
               <GridFourIcon size={14} weight="regular" className="text-gray-700" />
-              <span className="text-[13px] font-medium text-gray-900">{dashboardName}</span>
+              <span className="text-sm font-medium text-gray-900">{dashboardName}</span>
             </>
           ) : (
             <>
               <TableIcon size={14} weight="regular" className="text-gray-700" />
-              <span className="text-[13px] font-medium text-gray-900">{reportName}</span>
+              <span className="text-sm font-medium text-gray-900">{reportName}</span>
             </>
           )}
         </div>
@@ -1337,7 +1337,7 @@ export const Pane2: React.FC<Pane2Props> = ({
                       onFilterClick(filterButtonRef.current.getBoundingClientRect());
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                   title="Filter dashboard"
                 >
                   <FunnelIcon size={14} weight="regular" />
@@ -1421,7 +1421,7 @@ export const Pane2: React.FC<Pane2Props> = ({
                   style={getDropPreviewStyle()}
                 >
                   <div className="h-full w-full flex items-center justify-center">
-                    <span className="text-[13px] font-medium text-indigo-600">
+                    <span className="text-sm font-medium text-indigo-600">
                       {draggingComponent?.label || 'Widget'}
                     </span>
                   </div>
@@ -1433,8 +1433,8 @@ export const Pane2: React.FC<Pane2Props> = ({
             {(isEmpty || layout.length === 0) && !isDraggingOver ? (
               <div className="flex flex-col items-center justify-center h-full text-center p-8">
                 <GridFourIcon size={48} weight="duotone" className="text-gray-300 mb-4" />
-                <h3 className="text-[13px] font-medium text-gray-900 mb-1">No widgets yet</h3>
-                <p className="text-[13px] text-gray-700 mb-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-1">No widgets yet</h3>
+                <p className="text-sm text-gray-700 mb-4">
                   Drag components from the left panel to start building your dashboard
                 </p>
               </div>
@@ -1511,8 +1511,8 @@ export const Pane2: React.FC<Pane2Props> = ({
             {reportTableContent || (
               <div className="flex flex-col items-center justify-center h-full text-center p-8">
                 <TableIcon size={48} weight="duotone" className="text-gray-300 mb-4" />
-                <h3 className="text-[13px] font-medium text-gray-900 mb-1">Select a report</h3>
-                <p className="text-[13px] text-gray-700">
+                <h3 className="text-sm font-medium text-gray-900 mb-1">Select a report</h3>
+                <p className="text-sm text-gray-700">
                   Choose a report from the left panel to view its data
                 </p>
               </div>

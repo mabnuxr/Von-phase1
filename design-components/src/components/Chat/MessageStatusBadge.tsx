@@ -34,7 +34,7 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium font-sf ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium  ${className}`}
       >
         <motion.div
           animate={{
@@ -59,7 +59,7 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
       <motion.div
         initial={{ opacity: 0, y: -5 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-800 text-xs font-medium font-sf ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-800 text-xs font-medium  ${className}`}
         title={errorMessage || 'An error occurred'}
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

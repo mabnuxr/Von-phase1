@@ -40,7 +40,7 @@ export const TabPill: React.FC<TabPillProps> = ({ label, active = false, onClick
     <button
       className={`
         inline-flex items-center px-4 py-2 rounded-[20px] border-0 text-sm whitespace-nowrap
-        transition-all duration-200 font-sf
+        transition-all duration-200 
         ${onClick ? 'cursor-pointer' : 'cursor-default'}
         ${active ? 'bg-white text-gray-900 font-semibold shadow-subtle' : 'bg-transparent text-gray-600 font-normal hover:bg-white/50'}
         ${className || ''}

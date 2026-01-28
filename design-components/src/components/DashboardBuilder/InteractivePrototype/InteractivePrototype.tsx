@@ -85,7 +85,7 @@ export const InteractivePrototype: React.FC<InteractivePrototypeProps> = ({ onCo
   const chartWidgets = mockDashboard.widgets.filter((w) => w.type === 'chart');
 
   return (
-    <div className="h-screen w-full overflow-hidden font-sf relative">
+    <div className="h-screen w-full overflow-hidden  relative">
       {/* Ambient Glow Effect */}
       <AmbientGlow isActive={state.ambientGlowActive} intensity={0.5} animationSpeed={3} />
 

@@ -70,7 +70,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
 
   return (
     <div
-      className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-[13px] text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+      className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
       onClick={isEditing ? undefined : onClick}
       onContextMenu={isEditing ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
@@ -90,7 +90,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
