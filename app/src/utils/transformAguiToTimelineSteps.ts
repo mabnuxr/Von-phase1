@@ -929,8 +929,10 @@ export function transformAguiToTimelineSteps(
 
         if (hasPendingApproval && event.type === "RUN_FINISHED") {
           // Intermediate RUN_FINISHED - run paused for approval
-          // Stop thinking - run is complete, just waiting for user approval
-          isThinking = false;
+          // Keep isThinking = true so the UI continues showing the loading state,
+          // timer keeps ticking, and message actions don't appear prematurely.
+          // The isAwaitingApproval flag (derived from step status) handles
+          // approval-specific UI like the bell icon.
           sawRunFinishedWithPendingApproval = true;
 
           // Mark any in-progress steps (except approval steps) as complete
