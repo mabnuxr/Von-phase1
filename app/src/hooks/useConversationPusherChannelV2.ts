@@ -54,9 +54,14 @@ export interface UseConversationPusherChannelV2Return {
 
 /**
  * V2 Pusher hook that transforms AGUI events to TimelineStep[] format
+ *
+ * @param config - Channel configuration (conversationId, tenantId, userId)
+ * @param initialRunEvents - Events from the latest streaming message (seeds eventsRef after page refresh
+ *   so that post-approval Pusher events append to existing state instead of starting a new run)
  */
 export function useConversationPusherChannelV2(
   config: UseConversationPusherChannelV2Config,
+  initialRunEvents?: AguiEventWrapper[],
 ): UseConversationPusherChannelV2Return {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -122,6 +127,12 @@ export function useConversationPusherChannelV2(
         const wrapper: AguiEventWrapper =
           typeof data === "string" ? JSON.parse(data) : data;
         const { run_id, sequence } = wrapper;
+
+        console.log("[AGUI Event]", wrapper.event?.type, {
+          sequence,
+          run_id,
+          event: wrapper.event,
+        });
 
         if (!config.conversationId || !run_id) return;
 
@@ -219,6 +230,81 @@ export function useConversationPusherChannelV2(
       stopElapsedTimer();
     }
   }, [config.conversationId, stopElapsedTimer]);
+
+  // Seed eventsRef with backend events after page refresh during an active run.
+  // Without this, post-approval Pusher events for the same run_id would be treated
+  // as a new run (clearing all timeline steps) because eventsRef is empty after mount.
+  useEffect(() => {
+    if (!initialRunEvents || initialRunEvents.length === 0) return;
+
+    const runId = initialRunEvents[0]?.run_id;
+    if (!runId) return;
+
+    // Don't overwrite if Pusher events already populated this run
+    if (eventsRef.current.has(runId)) return;
+
+    // Compute state from the events BEFORE seeding to check if the run is still active.
+    // We only seed for active runs (streaming or awaiting approval). Completed runs don't
+    // need seeding — their data is already rendered via the persisted-events path in
+    // transformMessagesForV2. Seeding completed runs would pollute V2 state with stale
+    // data that incorrectly overrides the next run's messages.
+    const seededEvents = [...initialRunEvents].sort(
+      (a, b) => a.sequence - b.sequence,
+    );
+    const {
+      steps,
+      isThinking: thinking,
+      finalResponse: response,
+      isFinalResponseStreaming: responseStreaming,
+      isAwaitingApproval: awaitingApproval,
+      researchResults: research,
+      isDeepResearchRunning: deepResearchRunning,
+    } = transformAguiToTimelineSteps(seededEvents);
+
+    // Skip seeding for fully completed runs
+    if (!thinking && !awaitingApproval) return;
+
+    eventsRef.current.set(runId, seededEvents);
+
+    setTimelineSteps(steps);
+    setIsThinking(thinking);
+    setCurrentRunId(runId);
+    setFinalResponse(response);
+    setIsFinalResponseStreaming(responseStreaming);
+    setIsAwaitingApproval(awaitingApproval);
+    setResearchResults(research);
+    setIsDeepResearchRunning(deepResearchRunning);
+
+    // Set elapsed time from actual event timestamps
+    const elapsed = getElapsedTimeFromEvents(seededEvents);
+    if (elapsed > 0) {
+      setElapsedTime(elapsed);
+    }
+
+    // If the run is still active (e.g. awaiting approval), start the timer
+    // so it continues ticking from the computed elapsed value
+    if (thinking) {
+      if (elapsedTimerRef.current) {
+        clearInterval(elapsedTimerRef.current);
+      }
+      elapsedTimerRef.current = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+    }
+
+    if (import.meta.env.DEV) {
+      console.log(
+        "[useConversationPusherChannelV2] Seeded events for run:",
+        runId,
+        "count:",
+        seededEvents.length,
+        "isThinking:",
+        thinking,
+        "isAwaitingApproval:",
+        awaitingApproval,
+      );
+    }
+  }, [initialRunEvents]);
 
   // Pusher connection management
   useEffect(() => {
