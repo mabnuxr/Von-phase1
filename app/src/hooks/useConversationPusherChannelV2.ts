@@ -128,12 +128,6 @@ export function useConversationPusherChannelV2(
           typeof data === "string" ? JSON.parse(data) : data;
         const { run_id, sequence } = wrapper;
 
-        console.log("[AGUI Event]", wrapper.event?.type, {
-          sequence,
-          run_id,
-          event: wrapper.event,
-        });
-
         if (!config.conversationId || !run_id) return;
 
         // Get or create events array for this run
