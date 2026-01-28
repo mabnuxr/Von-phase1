@@ -49,7 +49,9 @@ export const StepRow = React.memo<StepRowProps>(
 
     // Compute effective status - when locally approved/rejected, show as complete/error
     // This ensures the indicator turns green after approval even before backend updates
+    // Backend status (error) takes precedence over local optimistic state
     const effectiveStatus = useMemo(() => {
+      if (step.status === 'error') return 'error';
       if (isLocallyApproved) return 'complete';
       if (isLocallyRejected) return 'error';
       return step.status;
@@ -124,7 +126,9 @@ export const StepRow = React.memo<StepRowProps>(
                       approval={step.approval}
                       onApprove={onApprove || (() => {})}
                       onReject={onReject || (() => {})}
-                      isApproved={isLocallyApproved || step.status === 'complete'}
+                      isApproved={
+                        (isLocallyApproved || step.status === 'complete') && step.status !== 'error'
+                      }
                       isRejected={isLocallyRejected || step.status === 'error'}
                     />
                   )}
