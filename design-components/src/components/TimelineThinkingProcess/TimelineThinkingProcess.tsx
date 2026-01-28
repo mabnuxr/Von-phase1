@@ -95,13 +95,13 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
   return (
     <>
-      <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
+      <div className="bg-gray-50/50 rounded-xl border border-gray-200 overflow-hidden p-1">
         {/* Header - always visible */}
         <button
           onClick={handleToggleCollapse}
           className="w-full px-2 py-1.5 flex items-center justify-between cursor-pointer"
         >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {/* Collapse/Expand Caret */}
             {isCollapsed ? (
               <CaretRightIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
@@ -117,7 +117,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   weight="fill"
                   className="text-emerald-600 flex-shrink-0"
                 />
-                <span className="text-[13px] text-gray-700">Thought Process</span>
+                <span className="text-[15px] text-gray-700">Thinking completed</span>
               </>
             ) : (
               <EngagingMessage
@@ -146,12 +146,12 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full cursor-pointer hover:bg-amber-200 transition-colors"
               >
                 <BellIcon size={12} weight="fill" />
-                <span className="text-[10px] font-medium">Approval</span>
+                <span className="text-xs font-medium">Approval</span>
               </motion.div>
             )}
 
             {/* Elapsed time - always shown */}
-            <span className="text-[11px] text-gray-500 tabular-nums">
+            <span className="text-xs text-gray-500 tabular-nums">
               {formatElapsedTime(elapsedTime)}
             </span>
           </div>
@@ -167,14 +167,14 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div className="border border-gray-100 bg-white rounded-lg">
+              <div className="border border-gray-200 bg-white shadow-xs rounded-lg">
                 <div
                   ref={scrollContainerRef}
                   className="overflow-y-auto px-3 py-3"
                   style={{ maxHeight: CONTAINER_HEIGHT }}
                 >
                   {visibleSteps.length === 0 ? (
-                    <div className="flex items-center justify-center py-6 text-[13px] text-gray-500">
+                    <div className="flex items-center justify-center py-6 text-[15px] text-gray-500">
                       Starting...
                     </div>
                   ) : (

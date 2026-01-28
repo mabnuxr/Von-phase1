@@ -226,7 +226,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
   return (
     <motion.div
-      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-6 overflow-y-auto font-sf"
+      className="flex flex-col items-center justify-start flex-1 min-h-0 px-6 pt-6 overflow-y-auto "
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}

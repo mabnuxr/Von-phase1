@@ -188,14 +188,14 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           )}
 
           {allComplete ? (
-            <span className="text-[13px] text-gray-700">
+            <span className="text-sm text-gray-700">
               Thinking · {formatElapsedTime(elapsedTime)}
             </span>
           ) : (
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
-              <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">Thinking</span>
-              <span className="text-[13px] text-gray-500">·</span>
-              <span className="text-[13px] text-gray-700 truncate">
+              <span className="text-sm font-medium text-gray-900 flex-shrink-0">Thinking</span>
+              <span className="text-sm text-gray-500">·</span>
+              <span className="text-sm text-gray-700 truncate">
                 {steps.find((s) => s.status === 'in-progress')?.text ||
                   `${completedCount}/${totalCount} steps`}
               </span>
@@ -246,7 +246,7 @@ const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
                       <div className="flex items-center justify-between">
                         <span
                           className={`
-                            text-[13px]
+                            text-sm
                             ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-700'}
                           `}
                         >
@@ -286,8 +286,8 @@ const PlanCard: React.FC<PlanCardProps> = ({ plan, onBuild }) => {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100">
-        <h3 className="text-[13px] font-medium text-gray-900">{plan.title}</h3>
-        <p className="text-[13px] text-gray-700 mt-1">{plan.description}</p>
+        <h3 className="text-sm font-medium text-gray-900">{plan.title}</h3>
+        <p className="text-sm text-gray-700 mt-1">{plan.description}</p>
       </div>
 
       {/* Content */}
@@ -410,7 +410,7 @@ const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
   return (
     <div className="flex items-start gap-2 justify-end">
       <div className="max-w-[80%] bg-gray-50 rounded-2xl px-3 py-2">
-        <p className="text-[13px] text-gray-900">{content}</p>
+        <p className="text-sm text-gray-900">{content}</p>
       </div>
       <UserAvatar size={24} />
     </div>
@@ -436,7 +436,7 @@ const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onClick }) => {
       <div className="px-3 py-2.5">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 w-full justify-between">
-            <h3 className="text-[13px] font-medium text-gray-900">{artifact.title}</h3>
+            <h3 className="text-sm font-medium text-gray-900">{artifact.title}</h3>
             <span className="text-[11px] text-indigo-600 hover:text-indigo-700 cursor-pointer">
               View
             </span>
@@ -498,7 +498,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
 
         {/* Message Content - rendered as markdown */}
         {content && (
-          <div className="markdown-content text-[13px]">
+          <div className="markdown-content">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </div>
         )}

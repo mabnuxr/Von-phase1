@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
-import { SOURCE_LABELS } from '../constants';
 import { StepIndicator } from './StepIndicator';
 import { CompactApprovalCard } from './CompactApprovalCard';
 
@@ -50,7 +49,9 @@ export const StepRow = React.memo<StepRowProps>(
 
     // Compute effective status - when locally approved/rejected, show as complete/error
     // This ensures the indicator turns green after approval even before backend updates
+    // Backend status (error) takes precedence over local optimistic state
     const effectiveStatus = useMemo(() => {
+      if (step.status === 'error') return 'error';
       if (isLocallyApproved) return 'complete';
       if (isLocallyRejected) return 'error';
       return step.status;
@@ -58,14 +59,6 @@ export const StepRow = React.memo<StepRowProps>(
 
     const isInProgress = effectiveStatus === 'in-progress';
     const isComplete = effectiveStatus === 'complete';
-
-    // Get source label for tool calls
-    const sourceLabel = useMemo(() => {
-      if ((step.type === 'tool_call' || step.type === 'approval') && step.source) {
-        return SOURCE_LABELS[step.source];
-      }
-      return null;
-    }, [step.type, step.source]);
 
     return (
       <div className="relative flex">
@@ -78,7 +71,7 @@ export const StepRow = React.memo<StepRowProps>(
         </div>
 
         {/* Content */}
-        <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-3'}`}>
+        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
           {/* Header */}
           <button
             onClick={hasExpandableContent ? onToggle : undefined}
@@ -101,19 +94,12 @@ export const StepRow = React.memo<StepRowProps>(
             {/* Step text */}
             <span
               className={`
-                flex-1 text-[13px] truncate
-                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-800' : 'text-gray-600'}
+                flex-1 min-w-0 text-[15px] truncate
+                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-900' : 'text-gray-900'}
               `}
             >
               {step.text}
             </span>
-
-            {/* Source badge */}
-            {sourceLabel && (
-              <span className="flex-shrink-0 text-[11px] text-gray-600 px-1.5 py-0.5 bg-gray-100 rounded">
-                {sourceLabel}
-              </span>
-            )}
           </button>
 
           {/* Expanded content */}
@@ -126,10 +112,10 @@ export const StepRow = React.memo<StepRowProps>(
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="mt-2 ml-4">
+                <div className="mt-1 ml-5">
                   {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-xs text-gray-700 leading-relaxed">
+                    <div className="text-xs italic text-gray-700 leading-relaxed">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
@@ -140,7 +126,9 @@ export const StepRow = React.memo<StepRowProps>(
                       approval={step.approval}
                       onApprove={onApprove || (() => {})}
                       onReject={onReject || (() => {})}
-                      isApproved={isLocallyApproved || step.status === 'complete'}
+                      isApproved={
+                        (isLocallyApproved || step.status === 'complete') && step.status !== 'error'
+                      }
                       isRejected={isLocallyRejected || step.status === 'error'}
                     />
                   )}
@@ -148,7 +136,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Code block preview */}
                   {step.code && (
                     <div
-                      className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code"
+                      className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code my-2"
                       onClick={onExpand}
                     >
                       <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
@@ -187,7 +175,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Artifact reference - shown when artifact metadata is available */}
                   {step.artifact && (
                     <div
-                      className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
+                      className="flex items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-gray-50 border border-gray-200  rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                       onClick={() => {
                         if (onArtifactClick) {
                           onArtifactClick(
@@ -202,8 +190,8 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                       }}
                     >
-                      <FileTextIcon size={14} className="text-gray-600" />
-                      <span className="text-[12px] text-gray-800">
+                      <FileTextIcon size={14} className="text-gray-800" />
+                      <span className="text-[15px] text-gray-900">
                         {step.artifact.tool_name} results
                       </span>
                     </div>

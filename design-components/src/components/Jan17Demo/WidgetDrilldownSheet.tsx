@@ -106,16 +106,16 @@ const FilterPopover: React.FC<FilterPopoverProps> = ({ isOpen, onClose, anchorRe
       </div>
       <div className="p-3 space-y-2">
         {filters.length === 0 ? (
-          <p className="text-[13px] text-gray-500 text-center py-2">No filters applied</p>
+          <p className="text-sm text-gray-500 text-center py-2">No filters applied</p>
         ) : (
           filters.map((filter) => (
             <div
               key={filter.id}
               className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-lg"
             >
-              <span className="text-[13px] font-medium text-gray-900">{filter.field}</span>
-              <span className="text-[13px] text-gray-500">{filter.operator}</span>
-              <span className="text-[13px] text-indigo-600">{filter.value}</span>
+              <span className="text-sm font-medium text-gray-900">{filter.field}</span>
+              <span className="text-sm text-gray-500">{filter.operator}</span>
+              <span className="text-sm text-indigo-600">{filter.value}</span>
             </div>
           ))
         )}
@@ -184,7 +184,7 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({ isOpen, onClose, anchor
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Formula</span>
       </div>
       <div className="p-3">
-        <div className="bg-gray-900 rounded-lg p-3 font-mono text-[13px] text-emerald-400 overflow-x-auto">
+        <div className="bg-gray-900 rounded-lg p-3 font-mono text-sm text-emerald-400 overflow-x-auto">
           {formula}
         </div>
       </div>
@@ -308,7 +308,7 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <SparkleIcon size={16} className="text-indigo-600" />
-          <span className="text-[13px] font-medium text-gray-900">
+          <span className="text-sm font-medium text-gray-900">
             {isEditing ? 'Edit AI Column' : 'Add AI Column'}
           </span>
         </div>
@@ -337,7 +337,7 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
             onChange={(e) => setColumnName(e.target.value)}
             placeholder="e.g., Risk Score, Next Action"
             disabled={isGenerating}
-            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
           />
         </div>
 
@@ -351,7 +351,7 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
             placeholder="Describe how to generate values for this column..."
             disabled={isGenerating}
             rows={2}
-            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none disabled:opacity-50"
+            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none disabled:opacity-50"
           />
         </div>
 
@@ -512,7 +512,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="text-[13px] font-medium text-gray-900 truncate">{widgetName}</span>
+                <span className="text-sm font-medium text-gray-900 truncate">{widgetName}</span>
 
                 {/* Filters Button */}
                 <button
@@ -522,7 +522,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                     setShowFormulaPopover(false);
                   }}
                   className={`
-                    flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] transition-colors cursor-pointer
+                    flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-sm transition-colors cursor-pointer
                     ${
                       filters.length > 0
                         ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
@@ -547,7 +547,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
                       setShowFormulaPopover(!showFormulaPopover);
                       setShowFilterPopover(false);
                     }}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 text-[13px] text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 text-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <FunctionIcon size={14} />
                     <span>Formula</span>
@@ -560,7 +560,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
 
             {/* Table */}
             <div className="flex-1 overflow-auto">
-              <table className="w-full text-[13px]">
+              <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-gray-50">
                   <tr>
                     {columns.map((col) => (
@@ -640,7 +640,7 @@ export const WidgetDrilldownSheet: React.FC<WidgetDrilldownSheetProps> = ({
 
             {/* Footer */}
             <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-[13px] text-gray-500">
+              <span className="text-sm text-gray-500">
                 {rows.length} row{rows.length !== 1 ? 's' : ''}
               </span>
             </div>

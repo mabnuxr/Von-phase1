@@ -251,7 +251,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Expanded State
   // ============================================================================
   return (
-    <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-[13px] flex-col overflow-hidden antialiased font-sf">
+    <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
       {/* Logo Row */}
       <div className="flex items-center justify-between mb-3 px-1">
         <img
@@ -278,7 +278,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             placeholder="Search..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none text-[13px] text-gray-900 placeholder:text-gray-400"
+            className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
           />
         </div>
         <SecondaryIconButton

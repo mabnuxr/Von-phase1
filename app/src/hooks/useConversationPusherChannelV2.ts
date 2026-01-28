@@ -131,8 +131,14 @@ export function useConversationPusherChannelV2(
           runEvents = [];
           eventsRef.current.set(run_id, runEvents);
 
-          // New run started
-          setCurrentRunId(run_id);
+          // New run started - clear old state immediately to prevent showing stale data
+          flushSync(() => {
+            setTimelineSteps([]);
+            setFinalResponse("");
+            setIsFinalResponseStreaming(false);
+            setIsAwaitingApproval(false);
+            setCurrentRunId(run_id);
+          });
           startElapsedTimer();
         }
 

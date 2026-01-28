@@ -85,7 +85,7 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
 
       {/* Command Chip + Input Area */}
       {selectedCommand ? (
-        <div className="ml-2 p-3 bg-white antialiased font-sf">
+        <div className="ml-2 p-3 bg-white antialiased ">
           <div className="px-6 max-w-4xl mx-auto w-full flex flex-col gap-1.5">
             <div
               className="p-[1px] rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md"
@@ -143,7 +143,7 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
               </div>
             </div>
 
-            <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+            <div className="text-xs leading-normal text-gray-500 text-center  mt-1">
               Von AI may make mistakes. Please recheck all important information.
             </div>
           </div>

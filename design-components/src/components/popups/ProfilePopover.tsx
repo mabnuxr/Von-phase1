@@ -77,7 +77,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, variant = 'de
     <button
       onClick={onClick}
       className={`
-        w-full flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors cursor-pointer text-left rounded-lg
+        w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors cursor-pointer text-left rounded-lg
         ${variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
       `}
     >
@@ -174,14 +174,14 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-[13px] font-semibold">
+                    <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
                       {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   {userName && (
-                    <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
                   )}
                   {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
                 </div>

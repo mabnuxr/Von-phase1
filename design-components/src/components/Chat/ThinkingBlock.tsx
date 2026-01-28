@@ -320,13 +320,13 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
               ) : children ? (
                 // Render JSX children with enhanced visual styling for thinking content
                 <div className="bg-gray-50/40 rounded-lg pl-3 py-2">
-                  <div className="text-xs text-gray-600 leading-snug prose prose-xs markdown-body max-w-none font-sf">
+                  <div className="text-xs text-gray-600 leading-snug prose prose-xs markdown-body max-w-none ">
                     {children}
                   </div>
                 </div>
               ) : (
                 // Fallback to content string with Streamdown
-                <div className="text-sm text-gray-700 leading-relaxed prose prose-sm markdown-body max-w-none font-sf">
+                <div className="text-sm text-gray-700 leading-relaxed prose prose-sm markdown-body max-w-none ">
                   <Streamdown
                     parseIncompleteMarkdown={isStreaming}
                     isAnimating={isStreaming}

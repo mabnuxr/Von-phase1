@@ -246,7 +246,7 @@ export const FullScreenThinkingPlan: React.FC<FullScreenThinkingPlanProps> = ({
           <div className="flex justify-end mb-6">
             <div className="flex items-start gap-3 max-w-[85%]">
               <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5">
-                <p className="text-[13px] text-gray-900">{userMessage}</p>
+                <p className="text-sm text-gray-900">{userMessage}</p>
               </div>
               <UserAvatar initials={userInitials} />
             </div>
@@ -301,16 +301,16 @@ export const FullScreenThinkingPlan: React.FC<FullScreenThinkingPlanProps> = ({
                       )}
 
                       {allComplete ? (
-                        <span className="text-[13px] text-gray-700">
+                        <span className="text-sm text-gray-700">
                           Completed in {formatElapsedTime(elapsedTime)}
                         </span>
                       ) : (
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-[13px] font-medium text-gray-900 flex-shrink-0">
+                          <span className="text-sm font-medium text-gray-900 flex-shrink-0">
                             Thinking
                           </span>
-                          <span className="text-[13px] text-gray-500">·</span>
-                          <span className="text-[13px] text-gray-700 truncate">
+                          <span className="text-sm text-gray-500">·</span>
+                          <span className="text-sm text-gray-700 truncate">
                             {thinkingSteps.find((s) => s.status === 'in-progress')?.text ||
                               `${completedCount}/${totalCount} steps`}
                           </span>
@@ -402,7 +402,7 @@ export const FullScreenThinkingPlan: React.FC<FullScreenThinkingPlanProps> = ({
                                       <div className="flex items-center justify-between py-0.5">
                                         <span
                                           className={`
-                                            text-[13px]
+                                            text-sm
                                             ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-600'}
                                           `}
                                         >
@@ -438,7 +438,7 @@ export const FullScreenThinkingPlan: React.FC<FullScreenThinkingPlanProps> = ({
                   >
                     {/* Intro text */}
                     <div className="mb-4">
-                      <p className="text-[13px] text-gray-900 leading-relaxed">
+                      <p className="text-sm text-gray-900 leading-relaxed">
                         I found the data you need. Here's my plan for your dashboard:
                       </p>
                     </div>

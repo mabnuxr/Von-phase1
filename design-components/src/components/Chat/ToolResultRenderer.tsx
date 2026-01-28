@@ -17,23 +17,13 @@ export interface ToolResultRendererProps {
    * Tool result to render
    */
   result: ToolResult;
-
-  /**
-   * Enable deep links for Salesforce URLs in DataTable
-   * When enabled, URLs are rendered as clickable links
-   * @default false
-   */
-  enableDeepLinks?: boolean;
 }
 
 /**
  * ToolResultRenderer intelligently renders tool results based on their type
  * Routes to appropriate visualization component (Table, Query, Metrics, or JSON)
  */
-export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({
-  result,
-  enableDeepLinks = false,
-}) => {
+export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({ result }) => {
   const [showQuery, setShowQuery] = useState(false);
 
   if (!result) {
@@ -50,7 +40,6 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({
               data={result.table}
               queries={result.queries}
               onViewQuery={result.queries ? () => setShowQuery(!showQuery) : undefined}
-              enableDeepLinks={enableDeepLinks}
             />
           )}
           {showQuery && result.queries && <QueryBlock queries={result.queries} />}
@@ -96,10 +85,7 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({
     case 'call_search_union':
       // Render comprehensive call search results
       return result.callSearchUnion ? (
-        <CallSearchUnionRenderer
-          result={result.callSearchUnion}
-          enableDeepLinks={enableDeepLinks}
-        />
+        <CallSearchUnionRenderer result={result.callSearchUnion} />
       ) : null;
 
     case 'consolidated_conversation_search':

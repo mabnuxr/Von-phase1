@@ -142,24 +142,24 @@ const Settings = () => {
       {
         id: "integrations",
         label: "Integrations",
-        icon: <GitCommitIcon size={20} weight="duotone" />,
+        icon: <GitCommitIcon size={20} weight="regular" />,
       },
     ],
     configurations: [
       {
         id: "process",
         label: "Process",
-        icon: <TreeStructureIcon size={20} weight="duotone" />,
+        icon: <TreeStructureIcon size={20} weight="regular" />,
       },
       {
         id: "fields",
         label: "Fields",
-        icon: <RowsIcon size={20} weight="duotone" />,
+        icon: <RowsIcon size={20} weight="regular" />,
       },
       {
         id: "memory",
         label: "Memory",
-        icon: <BrainIcon size={20} weight="duotone" />,
+        icon: <BrainIcon size={20} weight="regular" />,
       },
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
@@ -167,7 +167,7 @@ const Settings = () => {
             {
               id: "email",
               label: "Email",
-              icon: <EnvelopeIcon size={20} weight="duotone" />,
+              icon: <EnvelopeIcon size={20} weight="regular" />,
             },
           ]
         : []),
@@ -176,7 +176,7 @@ const Settings = () => {
       {
         id: "team",
         label: "Manage Team",
-        icon: <UsersIcon size={20} weight="duotone" />,
+        icon: <UsersIcon size={20} weight="regular" />,
       },
     ],
   };

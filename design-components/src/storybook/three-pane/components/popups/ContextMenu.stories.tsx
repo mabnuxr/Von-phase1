@@ -181,7 +181,7 @@ export const SidebarItemMenu: Story = {
           onContextMenu={handleContextMenu}
         >
           <ChatTextIcon size={16} weight="regular" className="text-gray-700" />
-          <span className="text-[13px] text-gray-900">Right-click me for menu</span>
+          <span className="text-sm text-gray-900">Right-click me for menu</span>
         </div>
 
         <ContextMenu

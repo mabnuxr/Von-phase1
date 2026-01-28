@@ -200,7 +200,7 @@ export const BuildModeLayout: React.FC<BuildModeLayoutProps> = ({
   }, []);
 
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden font-sf">
+    <div className="flex h-screen w-full bg-white overflow-hidden ">
       {/* 1. Collapsed Navigation */}
       <div className="w-14 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col items-center py-3">
         {/* Logo */}

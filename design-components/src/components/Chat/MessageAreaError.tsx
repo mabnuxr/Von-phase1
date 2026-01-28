@@ -23,7 +23,7 @@ export const MessageAreaError: React.FC<MessageAreaErrorProps> = ({ message }) =
       </div>
 
       {/* Error Message - Clean and direct */}
-      <p className="text-sm text-gray-800 font-sf leading-relaxed flex-1">{message}</p>
+      <p className="text-sm text-gray-800  leading-relaxed flex-1">{message}</p>
     </div>
   );
 };

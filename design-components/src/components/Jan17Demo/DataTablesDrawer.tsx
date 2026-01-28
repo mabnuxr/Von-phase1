@@ -45,7 +45,7 @@ const TableTab: React.FC<TableTabProps> = ({ table, isActive, onClick }) => {
     <button
       onClick={onClick}
       className={`
-        px-4 py-1.5 text-[13px] font-medium rounded-full
+        px-4 py-1.5 text-sm font-medium rounded-full
         transition-colors duration-150 cursor-pointer whitespace-nowrap border
         ${
           isActive
@@ -269,8 +269,8 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
                     <DatabaseIcon size={16} weight="duotone" className="text-gray-600" />
                   </div>
                   <h2 className="text-[15px] font-medium text-gray-900">{title}</h2>
-                  <span className="text-[13px] text-gray-500">·</span>
-                  <span className="text-[13px] text-gray-500">
+                  <span className="text-sm text-gray-500">·</span>
+                  <span className="text-sm text-gray-500">
                     Showing {displayedRows} of {totalRows.toLocaleString()} records
                   </span>
                 </div>
@@ -313,7 +313,7 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search..."
-                      className="w-full pl-9 pr-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-100 rounded-xl placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-shadow"
+                      className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 bg-white border border-gray-100 rounded-xl placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-shadow"
                     />
                   </div>
 

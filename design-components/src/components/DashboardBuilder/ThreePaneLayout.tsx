@@ -141,7 +141,7 @@ export const ThreePaneLayout: React.FC<ThreePaneLayoutProps> = ({
   }, [handleToggleCollapse]);
 
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden font-sf">
+    <div className="flex h-screen w-full bg-white overflow-hidden ">
       {/* Left Sidebar */}
       <AnimatePresence mode="wait">
         <motion.div

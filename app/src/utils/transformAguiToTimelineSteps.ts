@@ -368,6 +368,8 @@ export function transformAguiToTimelineSteps(
   const toolCallToStepDirectMap = new Map<string, TimelineStep>();
   // Map message_id to step for TEXT_MESSAGE events (reasoning only, not final response)
   const textMessageStepMap = new Map<string, TimelineStep>();
+  // Track denied tool call IDs to ensure they stay marked as error
+  const deniedToolCallIds = new Set<string>();
   // Accumulate tool arguments
   const toolArgsMap = new Map<string, string>();
   // Track the current active step (from STEP_STARTED, for tool calls only)
@@ -385,8 +387,10 @@ export function transformAguiToTimelineSteps(
   // Final response tracking
   let finalResponse = "";
   let isFinalResponseStreaming = false;
-  // Track the last TEXT_MESSAGE message_id (will become final response at RUN_FINISHED)
+  // Track the last TEXT_MESSAGE message_id (will become final response at RUN_FINISHED if is_final_response wasn't used)
   let lastTextMessageId: string | null = null;
+  // Track message_id of the explicit final response (when is_final_response flag is present)
+  let explicitFinalResponseMessageId: string | null = null;
 
   // Research results tracking
   let researchResultsIsStreaming = false;
@@ -396,8 +400,31 @@ export function transformAguiToTimelineSteps(
   let researchResultsMessageId: string | null = null;
   let isDeepResearchRunning = false;
 
+  // Track if we've seen RUN_FINISHED with pending approval (run paused for approval)
+  let sawRunFinishedWithPendingApproval = false;
+
   for (const wrapper of sortedEvents) {
     const event = wrapper.event;
+
+    // If run was paused for approval and we see new processing events, the run has resumed
+    if (sawRunFinishedWithPendingApproval) {
+      const isProcessingEvent =
+        event.type === "STEP_STARTED" ||
+        event.type === "TEXT_MESSAGE_START" ||
+        event.type === "TOOL_CALL_START";
+
+      if (isProcessingEvent) {
+        // Run resumed after approval - mark approval steps as complete
+        isThinking = true;
+        sawRunFinishedWithPendingApproval = false;
+
+        for (const step of steps) {
+          if (step.status === "awaiting-approval") {
+            step.status = "complete" as StepStatus;
+          }
+        }
+      }
+    }
 
     switch (event.type) {
       case "RUN_STARTED": {
@@ -487,8 +514,17 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_START": {
+        // Check if this is explicitly marked as the final response
+        if (event.is_final_response) {
+          // Stream directly to finalResponse instead of creating a reasoning step
+          explicitFinalResponseMessageId = event.message_id;
+          isFinalResponseStreaming = true;
+          finalResponse = "";
+          break;
+        }
+
         // All TEXT_MESSAGE content streams into reasoning steps during streaming
-        // The last one will be extracted as final response at RUN_FINISHED
+        // The last one will be extracted as final response at RUN_FINISHED (fallback)
         lastTextMessageId = event.message_id;
 
         reasoningStepCounter++;
@@ -509,6 +545,17 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_CONTENT": {
+        // Check if this is content for the explicit final response
+        if (
+          event.is_final_response ||
+          (explicitFinalResponseMessageId &&
+            event.message_id === explicitFinalResponseMessageId)
+        ) {
+          // Stream directly to finalResponse
+          finalResponse += event.delta || "";
+          break;
+        }
+
         // All TEXT_MESSAGE_CONTENT streams into reasoning steps
         // If no current reasoning step exists, create a new one
         if (!currentTextStep) {
@@ -535,8 +582,8 @@ export function transformAguiToTimelineSteps(
           const firstSentence = content.split(/[.!?]/)[0];
           if (firstSentence && firstSentence.length > 5) {
             currentTextStep.text =
-              firstSentence.length > 50
-                ? firstSentence.slice(0, 50) + "..."
+              firstSentence.length > 150
+                ? firstSentence.slice(0, 150) + "..."
                 : firstSentence;
           }
         }
@@ -544,6 +591,17 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_END": {
+        // Check if this is the end of the explicit final response
+        if (
+          event.is_final_response ||
+          (explicitFinalResponseMessageId &&
+            event.message_id === explicitFinalResponseMessageId)
+        ) {
+          // Final response streaming is complete
+          isFinalResponseStreaming = false;
+          break;
+        }
+
         // Mark reasoning step as completed
         if (currentTextStep) {
           currentTextStep.status = "complete" as StepStatus;
@@ -750,6 +808,15 @@ export function transformAguiToTimelineSteps(
         // Use step_number from event for proper correlation in interleaved scenarios
         const eventStepNumber = (event as { step_number?: number }).step_number;
 
+        // Check for denied approval - track the tool call ID
+        const contentStr = event.content?.trim() || "";
+        const isDenied =
+          contentStr.includes("tool call was denied") ||
+          contentStr.includes("Tool call was denied");
+        if (isDenied && toolId) {
+          deniedToolCallIds.add(toolId);
+        }
+
         if (toolId) {
           // Priority: 1) direct map, 2) step_number from event, 3) toolCallToStepMap lookup
           let step = toolCallToStepDirectMap.get(toolId);
@@ -765,44 +832,58 @@ export function transformAguiToTimelineSteps(
           }
 
           if (step) {
+            // Check for denied approval tool call first
+            if (isDenied) {
+              step.status = "error" as StepStatus;
+              break;
+            }
+
+            // Handle approval tool results that were accepted
+            // Still need to check for failures in the tool execution result
+            if (step.status === "awaiting-approval") {
+              try {
+                const result = event.content ? JSON.parse(event.content) : {};
+                if (
+                  result.approved === false ||
+                  result.error ||
+                  result.success === false ||
+                  result._artifact?.success === false
+                ) {
+                  step.status = "error" as StepStatus;
+                } else {
+                  step.status = "complete" as StepStatus;
+                }
+              } catch {
+                // If we can't parse the content, assume success (approval was accepted)
+                step.status = "complete" as StepStatus;
+              }
+              break;
+            }
+
+            // Handle non-approval tool results
             try {
               const result = event.content ? JSON.parse(event.content) : {};
 
-              // Handle approval tool results
-              if (step.status === "awaiting-approval") {
-                // TOOL_CALL_RESULT for approval tool = approval was accepted (otherwise tool wouldn't execute)
-                // Mark complete unless explicitly failed
-                if (result.approved === false || result.error) {
-                  step.status = "error" as StepStatus;
-                } else {
-                  step.status = "complete" as StepStatus;
-                }
+              // Check for artifact (success case)
+              if (result._artifact) {
+                step.status = result._artifact.success
+                  ? ("complete" as StepStatus)
+                  : ("error" as StepStatus);
+                // Store artifact metadata for clickable links
+                // Display name is derived in the component from tool_name
+                step.artifact = {
+                  artifact_id: result._artifact.artifact_id,
+                  run_id: result._artifact.run_id,
+                  tool_name: result._artifact.tool_name,
+                  artifact_type: result._artifact.artifact_type,
+                };
+              } else if (result.success === false) {
+                step.status = "error" as StepStatus;
               } else {
-                // Handle non-approval tool results
-                // Check for artifact (success case)
-                if (result._artifact) {
-                  step.status = result._artifact.success
-                    ? ("complete" as StepStatus)
-                    : ("error" as StepStatus);
-                  // Store artifact metadata for clickable links
-                  // Display name is derived in the component from tool_name
-                  step.artifact = {
-                    artifact_id: result._artifact.artifact_id,
-                    run_id: result._artifact.run_id,
-                    tool_name: result._artifact.tool_name,
-                    artifact_type: result._artifact.artifact_type,
-                  };
-                } else if (result.success === false) {
-                  step.status = "error" as StepStatus;
-                } else {
-                  step.status = "complete" as StepStatus;
-                }
-              }
-            } catch {
-              // Only mark complete if not awaiting approval
-              if (step.status !== "awaiting-approval") {
                 step.status = "complete" as StepStatus;
               }
+            } catch {
+              step.status = "complete" as StepStatus;
             }
           }
         }
@@ -850,8 +931,11 @@ export function transformAguiToTimelineSteps(
 
         if (hasPendingApproval && event.type === "RUN_FINISHED") {
           // Intermediate RUN_FINISHED - run paused for approval
-          // Stop thinking - run is complete, just waiting for user approval
-          isThinking = false;
+          // Keep isThinking = true so the UI continues showing the loading state,
+          // timer keeps ticking, and message actions don't appear prematurely.
+          // The isAwaitingApproval flag (derived from step status) handles
+          // approval-specific UI like the bell icon.
+          sawRunFinishedWithPendingApproval = true;
 
           // Mark any in-progress steps (except approval steps) as complete
           for (const step of steps) {
@@ -871,9 +955,9 @@ export function transformAguiToTimelineSteps(
         isThinking = false;
         isFinalResponseStreaming = false;
 
-        // Extract the last TEXT_MESSAGE step as the final response
-        // Find the step associated with lastTextMessageId
-        if (lastTextMessageId) {
+        // Fallback: Extract the last TEXT_MESSAGE step as the final response
+        // Only do this if we don't already have a finalResponse from explicit is_final_response flow
+        if (!finalResponse && lastTextMessageId) {
           const lastTextStep = textMessageStepMap.get(lastTextMessageId);
           if (lastTextStep) {
             // Extract content as final response
@@ -913,6 +997,17 @@ export function transformAguiToTimelineSteps(
   const isAwaitingApproval = steps.some(
     (s) => s.status === "awaiting-approval",
   );
+
+  // Final pass: Ensure all denied tool calls are marked as error
+  // This handles cases where the status was overwritten by other event processing
+  if (deniedToolCallIds.size > 0) {
+    for (const deniedToolId of deniedToolCallIds) {
+      const step = toolCallToStepDirectMap.get(deniedToolId);
+      if (step && step.status !== "error") {
+        step.status = "error" as StepStatus;
+      }
+    }
+  }
 
   return {
     steps,

@@ -11,6 +11,7 @@ import { formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
+import { isSalesforceUrl } from '../../Chat/utils/salesforceDeepLink';
 
 // ============================================================================
 // Types
@@ -27,6 +28,8 @@ export interface ArtifactContentViewerProps {
   duration?: number;
   /** Whether the content is still loading */
   isLoading?: boolean;
+  /** Error message if query execution failed */
+  errorMessage?: string;
 }
 
 // ============================================================================
@@ -92,6 +95,61 @@ function LoadingSkeleton() {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Helper to detect if a value is a URL
+ */
+function isUrl(value: string): boolean {
+  return value.startsWith('http://') || value.startsWith('https://');
+}
+
+/**
+ * Format cell value with special handling for deep_link column
+ */
+function formatCellValue(
+  columnKey: string,
+  value: string | number,
+  columnType?: QueryColumn['type']
+): React.ReactNode {
+  const strValue = String(value);
+
+  // Special handling for deep_link column - validate Salesforce URLs for security
+  if (columnKey === 'deep_link' && isUrl(strValue)) {
+    // Only render "View in Salesforce" for validated Salesforce domains
+    // This prevents phishing via arbitrary URLs masquerading as Salesforce links
+    if (isSalesforceUrl(strValue)) {
+      return (
+        <a
+          href={strValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+          title="Open in Salesforce"
+        >
+          View in Salesforce
+        </a>
+      );
+    }
+    // Non-Salesforce URLs: render as generic link
+    return (
+      <a
+        href={strValue}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+      >
+        {strValue}
+      </a>
+    );
+  }
+
+  // Use existing formatValue for all other columns
+  return formatValue(value, columnType);
+}
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -104,14 +162,14 @@ function LoadingSkeleton() {
  * - Dynamic pagination based on viewport height
  * - Type-specific column formatting (currency, percentage, date, number)
  * - Sticky table headers
- * - CSV download
+ * - Deep link rendering for Salesforce records
  *
  * Used by:
  * - TransparencyDrawer (QueryContent)
  * - SingleArtifactDrawer (for thinking process steps)
  */
 export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
-  ({ query, columns, rows, duration, isLoading }) => {
+  ({ query, columns, rows, duration, isLoading, errorMessage }) => {
     // Calculate dynamic rows per page based on container height
     const { rowsPerPage, containerRef } = useDynamicPageSize({
       // Add extra overhead when query section exists (collapsed state)
@@ -174,7 +232,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                   <CaretRightIcon size={12} weight="bold" className="text-gray-500" />
                 )}
                 <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">
-                  SQL Query
+                  Query
                 </span>
               </div>
               {duration && (
@@ -199,10 +257,35 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
           </div>
         )}
 
-        {/* Data Table or Empty State */}
+        {/* Data Table, Error State, or Empty State */}
         {hasNoData ? (
-          <div className="flex-1 flex items-center justify-center mx-4 border border-gray-200 rounded-lg">
-            <p className="text-sm text-gray-500">No content found</p>
+          <div className="flex-1 flex flex-col items-center justify-center mx-4 border border-gray-200 rounded-lg p-6">
+            {errorMessage ? (
+              <>
+                <svg
+                  className="w-10 h-10 text-amber-500 mb-3"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+                  <path
+                    d="M12 8v4M12 16h.01"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <p className="text-sm font-medium text-gray-700 mb-1">Query failed</p>
+                <p className="text-xs text-gray-500 text-center max-w-xs mb-2">{errorMessage}</p>
+                <p className="text-xs text-gray-400 text-center">
+                  Agent will attempt to correct and re-run the query.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">No content found</p>
+            )}
           </div>
         ) : (
           <>
@@ -250,7 +333,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                       {columns.map((col) => (
                         <td
                           key={col.key}
-                          className={`px-3 py-2 text-[13px] whitespace-nowrap ${
+                          className={`px-3 py-2 text-sm whitespace-nowrap ${
                             col.type === 'number' ||
                             col.type === 'currency' ||
                             col.type === 'percentage'
@@ -258,7 +341,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                               : 'text-left'
                           } text-gray-700`}
                         >
-                          {formatValue(row[col.key], col.type)}
+                          {formatCellValue(col.key, row[col.key], col.type)}
                         </td>
                       ))}
                     </tr>

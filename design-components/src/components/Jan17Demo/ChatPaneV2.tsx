@@ -53,7 +53,7 @@ const ChatPaneHeader: React.FC<ChatPaneHeaderProps> = ({ conversationName, onCol
   return (
     <div className="flex items-center justify-between px-3 pt-1 pb-3 border-b border-gray-100 flex-shrink-0">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="text-[13px] font-medium text-gray-900 truncate">{conversationName}</span>
+        <span className="text-sm font-medium text-gray-900 truncate">{conversationName}</span>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         {onCollapse && (
@@ -120,7 +120,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
   }
 
   return (
-    <div className="px-2 py-3 h-full w-full bg-white flex text-[13px] rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
+    <div className="px-2 py-3 h-full w-full bg-white flex text-sm rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
       {/* Header - Simplified without new chat button and history */}
       <ChatPaneHeader conversationName={conversationName} onCollapse={onToggleCollapse} />
 
@@ -149,7 +149,7 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
                 <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
               </svg>
             </div>
-            <p className="text-[13px] text-gray-500">Start a conversation</p>
+            <p className="text-sm text-gray-500">Start a conversation</p>
           </div>
         ) : (
           <ChatViewV2

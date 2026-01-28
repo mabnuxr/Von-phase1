@@ -119,7 +119,7 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
               {/* Filter context */}
               {filterCount > 0 && (
                 <div className="mb-4 px-3 py-2 bg-indigo-50 rounded-lg">
-                  <p className="text-[13px] text-indigo-700">
+                  <p className="text-sm text-indigo-700">
                     {filterCount} filter{filterCount > 1 ? 's' : ''} will be saved with this report
                   </p>
                 </div>
@@ -158,7 +158,7 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
                   </div>
                   <div className="flex-1">
                     <span
-                      className={`text-[13px] ${saveAs === 'report' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
+                      className={`text-sm ${saveAs === 'report' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
                     >
                       New Report
                     </span>
@@ -187,7 +187,7 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
                   </div>
                   <div className="flex-1">
                     <span
-                      className={`text-[13px] ${saveAs === 'subreport' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
+                      className={`text-sm ${saveAs === 'subreport' ? 'text-gray-900 font-medium' : 'text-gray-900'}`}
                     >
                       Sub-report
                     </span>
@@ -227,7 +227,7 @@ export const SaveReportModal: React.FC<SaveReportModalProps> = ({
                               className="text-gray-700 flex-shrink-0"
                             />
                             <span
-                              className={`text-[13px] flex-1 ${selectedParentId === report.id ? 'text-gray-900 font-medium' : 'text-gray-700'}`}
+                              className={`text-sm flex-1 ${selectedParentId === report.id ? 'text-gray-900 font-medium' : 'text-gray-700'}`}
                             >
                               {report.name}
                             </span>

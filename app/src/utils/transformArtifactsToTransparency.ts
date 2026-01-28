@@ -79,7 +79,8 @@ interface SqlArtifactContent {
  * Human-readable tool name mapping
  */
 const TOOL_NAME_MAP: Record<string, string> = {
-  execute_sql_query: "SQL Query",
+  execute_sql_query: "Query",
+  execute_salesforce_query: "Query",
   execute_conversation_search: "Conversation Search",
   search_calls: "Call Search",
   search_emails: "Email Search",
@@ -142,8 +143,11 @@ function transformArtifactToQueryResult(
     };
   }
 
-  // Handle SQL query artifacts
-  if (tool_name === "execute_sql_query") {
+  // Handle SQL and SOQL query artifacts
+  if (
+    tool_name === "execute_sql_query" ||
+    tool_name === "execute_salesforce_query"
+  ) {
     const sqlContent = content as unknown as SqlArtifactContent;
 
     // Support both formats: nested under sample or at top level

@@ -358,7 +358,7 @@ const SubtableRow: React.FC<SubtableRowProps> = ({
   return (
     <div
       className={`
-        group relative flex items-center gap-2 px-2 py-1 rounded-lg text-[13px]
+        group relative flex items-center gap-2 px-2 py-1 rounded-lg text-sm
         transition-colors duration-150
         ${!hasChildren ? 'pl-6' : ''}
         ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
@@ -394,12 +394,12 @@ const SubtableRow: React.FC<SubtableRowProps> = ({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
         <>
-          <span className="flex-1 text-[13px] truncate text-gray-900">{item.label}</span>
+          <span className="flex-1 text-sm truncate text-gray-900">{item.label}</span>
 
           {/* Child count badge */}
           {hasChildren && (
@@ -685,7 +685,7 @@ export const Pane1: React.FC<Pane1Props> = ({
     const IconComponent = iconMap[selectedComponent.icon];
 
     return (
-      <div className="px-2 py-3 h-full w-full bg-white flex text-[13px] flex-col overflow-hidden antialiased font-sf rounded-xl border border-gray-100 shadow-xs">
+      <div className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf rounded-xl border border-gray-100 shadow-xs">
         {/* Header with Back Button */}
         <div className="px-1 pb-3 mb-3 border-b border-gray-100">
           <div className="flex justify-between gap-2">
@@ -750,7 +750,7 @@ export const Pane1: React.FC<Pane1Props> = ({
 
             {configFilters.length === 0 ? (
               <div className="py-4 text-center">
-                <p className="text-[13px] text-gray-500">No filters added</p>
+                <p className="text-sm text-gray-500">No filters added</p>
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   Click "Add Filter" to add a filter condition
                 </p>
@@ -792,7 +792,7 @@ export const Pane1: React.FC<Pane1Props> = ({
   }
 
   return (
-    <div className="px-2 py-3 h-full w-full bg-white flex text-[13px] rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
+    <div className="px-2 py-3 h-full w-full bg-white flex text-sm rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
       {/* Header with Toggle */}
       <div className="px-1 mb-4">
         <Toggle
@@ -815,7 +815,7 @@ export const Pane1: React.FC<Pane1Props> = ({
               placeholder={searchPlaceholder || 'Search reports...'}
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              className="flex-1 bg-transparent border-0 outline-none text-[13px] text-gray-900 placeholder:text-gray-400"
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -844,7 +844,7 @@ export const Pane1: React.FC<Pane1Props> = ({
                       <div className="p-2 bg-gray-50 rounded-lg">
                         <IconComponent size={18} weight="regular" className="text-gray-800" />
                       </div>
-                      <span className="text-[13px] text-gray-900 pl-1 leading-[15px]">
+                      <span className="text-sm text-gray-900 pl-1 leading-[15px]">
                         {component.label}
                       </span>
                     </div>

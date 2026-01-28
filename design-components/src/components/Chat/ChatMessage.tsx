@@ -318,16 +318,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   };
 
   return (
-    <div className="w-full group font-sf">
+    <div className="w-full group ">
       {/* Full-width section with alternating backgrounds */}
       <div
         className={`
           w-full transition-all duration-300
-          ${
-            isUser
-              ? 'py-6 bg-white hover:bg-gray-50'
-              : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`
-          }
+          ${isUser ? 'py-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`}
         `}
       >
         {/* Centered container */}
@@ -427,9 +423,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             }}
                             onArtifactClick={handleArtifactClick}
                           />
-                          {/* Final response - shown only after thinking process is complete */}
-                          {!isStreaming && v2FinalResponse && (
-                            <div className="prose-sm markdown-body max-w-none">
+                          {/* Final response - shown while streaming (when is_final_response) or after thinking completes */}
+                          {(!isStreaming || v2FinalResponseStreaming) && v2FinalResponse && (
+                            <div className="prose-sm markdown-content max-w-none">
                               <Streamdown
                                 parseIncompleteMarkdown={v2FinalResponseStreaming}
                                 isAnimating={v2FinalResponseStreaming}
@@ -509,7 +505,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                       <div className="space-y-3">
                                         {/* Final step content */}
                                         {finalStep.content && (
-                                          <div className="prose-sm markdown-body max-w-none">
+                                          <div className="markdown-content max-w-none">
                                             <Streamdown
                                               parseIncompleteMarkdown={false}
                                               isAnimating={false}
@@ -548,7 +544,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           ) : (
                             /* Fallback: render plain content if no stepMessages */
                             content && (
-                              <div className="prose-sm markdown-body max-w-none">
+                              <div className="markdown-content max-w-none">
                                 <Streamdown
                                   parseIncompleteMarkdown={isStreaming}
                                   isAnimating={isStreaming}
@@ -572,7 +568,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
                       {/* Text content - render markdown using TiptapViewer */}
                       {content && (
-                        <TiptapViewer content={content} className="prose-sm max-w-none text-left" />
+                        <TiptapViewer
+                          content={content}
+                          className="markdown-content prose-sm max-w-none text-left"
+                        />
                       )}
                     </div>
                   )}
@@ -583,30 +582,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       <div className="flex-shrink-0 mt-0.5">
                         <InfoIcon size={20} className="text-indigo-600" />
                       </div>
-                      <span className="text-sm text-gray-800 font-sf leading-relaxed flex-1">
+                      <span className="text-sm text-gray-800  leading-relaxed flex-1">
                         Response stopped by the user
                       </span>
                     </div>
                   )}
 
-                  {/* Message Actions - show for completed/stopped assistant messages */}
-                  {!isUser && !isStreaming && (
-                    <MessageActions
-                      messageContent={
-                        // For v2 thinking process, only use the final response (not intermediate steps)
-                        thinkingProcessVersion === 'v2' && v2FinalResponse
-                          ? v2FinalResponse
-                          : stepMessages && stepMessages.length > 0
-                            ? stepMessages.map((s) => s.content).join('\n\n')
-                            : content
-                      }
-                      messageId={messageId || ''}
-                      enableActions={enableActions}
-                      onConvertToDashboard={onConvertToDashboard}
-                      onTransparencyClick={onTransparencyClick}
-                      showTransparency={showTransparency}
-                    />
-                  )}
+                  {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
+                  {!isUser &&
+                    !isStreaming &&
+                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
+                      <MessageActions
+                        messageContent={
+                          // For v2 thinking process, only use the final response (not intermediate steps)
+                          thinkingProcessVersion === 'v2' && v2FinalResponse
+                            ? v2FinalResponse
+                            : stepMessages && stepMessages.length > 0
+                              ? stepMessages.map((s) => s.content).join('\n\n')
+                              : content
+                        }
+                        messageId={messageId || ''}
+                        enableActions={enableActions}
+                        onConvertToDashboard={onConvertToDashboard}
+                        onTransparencyClick={onTransparencyClick}
+                        showTransparency={showTransparency}
+                      />
+                    )}
                 </div>
               </div>
             </div>

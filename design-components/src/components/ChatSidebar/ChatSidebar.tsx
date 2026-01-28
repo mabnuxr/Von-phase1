@@ -201,7 +201,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 `}
                 title="Past Chats"
               >
-                <ChatTextIcon size={20} weight="duotone" />
+                <ChatTextIcon size={20} weight="regular" />
               </button>
 
               {/* Hover Dropdown - Conversation List (fixed position to escape overflow:hidden) */}
@@ -375,8 +375,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
       {/* Section Header */}
       <div className="flex items-center justify-between px-2 pt-1 pb-3 border-b border-gray-200 mb-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          <ChatTextIcon size={16} weight="duotone" />
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+          <ChatTextIcon size={16} weight="regular" />
           Past Chats
         </div>
         <button

@@ -70,9 +70,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </div>
           {/* User Info */}
           <div className="flex-1 min-w-0 text-left">
-            {userName && (
-              <p className="text-[13px] font-medium text-gray-900 truncate">{userName}</p>
-            )}
+            {userName && <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>}
             {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
           </div>
           {/* Chevron */}

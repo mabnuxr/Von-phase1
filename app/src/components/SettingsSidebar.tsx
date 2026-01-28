@@ -113,7 +113,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   // Collapsed state - show minimal sidebar with icons only
   if (isCollapsed) {
     return (
-      <div className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf">
+      <div className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased">
         {/* Collapsed Header - Just icon and expand button */}
         <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-200 mb-2">
           <button
@@ -193,13 +193,13 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   // Expanded state - show full sidebar
   return (
     <div
-      className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf"
+      className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased"
       style={{ width }}
     >
       {/* Section Header - Matching ChatSidebar style */}
       <div className="flex items-center justify-between px-2 pt-1 pb-3 border-b border-gray-200 mb-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-          <GearSixIcon size={16} weight="duotone" />
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+          <GearSixIcon size={16} weight="regular" />
           Settings
         </div>
         <button

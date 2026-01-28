@@ -256,7 +256,7 @@ export const ThinkingDrawer: React.FC<ThinkingDrawerProps> = ({
                     {/* Code block */}
                     {selectedStep?.code && (
                       <div className="flex-1 bg-gray-900 overflow-auto">
-                        <pre className="p-4 text-[13px] text-gray-300 font-mono leading-relaxed whitespace-pre-wrap">
+                        <pre className="p-4 text-sm text-gray-300 font-mono leading-relaxed whitespace-pre-wrap">
                           <code>{selectedStep.code}</code>
                         </pre>
                       </div>
