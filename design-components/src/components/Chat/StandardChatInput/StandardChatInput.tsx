@@ -301,6 +301,8 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
   onBuildDashboard,
   // Disclaimer
   hideDisclaimer = false,
+  // Plus menu visibility (defaults to false when not provided, feature flag controls this)
+  showPlusMenu = false,
   // Agent selection props (for locking after first message)
   isAgentLocked = false,
   lockedAgentMode = 'auto',
@@ -361,15 +363,14 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
       return;
     }
 
-    // Extract plain text from HTML content for sending
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = message;
-    const plainText = tempDiv.textContent || tempDiv.innerText || '';
-    const messageToSend = plainText.trim();
-    const hasContent = messageToSend || hasAttachments;
+    // message is now markdown from TiptapEditor
+    const hasTextContent = message.trim().length > 0;
+    const hasContent = hasTextContent || hasAttachments;
 
     if (hasContent && onSend) {
-      // Include the selected agent mode when sending
+      // Send markdown directly
+      const messageToSend = message.trim();
+
       onSend(messageToSend, hasAttachments ? attachments : undefined, selectedAgentMode);
       if (isControlled) {
         onChange?.('');
@@ -525,137 +526,179 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
               </div>
             )}
 
-            {/* Text input area - Tiptap Editor */}
-            <div className="px-4 py-3">
-              <TiptapEditor
-                content={message}
-                onChange={handleChange}
-                onSubmit={handleSend}
-                placeholder={placeholder}
-                disabled={disabled && !isStreaming}
-                editorRef={editorRef}
-              />
-            </div>
+            {/* Hidden file input - always render for ref access */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={getAcceptString()}
+              onChange={handleFileInputChange}
+              className="hidden"
+              aria-hidden="true"
+            />
 
-            {/* Formatting toolbar - Slack-style */}
-            {showFormattingToolbar && editorRef.current && (
-              <EditorToolbar editor={editorRef.current} />
-            )}
+            {showPlusMenu ? (
+              <>
+                {/* Text input area - Tiptap Editor */}
+                <div className="px-4 py-3">
+                  <TiptapEditor
+                    content={message}
+                    onChange={handleChange}
+                    onSubmit={handleSend}
+                    placeholder={placeholder}
+                    disabled={disabled && !isStreaming}
+                    editorRef={editorRef}
+                  />
+                </div>
 
-            {/* Bottom toolbar */}
-            <div className="flex items-center justify-between px-3 pb-3">
-              {/* Left side - Plus button and Mode toggle */}
-              <div className="flex items-center gap-2">
-                {/* Plus button - opens menu with options */}
-                <PlusButtonMenu
-                  isOpen={isPlusMenuOpen}
-                  onClose={() => setIsPlusMenuOpen(false)}
-                  onOpen={handlePlusButtonClick}
-                  onAgentModeChange={handleAgentModeChange}
-                  onBuildDashboard={onBuildDashboard}
-                  selectedAgentMode={selectedAgentMode}
-                  disabled={(disabled && !isStreaming) || isAgentLocked}
-                />
+                {/* Formatting toolbar - Slack-style */}
+                {showFormattingToolbar && editorRef.current && (
+                  <EditorToolbar editor={editorRef.current} />
+                )}
 
-                {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
-                <AnimatePresence>
-                  {selectedAgentMode !== 'auto' && (
-                    <motion.button
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.15 }}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                        selectedAgentMode === 'deep-research'
-                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                          : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
-                      }`}
-                      onClick={handleCancelAgentMode}
-                      onMouseEnter={() => setIsAgentTagHovered(true)}
-                      onMouseLeave={() => setIsAgentTagHovered(false)}
-                      title={
-                        isAgentLocked
-                          ? 'Agent locked for this conversation'
-                          : 'Click to reset to Auto mode'
-                      }
-                      disabled={isAgentLocked}
-                    >
-                      {isAgentTagHovered && !isAgentLocked ? (
-                        <XIcon
-                          size={14}
-                          weight="bold"
-                          className={
+                {/* Bottom toolbar with plus menu */}
+                <div className="flex items-center justify-between px-3 pb-3">
+                  {/* Left side - Plus button and Mode toggle */}
+                  <div className="flex items-center gap-2">
+                    {/* Plus button - opens menu with options */}
+                    <PlusButtonMenu
+                      isOpen={isPlusMenuOpen}
+                      onClose={() => setIsPlusMenuOpen(false)}
+                      onOpen={handlePlusButtonClick}
+                      onAgentModeChange={handleAgentModeChange}
+                      onBuildDashboard={onBuildDashboard}
+                      selectedAgentMode={selectedAgentMode}
+                      disabled={(disabled && !isStreaming) || isAgentLocked}
+                    />
+
+                    {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
+                    <AnimatePresence>
+                      {selectedAgentMode !== 'auto' && (
+                        <motion.button
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ duration: 0.15 }}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
                             selectedAgentMode === 'deep-research'
-                              ? 'text-green-600'
-                              : 'text-gray-800'
+                              ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                              : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
+                          }`}
+                          onClick={handleCancelAgentMode}
+                          onMouseEnter={() => setIsAgentTagHovered(true)}
+                          onMouseLeave={() => setIsAgentTagHovered(false)}
+                          title={
+                            isAgentLocked
+                              ? 'Agent locked for this conversation'
+                              : 'Click to reset to Auto mode'
                           }
-                        />
-                      ) : selectedAgentMode === 'deep-research' ? (
-                        // Green dot indicator for Deep Research
-                        <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
-                      ) : (
-                        (() => {
-                          const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
-                          return AgentIcon ? (
-                            <AgentIcon size={14} weight="regular" className="text-gray-800" />
-                          ) : null;
-                        })()
+                          disabled={isAgentLocked}
+                        >
+                          {isAgentTagHovered && !isAgentLocked ? (
+                            <XIcon
+                              size={14}
+                              weight="bold"
+                              className={
+                                selectedAgentMode === 'deep-research'
+                                  ? 'text-green-600'
+                                  : 'text-gray-800'
+                              }
+                            />
+                          ) : selectedAgentMode === 'deep-research' ? (
+                            // Green dot indicator for Deep Research
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
+                          ) : (
+                            (() => {
+                              const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
+                              return AgentIcon ? (
+                                <AgentIcon size={14} weight="regular" className="text-gray-800" />
+                              ) : null;
+                            })()
+                          )}
+                          {getAgentModeDisplay(selectedAgentMode).label}
+                        </motion.button>
                       )}
-                      {getAgentModeDisplay(selectedAgentMode).label}
-                    </motion.button>
-                  )}
-                </AnimatePresence>
+                    </AnimatePresence>
 
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept={getAcceptString()}
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                  aria-hidden="true"
-                />
-
-                {/* Mode selector - Auto edits: off/on/Plan Mode */}
-                {showModeSelector && onAutoEditModeChange && (
-                  <ModeSelector
-                    mode={autoEditMode}
-                    onModeChange={onAutoEditModeChange}
-                    disabled={disabled && !isStreaming}
-                  />
-                )}
-              </div>
-
-              {/* Right side - Voice and Send buttons */}
-              <div className="flex items-center gap-2">
-                {/* Voice input button */}
-                {onVoiceInput && (
-                  <SecondaryIconButton
-                    icon={
-                      <MicrophoneIcon
-                        size={16}
-                        weight={isRecording ? 'fill' : 'bold'}
-                        className={isRecording ? 'text-red-500' : 'text-gray-800'}
+                    {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                    {showModeSelector && onAutoEditModeChange && (
+                      <ModeSelector
+                        mode={autoEditMode}
+                        onModeChange={onAutoEditModeChange}
+                        disabled={disabled && !isStreaming}
                       />
-                    }
-                    onClick={onVoiceInput}
-                    disabled={disabled && !isStreaming}
-                    title={isRecording ? 'Stop recording' : 'Start voice input'}
-                    className={
-                      isRecording
-                        ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
-                        : 'w-8.5 h-8.5 rounded-xl'
-                    }
-                  />
-                )}
+                    )}
+                  </div>
 
-                {/* Send/Stop button */}
+                  {/* Right side - Voice and Send buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* Voice input button */}
+                    {onVoiceInput && (
+                      <SecondaryIconButton
+                        icon={
+                          <MicrophoneIcon
+                            size={16}
+                            weight={isRecording ? 'fill' : 'bold'}
+                            className={isRecording ? 'text-red-500' : 'text-gray-800'}
+                          />
+                        }
+                        onClick={onVoiceInput}
+                        disabled={disabled && !isStreaming}
+                        title={isRecording ? 'Stop recording' : 'Start voice input'}
+                        className={
+                          isRecording
+                            ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
+                            : 'w-8.5 h-8.5 rounded-xl'
+                        }
+                      />
+                    )}
+
+                    {/* Send/Stop button */}
+                    {isStreaming ? (
+                      <SecondaryIconButton
+                        icon={<StopIcon />}
+                        onClick={onStop}
+                        title="Stop generating"
+                        className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
+                      />
+                    ) : (
+                      <SecondaryIconButton
+                        icon={<SendIcon size={16} />}
+                        onClick={handleSend}
+                        disabled={!canSend}
+                        title="Send message"
+                        className={
+                          canSend
+                            ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                            : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                        }
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Inline layout - text input with send button on same row */
+              <div className="flex items-center gap-2 px-4 py-3">
+                {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
+                <div className="flex-1">
+                  <TiptapEditor
+                    content={message}
+                    onChange={handleChange}
+                    onSubmit={handleSend}
+                    placeholder={placeholder}
+                    disabled={disabled && !isStreaming}
+                    editorRef={editorRef}
+                  />
+                </div>
+
+                {/* Send/Stop button inline */}
                 {isStreaming ? (
                   <SecondaryIconButton
                     icon={<StopIcon />}
                     onClick={onStop}
                     title="Stop generating"
-                    className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
+                    className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
                   />
                 ) : (
                   <SecondaryIconButton
@@ -663,15 +706,15 @@ export const StandardChatInput: React.FC<StandardChatInputProps> = ({
                     onClick={handleSend}
                     disabled={!canSend}
                     title="Send message"
-                    className={
+                    className={`flex-shrink-0 ${
                       canSend
                         ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
                         : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                    }
+                    }`}
                   />
                 )}
               </div>
-            </div>
+            )}
           </div>
         </div>
 

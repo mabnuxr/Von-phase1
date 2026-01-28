@@ -12,6 +12,7 @@ export const FEATURE_FLAGS = {
   SIDE_BAR_V2: "sidebarV2",
   AGENT_V2: "agentsV2",
   USER_MEMORY: "enableUserMemory",
+  DEEP_RESEARCH: "deepResearch",
 } as const;
 
 /**
@@ -78,6 +79,11 @@ export function useFeatureFlag() {
      * (personal memory segment for each user)
      */
     isUserMemoryEnabled: flags[FEATURE_FLAGS.USER_MEMORY] === true,
+
+    /**
+     * Controls whether deep research feature (plus menu with agents) is enabled
+     */
+    isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
 
     /**
      * Raw flags object for advanced usage

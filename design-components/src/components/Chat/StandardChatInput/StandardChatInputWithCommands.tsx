@@ -46,6 +46,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
   onDisabledInput,
   isAgentLocked = false,
   lockedAgentMode = 'auto',
+  showPlusMenu,
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -219,6 +220,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
           disableSubmit={disableSubmit}
           isAgentLocked={isAgentLocked}
           lockedAgentMode={lockedAgentMode}
+          showPlusMenu={showPlusMenu}
           onDisabledInput={onDisabledInput}
         />
       )}

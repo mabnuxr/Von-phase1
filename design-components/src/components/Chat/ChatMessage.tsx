@@ -8,6 +8,7 @@ import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
+import { TiptapViewer } from '../TiptapEditor';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
 
@@ -422,9 +423,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             }}
                             onArtifactClick={handleArtifactClick}
                           />
-                          {/* Final response - shown only after thinking process is complete */}
-                          {!isStreaming && v2FinalResponse && (
-                            <div className="markdown-content max-w-none">
+                          {/* Final response - shown while streaming (when is_final_response) or after thinking completes */}
+                          {(!isStreaming || v2FinalResponseStreaming) && v2FinalResponse && (
+                            <div className="prose-sm markdown-content max-w-none">
                               <Streamdown
                                 parseIncompleteMarkdown={v2FinalResponseStreaming}
                                 isAnimating={v2FinalResponseStreaming}
@@ -565,11 +566,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {attachments && attachments.length > 0 && (
                         <MessageFilePreview attachments={attachments} />
                       )}
-                      {/* Text content */}
+                      {/* Text content - render markdown using TiptapViewer */}
                       {content && (
-                        <div className="markdown-content max-w-none text-left whitespace-pre-wrap">
-                          {content}
-                        </div>
+                        <TiptapViewer
+                          content={content}
+                          className="markdown-content prose-sm max-w-none text-left"
+                        />
                       )}
                     </div>
                   )}

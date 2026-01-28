@@ -61,6 +61,8 @@ export interface ChatInputSelectorProps {
   isAgentLocked?: boolean;
   /** The agent mode to display when locked (from backend) */
   lockedAgentMode?: AgentMode;
+  /** Whether to show the plus menu button (with agents and upload options) */
+  showPlusMenu?: boolean;
 }
 
 /**
@@ -90,6 +92,7 @@ export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
   onModeChange,
   isAgentLocked,
   lockedAgentMode,
+  showPlusMenu,
 }) => {
   // Base props shared by all input variants (excluding onSend which has different signatures)
   const baseCommonProps = {
@@ -113,6 +116,7 @@ export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
       onModeChange,
       isAgentLocked,
       lockedAgentMode,
+      showPlusMenu,
     };
 
     if (enableCommands) {

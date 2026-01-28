@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Table } from 'rsuite';
 import type { SortType } from 'rsuite/esm/Table';
 import type { TableData, QueryInfo } from './types';
+import { isSalesforceUrl } from './utils/salesforceDeepLink';
 
 const { Column, HeaderCell, Cell } = Table;
 
@@ -27,13 +28,6 @@ export interface DataTableProps {
    * Callback when "View Query" is clicked
    */
   onViewQuery?: () => void;
-
-  /**
-   * Enable deep links for Salesforce URLs
-   * When enabled, URLs are rendered as clickable links
-   * @default false
-   */
-  enableDeepLinks?: boolean;
 }
 
 /**
@@ -49,15 +43,7 @@ function formatNumber(num: number): string {
 /**
  * Smart cell formatter based on column name and value type
  */
-function CellFormatter({
-  value,
-  columnName,
-  enableDeepLinks = false,
-}: {
-  value: unknown;
-  columnName: string;
-  enableDeepLinks?: boolean;
-}) {
+function CellFormatter({ value, columnName }: { value: unknown; columnName: string }) {
   // Null/undefined
   if (value === null || value === undefined) {
     return <span className="text-gray-400">—</span>;
@@ -118,17 +104,32 @@ function CellFormatter({
   // Strings
   const strValue = String(value);
 
-  // URLs in deep_link column - render as "View in Salesforce" links
-  if (enableDeepLinks && columnName === 'deep_link' && isUrl(strValue)) {
+  // URLs in deep_link column - validate Salesforce URLs for security
+  if (columnName === 'deep_link' && isUrl(strValue)) {
+    // Only render "View in Salesforce" for validated Salesforce domains
+    // This prevents phishing via arbitrary URLs masquerading as Salesforce links
+    if (isSalesforceUrl(strValue)) {
+      return (
+        <a
+          href={strValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+          title="Open in Salesforce"
+        >
+          View in Salesforce
+        </a>
+      );
+    }
+    // Non-Salesforce URLs: render as generic link
     return (
       <a
         href={strValue}
         target="_blank"
         rel="noopener noreferrer"
         className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-        title="Open in Salesforce"
       >
-        View in Salesforce
+        {strValue}
       </a>
     );
   }
@@ -149,7 +150,7 @@ function CellFormatter({
  * DataTable component for displaying SQL query results
  * Uses rsuite Table for beautiful formatting with sorting support
  */
-export const DataTable: React.FC<DataTableProps> = ({ data, enableDeepLinks = false }) => {
+export const DataTable: React.FC<DataTableProps> = ({ data }) => {
   // Sorting state
   const [sortColumn, setSortColumn] = useState<string | undefined>();
   const [sortType, setSortType] = useState<SortType | undefined>();
@@ -198,16 +199,12 @@ export const DataTable: React.FC<DataTableProps> = ({ data, enableDeepLinks = fa
         </HeaderCell>
         <Cell dataKey={col.name}>
           {(rowData: Record<string, unknown>) => (
-            <CellFormatter
-              value={rowData[col.name]}
-              columnName={col.name}
-              enableDeepLinks={enableDeepLinks}
-            />
+            <CellFormatter value={rowData[col.name]} columnName={col.name} />
           )}
         </Cell>
       </Column>
     ));
-  }, [data, enableDeepLinks]);
+  }, [data]);
 
   if (!data || !data.columns || !data.rows) {
     return <div className="text-sm text-gray-500 italic">No data available</div>;

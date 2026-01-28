@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
-import { SOURCE_LABELS } from '../constants';
 import { StepIndicator } from './StepIndicator';
 import { CompactApprovalCard } from './CompactApprovalCard';
 
@@ -59,14 +58,6 @@ export const StepRow = React.memo<StepRowProps>(
     const isInProgress = effectiveStatus === 'in-progress';
     const isComplete = effectiveStatus === 'complete';
 
-    // Get source label for tool calls
-    const sourceLabel = useMemo(() => {
-      if ((step.type === 'tool_call' || step.type === 'approval') && step.source) {
-        return SOURCE_LABELS[step.source];
-      }
-      return null;
-    }, [step.type, step.source]);
-
     return (
       <div className="relative flex">
         {/* Timeline connector - small dot indicator */}
@@ -107,13 +98,6 @@ export const StepRow = React.memo<StepRowProps>(
             >
               {step.text}
             </span>
-
-            {/* Source badge */}
-            {sourceLabel && (
-              <span className="flex-shrink-0 text-xs text-gray-900 px-1.5 py-0.5 bg-gray-50 border border-gray-200 rounded-full">
-                {sourceLabel}
-              </span>
-            )}
           </button>
 
           {/* Expanded content */}

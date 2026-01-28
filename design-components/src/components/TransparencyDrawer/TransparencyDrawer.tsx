@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, DatabaseIcon } from '@phosphor-icons/react';
 import type { TransparencyDrawerProps, TransparencyDrawerTabProps, TabConfig } from './types';
 import { DrawerBackdrop, TabNavigation } from './components';
+import { useHorizontalResize } from '../ArtifactViewer/hooks';
 
 const Tab: React.FC<TransparencyDrawerTabProps> = ({ children }) => {
   return <>{children}</>;
@@ -62,6 +63,13 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
     [tabs, activeTabId]
   );
 
+  // Horizontal resize functionality - larger default for data tables
+  const { width, handleProps } = useHorizontalResize({
+    initialWidth: 800,
+    minWidth: 500,
+    storageKey: 'transparency-drawer-width',
+  });
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -73,8 +81,15 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed right-0 top-0 h-full w-[680px] max-w-[90vw] pr-2 py-2 z-[9999]"
+            style={{ width: `${width}px` }}
+            className="fixed right-0 top-0 h-full max-w-[90vw] pr-2 py-2 z-[9999]"
           >
+            {/* Resize Handle - transparent, wider hit area for easier dragging */}
+            <div
+              {...handleProps}
+              className="absolute left-0 top-0 bottom-0 w-3 z-10 cursor-ew-resize"
+            />
+
             <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-5 py-2 border-b border-gray-200 shrink-0">
                 <div className="flex items-center gap-3">

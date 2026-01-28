@@ -1,9 +1,15 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretRightIcon, CaretDownIcon, CaretLeftIcon } from '@phosphor-icons/react';
+import {
+  CaretRightIcon,
+  CaretDownIcon,
+  CaretLeftIcon,
+  DownloadSimpleIcon,
+} from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
-import { useQueryPagination } from '../hooks';
+import { useQueryPagination, useDynamicPageSize } from '../hooks';
 import { formatValue } from '../utils';
+import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
 
 // ============================================================================
 // Component
@@ -15,15 +21,21 @@ import { formatValue } from '../utils';
  * Features:
  * - Collapsible SQL query section with duration
  * - Data table with type-aware formatting
- * - Pagination (10 rows per page)
+ * - Dynamic pagination based on viewport height
  * - Type-specific column formatting (currency, percentage, date, number)
  * - Sticky table headers
  */
 export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
 
+  // Calculate dynamic rows per page based on container height
+  const { rowsPerPage, containerRef } = useDynamicPageSize({
+    // Add extra overhead when query section exists (collapsed state)
+    additionalOverhead: query.query ? 60 : 0,
+  });
+
   const { currentPage, totalPages, startIndex, endIndex, goToNextPage, goToPrevPage } =
-    useQueryPagination(query.rows.length);
+    useQueryPagination(query.rows.length, rowsPerPage);
 
   const currentRows = useMemo(
     () => query.rows.slice(startIndex, endIndex),
@@ -31,6 +43,25 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
   );
 
   const toggleQueryExpanded = useCallback(() => setIsQueryExpanded((prev) => !prev), []);
+
+  // Handle CSV download - exports ALL rows, not just current page
+  const handleDownloadCSV = useCallback(() => {
+    if (query.columns.length === 0 || query.rows.length === 0) return;
+
+    // Build CSV header using column labels
+    const header = query.columns.map((col) => escapeCsvValue(col.label)).join(',');
+
+    // Build CSV data rows using column keys
+    const dataRows = query.rows.map((row) =>
+      query.columns.map((col) => escapeCsvValue(row[col.key])).join(',')
+    );
+
+    const csvContent = [header, ...dataRows].join('\n');
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const filename = `query_export_${timestamp}.csv`;
+
+    downloadCSV(csvContent, filename);
+  }, [query.columns, query.rows]);
 
   const totalRows = query.rows.length;
 
@@ -100,7 +131,7 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div ref={containerRef} className="flex flex-col h-full min-h-0">
       {/* SQL Query Section - Collapsible, collapsed by default */}
       {query.query && (
         <div className="mx-4 mt-4 rounded-lg border border-gray-200 overflow-hidden shrink-0 flex flex-col max-h-[40%]">
@@ -147,7 +178,22 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
         </div>
       ) : (
         <>
-          <div className="flex-1 min-h-0 overflow-auto mx-4 mt-2 border border-gray-200 rounded-lg mt-4">
+          {/* Table Header with Download Button */}
+          <div className="px-4 pt-4 pb-2 flex items-center justify-between shrink-0">
+            <span className="text-[11px] text-gray-500">
+              {totalRows} {totalRows === 1 ? 'row' : 'rows'}
+            </span>
+            <button
+              onClick={handleDownloadCSV}
+              className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+              title="Download as CSV"
+            >
+              <DownloadSimpleIcon size={12} />
+              <span>CSV</span>
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg mt-2">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -198,6 +244,7 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
             <span className="text-[11px] text-gray-500">
               Showing {startIndex + 1}–{endIndex} of {totalRows} {totalRows === 1 ? 'row' : 'rows'}
             </span>
+            {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
                 <button

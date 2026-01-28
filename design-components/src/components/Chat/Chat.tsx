@@ -69,6 +69,8 @@ export const Chat: React.FC<ChatProps> = ({
   // Agent selection props
   isAgentLocked = false,
   lockedAgentMode = 'auto',
+  // Plus menu visibility (defaults to false when not provided)
+  showPlusMenu = false,
   // Deep Research Results props (V2 only)
   researchResults,
   isDeepResearchRunning,
@@ -276,6 +278,7 @@ export const Chat: React.FC<ChatProps> = ({
             useStandardInput={useStandardInput}
             isAgentLocked={isAgentLocked}
             lockedAgentMode={lockedAgentMode}
+            showPlusMenu={showPlusMenu}
           />
         ) : isDeepResearchMode ? (
           /* Deep Research Mode - specialized UI */
@@ -380,6 +383,7 @@ export const Chat: React.FC<ChatProps> = ({
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={isAgentLocked}
           lockedAgentMode={lockedAgentMode}
+          showPlusMenu={showPlusMenu}
         />
       )}
     </div>

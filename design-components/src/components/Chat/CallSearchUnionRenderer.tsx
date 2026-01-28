@@ -5,8 +5,6 @@ import type { CallSearchUnionResult, CallSearchResult, CallMatchSource } from '.
 export interface CallSearchUnionRendererProps {
   /** The call search union result to render */
   result: CallSearchUnionResult;
-  /** Enable deep links for call recordings */
-  enableDeepLinks?: boolean;
 }
 
 /**
@@ -222,8 +220,7 @@ const CallResultCard: React.FC<{
   call: CallSearchResult;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  enableDeepLinks: boolean;
-}> = ({ call, isExpanded, onToggleExpand, enableDeepLinks }) => {
+}> = ({ call, isExpanded, onToggleExpand }) => {
   const formattedDate = call.call_date
     ? new Date(call.call_date).toLocaleDateString(undefined, {
         month: 'short',
@@ -319,7 +316,7 @@ const CallResultCard: React.FC<{
               )}
 
               {/* Deep Link */}
-              {enableDeepLinks && (call.deep_link || call.meeting_url) && (
+              {(call.deep_link || call.meeting_url) && (
                 <a
                   href={call.deep_link || call.meeting_url}
                   target="_blank"
@@ -345,8 +342,7 @@ const UnifiedResultsView: React.FC<{
   results: CallSearchResult[];
   expandedCallId: string | null;
   onExpandCall: (id: string | null) => void;
-  enableDeepLinks: boolean;
-}> = ({ results, expandedCallId, onExpandCall, enableDeepLinks }) => {
+}> = ({ results, expandedCallId, onExpandCall }) => {
   if (results.length === 0) {
     return (
       <div className="text-center py-6 text-gray-500 text-sm">
@@ -363,7 +359,6 @@ const UnifiedResultsView: React.FC<{
           call={call}
           isExpanded={expandedCallId === call.call_id}
           onToggleExpand={() => onExpandCall(expandedCallId === call.call_id ? null : call.call_id)}
-          enableDeepLinks={enableDeepLinks}
         />
       ))}
     </div>
@@ -449,10 +444,7 @@ const UnionQueryDetails: React.FC<{
  * - Expandable union query details
  * - Deduplication summary
  */
-export const CallSearchUnionRenderer: React.FC<CallSearchUnionRendererProps> = ({
-  result,
-  enableDeepLinks = false,
-}) => {
+export const CallSearchUnionRenderer: React.FC<CallSearchUnionRendererProps> = ({ result }) => {
   const [showQueryDetails, setShowQueryDetails] = useState(false);
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null);
 
@@ -469,7 +461,6 @@ export const CallSearchUnionRenderer: React.FC<CallSearchUnionRendererProps> = (
         results={result.results}
         expandedCallId={expandedCallId}
         onExpandCall={setExpandedCallId}
-        enableDeepLinks={enableDeepLinks}
       />
 
       {/* Union Query Details (Expandable) */}

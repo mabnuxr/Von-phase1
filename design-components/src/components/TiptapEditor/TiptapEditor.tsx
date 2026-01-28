@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import Link from '@tiptap/extension-link';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Underline from '@tiptap/extension-underline';
@@ -10,7 +9,20 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Markdown } from 'tiptap-markdown';
 import type { TiptapEditorProps } from './types';
-import { CustomListItem } from './extensions';
+import { CustomListItem, MarkdownLink } from './extensions';
+
+// Helper to get markdown from editor with runtime safety check
+function getMarkdown(editor: Editor): string {
+  const storage = editor.storage as unknown as Record<string, unknown>;
+  const markdownStorage = storage?.markdown as { getMarkdown?: () => string } | undefined;
+
+  if (markdownStorage?.getMarkdown) {
+    return markdownStorage.getMarkdown();
+  }
+
+  // Fallback to HTML if markdown storage is not available
+  return editor.getHTML();
+}
 
 /**
  * TiptapEditor - A rich text editor with Slack-like functionality
@@ -76,7 +88,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       Underline,
       TextStyle,
       Color,
-      Link.configure({
+      MarkdownLink.configure({
         openOnClick: false,
         HTMLAttributes: {
           class: 'editor-link',
@@ -153,8 +165,9 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       },
     },
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      onChange(html);
+      // Output markdown instead of HTML for consistency with OrgContextEditor
+      const markdown = getMarkdown(editor);
+      onChange(markdown);
     },
     editable: !disabled,
   });
@@ -168,7 +181,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   // Update content when controlled value changes
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && content !== getMarkdown(editor)) {
       editor.commands.setContent(content);
     }
   }, [content, editor]);

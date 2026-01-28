@@ -306,17 +306,23 @@ export interface TextMessageStartEvent {
   role: 'assistant';
   /** Present for final response messages, points to the thinking message_id */
   parent_message_id?: string;
+  /** When true, this message should stream directly to the chat response (final response) */
+  is_final_response?: boolean;
 }
 
 export interface TextMessageContentEvent {
   type: 'TEXT_MESSAGE_CONTENT';
   message_id: string;
   delta: string;
+  /** When true, this content is part of the final response */
+  is_final_response?: boolean;
 }
 
 export interface TextMessageEndEvent {
   type: 'TEXT_MESSAGE_END';
   message_id: string;
+  /** When true, this marks the end of the final response */
+  is_final_response?: boolean;
 }
 
 export interface ToolCallStartEvent {
@@ -1197,6 +1203,12 @@ export interface ChatProps {
    * @default 'auto'
    */
   lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+
+  /**
+   * Whether to show the plus menu button (with agents and upload options)
+   * @default false
+   */
+  showPlusMenu?: boolean;
 
   // ============================================================================
   // Deep Research Results Props (V2 only)

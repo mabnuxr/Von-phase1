@@ -25,12 +25,6 @@ export interface ArtifactPaneContainerProps {
   paneState: ArtifactState;
   /** Callback to close the pane */
   onClose: () => void;
-  /**
-   * Enable deep links for Salesforce URLs in DataTable
-   * When enabled, URLs are rendered as clickable links
-   * @default false
-   */
-  enableDeepLinks?: boolean;
 }
 
 // ============================================================================
@@ -41,7 +35,6 @@ export const ArtifactPaneContainer: React.FC<ArtifactPaneContainerProps> = ({
   conversationId,
   paneState,
   onClose,
-  enableDeepLinks = false,
 }) => {
   const { isOpen, artifactId, toolName, runId } = paneState;
 
@@ -65,7 +58,6 @@ export const ArtifactPaneContainer: React.FC<ArtifactPaneContainerProps> = ({
       artifact={artifact}
       isLoading={isLoading}
       error={error?.message || null}
-      enableDeepLinks={enableDeepLinks}
     />
   );
 };

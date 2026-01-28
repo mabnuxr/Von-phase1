@@ -50,12 +50,6 @@ export interface ArtifactPaneProps {
   isLoading?: boolean;
   /** Error message if loading failed */
   error?: string | null;
-  /**
-   * Enable deep links for Salesforce URLs in DataTable
-   * When enabled, URLs are rendered as clickable links
-   * @default false
-   */
-  enableDeepLinks?: boolean;
 }
 
 // ============================================================================
@@ -194,7 +188,6 @@ export function ArtifactPane({
   artifact,
   isLoading = false,
   error = null,
-  enableDeepLinks = false,
 }: ArtifactPaneProps) {
   // Determine if queries exist
   const hasQueries =
@@ -589,9 +582,7 @@ export function ArtifactPane({
           {/* Tab Content */}
           <div className="flex-1 overflow-auto">
             {/* Memory tools - always show result without tabs */}
-            {toolResult.type === 'memory' && (
-              <ToolResultRenderer result={toolResult} enableDeepLinks={enableDeepLinks} />
-            )}
+            {toolResult.type === 'memory' && <ToolResultRenderer result={toolResult} />}
 
             {/* Other tools - show based on active tab */}
             {toolResult.type !== 'memory' && activeTab === 'result' && (
@@ -611,7 +602,7 @@ export function ArtifactPane({
                   </div>
                 )}
                 <div className="flex-1 overflow-auto">
-                  <ToolResultRenderer result={toolResult} enableDeepLinks={enableDeepLinks} />
+                  <ToolResultRenderer result={toolResult} />
                 </div>
               </div>
             )}
