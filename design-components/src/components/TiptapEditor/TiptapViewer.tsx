@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { Marked } from 'marked';
-import DOMPurify from 'dompurify';
 
 export interface TiptapViewerProps {
-  /** Content to display (markdown or HTML from TiptapEditor) */
+  /** Content to display (markdown from TiptapEditor) */
   content: string;
   /** Additional className for the wrapper */
   className?: string;
@@ -18,13 +17,8 @@ const markedInstance = new Marked({
 /**
  * TiptapViewer - A read-only viewer for content created with TiptapEditor
  *
- * Renders markdown or HTML content with the same styling as the editor.
+ * Renders markdown content with the same styling as the editor.
  * Used for displaying user messages that were composed with TiptapEditor.
- *
- * Note: We always run content through marked because:
- * 1. marked passes HTML through untouched, so legacy HTML content still works
- * 2. Trying to detect HTML with regex causes false positives (e.g. markdown autolinks
- *    like <https://example.com> get misclassified and stripped by DOMPurify)
  */
 export const TiptapViewer: React.FC<TiptapViewerProps> = ({ content, className = '' }) => {
   const htmlContent = useMemo(() => {
@@ -48,18 +42,13 @@ export const TiptapViewer: React.FC<TiptapViewerProps> = ({ content, className =
       }
     }
 
-    // Run through marked - it handles both markdown and HTML content
-    // (HTML passes through untouched, markdown gets converted)
-    let rawHtml: string;
+    // Run through marked to convert markdown to HTML
     try {
-      rawHtml = markedInstance.parse(normalizedContent) as string;
+      return markedInstance.parse(normalizedContent) as string;
     } catch {
       // Fallback: wrap plain text in paragraph
-      rawHtml = `<p>${normalizedContent.replace(/\n/g, '<br>')}</p>`;
+      return `<p>${normalizedContent.replace(/\n/g, '<br>')}</p>`;
     }
-
-    // Sanitize HTML to prevent XSS attacks
-    return DOMPurify.sanitize(rawHtml);
   }, [content]);
 
   return (
