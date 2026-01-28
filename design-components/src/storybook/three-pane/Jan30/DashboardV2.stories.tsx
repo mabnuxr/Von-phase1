@@ -626,7 +626,7 @@ const SuccessToast: React.FC<ToastProps> = ({ message, onDismiss }) => {
         <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
           <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
         </div>
-        <span className="text-[13px] font-medium text-gray-900">{message}</span>
+        <span className="text-sm font-medium text-gray-900">{message}</span>
         <button
           onClick={onDismiss}
           className="ml-2 text-gray-400 hover:text-gray-600 cursor-pointer"

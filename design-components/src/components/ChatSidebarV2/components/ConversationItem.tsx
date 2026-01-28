@@ -73,7 +73,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const content = (
     <div
       className={`
-        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-[13px]
+        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm
         transition-colors duration-150
         ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
       `}
@@ -94,12 +94,12 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="flex-1 text-[13px] text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
         <>
-          <span className="flex-1 text-[13px] text-gray-900 truncate">{item.label}</span>
+          <span className="flex-1 text-sm text-gray-900 truncate">{item.label}</span>
 
           {/* More options button - shows on hover or when menu is open */}
           <PrimaryIconButton

@@ -76,7 +76,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     <SecondaryButton
       onClick={handleClick}
       disabled={disabled}
-      className="text-[13px] px-2.5 py-1.5 rounded-xl whitespace-nowrap"
+      className="text-sm px-2.5 py-1.5 rounded-xl whitespace-nowrap"
     >
       {getModeLabel(mode)}
     </SecondaryButton>

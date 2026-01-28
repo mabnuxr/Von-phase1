@@ -81,7 +81,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   }
 
   return (
-    <div className="px-2 py-3 h-full w-full bg-white flex text-[13px] rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
+    <div className="px-2 py-3 h-full w-full bg-white flex text-sm rounded-xl border border-gray-100 shadow-xs flex-col overflow-hidden antialiased font-sf">
       {/* Header */}
       <ChatPaneHeader
         conversationName={conversationName}
@@ -120,7 +120,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
                 <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
               </svg>
             </div>
-            <p className="text-[13px] text-gray-500">Start a conversation</p>
+            <p className="text-sm text-gray-500">Start a conversation</p>
           </div>
         ) : (
           // Messages list

@@ -165,7 +165,7 @@ const QueryTab: React.FC<QueryTabProps> = ({ query, isActive, onClick }) => {
     <button
       onClick={onClick}
       className={`
-        px-4 py-1.5 text-[13px] font-medium rounded-full
+        px-4 py-1.5 text-sm font-medium rounded-full
         transition-colors duration-150 cursor-pointer whitespace-nowrap border
         ${
           isActive
@@ -271,7 +271,7 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
       {/* Query Info */}
       <div className="px-4 pb-2 flex items-center gap-2">
         <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
-        <span className="text-[13px] font-medium text-gray-900">{query.name}</span>
+        <span className="text-sm font-medium text-gray-900">{query.name}</span>
         {query.description && (
           <span className="text-[11px] text-gray-500">— {query.description}</span>
         )}
@@ -305,7 +305,7 @@ const QueryContent: React.FC<QueryContentProps> = ({ query }) => {
                 {query.columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-3 py-2 text-[13px] whitespace-nowrap ${
+                    className={`px-3 py-2 text-sm whitespace-nowrap ${
                       col.type === 'number' || col.type === 'currency' || col.type === 'percentage'
                         ? 'text-right tabular-nums'
                         : 'text-left'
@@ -424,9 +424,7 @@ const CallsTabContent: React.FC<CallsTabContentProps> = ({ calls }) => {
                             <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
                           )}
                         </span>
-                        <span className="text-[13px] text-gray-800 flex-1 truncate">
-                          {call.title}
-                        </span>
+                        <span className="text-sm text-gray-800 flex-1 truncate">{call.title}</span>
                       </button>
                       {call.sourceUrl && (
                         <a
@@ -540,7 +538,7 @@ const DeepResearchTableTab: React.FC<DeepResearchTableTabProps> = ({
     <button
       onClick={onClick}
       className={`
-        px-4 py-1.5 text-[13px] font-medium rounded-full
+        px-4 py-1.5 text-sm font-medium rounded-full
         transition-colors duration-150 cursor-pointer whitespace-nowrap border
         ${
           isActive
@@ -650,7 +648,7 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
       {/* Table Info Header */}
       {/* <div className="px-4 py-2 flex items-center gap-2 border-b border-gray-100">
         <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
-        <span className="text-[13px] font-medium text-gray-900">{table.name}</span>
+        <span className="text-sm font-medium text-gray-900">{table.name}</span>
         {table.description && (
           <span className="text-[11px] text-gray-500">— {table.description}</span>
         )}
@@ -675,7 +673,7 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search..."
-            className="w-full pl-8 pr-3 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
           />
         </div>
 

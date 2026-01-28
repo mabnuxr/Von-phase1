@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 export const ChatTypingIndicator: React.FC = () => {
   return (
     <motion.div
-      className="w-full group font-sf mb-4"
+      className="w-full group  mb-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -61,7 +61,7 @@ export function Toggle<T extends string = string>({
           disabled={disabled}
           onClick={() => onChange(option.value)}
           className={`
-            flex-1 px-3 py-1.25 rounded-lg text-[13px] font-medium
+            flex-1 px-3 py-1.25 rounded-lg text-sm font-medium
             transition-colors duration-150 cursor-pointer
             disabled:opacity-50 disabled:cursor-not-allowed
             ${

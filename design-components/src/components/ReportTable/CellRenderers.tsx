@@ -197,7 +197,7 @@ export const MultiPicklistCell: React.FC<MultiPicklistCellProps> = ({ value }) =
       {items.map((item, index) => (
         <span
           key={index}
-          className="px-2 py-0.5 text-[13px] font-medium bg-gray-50 border border-gray-100 shadow-xs rounded-full text-gray-800 whitespace-nowrap flex-shrink-0"
+          className="px-2 py-0.5 text-sm font-medium bg-gray-50 border border-gray-100 shadow-xs rounded-full text-gray-800 whitespace-nowrap flex-shrink-0"
         >
           {item}
         </span>
@@ -229,7 +229,7 @@ export const SentimentCell: React.FC<SentimentCellProps> = ({ value }) => {
 
   return (
     <span
-      className={`inline-flex px-2 py-0.5 text-[13px] font-medium border shadow-xs rounded-full ${styles}`}
+      className={`inline-flex px-2 py-0.5 text-sm font-medium border shadow-xs rounded-full ${styles}`}
     >
       {value}
     </span>
@@ -250,7 +250,7 @@ export const BooleanCell: React.FC<BooleanCellProps> = ({ value }) => {
 
   return (
     <span
-      className={`inline-flex px-2 py-0.5 text-[13px] font-medium rounded-full ${
+      className={`inline-flex px-2 py-0.5 text-sm font-medium rounded-full ${
         isTrue
           ? 'bg-green-100 text-green-800 border border-green-200'
           : 'bg-red-100 text-red-800 border border-red-200'
@@ -329,7 +329,7 @@ interface PicklistCellProps {
 
 export const PicklistCell: React.FC<PicklistCellProps> = ({ value }) => {
   return (
-    <span className="inline-flex px-2 py-0.5 text-[13px] font-medium bg-gray-50 border border-gray-100 shadow-xs rounded-full text-gray-800 whitespace-nowrap">
+    <span className="inline-flex px-2 py-0.5 text-sm font-medium bg-gray-50 border border-gray-100 shadow-xs rounded-full text-gray-800 whitespace-nowrap">
       {value}
     </span>
   );

@@ -205,7 +205,7 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
                     }}
                     placeholder="Enter widget name..."
                     className={`
-                      w-full px-3 py-2 text-[13px] text-gray-900 bg-white border rounded-lg
+                      w-full px-3 py-2 text-sm text-gray-900 bg-white border rounded-lg
                       placeholder:text-gray-400 outline-none transition-colors
                       ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'}
                     `}
@@ -259,7 +259,7 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
                           setErrors((prev) => ({ ...prev, dataSource: undefined }));
                       }}
                       className={`
-                        w-full px-3 py-2 text-[13px] text-gray-900 bg-white border rounded-lg
+                        w-full px-3 py-2 text-sm text-gray-900 bg-white border rounded-lg
                         appearance-none cursor-pointer outline-none transition-colors
                         ${errors.dataSource ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'}
                       `}
@@ -305,7 +305,7 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
                         key={preset.label}
                         onClick={() => setGridSize({ width: preset.width, height: preset.height })}
                         className={`
-                          px-3 py-1.5 text-[13px] rounded-lg border transition-all cursor-pointer
+                          px-3 py-1.5 text-sm rounded-lg border transition-all cursor-pointer
                           ${
                             gridSize.width === preset.width && gridSize.height === preset.height
                               ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -327,7 +327,7 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <div className="flex items-center gap-2 mb-2">
                       {chartOptions.find((c) => c.value === chartType)?.icon}
-                      <span className="text-[13px] font-medium text-gray-900">{name}</span>
+                      <span className="text-sm font-medium text-gray-900">{name}</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1">

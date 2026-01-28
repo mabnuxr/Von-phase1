@@ -67,7 +67,7 @@ export const HeroButton: React.FC<HeroButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium
+        flex items-center gap-1 px-3 py-1.5 text-sm font-medium
         bg-gradient-to-bl from-orange-600 via-orange-500 via-amber-400 to-amber-400
         text-white rounded-[10px] shadow-xs
         hover:opacity-90 transition-colors cursor-pointer
@@ -165,7 +165,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        px-3 py-2 text-[13px] font-medium text-white bg-gray-900 rounded-xl
+        px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl
         hover:bg-gray-800 transition-colors cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${fullWidth ? 'flex-1 w-full' : ''}
@@ -204,7 +204,7 @@ export const SecondaryButton: React.FC<SecondaryButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        px-3 py-2 text-[13px] font-medium text-gray-800 bg-transparent border border-gray-200 rounded-xl
+        px-3 py-2 text-sm font-medium text-gray-800 bg-transparent border border-gray-200 rounded-xl
         hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${fullWidth ? 'flex-1 w-full' : ''}
@@ -243,7 +243,7 @@ export const GhostButton: React.FC<GhostButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       className={`
-        px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-xl
+        px-3 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-xl
         hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${fullWidth ? 'flex-1 w-full' : ''}
@@ -431,7 +431,7 @@ export const TransparentButton: React.FC<TransparentButtonProps> = ({
   variant = 'default',
 }) => {
   const baseClasses =
-    'w-full rounded-xl flex items-center justify-between px-3 py-2 text-[13px] transition-colors cursor-pointer text-left';
+    'w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer text-left';
 
   const variantClasses = {
     default: active

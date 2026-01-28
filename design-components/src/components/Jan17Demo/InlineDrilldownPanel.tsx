@@ -166,11 +166,11 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <span className="text-[13px] font-medium text-gray-900">Formula</span>
+        <span className="text-sm font-medium text-gray-900">Formula</span>
         {!isEditing && localFormula && (
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
           >
             <PencilSimpleIcon size={14} />
             <span>Edit</span>
@@ -182,7 +182,7 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({
       <div className="p-4 space-y-3">
         {/* Display mode - show existing formula */}
         {!isEditing && localFormula && (
-          <div className="bg-gray-900 rounded-lg p-3 font-mono text-[13px] text-emerald-400 overflow-x-auto">
+          <div className="bg-gray-900 rounded-lg p-3 font-mono text-sm text-emerald-400 overflow-x-auto">
             {localFormula}
           </div>
         )}
@@ -190,10 +190,10 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({
         {/* Empty state */}
         {!isEditing && !localFormula && (
           <div className="text-center py-4">
-            <p className="text-[13px] text-gray-500 mb-3">No formula defined.</p>
+            <p className="text-sm text-gray-500 mb-3">No formula defined.</p>
             <button
               onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-[13px] text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-600 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors cursor-pointer"
             >
               <PlusIcon size={14} weight="bold" />
               <span>Add Formula</span>
@@ -208,7 +208,7 @@ const FormulaPopover: React.FC<FormulaPopoverProps> = ({
               value={localFormula}
               onChange={(e) => setLocalFormula(e.target.value)}
               placeholder="Enter formula (e.g., SUM(Amount) WHERE Stage = 'Closed Won')"
-              className="w-full px-3 py-2 text-[13px] bg-gray-900 text-emerald-400 font-mono border border-gray-700 rounded-lg resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors placeholder:text-gray-500"
+              className="w-full px-3 py-2 text-sm bg-gray-900 text-emerald-400 font-mono border border-gray-700 rounded-lg resize-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-colors placeholder:text-gray-500"
               rows={3}
             />
 
@@ -389,7 +389,7 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <SparkleIcon size={16} className="text-indigo-600" />
-          <span className="text-[13px] font-medium text-gray-900">
+          <span className="text-sm font-medium text-gray-900">
             {isEditing ? 'Edit AI Column' : 'Add AI Column'}
           </span>
         </div>
@@ -420,7 +420,7 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
             onChange={(e) => setColumnName(e.target.value)}
             placeholder="e.g., Risk Score, Next Action"
             disabled={isGenerating}
-            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow disabled:opacity-50"
+            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow disabled:opacity-50"
           />
         </div>
 
@@ -435,7 +435,7 @@ const AIColumnPopover: React.FC<AIColumnPopoverProps> = ({
             placeholder="Describe how to generate values for this column based on the row data..."
             disabled={isGenerating}
             rows={3}
-            className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow resize-none disabled:opacity-50"
+            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow resize-none disabled:opacity-50"
           />
           <p className="mt-1.5 text-[11px] text-gray-500">
             Example: "Calculate a risk score (1-10) based on deal size, stage, and days since last
@@ -581,7 +581,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
 
   // Get current table data
   const currentTable = normalizedTables.find((t) => t.id === activeTabId) || normalizedTables[0];
-  const columns = currentTable?.columns || [];
+  const columns = useMemo(() => currentTable?.columns || [], [currentTable?.columns]);
   const rows = currentTable?.rows || [];
 
   // Convert DrilldownColumns to ReportColumns for ReportTable
@@ -760,7 +760,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                     key={table.id}
                     onClick={() => setActiveTabId(table.id)}
                     className={`
-                    px-3 py-1.5 text-[13px] font-medium rounded-lg transition-all cursor-pointer
+                    px-3 py-1.5 text-sm font-medium rounded-lg transition-all cursor-pointer
                     ${
                       activeTabId === table.id
                         ? 'bg-white text-gray-900 shadow-sm'
@@ -773,7 +773,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                 ))}
               </div>
             ) : (
-              <span className="text-[13px] font-medium text-gray-900 truncate">{widgetName}</span>
+              <span className="text-sm font-medium text-gray-900 truncate">{widgetName}</span>
             )}
 
             {/* Filters Button - using new FilterButton with AI prompt */}
@@ -792,7 +792,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
                 setShowFormulaPopover(!showFormulaPopover);
               }}
               className={`
-              flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[13px] transition-colors cursor-pointer
+              flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-colors cursor-pointer
               ${
                 showFormulaPopover
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
@@ -821,7 +821,7 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
-          <span className="text-[13px] text-gray-500">
+          <span className="text-sm text-gray-500">
             {rows.length} row{rows.length !== 1 ? 's' : ''}
           </span>
           <div className="text-xs text-gray-400">Drag the top edge to resize</div>

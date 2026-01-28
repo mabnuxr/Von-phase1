@@ -140,7 +140,7 @@ export const FilterRow: React.FC<FilterRowProps> = ({
               value={value}
               onChange={(e) => onValueChange(e.target.value)}
               placeholder="Value"
-              className="w-full px-2.5 py-1.5 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
+              className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:border-gray-300 focus:ring-gray-200 transition-colors"
             />
           </div>
         </div>

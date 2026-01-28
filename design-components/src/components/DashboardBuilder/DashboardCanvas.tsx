@@ -164,9 +164,7 @@ const ExpandedWidgetModal: React.FC<{
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-sm font-medium text-gray-900">{config.title}</h2>
-            {config.subtitle && (
-              <p className="text-[13px] text-gray-500 mt-0.5">{config.subtitle}</p>
-            )}
+            {config.subtitle && <p className="text-sm text-gray-500 mt-0.5">{config.subtitle}</p>}
           </div>
           <button
             onClick={onClose}
@@ -222,7 +220,7 @@ const ExpandedWidgetModal: React.FC<{
                     </HeaderCell>
                     <Cell dataKey={key}>
                       {(rowData: Record<string, unknown>) => (
-                        <span className="text-[13px] text-gray-900">{String(rowData[key])}</span>
+                        <span className="text-sm text-gray-900">{String(rowData[key])}</span>
                       )}
                     </Cell>
                   </Column>
@@ -284,7 +282,7 @@ const EditWidgetModal: React.FC<{
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
             />
           </div>
 
@@ -293,7 +291,7 @@ const EditWidgetModal: React.FC<{
             <select
               value={chartType}
               onChange={(e) => setChartType(e.target.value as ChartConfig['type'])}
-              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
             >
               <option value="bar">Bar Chart</option>
               <option value="line">Line Chart</option>
@@ -305,7 +303,7 @@ const EditWidgetModal: React.FC<{
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1.5">Data Source</label>
-            <select className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer">
+            <select className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer">
               <option value="tbl-accounts-at-risk">Accounts at Risk</option>
               <option value="tbl-engagement-timeline">Engagement Timeline</option>
               <option value="tbl-risk-by-region">Risk by Region</option>
@@ -317,7 +315,7 @@ const EditWidgetModal: React.FC<{
         <div className="flex items-center gap-2 px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+            className="flex-1 px-3 py-2 text-sm font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -326,7 +324,7 @@ const EditWidgetModal: React.FC<{
               onSave({ ...config, title, type: chartType });
               onClose();
             }}
-            className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
+            className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
           >
             Save Changes
           </button>
@@ -374,7 +372,7 @@ const FilterPopover: React.FC<{
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
             >
               <option value="last_7_days">Last 7 days</option>
               <option value="last_30_days">Last 30 days</option>
@@ -389,7 +387,7 @@ const FilterPopover: React.FC<{
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
             >
               <option value="all">All Regions</option>
               <option value="north_america">North America</option>
@@ -404,7 +402,7 @@ const FilterPopover: React.FC<{
             <select
               value={riskLevel}
               onChange={(e) => setRiskLevel(e.target.value)}
-              className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
             >
               <option value="all">All Levels</option>
               <option value="critical">Critical</option>
@@ -422,7 +420,7 @@ const FilterPopover: React.FC<{
               setRegion('all');
               setRiskLevel('all');
             }}
-            className="flex-1 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+            className="flex-1 py-2 text-sm font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Reset
           </button>
@@ -431,7 +429,7 @@ const FilterPopover: React.FC<{
               onApply({ dateRange, region, riskLevel });
               onClose();
             }}
-            className="flex-1 py-2 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+            className="flex-1 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
           >
             Apply
           </button>
@@ -538,7 +536,7 @@ const SharePopover: React.FC<{
             {!linkGenerated ? (
               <button
                 onClick={handleGenerateLink}
-                className="w-full py-2 text-[13px] font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
                 <Link size={14} weight="duotone" />
                 Generate Public Link
@@ -580,12 +578,12 @@ const SharePopover: React.FC<{
                 onChange={(e) => setNewRecipient(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddRecipient()}
                 placeholder="Enter email"
-                className="flex-1 min-w-0 px-2.5 py-1.5 text-[13px] text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                className="flex-1 min-w-0 px-2.5 py-1.5 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
               />
               <button
                 onClick={handleAddRecipient}
                 disabled={!newRecipient || !newRecipient.includes('@')}
-                className="flex-shrink-0 px-2.5 py-1.5 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-shrink-0 px-2.5 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add
               </button>
@@ -599,7 +597,7 @@ const SharePopover: React.FC<{
                     key={email}
                     className="flex items-center justify-between px-2.5 py-1.5 bg-gray-50 border border-gray-100 rounded-lg"
                   >
-                    <span className="text-[13px] text-gray-700 truncate">{email}</span>
+                    <span className="text-sm text-gray-700 truncate">{email}</span>
                     <button
                       onClick={() => handleRemoveRecipient(email)}
                       className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
@@ -621,7 +619,7 @@ const SharePopover: React.FC<{
         <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="flex-1 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+            className="flex-1 py-2 text-sm font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -635,7 +633,7 @@ const SharePopover: React.FC<{
               onClose();
             }}
             disabled={!linkGenerated && recipients.length === 0}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PaperPlaneTilt size={12} weight="duotone" />
             {recipients.length > 0 ? `Send (${recipients.length})` : 'Share'}
@@ -687,7 +685,7 @@ const MetricDetailModal: React.FC<{
             <p className="text-3xl font-semibold text-gray-900 tabular-nums">{config.value}</p>
             {config.change !== undefined && (
               <p
-                className={`text-[13px] font-medium mt-1 tabular-nums ${config.changeType === 'positive' ? 'text-emerald-600' : config.changeType === 'negative' ? 'text-red-600' : 'text-gray-500'}`}
+                className={`text-sm font-medium mt-1 tabular-nums ${config.changeType === 'positive' ? 'text-emerald-600' : config.changeType === 'negative' ? 'text-red-600' : 'text-gray-500'}`}
               >
                 {config.change > 0 ? '+' : ''}
                 {config.change}% vs last period
@@ -697,28 +695,28 @@ const MetricDetailModal: React.FC<{
 
           <div className="space-y-0 border border-gray-100 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50">
-              <span className="text-[13px] text-gray-600">Previous Period</span>
-              <span className="text-[13px] font-medium text-gray-900 tabular-nums">
+              <span className="text-sm text-gray-600">Previous Period</span>
+              <span className="text-sm font-medium text-gray-900 tabular-nums">
                 {config.value
                   ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 0.85).toFixed(1)}M`
                   : '-'}
               </span>
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <span className="text-[13px] text-gray-600">YoY Change</span>
-              <span className="text-[13px] font-medium text-emerald-600 tabular-nums">+12%</span>
+              <span className="text-sm text-gray-600">YoY Change</span>
+              <span className="text-sm font-medium text-emerald-600 tabular-nums">+12%</span>
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-              <span className="text-[13px] text-gray-600">Target</span>
-              <span className="text-[13px] font-medium text-gray-900 tabular-nums">
+              <span className="text-sm text-gray-600">Target</span>
+              <span className="text-sm font-medium text-gray-900 tabular-nums">
                 {config.value
                   ? `$${(parseFloat(String(config.value).replace(/[^0-9.]/g, '')) * 1.1).toFixed(1)}M`
                   : '-'}
               </span>
             </div>
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-              <span className="text-[13px] text-gray-600">Progress</span>
-              <span className="text-[13px] font-medium text-gray-900 tabular-nums">85%</span>
+              <span className="text-sm text-gray-600">Progress</span>
+              <span className="text-sm font-medium text-gray-900 tabular-nums">85%</span>
             </div>
           </div>
         </div>
@@ -933,7 +931,7 @@ const ConfigureWidgetModal: React.FC<{
                   value={metricLabel}
                   onChange={(e) => setMetricLabel(e.target.value)}
                   placeholder="e.g., Total Revenue"
-                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                  className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 />
               </div>
               <div>
@@ -943,7 +941,7 @@ const ConfigureWidgetModal: React.FC<{
                   value={metricValue}
                   onChange={(e) => setMetricValue(e.target.value)}
                   placeholder="e.g., $1.2M"
-                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                  className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 />
               </div>
             </>
@@ -956,7 +954,7 @@ const ConfigureWidgetModal: React.FC<{
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={`Enter ${isTable ? 'table' : 'chart'} title`}
-                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                  className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
                 />
               </div>
 
@@ -968,7 +966,7 @@ const ConfigureWidgetModal: React.FC<{
                   <select
                     value={chartType}
                     onChange={(e) => setChartType(e.target.value as ChartConfig['type'])}
-                    className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
                   >
                     <option value="bar">Bar Chart</option>
                     <option value="line">Line Chart</option>
@@ -988,7 +986,7 @@ const ConfigureWidgetModal: React.FC<{
                   value={selectedTableId}
                   onChange={(e) => handleTableChange(e.target.value)}
                   disabled={!!dragItem.tableId}
-                  className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   {dataTables.map((table) => (
                     <option key={table.id} value={table.id}>
@@ -1008,7 +1006,7 @@ const ConfigureWidgetModal: React.FC<{
                     <select
                       value={xAxis}
                       onChange={(e) => setXAxis(e.target.value)}
-                      className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+                      className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
                     >
                       {stringColumns.map((col) => (
                         <option key={col.key} value={col.key}>
@@ -1025,7 +1023,7 @@ const ConfigureWidgetModal: React.FC<{
                     <select
                       value={yAxis}
                       onChange={(e) => setYAxis(e.target.value)}
-                      className="w-full px-3 py-2 text-[13px] text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
+                      className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow cursor-pointer"
                     >
                       {numericColumns.map((col) => (
                         <option key={col.key} value={col.key}>
@@ -1059,7 +1057,7 @@ const ConfigureWidgetModal: React.FC<{
                                 }}
                                 className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                               />
-                              <span className="text-[13px] text-gray-700">{col.label}</span>
+                              <span className="text-sm text-gray-700">{col.label}</span>
                             </label>
                           ))}
                         </div>
@@ -1074,13 +1072,13 @@ const ConfigureWidgetModal: React.FC<{
         <div className="flex items-center gap-2 px-5 py-4 border-t border-gray-100">
           <button
             onClick={onClose}
-            className="flex-1 px-3 py-2 text-[13px] font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+            className="flex-1 px-3 py-2 text-sm font-medium text-gray-800 bg-gray-100/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 px-3 py-2 text-[13px] font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+            className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
           >
             Add to Dashboard
           </button>
@@ -1231,7 +1229,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             <button
               onClick={() => onViewModeChange?.('data')}
-              className={`px-3 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 cursor-pointer ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 cursor-pointer ${
                 viewMode === 'data'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1241,7 +1239,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
             </button>
             <button
               onClick={() => onViewModeChange?.('dashboard')}
-              className={`px-3 py-1.5 text-[13px] font-medium rounded-md transition-all duration-150 cursor-pointer ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 cursor-pointer ${
                 viewMode === 'dashboard'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
@@ -1253,7 +1251,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
 
           {/* <div className="h-4 w-px bg-gray-200" /> */}
 
-          <h1 className="text-[13px] font-medium text-gray-900">{dashboard.title}</h1>
+          <h1 className="text-sm font-medium text-gray-900">{dashboard.title}</h1>
         </div>
 
         {/* Actions */}
@@ -1263,14 +1261,14 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
               setShowFilterPopover(!showFilterPopover);
               setShowSharePopover(false);
             }}
-            className="flex items-center gap-1.5 text-[13px] px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
+            className="flex items-center gap-1.5 text-sm px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
           >
             <Funnel size={14} weight="duotone" className="text-gray-500" />
             Filter
           </button>
           <button
             onClick={onExport}
-            className="flex items-center gap-1.5 text-[13px] px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
+            className="flex items-center gap-1.5 text-sm px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
           >
             <Download size={14} weight="duotone" className="text-gray-500" />
             Export
@@ -1280,7 +1278,7 @@ export const DashboardCanvas: React.FC<DashboardCanvasProps> = ({
               setShowSharePopover(!showSharePopover);
               setShowFilterPopover(false);
             }}
-            className="flex items-center gap-1.5 text-[13px] px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
+            className="flex items-center gap-1.5 text-sm px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-gray-700 transition-colors duration-150 cursor-pointer"
           >
             <ShareNetwork size={14} weight="duotone" className="text-gray-500" />
             Share

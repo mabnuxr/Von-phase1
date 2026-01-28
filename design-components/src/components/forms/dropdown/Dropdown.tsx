@@ -170,7 +170,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           onKeyDown={handleKeyDown}
           disabled={disabled}
           className={`
-            w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-[13px] text-left
+            w-full flex items-center justify-between gap-2 px-2.5 py-1.5 text-sm text-left
             bg-white border rounded-lg cursor-pointer
             transition-colors duration-150
             focus:outline-none focus:ring-1
@@ -213,7 +213,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
               >
                 <div className="max-h-48 overflow-y-auto py-1">
                   {options.length === 0 ? (
-                    <div className="px-3 py-2 text-[13px] text-gray-500 text-center">
+                    <div className="px-3 py-2 text-sm text-gray-500 text-center">
                       No options available
                     </div>
                   ) : (
@@ -225,7 +225,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                           type="button"
                           onClick={() => handleSelect(option.value)}
                           className={`
-                            w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[13px] text-left
+                            w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-left
                             transition-colors duration-100 cursor-pointer
                             ${
                               isSelected
@@ -278,7 +278,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
               >
                 <div className="max-h-48 overflow-y-auto py-1">
                   {options.length === 0 ? (
-                    <div className="px-3 py-2 text-[13px] text-gray-500 text-center">
+                    <div className="px-3 py-2 text-sm text-gray-500 text-center">
                       No options available
                     </div>
                   ) : (
@@ -290,7 +290,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                           type="button"
                           onClick={() => handleSelect(option.value)}
                           className={`
-                            w-full flex items-center justify-between gap-2 px-3 py-1.5 text-[13px] text-left
+                            w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-left
                             transition-colors duration-100 cursor-pointer
                             ${
                               isSelected

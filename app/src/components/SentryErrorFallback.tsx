@@ -44,7 +44,7 @@ export function SentryErrorFallback({
   };
 
   return (
-    <div className="h-screen bg-[#f5f5f7] flex flex-col items-center justify-center p-6 font-sf">
+    <div className="h-screen bg-[#f5f5f7] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-[600px] bg-white rounded-xl p-8 shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-center">
         {/* Von Logo */}
         <div className="mb-6 flex justify-center">

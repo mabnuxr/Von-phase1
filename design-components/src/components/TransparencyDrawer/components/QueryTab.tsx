@@ -19,7 +19,7 @@ export const QueryTab = React.memo<QueryTabProps>(({ query, isActive, onClick })
     <button
       onClick={onClick}
       className={`
-        flex items-center gap-2 px-3 py-1.5 text-[13px] font-medium rounded-full
+        flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-full
         transition-colors duration-150 cursor-pointer whitespace-nowrap border
         ${
           isActive

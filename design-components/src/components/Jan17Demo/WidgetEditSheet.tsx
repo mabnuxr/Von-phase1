@@ -245,7 +245,7 @@ const DataTablePreview: React.FC<DataTablePreviewProps> = ({ columns, rows }) =>
 
   return (
     <div className="overflow-auto h-full bg-white">
-      <table className="w-full text-[13px]">
+      <table className="w-full text-sm">
         <thead className="sticky top-0 bg-gray-50">
           <tr>
             {columns.map((col) => (
@@ -373,7 +373,7 @@ const ChartPreview: React.FC<ChartPreviewProps> = ({ chartType, chartData }) => 
 
   if (chartType === 'metric' || chartType === 'table') {
     return (
-      <div className="h-full flex items-center justify-center text-gray-500 text-[13px] bg-white">
+      <div className="h-full flex items-center justify-center text-gray-500 text-sm bg-white">
         Chart preview not available for this type
       </div>
     );
@@ -543,7 +543,7 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                       }}
                       placeholder="Enter widget name..."
                       className={`
-                        w-full px-3 py-2 text-[13px] text-gray-900 bg-white border rounded-lg
+                        w-full px-3 py-2 text-sm text-gray-900 bg-white border rounded-lg
                         placeholder:text-gray-400 outline-none transition-colors
                         ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'}
                       `}
@@ -565,7 +565,7 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                             setErrors((prev) => ({ ...prev, dataSource: undefined }));
                         }}
                         className={`
-                          w-full px-3 py-2 text-[13px] text-gray-900 bg-white border rounded-lg
+                          w-full px-3 py-2 text-sm text-gray-900 bg-white border rounded-lg
                           appearance-none cursor-pointer outline-none transition-colors
                           ${errors.dataSource ? 'border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'}
                         `}
@@ -703,7 +703,7 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Preview Header */}
                 <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
-                  <span className="text-[13px] font-medium text-gray-900">
+                  <span className="text-sm font-medium text-gray-900">
                     {name || 'Widget Preview'}
                   </span>
                   {selectedDataSource && chartType !== 'table' && chartType !== 'metric' && (
@@ -718,7 +718,7 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
                 {/* Preview Content */}
                 <div className="flex-1 overflow-hidden">
                   {!selectedDataSource ? (
-                    <div className="h-full flex items-center justify-center text-gray-500 text-[13px] bg-white">
+                    <div className="h-full flex items-center justify-center text-gray-500 text-sm bg-white">
                       Select a data source to preview
                     </div>
                   ) : previewMode === 'table' || chartType === 'table' ? (

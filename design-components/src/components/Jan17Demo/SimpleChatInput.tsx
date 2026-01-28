@@ -158,7 +158,7 @@ export const SimpleChatInput: React.FC<SimpleChatInputProps> = ({
   const canSend = message.trim() && !disabled && !disableSubmit;
 
   return (
-    <div className="w-full antialiased font-sf">
+    <div className="w-full antialiased ">
       <div className="max-w-3xl mx-auto">
         {/* Main input container with gradient border */}
         <div
