@@ -3,12 +3,17 @@
  *
  * This component handles only rendering. Business logic is in useTransparencyDrawer hook.
  *
- * Data tab: Shows artifacts where category is NOT "RAG" (and not "e2b")
+ * Data tab: Shows artifacts where category is NOT "RAG", "e2b", or "voniq"
  * Calls tab: Shows artifacts where category IS "RAG", fetched via bulk API when drawer opens
+ * Deep Research tab: Shows artifacts where category IS "VonIQ" (automatically shown when VonIQ artifacts exist)
  */
 
 import React, { useMemo } from "react";
-import { DatabaseIcon, PhoneIcon } from "@phosphor-icons/react";
+import {
+  Database as DatabaseIcon,
+  Phone as PhoneIcon,
+  MagnifyingGlass as MagnifyingGlassIcon,
+} from "@phosphor-icons/react";
 import {
   TransparencyDrawer,
   DataTabContent,
@@ -23,6 +28,10 @@ import type { ArtifactSummary } from "../utils/transformArtifactsToTransparency"
 
 const DATA_TAB_ICON = <DatabaseIcon size={14} weight="regular" />;
 const CALLS_TAB_ICON = <PhoneIcon size={14} weight="regular" />;
+const DEEP_RESEARCH_TAB_ICON = (
+  <MagnifyingGlassIcon size={14} weight="regular" />
+);
+
 interface LazyTransparencyDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,13 +51,21 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   artifactSummaries,
   isListLoading,
 }) => {
-  const { queries, calls, isCallsLoading, callsError, handleQuerySelect } =
-    useTransparencyDrawer({
-      isOpen,
-      conversationId,
-      runId,
-      artifactSummaries,
-    });
+  const {
+    queries,
+    handleQuerySelect,
+    calls,
+    isCallsLoading,
+    callsError,
+    vonIqQueries,
+    handleVonIqSelect,
+    hasVonIqArtifacts,
+  } = useTransparencyDrawer({
+    isOpen,
+    conversationId,
+    runId,
+    artifactSummaries,
+  });
 
   const dataTabConfig: TransparencyTabConfig = useMemo(
     () => ({
@@ -70,6 +87,16 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     [calls.length],
   );
 
+  const deepResearchTabConfig: TransparencyTabConfig = useMemo(
+    () => ({
+      id: "deep-research",
+      label: "Deep Research",
+      icon: DEEP_RESEARCH_TAB_ICON,
+      count: vonIqQueries.length,
+    }),
+    [vonIqQueries.length],
+  );
+
   return (
     <TransparencyDrawer isOpen={isOpen} onClose={onClose} title={title}>
       <TransparencyDrawer.Tab config={dataTabConfig}>
@@ -89,6 +116,19 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
           <CallsTabContent calls={calls} />
         )}
       </TransparencyDrawer.Tab>
+
+      {hasVonIqArtifacts && (
+        <TransparencyDrawer.Tab config={deepResearchTabConfig}>
+          {isListLoading ? (
+            <DataTabShimmer />
+          ) : (
+            <DataTabContent
+              queries={vonIqQueries}
+              onQuerySelect={handleVonIqSelect}
+            />
+          )}
+        </TransparencyDrawer.Tab>
+      )}
     </TransparencyDrawer>
   );
 };

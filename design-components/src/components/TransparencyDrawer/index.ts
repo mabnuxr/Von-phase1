@@ -1,4 +1,6 @@
 export { TransparencyDrawer, default } from './TransparencyDrawer';
+export { DataTablesDrawer } from './DataTablesDrawer';
+export type { DataTablesDrawerProps, DataTableArtifact } from './DataTablesDrawer';
 export type {
   TransparencyDrawerProps,
   TransparencyDrawerTabProps,

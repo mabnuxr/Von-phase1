@@ -2,8 +2,8 @@
  * useTransparencyDrawer - Business logic for LazyTransparencyDrawer
  *
  * Handles:
- * - Artifact filtering by category (Data vs Calls/RAG)
- * - Lazy loading of artifact content for Data tab
+ * - Artifact filtering by category (Data vs Calls/RAG vs VonIQ)
+ * - Lazy loading of artifact content for Data tab and Deep Research tab
  * - Bulk fetching of RAG artifacts when drawer opens
  * - Caching of loaded artifacts
  * - Transformation of artifacts to QueryResults and CallTranscripts
@@ -34,11 +34,17 @@ export interface UseTransparencyDrawerParams {
 }
 
 export interface UseTransparencyDrawerReturn {
+  // Data tab
   queries: TransparencyQueryResult[];
+  handleQuerySelect: (queryId: string) => void;
+  // Calls tab
   calls: CallTranscript[];
   isCallsLoading: boolean;
   callsError: Error | null;
-  handleQuerySelect: (queryId: string) => void;
+  // Deep Research tab (VonIQ artifacts)
+  vonIqQueries: TransparencyQueryResult[];
+  handleVonIqSelect: (queryId: string) => void;
+  hasVonIqArtifacts: boolean;
 }
 
 const artifactCache = new Map<string, ArtifactResponse>();
@@ -82,10 +88,17 @@ export function useTransparencyDrawer({
   runId,
   artifactSummaries,
 }: UseTransparencyDrawerParams): UseTransparencyDrawerReturn {
+  // Filter artifacts by category:
+  // - Data tab: NOT "rag", NOT "e2b", NOT "voniq"
+  // - Calls tab: "rag"
+  // - Deep Research tab: "voniq"
   const dataArtifactSummaries = useMemo(
     () =>
       artifactSummaries.filter(
-        (s) => s.category !== "e2b" && s.category !== "rag",
+        (s) =>
+          s.category !== "e2b" &&
+          s.category !== "rag" &&
+          s.category?.toLowerCase() !== "voniq",
       ),
     [artifactSummaries],
   );
@@ -95,19 +108,33 @@ export function useTransparencyDrawer({
     [artifactSummaries],
   );
 
+  const vonIqArtifactSummaries = useMemo(
+    () =>
+      artifactSummaries.filter((s) => s.category?.toLowerCase() === "voniq"),
+    [artifactSummaries],
+  );
+
   const ragArtifactIds = useMemo(
     () => ragArtifactSummaries.map((s) => s.artifact_id),
     [ragArtifactSummaries],
   );
 
-  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
-    null,
-  );
+  // State for Data tab artifact selection
+  const [selectedDataArtifactId, setSelectedDataArtifactId] = useState<
+    string | null
+  >(null);
+
+  // State for Deep Research tab artifact selection
+  const [selectedVonIqArtifactId, setSelectedVonIqArtifactId] = useState<
+    string | null
+  >(null);
+
+  // Shared cache for loaded artifacts
   const [loadedArtifacts, setLoadedArtifacts] = useState<
     Map<string, ArtifactResponse>
   >(new Map());
 
-  // Fetch RAG artifacts when drawer opens
+  // Fetch RAG artifacts when drawer opens (bulk fetch for Calls tab)
   const shouldFetchRagArtifacts = isOpen && ragArtifactIds.length > 0;
 
   const {
@@ -120,37 +147,72 @@ export function useTransparencyDrawer({
     shouldFetchRagArtifacts ? ragArtifactIds : [],
   );
 
-  const { data: fetchedArtifact, isLoading: isArtifactLoading } =
-    useLazyArtifactContent(conversationId, runId, selectedArtifactId);
+  // Lazy load artifact content for Data tab
+  const { data: fetchedDataArtifact, isLoading: isDataArtifactLoading } =
+    useLazyArtifactContent(conversationId, runId, selectedDataArtifactId);
 
+  // Lazy load artifact content for Deep Research tab
+  const { data: fetchedVonIqArtifact, isLoading: isVonIqArtifactLoading } =
+    useLazyArtifactContent(conversationId, runId, selectedVonIqArtifactId);
+
+  // Reset state when conversation/run changes
   useEffect(() => {
-    setSelectedArtifactId(null);
+    setSelectedDataArtifactId(null);
+    setSelectedVonIqArtifactId(null);
     setLoadedArtifacts(new Map());
   }, [conversationId, runId]);
 
+  // Store fetched Data artifact in cache
   useEffect(() => {
-    if (fetchedArtifact && selectedArtifactId) {
+    if (fetchedDataArtifact && selectedDataArtifactId) {
       setLoadedArtifacts((prev) => {
         const next = new Map(prev);
-        next.set(selectedArtifactId, fetchedArtifact);
-        artifactCache.set(selectedArtifactId, fetchedArtifact);
+        next.set(selectedDataArtifactId, fetchedDataArtifact);
+        artifactCache.set(selectedDataArtifactId, fetchedDataArtifact);
         return next;
       });
     }
-  }, [fetchedArtifact, selectedArtifactId]);
+  }, [fetchedDataArtifact, selectedDataArtifactId]);
 
+  // Store fetched VonIQ artifact in cache
   useEffect(() => {
-    if (isOpen && dataArtifactSummaries.length > 0 && !selectedArtifactId) {
-      setSelectedArtifactId(dataArtifactSummaries[0].artifact_id);
+    if (fetchedVonIqArtifact && selectedVonIqArtifactId) {
+      setLoadedArtifacts((prev) => {
+        const next = new Map(prev);
+        next.set(selectedVonIqArtifactId, fetchedVonIqArtifact);
+        artifactCache.set(selectedVonIqArtifactId, fetchedVonIqArtifact);
+        return next;
+      });
     }
-  }, [isOpen, dataArtifactSummaries, selectedArtifactId]);
+  }, [fetchedVonIqArtifact, selectedVonIqArtifactId]);
 
+  // Auto-select first Data artifact when drawer opens
+  useEffect(() => {
+    if (isOpen && dataArtifactSummaries.length > 0 && !selectedDataArtifactId) {
+      setSelectedDataArtifactId(dataArtifactSummaries[0].artifact_id);
+    }
+  }, [isOpen, dataArtifactSummaries, selectedDataArtifactId]);
+
+  // Auto-select first VonIQ artifact when drawer opens
+  useEffect(() => {
+    if (
+      isOpen &&
+      vonIqArtifactSummaries.length > 0 &&
+      !selectedVonIqArtifactId
+    ) {
+      setSelectedVonIqArtifactId(vonIqArtifactSummaries[0].artifact_id);
+    }
+  }, [isOpen, vonIqArtifactSummaries, selectedVonIqArtifactId]);
+
+  // Reset selections when drawer closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedArtifactId(null);
+      setSelectedDataArtifactId(null);
+      setSelectedVonIqArtifactId(null);
     }
   }, [isOpen]);
 
+  // Restore cached artifacts when summaries change
   useEffect(() => {
     if (artifactSummaries.length > 0) {
       const cachedArtifacts = new Map<string, ArtifactResponse>();
@@ -166,36 +228,65 @@ export function useTransparencyDrawer({
     }
   }, [artifactSummaries]);
 
+  // Transform Data artifacts to QueryResults
   const queries = useMemo(
     () =>
       transformArtifactsToQueries(
         dataArtifactSummaries,
         loadedArtifacts,
-        selectedArtifactId,
-        isArtifactLoading,
+        selectedDataArtifactId,
+        isDataArtifactLoading,
       ),
     [
       dataArtifactSummaries,
       loadedArtifacts,
-      selectedArtifactId,
-      isArtifactLoading,
+      selectedDataArtifactId,
+      isDataArtifactLoading,
     ],
   );
 
+  // Transform VonIQ artifacts to QueryResults
+  const vonIqQueries = useMemo(
+    () =>
+      transformArtifactsToQueries(
+        vonIqArtifactSummaries,
+        loadedArtifacts,
+        selectedVonIqArtifactId,
+        isVonIqArtifactLoading,
+      ),
+    [
+      vonIqArtifactSummaries,
+      loadedArtifacts,
+      selectedVonIqArtifactId,
+      isVonIqArtifactLoading,
+    ],
+  );
+
+  // Transform RAG artifacts to CallTranscripts
   const calls = useMemo(
     () => transformBulkArtifactsToCalls(bulkRagArtifacts),
     [bulkRagArtifacts],
   );
 
   const handleQuerySelect = useCallback((queryId: string) => {
-    setSelectedArtifactId(queryId);
+    setSelectedDataArtifactId(queryId);
+  }, []);
+
+  const handleVonIqSelect = useCallback((queryId: string) => {
+    setSelectedVonIqArtifactId(queryId);
   }, []);
 
   return {
+    // Data tab
     queries,
+    handleQuerySelect,
+    // Calls tab
     calls,
     isCallsLoading,
     callsError: callsError as Error | null,
-    handleQuerySelect,
+    // Deep Research tab
+    vonIqQueries,
+    handleVonIqSelect,
+    hasVonIqArtifacts: vonIqArtifactSummaries.length > 0,
   };
 }

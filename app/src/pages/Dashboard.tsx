@@ -47,6 +47,7 @@ import {
 import type { MessageWithStreaming } from "../types/conversation";
 import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
 import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
+import { DeepResearchConversation } from "../components/DeepResearchConversation";
 import { ArtifactPaneContainer } from "../components/ArtifactPaneContainer";
 import { SingleArtifactDrawerContainer } from "../components/SingleArtifactDrawerContainer";
 import { useArtifactState } from "../hooks/useArtifactState";
@@ -246,6 +247,10 @@ const Dashboard = () => {
     }
     return DEFAULT_AGENT_MODE;
   }, [currentConversationId, infiniteConversationsData]);
+
+  // Check if we're in deep research mode (V2 only)
+  const isDeepResearchMode =
+    isAgentV2 && lockedAgentMode === "deep-research" && isAgentLocked;
 
   // Sync agent mode to backend when first message is sent
   const syncAgentModeToBackend = useCallback(
@@ -835,14 +840,6 @@ const Dashboard = () => {
     [currentConversationId],
   );
 
-  // Deep Research: Data Tables click handler - opens transparency drawer for the research message
-  const handleDataTablesClick = useCallback(() => {
-    const latestResearchMessageId = effectiveResearchResults?.messageId;
-    if (latestResearchMessageId) {
-      handleTransparencyClick(latestResearchMessageId);
-    }
-  }, [effectiveResearchResults?.messageId, handleTransparencyClick]);
-
   // Create Salesforce connection banner
   const salesforceBanner = (
     <SalesforceConnectionBanner
@@ -999,7 +996,27 @@ const Dashboard = () => {
           >
             {isLoading ? (
               <ChatSkeleton messageCount={4} />
+            ) : isDeepResearchMode && transformedMessages.length > 0 ? (
+              /* Deep Research Mode - dedicated component */
+              <DeepResearchConversation
+                messages={transformedMessages}
+                userName={user?.firstName || user?.name?.split(" ")[0]}
+                userEmail={user?.email}
+                conversationId={currentConversationId}
+                researchResults={effectiveResearchResults ?? undefined}
+                isDeepResearchRunning={v2IsDeepResearchRunning}
+                onSendMessage={handleSendMessage}
+                onStopStreaming={handleStopStreaming}
+                onArtifactClick={handleArtifactClick}
+                onApprove={handleApproval}
+                onReject={handleRejection}
+                placeholder="Ask von anything"
+                disableSubmit={!isSalesforceReady}
+                onInputWhileDisabled={() => setShouldShakeBanner(true)}
+                enableCommands={isSlashCommandsEnabled}
+              />
             ) : (
+              /* Regular Mode - standard Chat component */
               <Chat
                 title="von AI"
                 userId={user?.id}
@@ -1046,27 +1063,6 @@ const Dashboard = () => {
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
                 showPlusMenu={isDeepResearchEnabled}
-                // Deep Research Results (V2 only)
-                researchResults={
-                  isAgentV2
-                    ? (effectiveResearchResults ?? undefined)
-                    : undefined
-                }
-                isDeepResearchRunning={
-                  isAgentV2 ? v2IsDeepResearchRunning : undefined
-                }
-                onDataTablesClick={handleDataTablesClick}
-                dataTablesInfo={
-                  effectiveResearchResults?.metadata?.data_sources
-                    ? {
-                        tableCount:
-                          effectiveResearchResults.metadata.data_sources.length,
-                        processedRecords: undefined,
-                        totalRecords:
-                          effectiveResearchResults.metadata.total_records,
-                      }
-                    : undefined
-                }
               />
             )}
           </motion.div>

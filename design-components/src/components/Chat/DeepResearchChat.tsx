@@ -69,8 +69,6 @@ export interface DeepResearchChatProps {
   onSendMessage?: (content: string) => void;
   /** Callback when data tables card is clicked */
   onDataTablesClick?: () => void;
-  /** Callback when transparency is clicked */
-  onTransparencyClick?: (messageId: string) => void;
   /** Callback when artifact is clicked */
   onArtifactClick?: (
     artifactId: string,
@@ -103,7 +101,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   dataTablesInfo,
   onSendMessage,
   onDataTablesClick,
-  onTransparencyClick,
   onArtifactClick,
   onApprove,
   onReject,
@@ -188,6 +185,14 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
 
         // For deep research mode, render only thinking process (no message actions)
         // This applies to: approval message OR last assistant when research is showing
+        console.log({
+          isApprovalMessage,
+          dataTablesInfo,
+          onDataTablesClick,
+          isLastAssistant,
+          showResearchResults,
+        });
+
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
             <div key={message.id} className="w-full pt-6 bg-white font-sf">
@@ -213,6 +218,17 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                             onArtifactClick={onArtifactClick}
                           />
                         )}
+                        {/* DataTablesCard below timeline for sample run (approval state) */}
+                        {isApprovalMessage && dataTablesInfo && onDataTablesClick && (
+                          <div className="mt-4">
+                            <DataTablesCard
+                              tableCount={dataTablesInfo.tableCount}
+                              processedRecords={dataTablesInfo.processedRecords}
+                              totalRecords={dataTablesInfo.totalRecords}
+                              onClick={onDataTablesClick}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -222,7 +238,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           );
         }
 
-        // Historical assistant messages - render with full ChatMessage
+        // Historical assistant messages - render with full ChatMessage (no sources action in deep research)
         return (
           <div key={message.id} className="mb-4">
             <ChatMessage
@@ -241,6 +257,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               onApprove={onApprove}
               onReject={onReject}
               runId={message.runId}
+              showTransparency={false}
             />
           </div>
         );
@@ -291,22 +308,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               onClick: () => onSendMessage?.('Skip the full analysis'),
               disabled: isDeepResearchRunning,
             }}
-            beforeActions={
-              dataTablesInfo ? (
-                <DataTablesCard
-                  tableCount={dataTablesInfo.tableCount}
-                  processedRecords={dataTablesInfo.processedRecords}
-                  totalRecords={dataTablesInfo.totalRecords}
-                  onClick={() => {
-                    if (onTransparencyClick) {
-                      onTransparencyClick(approvalMessage.messageId || approvalMessage.id);
-                    } else if (onDataTablesClick) {
-                      onDataTablesClick();
-                    }
-                  }}
-                />
-              ) : undefined
-            }
           />
         </div>
       )}
