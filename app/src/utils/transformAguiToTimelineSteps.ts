@@ -398,8 +398,31 @@ export function transformAguiToTimelineSteps(
   let researchResultsMessageId: string | null = null;
   let isDeepResearchRunning = false;
 
+  // Track if we've seen RUN_FINISHED with pending approval (run paused for approval)
+  let sawRunFinishedWithPendingApproval = false;
+
   for (const wrapper of sortedEvents) {
     const event = wrapper.event;
+
+    // If run was paused for approval and we see new processing events, the run has resumed
+    if (sawRunFinishedWithPendingApproval) {
+      const isProcessingEvent =
+        event.type === "STEP_STARTED" ||
+        event.type === "TEXT_MESSAGE_START" ||
+        event.type === "TOOL_CALL_START";
+
+      if (isProcessingEvent) {
+        // Run resumed after approval - mark approval steps as complete
+        isThinking = true;
+        sawRunFinishedWithPendingApproval = false;
+
+        for (const step of steps) {
+          if (step.status === "awaiting-approval") {
+            step.status = "complete" as StepStatus;
+          }
+        }
+      }
+    }
 
     switch (event.type) {
       case "RUN_STARTED": {
@@ -883,6 +906,7 @@ export function transformAguiToTimelineSteps(
           // Intermediate RUN_FINISHED - run paused for approval
           // Stop thinking - run is complete, just waiting for user approval
           isThinking = false;
+          sawRunFinishedWithPendingApproval = true;
 
           // Mark any in-progress steps (except approval steps) as complete
           for (const step of steps) {
