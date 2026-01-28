@@ -1198,6 +1198,12 @@ export interface ChatProps {
    */
   lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
 
+  /**
+   * Whether to show the plus menu button (with agents and upload options)
+   * @default false
+   */
+  showPlusMenu?: boolean;
+
   // ============================================================================
   // Deep Research Results Props (V2 only)
   // ============================================================================

@@ -223,6 +223,12 @@ export interface StandardChatInputProps {
    */
   hideDisclaimer?: boolean;
 
+  /**
+   * Whether to show the plus menu button (with agents and upload options)
+   * @default false
+   */
+  showPlusMenu?: boolean;
+
   // ============================================================================
   // Agent Selection Props (for locking after first message)
   // ============================================================================
