@@ -224,3 +224,194 @@
 .tiptap-editor-wrapper .ProseMirror > *:last-child {
   margin-bottom: 0;
 }
+
+/* ==========================================================================
+   TiptapViewer Styles - For rendering markdown content (standard HTML elements)
+   Matches prose-sm styling for consistency with Streamdown/assistant messages
+   ========================================================================== */
+
+.tiptap-viewer {
+  font-size: 0.875rem; /* 14px - matches prose-sm */
+  line-height: 1.625;
+  color: #374151; /* text-gray-700 */
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Paragraphs */
+.tiptap-viewer p {
+  margin: 0;
+  padding: 0;
+}
+
+.tiptap-viewer p + p {
+  margin-top: 0.75em;
+}
+
+/* Headings - matches prose-sm */
+.tiptap-viewer h1 {
+  font-size: 1.285em; /* ~18px */
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+  color: #111827;
+}
+
+.tiptap-viewer h2 {
+  font-size: 1.142em; /* ~16px */
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+  color: #111827;
+}
+
+.tiptap-viewer h3 {
+  font-size: 1em; /* 14px */
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  line-height: 1.5;
+  color: #111827;
+}
+
+.tiptap-viewer h1:first-child,
+.tiptap-viewer h2:first-child,
+.tiptap-viewer h3:first-child {
+  margin-top: 0;
+}
+
+/* Bold, Italic, Underline, Strike */
+.tiptap-viewer strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.tiptap-viewer em {
+  font-style: italic;
+}
+
+.tiptap-viewer u {
+  text-decoration: underline;
+}
+
+.tiptap-viewer s,
+.tiptap-viewer del {
+  text-decoration: line-through;
+}
+
+/* Inline code */
+.tiptap-viewer code {
+  background-color: #f3f4f6;
+  color: #dc2626;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  border: 1px solid #e5e7eb;
+}
+
+/* Code blocks */
+.tiptap-viewer pre {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.tiptap-viewer pre code {
+  background: none;
+  color: #1f2937;
+  padding: 0;
+  font-size: inherit;
+  border: none;
+}
+
+/* Blockquotes */
+.tiptap-viewer blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Links */
+.tiptap-viewer a {
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tiptap-viewer a:hover {
+  color: #1d4ed8;
+}
+
+/* Lists - standard HTML ul/ol from markdown */
+.tiptap-viewer ul,
+.tiptap-viewer ol {
+  padding-left: 1.5em;
+  margin: 8px 0;
+}
+
+.tiptap-viewer ul {
+  list-style-type: disc;
+}
+
+.tiptap-viewer ol {
+  list-style-type: decimal;
+}
+
+.tiptap-viewer li {
+  margin: 2px 0;
+}
+
+/* Nested lists */
+.tiptap-viewer ul ul {
+  list-style-type: circle;
+  margin-top: 4px;
+}
+
+.tiptap-viewer ul ul ul {
+  list-style-type: square;
+}
+
+/* Horizontal rule */
+.tiptap-viewer hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 12px 0;
+}
+
+/* Tables (from GFM markdown) */
+.tiptap-viewer table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.tiptap-viewer th,
+.tiptap-viewer td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.tiptap-viewer th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+/* Ensure proper spacing at the end */
+.tiptap-viewer > *:last-child {
+  margin-bottom: 0;
+}
