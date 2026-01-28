@@ -533,8 +533,8 @@ export function transformAguiToTimelineSteps(
           const firstSentence = content.split(/[.!?]/)[0];
           if (firstSentence && firstSentence.length > 5) {
             currentTextStep.text =
-              firstSentence.length > 50
-                ? firstSentence.slice(0, 50) + "..."
+              firstSentence.length > 150
+                ? firstSentence.slice(0, 150) + "..."
                 : firstSentence;
           }
         }
