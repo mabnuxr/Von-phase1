@@ -354,8 +354,6 @@ export function transformAguiToTimelineSteps(
     };
   }
 
-  console.log("events", events);
-
   // Sort events by sequence
   const sortedEvents = [...events].sort((a, b) => a.sequence - b.sequence);
 
