@@ -122,13 +122,15 @@ export function useCommandsInput({
 
   const handleSend = useCallback(
     (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
-      // Normalize to plain text (handles both HTML from TipTap and plain text)
+      // Get plain text version for slash command detection only
       const plainText = getPlainText(message).trim();
+      // Keep original message (which may be markdown from TipTap) for sending
+      const trimmedMessage = message.trim();
 
       if (selectedCommand) {
-        // Combine command prompt with any additional text
-        const fullPrompt = plainText
-          ? `${selectedCommand.prompt}\n\nAdditional context: ${plainText}`
+        // Combine command prompt with any additional text (use original message to preserve formatting)
+        const fullPrompt = trimmedMessage
+          ? `${selectedCommand.prompt}\n\nAdditional context: ${trimmedMessage}`
           : selectedCommand.prompt;
 
         onSend?.(fullPrompt, attachments, selectedCommand, agentMode);
@@ -151,7 +153,8 @@ export function useCommandsInput({
         }
       }
 
-      onSend?.(plainText, attachments, undefined, agentMode);
+      // Send original message to preserve markdown formatting (including links)
+      onSend?.(trimmedMessage, attachments, undefined, agentMode);
       setShowCommandsList(false);
     },
     [commands, onSend, selectedCommand, clearInput]
