@@ -9,8 +9,12 @@ import {
 import type { QueryColumn } from '../../TransparencyDrawer/types';
 import { formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
+<<<<<<< HEAD
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
+=======
+import { isSalesforceUrl } from '../../Chat/utils/salesforceDeepLink';
+>>>>>>> 9798a8b (Verifying the deep link)
 
 // ============================================================================
 // Types
@@ -114,17 +118,32 @@ function formatCellValue(
 ): React.ReactNode {
   const strValue = String(value);
 
-  // Special handling for deep_link column - render as clickable link
+  // Special handling for deep_link column - validate Salesforce URLs for security
   if (columnKey === 'deep_link' && isUrl(strValue)) {
+    // Only render "View in Salesforce" for validated Salesforce domains
+    // This prevents phishing via arbitrary URLs masquerading as Salesforce links
+    if (isSalesforceUrl(strValue)) {
+      return (
+        <a
+          href={strValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+          title="Open in Salesforce"
+        >
+          View in Salesforce
+        </a>
+      );
+    }
+    // Non-Salesforce URLs: render as generic link
     return (
       <a
         href={strValue}
         target="_blank"
         rel="noopener noreferrer"
         className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-        title="Open in Salesforce"
       >
-        View in Salesforce
+        {strValue}
       </a>
     );
   }

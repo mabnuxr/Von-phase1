@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Table } from 'rsuite';
 import type { SortType } from 'rsuite/esm/Table';
 import type { TableData, QueryInfo } from './types';
+import { isSalesforceUrl } from './utils/salesforceDeepLink';
 
 const { Column, HeaderCell, Cell } = Table;
 
@@ -103,17 +104,32 @@ function CellFormatter({ value, columnName }: { value: unknown; columnName: stri
   // Strings
   const strValue = String(value);
 
-  // URLs in deep_link column - render as "View in Salesforce" links (always enabled for agents-v2)
+  // URLs in deep_link column - validate Salesforce URLs for security
   if (columnName === 'deep_link' && isUrl(strValue)) {
+    // Only render "View in Salesforce" for validated Salesforce domains
+    // This prevents phishing via arbitrary URLs masquerading as Salesforce links
+    if (isSalesforceUrl(strValue)) {
+      return (
+        <a
+          href={strValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+          title="Open in Salesforce"
+        >
+          View in Salesforce
+        </a>
+      );
+    }
+    // Non-Salesforce URLs: render as generic link
     return (
       <a
         href={strValue}
         target="_blank"
         rel="noopener noreferrer"
         className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-        title="Open in Salesforce"
       >
-        View in Salesforce
+        {strValue}
       </a>
     );
   }
