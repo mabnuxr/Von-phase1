@@ -28,6 +28,8 @@ export default defineConfig({
         'framer-motion',
         'rsuite',
         '@phosphor-icons/react',
+        // Transitive dependencies of externalized packages
+        'immer',
       ],
       output: {
         // Provide global variables for UMD build
