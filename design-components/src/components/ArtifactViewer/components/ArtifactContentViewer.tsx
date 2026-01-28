@@ -1,9 +1,16 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretRightIcon, CaretDownIcon, CaretLeftIcon } from '@phosphor-icons/react';
+import {
+  CaretRightIcon,
+  CaretDownIcon,
+  CaretLeftIcon,
+  DownloadSimpleIcon,
+} from '@phosphor-icons/react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
 import { formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
+import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
+import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
 
 // ============================================================================
 // Types
@@ -20,6 +27,8 @@ export interface ArtifactContentViewerProps {
   duration?: number;
   /** Whether the content is still loading */
   isLoading?: boolean;
+  /** Error message if query execution failed */
+  errorMessage?: string;
 }
 
 // ============================================================================
@@ -134,7 +143,7 @@ function formatCellValue(
  * Features:
  * - Collapsible SQL query section with duration
  * - Data table with type-aware formatting
- * - Pagination (10 rows per page)
+ * - Dynamic pagination based on viewport height
  * - Type-specific column formatting (currency, percentage, date, number)
  * - Sticky table headers
  * - Deep link rendering for Salesforce records
@@ -144,7 +153,32 @@ function formatCellValue(
  * - SingleArtifactDrawer (for thinking process steps)
  */
 export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
-  ({ query, columns, rows, duration, isLoading }) => {
+  ({ query, columns, rows, duration, isLoading, errorMessage }) => {
+    // Calculate dynamic rows per page based on container height
+    const { rowsPerPage, containerRef } = useDynamicPageSize({
+      // Add extra overhead when query section exists (collapsed state)
+      additionalOverhead: query ? 60 : 0,
+    });
+
+    // Handle CSV download - exports ALL rows, not just current page
+    const handleDownloadCSV = useCallback(() => {
+      if (columns.length === 0 || rows.length === 0) return;
+
+      // Build CSV header using column labels
+      const header = columns.map((col) => escapeCsvValue(col.label)).join(',');
+
+      // Build CSV data rows using column keys
+      const dataRows = rows.map((row) =>
+        columns.map((col) => escapeCsvValue(row[col.key])).join(',')
+      );
+
+      const csvContent = [header, ...dataRows].join('\n');
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+      const filename = `data_export_${timestamp}.csv`;
+
+      downloadCSV(csvContent, filename);
+    }, [columns, rows]);
+
     const {
       isQueryExpanded,
       toggleQueryExpanded,
@@ -156,7 +190,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
       goToPrevPage,
       currentRows,
       totalRows,
-    } = useArtifactContent(rows);
+    } = useArtifactContent(rows, rowsPerPage);
 
     // Show loading skeleton
     if (isLoading) {
@@ -167,7 +201,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
     const hasNoData = columns.length === 0 || rows.length === 0;
 
     return (
-      <div className="flex flex-col h-full min-h-0">
+      <div ref={containerRef} className="flex flex-col h-full min-h-0">
         {/* SQL Query Section - Collapsible, collapsed by default */}
         {query && (
           <div className="mx-4 mt-4 mb-3 rounded-lg border border-gray-200 overflow-hidden shrink-0 flex flex-col max-h-[40%]">
@@ -182,7 +216,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                   <CaretRightIcon size={12} weight="bold" className="text-gray-500" />
                 )}
                 <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">
-                  SQL Query
+                  Query
                 </span>
               </div>
               {duration && (
@@ -207,13 +241,53 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
           </div>
         )}
 
-        {/* Data Table or Empty State */}
+        {/* Data Table, Error State, or Empty State */}
         {hasNoData ? (
-          <div className="flex-1 flex items-center justify-center mx-4 border border-gray-200 rounded-lg">
-            <p className="text-sm text-gray-500">No content found</p>
+          <div className="flex-1 flex flex-col items-center justify-center mx-4 border border-gray-200 rounded-lg p-6">
+            {errorMessage ? (
+              <>
+                <svg
+                  className="w-10 h-10 text-amber-500 mb-3"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+                  <path
+                    d="M12 8v4M12 16h.01"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <p className="text-sm font-medium text-gray-700 mb-1">Query failed</p>
+                <p className="text-xs text-gray-500 text-center max-w-xs mb-2">{errorMessage}</p>
+                <p className="text-xs text-gray-400 text-center">
+                  Agent will attempt to correct and re-run the query.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">No content found</p>
+            )}
           </div>
         ) : (
           <>
+            {/* Table Header with Download Button */}
+            <div className="px-4 pb-2 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-gray-500">
+                {totalRows} {totalRows === 1 ? 'row' : 'rows'}
+              </span>
+              <button
+                onClick={handleDownloadCSV}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                title="Download as CSV"
+              >
+                <DownloadSimpleIcon size={12} />
+                <span>CSV</span>
+              </button>
+            </div>
+
             <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10">
@@ -266,6 +340,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                 Showing {startIndex + 1}–{endIndex} of {totalRows}{' '}
                 {totalRows === 1 ? 'row' : 'rows'}
               </span>
+              {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex items-center gap-1">
                   <button

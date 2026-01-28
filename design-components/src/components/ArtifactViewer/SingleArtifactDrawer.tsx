@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, DatabaseIcon, PhoneIcon, Brain as BrainIcon } from '@phosphor-icons/react';
 import { ArtifactContentViewer } from './components';
+import { useHorizontalResize } from './hooks';
 import type { QueryColumn, CallTranscript } from '../TransparencyDrawer/types';
 import { CallsTabContent } from '../TransparencyDrawer/components';
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
@@ -206,6 +207,13 @@ function CallsEmptyState() {
 export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props) => {
   const { isOpen, onClose, toolName, viewMode, isLoading = false, error = null } = props;
 
+  // Horizontal resize functionality - larger default for data tables
+  const { width, handleProps } = useHorizontalResize({
+    initialWidth: 800,
+    minWidth: 500,
+    storageKey: 'artifact-drawer-width',
+  });
+
   const displayTitle = getToolDisplayName(toolName);
   const isCallsView = viewMode === 'calls';
   const isMemoryView = viewMode === 'memory';
@@ -224,6 +232,20 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const renderContent = () => {
     if (isLoading) {
       return <LoadingState />;
+    }
+
+    // For data view with error, still show query but with error message in table area
+    if (error && !isCallsView && !isMemoryView) {
+      const { query, duration } = props as DataViewProps;
+      return (
+        <ArtifactContentViewer
+          query={query}
+          columns={[]}
+          rows={[]}
+          duration={duration}
+          errorMessage={error}
+        />
+      );
     }
 
     if (error) {
@@ -267,8 +289,15 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed right-0 top-0 h-full w-[680px] max-w-[90vw] pr-2 py-2 z-[9999]"
+            style={{ width: `${width}px` }}
+            className="fixed right-0 top-0 h-full max-w-[90vw] pr-2 py-2 z-[9999]"
           >
+            {/* Resize Handle - transparent, wider hit area for easier dragging */}
+            <div
+              {...handleProps}
+              className="absolute left-0 top-0 bottom-0 w-3 z-10 cursor-ew-resize"
+            />
+
             {/* Inner Container */}
             <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               {/* Header */}

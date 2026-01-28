@@ -8,6 +8,7 @@ import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
+import { TiptapViewer } from '../TiptapEditor';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
 
@@ -569,11 +570,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {attachments && attachments.length > 0 && (
                         <MessageFilePreview attachments={attachments} />
                       )}
-                      {/* Text content */}
+                      {/* Text content - render markdown using TiptapViewer */}
                       {content && (
-                        <div className="prose-sm markdown-body max-w-none text-left whitespace-pre-wrap">
-                          {content}
-                        </div>
+                        <TiptapViewer content={content} className="prose-sm max-w-none text-left" />
                       )}
                     </div>
                   )}

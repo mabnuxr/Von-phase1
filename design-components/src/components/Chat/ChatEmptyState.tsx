@@ -97,6 +97,10 @@ export interface ChatEmptyStateProps {
    * The agent mode to display when locked (from backend)
    */
   lockedAgentMode?: AgentMode;
+  /**
+   * Whether to show the plus menu button (with agents and upload options)
+   */
+  showPlusMenu?: boolean;
 }
 
 /**
@@ -138,6 +142,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   useStandardInput = false,
   isAgentLocked,
   lockedAgentMode,
+  showPlusMenu,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -335,6 +340,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}
           lockedAgentMode={lockedAgentMode}
+          showPlusMenu={showPlusMenu}
         />
       </motion.div>
 

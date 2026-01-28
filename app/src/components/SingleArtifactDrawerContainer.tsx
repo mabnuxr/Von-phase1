@@ -99,8 +99,12 @@ function transformArtifactToDisplayFormat(
     };
   }
 
-  // Handle SQL query artifacts
-  if (tool_name === "execute_sql_query") {
+  // Handle SQL and SOQL query artifacts
+  if (
+    tool_name === "execute_sql_query" ||
+    tool_name === "execute_salesforce_query" ||
+    category === "soql"
+  ) {
     const sqlContent = content as {
       success?: boolean;
       error?: string;

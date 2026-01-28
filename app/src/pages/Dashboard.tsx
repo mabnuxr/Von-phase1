@@ -173,6 +173,7 @@ const Dashboard = () => {
     isDeepLinksEnabled,
     isSidebarV2,
     isAgentV2,
+    isDeepResearchEnabled,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -1044,6 +1045,7 @@ const Dashboard = () => {
                 useStandardInput={isAgentV2}
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
+                showPlusMenu={isDeepResearchEnabled}
                 // Deep Research Results (V2 only)
                 researchResults={
                   isAgentV2
