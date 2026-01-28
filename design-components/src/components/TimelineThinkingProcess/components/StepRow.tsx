@@ -69,7 +69,7 @@ export const StepRow = React.memo<StepRowProps>(
         </div>
 
         {/* Content */}
-        <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
+        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
           {/* Header */}
           <button
             onClick={hasExpandableContent ? onToggle : undefined}
@@ -92,7 +92,7 @@ export const StepRow = React.memo<StepRowProps>(
             {/* Step text */}
             <span
               className={`
-                flex-1 text-[15px] truncate w-full
+                flex-1 min-w-0 text-[15px] truncate
                 ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-900' : 'text-gray-900'}
               `}
             >
