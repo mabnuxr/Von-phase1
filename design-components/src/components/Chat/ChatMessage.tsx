@@ -427,8 +427,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             }}
                             onArtifactClick={handleArtifactClick}
                           />
-                          {/* Final response - shown only after thinking process is complete */}
-                          {!isStreaming && v2FinalResponse && (
+                          {/* Final response - shown while streaming (when is_final_response) or after thinking completes */}
+                          {(!isStreaming || v2FinalResponseStreaming) && v2FinalResponse && (
                             <div className="prose-sm markdown-body max-w-none">
                               <Streamdown
                                 parseIncompleteMarkdown={v2FinalResponseStreaming}

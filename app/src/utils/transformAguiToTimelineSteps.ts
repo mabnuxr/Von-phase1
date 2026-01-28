@@ -354,6 +354,8 @@ export function transformAguiToTimelineSteps(
     };
   }
 
+  console.log("events", events);
+
   // Sort events by sequence
   const sortedEvents = [...events].sort((a, b) => a.sequence - b.sequence);
 
@@ -385,8 +387,10 @@ export function transformAguiToTimelineSteps(
   // Final response tracking
   let finalResponse = "";
   let isFinalResponseStreaming = false;
-  // Track the last TEXT_MESSAGE message_id (will become final response at RUN_FINISHED)
+  // Track the last TEXT_MESSAGE message_id (will become final response at RUN_FINISHED if is_final_response wasn't used)
   let lastTextMessageId: string | null = null;
+  // Track message_id of the explicit final response (when is_final_response flag is present)
+  let explicitFinalResponseMessageId: string | null = null;
 
   // Research results tracking
   let researchResultsIsStreaming = false;
@@ -485,8 +489,17 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_START": {
+        // Check if this is explicitly marked as the final response
+        if (event.is_final_response) {
+          // Stream directly to finalResponse instead of creating a reasoning step
+          explicitFinalResponseMessageId = event.message_id;
+          isFinalResponseStreaming = true;
+          finalResponse = "";
+          break;
+        }
+
         // All TEXT_MESSAGE content streams into reasoning steps during streaming
-        // The last one will be extracted as final response at RUN_FINISHED
+        // The last one will be extracted as final response at RUN_FINISHED (fallback)
         lastTextMessageId = event.message_id;
 
         reasoningStepCounter++;
@@ -507,6 +520,17 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_CONTENT": {
+        // Check if this is content for the explicit final response
+        if (
+          event.is_final_response ||
+          (explicitFinalResponseMessageId &&
+            event.message_id === explicitFinalResponseMessageId)
+        ) {
+          // Stream directly to finalResponse
+          finalResponse += event.delta || "";
+          break;
+        }
+
         // All TEXT_MESSAGE_CONTENT streams into reasoning steps
         // If no current reasoning step exists, create a new one
         if (!currentTextStep) {
@@ -542,6 +566,17 @@ export function transformAguiToTimelineSteps(
       }
 
       case "TEXT_MESSAGE_END": {
+        // Check if this is the end of the explicit final response
+        if (
+          event.is_final_response ||
+          (explicitFinalResponseMessageId &&
+            event.message_id === explicitFinalResponseMessageId)
+        ) {
+          // Final response streaming is complete
+          isFinalResponseStreaming = false;
+          break;
+        }
+
         // Mark reasoning step as completed
         if (currentTextStep) {
           currentTextStep.status = "complete" as StepStatus;
@@ -869,9 +904,9 @@ export function transformAguiToTimelineSteps(
         isThinking = false;
         isFinalResponseStreaming = false;
 
-        // Extract the last TEXT_MESSAGE step as the final response
-        // Find the step associated with lastTextMessageId
-        if (lastTextMessageId) {
+        // Fallback: Extract the last TEXT_MESSAGE step as the final response
+        // Only do this if we don't already have a finalResponse from explicit is_final_response flow
+        if (!finalResponse && lastTextMessageId) {
           const lastTextStep = textMessageStepMap.get(lastTextMessageId);
           if (lastTextStep) {
             // Extract content as final response
