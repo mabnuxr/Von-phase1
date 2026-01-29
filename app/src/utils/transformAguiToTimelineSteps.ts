@@ -436,12 +436,14 @@ export function transformAguiToTimelineSteps(
         // Create a new step when STEP_STARTED arrives (for tool calls)
         const stepEvent = event as StepStartedEventWithNumber;
 
-        // Generate unique step ID - use step_number if available, otherwise use step_name or counter
+        // Generate unique step ID - use step_number + global counter to ensure uniqueness across runs
+        // (step_number restarts from 1 in each run, so we need the counter for uniqueness)
         const hasStepNumber =
           stepEvent.step_number !== undefined && stepEvent.step_number !== null;
+        stepCounter++;
         const stepId = hasStepNumber
-          ? `step-${stepEvent.step_number}`
-          : `step-name-${stepEvent.step_name || stepCounter++}`;
+          ? `step-${stepEvent.step_number}-${stepCounter}`
+          : `step-name-${stepEvent.step_name || stepCounter}`;
 
         const step: TimelineStep = {
           id: stepId,

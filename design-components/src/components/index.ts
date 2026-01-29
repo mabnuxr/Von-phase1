@@ -164,6 +164,14 @@ export type { HeaderProps } from './Header';
 export { Chat } from './Chat';
 export type { ChatProps, Message, FixedPosition, AgentMode, SendMessageOptions } from './Chat';
 
+// ChatInputSelector - Selector component for different input variants
+export { ChatInputSelector } from './Chat';
+export type { ChatInputSelectorProps } from './Chat';
+
+// Deep Research Chat - specialized chat UI for deep research mode
+export { DeepResearchChat, DeepResearchNotificationBar } from './Chat';
+export type { DeepResearchChatProps } from './Chat';
+
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
 export type {
   AguiEventWrapper,
@@ -279,6 +287,7 @@ export {
   CallsTabContent,
   CallsTabShimmer,
   CallsTabError,
+  DataTablesDrawer,
 } from './TransparencyDrawer';
 export type {
   TransparencyDrawerProps,
@@ -291,6 +300,8 @@ export type {
   TopLevelTab,
   DataTabContentProps,
   CallsTabContentProps,
+  DataTablesDrawerProps,
+  DataTableArtifact,
 } from './TransparencyDrawer';
 
 // ============================================================================
@@ -303,7 +314,7 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 // REPORT TABLE (TanStack Table for data reports)
 // ============================================================================
 export { ReportTable } from './ReportTable';
-export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';
+export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
 
 // ============================================================================
 // ARTIFACT VIEWER (Single artifact display drawer)
@@ -325,9 +336,9 @@ export type {
 export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
-  DeepResearchNotificationBar,
   DataTablesCard,
   DeepResearchApprovalCard,
+  DeepResearchDataTablesDrawer,
 } from './Chat';
 export type {
   DeepResearchNotificationBarProps,
@@ -335,6 +346,8 @@ export type {
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,
+  DeepResearchDataTablesDrawerProps,
+  DataTableConfig,
 } from './Chat';
 export type {
   // Event types
@@ -373,7 +386,6 @@ export { ExpensiveOperationModal } from './popups';
 export type { ExpensiveOperationModalProps } from './popups';
 
 // ============================================================================
-// DATA TABLES (Review source data components)
+// DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
 // ============================================================================
-export { DataTablesDrawer } from './Jan17Demo';
-export type { DataTablesDrawerProps, DataTableConfig } from './Jan17Demo';
+// Note: DataTableConfig is now exported from Chat/DeepResearch

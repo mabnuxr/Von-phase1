@@ -210,6 +210,8 @@ export interface DeepResearchResultsProps {
   title?: string;
   /** Whether to show the expand button */
   showExpand?: boolean;
+  /** Whether to show the footer actions (copy, download, thumbs, sources) inside the card */
+  showFooterActions?: boolean;
   /** Callback when expand is clicked */
   onExpand?: () => void;
   /** Callback when "Build Dashboard" is clicked */

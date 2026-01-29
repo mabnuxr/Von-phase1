@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { DeepResearchResultsProps } from './types';
+import { ReportModal } from './ReportModal';
 
 /**
  * DeepResearchResults Component
@@ -24,6 +25,7 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
   state,
   title,
   showExpand = true,
+  showFooterActions = true,
   onExpand,
   onBuildDashboard,
   onDownload,
@@ -34,6 +36,7 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Derive display title from metadata or prop
@@ -70,6 +73,15 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
   const handleBuildDashboard = () => {
     onBuildDashboard?.();
     setShowMenu(false);
+    setShowReportModal(false);
+  };
+
+  const handleExpand = () => {
+    if (onExpand) {
+      onExpand();
+    } else {
+      setShowReportModal(true);
+    }
   };
 
   const isStreaming = state.status === 'streaming';
@@ -101,9 +113,9 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1">
-          {showExpand && onExpand && (
+          {showExpand && (
             <button
-              onClick={onExpand}
+              onClick={handleExpand}
               className="p-1.5 text-gray-800 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               title="Expand"
             >
@@ -166,8 +178,8 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
         </div>
       </div>
 
-      {/* Footer with actions - only show when not streaming */}
-      {!isStreaming && hasContent && (
+      {/* Footer with actions - only show when not streaming and showFooterActions is true */}
+      {!isStreaming && hasContent && showFooterActions && (
         <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-1">
           <button
             onClick={handleCopy}
@@ -230,6 +242,16 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
           </div>
         </div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title={displayTitle}
+        content={state.content}
+        onBuildDashboard={onBuildDashboard}
+        onDownload={onDownload}
+      />
     </div>
   );
 };

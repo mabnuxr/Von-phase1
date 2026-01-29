@@ -2,8 +2,8 @@
  * useTransparencyDrawer - Business logic for LazyTransparencyDrawer
  *
  * Handles:
- * - Artifact filtering by category (Data vs Calls/RAG)
- * - Lazy loading of artifact content for Data tab
+ * - Artifact filtering by category (Data vs Calls/RAG vs IQ)
+ * - Lazy loading of artifact content for Data tab and Deep Research tab
  * - Bulk fetching of RAG artifacts when drawer opens
  * - Caching of loaded artifacts
  * - Transformation of artifacts to QueryResults and CallTranscripts
@@ -34,14 +34,43 @@ export interface UseTransparencyDrawerParams {
 }
 
 export interface UseTransparencyDrawerReturn {
+  // Data tab
   queries: TransparencyQueryResult[];
+  handleQuerySelect: (queryId: string) => void;
+  // Calls tab
   calls: CallTranscript[];
   isCallsLoading: boolean;
   callsError: Error | null;
-  handleQuerySelect: (queryId: string) => void;
+  // Deep Research tab (VonIQ artifacts)
+  vonIqQueries: TransparencyQueryResult[];
+  handleVonIqSelect: (queryId: string) => void;
+  hasVonIqArtifacts: boolean;
 }
 
+// Module-level cache for loaded artifacts, scoped by conversationId:runId:artifactId
 const artifactCache = new Map<string, ArtifactResponse>();
+
+// Helper to create a scoped cache key
+function getCacheKey(
+  conversationId: string | null,
+  runId: string | null,
+  artifactId: string,
+): string {
+  return `${conversationId ?? ""}:${runId ?? ""}:${artifactId}`;
+}
+
+// Helper to clear cache entries for a specific conversation/run
+function clearCacheForRun(
+  conversationId: string | null,
+  runId: string | null,
+): void {
+  const prefix = `${conversationId ?? ""}:${runId ?? ""}:`;
+  for (const key of artifactCache.keys()) {
+    if (key.startsWith(prefix)) {
+      artifactCache.delete(key);
+    }
+  }
+}
 
 function transformArtifactsToQueries(
   dataArtifactSummaries: ArtifactSummary[],
@@ -82,10 +111,17 @@ export function useTransparencyDrawer({
   runId,
   artifactSummaries,
 }: UseTransparencyDrawerParams): UseTransparencyDrawerReturn {
+  // Filter artifacts by category:
+  // - Data tab: NOT "rag", NOT "e2b", NOT "iq"
+  // - Calls tab: "rag"
+  // - Deep Research tab: "iq"
   const dataArtifactSummaries = useMemo(
     () =>
       artifactSummaries.filter(
-        (s) => s.category !== "e2b" && s.category !== "rag",
+        (s) =>
+          s.category !== "e2b" &&
+          s.category !== "rag" &&
+          s.category?.toLowerCase() !== "iq",
       ),
     [artifactSummaries],
   );
@@ -95,19 +131,32 @@ export function useTransparencyDrawer({
     [artifactSummaries],
   );
 
+  const vonIqArtifactSummaries = useMemo(
+    () => artifactSummaries.filter((s) => s.category?.toLowerCase() === "iq"),
+    [artifactSummaries],
+  );
+
   const ragArtifactIds = useMemo(
     () => ragArtifactSummaries.map((s) => s.artifact_id),
     [ragArtifactSummaries],
   );
 
-  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
-    null,
-  );
+  // State for Data tab artifact selection
+  const [selectedDataArtifactId, setSelectedDataArtifactId] = useState<
+    string | null
+  >(null);
+
+  // State for Deep Research tab artifact selection
+  const [selectedVonIqArtifactId, setSelectedVonIqArtifactId] = useState<
+    string | null
+  >(null);
+
+  // Shared cache for loaded artifacts
   const [loadedArtifacts, setLoadedArtifacts] = useState<
     Map<string, ArtifactResponse>
   >(new Map());
 
-  // Fetch RAG artifacts when drawer opens
+  // Fetch RAG artifacts when drawer opens (bulk fetch for Calls tab)
   const shouldFetchRagArtifacts = isOpen && ragArtifactIds.length > 0;
 
   const {
@@ -120,42 +169,97 @@ export function useTransparencyDrawer({
     shouldFetchRagArtifacts ? ragArtifactIds : [],
   );
 
-  const { data: fetchedArtifact, isLoading: isArtifactLoading } =
-    useLazyArtifactContent(conversationId, runId, selectedArtifactId);
+  // Lazy load artifact content for Data tab
+  const { data: fetchedDataArtifact, isLoading: isDataArtifactLoading } =
+    useLazyArtifactContent(conversationId, runId, selectedDataArtifactId);
 
+  // Lazy load artifact content for Deep Research tab
+  const { data: fetchedVonIqArtifact, isLoading: isVonIqArtifactLoading } =
+    useLazyArtifactContent(conversationId, runId, selectedVonIqArtifactId);
+
+  // Reset state and clear cache when conversation/run changes
   useEffect(() => {
-    setSelectedArtifactId(null);
+    setSelectedDataArtifactId(null);
+    setSelectedVonIqArtifactId(null);
     setLoadedArtifacts(new Map());
+    // Clear stale cache entries for the previous conversation/run
+    clearCacheForRun(conversationId, runId);
   }, [conversationId, runId]);
 
+  // Store fetched Data artifact in cache
   useEffect(() => {
-    if (fetchedArtifact && selectedArtifactId) {
+    if (fetchedDataArtifact && selectedDataArtifactId) {
       setLoadedArtifacts((prev) => {
         const next = new Map(prev);
-        next.set(selectedArtifactId, fetchedArtifact);
-        artifactCache.set(selectedArtifactId, fetchedArtifact);
+        next.set(selectedDataArtifactId, fetchedDataArtifact);
+        // Use scoped cache key to avoid cross-conversation/tenant collisions
+        const cacheKey = getCacheKey(
+          conversationId,
+          runId,
+          selectedDataArtifactId,
+        );
+        artifactCache.set(cacheKey, fetchedDataArtifact);
         return next;
       });
     }
-  }, [fetchedArtifact, selectedArtifactId]);
+  }, [fetchedDataArtifact, selectedDataArtifactId, conversationId, runId]);
 
+  // Store fetched VonIQ artifact in cache
   useEffect(() => {
-    if (isOpen && dataArtifactSummaries.length > 0 && !selectedArtifactId) {
-      setSelectedArtifactId(dataArtifactSummaries[0].artifact_id);
+    if (fetchedVonIqArtifact && selectedVonIqArtifactId) {
+      setLoadedArtifacts((prev) => {
+        const next = new Map(prev);
+        next.set(selectedVonIqArtifactId, fetchedVonIqArtifact);
+        // Use scoped cache key to avoid cross-conversation/tenant collisions
+        const cacheKey = getCacheKey(
+          conversationId,
+          runId,
+          selectedVonIqArtifactId,
+        );
+        artifactCache.set(cacheKey, fetchedVonIqArtifact);
+        return next;
+      });
     }
-  }, [isOpen, dataArtifactSummaries, selectedArtifactId]);
+  }, [fetchedVonIqArtifact, selectedVonIqArtifactId, conversationId, runId]);
 
+  // Auto-select first Data artifact when drawer opens
+  useEffect(() => {
+    if (isOpen && dataArtifactSummaries.length > 0 && !selectedDataArtifactId) {
+      setSelectedDataArtifactId(dataArtifactSummaries[0].artifact_id);
+    }
+  }, [isOpen, dataArtifactSummaries, selectedDataArtifactId]);
+
+  // Auto-select first VonIQ artifact when drawer opens
+  useEffect(() => {
+    if (
+      isOpen &&
+      vonIqArtifactSummaries.length > 0 &&
+      !selectedVonIqArtifactId
+    ) {
+      setSelectedVonIqArtifactId(vonIqArtifactSummaries[0].artifact_id);
+    }
+  }, [isOpen, vonIqArtifactSummaries, selectedVonIqArtifactId]);
+
+  // Reset selections when drawer closes
   useEffect(() => {
     if (!isOpen) {
-      setSelectedArtifactId(null);
+      setSelectedDataArtifactId(null);
+      setSelectedVonIqArtifactId(null);
     }
   }, [isOpen]);
 
+  // Restore cached artifacts when summaries change
   useEffect(() => {
     if (artifactSummaries.length > 0) {
       const cachedArtifacts = new Map<string, ArtifactResponse>();
       for (const summary of artifactSummaries) {
-        const cached = artifactCache.get(summary.artifact_id);
+        // Use scoped cache key to retrieve from module cache
+        const cacheKey = getCacheKey(
+          conversationId,
+          runId,
+          summary.artifact_id,
+        );
+        const cached = artifactCache.get(cacheKey);
         if (cached) {
           cachedArtifacts.set(summary.artifact_id, cached);
         }
@@ -164,38 +268,67 @@ export function useTransparencyDrawer({
         setLoadedArtifacts(cachedArtifacts);
       }
     }
-  }, [artifactSummaries]);
+  }, [artifactSummaries, conversationId, runId]);
 
+  // Transform Data artifacts to QueryResults
   const queries = useMemo(
     () =>
       transformArtifactsToQueries(
         dataArtifactSummaries,
         loadedArtifacts,
-        selectedArtifactId,
-        isArtifactLoading,
+        selectedDataArtifactId,
+        isDataArtifactLoading,
       ),
     [
       dataArtifactSummaries,
       loadedArtifacts,
-      selectedArtifactId,
-      isArtifactLoading,
+      selectedDataArtifactId,
+      isDataArtifactLoading,
     ],
   );
 
+  // Transform VonIQ artifacts to QueryResults
+  const vonIqQueries = useMemo(
+    () =>
+      transformArtifactsToQueries(
+        vonIqArtifactSummaries,
+        loadedArtifacts,
+        selectedVonIqArtifactId,
+        isVonIqArtifactLoading,
+      ),
+    [
+      vonIqArtifactSummaries,
+      loadedArtifacts,
+      selectedVonIqArtifactId,
+      isVonIqArtifactLoading,
+    ],
+  );
+
+  // Transform RAG artifacts to CallTranscripts
   const calls = useMemo(
     () => transformBulkArtifactsToCalls(bulkRagArtifacts),
     [bulkRagArtifacts],
   );
 
   const handleQuerySelect = useCallback((queryId: string) => {
-    setSelectedArtifactId(queryId);
+    setSelectedDataArtifactId(queryId);
+  }, []);
+
+  const handleVonIqSelect = useCallback((queryId: string) => {
+    setSelectedVonIqArtifactId(queryId);
   }, []);
 
   return {
+    // Data tab
     queries,
+    handleQuerySelect,
+    // Calls tab
     calls,
     isCallsLoading,
     callsError: callsError as Error | null,
-    handleQuerySelect,
+    // Deep Research tab
+    vonIqQueries,
+    handleVonIqSelect,
+    hasVonIqArtifacts: vonIqArtifactSummaries.length > 0,
   };
 }

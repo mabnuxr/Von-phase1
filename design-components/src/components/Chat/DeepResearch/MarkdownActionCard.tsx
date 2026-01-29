@@ -439,7 +439,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
       )}
 
       {/* Separator and Action Buttons */}
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+      <div className="my-4 pt-3 border-t border-gray-100 flex items-center gap-2">
         {secondaryAction && (
           <SecondaryButton
             onClick={secondaryAction.onClick}

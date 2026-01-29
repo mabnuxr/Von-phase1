@@ -97,6 +97,8 @@ export interface ReportTableProps<TData extends Record<string, unknown>> {
   prioritizeAIColumns?: boolean;
   /** Enable drag-and-drop column reordering @default true */
   enableColumnReorder?: boolean;
+  /** Whether to show the row actions column (checkbox + open button) @default true */
+  showRowActions?: boolean;
 }
 
 // ============================================================================
@@ -369,6 +371,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
   frozenColumns = 2,
   prioritizeAIColumns = true,
   enableColumnReorder = true,
+  showRowActions = true,
 }: ReportTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -409,9 +412,12 @@ export function ReportTable<TData extends Record<string, unknown>>({
   // Initialize column order
   React.useEffect(() => {
     if (columnOrder.length === 0) {
-      setColumnOrder(['_actions', ...orderedColumns.map((c) => c.id)]);
+      const order = showRowActions
+        ? ['_actions', ...orderedColumns.map((c) => c.id)]
+        : orderedColumns.map((c) => c.id);
+      setColumnOrder(order);
     }
-  }, [orderedColumns, columnOrder.length]);
+  }, [orderedColumns, columnOrder.length, showRowActions]);
 
   // Get columns in current order
   const displayColumns = useMemo(() => {
@@ -436,22 +442,23 @@ export function ReportTable<TData extends Record<string, unknown>>({
 
   // Default column sizes
   const defaultColumnSizes: Record<string, number> = useMemo(() => {
-    const sizes: Record<string, number> = { _actions: 60 };
+    const sizes: Record<string, number> = showRowActions ? { _actions: 60 } : {};
     displayColumns.forEach((col) => {
       sizes[col.id] = col.width ?? col.minWidth ?? 150;
     });
     return sizes;
-  }, [displayColumns]);
+  }, [displayColumns, showRowActions]);
 
   // Calculate frozen column widths for sticky positioning
   const frozenColumnWidths = useMemo(() => {
-    const widths: number[] = [60]; // Actions column
-    for (let i = 0; i < Math.min(frozenColumns - 1, displayColumns.length); i++) {
+    const widths: number[] = showRowActions ? [60] : []; // Actions column only if shown
+    const columnsToFreeze = showRowActions ? frozenColumns - 1 : frozenColumns;
+    for (let i = 0; i < Math.min(columnsToFreeze, displayColumns.length); i++) {
       const col = displayColumns[i];
       widths.push(columnSizing[col.id] ?? defaultColumnSizes[col.id] ?? 150);
     }
     return widths;
-  }, [frozenColumns, displayColumns, columnSizing, defaultColumnSizes]);
+  }, [frozenColumns, displayColumns, columnSizing, defaultColumnSizes, showRowActions]);
 
   // Render cell based on column type
   const renderCellContent = useCallback(
@@ -512,31 +519,36 @@ export function ReportTable<TData extends Record<string, unknown>>({
   );
 
   const tableColumns = useMemo((): ColumnDef<TData>[] => {
-    const cols: ColumnDef<TData>[] = [
-      columnHelper.display({
-        id: '_actions',
-        header: () => null,
-        cell: ({ row }) => {
-          const rowId = String(row.original[rowIdKey as keyof TData] ?? row.index);
-          const isHovered = hoveredRowId === rowId;
-          const isSelected = selectedRows.includes(rowId);
+    const cols: ColumnDef<TData>[] = [];
 
-          return (
-            <ActionsCell
-              row={row}
-              isHovered={isHovered}
-              isSelected={isSelected}
-              onSelect={(selected) => onRowSelect?.(row.original, selected)}
-              onOpen={() => onRowOpen?.(row.original)}
-            />
-          );
-        },
-        size: 60,
-        minSize: 60,
-        maxSize: 60,
-        enableResizing: false,
-      }),
-    ];
+    // Only add actions column if showRowActions is true
+    if (showRowActions) {
+      cols.push(
+        columnHelper.display({
+          id: '_actions',
+          header: () => null,
+          cell: ({ row }) => {
+            const rowId = String(row.original[rowIdKey as keyof TData] ?? row.index);
+            const isHovered = hoveredRowId === rowId;
+            const isSelected = selectedRows.includes(rowId);
+
+            return (
+              <ActionsCell
+                row={row}
+                isHovered={isHovered}
+                isSelected={isSelected}
+                onSelect={(selected) => onRowSelect?.(row.original, selected)}
+                onOpen={() => onRowOpen?.(row.original)}
+              />
+            );
+          },
+          size: 60,
+          minSize: 60,
+          maxSize: 60,
+          enableResizing: false,
+        })
+      );
+    }
 
     cols.push(
       ...displayColumns.map(
@@ -571,6 +583,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
     onRowSelect,
     onRowOpen,
     renderCellContent,
+    showRowActions,
   ]);
 
   const table = useReactTable({
@@ -666,6 +679,11 @@ export function ReportTable<TData extends Record<string, unknown>>({
   const handleDragEnd = useCallback(() => {
     setDraggingColumnId(null);
     setDropTargetId(null);
+  }, []);
+
+  // Close AI header popover - memoized to prevent useEffect infinite loop
+  const handleCloseAiHeaderPopover = useCallback(() => {
+    setAiHeaderPopover(null);
   }, []);
 
   // Calculate left position for frozen columns
@@ -905,45 +923,47 @@ export function ReportTable<TData extends Record<string, unknown>>({
       </div>
 
       {/* Pagination */}
-      {showPagination && totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-white">
-          <div className="text-sm text-gray-700">
+      {showPagination && (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white shrink-0">
+          <div className="text-[13px] text-gray-500">
             Showing {startRow} to {endRow} of {totalRows} results
           </div>
-          <div className="flex items-center gap-2">
-            <SecondaryIconButton
-              icon={<CaretLeft size={14} />}
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              title="Previous page"
-              size="small"
-            />
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => table.setPageIndex(i)}
-                  className={`
-                    min-w-[28px] h-7 px-2 text-sm font-medium rounded-lg transition-colors cursor-pointer
-                    ${
-                      currentPage === i
-                        ? 'bg-gray-900 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }
-                  `}
-                >
-                  {i + 1}
-                </button>
-              ))}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <SecondaryIconButton
+                icon={<CaretLeft size={14} />}
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                title="Previous page"
+                size="small"
+              />
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => table.setPageIndex(i)}
+                    className={`
+                      min-w-[28px] h-7 px-2 text-sm font-medium rounded-lg transition-colors cursor-pointer
+                      ${
+                        currentPage === i
+                          ? 'bg-gray-900 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }
+                    `}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <SecondaryIconButton
+                icon={<CaretRight size={14} />}
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                title="Next page"
+                size="small"
+              />
             </div>
-            <SecondaryIconButton
-              icon={<CaretRight size={14} />}
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              title="Next page"
-              size="small"
-            />
-          </div>
+          )}
         </div>
       )}
 
@@ -952,7 +972,7 @@ export function ReportTable<TData extends Record<string, unknown>>({
         <AIHeaderPopover
           column={aiHeaderPopover.column}
           position={aiHeaderPopover.position}
-          onClose={() => setAiHeaderPopover(null)}
+          onClose={handleCloseAiHeaderPopover}
         />
       )}
     </div>
