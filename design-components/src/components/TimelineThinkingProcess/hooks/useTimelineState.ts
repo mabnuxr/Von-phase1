@@ -8,6 +8,7 @@ import type { TimelineStep } from '../types';
 export interface UseTimelineStateOptions {
   steps: TimelineStep[];
   isThinking: boolean;
+  autoCollapse?: boolean;
   controlledCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onExpandStep?: (step: TimelineStep) => void;
@@ -61,6 +62,7 @@ export interface UseTimelineStateReturn {
 export function useTimelineState({
   steps,
   isThinking,
+  autoCollapse,
   controlledCollapsed,
   onToggleCollapse,
   onExpandStep,
@@ -94,8 +96,8 @@ export function useTimelineState({
   const totalCount = steps.length;
 
   const allComplete = useMemo(
-    () => completedCount === totalCount && totalCount > 0 && !isThinking,
-    [completedCount, totalCount, isThinking]
+    () => (completedCount === totalCount && totalCount > 0 && !isThinking) || !!autoCollapse,
+    [completedCount, totalCount, isThinking, autoCollapse]
   );
 
   const visibleSteps = useMemo(() => steps.filter((s) => s.status !== 'pending'), [steps]);
@@ -282,6 +284,13 @@ export function useTimelineState({
       setExpandedSteps((prev) => new Set(prev).add(currentStep.id));
     }
   }, [steps]);
+
+  // Auto-collapse when autoCollapse becomes true (e.g., final response starts streaming)
+  useEffect(() => {
+    if (autoCollapse && !controlledCollapsed) {
+      setInternalCollapsed(true);
+    }
+  }, [autoCollapse, controlledCollapsed]);
 
   // Clear focused step when thinking state changes
   useEffect(() => {

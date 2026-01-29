@@ -205,7 +205,10 @@ function transformArtifactToQueryResult(
     };
   }
 
-  if (artifact.category?.toLowerCase() === "memory" || MEMORY_TOOL_NAMES.has(tool_name)) {
+  if (
+    artifact.category?.toLowerCase() === "memory" ||
+    MEMORY_TOOL_NAMES.has(tool_name)
+  ) {
     return null;
   }
 

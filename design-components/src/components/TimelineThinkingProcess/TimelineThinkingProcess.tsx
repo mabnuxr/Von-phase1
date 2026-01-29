@@ -31,6 +31,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   steps,
   isThinking = false,
   isStreaming = false,
+  autoCollapse = false,
   elapsedTime = 0,
   onQueryClick,
   queries = [],
@@ -63,6 +64,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   } = useTimelineState({
     steps,
     isThinking,
+    autoCollapse,
     controlledCollapsed,
     onToggleCollapse,
     onExpandStep,
@@ -157,9 +159,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           </div>
         </button>
 
-        {/* Steps container */}
+        {/* Steps container - only rendered when there are visible steps */}
         <AnimatePresence>
-          {!isCollapsed && (
+          {!isCollapsed && visibleSteps.length > 0 && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -173,13 +175,8 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   className="overflow-y-auto px-3 py-3"
                   style={{ maxHeight: CONTAINER_HEIGHT }}
                 >
-                  {visibleSteps.length === 0 ? (
-                    <div className="flex items-center justify-center py-6 text-[15px] text-gray-500">
-                      Starting...
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {visibleSteps.map((step, idx) => {
+                  <div className="space-y-0">
+                    {visibleSteps.map((step, idx) => {
                         const displayMode = getStepDisplayMode(step, idx);
                         const isExpanded = displayMode === 'expanded';
 
@@ -240,7 +237,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         );
                       })}
                     </div>
-                  )}
                 </div>
               </div>
             </motion.div>
