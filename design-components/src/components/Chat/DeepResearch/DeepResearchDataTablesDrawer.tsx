@@ -26,7 +26,50 @@ export interface DeepResearchDataTablesDrawerProps {
   title?: string;
   /** Total records count for display in header */
   totalRecords?: number;
+  /** Whether the initial table list is loading */
+  isLoading?: boolean;
+  /** Whether a specific table's content is loading */
+  isTableLoading?: boolean;
 }
+
+// ============================================================================
+// Loading Skeleton Components
+// ============================================================================
+
+const TabsSkeleton: React.FC = () => (
+  <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
+    <div className="flex items-center gap-2 animate-pulse">
+      <div className="h-8 w-24 bg-gray-200 rounded-full" />
+      <div className="h-8 w-28 bg-gray-200 rounded-full" />
+      <div className="h-8 w-20 bg-gray-200 rounded-full" />
+    </div>
+  </div>
+);
+
+const TableSkeleton: React.FC = () => (
+  <div className="h-full flex flex-col animate-pulse">
+    {/* Header row */}
+    <div className="flex border-b border-gray-100 bg-gray-50 px-3 py-2">
+      <div className="h-4 w-32 bg-gray-200 rounded mr-4" />
+      <div className="h-4 w-24 bg-gray-200 rounded mr-4" />
+      <div className="h-4 w-28 bg-gray-200 rounded mr-4" />
+      <div className="h-4 w-20 bg-gray-200 rounded" />
+    </div>
+    {/* Data rows */}
+    {Array.from({ length: 8 }).map((_, i) => (
+      <div key={i} className="flex border-b border-gray-50 px-3 py-3">
+        <div className="h-4 w-36 bg-gray-100 rounded mr-4" />
+        <div className="h-4 w-20 bg-gray-100 rounded mr-4" />
+        <div className="h-4 w-24 bg-gray-100 rounded mr-4" />
+        <div className="h-4 w-16 bg-gray-100 rounded" />
+      </div>
+    ))}
+    {/* Footer */}
+    <div className="mt-auto px-4 py-3 border-t border-gray-200 bg-white">
+      <div className="h-4 w-40 bg-gray-100 rounded" />
+    </div>
+  </div>
+);
 
 // ============================================================================
 // Table Tab Component
@@ -77,6 +120,8 @@ export const DeepResearchDataTablesDrawer: React.FC<DeepResearchDataTablesDrawer
   tables,
   title = 'Data Reference',
   totalRecords,
+  isLoading = false,
+  isTableLoading = false,
 }) => {
   const [activeTableId, setActiveTableId] = useState<string>(tables[0]?.id || '');
 
@@ -162,28 +207,34 @@ export const DeepResearchDataTablesDrawer: React.FC<DeepResearchDataTablesDrawer
                 </button>
               </div>
 
-              {/* Table Tabs - Always shown for consistency */}
-              {tables.length > 0 && (
-                <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
-                  <div
-                    className="flex items-center gap-2 overflow-x-auto"
-                    style={{ scrollbarWidth: 'none' }}
-                  >
-                    {tables.map((table) => (
-                      <TableTab
-                        key={table.id}
-                        table={table}
-                        isActive={table.id === activeTableId}
-                        onClick={() => handleSelectTable(table.id)}
-                      />
-                    ))}
+              {/* Table Tabs - Show skeleton when loading */}
+              {isLoading ? (
+                <TabsSkeleton />
+              ) : (
+                tables.length > 0 && (
+                  <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
+                    <div
+                      className="flex items-center gap-2 overflow-x-auto"
+                      style={{ scrollbarWidth: 'none' }}
+                    >
+                      {tables.map((table) => (
+                        <TableTab
+                          key={table.id}
+                          table={table}
+                          isActive={table.id === activeTableId}
+                          onClick={() => handleSelectTable(table.id)}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )
               )}
 
               {/* Table Content - Using ReportTable without row actions */}
               <div ref={containerRef} className="flex-1 overflow-hidden">
-                {activeTable ? (
+                {isLoading || isTableLoading ? (
+                  <TableSkeleton />
+                ) : activeTable ? (
                   <ReportTable
                     columns={activeTable.columns}
                     data={activeTable.data}

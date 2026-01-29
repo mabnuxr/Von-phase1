@@ -42,7 +42,30 @@ export interface DataTablesCardProps {
    * Custom description text (overrides default)
    */
   description?: string;
+  /**
+   * Whether the card is in loading state
+   */
+  isLoading?: boolean;
 }
+
+// ============================================================================
+// Loading Skeleton Component
+// ============================================================================
+
+const DataTablesCardSkeleton: React.FC = () => {
+  return (
+    <div className="w-full flex items-center justify-between gap-4 px-4 py-3 bg-white border border-gray-200 rounded-xl animate-pulse">
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-32 bg-gray-200 rounded" />
+          <div className="h-4 w-16 bg-gray-200 rounded" />
+        </div>
+        <div className="h-4 w-48 bg-gray-100 rounded mt-1.5" />
+      </div>
+      <div className="h-8 w-20 bg-gray-200 rounded-xl" />
+    </div>
+  );
+};
 
 // ============================================================================
 // Main Component - Card to encourage data review before full analysis
@@ -62,7 +85,13 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({
   showBadge = true,
   buttonText = 'Review',
   description,
+  isLoading = false,
 }) => {
+  // Show skeleton when loading
+  if (isLoading) {
+    return <DataTablesCardSkeleton />;
+  }
+
   // Generate default description if not provided
   const defaultDescription =
     processedRecords && totalRecords

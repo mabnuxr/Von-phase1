@@ -122,7 +122,7 @@ export const DeepResearchConversation: React.FC<
   }, [messages]);
 
   // Fetch IQ artifact summaries for dataTablesInfo only after sample run completes
-  const { dataTablesInfo: vonIqDataTablesInfo } = useDeepResearchArtifacts(
+  const { dataTablesInfo: vonIqDataTablesInfo, isLoading: isArtifactsLoading } = useDeepResearchArtifacts(
     conversationId,
     lastAssistantRunId,
     isSampleRunComplete,
@@ -131,6 +131,8 @@ export const DeepResearchConversation: React.FC<
   // DataTablesDrawer hook for content loading
   const {
     tables: dataTablesTables,
+    isLoading: isDrawerLoading,
+    isTableLoading,
   } = useDataTablesDrawer({
     isOpen: isDataTablesOpen,
     conversationId,
@@ -176,6 +178,7 @@ export const DeepResearchConversation: React.FC<
           researchResults={researchResults}
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
+          isDataTablesLoading={isArtifactsLoading}
           onSendMessage={(content) => onSendMessage?.(content)}
           onDataTablesClick={handleDataTablesClick}
           onArtifactClick={onArtifactClick}
@@ -214,6 +217,8 @@ export const DeepResearchConversation: React.FC<
         title="Data Reference"
         tables={dataTablesTables}
         totalRecords={vonIqDataTablesInfo?.totalRecords}
+        isLoading={isDrawerLoading}
+        isTableLoading={isTableLoading}
       />
     </div>
   );

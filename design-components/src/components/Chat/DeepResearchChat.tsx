@@ -65,6 +65,8 @@ export interface DeepResearchChatProps {
     processedRecords?: number;
     totalRecords?: number;
   };
+  /** Whether data tables info is loading */
+  isDataTablesLoading?: boolean;
   /** Callback when send message is triggered */
   onSendMessage?: (content: string) => void;
   /** Callback when data tables card is clicked */
@@ -99,6 +101,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   researchResults,
   isDeepResearchRunning,
   dataTablesInfo,
+  isDataTablesLoading = false,
   onSendMessage,
   onDataTablesClick,
   onArtifactClick,
@@ -226,12 +229,13 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         disabled: isDeepResearchRunning,
                       }}
                       beforeActions={
-                        dataTablesInfo && onDataTablesClick ? (
+                        (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
                           <DataTablesCard
-                            tableCount={dataTablesInfo.tableCount}
-                            processedRecords={dataTablesInfo.processedRecords}
-                            totalRecords={dataTablesInfo.totalRecords}
+                            tableCount={dataTablesInfo?.tableCount ?? 0}
+                            processedRecords={dataTablesInfo?.processedRecords}
+                            totalRecords={dataTablesInfo?.totalRecords}
                             onClick={onDataTablesClick}
+                            isLoading={isDataTablesLoading}
                           />
                         ) : undefined
                       }

@@ -37,6 +37,8 @@ export interface UseDataTablesDrawerReturn {
   } | null;
   /** Whether the initial list is loading */
   isLoading: boolean;
+  /** Whether a specific table's content is loading */
+  isTableLoading: boolean;
   /** Error if any */
   error: Error | null;
 }
@@ -157,6 +159,7 @@ export function useDataTablesDrawer({
     handleArtifactSelect,
     dataTablesInfo,
     isLoading: isListLoading,
+    isTableLoading: isArtifactLoading,
     error: listError as Error | null,
   };
 }
