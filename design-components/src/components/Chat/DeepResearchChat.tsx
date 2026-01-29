@@ -1,4 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import {
+  CopyIcon,
+  DownloadSimpleIcon,
+  ThumbsUpIcon,
+  ThumbsDownIcon,
+  FileMagnifyingGlassIcon,
+} from '@phosphor-icons/react';
 import { ChatMessage } from './ChatMessage';
 import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
 import { DataTablesCard } from './DeepResearch/DataTablesCard';
@@ -188,7 +195,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
 
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
-            <div key={message.id} className="max-w-4xl mx-auto">
+            <div key={message.id} className="max-w-4xl mx-auto w-full">
               <div className="flex gap-2">
                 <div className="flex-shrink-0 mt-0.5">
                   <VonLogoAvatar />
@@ -241,6 +248,82 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       }
                     />
                   )}
+                  {/* Research Results - Show when streaming/completed (alongside thinking process) */}
+                  {isLastAssistant && showResearchResults && researchResults && (
+                    <>
+                      {/* Summary text before the results card */}
+                      {researchResults.isCompleted && (
+                        <p className="text-sm text-gray-700">
+                          I have completed the comprehensive analysis. Click on the card below to see
+                          the full details.
+                        </p>
+                      )}
+                      <DeepResearchResults
+                        state={{
+                          status: researchResults.isStreaming
+                            ? 'streaming'
+                            : researchResults.isCompleted
+                              ? 'completed'
+                              : 'idle',
+                          messageId: researchResults.messageId,
+                          metadata: researchResults.metadata,
+                          content: researchResults.content,
+                          totalLength: null,
+                          checksum: null,
+                          error: null,
+                          startedAt: null,
+                          completedAt: null,
+                        }}
+                        showFooterActions={false}
+                        onSourcesClick={onDataTablesClick}
+                      />
+                      {/* Action buttons outside the card */}
+                      {researchResults.isCompleted && (
+                        <div className="flex items-center gap-1 pt-1">
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(researchResults.content);
+                            }}
+                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                            title="Copy"
+                          >
+                            <CopyIcon size={14} weight="regular" />
+                          </button>
+                          <button
+                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                            title="Download"
+                          >
+                            <DownloadSimpleIcon size={14} weight="regular" />
+                          </button>
+                          <button
+                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                            title="Good response"
+                          >
+                            <ThumbsUpIcon size={14} weight="regular" />
+                          </button>
+                          <button
+                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                            title="Bad response"
+                          >
+                            <ThumbsDownIcon size={14} weight="regular" />
+                          </button>
+                          {onDataTablesClick && (
+                            <>
+                              <div className="w-px h-4 bg-gray-200 mx-1" />
+                              <button
+                                onClick={onDataTablesClick}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                                title="View sources"
+                              >
+                                <FileMagnifyingGlassIcon size={14} weight="regular" />
+                                <span>Sources</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -271,30 +354,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           </div>
         );
       })}
-
-      {/* Deep Research Full Results - Show when streaming/completed */}
-      {showResearchResults && (
-        <div className="mb-4 px-4 mx-auto max-w-4xl">
-          <DeepResearchResults
-            state={{
-              status: researchResults.isStreaming
-                ? 'streaming'
-                : researchResults.isCompleted
-                  ? 'completed'
-                  : 'idle',
-              messageId: researchResults.messageId,
-              metadata: researchResults.metadata,
-              content: researchResults.content,
-              totalLength: null,
-              checksum: null,
-              error: null,
-              startedAt: null,
-              completedAt: null,
-            }}
-            onSourcesClick={onDataTablesClick}
-          />
-        </div>
-      )}
 
       {/* Confirmation Modal */}
       <ExpensiveOperationModal

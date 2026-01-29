@@ -35,3 +35,5 @@ export type {
   DeepResearchDataTablesDrawerProps,
   DataTableConfig,
 } from './DeepResearchDataTablesDrawer';
+export { ReportModal } from './ReportModal';
+export type { ReportModalProps } from './ReportModal';
