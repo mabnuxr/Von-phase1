@@ -108,6 +108,50 @@ const StepIndicator: React.FC<{ status: ThinkingStep['status'] }> = ({ status })
 };
 
 // ============================================================================
+// Truncated Text with Tooltip Component
+// ============================================================================
+
+interface TruncatedTextProps {
+  text: string;
+  maxLength?: number;
+  className?: string;
+}
+
+const TruncatedText: React.FC<TruncatedTextProps> = ({ text, maxLength = 40, className = '' }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const shouldTruncate = text.length > maxLength;
+  const displayText = shouldTruncate ? `${text.slice(0, maxLength)}...` : text;
+
+  if (!shouldTruncate) {
+    return <span className={className}>{text}</span>;
+  }
+
+  return (
+    <span
+      className={`relative ${className}`}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span className="cursor-help">{displayText}</span>
+      <AnimatePresence>
+        {showTooltip && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 left-0 top-full mt-1 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
+            style={{ maxWidth: '480px', width: 'max-content' }}
+          >
+            {text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+};
+
+// ============================================================================
 // Bulk Update Item Row Component
 // ============================================================================
 
@@ -164,7 +208,7 @@ const BulkUpdateItemRow: React.FC<BulkUpdateItemRowProps> = ({
           </span>
         </div>
 
-        {/* Object type tag + Status indicator on right */}
+        {/* Status indicator on right */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {isSuccess && (
             <span className="flex items-center gap-1 text-emerald-600">
@@ -188,11 +232,6 @@ const BulkUpdateItemRow: React.FC<BulkUpdateItemRowProps> = ({
               </motion.span>
             </span>
           )}
-          {isPending && (
-            <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded-full">
-              {item.objectType}
-            </span>
-          )}
         </div>
       </button>
 
@@ -214,12 +253,22 @@ const BulkUpdateItemRow: React.FC<BulkUpdateItemRowProps> = ({
                     key={idx}
                     className="flex items-center gap-2 text-[12px] py-2 first:pt-0 last:pb-0"
                   >
-                    <span className="text-gray-800 min-w-[90px] font-medium">{change.field}</span>
+                    <span className="text-gray-800 min-w-[90px] font-medium flex-shrink-0">
+                      {change.field}
+                    </span>
                     {change.before !== undefined && change.before !== null && (
-                      <span className="text-red-500 line-through">{String(change.before)}</span>
+                      <TruncatedText
+                        text={String(change.before)}
+                        maxLength={40}
+                        className="text-red-500 line-through"
+                      />
                     )}
-                    <span className="text-gray-300">→</span>
-                    <span className="text-gray-900 font-medium">{String(change.after)}</span>
+                    <span className="text-gray-300 flex-shrink-0">→</span>
+                    <TruncatedText
+                      text={String(change.after)}
+                      maxLength={40}
+                      className="text-gray-900 font-medium"
+                    />
                   </div>
                 ))}
               </div>
@@ -267,6 +316,9 @@ interface BulkApprovalCardProps {
   onRejectItem: (id: string) => void;
   onUpdateAll: () => void;
   onRejectAll: () => void;
+  totalCount?: number; // Total count across all batches
+  batchNumber?: number; // Current batch number
+  totalBatches?: number; // Total number of batches
 }
 
 const BulkApprovalCard: React.FC<BulkApprovalCardProps> = ({
@@ -277,44 +329,51 @@ const BulkApprovalCard: React.FC<BulkApprovalCardProps> = ({
   onRejectItem,
   onUpdateAll,
   onRejectAll,
+  totalCount,
+  batchNumber = 1,
+  totalBatches = 1,
 }) => {
+  const listRef = React.useRef<HTMLDivElement>(null);
   const pendingItems = items.filter((item) => item.status === 'pending');
   const hasPendingItems = pendingItems.length > 0;
   const allDone = pendingItems.length === 0;
 
+  // Auto-scroll to bottom on mount
+  React.useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, []);
+
+  const displayCount = totalCount || items.length;
+  const showBatchInfo = totalBatches > 1;
+
   return (
     <div className="mt-2 px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-      {/* Header with Salesforce icon and bulk actions */}
+      {/* Header with Salesforce icon */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <SalesforceIcon size={18} />
           <span className="text-[13px] font-medium text-gray-900">
-            {items.length} Salesforce record{items.length !== 1 ? 's' : ''} to update
+            {displayCount} Salesforce record{displayCount !== 1 ? 's' : ''} to update
+            {showBatchInfo && (
+              <span className="text-gray-500 font-normal">
+                {' '}(batch {batchNumber} of {totalBatches})
+              </span>
+            )}
           </span>
           {allDone && (
             <span className="text-[11px] text-emerald-600 font-medium">All processed</span>
           )}
         </div>
-        {hasPendingItems && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onRejectAll}
-              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Reject All
-            </button>
-            <button
-              onClick={onUpdateAll}
-              className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors cursor-pointer"
-            >
-              Update All
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Items List */}
-      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+      {/* Items List - scrollable with max height */}
+      <div
+        ref={listRef}
+        className="border border-gray-200 rounded-lg overflow-hidden overflow-y-auto bg-white"
+        style={{ maxHeight: '400px' }}
+      >
         {items.map((item, idx) => (
           <BulkUpdateItemRow
             key={item.id}
@@ -327,6 +386,24 @@ const BulkApprovalCard: React.FC<BulkApprovalCardProps> = ({
           />
         ))}
       </div>
+
+      {/* Bulk Action Buttons at bottom */}
+      {hasPendingItems && (
+        <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-amber-200">
+          <button
+            onClick={onRejectAll}
+            className="px-3 py-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            Reject All
+          </button>
+          <button
+            onClick={onUpdateAll}
+            className="px-3 py-1.5 text-[11px] font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            Update All
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -771,6 +848,121 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       ],
       status: 'pending',
     },
+    {
+      id: '21',
+      summary: 'Cascade Software - New Champion',
+      objectType: 'Opportunity',
+      recordName: 'Cascade Enterprise Suite',
+      changes: [
+        { field: 'Champion', before: 'Robert Lee', after: 'Jennifer Martinez (SVP Engineering)' },
+        { field: 'Notes', before: null, after: 'New champion has stronger executive sponsorship and direct budget authority. Previous champion moved to different business unit.' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '22',
+      summary: 'Harbor Freight - Deal Acceleration',
+      objectType: 'Opportunity',
+      recordName: 'Harbor Logistics Platform',
+      changes: [
+        { field: 'Close Date', before: 'Jun 30', after: 'May 15' },
+        { field: 'Stage', before: 'Discovery', after: 'Proposal' },
+        { field: 'Probability', before: '25%', after: '50%' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '23',
+      summary: 'Zenith Corp - Scope Expansion',
+      objectType: 'Opportunity',
+      recordName: 'Zenith Digital Transformation',
+      changes: [
+        { field: 'Amount', before: '$560,000', after: '$780,000' },
+        { field: 'Notes', before: 'Initial scope for NA region', after: 'Expanded scope to include EMEA and APAC regions. Customer requested unified global rollout after successful pilot in North America. Additional modules for compliance and reporting added.' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '24',
+      summary: 'Meridian Health - Risk Mitigation',
+      objectType: 'Opportunity',
+      recordName: 'Meridian Patient Management',
+      changes: [
+        { field: 'Deal Risk', before: 'High', after: 'Medium' },
+        { field: 'Notes', before: 'Competitor threat identified', after: 'Competitor concern addressed through enhanced pricing and additional support commitments. Executive sponsor confirmed continued support.' },
+        { field: 'Probability', before: '20%', after: '45%' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '25',
+      summary: 'Titan Industries - Contract Extension',
+      objectType: 'Opportunity',
+      recordName: 'Titan Manufacturing Suite',
+      changes: [
+        { field: 'Close Date', before: 'Apr 15', after: 'Jul 30' },
+        { field: 'Notes', before: null, after: 'Legal review extended due to compliance requirements for manufacturing sector. Customer legal team requested additional security documentation and SOC2 audit results.' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '26',
+      summary: 'Phoenix Labs - Budget Increase',
+      objectType: 'Opportunity',
+      recordName: 'Phoenix Research Platform',
+      changes: [
+        { field: 'Amount', before: '$420,000', after: '$510,000' },
+        { field: 'Stage', before: 'Proposal', after: 'Negotiation' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '27',
+      summary: 'Sterling Finance - Fast Track',
+      objectType: 'Opportunity',
+      recordName: 'Sterling Trading System',
+      changes: [
+        { field: 'Stage', before: 'Qualification', after: 'Proposal' },
+        { field: 'Close Date', before: 'Aug 15', after: 'Jun 30' },
+        { field: 'Notes', before: null, after: 'Customer has urgent need due to regulatory deadline' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '28',
+      summary: 'Aurora Tech - Competitive Displacement',
+      objectType: 'Opportunity',
+      recordName: 'Aurora Cloud Migration',
+      changes: [
+        { field: 'Probability', before: '35%', after: '70%' },
+        { field: 'Notes', before: 'In evaluation with 2 competitors', after: 'Selected as preferred vendor after successful POC. Competitor eliminated due to performance issues in benchmark testing.' },
+        { field: 'Stage', before: 'Discovery', after: 'Negotiation' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '29',
+      summary: 'Coastal Retail - Multi-Year Deal',
+      objectType: 'Opportunity',
+      recordName: 'Coastal POS System',
+      changes: [
+        { field: 'Amount', before: '$180,000', after: '$520,000' },
+        { field: 'Notes', before: 'Single year contract', after: 'Converted to 3-year agreement with volume discount. Customer committed to enterprise-wide rollout across all 450 retail locations.' },
+      ],
+      status: 'pending',
+    },
+    {
+      id: '30',
+      summary: 'Orion Aerospace - Executive Sponsor',
+      objectType: 'Opportunity',
+      recordName: 'Orion Flight Systems',
+      changes: [
+        { field: 'Champion', before: 'Technical Lead', after: 'CIO David Park' },
+        { field: 'Probability', before: '40%', after: '65%' },
+        { field: 'Notes', before: null, after: 'Elevated to C-level sponsorship after strategic alignment with digital transformation initiative' },
+      ],
+      status: 'pending',
+    },
   ]);
   const [expandedItemId, setExpandedItemId] = useState<string | null>('1'); // First item expanded by default
 
@@ -807,7 +999,7 @@ WHERE Id IN ('006...', '006...', '006...', '006...')`,
         id: 'step-3',
         text: 'Preparing bulk update request',
         status: 'awaiting-approval',
-        description: 'Ready to update 20 opportunities based on pipeline review decisions.',
+        description: 'Ready to update 30 opportunities based on pipeline review decisions.',
       },
     ];
 
