@@ -604,6 +604,17 @@ const Dashboard = () => {
     [isAgentV2, currentConversationId, user?.tenantId, user?.id],
   );
 
+  const v2InitialRunEvents = useMemo(() => {
+    if (!isAgentV2 || !conversationMessages.length) return undefined;
+    for (let i = conversationMessages.length - 1; i >= 0; i--) {
+      const msg = conversationMessages[i];
+      if (msg.role === "assistant" && msg.events && msg.events.length > 0) {
+        return msg.events;
+      }
+    }
+    return undefined;
+  }, [isAgentV2, conversationMessages]);
+
   // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
   const {
     timelineSteps: v2TimelineSteps,
@@ -613,7 +624,7 @@ const Dashboard = () => {
     isFinalResponseStreaming: v2IsFinalResponseStreaming,
     researchResults: v2ResearchResults,
     isDeepResearchRunning: v2IsDeepResearchRunning,
-  } = useConversationPusherChannelV2(v2ChannelConfig);
+  } = useConversationPusherChannelV2(v2ChannelConfig, v2InitialRunEvents);
 
   // Transform backend messages to Chat component format
   // Handles both V1 (simple) and V2 (timeline steps, research results) agents
