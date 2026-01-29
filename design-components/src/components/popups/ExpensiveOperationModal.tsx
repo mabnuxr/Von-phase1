@@ -134,7 +134,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
                 <span className="font-medium text-gray-900">
                   {safeRecordCount.toLocaleString()} records
                 </span>
-                across your connected data sources.
+                {' across your connected data sources.'}
               </p>
 
               {/* Time estimate */}
