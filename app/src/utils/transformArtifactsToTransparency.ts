@@ -208,7 +208,6 @@ function transformArtifactToQueryResult(
   if (artifact.category?.toLowerCase() === "memory" || MEMORY_TOOL_NAMES.has(tool_name)) {
     return null;
   }
-  }
 
   // Handle generic JSON/table artifacts
   if (artifact.artifact_type === "table" || artifact.artifact_type === "json") {
