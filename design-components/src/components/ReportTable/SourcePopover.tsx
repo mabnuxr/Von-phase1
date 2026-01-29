@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowUpRight } from '@phosphor-icons/react';
 import type { SourceReference, AIReasoningData } from './ReportTable';
-import { LOGO_STATIC_URL } from '../../constants';
+import { LOGO_URL } from '../../constants';
 
 // Source icons - inline SVGs for portability
 const SalesforceIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
@@ -138,7 +138,7 @@ export const SourcePopover: React.FC<SourcePopoverProps> = ({ reasoning, onClose
     >
       {/* Header with Von logo + opportunity name */}
       <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50 border-b border-gray-100">
-        <img src={LOGO_STATIC_URL} alt="Von" className="w-4 h-4 rounded-sm" />
+        <img src={LOGO_URL} alt="Von" className="w-4 h-4 rounded-sm" />
         {reasoning.recordName && (
           <span className="text-sm font-medium text-gray-900 truncate">{reasoning.recordName}</span>
         )}

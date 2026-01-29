@@ -288,6 +288,7 @@ export {
   CallsTabShimmer,
   CallsTabError,
   DataTablesDrawer,
+  IQDataTabContent,
 } from './TransparencyDrawer';
 export type {
   TransparencyDrawerProps,
@@ -302,6 +303,8 @@ export type {
   CallsTabContentProps,
   DataTablesDrawerProps,
   DataTableArtifact,
+  IQQueryResult,
+  IQDataTabContentProps,
 } from './TransparencyDrawer';
 
 // ============================================================================
@@ -324,6 +327,8 @@ export type {
   SingleArtifactDrawerProps,
   DataViewProps as ArtifactDataViewProps,
   CallsViewProps as ArtifactCallsViewProps,
+  MemoryViewProps as ArtifactMemoryViewProps,
+  IQViewProps as ArtifactIQViewProps,
   ArtifactViewMode,
   ArtifactContentViewerProps,
   ArtifactContentData,

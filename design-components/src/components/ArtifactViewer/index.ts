@@ -4,6 +4,8 @@ export type {
   SingleArtifactDrawerProps,
   DataViewProps,
   CallsViewProps,
+  MemoryViewProps,
+  IQViewProps,
   ArtifactViewMode,
 } from './SingleArtifactDrawer';
 

@@ -12,7 +12,7 @@
 
 import React, { useMemo } from "react";
 import { SingleArtifactDrawer } from "@vonlabs/design-components";
-import type { QueryColumn, CallTranscript } from "@vonlabs/design-components";
+import type { QueryColumn, CallTranscript, ReportColumn } from "@vonlabs/design-components";
 import {
   useLazyArtifactContent,
   type ArtifactResponse,
@@ -22,6 +22,7 @@ import {
   isRagArtifact,
   transformSingleArtifactToCalls,
 } from "../utils/transformArtifactsToCalls";
+import { transformIQArtifactToDataTable } from "../utils/transformArtifactsToTransparency";
 
 export interface SingleArtifactDrawerContainerProps {
   /** Conversation ID for fetching artifact */
@@ -60,10 +61,18 @@ interface TransformedMemoryArtifact {
   };
 }
 
+interface TransformedIQArtifact {
+  viewMode: "iq";
+  columns: ReportColumn[];
+  data: Record<string, unknown>[];
+  rowCount: number;
+}
+
 type TransformedArtifact =
   | TransformedDataArtifact
   | TransformedCallsArtifact
-  | TransformedMemoryArtifact;
+  | TransformedMemoryArtifact
+  | TransformedIQArtifact;
 
 /**
  * Transform artifact content to display format
@@ -97,6 +106,19 @@ function transformArtifactToDisplayFormat(
         error: content.error as string | undefined,
       },
     };
+  }
+
+  // Handle IQ artifacts - render with ReportTable (same as DataTablesDrawer)
+  if (category?.toLowerCase() === "iq") {
+    const tableConfig = transformIQArtifactToDataTable(artifact);
+    if (tableConfig) {
+      return {
+        viewMode: "iq",
+        columns: tableConfig.columns,
+        data: tableConfig.data,
+        rowCount: tableConfig.rowCount,
+      };
+    }
   }
 
   // Handle SQL and SOQL query artifacts
@@ -314,17 +336,34 @@ export const SingleArtifactDrawerContainer: React.FC<
     );
   }
 
+  if (displayData?.viewMode === "iq") {
+    return (
+      <SingleArtifactDrawer
+        isOpen={isOpen}
+        onClose={onClose}
+        toolName={toolName}
+        viewMode="iq"
+        columns={displayData.columns}
+        data={displayData.data}
+        rowCount={displayData.rowCount}
+        isLoading={isLoading}
+        error={errorMessage}
+      />
+    );
+  }
+
   // Default to data view (includes null displayData case)
+  const dataDisplayData = displayData as TransformedDataArtifact | null;
   return (
     <SingleArtifactDrawer
       isOpen={isOpen}
       onClose={onClose}
       toolName={toolName}
       viewMode="data"
-      query={displayData?.query}
-      columns={displayData?.columns ?? []}
-      rows={displayData?.rows ?? []}
-      duration={displayData?.duration}
+      query={dataDisplayData?.query}
+      columns={dataDisplayData?.columns ?? []}
+      rows={dataDisplayData?.rows ?? []}
+      duration={dataDisplayData?.duration}
       isLoading={isLoading}
       error={errorMessage}
     />

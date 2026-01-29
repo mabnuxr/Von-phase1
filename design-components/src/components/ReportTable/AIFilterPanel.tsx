@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Trash, DotsSixVertical, Plus, PencilSimple } from '@phosphor-icons/react';
-import { LOGO_STATIC_URL } from '../../constants';
+import { LOGO_URL } from '../../constants';
 import { Dropdown } from '../forms/dropdown';
 
 // ============================================================================
@@ -409,7 +409,7 @@ export const AIFilterPanel: React.FC<AIFilterPanelProps> = ({
       {/* AI Prompt Input */}
       <div className="relative">
         <div className="absolute left-3 top-1/2 -translate-y-1/2">
-          <img src={LOGO_STATIC_URL} alt="Von" className="w-4 h-4 rounded-sm" />
+          <img src={LOGO_URL} alt="Von" className="w-4 h-4 rounded-sm" />
         </div>
         <input
           ref={inputRef}

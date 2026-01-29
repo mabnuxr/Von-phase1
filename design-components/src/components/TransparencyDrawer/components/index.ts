@@ -7,3 +7,5 @@ export { DataTabContent } from './DataTabContent';
 export { DataTabShimmer } from './DataTabShimmer';
 export { CallsTabShimmer } from './CallsTabShimmer';
 export { CallsTabError } from './CallsTabError';
+export { IQDataTabContent } from './IQDataTabContent';
+export type { IQQueryResult, IQDataTabContentProps } from './IQDataTabContent';
