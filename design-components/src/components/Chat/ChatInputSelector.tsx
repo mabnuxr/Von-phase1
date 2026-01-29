@@ -109,6 +109,7 @@ export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
     const sharedStandardProps = {
       ...baseCommonProps,
       onDisabledInput,
+      hideDisclaimer,
       onFileError,
       droppedFiles,
       onDroppedFilesProcessed,

@@ -76,6 +76,16 @@ interface SqlArtifactContent {
 }
 
 /**
+ * Memory tool names to exclude from sources
+ */
+export const MEMORY_TOOL_NAMES = new Set([
+  "get_org_memory",
+  "save_org_memory",
+  "update_org_memory",
+  "execute_org_memory",
+]);
+
+/**
  * Human-readable tool name mapping
  */
 const TOOL_NAME_MAP: Record<string, string> = {
@@ -193,6 +203,11 @@ function transformArtifactToQueryResult(
       executedAt: new Date(persisted_at),
       duration: sqlContent.execution_time_ms,
     };
+  }
+
+  // Skip memory artifacts - not shown in sources
+  if (artifact.category === "memory" || MEMORY_TOOL_NAMES.has(tool_name)) {
+    return null;
   }
 
   // Handle generic JSON/table artifacts
@@ -332,7 +347,7 @@ export function transformArtifactsToTransparency(
 
   for (const artifact of artifacts) {
     const queryResult = transformArtifactToQueryResult(artifact);
-    if (queryResult) {
+    if (queryResult && queryResult.rows.length > 0) {
       queries.push(queryResult);
     }
   }
