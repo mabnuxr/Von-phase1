@@ -185,43 +185,58 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
 
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
-            <div key={message.id} className="w-full pt-6 bg-white font-sf">
-              <div className="px-2">
-                <div className="max-w-4xl mx-auto">
-                  <div className="w-full">
-                    <div className="flex gap-4 items-start">
-                      <div className="flex items-start gap-2 flex-shrink-0">
-                        <VonLogoAvatar />
-                      </div>
-                      <div className="flex-1 min-w-0 -mt-0.5">
-                        {message.timelineSteps && message.timelineSteps.length > 0 && (
-                          <TimelineThinkingProcess
-                            steps={message.timelineSteps}
-                            isThinking={message.isStreaming}
-                            elapsedTime={message.thinkingElapsedTime}
-                            onApprove={(stepId) => {
-                              if (message.runId) onApprove?.(stepId, message.runId);
-                            }}
-                            onReject={(stepId) => {
-                              if (message.runId) onReject?.(stepId, message.runId);
-                            }}
-                            onArtifactClick={onArtifactClick}
+            <div key={message.id} className="max-w-4xl mx-auto">
+              <div className="flex gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <VonLogoAvatar />
+                </div>
+                <div className="flex-1 space-y-3 min-w-0">
+                  {message.timelineSteps && message.timelineSteps.length > 0 && (
+                    <TimelineThinkingProcess
+                      steps={message.timelineSteps}
+                      isThinking={message.isStreaming}
+                      elapsedTime={message.thinkingElapsedTime}
+                      onApprove={(stepId) => {
+                        if (message.runId) onApprove?.(stepId, message.runId);
+                      }}
+                      onReject={(stepId) => {
+                        if (message.runId) onReject?.(stepId, message.runId);
+                      }}
+                      onArtifactClick={onArtifactClick}
+                    />
+                  )}
+                  {/* Approval card with DataTablesCard as beforeActions */}
+                  {isApprovalMessage && (
+                    <MarkdownActionCard
+                      variant="analysis-request"
+                      markdown={
+                        approvalMessage.v2FinalResponse ||
+                        'Would you like me to proceed with the full comprehensive analysis?'
+                      }
+                      isStreaming={false}
+                      primaryAction={{
+                        label: 'Run Full Analysis',
+                        onClick: handleRunFullAnalysisClick,
+                        disabled: isDeepResearchRunning,
+                        isLoading: isDeepResearchRunning,
+                      }}
+                      secondaryAction={{
+                        label: 'Skip',
+                        onClick: () => onSendMessage?.('Skip the full analysis'),
+                        disabled: isDeepResearchRunning,
+                      }}
+                      beforeActions={
+                        dataTablesInfo && onDataTablesClick ? (
+                          <DataTablesCard
+                            tableCount={dataTablesInfo.tableCount}
+                            processedRecords={dataTablesInfo.processedRecords}
+                            totalRecords={dataTablesInfo.totalRecords}
+                            onClick={onDataTablesClick}
                           />
-                        )}
-                        {/* DataTablesCard below timeline for sample run (approval state) */}
-                        {isApprovalMessage && dataTablesInfo && onDataTablesClick && (
-                          <div className="mt-4">
-                            <DataTablesCard
-                              tableCount={dataTablesInfo.tableCount}
-                              processedRecords={dataTablesInfo.processedRecords}
-                              totalRecords={dataTablesInfo.totalRecords}
-                              onClick={onDataTablesClick}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                        ) : undefined
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -277,30 +292,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
         </div>
       )}
 
-      {/* Deep Research Approval UI - Show when waiting for user decision */}
-      {approvalMessage && (
-        <div className="mb-4 px-4 mx-auto max-w-4xl">
-          <MarkdownActionCard
-            variant="analysis-request"
-            markdown={
-              approvalMessage.v2FinalResponse ||
-              'Would you like me to proceed with the full comprehensive analysis?'
-            }
-            isStreaming={false}
-            primaryAction={{
-              label: 'Run Full Analysis',
-              onClick: handleRunFullAnalysisClick,
-              disabled: isDeepResearchRunning,
-              isLoading: isDeepResearchRunning,
-            }}
-            secondaryAction={{
-              label: 'Skip',
-              onClick: () => onSendMessage?.('Skip the full analysis'),
-              disabled: isDeepResearchRunning,
-            }}
-          />
-        </div>
-      )}
 
       {/* Confirmation Modal */}
       <ExpensiveOperationModal
