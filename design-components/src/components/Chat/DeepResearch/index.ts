@@ -30,3 +30,8 @@ export type {
   CalendarOperationType,
   CalendarEvent,
 } from './MarkdownActionCard';
+export { DeepResearchDataTablesDrawer } from './DeepResearchDataTablesDrawer';
+export type {
+  DeepResearchDataTablesDrawerProps,
+  DataTableConfig,
+} from './DeepResearchDataTablesDrawer';

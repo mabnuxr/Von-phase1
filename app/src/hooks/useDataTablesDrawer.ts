@@ -4,19 +4,16 @@
  * Handles:
  * - Fetching VonIQ artifacts from the sample run
  * - Lazy loading of artifact content when user selects a tab
- * - Transformation of artifacts to QueryResults
+ * - Transformation of artifacts to DataTableConfig format for DeepResearchDataTablesDrawer
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type {
-  TransparencyQueryResult,
-  DataTableArtifact,
-} from "@vonlabs/design-components";
+import type { DataTableConfig } from "@vonlabs/design-components";
 import {
   useDeepResearchArtifacts,
   useLazyArtifactContent,
 } from "./useMessageArtifacts";
-import { transformSingleArtifact } from "../utils/transformArtifactsToTransparency";
+import { transformIQArtifactToDataTable } from "../utils/transformArtifactsToTransparency";
 import type { ArtifactResponse } from "../services/conversationsService";
 
 export interface UseDataTablesDrawerParams {
@@ -26,8 +23,8 @@ export interface UseDataTablesDrawerParams {
 }
 
 export interface UseDataTablesDrawerReturn {
-  /** Artifacts transformed for display */
-  artifacts: DataTableArtifact[];
+  /** Data tables for DeepResearchDataTablesDrawer */
+  tables: DataTableConfig[];
   /** Currently selected artifact ID */
   selectedArtifactId: string | null;
   /** Handler for artifact selection */
@@ -120,30 +117,33 @@ export function useDataTablesDrawer({
     }
   }, [vonIqArtifacts]);
 
-  // Transform artifacts for display
-  const artifacts = useMemo((): DataTableArtifact[] => {
-    return vonIqArtifacts.map((summary) => {
-      const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
-      const isCurrentlyLoading =
-        summary.artifact_id === selectedArtifactId && isArtifactLoading;
+  // Transform artifacts to DataTableConfig format for DeepResearchDataTablesDrawer
+  const tables = useMemo((): DataTableConfig[] => {
+    return vonIqArtifacts
+      .map((summary) => {
+        const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
+        const isCurrentlyLoading =
+          summary.artifact_id === selectedArtifactId && isArtifactLoading;
 
-      let data: TransparencyQueryResult | undefined;
-      if (loadedArtifact) {
-        const result = transformSingleArtifact(loadedArtifact);
-        if (result) {
-          data = result;
+        // If artifact is loaded, transform it
+        if (loadedArtifact) {
+          const table = transformIQArtifactToDataTable(loadedArtifact);
+          if (table) {
+            return table;
+          }
         }
-      }
 
-      return {
-        id: summary.artifact_id,
-        name: summary.tool_name || `Table ${summary.artifact_id.slice(0, 8)}`,
-        description: summary.artifact_type,
-        category: summary.category,
-        isLoading: isCurrentlyLoading,
-        data,
-      };
-    });
+        // Return a placeholder for unloaded artifacts
+        return {
+          id: summary.artifact_id,
+          name: summary.tool_name || `Table ${summary.artifact_id.slice(0, 8)}`,
+          description: isCurrentlyLoading ? "Loading..." : summary.artifact_type,
+          columns: [],
+          data: [],
+          rowCount: 0,
+        } as DataTableConfig;
+      })
+      .filter((table): table is DataTableConfig => table !== null);
   }, [vonIqArtifacts, loadedArtifacts, selectedArtifactId, isArtifactLoading]);
 
   // Handle artifact selection
@@ -152,7 +152,7 @@ export function useDataTablesDrawer({
   }, []);
 
   return {
-    artifacts,
+    tables,
     selectedArtifactId,
     handleArtifactSelect,
     dataTablesInfo,

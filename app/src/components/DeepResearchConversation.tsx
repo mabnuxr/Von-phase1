@@ -15,7 +15,7 @@ import {
   DeepResearchChat,
   DeepResearchNotificationBar,
   ChatInputSelector,
-  DataTablesDrawer,
+  DeepResearchDataTablesDrawer,
 } from "@vonlabs/design-components";
 import type { Message, SendMessageOptions } from "@vonlabs/design-components";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
@@ -130,9 +130,7 @@ export const DeepResearchConversation: React.FC<
 
   // DataTablesDrawer hook for content loading
   const {
-    artifacts: dataTablesArtifacts,
-    selectedArtifactId: dataTablesSelectedId,
-    handleArtifactSelect: handleDataTablesArtifactSelect,
+    tables: dataTablesTables,
   } = useDataTablesDrawer({
     isOpen: isDataTablesOpen,
     conversationId,
@@ -210,13 +208,11 @@ export const DeepResearchConversation: React.FC<
       )}
 
       {/* DataTables Drawer */}
-      <DataTablesDrawer
+      <DeepResearchDataTablesDrawer
         isOpen={isDataTablesOpen}
         onClose={handleCloseDataTables}
-        title="Data Tables"
-        artifacts={dataTablesArtifacts}
-        onArtifactSelect={handleDataTablesArtifactSelect}
-        selectedArtifactId={dataTablesSelectedId ?? undefined}
+        title="Data Reference"
+        tables={dataTablesTables}
         totalRecords={vonIqDataTablesInfo?.totalRecords}
       />
     </div>

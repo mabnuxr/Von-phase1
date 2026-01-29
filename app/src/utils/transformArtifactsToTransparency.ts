@@ -392,3 +392,210 @@ export function transformSummariesToPlaceholders(
  * Re-export types for convenience
  */
 export type { TransparencyQueryResult, QueryColumn, CallTranscript };
+
+// ============================================================================
+// IQ Artifact Transformation (for DeepResearchDataTablesDrawer)
+// ============================================================================
+
+import type { ReportColumn, AIReasoningData } from "@vonlabs/design-components";
+
+/**
+ * IQ artifact content structure
+ * Based on the execute_iq_column_generator tool response
+ */
+interface IQArtifactColumn {
+  name: string;
+  display_name: string;
+  type?: string;
+  is_ai?: boolean;
+}
+
+interface IQArtifactCellValue {
+  value: unknown;
+  reason?: string;
+}
+
+interface IQArtifactContent {
+  sample?: {
+    columns: IQArtifactColumn[];
+    rows: Array<Record<string, unknown | IQArtifactCellValue>>;
+    size?: number;
+    is_complete?: boolean;
+  };
+  // Also support flat structure
+  columns?: IQArtifactColumn[];
+  rows?: Array<Record<string, unknown | IQArtifactCellValue>>;
+  row_count?: number;
+}
+
+/**
+ * DataTableConfig type for DeepResearchDataTablesDrawer
+ */
+export interface DataTableConfig {
+  id: string;
+  name: string;
+  description: string;
+  columns: ReportColumn[];
+  data: Record<string, unknown>[];
+  aiReasoningData?: Record<string, Record<string, AIReasoningData>>;
+  rowCount: number;
+}
+
+/**
+ * Map IQ column type to ReportColumn type
+ */
+function mapColumnType(type?: string): ReportColumn["type"] {
+  if (!type) return "text";
+
+  const typeMap: Record<string, ReportColumn["type"]> = {
+    string: "text",
+    text: "text",
+    number: "number",
+    integer: "number",
+    float: "number",
+    decimal: "number",
+    currency: "currency",
+    percentage: "percentage",
+    percent: "percentage",
+    date: "date",
+    datetime: "date",
+    boolean: "boolean",
+    bool: "boolean",
+    email: "email",
+    phone: "phone",
+    url: "url",
+    picklist: "picklist",
+    owner: "owner",
+    multipicklist: "multiPicklist",
+    sentiment: "sentiment",
+    longtext: "longText",
+  };
+
+  return typeMap[type.toLowerCase()] || "text";
+}
+
+/**
+ * Check if a cell value is an IQ cell value object (has value and optionally reason)
+ */
+function isIQCellValue(value: unknown): value is IQArtifactCellValue {
+  if (typeof value !== "object" || value === null) return false;
+  return "value" in value;
+}
+
+/**
+ * Transform a single IQ artifact into a DataTableConfig
+ *
+ * Key behaviors:
+ * - All columns except the first one are marked as AI columns (isAI: true)
+ * - Cell values with {value, reason} structure have their reason extracted for AI reasoning
+ */
+export function transformIQArtifactToDataTable(
+  artifact: ArtifactResponse,
+): DataTableConfig | null {
+  const { artifact_id, tool_name, content } = artifact;
+  const iqContent = content as unknown as IQArtifactContent;
+
+  // Support both nested (sample) and flat structure
+  const rawColumns = iqContent.sample?.columns || iqContent.columns;
+  const rawRows = iqContent.sample?.rows || iqContent.rows;
+
+  if (!rawColumns || !rawRows) {
+    return null;
+  }
+
+  // Transform columns to ReportColumn format
+  // Mark all columns except the first one as AI columns
+  const columns: ReportColumn[] = rawColumns.map((col, index) => ({
+    id: col.name,
+    label: col.display_name || col.name,
+    type: mapColumnType(col.type),
+    // First column is not AI, all others are AI columns
+    isAI: index > 0 ? true : (col.is_ai ?? false),
+    sortable: true,
+  }));
+
+  // Build a set of AI column IDs for quick lookup
+  const aiColumnIds = new Set(
+    columns.filter((col) => col.isAI).map((col) => col.id),
+  );
+
+  // Transform rows - extract values and AI reasoning
+  const data: Record<string, unknown>[] = [];
+
+  rawRows.forEach((row, rowIndex) => {
+    const transformedRow: Record<string, unknown> = {};
+    const rowReasoning: Record<string, AIReasoningData> = {};
+
+    // First pass: extract the record name from the first column or known ID fields
+    let recordName = "";
+    const firstColId = columns[0]?.id;
+    if (firstColId && row[firstColId]) {
+      const firstValue = row[firstColId];
+      if (isIQCellValue(firstValue)) {
+        recordName = String(firstValue.value || "");
+      } else {
+        recordName = String(firstValue || "");
+      }
+    }
+    if (!recordName) {
+      recordName = String(
+        row.name || row.opportunity_name || row.id || `Row ${rowIndex + 1}`,
+      );
+    }
+
+    for (const [key, value] of Object.entries(row)) {
+      if (isIQCellValue(value)) {
+        // IQ cell value with value and optional reason
+        transformedRow[key] = value.value;
+
+        // If this is an AI column and has a reason, add to reasoning data
+        if (value.reason && aiColumnIds.has(key)) {
+          rowReasoning[key] = {
+            reasoning: value.reason,
+            recordName,
+          };
+        }
+      } else {
+        // Regular value
+        transformedRow[key] = value;
+      }
+    }
+
+    // Add _aiReasoning to the row for ReportTable
+    if (Object.keys(rowReasoning).length > 0) {
+      transformedRow._aiReasoning = rowReasoning;
+    }
+
+    data.push(transformedRow);
+  });
+
+  // Get a human-readable name for the table
+  const tableName = getToolDisplayName(tool_name);
+
+  return {
+    id: artifact_id,
+    name: tableName,
+    description: `${rawRows.length} records`,
+    columns,
+    data,
+    rowCount: iqContent.row_count ?? rawRows.length,
+  };
+}
+
+/**
+ * Transform multiple IQ artifacts into DataTableConfig array
+ */
+export function transformIQArtifactsToDataTables(
+  artifacts: ArtifactResponse[],
+): DataTableConfig[] {
+  const tables: DataTableConfig[] = [];
+
+  for (const artifact of artifacts) {
+    const table = transformIQArtifactToDataTable(artifact);
+    if (table) {
+      tables.push(table);
+    }
+  }
+
+  return tables;
+}

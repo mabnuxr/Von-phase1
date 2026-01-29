@@ -314,7 +314,7 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 // REPORT TABLE (TanStack Table for data reports)
 // ============================================================================
 export { ReportTable } from './ReportTable';
-export type { ReportTableProps, ReportColumn, ColumnType } from './ReportTable';
+export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
 
 // ============================================================================
 // ARTIFACT VIEWER (Single artifact display drawer)
@@ -338,6 +338,7 @@ export {
   DeepResearchThinkingIndicator,
   DataTablesCard,
   DeepResearchApprovalCard,
+  DeepResearchDataTablesDrawer,
 } from './Chat';
 export type {
   DeepResearchNotificationBarProps,
@@ -345,6 +346,8 @@ export type {
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,
+  DeepResearchDataTablesDrawerProps,
+  DataTableConfig,
 } from './Chat';
 export type {
   // Event types
@@ -383,6 +386,6 @@ export { ExpensiveOperationModal } from './popups';
 export type { ExpensiveOperationModalProps } from './popups';
 
 // ============================================================================
-// DATA TABLES (Jan17Demo - kept for reference, use TransparencyDrawer/DataTablesDrawer for production)
+// DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
 // ============================================================================
-export type { DataTableConfig } from './Jan17Demo';
+// Note: DataTableConfig is now exported from Chat/DeepResearch

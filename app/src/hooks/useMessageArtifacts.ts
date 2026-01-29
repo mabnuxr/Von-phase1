@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import {
   conversationsService,
@@ -264,22 +265,33 @@ export function useDeepResearchArtifacts(
   // Only fetch the list of artifacts when enabled (after sample run completes)
   const listQuery = useMessageArtifacts(conversationId, runId, enabled);
 
-  // Filter artifacts by IQ category
-  const vonIqArtifacts =
-    listQuery.data?.artifacts.filter((artifact) => artifact.category?.toLowerCase() === 'iq') ??
-    [];
+  // Filter artifacts by IQ category - memoized to prevent new array reference on every render
+  const vonIqArtifacts = useMemo(
+    () =>
+      listQuery.data?.artifacts.filter((artifact) => artifact.category?.toLowerCase() === 'iq') ??
+      [],
+    [listQuery.data?.artifacts]
+  );
 
-  // Calculate total records from VonIQ artifacts (if size_bytes represents record count)
-  // For now, we'll use the artifact count as table count
-  const dataTablesInfo =
-    vonIqArtifacts.length > 0
-      ? {
-          tableCount: vonIqArtifacts.length,
-          // processedRecords and totalRecords will be populated when we fetch full content
-          processedRecords: undefined as number | undefined,
-          totalRecords: undefined as number | undefined,
-        }
-      : null;
+  // Calculate total records from VonIQ artifacts - memoized to prevent new object reference
+  const dataTablesInfo = useMemo(
+    () =>
+      vonIqArtifacts.length > 0
+        ? {
+            tableCount: vonIqArtifacts.length,
+            // processedRecords and totalRecords will be populated when we fetch full content
+            processedRecords: undefined as number | undefined,
+            totalRecords: undefined as number | undefined,
+          }
+        : null,
+    [vonIqArtifacts.length]
+  );
+
+  // Memoize allArtifacts to prevent new array reference
+  const allArtifacts = useMemo(
+    () => listQuery.data?.artifacts ?? [],
+    [listQuery.data?.artifacts]
+  );
 
   return {
     // List metadata
@@ -289,7 +301,7 @@ export function useDeepResearchArtifacts(
     // IQ artifact summaries (filtered by category)
     vonIqArtifacts,
     // All artifact summaries
-    allArtifacts: listQuery.data?.artifacts ?? [],
+    allArtifacts,
     // Data tables info for the DataTablesCard component
     dataTablesInfo,
     // Loading states

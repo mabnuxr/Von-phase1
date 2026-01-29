@@ -192,6 +192,7 @@ export {
   DataTablesCard,
   DeepResearchApprovalCard,
   MarkdownActionCard,
+  DeepResearchDataTablesDrawer,
 } from './DeepResearch';
 export type {
   DeepResearchNotificationBarProps,
@@ -206,6 +207,8 @@ export type {
   BulkItem,
   CalendarOperationType,
   CalendarEvent,
+  DeepResearchDataTablesDrawerProps,
+  DataTableConfig,
 } from './DeepResearch';
 export type {
   // Event types
