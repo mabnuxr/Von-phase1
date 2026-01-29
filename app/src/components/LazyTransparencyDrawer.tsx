@@ -3,9 +3,9 @@
  *
  * This component handles only rendering. Business logic is in useTransparencyDrawer hook.
  *
- * Data tab: Shows artifacts where category is NOT "RAG", "e2b", or "voniq"
+ * Data tab: Shows artifacts where category is NOT "RAG", "e2b", or "iq"
  * Calls tab: Shows artifacts where category IS "RAG", fetched via bulk API when drawer opens
- * Deep Research tab: Shows artifacts where category IS "VonIQ" (automatically shown when VonIQ artifacts exist)
+ * Deep Research tab: Shows artifacts where category IS "iq" (automatically shown when IQ artifacts exist)
  */
 
 import React, { useMemo } from "react";

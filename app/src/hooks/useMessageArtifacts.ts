@@ -29,7 +29,11 @@ import {
  * );
  * ```
  */
-export function useMessageArtifacts(conversationId: string | null, runId: string | null) {
+export function useMessageArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+  enabled: boolean = true
+) {
   return useQuery({
     queryKey: ['message-artifacts', conversationId, runId],
     queryFn: async () => {
@@ -38,7 +42,7 @@ export function useMessageArtifacts(conversationId: string | null, runId: string
       }
       return conversationsService.getMessageArtifacts(conversationId, runId);
     },
-    enabled: !!(conversationId && runId),
+    enabled: enabled && !!(conversationId && runId),
     staleTime: ARTIFACT_STALE_TIME,
     gcTime: ARTIFACT_GC_TIME,
     retry: ARTIFACT_RETRY_COUNT,
@@ -242,23 +246,27 @@ export function useBulkArtifacts(
 }
 
 /**
- * Hook for fetching VonIQ artifacts for Deep Research data tables
+ * Hook for fetching IQ artifacts for Deep Research data tables
  *
  * Used after a deep research sample run completes to show the data tables info.
- * Fetches artifact summaries and filters by category "VonIQ".
+ * Fetches artifact summaries and filters by category "iq".
  *
  * @param conversationId - ID of the conversation
  * @param runId - Run ID of the message (null to disable)
- * @returns Result with VonIQ artifact summaries and data tables info
+ * @param enabled - Whether to enable the query (default: true). Set to false to delay fetching until sample run completes.
+ * @returns Result with IQ artifact summaries and data tables info
  */
-export function useDeepResearchArtifacts(conversationId: string | null, runId: string | null) {
-  // Only fetch the list of artifacts initially
-  const listQuery = useMessageArtifacts(conversationId, runId);
+export function useDeepResearchArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+  enabled: boolean = true
+) {
+  // Only fetch the list of artifacts when enabled (after sample run completes)
+  const listQuery = useMessageArtifacts(conversationId, runId, enabled);
 
-  console.log('listQueryResult', listQuery.data?.artifacts);
-  // Filter artifacts by VonIQ category
+  // Filter artifacts by IQ category
   const vonIqArtifacts =
-    listQuery.data?.artifacts.filter((artifact) => artifact.category?.toLowerCase() === 'voniq') ??
+    listQuery.data?.artifacts.filter((artifact) => artifact.category?.toLowerCase() === 'iq') ??
     [];
 
   // Calculate total records from VonIQ artifacts (if size_bytes represents record count)
@@ -278,7 +286,7 @@ export function useDeepResearchArtifacts(conversationId: string | null, runId: s
     conversationId: listQuery.data?.conversation_id ?? conversationId,
     runId: listQuery.data?.run_id ?? runId,
     totalCount: listQuery.data?.total_count ?? 0,
-    // VonIQ artifact summaries (filtered by category)
+    // IQ artifact summaries (filtered by category)
     vonIqArtifacts,
     // All artifact summaries
     allArtifacts: listQuery.data?.artifacts ?? [],

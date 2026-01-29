@@ -108,20 +108,24 @@ export const DeepResearchConversation: React.FC<
   const [dataTablesRunId, setDataTablesRunId] = useState<string | null>(null);
 
   // Get runId from the last assistant message (works for both sample run and full analysis)
-  const lastAssistantRunId = useMemo(() => {
+  // Also check if the sample run is complete (has v2FinalResponse and not streaming)
+  const { lastAssistantRunId, isSampleRunComplete } = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
       if (msg.type === "assistant" && msg.runId) {
-        return msg.runId;
+        // Sample run is complete when v2FinalResponse exists and not streaming
+        const isComplete = !!msg.v2FinalResponse && !msg.isStreaming;
+        return { lastAssistantRunId: msg.runId, isSampleRunComplete: isComplete };
       }
     }
-    return null;
+    return { lastAssistantRunId: null, isSampleRunComplete: false };
   }, [messages]);
 
-  // Proactively fetch VonIQ artifact summaries for dataTablesInfo
+  // Fetch IQ artifact summaries for dataTablesInfo only after sample run completes
   const { dataTablesInfo: vonIqDataTablesInfo } = useDeepResearchArtifacts(
     conversationId,
     lastAssistantRunId,
+    isSampleRunComplete,
   );
 
   // DataTablesDrawer hook for content loading

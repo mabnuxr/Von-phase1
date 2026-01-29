@@ -183,16 +183,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           return false;
         })();
 
-        // For deep research mode, render only thinking process (no message actions)
-        // This applies to: approval message OR last assistant when research is showing
-        console.log({
-          isApprovalMessage,
-          dataTablesInfo,
-          onDataTablesClick,
-          isLastAssistant,
-          showResearchResults,
-        });
-
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
             <div key={message.id} className="w-full pt-6 bg-white font-sf">

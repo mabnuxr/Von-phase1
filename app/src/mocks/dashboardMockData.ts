@@ -464,7 +464,7 @@ export const mockArtifactSummaries: ArtifactSummary[] = [
     tool_call_id: 'tool-001',
     tool_name: 'execute_sql_query',
     artifact_type: 'table',
-    category: 'VonIQ',
+    category: 'iq',
     size_bytes: 2048,
     persisted_at: '2024-01-15T10:01:30Z',
   },
@@ -500,7 +500,7 @@ export const mockArtifactContent: ArtifactResponse = {
   tool_call_id: 'tool-001',
   tool_name: 'execute_sql_query',
   artifact_type: 'table',
-  category: 'VonIQ',
+  category: 'iq',
   size_bytes: 2048,
   persisted_at: '2024-01-15T10:01:30Z',
   content: {

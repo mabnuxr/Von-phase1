@@ -2,7 +2,7 @@
  * useTransparencyDrawer - Business logic for LazyTransparencyDrawer
  *
  * Handles:
- * - Artifact filtering by category (Data vs Calls/RAG vs VonIQ)
+ * - Artifact filtering by category (Data vs Calls/RAG vs IQ)
  * - Lazy loading of artifact content for Data tab and Deep Research tab
  * - Bulk fetching of RAG artifacts when drawer opens
  * - Caching of loaded artifacts
@@ -89,16 +89,16 @@ export function useTransparencyDrawer({
   artifactSummaries,
 }: UseTransparencyDrawerParams): UseTransparencyDrawerReturn {
   // Filter artifacts by category:
-  // - Data tab: NOT "rag", NOT "e2b", NOT "voniq"
+  // - Data tab: NOT "rag", NOT "e2b", NOT "iq"
   // - Calls tab: "rag"
-  // - Deep Research tab: "voniq"
+  // - Deep Research tab: "iq"
   const dataArtifactSummaries = useMemo(
     () =>
       artifactSummaries.filter(
         (s) =>
           s.category !== "e2b" &&
           s.category !== "rag" &&
-          s.category?.toLowerCase() !== "voniq",
+          s.category?.toLowerCase() !== "iq",
       ),
     [artifactSummaries],
   );
@@ -110,7 +110,7 @@ export function useTransparencyDrawer({
 
   const vonIqArtifactSummaries = useMemo(
     () =>
-      artifactSummaries.filter((s) => s.category?.toLowerCase() === "voniq"),
+      artifactSummaries.filter((s) => s.category?.toLowerCase() === "iq"),
     [artifactSummaries],
   );
 
