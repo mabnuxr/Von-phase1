@@ -177,66 +177,66 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 >
                   <div className="space-y-0">
                     {visibleSteps.map((step, idx) => {
-                        const displayMode = getStepDisplayMode(step, idx);
-                        const isExpanded = displayMode === 'expanded';
+                      const displayMode = getStepDisplayMode(step, idx);
+                      const isExpanded = displayMode === 'expanded';
 
-                        // Always use StepRow - description is always visible outside expanded block
-                        // The isExpanded prop controls whether code/approval/sub-steps are shown
-                        // Get the actual toolCallId from approval data, fallback to step.id
-                        const toolCallId = step.approval?.toolCallId || step.id;
+                      // Always use StepRow - description is always visible outside expanded block
+                      // The isExpanded prop controls whether code/approval/sub-steps are shown
+                      // Get the actual toolCallId from approval data, fallback to step.id
+                      const toolCallId = step.approval?.toolCallId || step.id;
 
-                        // Check local approval state for optimistic UI update
-                        const localState = localApprovalState.get(toolCallId);
-                        const isLocallyApproved = localState === 'approved';
-                        const isLocallyRejected = localState === 'rejected';
+                      // Check local approval state for optimistic UI update
+                      const localState = localApprovalState.get(toolCallId);
+                      const isLocallyApproved = localState === 'approved';
+                      const isLocallyRejected = localState === 'rejected';
 
-                        return (
-                          <StepRow
-                            key={step.id}
-                            step={step}
-                            isExpanded={isExpanded}
-                            onToggle={() => toggleStep(step.id)}
-                            onExpand={() => handleExpandStep(step)}
-                            isLast={idx === visibleSteps.length - 1}
-                            onApprove={
-                              onApprove
-                                ? () => {
-                                    if (import.meta.env.DEV) {
-                                      console.log('[TimelineThinkingProcess] onApprove called:', {
-                                        toolCallId,
-                                        stepId: step.id,
-                                        stepStatus: step.status,
-                                        approvalData: step.approval,
-                                      });
-                                    }
-                                    markAsApproved(toolCallId);
-                                    onApprove(toolCallId);
+                      return (
+                        <StepRow
+                          key={step.id}
+                          step={step}
+                          isExpanded={isExpanded}
+                          onToggle={() => toggleStep(step.id)}
+                          onExpand={() => handleExpandStep(step)}
+                          isLast={idx === visibleSteps.length - 1}
+                          onApprove={
+                            onApprove
+                              ? () => {
+                                  if (import.meta.env.DEV) {
+                                    console.log('[TimelineThinkingProcess] onApprove called:', {
+                                      toolCallId,
+                                      stepId: step.id,
+                                      stepStatus: step.status,
+                                      approvalData: step.approval,
+                                    });
                                   }
-                                : undefined
-                            }
-                            onReject={
-                              onReject
-                                ? () => {
-                                    if (import.meta.env.DEV) {
-                                      console.log('[TimelineThinkingProcess] onReject called:', {
-                                        toolCallId,
-                                        stepId: step.id,
-                                        stepStatus: step.status,
-                                        approvalData: step.approval,
-                                      });
-                                    }
-                                    markAsRejected(toolCallId);
-                                    onReject(toolCallId);
+                                  markAsApproved(toolCallId);
+                                  onApprove(toolCallId);
+                                }
+                              : undefined
+                          }
+                          onReject={
+                            onReject
+                              ? () => {
+                                  if (import.meta.env.DEV) {
+                                    console.log('[TimelineThinkingProcess] onReject called:', {
+                                      toolCallId,
+                                      stepId: step.id,
+                                      stepStatus: step.status,
+                                      approvalData: step.approval,
+                                    });
                                   }
-                                : undefined
-                            }
-                            onArtifactClick={onArtifactClick}
-                            isLocallyApproved={isLocallyApproved}
-                            isLocallyRejected={isLocallyRejected}
-                          />
-                        );
-                      })}
-                    </div>
+                                  markAsRejected(toolCallId);
+                                  onReject(toolCallId);
+                                }
+                              : undefined
+                          }
+                          onArtifactClick={onArtifactClick}
+                          isLocallyApproved={isLocallyApproved}
+                          isLocallyRejected={isLocallyRejected}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </motion.div>
