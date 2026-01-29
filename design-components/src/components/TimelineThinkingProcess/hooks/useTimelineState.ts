@@ -231,6 +231,8 @@ export function useTimelineState({
   // Effects
 
   // Track user scroll to detect when they've scrolled away from bottom
+  // Re-runs when visibleSteps.length changes so the listener attaches once
+  // the scroll container mounts (it's gated on visibleSteps.length > 0)
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -255,7 +257,7 @@ export function useTimelineState({
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [visibleSteps.length]);
 
   // Reset user scroll tracking when thinking starts
   useEffect(() => {

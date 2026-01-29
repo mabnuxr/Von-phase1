@@ -90,12 +90,15 @@ function transformArtifactsToQueries(
 
     if (loadedArtifact) {
       const result = transformSingleArtifact(loadedArtifact);
-      // Skip loaded artifacts that have no rows
-      if (result && result.rows.length > 0) {
-        results.push(result);
+      if (result) {
+        // Successfully transformed — only show if it has rows
+        if (result.rows.length > 0) {
+          results.push(result);
+        }
+        // Zero rows: skip tab entirely (no data to show)
+        continue;
       }
-      // If loaded but null or zero rows, skip entirely (don't show tab)
-      continue;
+      // result is null (unexpected schema, missing columns) — fall through to placeholder
     }
 
     // Not yet loaded — show placeholder
