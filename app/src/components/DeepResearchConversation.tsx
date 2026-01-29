@@ -133,6 +133,7 @@ export const DeepResearchConversation: React.FC<
     );
 
   // DataTablesDrawer hook for content loading
+  // Only enable fetching when sample run is complete to avoid caching empty data
   const {
     tables: dataTablesTables,
     isLoading: isDrawerLoading,
@@ -141,15 +142,17 @@ export const DeepResearchConversation: React.FC<
     isOpen: isDataTablesOpen,
     conversationId,
     runId: dataTablesRunId,
+    enabled: isSampleRunComplete,
   });
 
   // Handle DataTablesCard click - opens DataTables drawer
+  // Only allow opening when sample run is complete to avoid fetching incomplete data
   const handleDataTablesClick = useCallback(() => {
-    if (lastAssistantRunId) {
+    if (lastAssistantRunId && isSampleRunComplete) {
       setDataTablesRunId(lastAssistantRunId);
       setIsDataTablesOpen(true);
     }
-  }, [lastAssistantRunId]);
+  }, [lastAssistantRunId, isSampleRunComplete]);
 
   // Handle closing the DataTables drawer
   const handleCloseDataTables = useCallback(() => {

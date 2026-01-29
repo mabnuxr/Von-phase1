@@ -47,7 +47,30 @@ export interface UseTransparencyDrawerReturn {
   hasVonIqArtifacts: boolean;
 }
 
+// Module-level cache for loaded artifacts, scoped by conversationId:runId:artifactId
 const artifactCache = new Map<string, ArtifactResponse>();
+
+// Helper to create a scoped cache key
+function getCacheKey(
+  conversationId: string | null,
+  runId: string | null,
+  artifactId: string,
+): string {
+  return `${conversationId ?? ""}:${runId ?? ""}:${artifactId}`;
+}
+
+// Helper to clear cache entries for a specific conversation/run
+function clearCacheForRun(
+  conversationId: string | null,
+  runId: string | null,
+): void {
+  const prefix = `${conversationId ?? ""}:${runId ?? ""}:`;
+  for (const key of artifactCache.keys()) {
+    if (key.startsWith(prefix)) {
+      artifactCache.delete(key);
+    }
+  }
+}
 
 function transformArtifactsToQueries(
   dataArtifactSummaries: ArtifactSummary[],
@@ -154,11 +177,13 @@ export function useTransparencyDrawer({
   const { data: fetchedVonIqArtifact, isLoading: isVonIqArtifactLoading } =
     useLazyArtifactContent(conversationId, runId, selectedVonIqArtifactId);
 
-  // Reset state when conversation/run changes
+  // Reset state and clear cache when conversation/run changes
   useEffect(() => {
     setSelectedDataArtifactId(null);
     setSelectedVonIqArtifactId(null);
     setLoadedArtifacts(new Map());
+    // Clear stale cache entries for the previous conversation/run
+    clearCacheForRun(conversationId, runId);
   }, [conversationId, runId]);
 
   // Store fetched Data artifact in cache
@@ -167,11 +192,17 @@ export function useTransparencyDrawer({
       setLoadedArtifacts((prev) => {
         const next = new Map(prev);
         next.set(selectedDataArtifactId, fetchedDataArtifact);
-        artifactCache.set(selectedDataArtifactId, fetchedDataArtifact);
+        // Use scoped cache key to avoid cross-conversation/tenant collisions
+        const cacheKey = getCacheKey(
+          conversationId,
+          runId,
+          selectedDataArtifactId,
+        );
+        artifactCache.set(cacheKey, fetchedDataArtifact);
         return next;
       });
     }
-  }, [fetchedDataArtifact, selectedDataArtifactId]);
+  }, [fetchedDataArtifact, selectedDataArtifactId, conversationId, runId]);
 
   // Store fetched VonIQ artifact in cache
   useEffect(() => {
@@ -179,11 +210,17 @@ export function useTransparencyDrawer({
       setLoadedArtifacts((prev) => {
         const next = new Map(prev);
         next.set(selectedVonIqArtifactId, fetchedVonIqArtifact);
-        artifactCache.set(selectedVonIqArtifactId, fetchedVonIqArtifact);
+        // Use scoped cache key to avoid cross-conversation/tenant collisions
+        const cacheKey = getCacheKey(
+          conversationId,
+          runId,
+          selectedVonIqArtifactId,
+        );
+        artifactCache.set(cacheKey, fetchedVonIqArtifact);
         return next;
       });
     }
-  }, [fetchedVonIqArtifact, selectedVonIqArtifactId]);
+  }, [fetchedVonIqArtifact, selectedVonIqArtifactId, conversationId, runId]);
 
   // Auto-select first Data artifact when drawer opens
   useEffect(() => {
@@ -216,7 +253,9 @@ export function useTransparencyDrawer({
     if (artifactSummaries.length > 0) {
       const cachedArtifacts = new Map<string, ArtifactResponse>();
       for (const summary of artifactSummaries) {
-        const cached = artifactCache.get(summary.artifact_id);
+        // Use scoped cache key to retrieve from module cache
+        const cacheKey = getCacheKey(conversationId, runId, summary.artifact_id);
+        const cached = artifactCache.get(cacheKey);
         if (cached) {
           cachedArtifacts.set(summary.artifact_id, cached);
         }
@@ -225,7 +264,7 @@ export function useTransparencyDrawer({
         setLoadedArtifacts(cachedArtifacts);
       }
     }
-  }, [artifactSummaries]);
+  }, [artifactSummaries, conversationId, runId]);
 
   // Transform Data artifacts to QueryResults
   const queries = useMemo(

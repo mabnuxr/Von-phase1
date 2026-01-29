@@ -20,6 +20,8 @@ export interface UseDataTablesDrawerParams {
   isOpen: boolean;
   conversationId: string | null;
   runId: string | null;
+  /** Whether to enable fetching (e.g., only after sample run completes) */
+  enabled?: boolean;
 }
 
 export interface UseDataTablesDrawerReturn {
@@ -43,21 +45,44 @@ export interface UseDataTablesDrawerReturn {
   error: Error | null;
 }
 
-// Module-level cache for loaded artifacts
+// Module-level cache for loaded artifacts, scoped by conversationId:runId:artifactId
 const artifactCache = new Map<string, ArtifactResponse>();
+
+// Helper to create a scoped cache key
+function getCacheKey(
+  conversationId: string | null,
+  runId: string | null,
+  artifactId: string,
+): string {
+  return `${conversationId ?? ""}:${runId ?? ""}:${artifactId}`;
+}
+
+// Helper to clear cache entries for a specific conversation/run
+function clearCacheForRun(
+  conversationId: string | null,
+  runId: string | null,
+): void {
+  const prefix = `${conversationId ?? ""}:${runId ?? ""}:`;
+  for (const key of artifactCache.keys()) {
+    if (key.startsWith(prefix)) {
+      artifactCache.delete(key);
+    }
+  }
+}
 
 export function useDataTablesDrawer({
   isOpen,
   conversationId,
   runId,
+  enabled = true,
 }: UseDataTablesDrawerParams): UseDataTablesDrawerReturn {
-  // Fetch VonIQ artifacts for the message
+  // Fetch VonIQ artifacts for the message (only when enabled, e.g., after sample run completes)
   const {
     vonIqArtifacts,
     dataTablesInfo,
     isLoading: isListLoading,
     error: listError,
-  } = useDeepResearchArtifacts(conversationId, runId);
+  } = useDeepResearchArtifacts(conversationId, runId, enabled);
 
   // Track selected artifact and loaded content
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
@@ -71,10 +96,12 @@ export function useDataTablesDrawer({
   const { data: fetchedArtifact, isLoading: isArtifactLoading } =
     useLazyArtifactContent(conversationId, runId, selectedArtifactId);
 
-  // Reset state when conversation/run changes
+  // Reset state and clear cache when conversation/run changes
   useEffect(() => {
     setSelectedArtifactId(null);
     setLoadedArtifacts(new Map());
+    // Clear stale cache entries for the previous conversation/run
+    clearCacheForRun(conversationId, runId);
   }, [conversationId, runId]);
 
   // Store fetched artifact in local cache
@@ -83,11 +110,13 @@ export function useDataTablesDrawer({
       setLoadedArtifacts((prev) => {
         const next = new Map(prev);
         next.set(selectedArtifactId, fetchedArtifact);
-        artifactCache.set(selectedArtifactId, fetchedArtifact);
+        // Use scoped cache key to avoid cross-conversation/tenant collisions
+        const cacheKey = getCacheKey(conversationId, runId, selectedArtifactId);
+        artifactCache.set(cacheKey, fetchedArtifact);
         return next;
       });
     }
-  }, [fetchedArtifact, selectedArtifactId]);
+  }, [fetchedArtifact, selectedArtifactId, conversationId, runId]);
 
   // Auto-select first artifact when drawer opens
   useEffect(() => {
@@ -108,7 +137,9 @@ export function useDataTablesDrawer({
     if (vonIqArtifacts.length > 0) {
       const cachedArtifacts = new Map<string, ArtifactResponse>();
       for (const summary of vonIqArtifacts) {
-        const cached = artifactCache.get(summary.artifact_id);
+        // Use scoped cache key to retrieve from module cache
+        const cacheKey = getCacheKey(conversationId, runId, summary.artifact_id);
+        const cached = artifactCache.get(cacheKey);
         if (cached) {
           cachedArtifacts.set(summary.artifact_id, cached);
         }
@@ -117,7 +148,7 @@ export function useDataTablesDrawer({
         setLoadedArtifacts(cachedArtifacts);
       }
     }
-  }, [vonIqArtifacts]);
+  }, [vonIqArtifacts, conversationId, runId]);
 
   // Transform artifacts to DataTableConfig format for DeepResearchDataTablesDrawer
   const tables = useMemo((): DataTableConfig[] => {
