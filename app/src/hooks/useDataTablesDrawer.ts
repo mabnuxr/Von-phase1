@@ -139,7 +139,9 @@ export function useDataTablesDrawer({
         return {
           id: summary.artifact_id,
           name: summary.tool_name || `Table ${summary.artifact_id.slice(0, 8)}`,
-          description: isCurrentlyLoading ? "Loading..." : summary.artifact_type,
+          description: isCurrentlyLoading
+            ? "Loading..."
+            : summary.artifact_type,
           columns: [],
           data: [],
           rowCount: 0,

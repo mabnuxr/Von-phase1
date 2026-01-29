@@ -115,18 +115,22 @@ export const DeepResearchConversation: React.FC<
       if (msg.type === "assistant" && msg.runId) {
         // Sample run is complete when v2FinalResponse exists and not streaming
         const isComplete = !!msg.v2FinalResponse && !msg.isStreaming;
-        return { lastAssistantRunId: msg.runId, isSampleRunComplete: isComplete };
+        return {
+          lastAssistantRunId: msg.runId,
+          isSampleRunComplete: isComplete,
+        };
       }
     }
     return { lastAssistantRunId: null, isSampleRunComplete: false };
   }, [messages]);
 
   // Fetch IQ artifact summaries for dataTablesInfo only after sample run completes
-  const { dataTablesInfo: vonIqDataTablesInfo, isLoading: isArtifactsLoading } = useDeepResearchArtifacts(
-    conversationId,
-    lastAssistantRunId,
-    isSampleRunComplete,
-  );
+  const { dataTablesInfo: vonIqDataTablesInfo, isLoading: isArtifactsLoading } =
+    useDeepResearchArtifacts(
+      conversationId,
+      lastAssistantRunId,
+      isSampleRunComplete,
+    );
 
   // DataTablesDrawer hook for content loading
   const {

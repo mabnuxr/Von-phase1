@@ -109,8 +109,7 @@ export function useTransparencyDrawer({
   );
 
   const vonIqArtifactSummaries = useMemo(
-    () =>
-      artifactSummaries.filter((s) => s.category?.toLowerCase() === "iq"),
+    () => artifactSummaries.filter((s) => s.category?.toLowerCase() === "iq"),
     [artifactSummaries],
   );
 

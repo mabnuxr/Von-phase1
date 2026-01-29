@@ -296,7 +296,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
         </div>
       )}
 
-
       {/* Confirmation Modal */}
       <ExpensiveOperationModal
         isOpen={showConfirmModal}

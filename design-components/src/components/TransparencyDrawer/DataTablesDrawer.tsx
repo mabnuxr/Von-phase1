@@ -82,9 +82,7 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
   selectedArtifactId: controlledSelectedId,
   totalRecords,
 }) => {
-  const [internalSelectedId, setInternalSelectedId] = useState<string>(
-    artifacts[0]?.id || ''
-  );
+  const [internalSelectedId, setInternalSelectedId] = useState<string>(artifacts[0]?.id || '');
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedId = controlledSelectedId ?? internalSelectedId;

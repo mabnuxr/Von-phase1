@@ -1,16 +1,16 @@
-import { useMemo } from 'react';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useMemo } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import {
   conversationsService,
   type MessageArtifactsResponse,
   type ArtifactResponse,
-} from '../services/conversationsService';
+} from "../services/conversationsService";
 import {
   ARTIFACT_STALE_TIME,
   ARTIFACT_GC_TIME,
   ARTIFACT_RETRY_COUNT,
   ARTIFACT_MAX_RETRY_DELAY,
-} from '../config/constants';
+} from "../config/constants";
 
 /**
  * Hook for fetching the list of artifacts for a message/run
@@ -33,13 +33,13 @@ import {
 export function useMessageArtifacts(
   conversationId: string | null,
   runId: string | null,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   return useQuery({
-    queryKey: ['message-artifacts', conversationId, runId],
+    queryKey: ["message-artifacts", conversationId, runId],
     queryFn: async () => {
       if (!conversationId || !runId) {
-        throw new Error('Missing required parameters for artifacts fetch');
+        throw new Error("Missing required parameters for artifacts fetch");
       }
       return conversationsService.getMessageArtifacts(conversationId, runId);
     },
@@ -47,7 +47,8 @@ export function useMessageArtifacts(
     staleTime: ARTIFACT_STALE_TIME,
     gcTime: ARTIFACT_GC_TIME,
     retry: ARTIFACT_RETRY_COUNT,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
   });
 }
 
@@ -74,16 +75,20 @@ export function useMessageArtifacts(
 export function useArtifactContents(
   conversationId: string | null,
   runId: string | null,
-  artifactIds: string[]
+  artifactIds: string[],
 ) {
   return useQueries({
     queries: artifactIds.map((artifactId) => ({
-      queryKey: ['artifact-content', conversationId, runId, artifactId],
+      queryKey: ["artifact-content", conversationId, runId, artifactId],
       queryFn: async () => {
         if (!conversationId || !runId || !artifactId) {
-          throw new Error('Missing required parameters for artifact fetch');
+          throw new Error("Missing required parameters for artifact fetch");
         }
-        return conversationsService.getArtifactByRunId(conversationId, runId, artifactId);
+        return conversationsService.getArtifactByRunId(
+          conversationId,
+          runId,
+          artifactId,
+        );
       },
       enabled: !!(conversationId && runId && artifactId),
       staleTime: ARTIFACT_STALE_TIME,
@@ -106,7 +111,10 @@ export function useArtifactContents(
  * @param runId - Run ID of the message (null to disable)
  * @returns Combined result with list and contents
  */
-export function useTransparencyArtifacts(conversationId: string | null, runId: string | null) {
+export function useTransparencyArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+) {
   // First fetch the list of artifacts
   const listQuery = useMessageArtifacts(conversationId, runId);
 
@@ -114,12 +122,18 @@ export function useTransparencyArtifacts(conversationId: string | null, runId: s
   const artifactIds = listQuery.data?.artifacts.map((a) => a.artifact_id) ?? [];
 
   // Fetch all artifact contents in parallel
-  const contentQueries = useArtifactContents(conversationId, runId, artifactIds);
+  const contentQueries = useArtifactContents(
+    conversationId,
+    runId,
+    artifactIds,
+  );
 
   // Combine the results
-  const isLoading = listQuery.isLoading || contentQueries.some((q) => q.isLoading);
+  const isLoading =
+    listQuery.isLoading || contentQueries.some((q) => q.isLoading);
   const isError = listQuery.isError || contentQueries.some((q) => q.isError);
-  const error = listQuery.error || contentQueries.find((q) => q.error)?.error || null;
+  const error =
+    listQuery.error || contentQueries.find((q) => q.error)?.error || null;
 
   // Build the artifacts with content
   const artifactsWithContent: ArtifactResponse[] = [];
@@ -167,21 +181,26 @@ export function useTransparencyArtifacts(conversationId: string | null, runId: s
 export function useLazyArtifactContent(
   conversationId: string | null,
   runId: string | null,
-  artifactId: string | null
+  artifactId: string | null,
 ) {
   return useQuery({
-    queryKey: ['artifact-content', conversationId, runId, artifactId],
+    queryKey: ["artifact-content", conversationId, runId, artifactId],
     queryFn: async () => {
       if (!conversationId || !runId || !artifactId) {
-        throw new Error('Missing required parameters for artifact fetch');
+        throw new Error("Missing required parameters for artifact fetch");
       }
-      return conversationsService.getArtifactByRunId(conversationId, runId, artifactId);
+      return conversationsService.getArtifactByRunId(
+        conversationId,
+        runId,
+        artifactId,
+      );
     },
     enabled: !!(conversationId && runId && artifactId),
     staleTime: ARTIFACT_STALE_TIME,
     gcTime: ARTIFACT_GC_TIME,
     retry: ARTIFACT_RETRY_COUNT,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
   });
 }
 
@@ -193,7 +212,10 @@ export function useLazyArtifactContent(
  * @param runId - Run ID of the message (null to disable)
  * @returns Result with artifact summaries and function to fetch content
  */
-export function useLazyTransparencyArtifacts(conversationId: string | null, runId: string | null) {
+export function useLazyTransparencyArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+) {
   // Only fetch the list of artifacts initially
   const listQuery = useMessageArtifacts(conversationId, runId);
 
@@ -228,21 +250,26 @@ export function useLazyTransparencyArtifacts(conversationId: string | null, runI
 export function useBulkArtifacts(
   conversationId: string | null,
   runId: string | null,
-  artifactIds: string[]
+  artifactIds: string[],
 ) {
   return useQuery({
-    queryKey: ['bulk-artifacts', conversationId, runId, artifactIds],
+    queryKey: ["bulk-artifacts", conversationId, runId, artifactIds],
     queryFn: async () => {
       if (!conversationId || !runId || artifactIds.length === 0) {
         return [];
       }
-      return conversationsService.getBulkArtifacts(conversationId, runId, artifactIds);
+      return conversationsService.getBulkArtifacts(
+        conversationId,
+        runId,
+        artifactIds,
+      );
     },
     enabled: !!(conversationId && runId && artifactIds.length > 0),
     staleTime: ARTIFACT_STALE_TIME,
     gcTime: ARTIFACT_GC_TIME,
     retry: ARTIFACT_RETRY_COUNT,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
   });
 }
 
@@ -260,7 +287,7 @@ export function useBulkArtifacts(
 export function useDeepResearchArtifacts(
   conversationId: string | null,
   runId: string | null,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   // Only fetch the list of artifacts when enabled (after sample run completes)
   const listQuery = useMessageArtifacts(conversationId, runId, enabled);
@@ -268,9 +295,10 @@ export function useDeepResearchArtifacts(
   // Filter artifacts by IQ category - memoized to prevent new array reference on every render
   const vonIqArtifacts = useMemo(
     () =>
-      listQuery.data?.artifacts.filter((artifact) => artifact.category?.toLowerCase() === 'iq') ??
-      [],
-    [listQuery.data?.artifacts]
+      listQuery.data?.artifacts.filter(
+        (artifact) => artifact.category?.toLowerCase() === "iq",
+      ) ?? [],
+    [listQuery.data?.artifacts],
   );
 
   // Calculate total records from VonIQ artifacts - memoized to prevent new object reference
@@ -284,13 +312,13 @@ export function useDeepResearchArtifacts(
             totalRecords: undefined as number | undefined,
           }
         : null,
-    [vonIqArtifacts.length]
+    [vonIqArtifacts.length],
   );
 
   // Memoize allArtifacts to prevent new array reference
   const allArtifacts = useMemo(
     () => listQuery.data?.artifacts ?? [],
-    [listQuery.data?.artifacts]
+    [listQuery.data?.artifacts],
   );
 
   return {

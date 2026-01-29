@@ -1,18 +1,18 @@
-import { useFlags } from 'launchdarkly-react-client-sdk';
+import { useFlags } from "launchdarkly-react-client-sdk";
 
 /**
  * Feature flag keys used in the application
  */
 export const FEATURE_FLAGS = {
-  GOOGLE_CALENDAR_INTEGRATION: 'enableGoogleCalender',
-  EMAIL_CATEGORIZATION: 'enableEmailConfiguration',
-  SLASH_COMMANDS: 'enableSlashCommands',
-  ACTIONS: 'enableDashboards',
-  DEEP_LINKS: 'enableDeepLinks',
-  SIDE_BAR_V2: 'sidebarV2',
-  AGENT_V2: 'agentsV2',
-  USER_MEMORY: 'enableUserMemory',
-  DEEP_RESEARCH: 'deepResearch',
+  GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
+  EMAIL_CATEGORIZATION: "enableEmailConfiguration",
+  SLASH_COMMANDS: "enableSlashCommands",
+  ACTIONS: "enableDashboards",
+  DEEP_LINKS: "enableDeepLinks",
+  SIDE_BAR_V2: "sidebarV2",
+  AGENT_V2: "agentsV2",
+  USER_MEMORY: "enableUserMemory",
+  DEEP_RESEARCH: "deepResearch",
 } as const;
 
 /**
@@ -39,12 +39,14 @@ export function useFeatureFlag() {
     /**
      * Controls whether Google Calendar integration is visible
      */
-    isGoogleCalendarEnabled: flags[FEATURE_FLAGS.GOOGLE_CALENDAR_INTEGRATION] === true,
+    isGoogleCalendarEnabled:
+      flags[FEATURE_FLAGS.GOOGLE_CALENDAR_INTEGRATION] === true,
 
     /**
      * Controls whether Email Categorization tab is visible
      */
-    isEmailCategorizationEnabled: flags[FEATURE_FLAGS.EMAIL_CATEGORIZATION] === true,
+    isEmailCategorizationEnabled:
+      flags[FEATURE_FLAGS.EMAIL_CATEGORIZATION] === true,
 
     /**
      * Controls whether Slash Commands feature is enabled in chat
@@ -71,7 +73,7 @@ export function useFeatureFlag() {
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isAgentV2: true || flags[FEATURE_FLAGS.AGENT_V2] === true,
+    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
     /**
      * Controls whether user memory feature is enabled
      * (personal memory segment for each user)
@@ -81,7 +83,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
      */
-    isDeepResearchEnabled: true || flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
+    isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
 
     /**
      * Raw flags object for advanced usage
@@ -103,7 +105,7 @@ export function useFeatureFlag() {
  */
 export function useFeatureFlagValue(
   flagKey: FeatureFlagKey | string,
-  defaultValue: boolean = false
+  defaultValue: boolean = false,
 ): boolean {
   const flags = useFlags();
   return flags[flagKey] ?? defaultValue;
