@@ -254,8 +254,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       {/* Summary text before the results card */}
                       {researchResults.isCompleted && (
                         <p className="text-sm text-gray-700">
-                          I have completed the comprehensive analysis. Click on the card below to see
-                          the full details.
+                          I have completed the comprehensive analysis. Click on the card below to
+                          see the full details.
                         </p>
                       )}
                       <DeepResearchResults

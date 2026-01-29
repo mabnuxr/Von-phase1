@@ -83,7 +83,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <div className="prose-sm markdown-body max-w-none">
-                <Streamdown parseIncompleteMarkdown={false} isAnimating={false} controls={{ table: true }}>
+                <Streamdown
+                  parseIncompleteMarkdown={false}
+                  isAnimating={false}
+                  controls={{ table: true }}
+                >
                   {content}
                 </Streamdown>
               </div>

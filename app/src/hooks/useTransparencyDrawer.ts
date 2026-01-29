@@ -254,7 +254,11 @@ export function useTransparencyDrawer({
       const cachedArtifacts = new Map<string, ArtifactResponse>();
       for (const summary of artifactSummaries) {
         // Use scoped cache key to retrieve from module cache
-        const cacheKey = getCacheKey(conversationId, runId, summary.artifact_id);
+        const cacheKey = getCacheKey(
+          conversationId,
+          runId,
+          summary.artifact_id,
+        );
         const cached = artifactCache.get(cacheKey);
         if (cached) {
           cachedArtifacts.set(summary.artifact_id, cached);
