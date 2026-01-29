@@ -21,6 +21,7 @@ import {
 import {
   transformSingleArtifact,
   transformSummariesToPlaceholders,
+  MEMORY_TOOL_NAMES,
   type ArtifactSummary,
 } from "../utils/transformArtifactsToTransparency";
 import { transformBulkArtifactsToCalls } from "../utils/transformArtifactsToCalls";
@@ -82,27 +83,38 @@ function transformArtifactsToQueries(
     return [];
   }
 
-  return dataArtifactSummaries.map((summary) => {
+  const results: TransparencyQueryResult[] = [];
+
+  for (const summary of dataArtifactSummaries) {
     const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
 
     if (loadedArtifact) {
       const result = transformSingleArtifact(loadedArtifact);
       if (result) {
-        return result;
+        // Successfully transformed — only show if it has rows
+        if (result.rows.length > 0) {
+          results.push(result);
+        }
+        // Zero rows: skip tab entirely (no data to show)
+        continue;
       }
+      // result is null (unexpected schema, missing columns) — fall through to placeholder
     }
 
+    // Not yet loaded — show placeholder
     const placeholders = transformSummariesToPlaceholders([summary]);
     const placeholder = placeholders[0];
 
     if (summary.artifact_id === selectedArtifactId && isArtifactLoading) {
       placeholder.description = "Loading...";
-    } else if (!loadedArtifact) {
+    } else {
       placeholder.description = "Click to load";
     }
 
-    return placeholder;
-  });
+    results.push(placeholder);
+  }
+
+  return results;
 }
 
 export function useTransparencyDrawer({
@@ -112,7 +124,7 @@ export function useTransparencyDrawer({
   artifactSummaries,
 }: UseTransparencyDrawerParams): UseTransparencyDrawerReturn {
   // Filter artifacts by category:
-  // - Data tab: NOT "rag", NOT "e2b", NOT "iq"
+  // - Data tab: NOT "rag", NOT "e2b", NOT "iq", NOT memory
   // - Calls tab: "rag"
   // - Deep Research tab: "iq"
   const dataArtifactSummaries = useMemo(
@@ -121,7 +133,9 @@ export function useTransparencyDrawer({
         (s) =>
           s.category !== "e2b" &&
           s.category !== "rag" &&
-          s.category?.toLowerCase() !== "iq",
+          s.category !== "memory" &&
+          s.category?.toLowerCase() !== "iq" &&
+          !MEMORY_TOOL_NAMES.has(s.tool_name),
       ),
     [artifactSummaries],
   );

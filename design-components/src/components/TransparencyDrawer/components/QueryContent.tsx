@@ -8,7 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
 import { useQueryPagination, useDynamicPageSize } from '../hooks';
-import { formatValue } from '../utils';
+import { formatCellValue } from '../utils';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
 
 // ============================================================================
@@ -230,7 +230,7 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                             : 'text-left'
                         } text-gray-700`}
                       >
-                        {formatValue(row[col.key], col.type)}
+                        {formatCellValue(col.key, row[col.key], col.type)}
                       </td>
                     ))}
                   </tr>

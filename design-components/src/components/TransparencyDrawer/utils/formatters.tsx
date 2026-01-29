@@ -1,10 +1,59 @@
 import React from 'react';
 import { SmileyIcon, SmileySadIcon, SmileyMehIcon } from '@phosphor-icons/react';
 import type { QueryColumn, SentimentType } from '../types';
+import { isSalesforceUrl } from '../../Chat/utils/salesforceDeepLink';
 
 // ============================================================================
 // Value Formatters
 // ============================================================================
+
+/**
+ * Detect if a string value is a URL
+ */
+function isUrl(value: string): boolean {
+  return value.startsWith('http://') || value.startsWith('https://');
+}
+
+/**
+ * Format a table cell value with special handling for deep_link columns.
+ * Renders Salesforce deep links as clickable "View in Salesforce" links,
+ * other URLs as clickable links, and falls back to formatValue for everything else.
+ */
+export function formatCellValue(
+  columnKey: string,
+  value: string | number,
+  columnType?: QueryColumn['type']
+): React.ReactNode {
+  const strValue = String(value);
+
+  if (columnKey === 'deep_link' && isUrl(strValue)) {
+    if (isSalesforceUrl(strValue)) {
+      return (
+        <a
+          href={strValue}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+          title="Open in Salesforce"
+        >
+          View in Salesforce
+        </a>
+      );
+    }
+    return (
+      <a
+        href={strValue}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
+      >
+        {strValue}
+      </a>
+    );
+  }
+
+  return formatValue(value, columnType);
+}
 
 /**
  * Formats a value based on its column type
