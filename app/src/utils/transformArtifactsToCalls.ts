@@ -13,8 +13,10 @@ import type { ArtifactResponse } from "../services/conversationsService";
  * Extract call title from row data
  */
 export function extractCallTitle(row: Record<string, unknown>): string {
-  if (row.conversation_title) {
-    const title = String(row.conversation_title);
+  // Prefer call_title, then conversation_title
+  const rawTitle = row.call_title || row.conversation_title;
+  if (rawTitle) {
+    const title = String(rawTitle);
     return title.length > 100 ? title.slice(0, 100) + "..." : title;
   }
 
@@ -32,6 +34,10 @@ export function extractCallTitle(row: Record<string, unknown>): string {
  * Extract call date from row data
  */
 export function extractCallDate(row: Record<string, unknown>): string {
+  // Prefer call_start_time (ISO string), then start_time_iso, then start_time (unix)
+  if (row.call_start_time) {
+    return String(row.call_start_time);
+  }
   if (row.start_time_iso) {
     return String(row.start_time_iso);
   }
@@ -39,6 +45,90 @@ export function extractCallDate(row: Record<string, unknown>): string {
     return new Date(row.start_time * 1000).toISOString();
   }
   return new Date().toISOString();
+}
+
+/**
+ * Extract participants from speaker name fields
+ */
+function extractParticipants(row: Record<string, unknown>): string[] {
+  const participants: string[] = [];
+
+  const addNames = (field: unknown) => {
+    if (Array.isArray(field)) {
+      for (const name of field) {
+        if (typeof name === "string" && name.trim()) {
+          participants.push(name.trim());
+        }
+      }
+    }
+  };
+
+  addNames(row.external_speaker_names);
+  addNames(row.internal_speaker_names);
+
+  return participants;
+}
+
+/**
+ * Compute duration string from start/end times
+ */
+function extractDuration(row: Record<string, unknown>): string | undefined {
+  const startStr = row.call_start_time || row.start_time_iso;
+  const endStr = row.call_end_time || row.end_time_iso;
+
+  if (!startStr || !endStr) return undefined;
+
+  const start = new Date(String(startStr)).getTime();
+  const end = new Date(String(endStr)).getTime();
+
+  if (isNaN(start) || isNaN(end) || end <= start) return undefined;
+
+  const diffMs = end - start;
+  const totalMinutes = Math.round(diffMs / 60000);
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+/**
+ * Compute time range string (e.g., "3:00 PM - 3:30 PM")
+ */
+function extractTimeRange(row: Record<string, unknown>): string | undefined {
+  const startStr = row.call_start_time || row.start_time_iso;
+  const endStr = row.call_end_time || row.end_time_iso;
+
+  if (!startStr || !endStr) return undefined;
+
+  const start = new Date(String(startStr));
+  const end = new Date(String(endStr));
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return undefined;
+
+  const fmt = (d: Date) =>
+    d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
+/**
+ * Extract summary from row data - prefers the rich summary field over chunk_text
+ */
+function extractSummary(row: Record<string, unknown>): string | undefined {
+  if (typeof row.summary === "string" && row.summary.trim()) {
+    return row.summary;
+  }
+  if (typeof row.chunk_text === "string" && row.chunk_text.trim()) {
+    return row.chunk_text;
+  }
+  return undefined;
 }
 
 /**
@@ -54,7 +144,11 @@ export function transformRowsToCalls(
 
   for (const row of rows) {
     const callId =
-      row.conversation_id || row.id || row.deep_link || row.meeting_url;
+      row.conversation_id ||
+      row.call_id ||
+      row.id ||
+      row.deep_link ||
+      row.meeting_url;
 
     if (!callId) continue;
 
@@ -63,13 +157,18 @@ export function transformRowsToCalls(
     if (seen.has(callIdStr)) continue;
     seen.add(callIdStr);
 
+    const participants = extractParticipants(row);
+
     calls.push({
       id: callIdStr,
       title: extractCallTitle(row),
       date: extractCallDate(row),
+      duration: extractDuration(row),
+      timeRange: extractTimeRange(row),
+      participants: participants.length > 0 ? participants : undefined,
       sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
       meetingUrl: row.meeting_url ? String(row.meeting_url) : undefined,
-      summary: row.chunk_text ? String(row.chunk_text) : undefined,
+      summary: extractSummary(row),
     });
   }
 
@@ -102,11 +201,14 @@ export function transformBulkArtifactsToCalls(
       sample?: {
         rows?: Array<Record<string, unknown>>;
       };
+      rows?: Array<Record<string, unknown>>;
     };
 
-    if (!content.sample?.rows) continue;
+    // Support both formats: rows nested under sample or at top level
+    const rows = content.sample?.rows || content.rows;
+    if (!rows) continue;
 
-    const calls = transformRowsToCalls(content.sample.rows, seenIds);
+    const calls = transformRowsToCalls(rows, seenIds);
     allCalls.push(...calls);
   }
 
