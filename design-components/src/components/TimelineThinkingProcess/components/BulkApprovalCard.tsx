@@ -128,13 +128,14 @@ const BulkOperationItemRow: React.FC<BulkOperationItemRowProps> = ({
         ? 'create'
         : 'update';
 
-  // Count fields from either changes array or fields object
-  const fieldCount = operation.changes?.length || Object.keys(operation.fields || {}).length;
-
-  // Get fields to display - either from changes or from fields object
+  const hasChanges = (operation.changes?.length ?? 0) > 0;
   const displayFields: Array<{ field: string; before?: unknown; after: unknown }> =
-    operation.changes ||
-    Object.entries(operation.fields || {}).map(([field, value]) => ({
+    hasChanges
+      ? operation.changes!
+      : Object.entries(operation.fields || {}).map(([field, value]) => ({
+          field,
+          after: value,
+        }));
       field,
       after: value,
     }));
