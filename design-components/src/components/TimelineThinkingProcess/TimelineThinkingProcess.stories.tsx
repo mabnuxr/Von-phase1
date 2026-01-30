@@ -379,8 +379,7 @@ export const AllStepStatuses: Story = {
         text: 'Pending step - Waiting to start',
         status: 'pending',
         type: 'output',
-        description:
-          'This step is queued and waiting to start. Shows an empty circle icon.',
+        description: 'This step is queued and waiting to start. Shows an empty circle icon.',
       },
     ],
     isThinking: true,
