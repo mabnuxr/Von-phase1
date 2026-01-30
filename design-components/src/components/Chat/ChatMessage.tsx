@@ -399,7 +399,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <div className="space-y-4">
                           <TimelineThinkingProcess
                             steps={timelineSteps || []}
-                            isThinking={isStreaming}
+                            isThinking={isStreaming && !v2FinalResponseStreaming}
                             autoCollapse={v2FinalResponseStreaming}
                             elapsedTime={thinkingElapsedTime}
                             onApprove={(stepId) => {

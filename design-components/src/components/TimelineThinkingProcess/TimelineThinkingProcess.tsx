@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircleIcon, CaretDownIcon, CaretRightIcon, BellIcon } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
-import { CONTAINER_HEIGHT } from './constants';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
 import { StepRow } from './components';
@@ -69,6 +68,79 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     onToggleCollapse,
     onExpandStep,
   });
+
+  // Dynamic max-height: fill from the steps container's top to the bottom
+  // of the chat scroll container (.chat-messages-wrapper), so the thinking
+  // process is scrollable within the visible chat area.
+  const stepsContainerRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<Element | null>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
+  const scrollHandlerRef = useRef<(() => void) | null>(null);
+
+  const updateMaxHeight = useCallback((el: HTMLDivElement) => {
+    const chatContainer = chatContainerRef.current;
+    if (!chatContainer) return;
+
+    const elRect = el.getBoundingClientRect();
+    const chatRect = chatContainer.getBoundingClientRect();
+    // Distance from the steps container top to the chat container bottom, minus padding
+    const available = Math.max(chatRect.bottom - elRect.top - 24, 120);
+    el.style.maxHeight = `${available}px`;
+  }, []);
+
+  // Merged callback ref: assigns to both stepsContainerRef (for max-height)
+  // and scrollContainerRef (for auto-scroll tracking in useTimelineState)
+  const stepsContainerCallbackRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      // Clean up previous observer and scroll listener
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+      if (scrollHandlerRef.current && chatContainerRef.current) {
+        chatContainerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
+        scrollHandlerRef.current = null;
+      }
+
+      stepsContainerRef.current = node;
+      // Also assign to scrollContainerRef so auto-scroll targets the scrollable element
+      (scrollContainerRef as React.RefObject<HTMLDivElement | null>).current = node;
+      if (!node) return;
+
+      // Find the chat scroll container once
+      chatContainerRef.current = node.closest('.chat-messages-wrapper');
+
+      // Initial measurement
+      updateMaxHeight(node);
+
+      if (chatContainerRef.current) {
+        // Re-measure when the chat container resizes
+        observerRef.current = new ResizeObserver(() => {
+          updateMaxHeight(node);
+        });
+        observerRef.current.observe(chatContainerRef.current);
+
+        // Re-measure on scroll so maxHeight updates when user scrolls back
+        // to the thinking block after it was mounted off-screen
+        scrollHandlerRef.current = () => updateMaxHeight(node);
+        chatContainerRef.current.addEventListener('scroll', scrollHandlerRef.current, {
+          passive: true,
+        });
+      }
+    },
+    [updateMaxHeight, scrollContainerRef]
+  );
+
+  // Re-measure on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (stepsContainerRef.current) {
+        updateMaxHeight(stepsContainerRef.current);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateMaxHeight]);
 
   // Convert steps to drawer format
   const drawerSteps: ThinkingStepDetail[] = useMemo(
@@ -169,74 +241,71 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div className="border border-gray-200 bg-white shadow-xs rounded-lg">
-                <div
-                  ref={scrollContainerRef}
-                  className="overflow-y-auto px-3 py-3"
-                  style={{ maxHeight: CONTAINER_HEIGHT }}
-                >
-                  <div className="space-y-0">
-                    {visibleSteps.map((step, idx) => {
-                      const displayMode = getStepDisplayMode(step, idx);
-                      const isExpanded = displayMode === 'expanded';
+              <div
+                ref={stepsContainerCallbackRef}
+                className="border border-gray-200 bg-white shadow-xs rounded-lg overflow-y-auto px-3 py-3"
+              >
+                <div className="space-y-0">
+                  {visibleSteps.map((step, idx) => {
+                    const displayMode = getStepDisplayMode(step, idx);
+                    const isExpanded = displayMode === 'expanded';
 
-                      // Always use StepRow - description is always visible outside expanded block
-                      // The isExpanded prop controls whether code/approval/sub-steps are shown
-                      // Get the actual toolCallId from approval data, fallback to step.id
-                      const toolCallId = step.approval?.toolCallId || step.id;
+                    // Always use StepRow - description is always visible outside expanded block
+                    // The isExpanded prop controls whether code/approval/sub-steps are shown
+                    // Get the actual toolCallId from approval data, fallback to step.id
+                    const toolCallId = step.approval?.toolCallId || step.id;
 
-                      // Check local approval state for optimistic UI update
-                      const localState = localApprovalState.get(toolCallId);
-                      const isLocallyApproved = localState === 'approved';
-                      const isLocallyRejected = localState === 'rejected';
+                    // Check local approval state for optimistic UI update
+                    const localState = localApprovalState.get(toolCallId);
+                    const isLocallyApproved = localState === 'approved';
+                    const isLocallyRejected = localState === 'rejected';
 
-                      return (
-                        <StepRow
-                          key={step.id}
-                          step={step}
-                          isExpanded={isExpanded}
-                          onToggle={() => toggleStep(step.id)}
-                          onExpand={() => handleExpandStep(step)}
-                          isLast={idx === visibleSteps.length - 1}
-                          onApprove={
-                            onApprove
-                              ? () => {
-                                  if (import.meta.env.DEV) {
-                                    console.log('[TimelineThinkingProcess] onApprove called:', {
-                                      toolCallId,
-                                      stepId: step.id,
-                                      stepStatus: step.status,
-                                      approvalData: step.approval,
-                                    });
-                                  }
-                                  markAsApproved(toolCallId);
-                                  onApprove(toolCallId);
+                    return (
+                      <StepRow
+                        key={step.id}
+                        step={step}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleStep(step.id)}
+                        onExpand={() => handleExpandStep(step)}
+                        isLast={idx === visibleSteps.length - 1}
+                        onApprove={
+                          onApprove
+                            ? () => {
+                                if (import.meta.env.DEV) {
+                                  console.log('[TimelineThinkingProcess] onApprove called:', {
+                                    toolCallId,
+                                    stepId: step.id,
+                                    stepStatus: step.status,
+                                    approvalData: step.approval,
+                                  });
                                 }
-                              : undefined
-                          }
-                          onReject={
-                            onReject
-                              ? () => {
-                                  if (import.meta.env.DEV) {
-                                    console.log('[TimelineThinkingProcess] onReject called:', {
-                                      toolCallId,
-                                      stepId: step.id,
-                                      stepStatus: step.status,
-                                      approvalData: step.approval,
-                                    });
-                                  }
-                                  markAsRejected(toolCallId);
-                                  onReject(toolCallId);
+                                markAsApproved(toolCallId);
+                                onApprove(toolCallId);
+                              }
+                            : undefined
+                        }
+                        onReject={
+                          onReject
+                            ? () => {
+                                if (import.meta.env.DEV) {
+                                  console.log('[TimelineThinkingProcess] onReject called:', {
+                                    toolCallId,
+                                    stepId: step.id,
+                                    stepStatus: step.status,
+                                    approvalData: step.approval,
+                                  });
                                 }
-                              : undefined
-                          }
-                          onArtifactClick={onArtifactClick}
-                          isLocallyApproved={isLocallyApproved}
-                          isLocallyRejected={isLocallyRejected}
-                        />
-                      );
-                    })}
-                  </div>
+                                markAsRejected(toolCallId);
+                                onReject(toolCallId);
+                              }
+                            : undefined
+                        }
+                        onArtifactClick={onArtifactClick}
+                        isLocallyApproved={isLocallyApproved}
+                        isLocallyRejected={isLocallyRejected}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </motion.div>
