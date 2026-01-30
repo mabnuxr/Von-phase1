@@ -136,9 +136,7 @@ const BulkOperationItemRow: React.FC<BulkOperationItemRowProps> = ({
           field,
           after: value,
         }));
-      field,
-      after: value,
-    }));
+  const fieldCount = displayFields.length;
 
   return (
     <div className={`${!isFirst ? 'border-t border-gray-100' : ''}`}>
