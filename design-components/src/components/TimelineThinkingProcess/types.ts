@@ -148,6 +148,12 @@ export interface TimelineThinkingProcessProps {
   isStreaming?: boolean;
 
   /**
+   * When true, automatically collapses the thinking process.
+   * Used to collapse the timeline when the final response starts streaming.
+   */
+  autoCollapse?: boolean;
+
+  /**
    * Elapsed time in seconds (for display)
    */
   elapsedTime?: number;

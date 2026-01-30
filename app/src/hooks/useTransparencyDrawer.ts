@@ -23,6 +23,7 @@ import {
   transformSingleArtifact,
   transformSummariesToPlaceholders,
   transformIQArtifactToDataTable,
+  MEMORY_TOOL_NAMES,
   type ArtifactSummary,
 } from "../utils/transformArtifactsToTransparency";
 import { transformBulkArtifactsToCalls } from "../utils/transformArtifactsToCalls";
@@ -84,26 +85,89 @@ function transformArtifactsToQueries(
     return [];
   }
 
-  return dataArtifactSummaries.map((summary) => {
+  const results: TransparencyQueryResult[] = [];
+
+  for (const summary of dataArtifactSummaries) {
     const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
 
     if (loadedArtifact) {
       const result = transformSingleArtifact(loadedArtifact);
       if (result) {
-        return result;
+        // Successfully transformed — only show if it has rows
+        if (result.rows.length > 0) {
+          results.push(result);
+        }
+        // Zero rows: skip tab entirely (no data to show)
+        continue;
       }
+      // result is null (unexpected schema, missing columns) — fall through to placeholder
     }
 
+    // Not yet loaded — show placeholder
     const placeholders = transformSummariesToPlaceholders([summary]);
     const placeholder = placeholders[0];
 
     if (summary.artifact_id === selectedArtifactId && isArtifactLoading) {
       placeholder.description = "Loading...";
-    } else if (!loadedArtifact) {
+    } else {
       placeholder.description = "Click to load";
     }
 
-    return placeholder;
+    results.push(placeholder);
+  }
+
+  return results;
+}
+
+/**
+ * Transform IQ artifacts to IQQueryResult format for ReportTable display
+ */
+function transformIQArtifactsToIQQueries(
+  iqArtifactSummaries: ArtifactSummary[],
+  loadedArtifacts: Map<string, ArtifactResponse>,
+  selectedArtifactId: string | null,
+  isArtifactLoading: boolean,
+): IQQueryResult[] {
+  if (iqArtifactSummaries.length === 0) {
+    return [];
+  }
+
+  return iqArtifactSummaries.map((summary) => {
+    const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
+
+    if (loadedArtifact) {
+      const tableConfig = transformIQArtifactToDataTable(loadedArtifact);
+      if (tableConfig) {
+        return {
+          id: tableConfig.id,
+          name: tableConfig.name,
+          description: tableConfig.description,
+          columns: tableConfig.columns,
+          data: tableConfig.data,
+          rowCount: tableConfig.rowCount,
+        };
+      }
+    }
+
+    // Return placeholder for unloaded artifacts
+    const placeholders = transformSummariesToPlaceholders([summary]);
+    const placeholder = placeholders[0];
+
+    let description = placeholder.description;
+    if (summary.artifact_id === selectedArtifactId && isArtifactLoading) {
+      description = "Loading...";
+    } else if (!loadedArtifact) {
+      description = "Click to load";
+    }
+
+    return {
+      id: summary.artifact_id,
+      name: placeholder.name,
+      description,
+      columns: [],
+      data: [],
+      rowCount: 0,
+    };
   });
 }
 
@@ -166,7 +230,7 @@ export function useTransparencyDrawer({
   artifactSummaries,
 }: UseTransparencyDrawerParams): UseTransparencyDrawerReturn {
   // Filter artifacts by category:
-  // - Data tab: NOT "rag", NOT "e2b", NOT "iq"
+  // - Data tab: NOT "rag", NOT "e2b", NOT "iq", NOT memory
   // - Calls tab: "rag"
   // - Deep Research tab: "iq"
   const dataArtifactSummaries = useMemo(
@@ -175,7 +239,9 @@ export function useTransparencyDrawer({
         (s) =>
           s.category !== "e2b" &&
           s.category !== "rag" &&
-          s.category?.toLowerCase() !== "iq",
+          s.category !== "memory" &&
+          s.category?.toLowerCase() !== "iq" &&
+          !MEMORY_TOOL_NAMES.has(s.tool_name),
       ),
     [artifactSummaries],
   );

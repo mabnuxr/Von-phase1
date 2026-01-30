@@ -31,6 +31,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   steps,
   isThinking = false,
   isStreaming = false,
+  autoCollapse = false,
   elapsedTime = 0,
   onQueryClick,
   queries = [],
@@ -63,6 +64,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   } = useTimelineState({
     steps,
     isThinking,
+    autoCollapse,
     controlledCollapsed,
     onToggleCollapse,
     onExpandStep,
@@ -157,9 +159,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           </div>
         </button>
 
-        {/* Steps container */}
+        {/* Steps container - only rendered when there are visible steps */}
         <AnimatePresence>
-          {!isCollapsed && (
+          {!isCollapsed && visibleSteps.length > 0 && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -173,74 +175,68 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   className="overflow-y-auto px-3 py-3"
                   style={{ maxHeight: CONTAINER_HEIGHT }}
                 >
-                  {visibleSteps.length === 0 ? (
-                    <div className="flex items-center justify-center py-6 text-[15px] text-gray-500">
-                      Starting...
-                    </div>
-                  ) : (
-                    <div className="space-y-0">
-                      {visibleSteps.map((step, idx) => {
-                        const displayMode = getStepDisplayMode(step, idx);
-                        const isExpanded = displayMode === 'expanded';
+                  <div className="space-y-0">
+                    {visibleSteps.map((step, idx) => {
+                      const displayMode = getStepDisplayMode(step, idx);
+                      const isExpanded = displayMode === 'expanded';
 
-                        // Always use StepRow - description is always visible outside expanded block
-                        // The isExpanded prop controls whether code/approval/sub-steps are shown
-                        // Get the actual toolCallId from approval data, fallback to step.id
-                        const toolCallId = step.approval?.toolCallId || step.id;
+                      // Always use StepRow - description is always visible outside expanded block
+                      // The isExpanded prop controls whether code/approval/sub-steps are shown
+                      // Get the actual toolCallId from approval data, fallback to step.id
+                      const toolCallId = step.approval?.toolCallId || step.id;
 
-                        // Check local approval state for optimistic UI update
-                        const localState = localApprovalState.get(toolCallId);
-                        const isLocallyApproved = localState === 'approved';
-                        const isLocallyRejected = localState === 'rejected';
+                      // Check local approval state for optimistic UI update
+                      const localState = localApprovalState.get(toolCallId);
+                      const isLocallyApproved = localState === 'approved';
+                      const isLocallyRejected = localState === 'rejected';
 
-                        return (
-                          <StepRow
-                            key={step.id}
-                            step={step}
-                            isExpanded={isExpanded}
-                            onToggle={() => toggleStep(step.id)}
-                            onExpand={() => handleExpandStep(step)}
-                            isLast={idx === visibleSteps.length - 1}
-                            onApprove={
-                              onApprove
-                                ? () => {
-                                    if (import.meta.env.DEV) {
-                                      console.log('[TimelineThinkingProcess] onApprove called:', {
-                                        toolCallId,
-                                        stepId: step.id,
-                                        stepStatus: step.status,
-                                        approvalData: step.approval,
-                                      });
-                                    }
-                                    markAsApproved(toolCallId);
-                                    onApprove(toolCallId);
+                      return (
+                        <StepRow
+                          key={step.id}
+                          step={step}
+                          isExpanded={isExpanded}
+                          onToggle={() => toggleStep(step.id)}
+                          onExpand={() => handleExpandStep(step)}
+                          isLast={idx === visibleSteps.length - 1}
+                          onApprove={
+                            onApprove
+                              ? () => {
+                                  if (import.meta.env.DEV) {
+                                    console.log('[TimelineThinkingProcess] onApprove called:', {
+                                      toolCallId,
+                                      stepId: step.id,
+                                      stepStatus: step.status,
+                                      approvalData: step.approval,
+                                    });
                                   }
-                                : undefined
-                            }
-                            onReject={
-                              onReject
-                                ? () => {
-                                    if (import.meta.env.DEV) {
-                                      console.log('[TimelineThinkingProcess] onReject called:', {
-                                        toolCallId,
-                                        stepId: step.id,
-                                        stepStatus: step.status,
-                                        approvalData: step.approval,
-                                      });
-                                    }
-                                    markAsRejected(toolCallId);
-                                    onReject(toolCallId);
+                                  markAsApproved(toolCallId);
+                                  onApprove(toolCallId);
+                                }
+                              : undefined
+                          }
+                          onReject={
+                            onReject
+                              ? () => {
+                                  if (import.meta.env.DEV) {
+                                    console.log('[TimelineThinkingProcess] onReject called:', {
+                                      toolCallId,
+                                      stepId: step.id,
+                                      stepStatus: step.status,
+                                      approvalData: step.approval,
+                                    });
                                   }
-                                : undefined
-                            }
-                            onArtifactClick={onArtifactClick}
-                            isLocallyApproved={isLocallyApproved}
-                            isLocallyRejected={isLocallyRejected}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
+                                  markAsRejected(toolCallId);
+                                  onReject(toolCallId);
+                                }
+                              : undefined
+                          }
+                          onArtifactClick={onArtifactClick}
+                          isLocallyApproved={isLocallyApproved}
+                          isLocallyRejected={isLocallyRejected}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </motion.div>

@@ -64,14 +64,14 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
             <span className="text-sm font-medium text-gray-900 min-w-0 truncate text-left group-hover:text-indigo-600 transition-colors">
               {call.title}
             </span>
-            {call.meetingUrl && (
+            {(call.sourceUrl || call.meetingUrl) && (
               <a
-                href={call.meetingUrl}
+                href={call.sourceUrl || call.meetingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="ml-1 text-gray-500 hover:text-indigo-600 flex-shrink-0 transition-colors"
-                title="Open meeting"
+                title={call.sourceUrl ? 'Open source' : 'Open meeting'}
               >
                 <ArrowSquareOutIcon size={16} weight="bold" />
               </a>
