@@ -11,16 +11,6 @@ export type {
 export { SimpleChatInput } from './SimpleChatInput';
 export type { SimpleChatInputProps } from './SimpleChatInput';
 
-export { TimelineThinkingProcess } from './TimelineThinkingProcess';
-export type {
-  TimelineThinkingProcessProps,
-  TimelineStep,
-  StepType,
-  SourceType,
-  StepStatus,
-  ApprovalData,
-} from './TimelineThinkingProcess';
-
 export { ThinkingDrawer } from './ThinkingDrawer';
 export type { ThinkingDrawerProps, ThinkingStepDetail } from './ThinkingDrawer';
 

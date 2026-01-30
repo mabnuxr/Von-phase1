@@ -1,6 +1,12 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircleIcon, CaretDownIcon, CaretRightIcon, BellIcon } from '@phosphor-icons/react';
+import {
+  CheckCircleIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  BellIcon,
+  SpinnerGapIcon,
+} from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
 import { CONTAINER_HEIGHT } from './constants';
 import { formatElapsedTime } from './utils';
@@ -122,15 +128,16 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 <span className="text-[15px] text-gray-700">Thinking completed</span>
               </>
             ) : (
-              <EngagingMessage
-                isActive={isThinking}
-                spinnerSize="sm"
-                textSize="xs"
-                contentSignature={contentSignature}
-                showDelay={isStreaming ? Infinity : 2000}
-                initialText={visibleSteps.length === 0 ? 'Thinking' : undefined}
-                className="flex-shrink-0"
-              />
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="flex-shrink-0"
+                >
+                  <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
+                </motion.div>
+                <span className="text-[15px] text-gray-700">Thinking</span>
+              </>
             )}
           </div>
 
@@ -159,9 +166,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           </div>
         </button>
 
-        {/* Steps container - only rendered when there are visible steps */}
+        {/* Steps container - rendered when there are visible steps or engaging message should show */}
         <AnimatePresence>
-          {!isCollapsed && visibleSteps.length > 0 && (
+          {!isCollapsed && (visibleSteps.length > 0 || (isThinking && !isStreaming)) && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -236,6 +243,21 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         />
                       );
                     })}
+
+                    {/* Engaging message as dummy step - shown when thinking but not streaming and no approval pending */}
+                    {isThinking && !isStreaming && !awaitingApprovalStep && (
+                      <div className="flex items-center gap-3 pt-2 ml-1">
+                        <EngagingMessage
+                          isActive={isThinking}
+                          spinnerSize="sm"
+                          textSize="sm"
+                          contentSignature={contentSignature}
+                          showDelay={2000}
+                          initialText="Processing"
+                          className="text-gray-600"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
