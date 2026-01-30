@@ -532,7 +532,7 @@ export function transformAguiToTimelineSteps(
 
         const textStep: TimelineStep = {
           id: stepId,
-          text: "Analyzing your request",
+          text: "",
           status: "in-progress" as StepStatus,
           type: "reasoning" as StepType,
           description: "",
@@ -562,7 +562,7 @@ export function transformAguiToTimelineSteps(
           reasoningStepCounter++;
           const newStep: TimelineStep = {
             id: `reasoning-${event.message_id}-${reasoningStepCounter}`,
-            text: "Continuing analysis",
+            text: "",
             status: "in-progress" as StepStatus,
             type: "reasoning" as StepType,
             description: "",
@@ -573,20 +573,11 @@ export function transformAguiToTimelineSteps(
         }
 
         // Accumulate content in the current reasoning step's description
-        currentTextStep.description =
-          (currentTextStep.description || "") + (event.delta || "");
+        currentTextStep.text =
+          (currentTextStep.text || "") + (event.delta || "");
 
         // Update the display text based on content (first sentence as summary)
-        const content = currentTextStep.description;
-        if (content.length > 10) {
-          const firstSentence = content.split(/[.!?]/)[0];
-          if (firstSentence && firstSentence.length > 5) {
-            currentTextStep.text =
-              firstSentence.length > 150
-                ? firstSentence.slice(0, 150) + "..."
-                : firstSentence;
-          }
-        }
+
         break;
       }
 
@@ -961,7 +952,8 @@ export function transformAguiToTimelineSteps(
           const lastTextStep = textMessageStepMap.get(lastTextMessageId);
           if (lastTextStep) {
             // Extract content as final response
-            finalResponse = lastTextStep.description || "";
+            // Content may be in step.text (new behavior) or step.description (legacy)
+            finalResponse = lastTextStep.text || lastTextStep.description || "";
             // Remove this step from the steps array
             const stepIndex = steps.indexOf(lastTextStep);
             if (stepIndex !== -1) {

@@ -46,6 +46,8 @@ interface RagArtifactContent {
 interface SqlArtifactContent {
   success?: boolean;
   query?: string;
+  /** Human-readable name for the query (e.g., "Top 5 Opportunities") */
+  query_name?: string;
   row_count?: number;
   execution_time_ms?: number;
   error?: string;
@@ -193,9 +195,12 @@ function transformArtifactToQueryResult(
     const queryStatement =
       sqlContent.queries?.[0]?.statement || sqlContent.query;
 
+    // Use query_name if available, otherwise fall back to tool display name
+    const displayName = sqlContent.query_name || getToolDisplayName(tool_name);
+
     return {
       id: artifact_id,
-      name: getToolDisplayName(tool_name),
+      name: displayName,
       description: `${sqlContent.row_count ?? rows.length} rows returned`,
       query: queryStatement,
       columns,
@@ -244,9 +249,13 @@ function transformArtifactToQueryResult(
         return transformedRow;
       });
 
+      // Use query_name if available, otherwise fall back to tool display name
+      const displayName =
+        (genericContent.query_name as string) || getToolDisplayName(tool_name);
+
       return {
         id: artifact_id,
-        name: getToolDisplayName(tool_name),
+        name: displayName,
         columns,
         rows,
         executedAt: new Date(persisted_at),

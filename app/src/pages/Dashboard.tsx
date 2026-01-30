@@ -537,22 +537,6 @@ const Dashboard = () => {
     sendMessage(content);
   };
 
-  const handleStopStreaming = useCallback(
-    (conversationId: string) => {
-      stopStreaming(conversationId, {
-        onSuccess: () => {
-          if (import.meta.env.DEV) {
-            console.log("[Dashboard] Stop signal sent successfully");
-          }
-        },
-        onError: (error) => {
-          console.error("[Dashboard] Failed to stop streaming:", error);
-        },
-      });
-    },
-    [stopStreaming],
-  );
-
   // Auto-populate input when error occurs (handled by chatStore updates from hook)
   // Monitor store changes to detect error state and auto-populate input
   const storeMessages = useChatStore.getState().messages;
@@ -625,6 +609,7 @@ const Dashboard = () => {
     isFinalResponseStreaming: v2IsFinalResponseStreaming,
     researchResults: v2ResearchResults,
     isDeepResearchRunning: v2IsDeepResearchRunning,
+    markStopped: v2MarkStopped,
   } = useConversationPusherChannelV2(v2ChannelConfig, v2InitialRunEvents);
 
   // Transform backend messages to Chat component format
@@ -787,6 +772,26 @@ const Dashboard = () => {
 
   const { error: conversationChannelError } = useConversationPusherChannel(
     conversationChannelConfig,
+  );
+
+  // Stop streaming handler - marks V1 and V2 as stopped to batch remaining events
+  const handleStopStreaming = useCallback(
+    (conversationId: string) => {
+      // Mark both V1 and V2 streaming as stopped - events will be batched until completion
+      v2MarkStopped();
+
+      stopStreaming(conversationId, {
+        onSuccess: () => {
+          if (import.meta.env.DEV) {
+            console.log("[Dashboard] Stop signal sent successfully");
+          }
+        },
+        onError: (error) => {
+          console.error("[Dashboard] Failed to stop streaming:", error);
+        },
+      });
+    },
+    [stopStreaming, v2MarkStopped],
   );
 
   // Separate pusherConfig for Chat component
