@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretDownIcon, CaretRightIcon, FileTextIcon, NoteBlankIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
@@ -68,12 +68,11 @@ export const StepRow = React.memo<StepRowProps>(
     }, [isLocallyApproved, isLocallyRejected, step.status]);
 
     const isInProgress = effectiveStatus === 'in-progress';
-    const isComplete = effectiveStatus === 'complete';
 
     return (
       <div className="relative flex">
         {/* Timeline connector - small dot indicator */}
-        <div className="flex flex-col items-center mr-3 flex-shrink-0">
+        <div className="flex flex-col items-center flex-shrink-0">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
             <StepIndicator status={effectiveStatus} />
           </div>
@@ -90,8 +89,10 @@ export const StepRow = React.memo<StepRowProps>(
               ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
             `}
           >
-            {/* Expand caret or note icon for reasoning steps */}
-            {hasExpandableContent ? (
+            {/* Expand caret or empty span for reasoning steps */}
+            {isReasoningStep ? (
+              <span className="flex-shrink-0 self-start mt-1 w-3" />
+            ) : hasExpandableContent ? (
               <span className="flex-shrink-0">
                 {isExpanded ? (
                   <CaretDownIcon size={12} weight="bold" className="text-gray-500" />

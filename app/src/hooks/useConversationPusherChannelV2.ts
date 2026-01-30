@@ -50,6 +50,8 @@ export interface UseConversationPusherChannelV2Return {
   researchResults: ResearchResultsState;
   /** Whether a long-running deep research is in progress (user can leave) */
   isDeepResearchRunning: boolean;
+  /** Mark streaming as stopped - events will be batched and flushed on completion */
+  markStopped: () => void;
 }
 
 /**
@@ -98,6 +100,19 @@ export function useConversationPusherChannelV2(
   // Track finished runs to ignore late-arriving events
   const finishedRunsRef = useRef<Set<string>>(new Set());
 
+  // Track if user has stopped streaming - events will be batched until terminal event
+  const stoppedRef = useRef<boolean>(false);
+
+  // Mark streaming as stopped - events will accumulate without UI updates until completion
+  const markStopped = useCallback(() => {
+    stoppedRef.current = true;
+    if (import.meta.env.DEV) {
+      console.log(
+        "[useConversationPusherChannelV2] Streaming marked as stopped - batching remaining events",
+      );
+    }
+  }, []);
+
   // Start elapsed time timer
   const startElapsedTimer = useCallback(() => {
     if (elapsedTimerRef.current) {
@@ -127,8 +142,25 @@ export function useConversationPusherChannelV2(
         const wrapper: AguiEventWrapper =
           typeof data === "string" ? JSON.parse(data) : data;
         const { run_id, sequence } = wrapper;
+        const eventType = wrapper.event?.type;
 
         if (!config.conversationId || !run_id) return;
+
+        // Check if this is a terminal event (run finished or error)
+        const isTerminalEvent =
+          eventType === "RUN_FINISHED" || eventType === "RUN_ERROR";
+
+        // Ignore events for runs that have already finished
+        // This handles out-of-order events from the backend
+        if (finishedRunsRef.current.has(run_id)) {
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useConversationPusherChannelV2] Ignoring late event for finished run:",
+              eventType,
+            );
+          }
+          return;
+        }
 
         // Get or create events array for this run
         let runEvents = eventsRef.current.get(run_id);
@@ -136,7 +168,8 @@ export function useConversationPusherChannelV2(
           runEvents = [];
           eventsRef.current.set(run_id, runEvents);
 
-          // New run started - clear old state immediately to prevent showing stale data
+          // New run started - reset stopped state and clear old state
+          stoppedRef.current = false;
           flushSync(() => {
             setTimelineSteps([]);
             setFinalResponse("");
@@ -157,6 +190,18 @@ export function useConversationPusherChannelV2(
         runEvents.push(wrapper);
         runEvents.sort((a, b) => a.sequence - b.sequence);
 
+        // If stopped and not a terminal event, just accumulate without UI update
+        // This batches all remaining events until the run completes
+        if (stoppedRef.current && !isTerminalEvent) {
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useConversationPusherChannelV2] Batching event (stopped):",
+              eventType,
+            );
+          }
+          return;
+        }
+
         // Transform to timeline steps
         const {
           steps,
@@ -169,6 +214,7 @@ export function useConversationPusherChannelV2(
         } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
+        // When stopped + terminal event, this flushes all batched events at once
         flushSync(() => {
           setTimelineSteps(steps);
           setIsThinking(thinking);
@@ -182,8 +228,23 @@ export function useConversationPusherChannelV2(
         // Stop timer and update elapsed time when run finishes
         // We only do this once per run to avoid resetting the elapsed time
         if (!thinking && !finishedRunsRef.current.has(run_id)) {
-          finishedRunsRef.current.add(run_id);
+          // Only mark run as permanently finished if stopped by user
+          // This allows approval flow to continue (normal RUN_FINISHED followed by new events)
+          const event = wrapper.event as
+            | { result?: { stopped_by_user?: boolean } }
+            | undefined;
+          const stoppedByUser =
+            eventType === "RUN_FINISHED" &&
+            event?.result?.stopped_by_user === true;
+
+          if (stoppedByUser) {
+            finishedRunsRef.current.add(run_id);
+          }
+
           stopElapsedTimer();
+
+          // Reset stopped state on completion
+          stoppedRef.current = false;
 
           // Update elapsed time from actual events
           const actualElapsed = getElapsedTimeFromEvents(runEvents);
@@ -221,6 +282,7 @@ export function useConversationPusherChannelV2(
       setIsDeepResearchRunning(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
+      stoppedRef.current = false;
       stopElapsedTimer();
     }
   }, [config.conversationId, stopElapsedTimer]);
@@ -463,5 +525,6 @@ export function useConversationPusherChannelV2(
     isAwaitingApproval,
     researchResults,
     isDeepResearchRunning,
+    markStopped,
   };
 }
