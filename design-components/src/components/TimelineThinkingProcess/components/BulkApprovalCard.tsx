@@ -129,13 +129,12 @@ const BulkOperationItemRow: React.FC<BulkOperationItemRowProps> = ({
         : 'update';
 
   const hasChanges = (operation.changes?.length ?? 0) > 0;
-  const displayFields: Array<{ field: string; before?: unknown; after: unknown }> =
-    hasChanges
-      ? operation.changes!
-      : Object.entries(operation.fields || {}).map(([field, value]) => ({
-          field,
-          after: value,
-        }));
+  const displayFields: Array<{ field: string; before?: unknown; after: unknown }> = hasChanges
+    ? operation.changes!
+    : Object.entries(operation.fields || {}).map(([field, value]) => ({
+        field,
+        after: value,
+      }));
   const fieldCount = displayFields.length;
 
   return (
