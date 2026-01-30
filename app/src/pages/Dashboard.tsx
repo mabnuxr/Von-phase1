@@ -175,6 +175,7 @@ const Dashboard = () => {
     isSidebarV2,
     isAgentV2,
     isDeepResearchEnabled,
+    isSourcesEnabled,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -1065,7 +1066,7 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
-                showTransparency={isAgentV2}
+                showTransparency={isSourcesEnabled}
                 onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}

@@ -21,6 +21,15 @@ interface CallItemProps {
 }
 
 const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast }) => {
+  const hasDetails =
+    call.timeRange ||
+    call.duration ||
+    (call.participants && call.participants.length > 0) ||
+    call.accountName ||
+    call.opportunityName ||
+    call.sentiment ||
+    call.summary;
+
   return (
     <div className="relative flex gap-3 overflow-hidden">
       {/* Timeline line and icon */}
@@ -87,7 +96,7 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
 
         {/* Expanded content */}
         <AnimatePresence>
-          {isExpanded && (
+          {isExpanded && hasDetails && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}

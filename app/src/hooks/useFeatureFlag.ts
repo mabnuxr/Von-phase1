@@ -13,6 +13,7 @@ export const FEATURE_FLAGS = {
   AGENT_V2: "agentsV2",
   USER_MEMORY: "enableUserMemory",
   DEEP_RESEARCH: "deepResearch",
+  AGENT_V2_SOURCES: "agentSources",
 } as const;
 
 /**
@@ -84,6 +85,11 @@ export function useFeatureFlag() {
      * Controls whether deep research feature (plus menu with agents) is enabled
      */
     isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
+
+    /**
+     * Controls whether the Sources button is shown on assistant messages
+     */
+    isSourcesEnabled: flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
 
     /**
      * Raw flags object for advanced usage
