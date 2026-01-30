@@ -169,11 +169,6 @@ export interface TimelineThinkingProcessProps {
   queries?: QueryResult[];
 
   /**
-   * Title displayed at the top (when collapsed, shows step count)
-   */
-  title?: string;
-
-  /**
    * Whether the thinking block is collapsed (hides the step details)
    */
   isCollapsed?: boolean;

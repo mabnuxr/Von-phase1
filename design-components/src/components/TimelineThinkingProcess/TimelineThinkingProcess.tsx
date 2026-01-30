@@ -41,7 +41,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   elapsedTime = 0,
   onQueryClick,
   queries = [],
-  title = 'Thinking',
   isCollapsed: controlledCollapsed,
   onToggleCollapse,
   onExpandStep,
@@ -137,7 +136,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 >
                   <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
                 </motion.div>
-                <span className="text-[15px] text-gray-700">{title}</span>
+                <span className="text-[15px] text-gray-700">Thinking</span>
               </>
             )}
           </div>
