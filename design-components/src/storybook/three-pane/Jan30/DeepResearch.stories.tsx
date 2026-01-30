@@ -1212,7 +1212,7 @@ const markdownComponents = {
     <h2 className="text-lg font-medium text-gray-900 mt-6 mb-3">{children}</h2>
   ),
   h3: ({ children }: { children?: React.ReactNode }) => (
-    <h3 className="text-[15px] font-medium text-gray-900 mt-4 mb-2">{children}</h3>
+    <h3 className="text-sm font-medium text-gray-900 mt-4 mb-2">{children}</h3>
   ),
   p: ({ children }: { children?: React.ReactNode }) => (
     <p className="text-sm text-gray-900 mb-3 leading-relaxed">{children}</p>
