@@ -363,39 +363,6 @@ function detectApprovalFromArgs(
   return null;
 }
 
-/**
- * Get a human-readable description for a tool call
- */
-function getToolDescription(toolName: string, args?: string): string {
-  const baseDescriptions: Record<string, string> = {
-    execute_sql_query: "Querying data from Salesforce",
-    request_salesforce_approval: "Requesting approval for Salesforce changes",
-    search_gong_calls: "Searching through Gong call recordings",
-    get_gong_call_transcript: "Retrieving call transcript",
-    search_emails: "Searching through emails",
-    get_email_content: "Retrieving email content",
-    get_calendar_events: "Checking calendar events",
-    request_google_calendar_approval:
-      "Requesting approval for calendar changes",
-  };
-
-  let description = baseDescriptions[toolName] || `Executing ${toolName}`;
-
-  // Add query preview for SQL queries
-  if (toolName === "execute_sql_query" && args) {
-    try {
-      const parsed = JSON.parse(args);
-      if (parsed.dataset_name) {
-        description = `Querying: ${parsed.dataset_name}`;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-  }
-
-  return description;
-}
-
 export interface TransformResult {
   steps: TimelineStep[];
   isThinking: boolean;
@@ -717,7 +684,7 @@ export function transformAguiToTimelineSteps(
 
           step = {
             id: stepId,
-            text: getToolDescription(toolName),
+            text: "",
             status: "in-progress" as StepStatus,
             type: "tool_call" as StepType,
             source: getToolSource(toolName),
@@ -736,10 +703,6 @@ export function transformAguiToTimelineSteps(
 
         // Transform step to tool_call type
         step.source = getToolSource(toolName);
-        step.description = getToolDescription(
-          toolName,
-          toolArgsMap.get(toolId || ""),
-        );
 
         // Early approval detection by tool name (like V1's isApprovalTool)
         // This allows the UI to show the approval state immediately
@@ -809,9 +772,6 @@ export function transformAguiToTimelineSteps(
               if (parsed.query) {
                 step.code = parsed.query;
               }
-              if (parsed.dataset_name) {
-                step.description = `Querying: ${parsed.dataset_name}`;
-              }
             } catch {
               // Args not complete JSON yet, ignore
             }
@@ -847,9 +807,6 @@ export function transformAguiToTimelineSteps(
               const parsed = JSON.parse(argsJson);
               if (parsed.query) {
                 step.code = parsed.query;
-              }
-              if (parsed.dataset_name) {
-                step.description = `Querying: ${parsed.dataset_name}`;
               }
 
               // If step was already marked as approval (detected at TOOL_CALL_START by tool name),
