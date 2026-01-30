@@ -1066,7 +1066,7 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
-                showTransparency={isSourcesEnabled}
+                showTransparency={isAgentV2 && isSourcesEnabled}
                 onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
