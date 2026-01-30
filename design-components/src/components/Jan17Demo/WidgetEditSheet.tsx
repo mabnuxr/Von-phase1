@@ -516,7 +516,7 @@ export const WidgetEditSheet: React.FC<WidgetEditSheetProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-2 border-b border-gray-100 flex-shrink-0">
               <div>
-                <h2 className="text-[15px] font-semibold text-gray-900">
+                <h2 className="text-sm font-semibold text-gray-900">
                   {mode === 'create' ? 'Add Widget' : 'Edit Widget'}
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">

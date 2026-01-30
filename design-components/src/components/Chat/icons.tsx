@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
+import { Stop } from '@phosphor-icons/react';
 
 export interface IconProps {
   className?: string;
@@ -659,11 +660,8 @@ export const SendIcon = memo<IconProps>(({ className = 'w-4 h-4', size = 16 }) =
 SendIcon.displayName = 'SendIcon';
 
 // Stop Icon - Square for stopping stream generation
-export const StopIcon = memo<IconProps>(() => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="11" stroke="currentColor" strokeWidth="1.5" fill="none" />
-    <rect x="7.5" y="7.5" width="9" height="9" rx="1" fill="currentColor" />
-  </svg>
+export const StopIcon = memo<IconProps>(({ className, size = 14 }) => (
+  <Stop className={className} size={size} weight="fill" />
 ));
 StopIcon.displayName = 'StopIcon';
 

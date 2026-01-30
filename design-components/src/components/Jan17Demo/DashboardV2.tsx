@@ -1391,7 +1391,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-3">
             <GearIcon size={20} className="text-gray-700" />
-            <span className="text-[15px] font-semibold text-gray-900">Dashboard Settings</span>
+            <span className="text-sm font-semibold text-gray-900">Dashboard Settings</span>
           </div>
           <button
             onClick={onClose}

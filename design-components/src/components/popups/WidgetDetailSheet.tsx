@@ -360,7 +360,7 @@ export const WidgetDetailSheet: React.FC<WidgetDetailSheetProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100/80">
                 <div>
-                  <h3 className="text-[15px] font-semibold text-gray-900">{widget.name}</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">{widget.name}</h3>
                 </div>
 
                 <div className="flex items-center gap-2">

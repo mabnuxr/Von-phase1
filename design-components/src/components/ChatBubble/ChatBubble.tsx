@@ -76,7 +76,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
       {/* Message Bubble */}
       <div
         className={`
-          text-sm leading-relaxed text-[#1d1d1f]  antialiased
+          text-sm leading-relaxed text-[#121212] antialiased
           whitespace-pre-wrap break-words
           ${
             isUser

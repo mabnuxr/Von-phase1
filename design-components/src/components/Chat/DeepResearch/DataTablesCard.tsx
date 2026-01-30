@@ -105,7 +105,7 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({
     >
       <div className="text-left">
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-medium text-gray-900">{title}</span>
+          <span className="text-sm font-medium text-gray-900">{title}</span>
           {showBadge && badge && (
             <span className="inline-flex items-center px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-medium rounded">
               {badge}

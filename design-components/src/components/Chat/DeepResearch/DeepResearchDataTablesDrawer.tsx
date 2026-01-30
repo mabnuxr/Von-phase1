@@ -193,7 +193,7 @@ export const DeepResearchDataTablesDrawer: React.FC<DeepResearchDataTablesDrawer
                   <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-gray-100">
                     <DatabaseIcon size={16} weight="duotone" className="text-gray-600" />
                   </div>
-                  <h2 className="text-[15px] font-medium text-gray-900">{title}</h2>
+                  <h2 className="text-sm font-medium text-gray-900">{title}</h2>
                   <span className="text-[13px] text-gray-500">·</span>
                   <span className="text-[13px] text-gray-500">
                     Showing {displayedRows} of {totalRows.toLocaleString()} records
