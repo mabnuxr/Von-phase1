@@ -169,6 +169,11 @@ export interface TimelineThinkingProcessProps {
   queries?: QueryResult[];
 
   /**
+   * Title displayed in the header (e.g., "Thinking", "Deep Research")
+   */
+  title?: string;
+
+  /**
    * Whether the thinking block is collapsed (hides the step details)
    */
   isCollapsed?: boolean;
