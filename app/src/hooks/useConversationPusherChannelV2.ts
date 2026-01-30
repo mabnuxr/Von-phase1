@@ -239,18 +239,10 @@ export function useConversationPusherChannelV2(
         // Stop timer and update elapsed time when run finishes
         // We only do this once per run to avoid resetting the elapsed time
         if (!thinking && !finishedRunsRef.current.has(run_id)) {
-          // Only mark run as permanently finished if stopped by user
-          // This allows approval flow to continue (normal RUN_FINISHED followed by new events)
-          const event = wrapper.event as
-            | { result?: { stopped_by_user?: boolean } }
-            | undefined;
-          const stoppedByUser =
-            eventType === "RUN_FINISHED" &&
-            event?.result?.stopped_by_user === true;
-
-          if (stoppedByUser) {
-            finishedRunsRef.current.add(run_id);
-          }
+          // Mark the run as finished so late events for this run_id are ignored.
+          // Approval pauses are handled by transformAguiToTimelineSteps (hasPendingApproval
+          // keeps isThinking=true), so it's safe to always record completion here.
+          finishedRunsRef.current.add(run_id);
 
           stopElapsedTimer();
 

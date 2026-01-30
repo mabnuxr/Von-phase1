@@ -81,29 +81,12 @@ export const StepRow = React.memo<StepRowProps>(
 
         {/* Content */}
         <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
-          {/* Header */}
-          <button
-            onClick={hasExpandableContent ? onToggle : undefined}
-            className={`
-              w-full flex items-center gap-2 text-left group
-              ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
-            `}
-          >
-            {/* Expand caret or empty span for reasoning steps */}
-            {isReasoningStep ? (
-              <span className="flex-shrink-0 self-start mt-1 w-3" />
-            ) : hasExpandableContent ? (
-              <span className="flex-shrink-0">
-                {isExpanded ? (
-                  <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
-                ) : (
-                  <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
-                )}
-              </span>
-            ) : null}
-
-            {/* Step text */}
-            {isReasoningStep ? (
+          {/* Header - use div for reasoning steps (allows text selection and links), button for expandable rows */}
+          {isReasoningStep ? (
+            <div className="w-full flex items-start gap-2 text-left">
+              {/* Empty spacer to align with caret in other rows */}
+              <span className="flex-shrink-0 mt-1 w-3" />
+              {/* Reasoning text with full markdown support */}
               <div
                 className={`
                   flex-1 min-w-0 text-sm
@@ -112,7 +95,27 @@ export const StepRow = React.memo<StepRowProps>(
               >
                 <Streamdown parseIncompleteMarkdown={true}>{step.text}</Streamdown>
               </div>
-            ) : (
+            </div>
+          ) : (
+            <button
+              onClick={hasExpandableContent ? onToggle : undefined}
+              className={`
+                w-full flex items-center gap-2 text-left group
+                ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
+              `}
+            >
+              {/* Expand caret */}
+              {hasExpandableContent ? (
+                <span className="flex-shrink-0">
+                  {isExpanded ? (
+                    <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
+                  ) : (
+                    <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
+                  )}
+                </span>
+              ) : null}
+
+              {/* Step text */}
               <span
                 className={`
                   flex-1 min-w-0 text-sm truncate
@@ -121,8 +124,8 @@ export const StepRow = React.memo<StepRowProps>(
               >
                 {step.text}
               </span>
-            )}
-          </button>
+            </button>
+          )}
 
           {/* Expanded content */}
           <AnimatePresence>
