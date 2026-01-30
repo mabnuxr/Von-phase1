@@ -67,8 +67,6 @@ export const StepRow = React.memo<StepRowProps>(
       return step.status;
     }, [isLocallyApproved, isLocallyRejected, step.status]);
 
-    const isInProgress = effectiveStatus === 'in-progress';
-
     return (
       <div className="relative flex">
         {/* Timeline connector - small dot indicator */}
@@ -87,12 +85,7 @@ export const StepRow = React.memo<StepRowProps>(
               {/* Empty spacer to align with caret in other rows */}
               <span className="flex-shrink-0 mt-1 w-3" />
               {/* Reasoning text with full markdown support */}
-              <div
-                className={`
-                  flex-1 min-w-0 text-sm
-                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
-                `}
-              >
+              <div className="flex-1 min-w-0 text-sm text-gray-900">
                 <Streamdown parseIncompleteMarkdown={true}>{step.text}</Streamdown>
               </div>
             </div>
@@ -116,14 +109,7 @@ export const StepRow = React.memo<StepRowProps>(
               ) : null}
 
               {/* Step text */}
-              <span
-                className={`
-                  flex-1 min-w-0 text-sm truncate
-                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
-                `}
-              >
-                {step.text}
-              </span>
+              <span className="flex-1 min-w-0 text-sm truncate text-gray-900">{step.text}</span>
             </button>
           )}
 

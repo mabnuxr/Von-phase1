@@ -191,16 +191,6 @@ export interface TimelineThinkingProcessProps {
   title?: string;
 
   /**
-   * Whether the thinking block is collapsed (hides the step details)
-   */
-  isCollapsed?: boolean;
-
-  /**
-   * Callback when collapse state changes
-   */
-  onToggleCollapse?: () => void;
-
-  /**
    * Callback when a step is expanded to show full details
    */
   onExpandStep?: (step: TimelineStep) => void;

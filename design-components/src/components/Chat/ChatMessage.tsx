@@ -328,116 +328,173 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       >
         {/* Centered container */}
         <div className="px-2">
-          <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
-            {/* Message layout */}
-            <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
-              {/* Horizontal layout: Avatar + Content (reversed for user) */}
-              <div
-                className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-50 border border-gray-100 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
-              >
-                {/* Avatar and Status Badge */}
-                <div className="flex items-start gap-2 flex-shrink-0">
-                  {isUser ? (
-                    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                      {userInitials}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-                        <svg
-                          width="28"
-                          height="28"
-                          viewBox="0 0 28 28"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
-                            fill="url(#paint0_radial_chat_msg)"
-                          />
-                          <path
-                            d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-                            stroke="white"
-                            strokeWidth="1.33"
-                          />
-                          <circle
-                            cx="13.9932"
-                            cy="14"
-                            r="7.835"
-                            stroke="white"
-                            strokeWidth="1.33"
-                          />
-                          <defs>
-                            <radialGradient
-                              id="paint0_radial_chat_msg"
-                              cx="0"
-                              cy="0"
-                              r="1"
-                              gradientUnits="userSpaceOnUse"
-                              gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
-                            >
-                              <stop stopColor="#FFF3EB" />
-                              <stop offset="0.26" stopColor="#FF9042" />
-                              <stop offset="1" stopColor="#854FFF" />
-                            </radialGradient>
-                          </defs>
-                        </svg>
-                      </div>
-                    </>
-                  )}
+          {/* V2 Assistant Messages - Icon outside content for alignment with chat input */}
+          {!isUser && thinkingProcessVersion === 'v2' && (timelineSteps?.length || isStreaming) ? (
+            <div className="relative max-w-4xl mx-auto px-1">
+              {/* Von icon positioned outside content area */}
+              <div className="absolute -left-11 top-0">
+                <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 28 28"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
+                      fill="url(#paint0_radial_chat_msg_v2)"
+                    />
+                    <path
+                      d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+                      stroke="white"
+                      strokeWidth="1.33"
+                    />
+                    <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
+                    <defs>
+                      <radialGradient
+                        id="paint0_radial_chat_msg_v2"
+                        cx="0"
+                        cy="0"
+                        r="1"
+                        gradientUnits="userSpaceOnUse"
+                        gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
+                      >
+                        <stop stopColor="#FFF3EB" />
+                        <stop offset="0.26" stopColor="#FF9042" />
+                        <stop offset="1" stopColor="#854FFF" />
+                      </radialGradient>
+                    </defs>
+                  </svg>
                 </div>
-
-                {/* Content Column */}
-                <div className="flex-1 min-w-0 -mt-0.5">
-                  {/* For assistant messages: check for errors first */}
-                  {!isUser && status === 'failed' && errorMessage ? (
-                    <MessageAreaError message={errorMessage} />
-                  ) : !isUser ? (
-                    <div>
-                      {/* V2 Thinking Process - TimelineThinkingProcess component */}
-                      {thinkingProcessVersion === 'v2' && (timelineSteps?.length || isStreaming) ? (
-                        <div className="space-y-4">
-                          <TimelineThinkingProcess
-                            steps={timelineSteps || []}
-                            isThinking={isStreaming && !v2FinalResponseStreaming}
-                            autoCollapse={v2FinalResponseStreaming}
-                            elapsedTime={thinkingElapsedTime}
-                            onApprove={(stepId) => {
-                              if (import.meta.env.DEV) {
-                                console.log('[ChatMessage] onApprove wrapper called:', {
-                                  stepId,
-                                  runId,
-                                  hasOnApprove: !!onApprove,
-                                });
-                              }
-                              onApprove?.(stepId, runId);
-                            }}
-                            onReject={(stepId) => {
-                              if (import.meta.env.DEV) {
-                                console.log('[ChatMessage] onReject wrapper called:', {
-                                  stepId,
-                                  runId,
-                                  hasOnReject: !!onReject,
-                                });
-                              }
-                              onReject?.(stepId, runId);
-                            }}
-                            onArtifactClick={handleArtifactClick}
-                          />
-                          {/* Final response - shown while streaming (when is_final_response) or after thinking completes */}
-                          {(!isStreaming || v2FinalResponseStreaming) && v2FinalResponse && (
-                            <div className="prose-sm markdown-content max-w-none">
-                              <Streamdown
-                                parseIncompleteMarkdown={v2FinalResponseStreaming}
-                                isAnimating={v2FinalResponseStreaming}
+              </div>
+              {/* Content takes full width to align with chat input */}
+              <div className="w-full">
+                {status === 'failed' && errorMessage ? (
+                  <MessageAreaError message={errorMessage} />
+                ) : (
+                  <div className="space-y-4">
+                    <TimelineThinkingProcess
+                      steps={timelineSteps || []}
+                      isThinking={isStreaming && !v2FinalResponseStreaming}
+                      autoCollapse={v2FinalResponseStreaming}
+                      elapsedTime={thinkingElapsedTime}
+                      onApprove={(stepId) => {
+                        if (import.meta.env.DEV) {
+                          console.log('[ChatMessage] onApprove wrapper called:', {
+                            stepId,
+                            runId,
+                            hasOnApprove: !!onApprove,
+                          });
+                        }
+                        onApprove?.(stepId, runId);
+                      }}
+                      onReject={(stepId) => {
+                        if (import.meta.env.DEV) {
+                          console.log('[ChatMessage] onReject wrapper called:', {
+                            stepId,
+                            runId,
+                            hasOnReject: !!onReject,
+                          });
+                        }
+                        onReject?.(stepId, runId);
+                      }}
+                      onArtifactClick={handleArtifactClick}
+                    />
+                    {/* Final response - shown while streaming (when is_final_response) or after thinking completes */}
+                    {(!isStreaming || v2FinalResponseStreaming) && v2FinalResponse && (
+                      <div className="prose-sm markdown-content max-w-none">
+                        <Streamdown
+                          parseIncompleteMarkdown={v2FinalResponseStreaming}
+                          isAnimating={v2FinalResponseStreaming}
+                        >
+                          {v2FinalResponse}
+                        </Streamdown>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Message Actions for V2 */}
+                {!isStreaming && !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
+                  <MessageActions
+                    messageContent={v2FinalResponse || ''}
+                    messageId={messageId || ''}
+                    enableActions={enableActions}
+                    onConvertToDashboard={onConvertToDashboard}
+                    onTransparencyClick={onTransparencyClick}
+                    showTransparency={showTransparency}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
+              {/* Message layout */}
+              <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
+                {/* Horizontal layout: Avatar + Content (reversed for user) */}
+                <div
+                  className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-50 border border-gray-100 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
+                >
+                  {/* Avatar and Status Badge */}
+                  <div className="flex items-start gap-2 flex-shrink-0">
+                    {isUser ? (
+                      <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                        {userInitials}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                          <svg
+                            width="28"
+                            height="28"
+                            viewBox="0 0 28 28"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
+                              fill="url(#paint0_radial_chat_msg)"
+                            />
+                            <path
+                              d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+                              stroke="white"
+                              strokeWidth="1.33"
+                            />
+                            <circle
+                              cx="13.9932"
+                              cy="14"
+                              r="7.835"
+                              stroke="white"
+                              strokeWidth="1.33"
+                            />
+                            <defs>
+                              <radialGradient
+                                id="paint0_radial_chat_msg"
+                                cx="0"
+                                cy="0"
+                                r="1"
+                                gradientUnits="userSpaceOnUse"
+                                gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
                               >
-                                {v2FinalResponse}
-                              </Streamdown>
-                            </div>
-                          )}
+                                <stop stopColor="#FFF3EB" />
+                                <stop offset="0.26" stopColor="#FF9042" />
+                                <stop offset="1" stopColor="#854FFF" />
+                              </radialGradient>
+                            </defs>
+                          </svg>
                         </div>
-                      ) : (
-                        /* V1 Thinking Process - Original ThinkingBlock components */
+                      </>
+                    )}
+                  </div>
+
+                  {/* Content Column */}
+                  <div className="flex-1 min-w-0 -mt-0.5">
+                    {/* For assistant messages: check for errors first */}
+                    {!isUser && status === 'failed' && errorMessage ? (
+                      <MessageAreaError message={errorMessage} />
+                    ) : !isUser ? (
+                      <div>
+                        {/* V1 Thinking Process - Original ThinkingBlock components */}
                         <>
                           {isStreaming &&
                             !content &&
@@ -558,61 +615,61 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             )
                           )}
                         </>
-                      )}
-                    </div>
-                  ) : (
-                    // User messages - with file attachments and text
-                    <div ref={userMessageRef}>
-                      {/* File attachments shown above text */}
-                      {attachments && attachments.length > 0 && (
-                        <MessageFilePreview attachments={attachments} />
-                      )}
-                      {/* Text content - render markdown using TiptapViewer */}
-                      {content && (
-                        <TiptapViewer
-                          content={content}
-                          className="markdown-content prose-sm max-w-none text-left"
+                      </div>
+                    ) : (
+                      // User messages - with file attachments and text
+                      <div ref={userMessageRef}>
+                        {/* File attachments shown above text */}
+                        {attachments && attachments.length > 0 && (
+                          <MessageFilePreview attachments={attachments} />
+                        )}
+                        {/* Text content - render markdown using TiptapViewer */}
+                        {content && (
+                          <TiptapViewer
+                            content={content}
+                            className="markdown-content prose-sm max-w-none text-left"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show stopped indicator for assistant messages */}
+                    {!isUser && stoppedByUser && (
+                      <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <InfoIcon size={20} className="text-indigo-600" />
+                        </div>
+                        <span className="text-sm text-gray-800  leading-relaxed flex-1">
+                          Response stopped by the user
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
+                    {!isUser &&
+                      !isStreaming &&
+                      !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
+                        <MessageActions
+                          messageContent={
+                            // For v2 thinking process, only use the final response (not intermediate steps)
+                            thinkingProcessVersion === 'v2' && v2FinalResponse
+                              ? v2FinalResponse
+                              : stepMessages && stepMessages.length > 0
+                                ? stepMessages.map((s) => s.content).join('\n\n')
+                                : content
+                          }
+                          messageId={messageId || ''}
+                          enableActions={enableActions}
+                          onConvertToDashboard={onConvertToDashboard}
+                          onTransparencyClick={onTransparencyClick}
+                          showTransparency={showTransparency}
                         />
                       )}
-                    </div>
-                  )}
-
-                  {/* Show stopped indicator for assistant messages */}
-                  {!isUser && stoppedByUser && (
-                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <InfoIcon size={20} className="text-indigo-600" />
-                      </div>
-                      <span className="text-sm text-gray-800  leading-relaxed flex-1">
-                        Response stopped by the user
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
-                  {!isUser &&
-                    !isStreaming &&
-                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
-                      <MessageActions
-                        messageContent={
-                          // For v2 thinking process, only use the final response (not intermediate steps)
-                          thinkingProcessVersion === 'v2' && v2FinalResponse
-                            ? v2FinalResponse
-                            : stepMessages && stepMessages.length > 0
-                              ? stepMessages.map((s) => s.content).join('\n\n')
-                              : content
-                        }
-                        messageId={messageId || ''}
-                        enableActions={enableActions}
-                        onConvertToDashboard={onConvertToDashboard}
-                        onTransparencyClick={onTransparencyClick}
-                        showTransparency={showTransparency}
-                      />
-                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircleIcon,
@@ -11,6 +11,7 @@ import type { TimelineThinkingProcessProps } from './types';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
 import { StepRow } from './components';
+import { CONTAINER_HEIGHT } from './constants';
 import { ThinkingDrawer, type ThinkingStepDetail } from '../ThinkingDrawer';
 import { EngagingMessage } from '../Chat/EngagingMessage';
 
@@ -41,8 +42,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onQueryClick,
   queries = [],
   title = 'Thinking',
-  isCollapsed: controlledCollapsed,
-  onToggleCollapse,
   onExpandStep,
   onApprove,
   onReject,
@@ -71,83 +70,8 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     steps,
     isThinking,
     autoCollapse,
-    controlledCollapsed,
-    onToggleCollapse,
     onExpandStep,
   });
-
-  // Dynamic max-height: fill from the steps container's top to the bottom
-  // of the chat scroll container (.chat-messages-wrapper), so the thinking
-  // process is scrollable within the visible chat area.
-  const stepsContainerRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<Element | null>(null);
-  const observerRef = useRef<ResizeObserver | null>(null);
-  const scrollHandlerRef = useRef<(() => void) | null>(null);
-
-  const updateMaxHeight = useCallback((el: HTMLDivElement) => {
-    const chatContainer = chatContainerRef.current;
-    if (!chatContainer) return;
-
-    const elRect = el.getBoundingClientRect();
-    const chatRect = chatContainer.getBoundingClientRect();
-    // Distance from the steps container top to the chat container bottom, minus padding
-    const available = Math.max(chatRect.bottom - elRect.top - 24, 120);
-    el.style.maxHeight = `${available}px`;
-  }, []);
-
-  // Merged callback ref: assigns to both stepsContainerRef (for max-height)
-  // and scrollContainerRef (for auto-scroll tracking in useTimelineState)
-  const stepsContainerCallbackRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      // Clean up previous observer and scroll listener
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-      if (scrollHandlerRef.current && chatContainerRef.current) {
-        chatContainerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
-        scrollHandlerRef.current = null;
-      }
-
-      stepsContainerRef.current = node;
-      // Also assign to scrollContainerRef so auto-scroll targets the scrollable element
-      (scrollContainerRef as React.RefObject<HTMLDivElement | null>).current = node;
-      if (!node) return;
-
-      // Find the chat scroll container once
-      chatContainerRef.current = node.closest('.chat-messages-wrapper');
-
-      // Initial measurement
-      updateMaxHeight(node);
-
-      if (chatContainerRef.current) {
-        // Re-measure when the chat container resizes
-        observerRef.current = new ResizeObserver(() => {
-          updateMaxHeight(node);
-        });
-        observerRef.current.observe(chatContainerRef.current);
-
-        // Re-measure on scroll so maxHeight updates when user scrolls back
-        // to the thinking block after it was mounted off-screen
-        scrollHandlerRef.current = () => updateMaxHeight(node);
-        chatContainerRef.current.addEventListener('scroll', scrollHandlerRef.current, {
-          passive: true,
-        });
-      }
-    },
-    [updateMaxHeight, scrollContainerRef]
-  );
-
-  // Re-measure on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (stepsContainerRef.current) {
-        updateMaxHeight(stepsContainerRef.current);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [updateMaxHeight]);
 
   // Convert steps to drawer format
   const drawerSteps: ThinkingStepDetail[] = useMemo(
@@ -181,30 +105,13 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     [visibleSteps]
   );
 
-  // Compute summary for header - shows current activity or progress count
-  const summary = useMemo(() => {
-    if (steps.length === 0) return '';
-
-    if (isThinking) {
-      // Find the current in-progress step
-      const inProgressStep = steps.find((s) => s.status === 'in-progress');
-      if (inProgressStep) {
-        return inProgressStep.text;
-      }
-      // If no in-progress step, show the last step
-      const lastStep = steps[steps.length - 1];
-      return lastStep?.text || '';
-    }
-
-    return '';
-  }, [steps, isThinking]);
-
   return (
     <>
       <div className="bg-gray-50/50 rounded-xl border border-gray-200 overflow-hidden p-1">
         {/* Header - always visible */}
         <button
           onClick={handleToggleCollapse}
+          disabled={visibleSteps.length === 0}
           className="w-full px-2 py-1.5 flex items-center justify-between cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -224,9 +131,8 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   className="text-emerald-600 flex-shrink-0"
                 />
                 <span className="text-sm text-gray-700">{title} completed</span>
-                {summary && <span className="text-sm text-gray-400 ml-1">({summary})</span>}
               </>
-            ) : isThinking ? (
+            ) : (
               <>
                 <motion.div
                   animate={{ rotate: 360 }}
@@ -235,14 +141,8 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 >
                   <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
                 </motion.div>
-                <span className="text-sm text-gray-700 truncate">
-                  {summary ? `${title}: ${summary}` : title}
-                </span>
+                <span className="text-sm text-gray-700 truncate">{title}</span>
               </>
-            ) : (
-              <span className="text-sm text-gray-700">
-                {summary ? `${title} (${summary})` : title}
-              </span>
             )}
           </div>
 
@@ -281,103 +181,109 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div
-                ref={stepsContainerCallbackRef}
-                className="border border-gray-200 bg-white shadow-xs rounded-lg overflow-y-auto px-3 py-3"
-              >
-                <div className="space-y-0">
-                  {visibleSteps.map((step, idx) => {
-                    const displayMode = getStepDisplayMode(step, idx);
-                    const isExpanded = displayMode === 'expanded';
+              {visibleSteps.length > 0 && (
+                <div className="border border-gray-200 bg-white shadow-xs rounded-lg">
+                  <div
+                    ref={scrollContainerRef}
+                    className="overflow-y-auto px-3 py-3"
+                    style={{ maxHeight: CONTAINER_HEIGHT }}
+                  >
+                    <div className="space-y-0">
+                      {visibleSteps.map((step, idx) => {
+                        const displayMode = getStepDisplayMode(step, idx);
+                        const isExpanded = displayMode === 'expanded';
 
-                    // Always use StepRow - description is always visible outside expanded block
-                    // The isExpanded prop controls whether code/approval/sub-steps are shown
-                    // Get the actual toolCallId from approval data, fallback to step.id
-                    const toolCallId = step.approval?.toolCallId || step.id;
+                        // Always use StepRow - description is always visible outside expanded block
+                        // The isExpanded prop controls whether code/approval/sub-steps are shown
+                        // Get the actual toolCallId from approval data, fallback to step.id
+                        const toolCallId = step.approval?.toolCallId || step.id;
 
-                    // Check local approval state for optimistic UI update
-                    const localState = localApprovalState.get(toolCallId);
-                    const isLocallyApproved = localState === 'approved';
-                    const isLocallyRejected = localState === 'rejected';
+                        // Check local approval state for optimistic UI update
+                        const localState = localApprovalState.get(toolCallId);
+                        const isLocallyApproved = localState === 'approved';
+                        const isLocallyRejected = localState === 'rejected';
 
-                    return (
-                      <StepRow
-                        key={step.id}
-                        step={step}
-                        isExpanded={isExpanded}
-                        onToggle={() => toggleStep(step.id)}
-                        onExpand={() => handleExpandStep(step)}
-                        isLast={idx === visibleSteps.length - 1}
-                        onApprove={
-                          onApprove
-                            ? () => {
-                                if (import.meta.env.DEV) {
-                                  console.log('[TimelineThinkingProcess] onApprove called:', {
-                                    toolCallId,
-                                    stepId: step.id,
-                                    stepStatus: step.status,
-                                    approvalData: step.approval,
-                                  });
-                                }
-                                markAsApproved(toolCallId);
-                                onApprove(toolCallId);
-                              }
-                            : undefined
-                        }
-                        onReject={
-                          onReject
-                            ? () => {
-                                if (import.meta.env.DEV) {
-                                  console.log('[TimelineThinkingProcess] onReject called:', {
-                                    toolCallId,
-                                    stepId: step.id,
-                                    stepStatus: step.status,
-                                    approvalData: step.approval,
-                                  });
-                                }
-                                markAsRejected(toolCallId);
-                                onReject(toolCallId);
-                              }
-                            : undefined
-                        }
-                        onArtifactClick={onArtifactClick}
-                        isLocallyApproved={isLocallyApproved}
-                        isLocallyRejected={isLocallyRejected}
-                      />
-                    );
-                  })}
-                  {/* Show EngagingMessage only when:
-                      - isThinking (process is ongoing)
-                      - No approval pending
-                      - No step is currently in-progress (loading/streaming)
-                      - Either no visible steps yet OR streaming has stopped
-                      AnimatePresence provides smooth fade-in/out transition */}
-                  <AnimatePresence>
-                    {isThinking &&
-                      !awaitingApprovalStep &&
-                      !hasInProgressStep &&
-                      (visibleSteps.length === 0 || !isStreaming) && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.3, delay: 0.5 }}
-                          className="flex items-center gap-3 pt-2 ml-1"
-                        >
-                          <EngagingMessage
-                            isActive={isThinking}
-                            spinnerSize="sm"
-                            textSize="sm"
-                            contentSignature={contentSignature}
-                            showDelay={2000}
-                            initialText="Processing"
-                            className="text-gray-600"
+                        return (
+                          <StepRow
+                            key={step.id}
+                            step={step}
+                            isExpanded={isExpanded}
+                            onToggle={() => toggleStep(step.id)}
+                            onExpand={() => handleExpandStep(step)}
+                            isLast={idx === visibleSteps.length - 1}
+                            onApprove={
+                              onApprove
+                                ? () => {
+                                    if (import.meta.env.DEV) {
+                                      console.log('[TimelineThinkingProcess] onApprove called:', {
+                                        toolCallId,
+                                        stepId: step.id,
+                                        stepStatus: step.status,
+                                        approvalData: step.approval,
+                                      });
+                                    }
+                                    markAsApproved(toolCallId);
+                                    onApprove(toolCallId);
+                                  }
+                                : undefined
+                            }
+                            onReject={
+                              onReject
+                                ? () => {
+                                    if (import.meta.env.DEV) {
+                                      console.log('[TimelineThinkingProcess] onReject called:', {
+                                        toolCallId,
+                                        stepId: step.id,
+                                        stepStatus: step.status,
+                                        approvalData: step.approval,
+                                      });
+                                    }
+                                    markAsRejected(toolCallId);
+                                    onReject(toolCallId);
+                                  }
+                                : undefined
+                            }
+                            onArtifactClick={onArtifactClick}
+                            isLocallyApproved={isLocallyApproved}
+                            isLocallyRejected={isLocallyRejected}
                           />
-                        </motion.div>
-                      )}
-                  </AnimatePresence>
+                        );
+                      })}
+                      {/* Show EngagingMessage only when:
+                        - isThinking (process is ongoing)
+                        - No approval pending
+                        - No step is currently in-progress (loading/streaming)
+                        - Either no visible steps yet OR streaming has stopped
+                        AnimatePresence provides smooth fade-in/out transition */}
+                      <AnimatePresence>
+                        {isThinking &&
+                          !awaitingApprovalStep &&
+                          !hasInProgressStep &&
+                          visibleSteps.length > 0 &&
+                          !isStreaming && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.3, delay: 0.5 }}
+                              className="flex items-center gap-3 pt-2 ml-1"
+                            >
+                              <EngagingMessage
+                                isActive={isThinking}
+                                spinnerSize="sm"
+                                textSize="sm"
+                                contentSignature={contentSignature}
+                                showDelay={2000}
+                                initialText="Processing"
+                                className="text-gray-600"
+                              />
+                            </motion.div>
+                          )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

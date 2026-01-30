@@ -313,6 +313,7 @@ export interface TextMessageStartEvent {
 export interface TextMessageContentEvent {
   type: 'TEXT_MESSAGE_CONTENT';
   message_id: string;
+  parent_message_id: string;
   delta: string;
   /** When true, this content is part of the final response */
   is_final_response?: boolean;
