@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CaretDownIcon,
@@ -243,10 +243,16 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     const source = detectBulkApprovalSource(approval);
     const sourceLabel = getBulkApprovalLabel(source);
 
-    // Get the operation type from first operation
-    const operationType = operations[0]?.operation || 'update';
+    // Derive operation label - handle mixed operations (create/update/delete in same batch)
+    const uniqueOperations = new Set(operations.map((op) => op.operation));
     const operationLabel =
-      operationType === 'delete' ? 'delete' : operationType === 'create' ? 'create' : 'update';
+      uniqueOperations.size === 1
+        ? uniqueOperations.has('delete')
+          ? 'delete'
+          : uniqueOperations.has('create')
+            ? 'create'
+            : 'update'
+        : 'make changes to';
 
     // Render the appropriate icon based on source
     const SourceIcon =
@@ -274,13 +280,6 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
 
     const handleToggleItem = useCallback((index: number) => {
       setExpandedIndex((prev) => (prev === index ? null : index));
-    }, []);
-
-    // Auto-scroll to bottom on mount
-    useEffect(() => {
-      if (listRef.current) {
-        listRef.current.scrollTop = listRef.current.scrollHeight;
-      }
     }, []);
 
     // Show approved/rejected state
