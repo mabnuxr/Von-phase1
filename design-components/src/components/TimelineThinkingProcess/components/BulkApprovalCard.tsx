@@ -7,6 +7,7 @@ import {
   XCircleIcon,
   CheckIcon,
   XIcon,
+  CalendarIcon,
 } from '@phosphor-icons/react';
 import type { ApprovalData, BulkOperation } from '../types';
 
@@ -28,6 +29,36 @@ const SalesforceIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
     />
   </svg>
 );
+
+// ============================================================================
+// Bulk Approval Type Detection
+// ============================================================================
+
+type BulkApprovalSource = 'salesforce' | 'calendar' | 'generic';
+
+function detectBulkApprovalSource(approval: ApprovalData): BulkApprovalSource {
+  // Check objectType first (set by transform)
+  if (approval.objectType?.toLowerCase().includes('calendar')) {
+    return 'calendar';
+  }
+  // Check first operation's sobject_type
+  const firstOpType = approval.operations?.[0]?.sobject_type?.toLowerCase();
+  if (firstOpType?.includes('calendar')) {
+    return 'calendar';
+  }
+  // Default to Salesforce for other bulk operations
+  return 'salesforce';
+}
+
+function getBulkApprovalLabel(source: BulkApprovalSource): string {
+  switch (source) {
+    case 'calendar':
+      return 'calendar event';
+    case 'salesforce':
+    default:
+      return 'Salesforce record';
+  }
+}
 
 // ============================================================================
 // Truncated Text with Tooltip
@@ -208,10 +239,22 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     const operations = approval.operations || [];
     const recordCount = operations.length;
 
+    // Detect the source type (Salesforce vs Calendar)
+    const source = detectBulkApprovalSource(approval);
+    const sourceLabel = getBulkApprovalLabel(source);
+
     // Get the operation type from first operation
     const operationType = operations[0]?.operation || 'update';
     const operationLabel =
       operationType === 'delete' ? 'delete' : operationType === 'create' ? 'create' : 'update';
+
+    // Render the appropriate icon based on source
+    const SourceIcon =
+      source === 'calendar'
+        ? ({ size }: { size: number }) => (
+            <CalendarIcon size={size} weight="fill" className="text-blue-600" />
+          )
+        : SalesforceIcon;
 
     const handleApprove = useCallback(
       (e: React.MouseEvent) => {
@@ -245,19 +288,21 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
       return (
         <div className="mt-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center gap-2">
-            <SalesforceIcon size={16} />
+            <SourceIcon size={16} />
             {isApproved ? (
               <>
                 <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
                 <span className="text-[12px] font-medium text-emerald-700">
-                  {recordCount} record{recordCount !== 1 ? 's' : ''} approved
+                  {recordCount} {sourceLabel}
+                  {recordCount !== 1 ? 's' : ''} approved
                 </span>
               </>
             ) : (
               <>
                 <XCircleIcon size={14} weight="fill" className="text-red-500" />
                 <span className="text-[12px] font-medium text-red-600">
-                  {recordCount} record{recordCount !== 1 ? 's' : ''} rejected
+                  {recordCount} {sourceLabel}
+                  {recordCount !== 1 ? 's' : ''} rejected
                 </span>
               </>
             )}
@@ -268,12 +313,13 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
 
     return (
       <div className="mt-2 px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
-        {/* Header with Salesforce icon */}
+        {/* Header with source icon */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <SalesforceIcon size={18} />
+            <SourceIcon size={18} />
             <span className="text-[13px] font-medium text-gray-900">
-              {recordCount} Salesforce record{recordCount !== 1 ? 's' : ''} to {operationLabel}
+              {recordCount} {sourceLabel}
+              {recordCount !== 1 ? 's' : ''} to {operationLabel}
             </span>
           </div>
         </div>

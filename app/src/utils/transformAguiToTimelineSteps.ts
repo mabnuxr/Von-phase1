@@ -13,6 +13,7 @@ import type {
   SourceType,
   EventCategory,
   ResearchResultsMetadata,
+  BulkOperation,
 } from "@vonlabs/design-components";
 import {
   isApprovalTool,
@@ -102,20 +103,6 @@ function getToolSource(toolName: string): SourceType {
   return TOOL_SOURCE_MAP[toolName] || "generic";
 }
 
-/**
- * Bulk operation structure for Salesforce bulk approvals
- */
-interface BulkOperationData {
-  operation: "create" | "update" | "delete";
-  sobject_type: string;
-  record_name: string;
-  fields?: Record<string, string | number | boolean | null>;
-  changes?: Array<{
-    field: string;
-    before?: string | number | boolean | null;
-    after: string | number | boolean | null;
-  }>;
-}
 
 /**
  * Approval data structure returned by detection
@@ -138,7 +125,7 @@ interface DetectedApprovalData {
     | "deep_research"
     | "generic";
   // Bulk operations array for Salesforce bulk approvals
-  operations?: BulkOperationData[];
+  operations?: BulkOperation[];
   recordCount?: number;
   // Deep research specific fields
   researchQuery?: string;
@@ -179,7 +166,7 @@ function detectApprovalFromArgs(
     if (isCalendar) {
       // Google Calendar operations
       // For bulk operations, include the full operations array
-      const calendarBulkOperations: BulkOperationData[] | undefined = isBulk
+      const calendarBulkOperations: BulkOperation[] | undefined = isBulk
         ? ops.map(
             (op: {
               operation?: string;
@@ -218,7 +205,7 @@ function detectApprovalFromArgs(
 
     // Salesforce operations (has sobject_type or record_name)
     // For bulk operations, include the full operations array
-    const bulkOperations: BulkOperationData[] | undefined = isBulk
+    const bulkOperations: BulkOperation[] | undefined = isBulk
       ? ops.map(
           (op: {
             operation?: string;
