@@ -44,22 +44,22 @@ export const StepIndicator = React.memo<StepIndicatorProps>(({ status }) => {
   }
   if (status === 'awaiting-approval') {
     return (
-      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-amber-500">
-        <HourglassIcon size={10} weight="fill" className="text-white" />
+      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50">
+        <HourglassIcon size={10} weight="regular" className="text-amber-500" />
       </div>
     );
   }
   if (status === 'warning') {
     return (
-      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-orange-500">
-        <WarningIcon size={10} weight="fill" className="text-white" />
+      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50">
+        <WarningIcon size={10} weight="regular" className="text-orange-500" />
       </div>
     );
   }
   if (status === 'error') {
     return (
-      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-red-500">
-        <XCircleIcon size={10} weight="fill" className="text-white" />
+      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50">
+        <XCircleIcon size={10} weight="regular" className="text-red-500" />
       </div>
     );
   }

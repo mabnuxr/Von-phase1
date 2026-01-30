@@ -91,11 +91,7 @@ export const StepRow = React.memo<StepRowProps>(
             `}
           >
             {/* Expand caret or note icon for reasoning steps */}
-            {isReasoningStep ? (
-              <span className="flex-shrink-0 self-start mt-1 w-3">
-                <NoteBlankIcon size={12} weight="regular" className="text-gray-400" />
-              </span>
-            ) : hasExpandableContent ? (
+            {hasExpandableContent ? (
               <span className="flex-shrink-0">
                 {isExpanded ? (
                   <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
