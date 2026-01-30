@@ -75,6 +75,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   const stepsContainerRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<Element | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
+  const scrollHandlerRef = useRef<(() => void) | null>(null);
 
   const updateMaxHeight = useCallback((el: HTMLDivElement) => {
     const chatContainer = chatContainerRef.current;
@@ -91,10 +92,14 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   // and scrollContainerRef (for auto-scroll tracking in useTimelineState)
   const stepsContainerCallbackRef = useCallback(
     (node: HTMLDivElement | null) => {
-      // Clean up previous observer
+      // Clean up previous observer and scroll listener
       if (observerRef.current) {
         observerRef.current.disconnect();
         observerRef.current = null;
+      }
+      if (scrollHandlerRef.current && chatContainerRef.current) {
+        chatContainerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
+        scrollHandlerRef.current = null;
       }
 
       stepsContainerRef.current = node;
@@ -108,12 +113,19 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
       // Initial measurement
       updateMaxHeight(node);
 
-      // Re-measure when the chat container resizes
-      observerRef.current = new ResizeObserver(() => {
-        updateMaxHeight(node);
-      });
       if (chatContainerRef.current) {
+        // Re-measure when the chat container resizes
+        observerRef.current = new ResizeObserver(() => {
+          updateMaxHeight(node);
+        });
         observerRef.current.observe(chatContainerRef.current);
+
+        // Re-measure on scroll so maxHeight updates when user scrolls back
+        // to the thinking block after it was mounted off-screen
+        scrollHandlerRef.current = () => updateMaxHeight(node);
+        chatContainerRef.current.addEventListener('scroll', scrollHandlerRef.current, {
+          passive: true,
+        });
       }
     },
     [updateMaxHeight, scrollContainerRef]
