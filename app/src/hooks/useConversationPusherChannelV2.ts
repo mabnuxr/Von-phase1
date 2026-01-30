@@ -202,6 +202,17 @@ export function useConversationPusherChannelV2(
           return;
         }
 
+        // Reset stopped state on terminal event (regardless of thinking state)
+        // This ensures stopped state doesn't leak into approval flow or new runs
+        if (isTerminalEvent && stoppedRef.current) {
+          stoppedRef.current = false;
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useConversationPusherChannelV2] Reset stopped state on terminal event",
+            );
+          }
+        }
+
         // Transform to timeline steps
         const {
           steps,

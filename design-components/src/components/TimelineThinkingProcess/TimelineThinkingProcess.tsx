@@ -174,6 +174,13 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     return `${stepCount}-${lastStepDescription}`;
   }, [steps]);
 
+  // Check if any step is currently in-progress (loading or streaming)
+  // Used to hide EngagingMessage when processing is happening
+  const hasInProgressStep = useMemo(
+    () => visibleSteps.some((step) => step.status === 'in-progress'),
+    [visibleSteps]
+  );
+
   // Compute summary for header - shows current activity or progress count
   const summary = useMemo(() => {
     if (steps.length === 0) return '';
@@ -339,21 +346,36 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                       />
                     );
                   })}
-                  {isThinking &&
-                    !awaitingApprovalStep &&
-                    (visibleSteps.length === 0 || !isStreaming) && (
-                      <div className="flex items-center gap-3 pt-2 ml-1">
-                        <EngagingMessage
-                          isActive={isThinking}
-                          spinnerSize="sm"
-                          textSize="sm"
-                          contentSignature={contentSignature}
-                          showDelay={2000}
-                          initialText="Processing"
-                          className="text-gray-600"
-                        />
-                      </div>
-                    )}
+                  {/* Show EngagingMessage only when:
+                      - isThinking (process is ongoing)
+                      - No approval pending
+                      - No step is currently in-progress (loading/streaming)
+                      - Either no visible steps yet OR streaming has stopped
+                      AnimatePresence provides smooth fade-in/out transition */}
+                  <AnimatePresence>
+                    {isThinking &&
+                      !awaitingApprovalStep &&
+                      !hasInProgressStep &&
+                      (visibleSteps.length === 0 || !isStreaming) && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3, delay: 0.5 }}
+                          className="flex items-center gap-3 pt-2 ml-1"
+                        >
+                          <EngagingMessage
+                            isActive={isThinking}
+                            spinnerSize="sm"
+                            textSize="sm"
+                            contentSignature={contentSignature}
+                            showDelay={2000}
+                            initialText="Processing"
+                            className="text-gray-600"
+                          />
+                        </motion.div>
+                      )}
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>
