@@ -126,7 +126,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   weight="fill"
                   className="text-emerald-600 flex-shrink-0"
                 />
-                <span className="text-[15px] text-gray-700">{title} completed</span>
+                <span className="text-sm text-gray-700">Thinking completed</span>
               </>
             ) : (
               <>

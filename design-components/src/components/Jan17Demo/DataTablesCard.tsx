@@ -29,7 +29,7 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({ tables, onClick 
     >
       <div className="text-left">
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-medium text-gray-900">Review source data</span>
+          <span className="text-sm font-medium text-gray-900">Review source data</span>
           <span className="inline-flex items-center px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-medium rounded">
             Needs review
           </span>

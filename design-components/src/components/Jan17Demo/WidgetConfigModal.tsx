@@ -174,7 +174,7 @@ export const WidgetConfigModal: React.FC<WidgetConfigModalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div>
-                  <h2 className="text-[15px] font-semibold text-gray-900">
+                  <h2 className="text-sm font-semibold text-gray-900">
                     {mode === 'create' ? 'Add Widget' : 'Edit Widget'}
                   </h2>
                   <p className="text-xs text-gray-500 mt-0.5">

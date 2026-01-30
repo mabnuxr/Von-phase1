@@ -94,7 +94,7 @@ export const StepRow = React.memo<StepRowProps>(
             {/* Step text */}
             <span
               className={`
-                flex-1 min-w-0 text-[15px] truncate
+                flex-1 min-w-0 text-sm truncate
                 ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-900' : 'text-gray-900'}
               `}
             >
@@ -115,7 +115,7 @@ export const StepRow = React.memo<StepRowProps>(
                 <div className="mt-1 ml-5">
                   {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-xs italic text-gray-700 leading-relaxed">
+                    <div className="text-sm text-gray-700 leading-relaxed">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
@@ -191,7 +191,7 @@ export const StepRow = React.memo<StepRowProps>(
                       }}
                     >
                       <FileTextIcon size={14} className="text-gray-800" />
-                      <span className="text-[15px] text-gray-900">
+                      <span className="text-sm text-gray-900">
                         {step.artifact.tool_name} results
                       </span>
                     </div>

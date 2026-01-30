@@ -181,7 +181,7 @@ export const SimpleChatInput: React.FC<SimpleChatInputProps> = ({
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 disabled={disabled && !isStreaming}
-                className="w-full resize-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
+                className="w-full resize-none outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
                 style={{
                   minHeight: '24px',
                   maxHeight: '200px',
