@@ -7,7 +7,7 @@ import type { SourceType } from './types';
 /**
  * Maximum height of the scrollable container in pixels
  */
-export const CONTAINER_HEIGHT = 320;
+export const CONTAINER_HEIGHT = 500;
 
 /**
  * Labels for source types (used in source badge)

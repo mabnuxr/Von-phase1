@@ -942,19 +942,29 @@ export function transformAguiToTimelineSteps(
 
               // Check for artifact (success case)
               if (result._artifact) {
-                step.status = result._artifact.success
-                  ? ("complete" as StepStatus)
-                  : ("error" as StepStatus);
-                // Store artifact metadata for clickable links
-                // Display name is derived in the component from tool_name
-                step.artifact = {
-                  artifact_id: result._artifact.artifact_id,
-                  run_id: result._artifact.run_id,
-                  tool_name: result._artifact.tool_name,
-                  artifact_type: result._artifact.artifact_type,
-                };
+                if (result._artifact.success) {
+                  step.status = "complete" as StepStatus;
+                  // Store artifact metadata for clickable links
+                  // Display name is derived in the component from tool_name
+                  step.artifact = {
+                    artifact_id: result._artifact.artifact_id,
+                    run_id: result._artifact.run_id,
+                    tool_name: result._artifact.tool_name,
+                    artifact_type: result._artifact.artifact_type,
+                  };
+                } else {
+                  // Remove failed step from steps array
+                  const stepIndex = steps.indexOf(step);
+                  if (stepIndex !== -1) {
+                    steps.splice(stepIndex, 1);
+                  }
+                }
               } else if (result.success === false) {
-                step.status = "error" as StepStatus;
+                // Remove failed step from steps array
+                const stepIndex = steps.indexOf(step);
+                if (stepIndex !== -1) {
+                  steps.splice(stepIndex, 1);
+                }
               } else {
                 step.status = "complete" as StepStatus;
               }
