@@ -171,58 +171,6 @@ function transformIQArtifactsToIQQueries(
   });
 }
 
-/**
- * Transform IQ artifacts to IQQueryResult format for ReportTable display
- */
-function transformIQArtifactsToIQQueries(
-  iqArtifactSummaries: ArtifactSummary[],
-  loadedArtifacts: Map<string, ArtifactResponse>,
-  selectedArtifactId: string | null,
-  isArtifactLoading: boolean,
-): IQQueryResult[] {
-  if (iqArtifactSummaries.length === 0) {
-    return [];
-  }
-
-  return iqArtifactSummaries.map((summary) => {
-    const loadedArtifact = loadedArtifacts.get(summary.artifact_id);
-
-    if (loadedArtifact) {
-      const tableConfig = transformIQArtifactToDataTable(loadedArtifact);
-      if (tableConfig) {
-        return {
-          id: tableConfig.id,
-          name: tableConfig.name,
-          description: tableConfig.description,
-          columns: tableConfig.columns,
-          data: tableConfig.data,
-          rowCount: tableConfig.rowCount,
-        };
-      }
-    }
-
-    // Return placeholder for unloaded artifacts
-    const placeholders = transformSummariesToPlaceholders([summary]);
-    const placeholder = placeholders[0];
-
-    let description = placeholder.description;
-    if (summary.artifact_id === selectedArtifactId && isArtifactLoading) {
-      description = "Loading...";
-    } else if (!loadedArtifact) {
-      description = "Click to load";
-    }
-
-    return {
-      id: summary.artifact_id,
-      name: placeholder.name,
-      description,
-      columns: [],
-      data: [],
-      rowCount: 0,
-    };
-  });
-}
-
 export function useTransparencyDrawer({
   isOpen,
   conversationId,

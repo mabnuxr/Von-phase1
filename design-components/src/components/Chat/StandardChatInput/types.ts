@@ -47,6 +47,14 @@ export interface ActivePopover {
  */
 export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
 
+/**
+ * Ref handle for StandardChatInput, exposing imperative methods
+ */
+export interface StandardChatInputRef {
+  /** Focus the input editor */
+  focus: () => void;
+}
+
 export interface StandardChatInputProps {
   /**
    * Placeholder text for the input

@@ -70,6 +70,10 @@ export interface DeepResearchChatProps {
   isDataTablesLoading?: boolean;
   /** Callback when send message is triggered */
   onSendMessage?: (content: string) => void;
+  /** Callback when skip button is clicked (should focus input without sending message) */
+  onSkip?: () => void;
+  /** Whether the user has skipped the approval flow */
+  hasSkipped?: boolean;
   /** Callback when data tables card is clicked (opens DataTablesDrawer) */
   onDataTablesClick?: () => void;
   /** Callback when sources button is clicked (opens TransparencyDrawer) */
@@ -110,6 +114,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   dataTablesInfo,
   isDataTablesLoading = false,
   onSendMessage,
+  onSkip,
+  hasSkipped = false,
   onDataTablesClick,
   onSourcesClick,
   onArtifactClick,
@@ -227,17 +233,25 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         'Would you like me to proceed with the full comprehensive analysis?'
                       }
                       isStreaming={false}
-                      primaryAction={{
-                        label: 'Run Full Analysis',
-                        onClick: handleRunFullAnalysisClick,
-                        disabled: isDeepResearchRunning,
-                        isLoading: isDeepResearchRunning,
-                      }}
-                      secondaryAction={{
-                        label: 'Skip',
-                        onClick: () => onSendMessage?.('Skip the full analysis'),
-                        disabled: isDeepResearchRunning,
-                      }}
+                      primaryAction={
+                        !hasSkipped
+                          ? {
+                              label: 'Run Full Analysis',
+                              onClick: handleRunFullAnalysisClick,
+                              disabled: isDeepResearchRunning,
+                              isLoading: isDeepResearchRunning,
+                            }
+                          : undefined
+                      }
+                      secondaryAction={
+                        !hasSkipped
+                          ? {
+                              label: 'Skip',
+                              onClick: () => onSkip?.(),
+                              disabled: isDeepResearchRunning,
+                            }
+                          : undefined
+                      }
                       beforeActions={
                         (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
                           <DataTablesCard

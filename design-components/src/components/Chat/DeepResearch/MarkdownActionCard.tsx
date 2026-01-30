@@ -76,8 +76,9 @@ export interface MarkdownActionCardProps {
 
   /**
    * Primary action button (e.g., "Approve", "Run Full Analysis", "Update")
+   * When not provided, the action buttons section is hidden
    */
-  primaryAction: ActionButton;
+  primaryAction?: ActionButton;
 
   /**
    * Secondary action button (e.g., "Reject", "Cancel", "Skip")
@@ -438,23 +439,25 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
         </div>
       )}
 
-      {/* Separator and Action Buttons */}
-      <div className="my-4 pt-3 border-t border-gray-100 flex items-center gap-2">
-        {secondaryAction && (
-          <SecondaryButton
-            onClick={secondaryAction.onClick}
-            disabled={secondaryAction.disabled || secondaryAction.isLoading}
+      {/* Separator and Action Buttons - only shown when primaryAction is provided */}
+      {primaryAction && (
+        <div className="my-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+          {secondaryAction && (
+            <SecondaryButton
+              onClick={secondaryAction.onClick}
+              disabled={secondaryAction.disabled || secondaryAction.isLoading}
+            >
+              {secondaryAction.label}
+            </SecondaryButton>
+          )}
+          <PrimaryButton
+            onClick={primaryAction.onClick}
+            disabled={primaryAction.disabled || primaryAction.isLoading}
           >
-            {secondaryAction.label}
-          </SecondaryButton>
-        )}
-        <PrimaryButton
-          onClick={primaryAction.onClick}
-          disabled={primaryAction.disabled || primaryAction.isLoading}
-        >
-          {primaryAction.isLoading ? 'Processing...' : primaryAction.label}
-        </PrimaryButton>
-      </div>
+            {primaryAction.isLoading ? 'Processing...' : primaryAction.label}
+          </PrimaryButton>
+        </div>
+      )}
     </div>
   );
 };

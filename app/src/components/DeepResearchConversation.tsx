@@ -11,7 +11,7 @@
  * This component is rendered instead of Chat when in deep research mode.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import {
   DeepResearchChat,
   DeepResearchNotificationBar,
@@ -21,6 +21,11 @@ import {
   ScrollToBottomButton,
 } from "@vonlabs/design-components";
 import type { Message, SendMessageOptions } from "@vonlabs/design-components";
+
+/** Ref handle for ChatInputSelector */
+interface ChatInputSelectorRef {
+  focus: () => void;
+}
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
@@ -121,6 +126,12 @@ export const DeepResearchConversation: React.FC<
   const [isTransparencyDrawerOpen, setIsTransparencyDrawerOpen] =
     useState(false);
 
+  // Track if user has skipped the approval flow
+  const [hasSkipped, setHasSkipped] = useState(false);
+
+  // Ref for the chat input to focus on skip
+  const chatInputRef = useRef<ChatInputSelectorRef>(null);
+
   // Get runId from the last assistant message (works for both sample run and full analysis)
   // Also check if the sample run is complete (has v2FinalResponse and not streaming)
   const { lastAssistantRunId, isSampleRunComplete } = useMemo(() => {
@@ -188,6 +199,14 @@ export const DeepResearchConversation: React.FC<
     }
   }, [lastAssistantRunId, canOpenDrawers]);
 
+  // Handle skip click - focus the chat input without sending a message
+  const handleSkip = useCallback(() => {
+    // Hide the approval buttons
+    setHasSkipped(true);
+    // Focus the chat input using ref
+    chatInputRef.current?.focus();
+  }, []);
+
   // Handle closing the Transparency drawer
   const handleCloseTransparencyDrawer = useCallback(() => {
     setIsTransparencyDrawerOpen(false);
@@ -240,6 +259,8 @@ export const DeepResearchConversation: React.FC<
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
           onSendMessage={(content) => handleSendMessage(content)}
+          onSkip={handleSkip}
+          hasSkipped={hasSkipped}
           onDataTablesClick={handleDataTablesClick}
           onSourcesClick={handleSourcesClick}
           onArtifactClick={onArtifactClick}
@@ -264,6 +285,7 @@ export const DeepResearchConversation: React.FC<
       {/* Chat Input */}
       {messages.length > 0 && (
         <ChatInputSelector
+          ref={chatInputRef}
           useStandardInput={true}
           enableCommands={enableCommands}
           placeholder={placeholder}
