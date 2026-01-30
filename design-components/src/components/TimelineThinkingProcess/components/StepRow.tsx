@@ -40,11 +40,11 @@ export const StepRow = React.memo<StepRowProps>(
       () =>
         !isFinalResponse &&
         (step.description ||
-          step.code ||
+          // step.code || // Code preview disabled
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
           step.artifact),
-      [isFinalResponse, step.description, step.code, step.subSteps, step.approval, step.artifact]
+      [isFinalResponse, step.description, step.subSteps, step.approval, step.artifact]
     );
 
     // Compute effective status - when locally approved/rejected, show as complete/error
@@ -133,7 +133,7 @@ export const StepRow = React.memo<StepRowProps>(
                     />
                   )}
 
-                  {/* Code block preview */}
+                  {/* Code block preview - disabled
                   {step.code && (
                     <div
                       className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code my-2"
@@ -153,6 +153,7 @@ export const StepRow = React.memo<StepRowProps>(
                       </pre>
                     </div>
                   )}
+                  */}
 
                   {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
