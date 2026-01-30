@@ -3,6 +3,7 @@ export type {
   TimelineThinkingProcessProps,
   TimelineStep,
   ApprovalData,
+  BulkOperation,
   StepType,
   SourceType,
   EventCategory,
@@ -18,7 +19,14 @@ export type {
 export { CONTAINER_HEIGHT, SOURCE_LABELS } from './constants';
 
 // Re-export components for potential external use
-export { StepIndicator, CompactApprovalCard, StepRow, CollapsedStepRow } from './components';
+export {
+  StepIndicator,
+  ApprovalCard,
+  CompactApprovalCard,
+  BulkApprovalCard,
+  StepRow,
+  CollapsedStepRow,
+} from './components';
 
 // Re-export hooks
 export { useTimelineState } from './hooks';

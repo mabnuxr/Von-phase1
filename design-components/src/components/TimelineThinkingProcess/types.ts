@@ -29,6 +29,21 @@ export type StepStatus =
   | 'awaiting-approval';
 
 /**
+ * Single operation in a bulk approval request
+ */
+export interface BulkOperation {
+  operation: 'create' | 'update' | 'delete';
+  sobject_type: string;
+  record_name: string;
+  fields?: Record<string, string | number | boolean | null>;
+  changes?: Array<{
+    field: string;
+    before?: string | number | boolean | null;
+    after: string | number | boolean | null;
+  }>;
+}
+
+/**
  * Data for approval steps
  */
 export interface ApprovalData {
@@ -47,6 +62,8 @@ export interface ApprovalData {
   approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'deep_research' | 'generic';
   /** Number of records for bulk operations */
   recordCount?: number;
+  /** Operations array for bulk approvals */
+  operations?: BulkOperation[];
   /** Deep research specific fields */
   researchQuery?: string;
   estimatedTime?: string;

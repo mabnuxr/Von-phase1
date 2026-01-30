@@ -276,6 +276,7 @@ export type {
   SourceType,
   EventCategory,
   ApprovalData,
+  BulkOperation,
   QueryResult,
 } from './TimelineThinkingProcess';
 

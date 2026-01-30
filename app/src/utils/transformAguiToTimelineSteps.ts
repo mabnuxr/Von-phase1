@@ -13,6 +13,7 @@ import type {
   SourceType,
   EventCategory,
   ResearchResultsMetadata,
+  BulkOperation,
 } from "@vonlabs/design-components";
 import {
   isApprovalTool,
@@ -122,6 +123,9 @@ interface DetectedApprovalData {
     | "bulk"
     | "deep_research"
     | "generic";
+  // Bulk operations array for Salesforce bulk approvals
+  operations?: BulkOperation[];
+  recordCount?: number;
   // Deep research specific fields
   researchQuery?: string;
   estimatedTime?: string;
@@ -160,6 +164,63 @@ function detectApprovalFromArgs(
 
     if (isCalendar) {
       // Google Calendar operations
+      // For bulk operations, include the full operations array
+      const calendarBulkOperations: BulkOperation[] | undefined = isBulk
+        ? ops.map(
+            (op: {
+              operation?: string;
+              summary?: string;
+              event_summary?: string;
+              start_datetime?: string;
+              end_datetime?: string;
+              duration_minutes?: number;
+              attendees?: string[];
+              attendees_emails?: string[];
+              description?: string;
+              location?: string;
+              calendar_id?: string;
+              changes?: DetectedApprovalData["changes"];
+              fields?: Record<string, string | number | boolean | null>;
+            }) => {
+              // Build fields from calendar event properties for display
+              const fields: Record<string, string | number | boolean | null> =
+                op.fields || {};
+
+              // Add calendar-specific fields if not already in fields
+              if (op.start_datetime && !fields["Start"]) {
+                fields["Start"] = op.start_datetime;
+              }
+              if (op.end_datetime && !fields["End"]) {
+                fields["End"] = op.end_datetime;
+              }
+              if (op.duration_minutes && !fields["Duration"]) {
+                fields["Duration"] = `${op.duration_minutes} minutes`;
+              }
+              if (op.attendees?.length && !fields["Attendees"]) {
+                fields["Attendees"] = op.attendees.join(", ");
+              }
+              if (op.attendees_emails?.length && !fields["Attendees"]) {
+                fields["Attendees"] = op.attendees_emails.join(", ");
+              }
+              if (op.location && !fields["Location"]) {
+                fields["Location"] = op.location;
+              }
+              if (op.description && !fields["Description"]) {
+                fields["Description"] = op.description;
+              }
+
+              return {
+                operation:
+                  (op.operation as "create" | "update" | "delete") || "create",
+                sobject_type: "Calendar Event",
+                record_name: op.summary || op.event_summary || "Event",
+                changes: op.changes,
+                fields: Object.keys(fields).length > 0 ? fields : undefined,
+              };
+            },
+          )
+        : undefined;
+
       return {
         toolCallId,
         summary: parsed.summary,
@@ -175,10 +236,32 @@ function detectApprovalFromArgs(
             )
           : firstOp?.changes,
         approvalType: isBulk ? "bulk" : "calendar",
+        operations: calendarBulkOperations,
+        recordCount: isBulk ? ops.length : undefined,
       };
     }
 
     // Salesforce operations (has sobject_type or record_name)
+    // For bulk operations, include the full operations array
+    const bulkOperations: BulkOperation[] | undefined = isBulk
+      ? ops.map(
+          (op: {
+            operation?: string;
+            sobject_type?: string;
+            record_name?: string;
+            fields?: Record<string, string | number | boolean | null>;
+            changes?: DetectedApprovalData["changes"];
+          }) => ({
+            operation:
+              (op.operation as "create" | "update" | "delete") || "update",
+            sobject_type: op.sobject_type || "Record",
+            record_name: op.record_name || "Unknown",
+            fields: op.fields,
+            changes: op.changes,
+          }),
+        )
+      : undefined;
+
     return {
       toolCallId,
       summary: parsed.summary,
@@ -196,6 +279,8 @@ function detectApprovalFromArgs(
           )
         : firstOp?.changes,
       approvalType: isBulk ? "bulk" : "salesforce",
+      operations: bulkOperations,
+      recordCount: isBulk ? ops.length : undefined,
     };
   }
 
