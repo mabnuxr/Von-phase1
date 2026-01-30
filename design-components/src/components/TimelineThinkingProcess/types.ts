@@ -148,6 +148,12 @@ export interface TimelineThinkingProcessProps {
   isStreaming?: boolean;
 
   /**
+   * When true, automatically collapses the thinking process.
+   * Used to collapse the timeline when the final response starts streaming.
+   */
+  autoCollapse?: boolean;
+
+  /**
    * Elapsed time in seconds (for display)
    */
   elapsedTime?: number;
@@ -163,7 +169,7 @@ export interface TimelineThinkingProcessProps {
   queries?: QueryResult[];
 
   /**
-   * Title displayed at the top (when collapsed, shows step count)
+   * Title displayed in the header (e.g., "Thinking", "Deep Research")
    */
   title?: string;
 

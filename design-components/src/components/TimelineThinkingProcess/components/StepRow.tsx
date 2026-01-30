@@ -36,15 +36,25 @@ export const StepRow = React.memo<StepRowProps>(
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
 
+    const isReasoningStep = step.type === 'reasoning';
+
     const hasExpandableContent = useMemo(
       () =>
         !isFinalResponse &&
+        !isReasoningStep &&
         (step.description ||
-          step.code ||
+          // step.code || // Code preview disabled
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
           step.artifact),
-      [isFinalResponse, step.description, step.code, step.subSteps, step.approval, step.artifact]
+      [
+        isFinalResponse,
+        isReasoningStep,
+        step.description,
+        step.subSteps,
+        step.approval,
+        step.artifact,
+      ]
     );
 
     // Compute effective status - when locally approved/rejected, show as complete/error
@@ -58,12 +68,11 @@ export const StepRow = React.memo<StepRowProps>(
     }, [isLocallyApproved, isLocallyRejected, step.status]);
 
     const isInProgress = effectiveStatus === 'in-progress';
-    const isComplete = effectiveStatus === 'complete';
 
     return (
       <div className="relative flex">
         {/* Timeline connector - small dot indicator */}
-        <div className="flex flex-col items-center mr-3 flex-shrink-0">
+        <div className="flex flex-col items-center flex-shrink-0">
           <div className="w-6 h-6 rounded-full flex items-center justify-center">
             <StepIndicator status={effectiveStatus} />
           </div>
@@ -72,35 +81,51 @@ export const StepRow = React.memo<StepRowProps>(
 
         {/* Content */}
         <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
-          {/* Header */}
-          <button
-            onClick={hasExpandableContent ? onToggle : undefined}
-            className={`
-              w-full flex items-center gap-2 text-left group
-              ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
-            `}
-          >
-            {/* Expand caret */}
-            {hasExpandableContent && (
-              <span className="flex-shrink-0">
-                {isExpanded ? (
-                  <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
-                ) : (
-                  <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
-                )}
-              </span>
-            )}
-
-            {/* Step text */}
-            <span
+          {/* Header - use div for reasoning steps (allows text selection and links), button for expandable rows */}
+          {isReasoningStep ? (
+            <div className="w-full flex items-start gap-2 text-left">
+              {/* Empty spacer to align with caret in other rows */}
+              <span className="flex-shrink-0 mt-1 w-3" />
+              {/* Reasoning text with full markdown support */}
+              <div
+                className={`
+                  flex-1 min-w-0 text-sm
+                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
+                `}
+              >
+                <Streamdown parseIncompleteMarkdown={true}>{step.text}</Streamdown>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={hasExpandableContent ? onToggle : undefined}
               className={`
-                flex-1 min-w-0 text-[15px] truncate
-                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-900' : 'text-gray-900'}
+                w-full flex items-center gap-2 text-left group
+                ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
               `}
             >
-              {step.text}
-            </span>
-          </button>
+              {/* Expand caret */}
+              {hasExpandableContent ? (
+                <span className="flex-shrink-0">
+                  {isExpanded ? (
+                    <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
+                  ) : (
+                    <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
+                  )}
+                </span>
+              ) : null}
+
+              {/* Step text */}
+              <span
+                className={`
+                  flex-1 min-w-0 text-sm truncate
+                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
+                `}
+              >
+                {step.text}
+              </span>
+            </button>
+          )}
 
           {/* Expanded content */}
           <AnimatePresence>
@@ -115,7 +140,7 @@ export const StepRow = React.memo<StepRowProps>(
                 <div className="mt-1 ml-5">
                   {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-xs italic text-gray-700 leading-relaxed">
+                    <div className="text-sm text-gray-700 leading-relaxed">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
@@ -133,7 +158,7 @@ export const StepRow = React.memo<StepRowProps>(
                     />
                   )}
 
-                  {/* Code block preview */}
+                  {/* Code block preview - disabled
                   {step.code && (
                     <div
                       className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code my-2"
@@ -153,6 +178,7 @@ export const StepRow = React.memo<StepRowProps>(
                       </pre>
                     </div>
                   )}
+                  */}
 
                   {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
@@ -191,7 +217,7 @@ export const StepRow = React.memo<StepRowProps>(
                       }}
                     >
                       <FileTextIcon size={14} className="text-gray-800" />
-                      <span className="text-[15px] text-gray-900">
+                      <span className="text-sm text-gray-900">
                         {step.artifact.tool_name} results
                       </span>
                     </div>

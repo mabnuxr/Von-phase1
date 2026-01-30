@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import {
   conversationsService,
@@ -32,6 +33,7 @@ import {
 export function useMessageArtifacts(
   conversationId: string | null,
   runId: string | null,
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: ["message-artifacts", conversationId, runId],
@@ -41,7 +43,7 @@ export function useMessageArtifacts(
       }
       return conversationsService.getMessageArtifacts(conversationId, runId);
     },
-    enabled: !!(conversationId && runId),
+    enabled: enabled && !!(conversationId && runId),
     staleTime: ARTIFACT_STALE_TIME,
     gcTime: ARTIFACT_GC_TIME,
     retry: ARTIFACT_RETRY_COUNT,
@@ -269,6 +271,75 @@ export function useBulkArtifacts(
     retryDelay: (attemptIndex) =>
       Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
   });
+}
+
+/**
+ * Hook for fetching IQ artifacts for Deep Research data tables
+ *
+ * Used after a deep research sample run completes to show the data tables info.
+ * Fetches artifact summaries and filters by category "iq".
+ *
+ * @param conversationId - ID of the conversation
+ * @param runId - Run ID of the message (null to disable)
+ * @param enabled - Whether to enable the query (default: true). Set to false to delay fetching until sample run completes.
+ * @returns Result with IQ artifact summaries and data tables info
+ */
+export function useDeepResearchArtifacts(
+  conversationId: string | null,
+  runId: string | null,
+  enabled: boolean = true,
+) {
+  // Only fetch the list of artifacts when enabled (after sample run completes)
+  const listQuery = useMessageArtifacts(conversationId, runId, enabled);
+
+  // Filter artifacts by IQ category - memoized to prevent new array reference on every render
+  const vonIqArtifacts = useMemo(
+    () =>
+      listQuery.data?.artifacts.filter(
+        (artifact) => artifact.category?.toLowerCase() === "iq",
+      ) ?? [],
+    [listQuery.data?.artifacts],
+  );
+
+  // Calculate total records from VonIQ artifacts - memoized to prevent new object reference
+  const dataTablesInfo = useMemo(
+    () =>
+      vonIqArtifacts.length > 0
+        ? {
+            tableCount: vonIqArtifacts.length,
+            // processedRecords and totalRecords will be populated when we fetch full content
+            processedRecords: undefined as number | undefined,
+            totalRecords: undefined as number | undefined,
+          }
+        : null,
+    [vonIqArtifacts.length],
+  );
+
+  // Memoize allArtifacts to prevent new array reference
+  const allArtifacts = useMemo(
+    () => listQuery.data?.artifacts ?? [],
+    [listQuery.data?.artifacts],
+  );
+
+  return {
+    // List metadata
+    conversationId: listQuery.data?.conversation_id ?? conversationId,
+    runId: listQuery.data?.run_id ?? runId,
+    totalCount: listQuery.data?.total_count ?? 0,
+    // IQ artifact summaries (filtered by category)
+    vonIqArtifacts,
+    // All artifact summaries
+    allArtifacts,
+    // Data tables info for the DataTablesCard component
+    dataTablesInfo,
+    // Loading states
+    isLoading: listQuery.isLoading,
+    // Error states
+    isError: listQuery.isError,
+    error: listQuery.error,
+    // Refetch function
+    refetch: listQuery.refetch,
+  };
 }
 
 /**

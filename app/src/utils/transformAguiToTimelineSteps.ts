@@ -436,12 +436,14 @@ export function transformAguiToTimelineSteps(
         // Create a new step when STEP_STARTED arrives (for tool calls)
         const stepEvent = event as StepStartedEventWithNumber;
 
-        // Generate unique step ID - use step_number if available, otherwise use step_name or counter
+        // Generate unique step ID - use step_number + global counter to ensure uniqueness across runs
+        // (step_number restarts from 1 in each run, so we need the counter for uniqueness)
         const hasStepNumber =
           stepEvent.step_number !== undefined && stepEvent.step_number !== null;
+        stepCounter++;
         const stepId = hasStepNumber
-          ? `step-${stepEvent.step_number}`
-          : `step-name-${stepEvent.step_name || stepCounter++}`;
+          ? `step-${stepEvent.step_number}-${stepCounter}`
+          : `step-name-${stepEvent.step_name || stepCounter}`;
 
         const step: TimelineStep = {
           id: stepId,
@@ -530,7 +532,7 @@ export function transformAguiToTimelineSteps(
 
         const textStep: TimelineStep = {
           id: stepId,
-          text: "Analyzing your request",
+          text: "",
           status: "in-progress" as StepStatus,
           type: "reasoning" as StepType,
           description: "",
@@ -560,7 +562,7 @@ export function transformAguiToTimelineSteps(
           reasoningStepCounter++;
           const newStep: TimelineStep = {
             id: `reasoning-${event.message_id}-${reasoningStepCounter}`,
-            text: "Continuing analysis",
+            text: "",
             status: "in-progress" as StepStatus,
             type: "reasoning" as StepType,
             description: "",
@@ -571,20 +573,11 @@ export function transformAguiToTimelineSteps(
         }
 
         // Accumulate content in the current reasoning step's description
-        currentTextStep.description =
-          (currentTextStep.description || "") + (event.delta || "");
+        currentTextStep.text =
+          (currentTextStep.text || "") + (event.delta || "");
 
         // Update the display text based on content (first sentence as summary)
-        const content = currentTextStep.description;
-        if (content.length > 10) {
-          const firstSentence = content.split(/[.!?]/)[0];
-          if (firstSentence && firstSentence.length > 5) {
-            currentTextStep.text =
-              firstSentence.length > 150
-                ? firstSentence.slice(0, 150) + "..."
-                : firstSentence;
-          }
-        }
+
         break;
       }
 
@@ -959,7 +952,8 @@ export function transformAguiToTimelineSteps(
           const lastTextStep = textMessageStepMap.get(lastTextMessageId);
           if (lastTextStep) {
             // Extract content as final response
-            finalResponse = lastTextStep.description || "";
+            // Content may be in step.text (new behavior) or step.description (legacy)
+            finalResponse = lastTextStep.text || lastTextStep.description || "";
             // Remove this step from the steps array
             const stepIndex = steps.indexOf(lastTextStep);
             if (stepIndex !== -1) {

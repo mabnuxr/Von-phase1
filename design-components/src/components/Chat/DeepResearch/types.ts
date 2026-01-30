@@ -202,6 +202,9 @@ export const initialResearchResultsState: ResearchResultsState = {
 
 /**
  * Props for the DeepResearchResults component
+ *
+ * Note: Action buttons (copy, download, thumbs up/down, sources) are now handled
+ * by MessageActions component in the parent (DeepResearchChat) for consistency.
  */
 export interface DeepResearchResultsProps {
   /** Research results state from the hook */
@@ -214,14 +217,6 @@ export interface DeepResearchResultsProps {
   onExpand?: () => void;
   /** Callback when "Build Dashboard" is clicked */
   onBuildDashboard?: () => void;
-  /** Callback when "Download PDF" is clicked */
-  onDownload?: () => void;
-  /** Callback for thumbs up feedback */
-  onThumbsUp?: () => void;
-  /** Callback for thumbs down feedback */
-  onThumbsDown?: () => void;
-  /** Callback when "Sources" is clicked */
-  onSourcesClick?: () => void;
   /** Custom className for the container */
   className?: string;
 }

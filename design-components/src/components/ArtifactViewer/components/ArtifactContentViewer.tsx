@@ -7,11 +7,10 @@ import {
   DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
-import { formatValue } from '../../TransparencyDrawer/utils';
+import { formatCellValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
-import { isSalesforceUrl } from '../../Chat/utils/salesforceDeepLink';
 
 // ============================================================================
 // Types
@@ -92,61 +91,6 @@ function LoadingSkeleton() {
       </div>
     </div>
   );
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Helper to detect if a value is a URL
- */
-function isUrl(value: string): boolean {
-  return value.startsWith('http://') || value.startsWith('https://');
-}
-
-/**
- * Format cell value with special handling for deep_link column
- */
-function formatCellValue(
-  columnKey: string,
-  value: string | number,
-  columnType?: QueryColumn['type']
-): React.ReactNode {
-  const strValue = String(value);
-
-  // Special handling for deep_link column - validate Salesforce URLs for security
-  if (columnKey === 'deep_link' && isUrl(strValue)) {
-    // Only render "View in Salesforce" for validated Salesforce domains
-    // This prevents phishing via arbitrary URLs masquerading as Salesforce links
-    if (isSalesforceUrl(strValue)) {
-      return (
-        <a
-          href={strValue}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-          title="Open in Salesforce"
-        >
-          View in Salesforce
-        </a>
-      );
-    }
-    // Non-Salesforce URLs: render as generic link
-    return (
-      <a
-        href={strValue}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-      >
-        {strValue}
-      </a>
-    );
-  }
-
-  // Use existing formatValue for all other columns
-  return formatValue(value, columnType);
 }
 
 // ============================================================================

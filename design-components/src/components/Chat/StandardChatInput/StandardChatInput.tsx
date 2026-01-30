@@ -1,4 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
@@ -26,7 +33,7 @@ import { getAcceptString } from '../FileAttachment/types';
 import { Toggle as _Toggle } from '../../forms/toggle';
 import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
-import type { StandardChatInputProps, ReferenceContext } from './types';
+import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
@@ -264,468 +271,486 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
  * - File preview area at the top when files are attached
  * - White background with subtle gradient border
  */
-export const StandardChatInput: React.FC<StandardChatInputProps> = ({
-  placeholder = 'Type a message...',
-  onSend,
-  onStop,
-  disabled = false,
-  isStreaming = false,
-  disableSubmit = false,
-  onDisabledInput,
-  value,
-  onChange,
-  onVoiceInput,
-  isRecording = false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  mode: _mode = 'ask',
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onModeChange: _onModeChange,
-  attachments: controlledAttachments,
-  onRemoveAttachment,
-  droppedFiles,
-  onDroppedFilesProcessed,
-  onFileError,
-  referenceContext,
-  onRemoveReference,
-  showFormattingToolbar = false,
-  // Mode selector props
-  showModeSelector = false,
-  autoEditMode = 'off',
-  onAutoEditModeChange,
-  // Popover props
-  activePopover,
-  onPopoverClose,
-  onPopoverPrimaryAction,
-  onPopoverFeedback,
-  // Agent props
-  onBuildDashboard,
-  // Disclaimer
-  hideDisclaimer = false,
-  // Plus menu visibility (defaults to false when not provided, feature flag controls this)
-  showPlusMenu = false,
-  // Agent selection props (for locking after first message)
-  isAgentLocked = false,
-  lockedAgentMode = 'auto',
-}) => {
-  const [internalMessage, setInternalMessage] = useState('');
-  const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
-  const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-  const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
-  const editorRef = useRef<Editor | null>(null);
-
-  // When locked, show the locked mode from backend; otherwise use internal state
-  const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
-
-  // File upload hook for uncontrolled mode
-  const {
-    attachments: internalAttachments,
-    addFiles,
-    removeFile,
-    clearFiles,
-    fileInputRef,
-  } = useFileUpload({
-    onError: (error, message) => {
-      onFileError?.(error, message);
+export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatInputProps>(
+  (
+    {
+      placeholder = 'Type a message...',
+      onSend,
+      onStop,
+      disabled = false,
+      isStreaming = false,
+      disableSubmit = false,
+      onDisabledInput,
+      value,
+      onChange,
+      onVoiceInput,
+      isRecording = false,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      mode: _mode = 'ask',
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onModeChange: _onModeChange,
+      attachments: controlledAttachments,
+      onRemoveAttachment,
+      droppedFiles,
+      onDroppedFilesProcessed,
+      onFileError,
+      referenceContext,
+      onRemoveReference,
+      showFormattingToolbar = false,
+      // Mode selector props
+      showModeSelector = false,
+      autoEditMode = 'off',
+      onAutoEditModeChange,
+      // Popover props
+      activePopover,
+      onPopoverClose,
+      onPopoverPrimaryAction,
+      onPopoverFeedback,
+      // Agent props
+      onBuildDashboard,
+      // Disclaimer
+      hideDisclaimer = false,
+      // Plus menu visibility (defaults to false when not provided, feature flag controls this)
+      showPlusMenu = false,
+      // Agent selection props (for locking after first message)
+      isAgentLocked = false,
+      lockedAgentMode = 'auto',
     },
-  });
+    ref
+  ) => {
+    const [internalMessage, setInternalMessage] = useState('');
+    const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+    const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
+    const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
+    const editorRef = useRef<Editor | null>(null);
 
-  // Use controlled or internal attachments
-  const isAttachmentsControlled = controlledAttachments !== undefined;
-  const attachments = isAttachmentsControlled ? controlledAttachments : internalAttachments;
-  const hasAttachments = attachments.length > 0;
+    // Expose focus method via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          editorRef.current?.commands.focus();
+        },
+      }),
+      []
+    );
 
-  // Handle dropped files from parent
-  useEffect(() => {
-    if (droppedFiles && droppedFiles.length > 0 && !isAttachmentsControlled) {
-      addFiles(droppedFiles);
-      onDroppedFilesProcessed?.();
-    }
-  }, [droppedFiles, isAttachmentsControlled, addFiles, onDroppedFilesProcessed]);
+    // When locked, show the locked mode from backend; otherwise use internal state
+    const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
 
-  // Determine if component is controlled
-  const isControlled = value !== undefined;
-  const message = isControlled ? value : internalMessage;
+    // File upload hook for uncontrolled mode
+    const {
+      attachments: internalAttachments,
+      addFiles,
+      removeFile,
+      clearFiles,
+      fileInputRef,
+    } = useFileUpload({
+      onError: (error, message) => {
+        onFileError?.(error, message);
+      },
+    });
 
-  const handleChange = useCallback(
-    (newValue: string) => {
-      if (isControlled) {
-        onChange?.(newValue);
-      } else {
-        setInternalMessage(newValue);
+    // Use controlled or internal attachments
+    const isAttachmentsControlled = controlledAttachments !== undefined;
+    const attachments = isAttachmentsControlled ? controlledAttachments : internalAttachments;
+    const hasAttachments = attachments.length > 0;
+
+    // Handle dropped files from parent
+    useEffect(() => {
+      if (droppedFiles && droppedFiles.length > 0 && !isAttachmentsControlled) {
+        addFiles(droppedFiles);
+        onDroppedFilesProcessed?.();
       }
-    },
-    [isControlled, onChange]
-  );
+    }, [droppedFiles, isAttachmentsControlled, addFiles, onDroppedFilesProcessed]);
 
-  const handleSend = useCallback(() => {
-    if (disableSubmit) {
-      onDisabledInput?.();
-      return;
-    }
+    // Determine if component is controlled
+    const isControlled = value !== undefined;
+    const message = isControlled ? value : internalMessage;
 
-    // message is now markdown from TiptapEditor
-    const hasTextContent = message.trim().length > 0;
-    const hasContent = hasTextContent || hasAttachments;
+    const handleChange = useCallback(
+      (newValue: string) => {
+        if (isControlled) {
+          onChange?.(newValue);
+        } else {
+          setInternalMessage(newValue);
+        }
+      },
+      [isControlled, onChange]
+    );
 
-    if (hasContent && onSend) {
-      // Send markdown directly
-      const messageToSend = message.trim();
-
-      onSend(messageToSend, hasAttachments ? attachments : undefined, selectedAgentMode);
-      if (isControlled) {
-        onChange?.('');
-      } else {
-        setInternalMessage('');
+    const handleSend = useCallback(() => {
+      if (disableSubmit) {
+        onDisabledInput?.();
+        return;
       }
-      if (!isAttachmentsControlled) {
-        clearFiles();
+
+      // message is now markdown from TiptapEditor
+      const hasTextContent = message.trim().length > 0;
+      const hasContent = hasTextContent || hasAttachments;
+
+      if (hasContent && onSend) {
+        // Send markdown directly
+        const messageToSend = message.trim();
+
+        onSend(messageToSend, hasAttachments ? attachments : undefined, selectedAgentMode);
+        if (isControlled) {
+          onChange?.('');
+        } else {
+          setInternalMessage('');
+        }
+        if (!isAttachmentsControlled) {
+          clearFiles();
+        }
+        // Clear the editor
+        if (editorRef.current) {
+          editorRef.current.commands.clearContent();
+        }
       }
-      // Clear the editor
-      if (editorRef.current) {
-        editorRef.current.commands.clearContent();
-      }
-    }
-  }, [
-    disableSubmit,
-    onDisabledInput,
-    message,
-    hasAttachments,
-    onSend,
-    attachments,
-    isControlled,
-    onChange,
-    isAttachmentsControlled,
-    clearFiles,
-    selectedAgentMode,
-  ]);
+    }, [
+      disableSubmit,
+      onDisabledInput,
+      message,
+      hasAttachments,
+      onSend,
+      attachments,
+      isControlled,
+      onChange,
+      isAttachmentsControlled,
+      clearFiles,
+      selectedAgentMode,
+    ]);
 
-  // handleKeyDown is now managed by TiptapEditor
+    // handleKeyDown is now managed by TiptapEditor
 
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) {
-        addFiles(e.target.files);
-        e.target.value = '';
-      }
-    },
-    [addFiles]
-  );
+    const handleFileInputChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+          addFiles(e.target.files);
+          e.target.value = '';
+        }
+      },
+      [addFiles]
+    );
 
-  const handleRemoveAttachment = useCallback(
-    (id: string) => {
-      if (isAttachmentsControlled) {
-        onRemoveAttachment?.(id);
-      } else {
-        removeFile(id);
-      }
-    },
-    [isAttachmentsControlled, onRemoveAttachment, removeFile]
-  );
+    const handleRemoveAttachment = useCallback(
+      (id: string) => {
+        if (isAttachmentsControlled) {
+          onRemoveAttachment?.(id);
+        } else {
+          removeFile(id);
+        }
+      },
+      [isAttachmentsControlled, onRemoveAttachment, removeFile]
+    );
 
-  const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
+    const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
 
-  const handlePlusButtonClick = useCallback(() => {
-    setIsPlusMenuOpen(true);
-  }, []);
+    const handlePlusButtonClick = useCallback(() => {
+      setIsPlusMenuOpen(true);
+    }, []);
 
-  const handleAgentModeChange = useCallback(
-    (mode: AgentMode) => {
+    const handleAgentModeChange = useCallback(
+      (mode: AgentMode) => {
+        if (!isAgentLocked) {
+          setInternalAgentMode(mode);
+        }
+      },
+      [isAgentLocked]
+    );
+
+    const handleCancelAgentMode = useCallback(() => {
       if (!isAgentLocked) {
-        setInternalAgentMode(mode);
+        setInternalAgentMode('auto');
       }
-    },
-    [isAgentLocked]
-  );
+    }, [isAgentLocked]);
 
-  const handleCancelAgentMode = useCallback(() => {
-    if (!isAgentLocked) {
-      setInternalAgentMode('auto');
-    }
-  }, [isAgentLocked]);
+    // Helper to get agent mode display label and icon
+    const getAgentModeDisplay = (mode: AgentMode) => {
+      switch (mode) {
+        case 'auto':
+          return { label: 'Auto', icon: RobotIcon };
+        case 'build-dashboard':
+          return { label: 'Build Dashboard', icon: ChartBarIcon };
+        case 'deep-research':
+          return { label: 'Deep Research', icon: null }; // Uses green dot instead of icon
+      }
+    };
 
-  // Helper to get agent mode display label and icon
-  const getAgentModeDisplay = (mode: AgentMode) => {
-    switch (mode) {
-      case 'auto':
-        return { label: 'Auto', icon: RobotIcon };
-      case 'build-dashboard':
-        return { label: 'Build Dashboard', icon: ChartBarIcon };
-      case 'deep-research':
-        return { label: 'Deep Research', icon: null }; // Uses green dot instead of icon
-    }
-  };
+    return (
+      <div className="bg-white antialiased font-sf">
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
+          {/* ChatInputPopover - shown above the input when active */}
+          {activePopover && (
+            <ChatInputPopover
+              isOpen={true}
+              onClose={onPopoverClose || (() => {})}
+              intent={activePopover.intent}
+              title={activePopover.title}
+              content={activePopover.content}
+              isStreaming={activePopover.isStreaming}
+              primaryActionLabel={activePopover.primaryActionLabel}
+              onPrimaryAction={onPopoverPrimaryAction || (() => {})}
+              onFeedbackSubmit={onPopoverFeedback}
+              hasUserEdits={activePopover.hasUserEdits}
+            />
+          )}
 
-  return (
-    <div className="bg-white antialiased font-sf">
-      <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
-        {/* ChatInputPopover - shown above the input when active */}
-        {activePopover && (
-          <ChatInputPopover
-            isOpen={true}
-            onClose={onPopoverClose || (() => {})}
-            intent={activePopover.intent}
-            title={activePopover.title}
-            content={activePopover.content}
-            isStreaming={activePopover.isStreaming}
-            primaryActionLabel={activePopover.primaryActionLabel}
-            onPrimaryAction={onPopoverPrimaryAction || (() => {})}
-            onFeedbackSubmit={onPopoverFeedback}
-            hasUserEdits={activePopover.hasUserEdits}
-          />
-        )}
-
-        {/* Reference tag - shown above the input when a reference is set */}
-        {referenceContext && !activePopover && (
-          <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
-            <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
-              <div className="flex items-center gap-1.5">
-                {getReferenceIcon(referenceContext.type)}
-                <span className="text-sm text-gray-900">
-                  {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
-                </span>
+          {/* Reference tag - shown above the input when a reference is set */}
+          {referenceContext && !activePopover && (
+            <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
+              <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
+                <div className="flex items-center gap-1.5">
+                  {getReferenceIcon(referenceContext.type)}
+                  <span className="text-sm text-gray-900">
+                    {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
+                  </span>
+                </div>
+                {onRemoveReference && (
+                  <RemoveButton
+                    icon={<X size={12} weight="bold" />}
+                    onClick={onRemoveReference}
+                    title="Remove reference"
+                    className="text-gray-800"
+                  />
+                )}
               </div>
-              {onRemoveReference && (
-                <RemoveButton
-                  icon={<X size={12} weight="bold" />}
-                  onClick={onRemoveReference}
-                  title="Remove reference"
-                  className="text-gray-800"
-                />
+            </div>
+          )}
+
+          {/* Main input container with gradient border */}
+          <div
+            className={`p-[1px] rounded-2xl transition-all duration-200 ${
+              disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
+            }`}
+            style={{
+              background: disabled
+                ? '#e5e7eb'
+                : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
+            }}
+          >
+            <div className="flex flex-col bg-white rounded-[15px]">
+              {/* File previews - shown above the input when files are attached */}
+              {hasAttachments && (
+                <div className="px-4 pt-4 pb-2">
+                  <div className="flex flex-wrap gap-2">
+                    {attachments.map((attachment) => (
+                      <FilePreview
+                        key={attachment.id}
+                        attachment={attachment}
+                        onRemove={handleRemoveAttachment}
+                        removable={!disabled}
+                        size="medium"
+                        variant="minimal"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Hidden file input - always render for ref access */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={getAcceptString()}
+                onChange={handleFileInputChange}
+                className="hidden"
+                aria-hidden="true"
+              />
+
+              {showPlusMenu ? (
+                <>
+                  {/* Text input area - Tiptap Editor */}
+                  <div className="px-4 py-3">
+                    <TiptapEditor
+                      content={message}
+                      onChange={handleChange}
+                      onSubmit={handleSend}
+                      placeholder={placeholder}
+                      disabled={disabled && !isStreaming}
+                      editorRef={editorRef}
+                    />
+                  </div>
+
+                  {/* Formatting toolbar - Slack-style */}
+                  {showFormattingToolbar && editorRef.current && (
+                    <EditorToolbar editor={editorRef.current} />
+                  )}
+
+                  {/* Bottom toolbar with plus menu */}
+                  <div className="flex items-center justify-between px-3 pb-3">
+                    {/* Left side - Plus button and Mode toggle */}
+                    <div className="flex items-center gap-2">
+                      {/* Plus button - opens menu with options */}
+                      <PlusButtonMenu
+                        isOpen={isPlusMenuOpen}
+                        onClose={() => setIsPlusMenuOpen(false)}
+                        onOpen={handlePlusButtonClick}
+                        onAgentModeChange={handleAgentModeChange}
+                        onBuildDashboard={onBuildDashboard}
+                        selectedAgentMode={selectedAgentMode}
+                        disabled={(disabled && !isStreaming) || isAgentLocked}
+                      />
+
+                      {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
+                      <AnimatePresence>
+                        {selectedAgentMode !== 'auto' && (
+                          <motion.button
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.15 }}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                              selectedAgentMode === 'deep-research'
+                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
+                            }`}
+                            onClick={handleCancelAgentMode}
+                            onMouseEnter={() => setIsAgentTagHovered(true)}
+                            onMouseLeave={() => setIsAgentTagHovered(false)}
+                            title={
+                              isAgentLocked
+                                ? 'Agent locked for this conversation'
+                                : 'Click to reset to Auto mode'
+                            }
+                            disabled={isAgentLocked}
+                          >
+                            {isAgentTagHovered && !isAgentLocked ? (
+                              <XIcon
+                                size={14}
+                                weight="bold"
+                                className={
+                                  selectedAgentMode === 'deep-research'
+                                    ? 'text-green-600'
+                                    : 'text-gray-800'
+                                }
+                              />
+                            ) : selectedAgentMode === 'deep-research' ? (
+                              // Green dot indicator for Deep Research
+                              <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
+                            ) : (
+                              (() => {
+                                const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
+                                return AgentIcon ? (
+                                  <AgentIcon size={14} weight="regular" className="text-gray-800" />
+                                ) : null;
+                              })()
+                            )}
+                            {getAgentModeDisplay(selectedAgentMode).label}
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                      {showModeSelector && onAutoEditModeChange && (
+                        <ModeSelector
+                          mode={autoEditMode}
+                          onModeChange={onAutoEditModeChange}
+                          disabled={disabled && !isStreaming}
+                        />
+                      )}
+                    </div>
+
+                    {/* Right side - Voice and Send buttons */}
+                    <div className="flex items-center gap-2">
+                      {/* Voice input button */}
+                      {onVoiceInput && (
+                        <SecondaryIconButton
+                          icon={
+                            <MicrophoneIcon
+                              size={16}
+                              weight={isRecording ? 'fill' : 'bold'}
+                              className={isRecording ? 'text-red-500' : 'text-gray-800'}
+                            />
+                          }
+                          onClick={onVoiceInput}
+                          disabled={disabled && !isStreaming}
+                          title={isRecording ? 'Stop recording' : 'Start voice input'}
+                          className={
+                            isRecording
+                              ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
+                              : 'w-8.5 h-8.5 rounded-xl'
+                          }
+                        />
+                      )}
+
+                      {/* Send/Stop button */}
+                      {isStreaming ? (
+                        <SecondaryIconButton
+                          icon={<StopIcon />}
+                          onClick={onStop}
+                          title="Stop generating"
+                          className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
+                        />
+                      ) : (
+                        <SecondaryIconButton
+                          icon={<SendIcon size={16} />}
+                          onClick={handleSend}
+                          disabled={!canSend}
+                          title="Send message"
+                          className={
+                            canSend
+                              ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                              : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                          }
+                        />
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Inline layout - text input with send button on same row */
+                <div className="flex items-center gap-2 px-4 py-3">
+                  {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
+                  <div className="flex-1">
+                    <TiptapEditor
+                      content={message}
+                      onChange={handleChange}
+                      onSubmit={handleSend}
+                      placeholder={placeholder}
+                      disabled={disabled && !isStreaming}
+                      editorRef={editorRef}
+                    />
+                  </div>
+
+                  {/* Send/Stop button inline */}
+                  {isStreaming ? (
+                    <SecondaryIconButton
+                      icon={<StopIcon />}
+                      onClick={onStop}
+                      title="Stop generating"
+                      className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
+                    />
+                  ) : (
+                    <SecondaryIconButton
+                      icon={<SendIcon size={16} />}
+                      onClick={handleSend}
+                      disabled={!canSend}
+                      title="Send message"
+                      className={`flex-shrink-0 ${
+                        canSend
+                          ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                          : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                      }`}
+                    />
+                  )}
+                </div>
               )}
             </div>
           </div>
-        )}
 
-        {/* Main input container with gradient border */}
-        <div
-          className={`p-[1px] rounded-2xl transition-all duration-200 ${
-            disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
-          }`}
-          style={{
-            background: disabled
-              ? '#e5e7eb'
-              : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
-          }}
-        >
-          <div className="flex flex-col bg-white rounded-[15px]">
-            {/* File previews - shown above the input when files are attached */}
-            {hasAttachments && (
-              <div className="px-4 pt-4 pb-2">
-                <div className="flex flex-wrap gap-2">
-                  {attachments.map((attachment) => (
-                    <FilePreview
-                      key={attachment.id}
-                      attachment={attachment}
-                      onRemove={handleRemoveAttachment}
-                      removable={!disabled}
-                      size="medium"
-                      variant="minimal"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Hidden file input - always render for ref access */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={getAcceptString()}
-              onChange={handleFileInputChange}
-              className="hidden"
-              aria-hidden="true"
-            />
-
-            {showPlusMenu ? (
-              <>
-                {/* Text input area - Tiptap Editor */}
-                <div className="px-4 py-3">
-                  <TiptapEditor
-                    content={message}
-                    onChange={handleChange}
-                    onSubmit={handleSend}
-                    placeholder={placeholder}
-                    disabled={disabled && !isStreaming}
-                    editorRef={editorRef}
-                  />
-                </div>
-
-                {/* Formatting toolbar - Slack-style */}
-                {showFormattingToolbar && editorRef.current && (
-                  <EditorToolbar editor={editorRef.current} />
-                )}
-
-                {/* Bottom toolbar with plus menu */}
-                <div className="flex items-center justify-between px-3 pb-3">
-                  {/* Left side - Plus button and Mode toggle */}
-                  <div className="flex items-center gap-2">
-                    {/* Plus button - opens menu with options */}
-                    <PlusButtonMenu
-                      isOpen={isPlusMenuOpen}
-                      onClose={() => setIsPlusMenuOpen(false)}
-                      onOpen={handlePlusButtonClick}
-                      onAgentModeChange={handleAgentModeChange}
-                      onBuildDashboard={onBuildDashboard}
-                      selectedAgentMode={selectedAgentMode}
-                      disabled={(disabled && !isStreaming) || isAgentLocked}
-                    />
-
-                    {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
-                    <AnimatePresence>
-                      {selectedAgentMode !== 'auto' && (
-                        <motion.button
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ duration: 0.15 }}
-                          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                            selectedAgentMode === 'deep-research'
-                              ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                              : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
-                          }`}
-                          onClick={handleCancelAgentMode}
-                          onMouseEnter={() => setIsAgentTagHovered(true)}
-                          onMouseLeave={() => setIsAgentTagHovered(false)}
-                          title={
-                            isAgentLocked
-                              ? 'Agent locked for this conversation'
-                              : 'Click to reset to Auto mode'
-                          }
-                          disabled={isAgentLocked}
-                        >
-                          {isAgentTagHovered && !isAgentLocked ? (
-                            <XIcon
-                              size={14}
-                              weight="bold"
-                              className={
-                                selectedAgentMode === 'deep-research'
-                                  ? 'text-green-600'
-                                  : 'text-gray-800'
-                              }
-                            />
-                          ) : selectedAgentMode === 'deep-research' ? (
-                            // Green dot indicator for Deep Research
-                            <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
-                          ) : (
-                            (() => {
-                              const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
-                              return AgentIcon ? (
-                                <AgentIcon size={14} weight="regular" className="text-gray-800" />
-                              ) : null;
-                            })()
-                          )}
-                          {getAgentModeDisplay(selectedAgentMode).label}
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Mode selector - Auto edits: off/on/Plan Mode */}
-                    {showModeSelector && onAutoEditModeChange && (
-                      <ModeSelector
-                        mode={autoEditMode}
-                        onModeChange={onAutoEditModeChange}
-                        disabled={disabled && !isStreaming}
-                      />
-                    )}
-                  </div>
-
-                  {/* Right side - Voice and Send buttons */}
-                  <div className="flex items-center gap-2">
-                    {/* Voice input button */}
-                    {onVoiceInput && (
-                      <SecondaryIconButton
-                        icon={
-                          <MicrophoneIcon
-                            size={16}
-                            weight={isRecording ? 'fill' : 'bold'}
-                            className={isRecording ? 'text-red-500' : 'text-gray-800'}
-                          />
-                        }
-                        onClick={onVoiceInput}
-                        disabled={disabled && !isStreaming}
-                        title={isRecording ? 'Stop recording' : 'Start voice input'}
-                        className={
-                          isRecording
-                            ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
-                            : 'w-8.5 h-8.5 rounded-xl'
-                        }
-                      />
-                    )}
-
-                    {/* Send/Stop button */}
-                    {isStreaming ? (
-                      <SecondaryIconButton
-                        icon={<StopIcon />}
-                        onClick={onStop}
-                        title="Stop generating"
-                        className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
-                      />
-                    ) : (
-                      <SecondaryIconButton
-                        icon={<SendIcon size={16} />}
-                        onClick={handleSend}
-                        disabled={!canSend}
-                        title="Send message"
-                        className={
-                          canSend
-                            ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
-                            : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                        }
-                      />
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Inline layout - text input with send button on same row */
-              <div className="flex items-center gap-2 px-4 py-3">
-                {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                <div className="flex-1">
-                  <TiptapEditor
-                    content={message}
-                    onChange={handleChange}
-                    onSubmit={handleSend}
-                    placeholder={placeholder}
-                    disabled={disabled && !isStreaming}
-                    editorRef={editorRef}
-                  />
-                </div>
-
-                {/* Send/Stop button inline */}
-                {isStreaming ? (
-                  <SecondaryIconButton
-                    icon={<StopIcon />}
-                    onClick={onStop}
-                    title="Stop generating"
-                    className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
-                  />
-                ) : (
-                  <SecondaryIconButton
-                    icon={<SendIcon size={16} />}
-                    onClick={handleSend}
-                    disabled={!canSend}
-                    title="Send message"
-                    className={`flex-shrink-0 ${
-                      canSend
-                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
-                        : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                    }`}
-                  />
-                )}
-              </div>
-            )}
-          </div>
+          {!hideDisclaimer && (
+            <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+              Von AI may make mistakes. Please recheck all important information.
+            </div>
+          )}
         </div>
-
-        {!hideDisclaimer && (
-          <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
-            Von AI may make mistakes. Please recheck all important information.
-          </div>
-        )}
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
+
+StandardChatInput.displayName = 'StandardChatInput';
 
 export default StandardChatInput;

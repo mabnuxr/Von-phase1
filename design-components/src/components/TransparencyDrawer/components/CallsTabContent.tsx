@@ -21,6 +21,15 @@ interface CallItemProps {
 }
 
 const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast }) => {
+  const hasDetails =
+    call.timeRange ||
+    call.duration ||
+    (call.participants && call.participants.length > 0) ||
+    call.accountName ||
+    call.opportunityName ||
+    call.sentiment ||
+    call.summary;
+
   return (
     <div className="relative flex gap-3 overflow-hidden">
       {/* Timeline line and icon */}
@@ -64,14 +73,14 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
             <span className="text-sm font-medium text-gray-900 min-w-0 truncate text-left group-hover:text-indigo-600 transition-colors">
               {call.title}
             </span>
-            {call.meetingUrl && (
+            {(call.sourceUrl || call.meetingUrl) && (
               <a
-                href={call.meetingUrl}
+                href={call.sourceUrl || call.meetingUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 className="ml-1 text-gray-500 hover:text-indigo-600 flex-shrink-0 transition-colors"
-                title="Open meeting"
+                title={call.sourceUrl ? 'Open source' : 'Open meeting'}
               >
                 <ArrowSquareOutIcon size={16} weight="bold" />
               </a>
@@ -87,7 +96,7 @@ const CallItem = React.memo<CallItemProps>(({ call, isExpanded, onToggle, isLast
 
         {/* Expanded content */}
         <AnimatePresence>
-          {isExpanded && (
+          {isExpanded && hasDetails && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}

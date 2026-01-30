@@ -8,13 +8,15 @@ import { CallsTabContent } from '../TransparencyDrawer/components';
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
 import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
 import type { MemoryResultData } from '../Chat/types';
+import { ReportTable } from '../ReportTable';
+import type { ReportColumn } from '../ReportTable/ReportTable';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /** View mode for the artifact drawer */
-export type ArtifactViewMode = 'data' | 'calls' | 'memory';
+export type ArtifactViewMode = 'data' | 'calls' | 'memory' | 'iq';
 
 /** Base props shared by all view modes */
 interface BaseDrawerProps {
@@ -22,8 +24,10 @@ interface BaseDrawerProps {
   isOpen: boolean;
   /** Callback when the drawer should close */
   onClose: () => void;
-  /** Tool name (used for title) */
+  /** Tool name (used for title fallback) */
   toolName: string;
+  /** Human-readable query name (takes precedence over toolName for title) */
+  queryName?: string;
   /** Whether the content is loading */
   isLoading?: boolean;
   /** Error message if loading failed */
@@ -60,8 +64,24 @@ export interface MemoryViewProps extends BaseDrawerProps {
   memoryData: MemoryResultData;
 }
 
+/** Props for IQ/Deep Research view mode */
+export interface IQViewProps extends BaseDrawerProps {
+  /** View mode: 'iq' for IQ artifact view with ReportTable */
+  viewMode: 'iq';
+  /** Column definitions for ReportTable */
+  columns: ReportColumn[];
+  /** Data rows */
+  data: Record<string, unknown>[];
+  /** Total row count */
+  rowCount: number;
+}
+
 /** Discriminated union: props depend on viewMode */
-export type SingleArtifactDrawerProps = DataViewProps | CallsViewProps | MemoryViewProps;
+export type SingleArtifactDrawerProps =
+  | DataViewProps
+  | CallsViewProps
+  | MemoryViewProps
+  | IQViewProps;
 
 // ============================================================================
 // Subcomponents
@@ -205,7 +225,7 @@ function CallsEmptyState() {
  * Used when clicking on artifact from thinking process steps.
  */
 export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props) => {
-  const { isOpen, onClose, toolName, viewMode, isLoading = false, error = null } = props;
+  const { isOpen, onClose, toolName, queryName, viewMode, isLoading = false, error = null } = props;
 
   // Horizontal resize functionality - larger default for data tables
   const { width, handleProps } = useHorizontalResize({
@@ -214,16 +234,20 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     storageKey: 'artifact-drawer-width',
   });
 
-  const displayTitle = getToolDisplayName(toolName);
+  // Use queryName if provided, otherwise fall back to tool display name
+  const displayTitle = queryName || getToolDisplayName(toolName);
   const isCallsView = viewMode === 'calls';
   const isMemoryView = viewMode === 'memory';
+  const isIQView = viewMode === 'iq';
 
   // Determine if there's data based on view mode
   const hasData = isCallsView
     ? ((props as CallsViewProps).calls?.length ?? 0) > 0
     : isMemoryView
       ? true // Memory always has data if we got here
-      : ((props as DataViewProps).rows?.length ?? 0) > 0;
+      : isIQView
+        ? ((props as IQViewProps).data?.length ?? 0) > 0
+        : ((props as DataViewProps).rows?.length ?? 0) > 0;
 
   // Header icon based on view mode
   const HeaderIcon = isMemoryView ? BrainIcon : isCallsView ? PhoneIcon : DatabaseIcon;
@@ -235,7 +259,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     }
 
     // For data view with error, still show query but with error message in table area
-    if (error && !isCallsView && !isMemoryView) {
+    if (error && !isCallsView && !isMemoryView && !isIQView) {
       const { query, duration } = props as DataViewProps;
       return (
         <ArtifactContentViewer
@@ -268,6 +292,23 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     if (isCallsView) {
       const { calls } = props as CallsViewProps;
       return <CallsTabContent calls={calls} />;
+    }
+
+    if (isIQView) {
+      const { columns, data } = props as IQViewProps;
+      return (
+        <div className="flex-1 min-h-0 p-4 overflow-auto">
+          <ReportTable
+            columns={columns}
+            data={data}
+            pageSize={10}
+            showPagination={true}
+            aiReasoningKey="_aiReasoning"
+            showRowActions={false}
+            frozenColumns={1}
+          />
+        </div>
+      );
     }
 
     const { query, columns, rows, duration } = props as DataViewProps;

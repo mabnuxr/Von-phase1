@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { ChatInput } from './ChatInput';
 import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
 import { StandardChatInput, StandardChatInputWithCommands } from './StandardChatInput';
+import type { StandardChatInputRef } from './StandardChatInput';
 import type { BuildMode } from '../DashboardBuilder';
 import type { FileAttachment } from './FileAttachment/types';
 import type { AgentMode } from './StandardChatInput/types';
@@ -10,6 +11,9 @@ import type { Command } from '../Commands/types';
 
 // Re-export SendMessageOptions for consumers who import from this file
 export type { SendMessageOptions } from './types';
+
+// Re-export StandardChatInputRef as ChatInputSelectorRef for consumers
+export type ChatInputSelectorRef = StandardChatInputRef;
 
 export interface ChatInputSelectorProps {
   /** Use StandardChatInput instead of ChatInput */
@@ -69,120 +73,128 @@ export interface ChatInputSelectorProps {
  * Selector component that renders the appropriate chat input based on configuration.
  * Reduces conditional complexity in parent components.
  */
-export const ChatInputSelector: React.FC<ChatInputSelectorProps> = ({
-  useStandardInput,
-  enableCommands,
-  placeholder,
-  onSend,
-  onStop,
-  disabled,
-  isStreaming,
-  disableSubmit,
-  value,
-  onChange,
-  onDisabledInput,
-  hideDisclaimer,
-  autoFocus,
-  enableFileUpload,
-  onFileError,
-  droppedFiles,
-  onDroppedFilesProcessed,
-  showModeToggle,
-  mode,
-  onModeChange,
-  isAgentLocked,
-  lockedAgentMode,
-  showPlusMenu,
-}) => {
-  // Base props shared by all input variants (excluding onSend which has different signatures)
-  const baseCommonProps = {
-    placeholder,
-    onStop,
-    disabled,
-    isStreaming,
-    disableSubmit,
-    value,
-    onChange,
-  };
-
-  if (useStandardInput) {
-    const sharedStandardProps = {
-      ...baseCommonProps,
+export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelectorProps>(
+  (
+    {
+      useStandardInput,
+      enableCommands,
+      placeholder,
+      onSend,
+      onStop,
+      disabled,
+      isStreaming,
+      disableSubmit,
+      value,
+      onChange,
       onDisabledInput,
+      hideDisclaimer,
+      autoFocus,
+      enableFileUpload,
       onFileError,
       droppedFiles,
       onDroppedFilesProcessed,
+      showModeToggle,
       mode,
       onModeChange,
       isAgentLocked,
       lockedAgentMode,
       showPlusMenu,
+    },
+    ref
+  ) => {
+    // Base props shared by all input variants (excluding onSend which has different signatures)
+    const baseCommonProps = {
+      placeholder,
+      onStop,
+      disabled,
+      isStreaming,
+      disableSubmit,
+      value,
+      onChange,
     };
 
-    if (enableCommands) {
-      // StandardChatInputWithCommands passes (message, attachments, command, agentMode)
-      const commandOnSend = onSend
-        ? (
-            message: string,
-            attachments?: FileAttachment[],
-            command?: Command,
-            agentMode?: AgentMode
-          ) => {
-            onSend(message, attachments, { command, agentMode });
+    if (useStandardInput) {
+      const sharedStandardProps = {
+        ...baseCommonProps,
+        onDisabledInput,
+        hideDisclaimer,
+        onFileError,
+        droppedFiles,
+        onDroppedFilesProcessed,
+        mode,
+        onModeChange,
+        isAgentLocked,
+        lockedAgentMode,
+        showPlusMenu,
+      };
+
+      if (enableCommands) {
+        // StandardChatInputWithCommands passes (message, attachments, command, agentMode)
+        const commandOnSend = onSend
+          ? (
+              message: string,
+              attachments?: FileAttachment[],
+              command?: Command,
+              agentMode?: AgentMode
+            ) => {
+              onSend(message, attachments, { command, agentMode });
+            }
+          : undefined;
+
+        return <StandardChatInputWithCommands {...sharedStandardProps} onSend={commandOnSend} />;
+      }
+
+      // StandardChatInput passes (message, attachments, agentMode)
+      const standardOnSend = onSend
+        ? (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+            onSend(message, attachments, { agentMode });
           }
         : undefined;
 
-      return <StandardChatInputWithCommands {...sharedStandardProps} onSend={commandOnSend} />;
+      return <StandardChatInput ref={ref} {...sharedStandardProps} onSend={standardOnSend} />;
     }
 
-    // StandardChatInput passes (message, attachments, agentMode)
-    const standardOnSend = onSend
-      ? (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
-          onSend(message, attachments, { agentMode });
-        }
-      : undefined;
+    if (enableCommands) {
+      // ChatInputWithCommands passes (message, attachments, command) - wrap into SendMessageOptions
+      const commandOnSend = onSend
+        ? (message: string, attachments?: FileAttachment[], command?: Command) => {
+            onSend(message, attachments, { command });
+          }
+        : undefined;
 
-    return <StandardChatInput {...sharedStandardProps} onSend={standardOnSend} />;
-  }
+      return (
+        <ChatInputWithCommands
+          {...baseCommonProps}
+          onSend={commandOnSend}
+          onDisabledInput={onDisabledInput}
+          hideDisclaimer={hideDisclaimer}
+          autoFocus={autoFocus}
+        />
+      );
+    }
 
-  if (enableCommands) {
-    // ChatInputWithCommands passes (message, attachments, command) - wrap into SendMessageOptions
-    const commandOnSend = onSend
-      ? (message: string, attachments?: FileAttachment[], command?: Command) => {
-          onSend(message, attachments, { command });
-        }
-      : undefined;
+    // For ChatInput, onSend doesn't use a third param
+    const baseOnSend = onSend as
+      | ((message: string, attachments?: FileAttachment[]) => void)
+      | undefined;
 
     return (
-      <ChatInputWithCommands
+      <ChatInput
         {...baseCommonProps}
-        onSend={commandOnSend}
+        onSend={baseOnSend}
         onDisabledInput={onDisabledInput}
         hideDisclaimer={hideDisclaimer}
+        enableFileUpload={enableFileUpload}
+        onFileError={onFileError}
+        droppedFiles={droppedFiles}
+        onDroppedFilesProcessed={onDroppedFilesProcessed}
+        showModeToggle={showModeToggle}
+        mode={mode}
+        onModeChange={onModeChange}
         autoFocus={autoFocus}
       />
     );
   }
+);
 
-  // For ChatInput, onSend doesn't use a third param
-  const baseOnSend = onSend as
-    | ((message: string, attachments?: FileAttachment[]) => void)
-    | undefined;
-
-  return (
-    <ChatInput
-      {...baseCommonProps}
-      onSend={baseOnSend}
-      onDisabledInput={onDisabledInput}
-      hideDisclaimer={hideDisclaimer}
-      enableFileUpload={enableFileUpload}
-      onFileError={onFileError}
-      droppedFiles={droppedFiles}
-      onDroppedFilesProcessed={onDroppedFilesProcessed}
-      showModeToggle={showModeToggle}
-      mode={mode}
-      onModeChange={onModeChange}
-      autoFocus={autoFocus}
-    />
-  );
-};
+ChatInputSelector.displayName = 'ChatInputSelector';

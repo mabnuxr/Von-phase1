@@ -1,4 +1,13 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import {
+  SpinnerGapIcon,
+  CheckCircleIcon,
+  HourglassIcon,
+  WarningIcon,
+  XCircleIcon,
+  CircleIcon,
+} from '@phosphor-icons/react';
 import type { StepIndicatorProps } from '../types';
 
 // ============================================================================
@@ -6,29 +15,56 @@ import type { StepIndicatorProps } from '../types';
 // ============================================================================
 
 /**
- * StepIndicator - Clean dot indicator for step status
+ * StepIndicator - Icon indicator for step status
  *
- * Displays a simple colored dot based on step status.
+ * Displays appropriate icons based on step status:
+ * - in-progress: spinning loader
+ * - complete: checkmark
+ * - awaiting-approval: hourglass
+ * - warning: warning triangle
+ * - error: X circle
+ * - pending: empty circle
+ *
  * Used consistently across StepRow, CollapsedStepRow, and sub-steps.
  */
 export const StepIndicator = React.memo<StepIndicatorProps>(({ status }) => {
   if (status === 'in-progress') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 border-2 border-indigo-200" />;
+    return (
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        className="flex items-center justify-center"
+      >
+        <SpinnerGapIcon size={14} weight="regular" className="text-indigo-600" />
+      </motion.div>
+    );
   }
   if (status === 'complete') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-emerald-200" />;
+    return <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />;
   }
   if (status === 'awaiting-approval') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-amber-200" />;
+    return (
+      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50">
+        <HourglassIcon size={10} weight="regular" className="text-amber-500" />
+      </div>
+    );
   }
   if (status === 'warning') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-orange-200" />;
+    return (
+      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50">
+        <WarningIcon size={10} weight="regular" className="text-orange-500" />
+      </div>
+    );
   }
   if (status === 'error') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-red-400 border-2 border-red-200" />;
+    return (
+      <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50">
+        <XCircleIcon size={10} weight="regular" className="text-red-500" />
+      </div>
+    );
   }
   // pending
-  return <span className="w-2.5 h-2.5 rounded-full bg-gray-400 border-2 border-gray-100" />;
+  return <CircleIcon size={14} weight="regular" className="text-gray-400" />;
 });
 
 StepIndicator.displayName = 'StepIndicator';

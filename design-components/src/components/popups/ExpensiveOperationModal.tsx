@@ -126,7 +126,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
               {/* Header */}
               <div className="flex items-center gap-1.5 pb-2 mb-3 border-b border-gray-100">
                 <VonLogo size={16} />
-                <h2 className="text-[15px] font-medium text-gray-900">{operationName}</h2>
+                <h2 className="text-sm font-medium text-gray-900">{operationName}</h2>
               </div>
 
               {/* Description */}
@@ -134,7 +134,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
                 <span className="font-medium text-gray-900">
                   {safeRecordCount.toLocaleString()} records
                 </span>
-                across your connected data sources.
+                {' across your connected data sources.'}
               </p>
 
               {/* Time estimate */}

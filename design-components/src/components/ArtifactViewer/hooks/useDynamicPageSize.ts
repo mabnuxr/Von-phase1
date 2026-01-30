@@ -128,24 +128,39 @@ export function useDynamicPageSize(
     const container = containerRef.current;
     if (!container) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      const newRows = calculateRowsPerPage();
-      setRowsPerPage(newRows);
-    });
+    // Track last calculated value to avoid unnecessary state updates
+    let lastCalculatedRows = newRowsPerPage;
+    let rafId: number | null = null;
 
+    // Debounced resize handler using requestAnimationFrame
+    const handleResize = () => {
+      // Cancel any pending RAF to debounce rapid-fire events (e.g., during animation)
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+
+      rafId = requestAnimationFrame(() => {
+        const newRows = calculateRowsPerPage();
+        // Only update state if the value actually changed
+        if (newRows !== lastCalculatedRows) {
+          lastCalculatedRows = newRows;
+          setRowsPerPage(newRows);
+        }
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
 
     // Also listen for window resize as fallback
-    const handleWindowResize = () => {
-      const newRows = calculateRowsPerPage();
-      setRowsPerPage(newRows);
-    };
-
-    window.addEventListener('resize', handleWindowResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
       resizeObserver.disconnect();
-      window.removeEventListener('resize', handleWindowResize);
+      window.removeEventListener('resize', handleResize);
     };
   }, [calculateRowsPerPage]);
 

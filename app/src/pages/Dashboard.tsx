@@ -47,6 +47,7 @@ import {
 import type { MessageWithStreaming } from "../types/conversation";
 import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
 import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
+import { DeepResearchConversation } from "../components/DeepResearchConversation";
 import { ArtifactPaneContainer } from "../components/ArtifactPaneContainer";
 import { SingleArtifactDrawerContainer } from "../components/SingleArtifactDrawerContainer";
 import { useArtifactState } from "../hooks/useArtifactState";
@@ -174,6 +175,7 @@ const Dashboard = () => {
     isSidebarV2,
     isAgentV2,
     isDeepResearchEnabled,
+    isSourcesEnabled,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -246,6 +248,10 @@ const Dashboard = () => {
     }
     return DEFAULT_AGENT_MODE;
   }, [currentConversationId, infiniteConversationsData]);
+
+  // Check if we're in deep research mode (V2 only)
+  const isDeepResearchMode =
+    isAgentV2 && lockedAgentMode === "deep-research" && isAgentLocked;
 
   // Sync agent mode to backend when first message is sent
   const syncAgentModeToBackend = useCallback(
@@ -531,22 +537,6 @@ const Dashboard = () => {
     sendMessage(content);
   };
 
-  const handleStopStreaming = useCallback(
-    (conversationId: string) => {
-      stopStreaming(conversationId, {
-        onSuccess: () => {
-          if (import.meta.env.DEV) {
-            console.log("[Dashboard] Stop signal sent successfully");
-          }
-        },
-        onError: (error) => {
-          console.error("[Dashboard] Failed to stop streaming:", error);
-        },
-      });
-    },
-    [stopStreaming],
-  );
-
   // Auto-populate input when error occurs (handled by chatStore updates from hook)
   // Monitor store changes to detect error state and auto-populate input
   const storeMessages = useChatStore.getState().messages;
@@ -619,6 +609,7 @@ const Dashboard = () => {
     isFinalResponseStreaming: v2IsFinalResponseStreaming,
     researchResults: v2ResearchResults,
     isDeepResearchRunning: v2IsDeepResearchRunning,
+    markStopped: v2MarkStopped,
   } = useConversationPusherChannelV2(v2ChannelConfig, v2InitialRunEvents);
 
   // Transform backend messages to Chat component format
@@ -783,6 +774,26 @@ const Dashboard = () => {
     conversationChannelConfig,
   );
 
+  // Stop streaming handler - marks V1 and V2 as stopped to batch remaining events
+  const handleStopStreaming = useCallback(
+    (conversationId: string) => {
+      // Mark both V1 and V2 streaming as stopped - events will be batched until completion
+      v2MarkStopped();
+
+      stopStreaming(conversationId, {
+        onSuccess: () => {
+          if (import.meta.env.DEV) {
+            console.log("[Dashboard] Stop signal sent successfully");
+          }
+        },
+        onError: (error) => {
+          console.error("[Dashboard] Failed to stop streaming:", error);
+        },
+      });
+    },
+    [stopStreaming, v2MarkStopped],
+  );
+
   // Separate pusherConfig for Chat component
   const pusherConfig = useMemo(
     () => ({
@@ -845,14 +856,6 @@ const Dashboard = () => {
     },
     [currentConversationId],
   );
-
-  // Deep Research: Data Tables click handler - opens transparency drawer for the research message
-  const handleDataTablesClick = useCallback(() => {
-    const latestResearchMessageId = effectiveResearchResults?.messageId;
-    if (latestResearchMessageId) {
-      handleTransparencyClick(latestResearchMessageId);
-    }
-  }, [effectiveResearchResults?.messageId, handleTransparencyClick]);
 
   // Create Salesforce connection banner
   const salesforceBanner = (
@@ -1010,7 +1013,27 @@ const Dashboard = () => {
           >
             {isLoading ? (
               <ChatSkeleton messageCount={4} />
+            ) : isDeepResearchMode && transformedMessages.length > 0 ? (
+              /* Deep Research Mode - dedicated component */
+              <DeepResearchConversation
+                messages={transformedMessages}
+                userName={user?.firstName || user?.name?.split(" ")[0]}
+                userEmail={user?.email}
+                conversationId={currentConversationId}
+                researchResults={effectiveResearchResults ?? undefined}
+                isDeepResearchRunning={v2IsDeepResearchRunning}
+                onSendMessage={handleSendMessage}
+                onStopStreaming={handleStopStreaming}
+                onArtifactClick={handleArtifactClick}
+                onApprove={handleApproval}
+                onReject={handleRejection}
+                placeholder="Ask von anything"
+                disableSubmit={!isSalesforceReady}
+                onInputWhileDisabled={() => setShouldShakeBanner(true)}
+                enableCommands={isSlashCommandsEnabled}
+              />
             ) : (
+              /* Regular Mode - standard Chat component */
               <Chat
                 title="von AI"
                 userId={user?.id}
@@ -1048,7 +1071,7 @@ const Dashboard = () => {
                 onApprove={handleApproval}
                 onReject={handleRejection}
                 onConvertToDashboard={handleConvertToDashboard}
-                showTransparency={isAgentV2}
+                showTransparency={isSourcesEnabled}
                 onTransparencyClick={handleTransparencyClick}
                 salesforceInstanceUrl={salesforceInstanceUrl}
                 enableDeepLinks={isDeepLinksEnabled}
@@ -1057,27 +1080,6 @@ const Dashboard = () => {
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
                 showPlusMenu={isDeepResearchEnabled}
-                // Deep Research Results (V2 only)
-                researchResults={
-                  isAgentV2
-                    ? (effectiveResearchResults ?? undefined)
-                    : undefined
-                }
-                isDeepResearchRunning={
-                  isAgentV2 ? v2IsDeepResearchRunning : undefined
-                }
-                onDataTablesClick={handleDataTablesClick}
-                dataTablesInfo={
-                  effectiveResearchResults?.metadata?.data_sources
-                    ? {
-                        tableCount:
-                          effectiveResearchResults.metadata.data_sources.length,
-                        processedRecords: undefined,
-                        totalRecords:
-                          effectiveResearchResults.metadata.total_records,
-                      }
-                    : undefined
-                }
               />
             )}
           </motion.div>

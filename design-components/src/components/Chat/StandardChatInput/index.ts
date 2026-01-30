@@ -1,6 +1,7 @@
 export { StandardChatInput } from './StandardChatInput';
 export type {
   StandardChatInputProps,
+  StandardChatInputRef,
   ReferenceContext,
   AutoEditMode,
   PopoverIntent,

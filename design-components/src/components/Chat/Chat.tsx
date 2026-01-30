@@ -6,8 +6,6 @@ import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
-import { DeepResearchChat } from './DeepResearchChat';
-import { DeepResearchNotificationBar } from './DeepResearch/DeepResearchNotificationBar';
 import type { ChatProps, SendMessageOptions } from './types';
 import type { FileAttachment } from './FileAttachment/types';
 
@@ -71,11 +69,6 @@ export const Chat: React.FC<ChatProps> = ({
   lockedAgentMode = 'auto',
   // Plus menu visibility (defaults to false when not provided)
   showPlusMenu = false,
-  // Deep Research Results props (V2 only)
-  researchResults,
-  isDeepResearchRunning,
-  onDataTablesClick,
-  dataTablesInfo,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -132,16 +125,32 @@ export const Chat: React.FC<ChatProps> = ({
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Track previous message count to detect initial load vs incremental updates
+  const prevMessageCountRef = useRef(0);
+
   // Auto-scroll to bottom when new messages arrive or content updates
   useEffect(() => {
     if (messages.length === 0) return;
 
     const isStreaming = messages.some((m) => m.isStreaming);
+    const isInitialLoad = prevMessageCountRef.current === 0 && messages.length > 0;
+    prevMessageCountRef.current = messages.length;
 
     // Always scroll to bottom when new messages are added or streaming, unless user has scrolled up
     if (shouldAutoScrollRef.current) {
-      // Use smooth scroll for new messages, instant for streaming updates (ChatGPT style)
-      scrollToBottom(isStreaming ? 'smooth' : 'smooth');
+      // Use requestAnimationFrame to ensure DOM is fully laid out before scrolling
+      // This fixes the issue where scroll stops midway on initial conversation load
+      requestAnimationFrame(() => {
+        scrollToBottom(isStreaming ? 'smooth' : 'smooth');
+
+        // For initial load, scroll again after a short delay to account for
+        // lazy-loaded content (markdown rendering, images, etc.)
+        if (isInitialLoad) {
+          setTimeout(() => {
+            scrollToBottom('auto');
+          }, 100);
+        }
+      });
     }
   }, [messages, scrollToBottom]);
 
@@ -177,9 +186,6 @@ export const Chat: React.FC<ChatProps> = ({
       isLatestMessage: visibleIndex === filtered.length - 1,
     }));
   }, [messages, isLoading, effectiveShowFromIndex]);
-
-  // Check if we're in deep research mode (V2 only)
-  const isDeepResearchMode = thinkingProcessVersion === 'v2' && lockedAgentMode === 'deep-research';
 
   // Handle stop streaming
   const handleStop = useCallback(() => {
@@ -280,24 +286,8 @@ export const Chat: React.FC<ChatProps> = ({
             lockedAgentMode={lockedAgentMode}
             showPlusMenu={showPlusMenu}
           />
-        ) : isDeepResearchMode ? (
-          /* Deep Research Mode - specialized UI */
-          <DeepResearchChat
-            messages={visibleMessages}
-            userName={userName}
-            userEmail={userEmail}
-            researchResults={researchResults}
-            isDeepResearchRunning={isDeepResearchRunning}
-            dataTablesInfo={dataTablesInfo}
-            onSendMessage={onSendMessage}
-            onDataTablesClick={onDataTablesClick}
-            onTransparencyClick={onTransparencyClick}
-            onArtifactClick={onArtifactClick}
-            onApprove={onApprove}
-            onReject={onReject}
-          />
         ) : (
-          /* Regular Mode - standard message rendering */
+          /* Standard message rendering */
           <div className="flex flex-col">
             {visibleMessages.map((message) => (
               <div key={message.id} className="mb-4">
@@ -357,13 +347,6 @@ export const Chat: React.FC<ChatProps> = ({
 
       {/* Banner above input (if provided) - only show when there are messages */}
       {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
-
-      {/* Deep Research Notification Bar - shows when research is running */}
-      {messages.length > 0 && isDeepResearchMode && (
-        <div className="px-4 max-w-4xl mx-auto w-full">
-          <DeepResearchNotificationBar isVisible={isDeepResearchRunning || false} />
-        </div>
-      )}
 
       {/* Only show bottom input when there are messages (not in empty state) */}
       {messages.length > 0 && (

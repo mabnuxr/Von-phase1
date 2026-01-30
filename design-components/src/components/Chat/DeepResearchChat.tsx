@@ -5,6 +5,7 @@ import { DataTablesCard } from './DeepResearch/DataTablesCard';
 import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
 import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
+import { MessageActions } from './MessageActions';
 import type { Message } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
@@ -65,12 +66,18 @@ export interface DeepResearchChatProps {
     processedRecords?: number;
     totalRecords?: number;
   };
+  /** Whether data tables info is loading */
+  isDataTablesLoading?: boolean;
   /** Callback when send message is triggered */
   onSendMessage?: (content: string) => void;
-  /** Callback when data tables card is clicked */
+  /** Callback when skip button is clicked (should focus input without sending message) */
+  onSkip?: () => void;
+  /** Whether the user has skipped the approval flow */
+  hasSkipped?: boolean;
+  /** Callback when data tables card is clicked (opens DataTablesDrawer) */
   onDataTablesClick?: () => void;
-  /** Callback when transparency is clicked */
-  onTransparencyClick?: (messageId: string) => void;
+  /** Callback when sources button is clicked (opens TransparencyDrawer) */
+  onSourcesClick?: () => void;
   /** Callback when artifact is clicked */
   onArtifactClick?: (
     artifactId: string,
@@ -82,6 +89,10 @@ export interface DeepResearchChatProps {
   onApprove?: (stepId: string, runId: string) => void;
   /** Callback when rejection is triggered */
   onReject?: (stepId: string, runId: string) => void;
+  /** Callback when thumbs up is clicked */
+  onLike?: (messageId: string) => void;
+  /** Callback when thumbs down is clicked */
+  onDislike?: (messageId: string) => void;
 }
 
 /**
@@ -101,12 +112,17 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   researchResults,
   isDeepResearchRunning,
   dataTablesInfo,
+  isDataTablesLoading = false,
   onSendMessage,
+  onSkip,
+  hasSkipped = false,
   onDataTablesClick,
-  onTransparencyClick,
+  onSourcesClick,
   onArtifactClick,
   onApprove,
   onReject,
+  onLike,
+  onDislike,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -186,43 +202,116 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           return false;
         })();
 
-        // For deep research mode, render only thinking process (no message actions)
-        // This applies to: approval message OR last assistant when research is showing
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
-            <div key={message.id} className="w-full pt-6 bg-white font-sf">
-              <div className="px-2">
-                <div className="max-w-4xl mx-auto">
-                  <div className="w-full">
-                    <div className="flex gap-4 items-start">
-                      <div className="flex items-start gap-2 flex-shrink-0">
-                        <VonLogoAvatar />
-                      </div>
-                      <div className="flex-1 min-w-0 -mt-0.5">
-                        {message.timelineSteps && message.timelineSteps.length > 0 && (
-                          <TimelineThinkingProcess
-                            steps={message.timelineSteps}
-                            isThinking={message.isStreaming}
-                            elapsedTime={message.thinkingElapsedTime}
-                            onApprove={(stepId) => {
-                              if (message.runId) onApprove?.(stepId, message.runId);
-                            }}
-                            onReject={(stepId) => {
-                              if (message.runId) onReject?.(stepId, message.runId);
-                            }}
-                            onArtifactClick={onArtifactClick}
+            <div key={message.id} className="max-w-4xl mx-auto w-full">
+              <div className="flex gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <VonLogoAvatar />
+                </div>
+                <div className="flex-1 space-y-3 min-w-0">
+                  {message.timelineSteps && message.timelineSteps.length > 0 && (
+                    <TimelineThinkingProcess
+                      steps={message.timelineSteps}
+                      isThinking={message.isStreaming}
+                      elapsedTime={message.thinkingElapsedTime}
+                      onApprove={(stepId) => {
+                        if (message.runId) onApprove?.(stepId, message.runId);
+                      }}
+                      onReject={(stepId) => {
+                        if (message.runId) onReject?.(stepId, message.runId);
+                      }}
+                      onArtifactClick={onArtifactClick}
+                    />
+                  )}
+                  {/* Approval card with DataTablesCard as beforeActions */}
+                  {isApprovalMessage && (
+                    <MarkdownActionCard
+                      variant="analysis-request"
+                      markdown={
+                        approvalMessage.v2FinalResponse ||
+                        'Would you like me to proceed with the full comprehensive analysis?'
+                      }
+                      isStreaming={false}
+                      primaryAction={
+                        !hasSkipped
+                          ? {
+                              label: 'Run Full Analysis',
+                              onClick: handleRunFullAnalysisClick,
+                              disabled: isDeepResearchRunning,
+                              isLoading: isDeepResearchRunning,
+                            }
+                          : undefined
+                      }
+                      secondaryAction={
+                        !hasSkipped
+                          ? {
+                              label: 'Skip',
+                              onClick: () => onSkip?.(),
+                              disabled: isDeepResearchRunning,
+                            }
+                          : undefined
+                      }
+                      beforeActions={
+                        (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
+                          <DataTablesCard
+                            tableCount={dataTablesInfo?.tableCount ?? 0}
+                            processedRecords={dataTablesInfo?.processedRecords}
+                            totalRecords={dataTablesInfo?.totalRecords}
+                            onClick={onDataTablesClick}
+                            isLoading={isDataTablesLoading}
                           />
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                        ) : undefined
+                      }
+                    />
+                  )}
+                  {/* Research Results - Show when streaming/completed (alongside thinking process) */}
+                  {isLastAssistant && showResearchResults && researchResults && (
+                    <>
+                      {/* Summary text before the results card */}
+                      {researchResults.isCompleted && (
+                        <p className="text-sm text-gray-700">
+                          I have completed the comprehensive analysis. Click on the card below to
+                          see the full details.
+                        </p>
+                      )}
+                      <DeepResearchResults
+                        state={{
+                          status: researchResults.isStreaming
+                            ? 'streaming'
+                            : researchResults.isCompleted
+                              ? 'completed'
+                              : 'idle',
+                          messageId: researchResults.messageId,
+                          metadata: researchResults.metadata,
+                          content: researchResults.content,
+                          totalLength: null,
+                          checksum: null,
+                          error: null,
+                          startedAt: null,
+                          completedAt: null,
+                        }}
+                      />
+                      {/* Action buttons outside the card - using MessageActions for consistency */}
+                      {researchResults.isCompleted && (
+                        <MessageActions
+                          messageContent={researchResults.content}
+                          messageId={researchResults.messageId || ''}
+                          onLike={onLike}
+                          onDislike={onDislike}
+                          onTransparencyClick={onSourcesClick}
+                          showTransparency={!!onSourcesClick}
+                        />
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           );
         }
 
-        // Historical assistant messages - render with full ChatMessage
+        // Historical assistant messages - render with full ChatMessage (no sources action in deep research)
         return (
           <div key={message.id} className="mb-4">
             <ChatMessage
@@ -241,75 +330,11 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               onApprove={onApprove}
               onReject={onReject}
               runId={message.runId}
+              showTransparency={false}
             />
           </div>
         );
       })}
-
-      {/* Deep Research Full Results - Show when streaming/completed */}
-      {showResearchResults && (
-        <div className="mb-4 px-4 mx-auto max-w-4xl">
-          <DeepResearchResults
-            state={{
-              status: researchResults.isStreaming
-                ? 'streaming'
-                : researchResults.isCompleted
-                  ? 'completed'
-                  : 'idle',
-              messageId: researchResults.messageId,
-              metadata: researchResults.metadata,
-              content: researchResults.content,
-              totalLength: null,
-              checksum: null,
-              error: null,
-              startedAt: null,
-              completedAt: null,
-            }}
-            onSourcesClick={onDataTablesClick}
-          />
-        </div>
-      )}
-
-      {/* Deep Research Approval UI - Show when waiting for user decision */}
-      {approvalMessage && (
-        <div className="mb-4 px-4 mx-auto max-w-4xl">
-          <MarkdownActionCard
-            variant="analysis-request"
-            markdown={
-              approvalMessage.v2FinalResponse ||
-              'Would you like me to proceed with the full comprehensive analysis?'
-            }
-            isStreaming={false}
-            primaryAction={{
-              label: 'Run Full Analysis',
-              onClick: handleRunFullAnalysisClick,
-              disabled: isDeepResearchRunning,
-              isLoading: isDeepResearchRunning,
-            }}
-            secondaryAction={{
-              label: 'Skip',
-              onClick: () => onSendMessage?.('Skip the full analysis'),
-              disabled: isDeepResearchRunning,
-            }}
-            beforeActions={
-              dataTablesInfo ? (
-                <DataTablesCard
-                  tableCount={dataTablesInfo.tableCount}
-                  processedRecords={dataTablesInfo.processedRecords}
-                  totalRecords={dataTablesInfo.totalRecords}
-                  onClick={() => {
-                    if (onTransparencyClick) {
-                      onTransparencyClick(approvalMessage.messageId || approvalMessage.id);
-                    } else if (onDataTablesClick) {
-                      onDataTablesClick();
-                    }
-                  }}
-                />
-              ) : undefined
-            }
-          />
-        </div>
-      )}
 
       {/* Confirmation Modal */}
       <ExpensiveOperationModal
