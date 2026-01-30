@@ -171,14 +171,53 @@ function detectApprovalFromArgs(
               operation?: string;
               summary?: string;
               event_summary?: string;
+              start_datetime?: string;
+              end_datetime?: string;
+              duration_minutes?: number;
+              attendees?: string[];
+              attendees_emails?: string[];
+              description?: string;
+              location?: string;
+              calendar_id?: string;
               changes?: DetectedApprovalData["changes"];
-            }) => ({
-              operation:
-                (op.operation as "create" | "update" | "delete") || "create",
-              sobject_type: "Calendar Event",
-              record_name: op.summary || op.event_summary || "Event",
-              changes: op.changes,
-            }),
+              fields?: Record<string, string | number | boolean | null>;
+            }) => {
+              // Build fields from calendar event properties for display
+              const fields: Record<string, string | number | boolean | null> =
+                op.fields || {};
+
+              // Add calendar-specific fields if not already in fields
+              if (op.start_datetime && !fields["Start"]) {
+                fields["Start"] = op.start_datetime;
+              }
+              if (op.end_datetime && !fields["End"]) {
+                fields["End"] = op.end_datetime;
+              }
+              if (op.duration_minutes && !fields["Duration"]) {
+                fields["Duration"] = `${op.duration_minutes} minutes`;
+              }
+              if (op.attendees?.length && !fields["Attendees"]) {
+                fields["Attendees"] = op.attendees.join(", ");
+              }
+              if (op.attendees_emails?.length && !fields["Attendees"]) {
+                fields["Attendees"] = op.attendees_emails.join(", ");
+              }
+              if (op.location && !fields["Location"]) {
+                fields["Location"] = op.location;
+              }
+              if (op.description && !fields["Description"]) {
+                fields["Description"] = op.description;
+              }
+
+              return {
+                operation:
+                  (op.operation as "create" | "update" | "delete") || "create",
+                sobject_type: "Calendar Event",
+                record_name: op.summary || op.event_summary || "Event",
+                changes: op.changes,
+                fields: Object.keys(fields).length > 0 ? fields : undefined,
+              };
+            },
           )
         : undefined;
 
