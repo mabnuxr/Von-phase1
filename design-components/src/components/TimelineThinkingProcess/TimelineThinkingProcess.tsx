@@ -28,7 +28,7 @@ import { EngagingMessage } from '../Chat/EngagingMessage';
  * - Approval workflow with inline approval cards
  * - Collapse/expand entire thinking block
  * - Click to expand individual steps
- * - Code preview with "click to expand"
+ * - Code preview with "click to expand" (disabled)
  * - Sub-steps support for grouped operations
  * - Elapsed time display with formatting
  */
