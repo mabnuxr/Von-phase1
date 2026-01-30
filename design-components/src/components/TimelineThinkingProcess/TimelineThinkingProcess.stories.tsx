@@ -309,3 +309,120 @@ export const AllStepTypes: Story = {
     title: 'Thinking',
   },
 };
+
+/**
+ * Showcases all possible step statuses with their corresponding icons:
+ * - pending: empty circle
+ * - in-progress: spinning loader
+ * - complete: green checkmark
+ * - warning: orange warning triangle
+ * - error: red X circle
+ * - awaiting-approval: amber hourglass
+ */
+export const AllStepStatuses: Story = {
+  args: {
+    steps: [
+      {
+        id: '1',
+        text: 'Completed step - Successfully finished',
+        status: 'complete',
+        type: 'reasoning',
+        description: 'This step has been completed successfully. Shows a green checkmark icon.',
+      },
+      {
+        id: '2',
+        text: 'In-progress step - Currently running',
+        status: 'in-progress',
+        type: 'tool_call',
+        source: 'salesforce',
+        description: 'This step is currently being executed. Shows a spinning loader icon.',
+      },
+      {
+        id: '3',
+        text: 'Awaiting approval - Needs user action',
+        status: 'awaiting-approval',
+        type: 'approval',
+        source: 'salesforce',
+        description: 'This step requires user approval before proceeding. Shows an hourglass icon.',
+        approval: {
+          toolCallId: 'tool-call-1',
+          summary: 'Update opportunity stage to Closed Won',
+          objectType: 'Opportunity',
+          recordName: 'Acme Corp - Enterprise Deal',
+          operation: 'update',
+          changes: [
+            { field: 'Stage', before: 'Negotiation', after: 'Closed Won' },
+            { field: 'Amount', before: 45000, after: 52000 },
+          ],
+        },
+      },
+      {
+        id: '4',
+        text: 'Warning step - Completed with issues',
+        status: 'warning',
+        type: 'tool_call',
+        source: 'gong',
+        description:
+          'This step completed but encountered some issues that may need attention. Shows an orange warning triangle icon.',
+      },
+      {
+        id: '5',
+        text: 'Error step - Failed to execute',
+        status: 'error',
+        type: 'code_execution',
+        description:
+          'This step failed to execute properly. Shows a red X circle icon. Error: Connection timeout after 30 seconds.',
+        code: 'await fetch("https://api.example.com/data")',
+      },
+      {
+        id: '6',
+        text: 'Pending step - Waiting to start',
+        status: 'pending',
+        type: 'output',
+        description:
+          'This step is queued and waiting to start. Shows an empty circle icon.',
+      },
+    ],
+    isThinking: true,
+    elapsedTime: 15,
+    title: 'All Step Statuses',
+    onApprove: (stepId) => console.log('Approved:', stepId),
+    onReject: (stepId) => console.log('Rejected:', stepId),
+  },
+};
+
+/**
+ * Shows sub-steps with different statuses
+ */
+export const SubStepsWithAllStatuses: Story = {
+  args: {
+    steps: [
+      {
+        id: '1',
+        text: 'Gathering data from multiple sources',
+        status: 'in-progress',
+        type: 'tool_call',
+        source: 'generic',
+        description: 'Collecting data from various integrations with mixed results.',
+        subSteps: [
+          { id: '1-1', text: 'Fetching from Salesforce', status: 'complete' },
+          { id: '1-2', text: 'Fetching from Gong', status: 'complete' },
+          { id: '1-3', text: 'Fetching from Email', status: 'in-progress' },
+          { id: '1-4', text: 'Fetching from Calendar', status: 'warning' },
+          { id: '1-5', text: 'Fetching from HubSpot', status: 'error' },
+          { id: '1-6', text: 'Fetching from Slack', status: 'pending' },
+        ],
+      },
+      {
+        id: '2',
+        text: 'Processing results',
+        status: 'pending',
+        type: 'reasoning',
+        description: 'Will analyze and correlate the collected data once all sources are fetched.',
+      },
+    ],
+    isThinking: true,
+    elapsedTime: 12,
+    title: 'Sub-steps with All Statuses',
+  },
+};
