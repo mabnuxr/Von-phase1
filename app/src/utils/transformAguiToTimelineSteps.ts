@@ -103,7 +103,6 @@ function getToolSource(toolName: string): SourceType {
   return TOOL_SOURCE_MAP[toolName] || "generic";
 }
 
-
 /**
  * Approval data structure returned by detection
  */
