@@ -17,6 +17,8 @@ import {
   DeepResearchNotificationBar,
   ChatInputSelector,
   DeepResearchDataTablesDrawer,
+  useAutoScroll,
+  ScrollToBottomButton,
 } from "@vonlabs/design-components";
 import type { Message, SendMessageOptions } from "@vonlabs/design-components";
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
@@ -205,10 +207,30 @@ export const DeepResearchConversation: React.FC<
     (m) => m.type === "assistant" && m.isStreaming === true,
   );
 
+  // Auto-scroll hook for chat-style scroll behavior
+  const { containerRef, scrollToBottom, showScrollButton, onBeforeSend } =
+    useAutoScroll([messages], isStreaming);
+
+  // Wrap onSendMessage to trigger scroll before sending
+  const handleSendMessage = useCallback(
+    (
+      content: string,
+      attachments?: unknown[],
+      options?: SendMessageOptions,
+    ) => {
+      onBeforeSend();
+      onSendMessage?.(content, attachments, options);
+    },
+    [onBeforeSend, onSendMessage],
+  );
+
   return (
     <div className="relative flex flex-col overflow-hidden bg-white antialiased font-sf rounded-lg border border-gray-200 shadow-xs w-full h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
+      >
         <DeepResearchChat
           messages={messages}
           userName={userName}
@@ -217,7 +239,7 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
-          onSendMessage={(content) => onSendMessage?.(content)}
+          onSendMessage={(content) => handleSendMessage(content)}
           onDataTablesClick={handleDataTablesClick}
           onSourcesClick={handleSourcesClick}
           onArtifactClick={onArtifactClick}
@@ -225,6 +247,12 @@ export const DeepResearchConversation: React.FC<
           onReject={onReject}
           onLike={onLike}
           onDislike={onDislike}
+        />
+
+        {/* Scroll to bottom button */}
+        <ScrollToBottomButton
+          visible={showScrollButton && messages.length > 0}
+          onClick={() => scrollToBottom("smooth")}
         />
       </div>
 
@@ -239,7 +267,7 @@ export const DeepResearchConversation: React.FC<
           useStandardInput={true}
           enableCommands={enableCommands}
           placeholder={placeholder}
-          onSend={onSendMessage}
+          onSend={handleSendMessage}
           onStop={handleStop}
           disabled={isStreaming}
           isStreaming={isStreaming}

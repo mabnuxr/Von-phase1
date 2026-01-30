@@ -61,6 +61,8 @@ export type { GoogleCalendarApprovalCardProps } from './GoogleCalendarApprovalCa
 export { MessageActions } from './MessageActions';
 export type { MessageActionsProps } from './MessageActions';
 
+export { ScrollToBottomButton } from './ScrollToBottomButton';
+
 // Export error components
 export { MessageAreaError } from './MessageAreaError';
 export type { MessageAreaErrorProps } from './MessageAreaError';
