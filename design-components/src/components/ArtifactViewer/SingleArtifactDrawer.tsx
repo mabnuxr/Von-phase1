@@ -24,8 +24,10 @@ interface BaseDrawerProps {
   isOpen: boolean;
   /** Callback when the drawer should close */
   onClose: () => void;
-  /** Tool name (used for title) */
+  /** Tool name (used for title fallback) */
   toolName: string;
+  /** Human-readable query name (takes precedence over toolName for title) */
+  queryName?: string;
   /** Whether the content is loading */
   isLoading?: boolean;
   /** Error message if loading failed */
@@ -223,7 +225,7 @@ function CallsEmptyState() {
  * Used when clicking on artifact from thinking process steps.
  */
 export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props) => {
-  const { isOpen, onClose, toolName, viewMode, isLoading = false, error = null } = props;
+  const { isOpen, onClose, toolName, queryName, viewMode, isLoading = false, error = null } = props;
 
   // Horizontal resize functionality - larger default for data tables
   const { width, handleProps } = useHorizontalResize({
@@ -232,7 +234,8 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     storageKey: 'artifact-drawer-width',
   });
 
-  const displayTitle = getToolDisplayName(toolName);
+  // Use queryName if provided, otherwise fall back to tool display name
+  const displayTitle = queryName || getToolDisplayName(toolName);
   const isCallsView = viewMode === 'calls';
   const isMemoryView = viewMode === 'memory';
   const isIQView = viewMode === 'iq';

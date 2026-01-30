@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, CaretRightIcon, FileTextIcon, NoteBlankIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
@@ -36,15 +36,25 @@ export const StepRow = React.memo<StepRowProps>(
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
 
+    const isReasoningStep = step.type === 'reasoning';
+
     const hasExpandableContent = useMemo(
       () =>
         !isFinalResponse &&
+        !isReasoningStep &&
         (step.description ||
           // step.code || // Code preview disabled
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
           step.artifact),
-      [isFinalResponse, step.description, step.subSteps, step.approval, step.artifact]
+      [
+        isFinalResponse,
+        isReasoningStep,
+        step.description,
+        step.subSteps,
+        step.approval,
+        step.artifact,
+      ]
     );
 
     // Compute effective status - when locally approved/rejected, show as complete/error
@@ -80,8 +90,12 @@ export const StepRow = React.memo<StepRowProps>(
               ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
             `}
           >
-            {/* Expand caret */}
-            {hasExpandableContent && (
+            {/* Expand caret or note icon for reasoning steps */}
+            {isReasoningStep ? (
+              <span className="flex-shrink-0 self-start mt-1 w-3">
+                <NoteBlankIcon size={12} weight="regular" className="text-gray-400" />
+              </span>
+            ) : hasExpandableContent ? (
               <span className="flex-shrink-0">
                 {isExpanded ? (
                   <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
@@ -89,17 +103,28 @@ export const StepRow = React.memo<StepRowProps>(
                   <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
                 )}
               </span>
-            )}
+            ) : null}
 
             {/* Step text */}
-            <span
-              className={`
-                flex-1 min-w-0 text-sm truncate
-                ${isInProgress ? 'text-gray-900 font-medium' : isComplete ? 'text-gray-900' : 'text-gray-900'}
-              `}
-            >
-              {step.text}
-            </span>
+            {isReasoningStep ? (
+              <div
+                className={`
+                  flex-1 min-w-0 text-sm
+                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
+                `}
+              >
+                <Streamdown parseIncompleteMarkdown={true}>{step.text}</Streamdown>
+              </div>
+            ) : (
+              <span
+                className={`
+                  flex-1 min-w-0 text-sm truncate
+                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
+                `}
+              >
+                {step.text}
+              </span>
+            )}
           </button>
 
           {/* Expanded content */}

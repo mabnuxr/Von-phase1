@@ -302,6 +302,13 @@ export const SingleArtifactDrawerContainer: React.FC<
     return transformArtifactToDisplayFormat(artifact);
   }, [artifact]);
 
+  // Extract query_name from artifact content if available
+  const queryName = useMemo(() => {
+    if (!artifact?.content) return undefined;
+    const content = artifact.content as { query_name?: string };
+    return content.query_name;
+  }, [artifact]);
+
   // Determine error message: fetch error takes precedence, then artifact error
   const errorMessage = useMemo(() => {
     if (error?.message) return error.message;
@@ -318,6 +325,7 @@ export const SingleArtifactDrawerContainer: React.FC<
         isOpen={isOpen}
         onClose={onClose}
         toolName={toolName}
+        queryName={queryName}
         viewMode="memory"
         memoryData={displayData.memoryData}
         isLoading={isLoading}
@@ -332,6 +340,7 @@ export const SingleArtifactDrawerContainer: React.FC<
         isOpen={isOpen}
         onClose={onClose}
         toolName={toolName}
+        queryName={queryName}
         viewMode="calls"
         calls={displayData.calls}
         isLoading={isLoading}
@@ -346,6 +355,7 @@ export const SingleArtifactDrawerContainer: React.FC<
         isOpen={isOpen}
         onClose={onClose}
         toolName={toolName}
+        queryName={queryName}
         viewMode="iq"
         columns={displayData.columns}
         data={displayData.data}
@@ -363,6 +373,7 @@ export const SingleArtifactDrawerContainer: React.FC<
       isOpen={isOpen}
       onClose={onClose}
       toolName={toolName}
+      queryName={queryName}
       viewMode="data"
       query={dataDisplayData?.query}
       columns={dataDisplayData?.columns ?? []}

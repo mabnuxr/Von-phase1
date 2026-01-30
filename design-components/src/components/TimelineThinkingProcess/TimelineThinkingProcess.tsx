@@ -189,11 +189,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
       return lastStep?.text || '';
     }
 
-    // When not thinking, show completed/total count
-    const completedCount = steps.filter(
-      (s) => s.status === 'complete' || s.status === 'warning' || s.status === 'error'
-    ).length;
-    return `${completedCount}/${steps.length}`;
+    return '';
   }, [steps, isThinking]);
 
   return (
