@@ -88,6 +88,8 @@ export type { ChatEmptyStateProps } from './Chat/ChatEmptyState';
 
 export { ChatTypingIndicator } from './Chat/ChatTypingIndicator';
 
+export { ScrollToBottomButton } from './Chat';
+
 export { ChatMessageSkeleton } from './Chat/ChatMessageSkeleton';
 export type { ChatMessageSkeletonProps } from './Chat/ChatMessageSkeleton';
 
@@ -288,6 +290,7 @@ export {
   CallsTabShimmer,
   CallsTabError,
   DataTablesDrawer,
+  IQDataTabContent,
 } from './TransparencyDrawer';
 export type {
   TransparencyDrawerProps,
@@ -302,6 +305,8 @@ export type {
   CallsTabContentProps,
   DataTablesDrawerProps,
   DataTableArtifact,
+  IQQueryResult,
+  IQDataTabContentProps,
 } from './TransparencyDrawer';
 
 // ============================================================================
@@ -324,6 +329,8 @@ export type {
   SingleArtifactDrawerProps,
   DataViewProps as ArtifactDataViewProps,
   CallsViewProps as ArtifactCallsViewProps,
+  MemoryViewProps as ArtifactMemoryViewProps,
+  IQViewProps as ArtifactIQViewProps,
   ArtifactViewMode,
   ArtifactContentViewerProps,
   ArtifactContentData,
@@ -389,3 +396,9 @@ export type { ExpensiveOperationModalProps } from './popups';
 // DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
 // ============================================================================
 // Note: DataTableConfig is now exported from Chat/DeepResearch
+
+// ============================================================================
+// HOOKS (Reusable hooks for common UI patterns)
+// ============================================================================
+export { useAutoScroll } from '../hooks';
+export type { UseAutoScrollConfig, UseAutoScrollReturn } from '../hooks';

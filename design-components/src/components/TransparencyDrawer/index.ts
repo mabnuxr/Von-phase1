@@ -34,7 +34,9 @@ export {
   DataTabShimmer,
   CallsTabShimmer,
   CallsTabError,
+  IQDataTabContent,
 } from './components';
+export type { IQQueryResult, IQDataTabContentProps } from './components';
 
 // Re-export hooks
 export { useQueryPagination, useCallsExpansion } from './hooks';

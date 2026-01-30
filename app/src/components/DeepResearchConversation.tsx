@@ -5,21 +5,30 @@
  * - DeepResearchChat for message rendering
  * - DeepResearchNotificationBar for running status
  * - ChatInputSelector for user input
- * - DataTablesDrawer for VonIQ artifact viewing
+ * - DataTablesDrawer for viewing IQ artifacts during approval flow
+ * - TransparencyDrawer for viewing all artifacts (Data, Calls, Deep Research tabs) after completion
  *
  * This component is rendered instead of Chat when in deep research mode.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useRef } from "react";
 import {
   DeepResearchChat,
   DeepResearchNotificationBar,
   ChatInputSelector,
   DeepResearchDataTablesDrawer,
+  useAutoScroll,
+  ScrollToBottomButton,
 } from "@vonlabs/design-components";
 import type { Message, SendMessageOptions } from "@vonlabs/design-components";
-import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
+
+/** Ref handle for ChatInputSelector */
+interface ChatInputSelectorRef {
+  focus: () => void;
+}
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
+import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
+import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 
 export interface ResearchResultsState {
   isStreaming: boolean;
@@ -82,6 +91,10 @@ export interface DeepResearchConversationProps {
   onInputWhileDisabled?: () => void;
   /** Whether slash commands are enabled */
   enableCommands?: boolean;
+  /** Callback when thumbs up is clicked */
+  onLike?: (messageId: string) => void;
+  /** Callback when thumbs down is clicked */
+  onDislike?: (messageId: string) => void;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -102,10 +115,22 @@ export const DeepResearchConversation: React.FC<
   disableSubmit = false,
   onInputWhileDisabled,
   enableCommands = false,
+  onLike,
+  onDislike,
 }) => {
-  // DataTables drawer state
+  // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
   const [dataTablesRunId, setDataTablesRunId] = useState<string | null>(null);
+
+  // Transparency drawer state (for Sources button after completion)
+  const [isTransparencyDrawerOpen, setIsTransparencyDrawerOpen] =
+    useState(false);
+
+  // Track if user has skipped the approval flow
+  const [hasSkipped, setHasSkipped] = useState(false);
+
+  // Ref for the chat input to focus on skip
+  const chatInputRef = useRef<ChatInputSelectorRef>(null);
 
   // Get runId from the last assistant message (works for both sample run and full analysis)
   // Also check if the sample run is complete (has v2FinalResponse and not streaming)
@@ -124,16 +149,24 @@ export const DeepResearchConversation: React.FC<
     return { lastAssistantRunId: null, isSampleRunComplete: false };
   }, [messages]);
 
-  // Fetch IQ artifact summaries for dataTablesInfo only after sample run completes
-  const { dataTablesInfo: vonIqDataTablesInfo, isLoading: isArtifactsLoading } =
-    useDeepResearchArtifacts(
-      conversationId,
-      lastAssistantRunId,
-      isSampleRunComplete,
-    );
+  // Full analysis is complete when researchResults.isCompleted is true
+  const isFullAnalysisComplete = researchResults?.isCompleted ?? false;
 
-  // DataTablesDrawer hook for content loading
-  // Only enable fetching when sample run is complete to avoid caching empty data
+  // Can open drawers when either sample run or full analysis is complete
+  const canOpenDrawers = isSampleRunComplete || isFullAnalysisComplete;
+
+  // Fetch artifact summaries for both drawers when either sample run or full analysis completes
+  const {
+    dataTablesInfo: vonIqDataTablesInfo,
+    allArtifacts: artifactSummaries,
+    isLoading: isArtifactsLoading,
+  } = useDeepResearchArtifacts(
+    conversationId,
+    lastAssistantRunId,
+    canOpenDrawers,
+  );
+
+  // DataTablesDrawer hook for content loading (for approval flow)
   const {
     tables: dataTablesTables,
     isLoading: isDrawerLoading,
@@ -142,11 +175,10 @@ export const DeepResearchConversation: React.FC<
     isOpen: isDataTablesOpen,
     conversationId,
     runId: dataTablesRunId,
-    enabled: isSampleRunComplete,
+    enabled: canOpenDrawers,
   });
 
-  // Handle DataTablesCard click - opens DataTables drawer
-  // Only allow opening when sample run is complete to avoid fetching incomplete data
+  // Handle DataTablesCard click - opens DataTables drawer (during approval flow)
   const handleDataTablesClick = useCallback(() => {
     if (lastAssistantRunId && isSampleRunComplete) {
       setDataTablesRunId(lastAssistantRunId);
@@ -158,6 +190,26 @@ export const DeepResearchConversation: React.FC<
   const handleCloseDataTables = useCallback(() => {
     setIsDataTablesOpen(false);
     setDataTablesRunId(null);
+  }, []);
+
+  // Handle Sources click - opens Transparency drawer (after research completes)
+  const handleSourcesClick = useCallback(() => {
+    if (lastAssistantRunId && canOpenDrawers) {
+      setIsTransparencyDrawerOpen(true);
+    }
+  }, [lastAssistantRunId, canOpenDrawers]);
+
+  // Handle skip click - focus the chat input without sending a message
+  const handleSkip = useCallback(() => {
+    // Hide the approval buttons
+    setHasSkipped(true);
+    // Focus the chat input using ref
+    chatInputRef.current?.focus();
+  }, []);
+
+  // Handle closing the Transparency drawer
+  const handleCloseTransparencyDrawer = useCallback(() => {
+    setIsTransparencyDrawerOpen(false);
   }, []);
 
   // Handle stop streaming
@@ -174,10 +226,30 @@ export const DeepResearchConversation: React.FC<
     (m) => m.type === "assistant" && m.isStreaming === true,
   );
 
+  // Auto-scroll hook for chat-style scroll behavior
+  const { containerRef, scrollToBottom, showScrollButton, onBeforeSend } =
+    useAutoScroll([messages], isStreaming);
+
+  // Wrap onSendMessage to trigger scroll before sending
+  const handleSendMessage = useCallback(
+    (
+      content: string,
+      attachments?: unknown[],
+      options?: SendMessageOptions,
+    ) => {
+      onBeforeSend();
+      onSendMessage?.(content, attachments, options);
+    },
+    [onBeforeSend, onSendMessage],
+  );
+
   return (
     <div className="relative flex flex-col overflow-hidden bg-white antialiased font-sf rounded-lg border border-gray-200 shadow-xs w-full h-full">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
+      >
         <DeepResearchChat
           messages={messages}
           userName={userName}
@@ -186,11 +258,22 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
-          onSendMessage={(content) => onSendMessage?.(content)}
+          onSendMessage={(content) => handleSendMessage(content)}
+          onSkip={handleSkip}
+          hasSkipped={hasSkipped}
           onDataTablesClick={handleDataTablesClick}
+          onSourcesClick={handleSourcesClick}
           onArtifactClick={onArtifactClick}
           onApprove={onApprove}
           onReject={onReject}
+          onLike={onLike}
+          onDislike={onDislike}
+        />
+
+        {/* Scroll to bottom button */}
+        <ScrollToBottomButton
+          visible={showScrollButton && messages.length > 0}
+          onClick={() => scrollToBottom("smooth")}
         />
       </div>
 
@@ -202,10 +285,11 @@ export const DeepResearchConversation: React.FC<
       {/* Chat Input */}
       {messages.length > 0 && (
         <ChatInputSelector
+          ref={chatInputRef}
           useStandardInput={true}
           enableCommands={enableCommands}
           placeholder={placeholder}
-          onSend={onSendMessage}
+          onSend={handleSendMessage}
           onStop={handleStop}
           disabled={isStreaming}
           isStreaming={isStreaming}
@@ -217,7 +301,7 @@ export const DeepResearchConversation: React.FC<
         />
       )}
 
-      {/* DataTables Drawer */}
+      {/* DataTables Drawer - for approval flow (shows IQ artifacts) */}
       <DeepResearchDataTablesDrawer
         isOpen={isDataTablesOpen}
         onClose={handleCloseDataTables}
@@ -226,6 +310,17 @@ export const DeepResearchConversation: React.FC<
         totalRecords={vonIqDataTablesInfo?.totalRecords}
         isLoading={isDrawerLoading}
         isTableLoading={isTableLoading}
+      />
+
+      {/* Transparency Drawer - shows Data, Calls, and Deep Research tabs */}
+      <LazyTransparencyDrawer
+        isOpen={isTransparencyDrawerOpen}
+        onClose={handleCloseTransparencyDrawer}
+        title="Sources"
+        conversationId={conversationId}
+        runId={lastAssistantRunId}
+        artifactSummaries={artifactSummaries}
+        isListLoading={isArtifactsLoading}
       />
     </div>
   );

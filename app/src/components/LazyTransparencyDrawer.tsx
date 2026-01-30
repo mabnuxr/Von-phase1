@@ -21,6 +21,7 @@ import {
   CallsTabContent,
   CallsTabShimmer,
   CallsTabError,
+  IQDataTabContent,
   type TransparencyTabConfig,
 } from "@vonlabs/design-components";
 import { useTransparencyDrawer } from "../hooks/useTransparencyDrawer";
@@ -122,7 +123,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
           {isListLoading ? (
             <DataTabShimmer />
           ) : (
-            <DataTabContent
+            <IQDataTabContent
               queries={vonIqQueries}
               onQuerySelect={handleVonIqSelect}
             />

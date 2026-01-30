@@ -125,16 +125,32 @@ export const Chat: React.FC<ChatProps> = ({
     return () => el.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Track previous message count to detect initial load vs incremental updates
+  const prevMessageCountRef = useRef(0);
+
   // Auto-scroll to bottom when new messages arrive or content updates
   useEffect(() => {
     if (messages.length === 0) return;
 
     const isStreaming = messages.some((m) => m.isStreaming);
+    const isInitialLoad = prevMessageCountRef.current === 0 && messages.length > 0;
+    prevMessageCountRef.current = messages.length;
 
     // Always scroll to bottom when new messages are added or streaming, unless user has scrolled up
     if (shouldAutoScrollRef.current) {
-      // Use smooth scroll for new messages, instant for streaming updates (ChatGPT style)
-      scrollToBottom(isStreaming ? 'smooth' : 'smooth');
+      // Use requestAnimationFrame to ensure DOM is fully laid out before scrolling
+      // This fixes the issue where scroll stops midway on initial conversation load
+      requestAnimationFrame(() => {
+        scrollToBottom(isStreaming ? 'smooth' : 'smooth');
+
+        // For initial load, scroll again after a short delay to account for
+        // lazy-loaded content (markdown rendering, images, etc.)
+        if (isInitialLoad) {
+          setTimeout(() => {
+            scrollToBottom('auto');
+          }, 100);
+        }
+      });
     }
   }, [messages, scrollToBottom]);
 

@@ -521,13 +521,13 @@ export function transformIQArtifactToDataTable(
   }
 
   // Transform columns to ReportColumn format
-  // Mark all columns except the first one as AI columns
-  const columns: ReportColumn[] = rawColumns.map((col, index) => ({
+  // All IQ columns are AI columns
+  const columns: ReportColumn[] = rawColumns.map((col) => ({
     id: col.name,
     label: col.display_name || col.name,
     type: mapColumnType(col.type),
-    // First column is not AI, all others are AI columns
-    isAI: index > 0 ? true : (col.is_ai ?? false),
+    // All IQ columns are AI-generated
+    isAI: true,
     sortable: true,
   }));
 

@@ -42,12 +42,6 @@ export const SCROLL_LOCK_DURATION_MS = 1000 as const;
 export const LOGO_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.gif' as const;
 
-/**
- * Von Labs static logo URL (PNG)
- * Used where animation is not desired
- */
-export const LOGO_STATIC_URL = '/Images/logo.png' as const;
-
 // ============================================================================
 // External API URLs
 // ============================================================================

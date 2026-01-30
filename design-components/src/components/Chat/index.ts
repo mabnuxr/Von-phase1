@@ -19,7 +19,11 @@ export type { AgentMode } from './StandardChatInput/types';
 
 // Export ChatInputSelector types
 export { ChatInputSelector } from './ChatInputSelector';
-export type { ChatInputSelectorProps, SendMessageOptions } from './ChatInputSelector';
+export type {
+  ChatInputSelectorProps,
+  ChatInputSelectorRef,
+  SendMessageOptions,
+} from './ChatInputSelector';
 
 export { ChatHeader } from './ChatHeader';
 export type { ChatHeaderProps } from './ChatHeader';
@@ -60,6 +64,8 @@ export type { GoogleCalendarApprovalCardProps } from './GoogleCalendarApprovalCa
 
 export { MessageActions } from './MessageActions';
 export type { MessageActionsProps } from './MessageActions';
+
+export { ScrollToBottomButton } from './ScrollToBottomButton';
 
 // Export error components
 export { MessageAreaError } from './MessageAreaError';

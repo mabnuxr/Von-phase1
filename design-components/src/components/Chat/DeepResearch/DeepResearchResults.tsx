@@ -1,16 +1,6 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowsOutIcon,
-  DotsThreeIcon,
-  GridFourIcon,
-  DownloadSimpleIcon,
-  ThumbsUpIcon,
-  ThumbsDownIcon,
-  CopyIcon,
-  FileMagnifyingGlassIcon,
-  XIcon,
-} from '@phosphor-icons/react';
+import { ArrowsOutIcon, DotsThreeIcon, GridFourIcon, XIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { DeepResearchResultsProps } from './types';
 import { ReportModal } from './ReportModal';
@@ -25,17 +15,11 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
   state,
   title,
   showExpand = true,
-  showFooterActions = true,
   onExpand,
   onBuildDashboard,
-  onDownload,
-  onThumbsUp,
-  onThumbsDown,
-  onSourcesClick,
   className = '',
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,23 +36,6 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleCopy = async () => {
-    if (state.content) {
-      try {
-        await navigator.clipboard.writeText(state.content);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy:', err);
-      }
-    }
-  };
-
-  const handleDownload = () => {
-    onDownload?.();
-    setShowMenu(false);
-  };
 
   const handleBuildDashboard = () => {
     onBuildDashboard?.();
@@ -122,7 +89,7 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
               <ArrowsOutIcon size={16} />
             </button>
           )}
-          {(onBuildDashboard || onDownload) && (
+          {onBuildDashboard && (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowMenu(!showMenu)}
@@ -139,24 +106,13 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
                     transition={{ duration: 0.1 }}
                     className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-sm border border-gray-100 py-1 z-50"
                   >
-                    {onBuildDashboard && (
-                      <button
-                        onClick={handleBuildDashboard}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                      >
-                        <GridFourIcon size={14} className="text-gray-700" />
-                        Build Dashboard
-                      </button>
-                    )}
-                    {onDownload && (
-                      <button
-                        onClick={handleDownload}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                      >
-                        <DownloadSimpleIcon size={14} className="text-gray-700" />
-                        Download PDF
-                      </button>
-                    )}
+                    <button
+                      onClick={handleBuildDashboard}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                    >
+                      <GridFourIcon size={14} className="text-gray-700" />
+                      Build Dashboard
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -178,61 +134,6 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
         </div>
       </div>
 
-      {/* Footer with actions - only show when not streaming and showFooterActions is true */}
-      {!isStreaming && hasContent && showFooterActions && (
-        <div className="px-3 py-2 border-t border-gray-100 flex items-center gap-1">
-          <button
-            onClick={handleCopy}
-            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-            title={copied ? 'Copied!' : 'Copy'}
-          >
-            {copied ? (
-              <span className="text-green-600 text-xs font-medium px-1">Copied!</span>
-            ) : (
-              <CopyIcon size={14} weight="regular" />
-            )}
-          </button>
-          <button
-            onClick={onDownload}
-            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-            title="Download"
-          >
-            <DownloadSimpleIcon size={14} weight="regular" />
-          </button>
-          {onThumbsUp && (
-            <button
-              onClick={onThumbsUp}
-              className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              title="Good response"
-            >
-              <ThumbsUpIcon size={14} weight="regular" />
-            </button>
-          )}
-          {onThumbsDown && (
-            <button
-              onClick={onThumbsDown}
-              className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              title="Bad response"
-            >
-              <ThumbsDownIcon size={14} weight="regular" />
-            </button>
-          )}
-          {onSourcesClick && (
-            <>
-              <div className="w-px h-4 bg-gray-200 mx-1" />
-              <button
-                onClick={onSourcesClick}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                title="View sources"
-              >
-                <FileMagnifyingGlassIcon size={14} weight="regular" />
-                <span>Sources</span>
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       {/* Error state */}
       {state.status === 'error' && state.error && (
         <div className="px-4 py-3 bg-red-50 border-t border-red-100">
@@ -250,7 +151,6 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
         title={displayTitle}
         content={state.content}
         onBuildDashboard={onBuildDashboard}
-        onDownload={onDownload}
       />
     </div>
   );
