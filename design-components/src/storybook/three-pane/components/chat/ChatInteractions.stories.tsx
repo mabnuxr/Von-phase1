@@ -4,7 +4,7 @@ import type { StepMessage } from '../../../../components/Chat/types';
 import {
   TimelineThinkingProcess,
   type TimelineStep,
-} from '../../../../components/Jan17Demo/TimelineThinkingProcess';
+} from '../../../../components/TimelineThinkingProcess';
 import { StandardChatInput } from '../../../../components/Chat/StandardChatInput';
 import { DeepResearchNotificationBar } from './DeepResearchNotificationBar';
 
@@ -398,7 +398,6 @@ const sampleThinkingSteps: TimelineStep[] = [
     text: 'Generating summary report',
     status: 'complete',
     type: 'output',
-    artifactName: 'Q4 Pipeline Summary.md',
     description: 'Creating a formatted summary of the pipeline analysis with key insights.',
   },
 ];
@@ -469,6 +468,7 @@ const approvalThinkingSteps: TimelineStep[] = [
     type: 'approval',
     source: 'salesforce',
     approval: {
+      toolCallId: 'tc-approval-1',
       summary: 'Update opportunity with new close date and increased deal value',
       objectType: 'Opportunity',
       recordName: 'Acme Corp Enterprise Deal',

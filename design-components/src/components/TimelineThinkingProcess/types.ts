@@ -169,7 +169,7 @@ export interface TimelineThinkingProcessProps {
   queries?: QueryResult[];
 
   /**
-   * Title displayed at the top (when collapsed, shows step count)
+   * Title displayed in the header (e.g., "Thinking", "Deep Research")
    */
   title?: string;
 

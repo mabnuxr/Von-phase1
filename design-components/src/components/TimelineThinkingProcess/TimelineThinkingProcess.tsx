@@ -1,6 +1,12 @@
 import React, { useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircleIcon, CaretDownIcon, CaretRightIcon, BellIcon } from '@phosphor-icons/react';
+import {
+  CheckCircleIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  BellIcon,
+  SpinnerGapIcon,
+} from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
@@ -34,6 +40,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   elapsedTime = 0,
   onQueryClick,
   queries = [],
+  title = 'Thinking',
   isCollapsed: controlledCollapsed,
   onToggleCollapse,
   onExpandStep,
@@ -167,6 +174,28 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     return `${stepCount}-${lastStepDescription}`;
   }, [steps]);
 
+  // Compute summary for header - shows current activity or progress count
+  const summary = useMemo(() => {
+    if (steps.length === 0) return '';
+
+    if (isThinking) {
+      // Find the current in-progress step
+      const inProgressStep = steps.find((s) => s.status === 'in-progress');
+      if (inProgressStep) {
+        return inProgressStep.text;
+      }
+      // If no in-progress step, show the last step
+      const lastStep = steps[steps.length - 1];
+      return lastStep?.text || '';
+    }
+
+    // When not thinking, show completed/total count
+    const completedCount = steps.filter(
+      (s) => s.status === 'complete' || s.status === 'warning' || s.status === 'error'
+    ).length;
+    return `${completedCount}/${steps.length}`;
+  }, [steps, isThinking]);
+
   return (
     <>
       <div className="bg-gray-50/50 rounded-xl border border-gray-200 overflow-hidden p-1">
@@ -191,18 +220,26 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   weight="fill"
                   className="text-emerald-600 flex-shrink-0"
                 />
-                <span className="text-sm text-gray-700">Thinking completed</span>
+                <span className="text-sm text-gray-700">{title} completed</span>
+                {summary && <span className="text-sm text-gray-400 ml-1">({summary})</span>}
+              </>
+            ) : isThinking ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="flex-shrink-0"
+                >
+                  <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
+                </motion.div>
+                <span className="text-sm text-gray-700 truncate">
+                  {summary ? `${title}: ${summary}` : title}
+                </span>
               </>
             ) : (
-              <EngagingMessage
-                isActive={isThinking}
-                spinnerSize="sm"
-                textSize="xs"
-                contentSignature={contentSignature}
-                showDelay={isStreaming ? Infinity : 2000}
-                initialText={visibleSteps.length === 0 ? 'Thinking' : undefined}
-                className="flex-shrink-0"
-              />
+              <span className="text-sm text-gray-700">
+                {summary ? `${title} (${summary})` : title}
+              </span>
             )}
           </div>
 
@@ -231,9 +268,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           </div>
         </button>
 
-        {/* Steps container - only rendered when there are visible steps */}
+        {/* Steps container - rendered for entire thinking window or when there are visible steps */}
         <AnimatePresence>
-          {!isCollapsed && visibleSteps.length > 0 && (
+          {!isCollapsed && (visibleSteps.length > 0 || isThinking) && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -306,6 +343,21 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                       />
                     );
                   })}
+                  {isThinking &&
+                    !awaitingApprovalStep &&
+                    (visibleSteps.length === 0 || !isStreaming) && (
+                      <div className="flex items-center gap-3 pt-2 ml-1">
+                        <EngagingMessage
+                          isActive={isThinking}
+                          spinnerSize="sm"
+                          textSize="sm"
+                          contentSignature={contentSignature}
+                          showDelay={2000}
+                          initialText="Processing"
+                          className="text-gray-600"
+                        />
+                      </div>
+                    )}
                 </div>
               </div>
             </motion.div>
