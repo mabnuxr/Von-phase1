@@ -79,7 +79,6 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({ text, maxLength = 40, cla
 
 interface BulkOperationItemRowProps {
   operation: BulkOperation;
-  index: number;
   isExpanded: boolean;
   onToggle: () => void;
   isFirst: boolean;
@@ -87,7 +86,6 @@ interface BulkOperationItemRowProps {
 
 const BulkOperationItemRow: React.FC<BulkOperationItemRowProps> = ({
   operation,
-  index,
   isExpanded,
   onToggle,
   isFirst,
@@ -293,7 +291,6 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
             <BulkOperationItemRow
               key={idx}
               operation={operation}
-              index={idx}
               isExpanded={expandedIndex === idx}
               onToggle={() => handleToggleItem(idx)}
               isFirst={idx === 0}
