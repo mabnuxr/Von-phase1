@@ -7,7 +7,7 @@ import type { CompactApprovalCardProps } from '../types';
 // ============================================================================
 
 /**
- * CompactApprovalCard - Inline approval widget for approval steps
+ * CompactApprovalCard - Inline approval widget for single-record approval steps
  *
  * Features:
  * - Shows operation type (Create/Update/Delete)
@@ -16,6 +16,8 @@ import type { CompactApprovalCardProps } from '../types';
  * - Field changes preview (up to 2, counts rest)
  * - Approve/Reject buttons
  * - Status feedback (approved/rejected state)
+ *
+ * Note: For bulk operations, use ApprovalCard wrapper which delegates to BulkApprovalCard
  */
 export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
   ({ approval, onApprove, onReject, isApproved, isRejected }) => {

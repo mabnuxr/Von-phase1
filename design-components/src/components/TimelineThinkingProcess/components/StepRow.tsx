@@ -4,7 +4,7 @@ import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/rea
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
-import { CompactApprovalCard } from './CompactApprovalCard';
+import { ApprovalCard } from './ApprovalCard';
 
 // ============================================================================
 // Component
@@ -147,7 +147,7 @@ export const StepRow = React.memo<StepRowProps>(
 
                   {/* Approval card */}
                   {step.approval && (
-                    <CompactApprovalCard
+                    <ApprovalCard
                       approval={step.approval}
                       onApprove={onApprove || (() => {})}
                       onReject={onReject || (() => {})}

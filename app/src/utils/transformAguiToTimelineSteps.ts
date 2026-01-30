@@ -103,6 +103,21 @@ function getToolSource(toolName: string): SourceType {
 }
 
 /**
+ * Bulk operation structure for Salesforce bulk approvals
+ */
+interface BulkOperationData {
+  operation: "create" | "update" | "delete";
+  sobject_type: string;
+  record_name: string;
+  fields?: Record<string, string | number | boolean | null>;
+  changes?: Array<{
+    field: string;
+    before?: string | number | boolean | null;
+    after: string | number | boolean | null;
+  }>;
+}
+
+/**
  * Approval data structure returned by detection
  */
 interface DetectedApprovalData {
@@ -122,6 +137,9 @@ interface DetectedApprovalData {
     | "bulk"
     | "deep_research"
     | "generic";
+  // Bulk operations array for Salesforce bulk approvals
+  operations?: BulkOperationData[];
+  recordCount?: number;
   // Deep research specific fields
   researchQuery?: string;
   estimatedTime?: string;
@@ -160,6 +178,24 @@ function detectApprovalFromArgs(
 
     if (isCalendar) {
       // Google Calendar operations
+      // For bulk operations, include the full operations array
+      const calendarBulkOperations: BulkOperationData[] | undefined = isBulk
+        ? ops.map(
+            (op: {
+              operation?: string;
+              summary?: string;
+              event_summary?: string;
+              changes?: DetectedApprovalData["changes"];
+            }) => ({
+              operation:
+                (op.operation as "create" | "update" | "delete") || "create",
+              sobject_type: "Calendar Event",
+              record_name: op.summary || op.event_summary || "Event",
+              changes: op.changes,
+            }),
+          )
+        : undefined;
+
       return {
         toolCallId,
         summary: parsed.summary,
@@ -175,10 +211,32 @@ function detectApprovalFromArgs(
             )
           : firstOp?.changes,
         approvalType: isBulk ? "bulk" : "calendar",
+        operations: calendarBulkOperations,
+        recordCount: isBulk ? ops.length : undefined,
       };
     }
 
     // Salesforce operations (has sobject_type or record_name)
+    // For bulk operations, include the full operations array
+    const bulkOperations: BulkOperationData[] | undefined = isBulk
+      ? ops.map(
+          (op: {
+            operation?: string;
+            sobject_type?: string;
+            record_name?: string;
+            fields?: Record<string, string | number | boolean | null>;
+            changes?: DetectedApprovalData["changes"];
+          }) => ({
+            operation:
+              (op.operation as "create" | "update" | "delete") || "update",
+            sobject_type: op.sobject_type || "Record",
+            record_name: op.record_name || "Unknown",
+            fields: op.fields,
+            changes: op.changes,
+          }),
+        )
+      : undefined;
+
     return {
       toolCallId,
       summary: parsed.summary,
@@ -196,6 +254,8 @@ function detectApprovalFromArgs(
           )
         : firstOp?.changes,
       approvalType: isBulk ? "bulk" : "salesforce",
+      operations: bulkOperations,
+      recordCount: isBulk ? ops.length : undefined,
     };
   }
 
