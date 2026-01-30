@@ -45,9 +45,7 @@ const IQQueryTab = React.memo<{
   >
     <span>{query.name}</span>
     {query.description && (
-      <span className={isActive ? 'text-gray-300' : 'text-gray-400'}>
-        {query.description}
-      </span>
+      <span className={isActive ? 'text-gray-300' : 'text-gray-400'}>{query.description}</span>
     )}
   </button>
 ));

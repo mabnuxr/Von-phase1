@@ -35,9 +35,6 @@ export type {
   DeepResearchTable,
 } from './TransparencyDrawer';
 
-export { ChatResponseActions } from './ChatResponseActions';
-export type { ChatResponseActionsProps } from './ChatResponseActions';
-
 export { DataTablesDrawer } from './DataTablesDrawer';
 export type { DataTablesDrawerProps, DataTableConfig } from './DataTablesDrawer';
 

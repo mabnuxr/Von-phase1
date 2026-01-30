@@ -75,7 +75,11 @@ export interface IQViewProps extends BaseDrawerProps {
 }
 
 /** Discriminated union: props depend on viewMode */
-export type SingleArtifactDrawerProps = DataViewProps | CallsViewProps | MemoryViewProps | IQViewProps;
+export type SingleArtifactDrawerProps =
+  | DataViewProps
+  | CallsViewProps
+  | MemoryViewProps
+  | IQViewProps;
 
 // ============================================================================
 // Subcomponents

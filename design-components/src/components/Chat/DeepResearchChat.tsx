@@ -1,17 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import {
-  CopyIcon,
-  DownloadSimpleIcon,
-  ThumbsUpIcon,
-  ThumbsDownIcon,
-  FileMagnifyingGlassIcon,
-} from '@phosphor-icons/react';
 import { ChatMessage } from './ChatMessage';
 import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
 import { DataTablesCard } from './DeepResearch/DataTablesCard';
 import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
 import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
+import { MessageActions } from './MessageActions';
 import type { Message } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
@@ -76,8 +70,10 @@ export interface DeepResearchChatProps {
   isDataTablesLoading?: boolean;
   /** Callback when send message is triggered */
   onSendMessage?: (content: string) => void;
-  /** Callback when data tables card is clicked */
+  /** Callback when data tables card is clicked (opens DataTablesDrawer) */
   onDataTablesClick?: () => void;
+  /** Callback when sources button is clicked (opens TransparencyDrawer) */
+  onSourcesClick?: () => void;
   /** Callback when artifact is clicked */
   onArtifactClick?: (
     artifactId: string,
@@ -89,6 +85,10 @@ export interface DeepResearchChatProps {
   onApprove?: (stepId: string, runId: string) => void;
   /** Callback when rejection is triggered */
   onReject?: (stepId: string, runId: string) => void;
+  /** Callback when thumbs up is clicked */
+  onLike?: (messageId: string) => void;
+  /** Callback when thumbs down is clicked */
+  onDislike?: (messageId: string) => void;
 }
 
 /**
@@ -111,9 +111,12 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   isDataTablesLoading = false,
   onSendMessage,
   onDataTablesClick,
+  onSourcesClick,
   onArtifactClick,
   onApprove,
   onReject,
+  onLike,
+  onDislike,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -274,53 +277,17 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           startedAt: null,
                           completedAt: null,
                         }}
-                        showFooterActions={false}
-                        onSourcesClick={onDataTablesClick}
                       />
-                      {/* Action buttons outside the card */}
+                      {/* Action buttons outside the card - using MessageActions for consistency */}
                       {researchResults.isCompleted && (
-                        <div className="flex items-center gap-1 pt-1">
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(researchResults.content);
-                            }}
-                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                            title="Copy"
-                          >
-                            <CopyIcon size={14} weight="regular" />
-                          </button>
-                          <button
-                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                            title="Download"
-                          >
-                            <DownloadSimpleIcon size={14} weight="regular" />
-                          </button>
-                          <button
-                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                            title="Good response"
-                          >
-                            <ThumbsUpIcon size={14} weight="regular" />
-                          </button>
-                          <button
-                            className="p-1.5 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                            title="Bad response"
-                          >
-                            <ThumbsDownIcon size={14} weight="regular" />
-                          </button>
-                          {onDataTablesClick && (
-                            <>
-                              <div className="w-px h-4 bg-gray-200 mx-1" />
-                              <button
-                                onClick={onDataTablesClick}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                                title="View sources"
-                              >
-                                <FileMagnifyingGlassIcon size={14} weight="regular" />
-                                <span>Sources</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
+                        <MessageActions
+                          messageContent={researchResults.content}
+                          messageId={researchResults.messageId || ''}
+                          onLike={onLike}
+                          onDislike={onDislike}
+                          onTransparencyClick={onSourcesClick}
+                          showTransparency={!!onSourcesClick}
+                        />
                       )}
                     </>
                   )}

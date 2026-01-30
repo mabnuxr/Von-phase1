@@ -12,7 +12,11 @@
 
 import React, { useMemo } from "react";
 import { SingleArtifactDrawer } from "@vonlabs/design-components";
-import type { QueryColumn, CallTranscript, ReportColumn } from "@vonlabs/design-components";
+import type {
+  QueryColumn,
+  CallTranscript,
+  ReportColumn,
+} from "@vonlabs/design-components";
 import {
   useLazyArtifactContent,
   type ArtifactResponse,
