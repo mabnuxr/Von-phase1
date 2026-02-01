@@ -182,7 +182,10 @@ CallItem.displayName = 'CallItem';
 export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
   const { toggleExpanded, isExpanded } = useCallsExpansion(calls[0]?.id);
 
-  const grouped = useMemo(() => groupCallsByMonth(calls), [calls]);
+  // Check if calls have relevance scores (semantic search results)
+  const hasRelevanceScores = useMemo(() => {
+    return calls.some((call) => call.relevanceScore !== undefined && call.relevanceScore > 0);
+  }, [calls]);
 
   const handleToggle = useCallback(
     (id: string) => {
@@ -200,6 +203,29 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
       </div>
     );
   }
+
+  // If relevance scores exist, show flat list sorted by relevance (semantic search)
+  // Otherwise, group by month for chronological browsing
+  if (hasRelevanceScores) {
+    return (
+      <div className="h-full overflow-y-auto overflow-x-hidden px-4 py-4">
+        <div className="relative">
+          {calls.map((call, idx) => (
+            <CallItem
+              key={call.id}
+              call={call}
+              isExpanded={isExpanded(call.id)}
+              onToggle={() => handleToggle(call.id)}
+              isLast={idx === calls.length - 1}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: Group by month for chronological viewing (when no relevance scores)
+  const grouped = groupCallsByMonth(calls);
 
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden px-4 py-4">

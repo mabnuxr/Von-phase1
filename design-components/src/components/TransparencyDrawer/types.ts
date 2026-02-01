@@ -30,6 +30,8 @@ export interface CallTranscript {
   opportunityName?: string;
   sentiment?: SentimentType;
   summary?: string;
+  relevanceScore?: number;
+  recencyScore?: number;
 }
 
 export type TopLevelTab = 'data' | 'calls';

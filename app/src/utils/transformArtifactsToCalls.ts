@@ -169,6 +169,12 @@ export function transformRowsToCalls(
       sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
       meetingUrl: row.meeting_url ? String(row.meeting_url) : undefined,
       summary: extractSummary(row),
+      relevanceScore:
+        typeof row.relevance_score === "number"
+          ? row.relevance_score
+          : undefined,
+      recencyScore:
+        typeof row.recency_score === "number" ? row.recency_score : undefined,
     });
   }
 
@@ -212,9 +218,27 @@ export function transformBulkArtifactsToCalls(
     allCalls.push(...calls);
   }
 
-  return allCalls.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  // Sort by relevance_score (highest first), use recency_score as tiebreaker
+  return allCalls.sort((a, b) => {
+    const relevanceA = a.relevanceScore ?? 0;
+    const relevanceB = b.relevanceScore ?? 0;
+
+    // Primary sort: by relevance score descending
+    if (relevanceA !== relevanceB) {
+      return relevanceB - relevanceA;
+    }
+
+    // Tiebreaker: by recency score descending (more recent = higher score)
+    const recencyA = a.recencyScore ?? 0;
+    const recencyB = b.recencyScore ?? 0;
+
+    if (recencyA !== recencyB) {
+      return recencyB - recencyA;
+    }
+
+    // Final fallback: by date descending (shouldn't reach here if recency_score exists)
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
 }
 
 /**
