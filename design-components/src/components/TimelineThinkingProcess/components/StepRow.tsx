@@ -68,17 +68,17 @@ export const StepRow = React.memo<StepRowProps>(
     }, [isLocallyApproved, isLocallyRejected, step.status]);
 
     return (
-      <div className="relative flex">
+      <div className="relative flex items-start gap-1">
         {/* Timeline connector - small dot indicator */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center">
+          <div className="w-5 h-5 rounded-full flex items-center justify-center">
             <StepIndicator status={effectiveStatus} />
           </div>
           {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
         </div>
 
         {/* Content */}
-        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
+        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-2'}`}>
           {/* Header - use div for reasoning steps (allows text selection and links), button for expandable rows */}
           {isReasoningStep ? (
             <div className="w-full flex items-start gap-2 text-left">
@@ -93,23 +93,25 @@ export const StepRow = React.memo<StepRowProps>(
             <button
               onClick={hasExpandableContent ? onToggle : undefined}
               className={`
-                w-full flex items-center gap-2 text-left group
+                w-full flex items-start gap-2 text-left group
                 ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
               `}
             >
-              {/* Expand caret */}
+              {/* Expand caret or spacer for alignment */}
               {hasExpandableContent ? (
-                <span className="flex-shrink-0">
+                <span className="flex-shrink-0 mt-1">
                   {isExpanded ? (
                     <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
                   ) : (
                     <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
                   )}
                 </span>
-              ) : null}
+              ) : (
+                <span className="flex-shrink-0 w-3" />
+              )}
 
               {/* Step text */}
-              <span className="flex-1 min-w-0 text-sm truncate text-gray-900">{step.text}</span>
+              <span className="flex-1 min-w-0 text-sm text-gray-900">{step.text}</span>
             </button>
           )}
 
