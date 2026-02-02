@@ -11,6 +11,7 @@ import { formatCellValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
+import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
 
 // ============================================================================
 // Types
@@ -274,20 +275,41 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                       key={startIndex + rowIndex}
                       className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
                     >
-                      {columns.map((col) => (
-                        <td
-                          key={col.key}
-                          className={`px-3 py-2 text-sm whitespace-nowrap ${
-                            col.type === 'number' ||
-                            col.type === 'currency' ||
-                            col.type === 'percentage'
-                              ? 'text-right tabular-nums'
-                              : 'text-left'
-                          } text-gray-700`}
-                        >
-                          {formatCellValue(col.key, row[col.key], col.type)}
-                        </td>
-                      ))}
+                      {columns.map((col) => {
+                        const isNumeric =
+                          col.type === 'number' ||
+                          col.type === 'currency' ||
+                          col.type === 'percentage';
+                        const isDeepLink = col.key === 'deep_link';
+
+                        // For numeric and deep_link columns, render without truncation
+                        if (isNumeric || isDeepLink) {
+                          return (
+                            <td
+                              key={col.key}
+                              className={`px-3 py-2 text-sm whitespace-nowrap ${
+                                isNumeric ? 'text-right tabular-nums' : 'text-left'
+                              } text-gray-700`}
+                            >
+                              {formatCellValue(col.key, row[col.key], col.type)}
+                            </td>
+                          );
+                        }
+
+                        // For text columns, use TruncatedTextCell with max width and tooltip
+                        return (
+                          <td
+                            key={col.key}
+                            className="px-3 py-2 text-sm text-left text-gray-700"
+                          >
+                            <TruncatedTextCell
+                              value={row[col.key]}
+                              maxWidth={200}
+                              className="text-gray-700"
+                            />
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>

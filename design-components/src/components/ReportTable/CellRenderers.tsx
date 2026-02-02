@@ -334,3 +334,78 @@ export const PicklistCell: React.FC<PicklistCellProps> = ({ value }) => {
     </span>
   );
 };
+
+// ============================================================================
+// Truncated Text Cell - Generic truncated text with tooltip
+// ============================================================================
+
+interface TruncatedTextCellProps {
+  value: string | number | null | undefined;
+  maxWidth?: number;
+  className?: string;
+}
+
+export const TruncatedTextCell: React.FC<TruncatedTextCellProps> = ({
+  value,
+  maxWidth = 200,
+  className = '',
+}) => {
+  const [showPopover, setShowPopover] = useState(false);
+  const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
+  const cellRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const displayValue = value == null ? '—' : String(value);
+
+  // Check if text is actually truncated
+  React.useEffect(() => {
+    if (cellRef.current) {
+      setIsTruncated(cellRef.current.scrollWidth > cellRef.current.clientWidth);
+    }
+  }, [displayValue]);
+
+  const handleMouseEnter = () => {
+    if (isTruncated && cellRef.current) {
+      const rect = cellRef.current.getBoundingClientRect();
+      const tooltipWidth = 320;
+      // Position tooltip below the cell, ensuring it doesn't overflow viewport
+      setPopoverPosition({
+        top: rect.bottom + 4,
+        left: Math.min(rect.left, window.innerWidth - tooltipWidth - 16),
+      });
+      setShowPopover(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowPopover(false);
+  };
+
+  return (
+    <>
+      <div
+        ref={cellRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`truncate ${className}`}
+        style={{ maxWidth }}
+      >
+        {displayValue}
+      </div>
+      {showPopover &&
+        createPortal(
+          <div
+            className="fixed max-w-[320px] max-h-48 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] p-3"
+            style={{ top: popoverPosition.top, left: popoverPosition.left }}
+            onMouseEnter={() => setShowPopover(true)}
+            onMouseLeave={() => setShowPopover(false)}
+          >
+            <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+              {displayValue}
+            </p>
+          </div>,
+          document.body
+        )}
+    </>
+  );
+};
