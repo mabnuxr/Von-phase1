@@ -434,6 +434,52 @@ export interface StatisticsData {
   [key: string]: number | string | null;
 }
 
+export interface FetchConversationResult {
+  success: boolean;
+  conversation_id: string;
+  conversation_type: 'call' | 'email';
+  detail_level: 'summary' | 'full';
+  call_metadata?: {
+    call_title?: string;
+    call_start_time?: string;
+    call_end_time?: string;
+    call_duration_seconds?: number;
+    provider?: string;
+    speakers?: Array<{
+      name?: string;
+      email?: string;
+      title?: string;
+      type: 'internal' | 'external';
+    }>;
+    crm_associations?: Array<{
+      crm_object_type: string;
+      crm_object_id: string;
+    }>;
+    keywords?: string[];
+    topics?: string[];
+    action_items?: string[];
+    engagement_score?: number;
+  };
+  call_content?: {
+    summary?: string;
+    transcript?: string;
+    transcript_token_count?: number;
+    transcript_word_count?: number;
+  };
+  email_metadata?: {
+    start_time?: string;
+    crm_associations?: Array<{
+      crm_object_type: string;
+      crm_object_id: string;
+    }>;
+  };
+  email_content?: {
+    body?: string;
+  };
+  warnings?: string[];
+  error_message?: string;
+}
+
 export interface ToolResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any; // Raw JSON result from tool
@@ -448,7 +494,8 @@ export interface ToolResult {
     | 'statistics'
     | 'memory'
     | 'call_search_union'
-    | 'consolidated_conversation_search';
+    | 'consolidated_conversation_search'
+    | 'fetch_conversation';
   table?: TableData;
   queries?: QueryInfo[];
   metrics?: MetricData[];
@@ -458,6 +505,7 @@ export interface ToolResult {
   statistics?: StatisticsData;
   memory?: MemoryResultData;
   callSearchUnion?: CallSearchUnionResult;
+  fetchConversation?: FetchConversationResult;
   error?: string;
 }
 

@@ -6,7 +6,10 @@
  * - SingleArtifactDrawerContainer (single RAG artifact)
  */
 
-import type { CallTranscript } from "@vonlabs/design-components";
+import type {
+  CallTranscript,
+  EmailTranscript,
+} from "@vonlabs/design-components";
 import type { ArtifactResponse } from "../services/conversationsService";
 
 /**
@@ -169,6 +172,12 @@ export function transformRowsToCalls(
       sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
       meetingUrl: row.meeting_url ? String(row.meeting_url) : undefined,
       summary: extractSummary(row),
+      relevanceScore:
+        typeof row.relevance_score === "number"
+          ? row.relevance_score
+          : undefined,
+      recencyScore:
+        typeof row.recency_score === "number" ? row.recency_score : undefined,
     });
   }
 
@@ -212,9 +221,27 @@ export function transformBulkArtifactsToCalls(
     allCalls.push(...calls);
   }
 
-  return allCalls.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  // Sort by relevance_score (highest first), use recency_score as tiebreaker
+  return allCalls.sort((a, b) => {
+    const relevanceA = a.relevanceScore ?? 0;
+    const relevanceB = b.relevanceScore ?? 0;
+
+    // Primary sort: by relevance score descending
+    if (relevanceA !== relevanceB) {
+      return relevanceB - relevanceA;
+    }
+
+    // Tiebreaker: by recency score descending (more recent = higher score)
+    const recencyA = a.recencyScore ?? 0;
+    const recencyB = b.recencyScore ?? 0;
+
+    if (recencyA !== recencyB) {
+      return recencyB - recencyA;
+    }
+
+    // Final fallback: by date descending (shouldn't reach here if recency_score exists)
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
 }
 
 /**
@@ -232,4 +259,198 @@ export function transformSingleArtifactToCalls(
  */
 export function isRagArtifact(category: string): boolean {
   return category === "rag";
+}
+
+/**
+ * Clean email content by removing HTML tags, excessive whitespace, and template artifacts
+ */
+function cleanEmailContent(content: string): string {
+  if (!content || !content.trim()) {
+    return "";
+  }
+
+  let cleaned = content;
+
+  // Remove HTML tags
+  cleaned = cleaned.replace(/<[^>]*>/g, "");
+
+  // Remove common email template footers/buttons (case insensitive)
+  const footerPatterns = [
+    /Request Access to Recording.*?→/gi,
+    /Ask Fathom!.*/gi,
+    /Try Ask Fathom.*?→/gi,
+    /Ask our AI Assistant.*/gi,
+    /It's ChatGPT for your meetings!.*/gi,
+    /View in browser.*/gi,
+    /Unsubscribe.*/gi,
+  ];
+
+  footerPatterns.forEach((pattern) => {
+    cleaned = cleaned.replace(pattern, "");
+  });
+
+  // Normalize whitespace: replace multiple newlines with max 2, trim spaces
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+  cleaned = cleaned.replace(/[ \t]+/g, " ");
+  cleaned = cleaned.trim();
+
+  return cleaned;
+}
+
+/**
+ * Extract email subject from content
+ * Tries to find "Subject:" header pattern, otherwise uses first line
+ */
+function extractEmailSubject(content: string): string {
+  if (!content || !content.trim()) {
+    return "No Subject";
+  }
+
+  // Try to extract subject from common email header patterns
+  const subjectMatch = content.match(/^Subject:\s*(.+?)$/im);
+  if (subjectMatch && subjectMatch[1].trim()) {
+    return subjectMatch[1].trim().slice(0, 100);
+  }
+
+  // Fallback: use first line (truncated)
+  const firstLine = content.split("\n")[0].trim();
+  if (firstLine) {
+    return firstLine.slice(0, 100);
+  }
+
+  return "No Subject";
+}
+
+/**
+ * Transform a single row to EmailTranscript
+ */
+function transformRowToEmail(
+  row: Record<string, unknown>,
+  seenIds: Set<string>,
+): EmailTranscript | null {
+  const id = String(row.conversation_id || row.id || "");
+  if (!id || seenIds.has(id)) return null;
+  seenIds.add(id);
+
+  // Backend provides best_chunk_text for conversation search results
+  const rawContent = String(
+    row.best_chunk_text || row.content || row.chunk_text || "",
+  );
+  if (!rawContent.trim()) return null;
+
+  // Clean up HTML, excessive whitespace, and email template artifacts
+  const content = cleanEmailContent(rawContent);
+  if (!content.trim()) return null;
+
+  // Use conversation_title as subject if available, otherwise extract from content
+  const subject = row.conversation_title
+    ? String(row.conversation_title)
+    : extractEmailSubject(content);
+  const preview = content.slice(0, 200).trim();
+
+  return {
+    id,
+    type: "email",
+    subject,
+    preview,
+    content,
+    // Prefer start_time_iso (already formatted), otherwise convert Unix timestamp
+    date: row.start_time_iso
+      ? String(row.start_time_iso)
+      : row.start_time
+        ? new Date(Number(row.start_time) * 1000).toISOString()
+        : new Date().toISOString(),
+    sender: row.sender ? String(row.sender) : undefined,
+    recipients:
+      Array.isArray(row.recipients) && row.recipients.length > 0
+        ? row.recipients.map(String)
+        : undefined,
+    crmObjectType: row.crm_object_type
+      ? String(row.crm_object_type)
+      : undefined,
+    crmObjectId: row.crm_object_id ? String(row.crm_object_id) : undefined,
+    relevanceScore:
+      typeof row.relevance_score === "number" ? row.relevance_score : undefined,
+    recencyScore:
+      typeof row.recency_score === "number" ? row.recency_score : undefined,
+  };
+}
+
+/**
+ * Sort function for conversations by relevance and recency
+ */
+function sortByRelevanceAndRecency(
+  a: { relevanceScore?: number; recencyScore?: number; date: string },
+  b: { relevanceScore?: number; recencyScore?: number; date: string },
+): number {
+  const relevanceA = a.relevanceScore ?? 0;
+  const relevanceB = b.relevanceScore ?? 0;
+
+  // Primary sort: by relevance score descending
+  if (relevanceA !== relevanceB) {
+    return relevanceB - relevanceA;
+  }
+
+  // Tiebreaker: by recency score descending
+  const recencyA = a.recencyScore ?? 0;
+  const recencyB = b.recencyScore ?? 0;
+
+  if (recencyA !== recencyB) {
+    return recencyB - recencyA;
+  }
+
+  // Final fallback: by date descending
+  return new Date(b.date).getTime() - new Date(a.date).getTime();
+}
+
+/**
+ * Separate calls and emails from bulk RAG artifacts
+ * Returns both arrays sorted by relevance with recency tiebreaker
+ */
+export function separateCallsAndEmails(
+  bulkRagArtifacts:
+    | ArtifactResponse[]
+    | { artifacts?: ArtifactResponse[] }
+    | undefined,
+): { calls: CallTranscript[]; emails: EmailTranscript[] } {
+  const artifacts = Array.isArray(bulkRagArtifacts)
+    ? bulkRagArtifacts
+    : bulkRagArtifacts?.artifacts;
+
+  if (!artifacts || artifacts.length === 0) {
+    return { calls: [], emails: [] };
+  }
+
+  const calls: CallTranscript[] = [];
+  const emails: EmailTranscript[] = [];
+  const seenCallIds = new Set<string>();
+  const seenEmailIds = new Set<string>();
+
+  for (const artifact of artifacts) {
+    const content = artifact.content as {
+      sample?: { rows?: Array<Record<string, unknown>> };
+      rows?: Array<Record<string, unknown>>;
+    };
+
+    const rows = content.sample?.rows || content.rows;
+    if (!rows) continue;
+
+    for (const row of rows) {
+      const type = row.type as string | undefined;
+
+      if (type === "call") {
+        const callRows = transformRowsToCalls([row], seenCallIds);
+        calls.push(...callRows);
+      } else if (type === "email") {
+        const email = transformRowToEmail(row, seenEmailIds);
+        if (email) emails.push(email);
+      }
+    }
+  }
+
+  // Sort both by relevance with recency tiebreaker
+  calls.sort(sortByRelevanceAndRecency);
+  emails.sort(sortByRelevanceAndRecency);
+
+  return { calls, emails };
 }

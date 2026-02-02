@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, DatabaseIcon, PhoneIcon, Brain as BrainIcon } from '@phosphor-icons/react';
+import {
+  XIcon,
+  DatabaseIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  Brain as BrainIcon,
+} from '@phosphor-icons/react';
 import { ArtifactContentViewer } from './components';
 import { useHorizontalResize } from './hooks';
-import type { QueryColumn, CallTranscript } from '../TransparencyDrawer/types';
-import { CallsTabContent } from '../TransparencyDrawer/components';
+import type { QueryColumn, CallTranscript, EmailTranscript } from '../TransparencyDrawer/types';
+import { CallsTabContent, EmailsTabContent } from '../TransparencyDrawer/components';
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
 import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
 import type { MemoryResultData } from '../Chat/types';
@@ -16,7 +22,7 @@ import type { ReportColumn } from '../ReportTable/ReportTable';
 // ============================================================================
 
 /** View mode for the artifact drawer */
-export type ArtifactViewMode = 'data' | 'calls' | 'memory' | 'iq';
+export type ArtifactViewMode = 'data' | 'calls' | 'memory' | 'iq' | 'conversations';
 
 /** Base props shared by all view modes */
 interface BaseDrawerProps {
@@ -76,12 +82,23 @@ export interface IQViewProps extends BaseDrawerProps {
   rowCount: number;
 }
 
+/** Props for conversations view mode - shows both calls and emails with tabs */
+export interface ConversationsViewProps extends BaseDrawerProps {
+  /** View mode: 'conversations' for tabbed calls + emails view */
+  viewMode: 'conversations';
+  /** Call transcripts */
+  calls: CallTranscript[];
+  /** Email transcripts */
+  emails: EmailTranscript[];
+}
+
 /** Discriminated union: props depend on viewMode */
 export type SingleArtifactDrawerProps =
   | DataViewProps
   | CallsViewProps
   | MemoryViewProps
-  | IQViewProps;
+  | IQViewProps
+  | ConversationsViewProps;
 
 // ============================================================================
 // Subcomponents
@@ -227,6 +244,9 @@ function CallsEmptyState() {
 export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props) => {
   const { isOpen, onClose, toolName, queryName, viewMode, isLoading = false, error = null } = props;
 
+  // Tab state for conversations view
+  const [activeTab, setActiveTab] = useState<'calls' | 'emails'>('calls');
+
   // Horizontal resize functionality - larger default for data tables
   const { width, handleProps } = useHorizontalResize({
     initialWidth: 800,
@@ -239,15 +259,19 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const isCallsView = viewMode === 'calls';
   const isMemoryView = viewMode === 'memory';
   const isIQView = viewMode === 'iq';
+  const isConversationsView = viewMode === 'conversations';
 
   // Determine if there's data based on view mode
-  const hasData = isCallsView
-    ? ((props as CallsViewProps).calls?.length ?? 0) > 0
-    : isMemoryView
-      ? true // Memory always has data if we got here
-      : isIQView
-        ? ((props as IQViewProps).data?.length ?? 0) > 0
-        : ((props as DataViewProps).rows?.length ?? 0) > 0;
+  const hasData = isConversationsView
+    ? ((props as ConversationsViewProps).calls?.length ?? 0) > 0 ||
+      ((props as ConversationsViewProps).emails?.length ?? 0) > 0
+    : isCallsView
+      ? ((props as CallsViewProps).calls?.length ?? 0) > 0
+      : isMemoryView
+        ? true // Memory always has data if we got here
+        : isIQView
+          ? ((props as IQViewProps).data?.length ?? 0) > 0
+          : ((props as DataViewProps).rows?.length ?? 0) > 0;
 
   // Header icon based on view mode
   const HeaderIcon = isMemoryView ? BrainIcon : isCallsView ? PhoneIcon : DatabaseIcon;
@@ -293,6 +317,48 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       return (
         <div className="p-4">
           <MemoryResultRenderer result={{ type: 'memory', memory: memoryData, raw: {} }} />
+        </div>
+      );
+    }
+
+    if (isConversationsView) {
+      const { calls, emails } = props as ConversationsViewProps;
+      return (
+        <div className="flex flex-col h-full">
+          {/* Pill Tabs */}
+          <div className="flex gap-2 px-4 pt-4 pb-2 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('calls')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeTab === 'calls'
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <PhoneIcon size={14} weight="regular" className="inline mr-1.5" />
+              Calls ({calls.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('emails')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                activeTab === 'emails'
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <EnvelopeIcon size={14} weight="regular" className="inline mr-1.5" />
+              Emails ({emails.length})
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 min-h-0">
+            {activeTab === 'calls' ? (
+              <CallsTabContent calls={calls} />
+            ) : (
+              <EmailsTabContent emails={emails} />
+            )}
+          </div>
         </div>
       );
     }

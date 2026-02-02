@@ -30,6 +30,23 @@ export interface CallTranscript {
   opportunityName?: string;
   sentiment?: SentimentType;
   summary?: string;
+  relevanceScore?: number;
+  recencyScore?: number;
+}
+
+export interface EmailTranscript {
+  id: string;
+  type: 'email';
+  subject?: string;
+  preview?: string;
+  content: string;
+  date: string;
+  sender?: string;
+  recipients?: string[];
+  crmObjectType?: string;
+  crmObjectId?: string;
+  relevanceScore?: number;
+  recencyScore?: number;
 }
 
 export type TopLevelTab = 'data' | 'calls';
