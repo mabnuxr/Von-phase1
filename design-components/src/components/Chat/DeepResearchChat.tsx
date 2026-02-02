@@ -214,6 +214,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                     <TimelineThinkingProcess
                       steps={message.timelineSteps}
                       isThinking={message.isStreaming}
+                      initiallyCollapsed={!message.isStreaming && !!message.v2FinalResponse}
                       elapsedTime={message.thinkingElapsedTime}
                       onApprove={(stepId) => {
                         if (message.runId) onApprove?.(stepId, message.runId);

@@ -12,6 +12,7 @@ export interface UseTimelineStateOptions {
   controlledCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onExpandStep?: (step: TimelineStep) => void;
+  initiallyCollapsed?: boolean;
 }
 
 export interface UseTimelineStateReturn {
@@ -64,10 +65,11 @@ export function useTimelineState({
   isThinking,
   autoCollapse,
   onExpandStep,
+  initiallyCollapsed = false,
 }: UseTimelineStateOptions): UseTimelineStateReturn {
   // State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isCollapsed, setInternalCollapsed] = useState(false);
+  const [isCollapsed, setInternalCollapsed] = useState(initiallyCollapsed);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [selectedStepForDrawer, setSelectedStepForDrawer] = useState<TimelineStep | null>(null);
   const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
