@@ -37,6 +37,7 @@ import {
   DEFAULT_AGENT_MODE,
 } from "../lib/conversationModeUtils";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
+import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
 import { useConversationPusherChannelV2 } from "../hooks/useConversationPusherChannelV2";
@@ -176,6 +177,7 @@ const Dashboard = () => {
     isAgentV2,
     isDeepResearchEnabled,
     isSourcesEnabled,
+    isTenantDisabled,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -190,6 +192,8 @@ const Dashboard = () => {
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
+  const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
+    useState(false);
 
   // Dashboard canvas state
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -819,6 +823,18 @@ const Dashboard = () => {
   // Determine if Salesforce is properly connected
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
 
+  // Combined submit check: both Salesforce must be ready and tenant must be active
+  const canSubmit = isSalesforceReady && !isTenantDisabled;
+
+  // Handler for when user interacts with disabled input - shakes the appropriate banner
+  const handleDisabledInteraction = useCallback(() => {
+    if (isTenantDisabled) {
+      setShouldShakeSubscriptionBanner(true);
+    } else {
+      setShouldShakeBanner(true);
+    }
+  }, [isTenantDisabled]);
+
   // Tool approval handler
   const handleApproval = useCallback(
     async (toolCallId: string, runId: string) => {
@@ -857,8 +873,14 @@ const Dashboard = () => {
     [currentConversationId],
   );
 
-  // Create Salesforce connection banner
-  const salesforceBanner = (
+  // Create chat banner - subscription inactive takes priority over Salesforce
+  const chatBanner = isTenantDisabled ? (
+    <SubscriptionInactiveBanner
+      isTenantDisabled={isTenantDisabled}
+      shouldShakeBanner={shouldShakeSubscriptionBanner}
+      onShakeComplete={() => setShouldShakeSubscriptionBanner(false)}
+    />
+  ) : (
     <SalesforceConnectionBanner
       isSalesforceReady={isSalesforceReady}
       shouldShakeBanner={shouldShakeBanner}
@@ -1015,23 +1037,26 @@ const Dashboard = () => {
               <ChatSkeleton messageCount={4} />
             ) : isDeepResearchMode && transformedMessages.length > 0 ? (
               /* Deep Research Mode - dedicated component */
-              <DeepResearchConversation
-                messages={transformedMessages}
-                userName={user?.firstName || user?.name?.split(" ")[0]}
-                userEmail={user?.email}
-                conversationId={currentConversationId}
-                researchResults={effectiveResearchResults ?? undefined}
-                isDeepResearchRunning={v2IsDeepResearchRunning}
-                onSendMessage={handleSendMessage}
-                onStopStreaming={handleStopStreaming}
-                onArtifactClick={handleArtifactClick}
-                onApprove={handleApproval}
-                onReject={handleRejection}
-                placeholder="Ask von anything"
-                disableSubmit={!isSalesforceReady}
-                onInputWhileDisabled={() => setShouldShakeBanner(true)}
-                enableCommands={isSlashCommandsEnabled}
-              />
+              <>
+                {chatBanner}
+                <DeepResearchConversation
+                  messages={transformedMessages}
+                  userName={user?.firstName || user?.name?.split(" ")[0]}
+                  userEmail={user?.email}
+                  conversationId={currentConversationId}
+                  researchResults={effectiveResearchResults ?? undefined}
+                  isDeepResearchRunning={v2IsDeepResearchRunning}
+                  onSendMessage={handleSendMessage}
+                  onStopStreaming={handleStopStreaming}
+                  onArtifactClick={handleArtifactClick}
+                  onApprove={handleApproval}
+                  onReject={handleRejection}
+                  placeholder="Ask von anything"
+                  disableSubmit={!canSubmit}
+                  onInputWhileDisabled={handleDisabledInteraction}
+                  enableCommands={isSlashCommandsEnabled}
+                />
+              </>
             ) : (
               /* Regular Mode - standard Chat component */
               <Chat
@@ -1061,11 +1086,11 @@ const Dashboard = () => {
                 width="100%"
                 showMessagesFromIndex={showMessagesFromIndex}
                 onArtifactClick={handleArtifactClick}
-                banner={salesforceBanner}
-                disableSubmit={!isSalesforceReady}
-                examplePromptsDisabled={!isSalesforceReady}
-                onExamplePromptDisabledClick={() => setShouldShakeBanner(true)}
-                onInputWhileDisabled={() => setShouldShakeBanner(true)}
+                banner={chatBanner}
+                disableSubmit={!canSubmit}
+                examplePromptsDisabled={!canSubmit}
+                onExamplePromptDisabledClick={handleDisabledInteraction}
+                onInputWhileDisabled={handleDisabledInteraction}
                 enableCommands={isSlashCommandsEnabled}
                 enableActions={isActionsEnabled}
                 onApprove={handleApproval}
