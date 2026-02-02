@@ -94,6 +94,135 @@ function transformArtifactToDisplayFormat(
 ): TransformedArtifact | null {
   const { tool_name, category, content } = artifact;
 
+  // Handle fetch_conversation artifacts FIRST (before RAG check)
+  // fetch_conversation has category="rag" but needs different handling
+  if (
+    artifact.artifact_type === "fetch_conversation" ||
+    tool_name === "fetch_conversation"
+  ) {
+    const fetchConvContent = content as {
+      success?: boolean;
+      conversation_id?: string;
+      conversation_type?: "call" | "email";
+      call_metadata?: {
+        call_title?: string;
+        call_start_time?: string;
+        call_duration_seconds?: number;
+        speakers?: Array<{
+          name?: string;
+          email?: string;
+          type: "internal" | "external";
+        }>;
+        deep_link?: string;
+        meeting_url?: string;
+      };
+      call_content?: {
+        summary?: string;
+        transcript?: string;
+      };
+      email_metadata?: {
+        subject?: string;
+        start_time?: string;
+        from?: string;
+        to?: string[];
+      };
+      email_content?: {
+        body?: string;
+      };
+      error_message?: string;
+    };
+
+    // Check for error
+    if (fetchConvContent.success === false || fetchConvContent.error_message) {
+      return null;
+    }
+
+    const conversationId = fetchConvContent.conversation_id || "unknown";
+    const conversationType = fetchConvContent.conversation_type || "call";
+
+    if (conversationType === "call" && fetchConvContent.call_metadata) {
+      const { call_metadata, call_content } = fetchConvContent;
+
+      // Format duration from seconds
+      let duration: string | undefined;
+      if (call_metadata.call_duration_seconds) {
+        const totalMinutes = Math.round(
+          call_metadata.call_duration_seconds / 60,
+        );
+        if (totalMinutes < 1) {
+          duration = "< 1m";
+        } else if (totalMinutes < 60) {
+          duration = `${totalMinutes}m`;
+        } else {
+          const hours = Math.floor(totalMinutes / 60);
+          const minutes = totalMinutes % 60;
+          duration = minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+        }
+      }
+
+      // Extract participants
+      const participants: string[] = [];
+      if (call_metadata.speakers) {
+        for (const speaker of call_metadata.speakers) {
+          const name = speaker.name || speaker.email;
+          if (name) participants.push(name);
+        }
+      }
+
+      // Build CallTranscript
+      const callTranscript: CallTranscript = {
+        id: conversationId,
+        title: call_metadata.call_title || "Untitled Call",
+        date: call_metadata.call_start_time || new Date().toISOString(),
+        duration,
+        participants: participants.length > 0 ? participants : undefined,
+        sourceUrl: call_metadata.deep_link,
+        meetingUrl: call_metadata.meeting_url,
+        summary:
+          call_content?.summary ||
+          call_content?.transcript?.slice(0, 500) ||
+          undefined,
+      };
+
+      return {
+        viewMode: "calls",
+        calls: [callTranscript],
+      };
+    } else if (
+      conversationType === "email" &&
+      fetchConvContent.email_metadata
+    ) {
+      const { email_metadata, email_content } = fetchConvContent;
+
+      // Extract participants for email
+      const participants: string[] = [];
+      if (email_metadata.from) participants.push(email_metadata.from);
+      if (email_metadata.to) {
+        for (const recipient of email_metadata.to) {
+          participants.push(recipient);
+        }
+      }
+
+      // Build CallTranscript (reusing same format for emails)
+      const emailTranscript: CallTranscript = {
+        id: conversationId,
+        title: email_metadata.subject || "Untitled Email",
+        date: email_metadata.start_time || new Date().toISOString(),
+        participants: participants.length > 0 ? participants : undefined,
+        summary: email_content?.body
+          ? email_content.body.length > 500
+            ? email_content.body.slice(0, 500) + "..."
+            : email_content.body
+          : undefined,
+      };
+
+      return {
+        viewMode: "calls",
+        calls: [emailTranscript],
+      };
+    }
+  }
+
   // Handle RAG/conversation search artifacts - render with calls + emails tabs
   if (category && isRagArtifact(category)) {
     const { calls, emails } = separateCallsAndEmails([artifact]);

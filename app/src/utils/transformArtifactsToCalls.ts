@@ -333,7 +333,9 @@ function transformRowToEmail(
   seenIds.add(id);
 
   // Backend provides best_chunk_text for conversation search results
-  const rawContent = String(row.best_chunk_text || row.content || row.chunk_text || "");
+  const rawContent = String(
+    row.best_chunk_text || row.content || row.chunk_text || "",
+  );
   if (!rawContent.trim()) return null;
 
   // Clean up HTML, excessive whitespace, and email template artifacts

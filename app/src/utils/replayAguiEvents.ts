@@ -124,6 +124,22 @@ function parseToolResult(resultJson: any): ToolResult | null {
       };
     }
 
+    // Detect fetch_conversation results (individual call or email content)
+    if (
+      resultJson.conversation_id &&
+      resultJson.conversation_type &&
+      (resultJson.call_metadata ||
+        resultJson.email_metadata ||
+        resultJson.call_content ||
+        resultJson.email_content)
+    ) {
+      return {
+        raw: resultJson,
+        type: "fetch_conversation",
+        fetchConversation: resultJson,
+      };
+    }
+
     // Detect query information
     if (resultJson.queries && Array.isArray(resultJson.queries)) {
       return {
