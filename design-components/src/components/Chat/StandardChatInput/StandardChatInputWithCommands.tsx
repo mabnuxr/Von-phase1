@@ -157,6 +157,10 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
+                      // Block sending while streaming
+                      if (isStreaming) {
+                        return;
+                      }
                       if (disableSubmit) {
                         onDisabledInput?.();
                         return;
@@ -194,10 +198,10 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                   <SecondaryIconButton
                     icon={<SendIcon size={16} />}
                     onClick={() => handleSendWithCommand(inputValue)}
-                    disabled={disableSubmit}
+                    disabled={disableSubmit || isStreaming}
                     title="Send message"
                     className={
-                      !disableSubmit
+                      !disableSubmit && !isStreaming
                         ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
                         : 'opacity-80 w-8.5 h-8.5 rounded-xl'
                     }
