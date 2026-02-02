@@ -8,8 +8,9 @@ import {
 } from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
 import { useQueryPagination, useDynamicPageSize } from '../hooks';
-import { formatCellValue } from '../utils';
+import { formatCellValue, formatValue } from '../utils';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
+import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
 
 // ============================================================================
 // Component
@@ -219,20 +220,38 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                     key={startIndex + rowIndex}
                     className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
                   >
-                    {query.columns.map((col) => (
-                      <td
-                        key={col.key}
-                        className={`px-3 py-2 text-sm whitespace-nowrap ${
-                          col.type === 'number' ||
-                          col.type === 'currency' ||
-                          col.type === 'percentage'
-                            ? 'text-right tabular-nums'
-                            : 'text-left'
-                        } text-gray-700`}
-                      >
-                        {formatCellValue(col.key, row[col.key], col.type)}
-                      </td>
-                    ))}
+                    {query.columns.map((col) => {
+                      const isNumeric =
+                        col.type === 'number' ||
+                        col.type === 'currency' ||
+                        col.type === 'percentage';
+                      const isDeepLink = col.key === 'deep_link';
+
+                      // For numeric and deep_link columns, render without truncation
+                      if (isNumeric || isDeepLink) {
+                        return (
+                          <td
+                            key={col.key}
+                            className={`px-3 py-2 text-sm whitespace-nowrap ${
+                              isNumeric ? 'text-right tabular-nums' : 'text-left'
+                            } text-gray-700`}
+                          >
+                            {formatCellValue(col.key, row[col.key], col.type)}
+                          </td>
+                        );
+                      }
+
+                      // For text columns, use TruncatedTextCell with formatted value
+                      return (
+                        <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
+                          <TruncatedTextCell
+                            value={formatValue(row[col.key], col.type)}
+                            maxWidth={200}
+                            className="text-gray-700"
+                          />
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

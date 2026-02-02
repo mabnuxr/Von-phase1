@@ -15,5 +15,6 @@ export {
   LongTextCell,
   PicklistCell,
   SourceIcon,
+  TruncatedTextCell,
 } from './CellRenderers';
 export { SourcePopover, VonLogoButton } from './SourcePopover';
