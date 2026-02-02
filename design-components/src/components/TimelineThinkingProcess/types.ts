@@ -171,6 +171,12 @@ export interface TimelineThinkingProcessProps {
   autoCollapse?: boolean;
 
   /**
+   * When true, the thinking process starts in collapsed state.
+   * Used when a response already exists on page refresh.
+   */
+  initiallyCollapsed?: boolean;
+
+  /**
    * Elapsed time in seconds (for display)
    */
   elapsedTime?: number;

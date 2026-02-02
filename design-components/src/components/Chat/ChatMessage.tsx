@@ -378,6 +378,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       steps={timelineSteps || []}
                       isThinking={isStreaming && !v2FinalResponseStreaming}
                       autoCollapse={v2FinalResponseStreaming}
+                      initiallyCollapsed={!isStreaming && !!v2FinalResponse}
                       elapsedTime={thinkingElapsedTime}
                       onApprove={(stepId) => {
                         if (import.meta.env.DEV) {

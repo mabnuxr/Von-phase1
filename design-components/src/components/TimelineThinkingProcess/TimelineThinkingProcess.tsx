@@ -38,6 +38,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   isThinking = false,
   isStreaming = false,
   autoCollapse = false,
+  initiallyCollapsed = false,
   elapsedTime = 0,
   onQueryClick,
   queries = [],
@@ -71,6 +72,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     isThinking,
     autoCollapse,
     onExpandStep,
+    initiallyCollapsed,
   });
 
   // Convert steps to drawer format
