@@ -8,7 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
 import { useQueryPagination, useDynamicPageSize } from '../hooks';
-import { formatCellValue } from '../utils';
+import { formatCellValue, formatValue } from '../utils';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
 import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
 
@@ -241,11 +241,11 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                         );
                       }
 
-                      // For text columns, use TruncatedTextCell with max width and tooltip
+                      // For text columns, use TruncatedTextCell with formatted value
                       return (
                         <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
                           <TruncatedTextCell
-                            value={row[col.key]}
+                            value={formatValue(row[col.key], col.type)}
                             maxWidth={200}
                             className="text-gray-700"
                           />

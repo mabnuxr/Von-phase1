@@ -7,7 +7,7 @@ import {
   DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
-import { formatCellValue } from '../../TransparencyDrawer/utils';
+import { formatCellValue, formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
@@ -296,11 +296,11 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                           );
                         }
 
-                        // For text columns, use TruncatedTextCell with max width and tooltip
+                        // For text columns, use TruncatedTextCell with formatted value
                         return (
                           <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
                             <TruncatedTextCell
-                              value={row[col.key]}
+                              value={formatValue(row[col.key], col.type)}
                               maxWidth={200}
                               className="text-gray-700"
                             />
