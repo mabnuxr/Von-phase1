@@ -45,6 +45,7 @@ export interface ArtifactSummary {
   tool_name: string;
   artifact_type: string;
   category?: string;
+  query_name?: string;
   size_bytes: number;
   persisted_at: string;
 }
@@ -89,7 +90,10 @@ class ConversationsService {
   ): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
-      { title, mode },
+      {
+        title,
+        mode,
+      },
     );
   }
 

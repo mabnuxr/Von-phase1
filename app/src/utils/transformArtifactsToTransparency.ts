@@ -377,6 +377,7 @@ export interface ArtifactSummary {
   tool_name: string;
   artifact_type: string;
   category?: string;
+  query_name?: string;
   size_bytes: number;
   persisted_at: string;
 }
@@ -398,6 +399,9 @@ export function transformSingleArtifact(
  * Transform artifact summaries into placeholder QueryResults for lazy loading
  * These don't have actual data but can be displayed as tabs/pills
  *
+ * Uses query_name from the initial artifacts list if available,
+ * otherwise falls back to tool display name.
+ *
  * @param summaries - Array of artifact summaries (without content)
  * @returns Array of placeholder QueryResults with loading-friendly structure
  */
@@ -406,7 +410,7 @@ export function transformSummariesToPlaceholders(
 ): TransparencyQueryResult[] {
   return summaries.map((summary) => ({
     id: summary.artifact_id,
-    name: getToolDisplayName(summary.tool_name),
+    name: summary.query_name || getToolDisplayName(summary.tool_name),
     description: `Loading...`,
     columns: [],
     rows: [],

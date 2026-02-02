@@ -171,9 +171,13 @@ export function useDataTablesDrawer({
         }
 
         // Return a placeholder for unloaded artifacts
+        // Use query_name from the initial artifacts list if available
         return {
           id: summary.artifact_id,
-          name: summary.tool_name || `Table ${summary.artifact_id.slice(0, 8)}`,
+          name:
+            summary.query_name ||
+            summary.tool_name ||
+            `Table ${summary.artifact_id.slice(0, 8)}`,
           description: isCurrentlyLoading
             ? "Loading..."
             : summary.artifact_type,
