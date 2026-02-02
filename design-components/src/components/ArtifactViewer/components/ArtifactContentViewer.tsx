@@ -298,10 +298,7 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
 
                         // For text columns, use TruncatedTextCell with max width and tooltip
                         return (
-                          <td
-                            key={col.key}
-                            className="px-3 py-2 text-sm text-left text-gray-700"
-                          >
+                          <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
                             <TruncatedTextCell
                               value={row[col.key]}
                               maxWidth={200}

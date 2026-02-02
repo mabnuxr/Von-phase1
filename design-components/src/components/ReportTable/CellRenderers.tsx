@@ -353,19 +353,15 @@ export const TruncatedTextCell: React.FC<TruncatedTextCellProps> = ({
   const [showPopover, setShowPopover] = useState(false);
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
   const cellRef = useRef<HTMLDivElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
 
   const displayValue = value == null ? '—' : String(value);
 
-  // Check if text is actually truncated
-  React.useEffect(() => {
-    if (cellRef.current) {
-      setIsTruncated(cellRef.current.scrollWidth > cellRef.current.clientWidth);
-    }
-  }, [displayValue]);
-
   const handleMouseEnter = () => {
-    if (isTruncated && cellRef.current) {
+    if (!cellRef.current) return;
+    // Calculate truncation on hover to handle column resize/layout changes
+    const truncated = cellRef.current.scrollWidth > cellRef.current.clientWidth;
+
+    if (truncated) {
       const rect = cellRef.current.getBoundingClientRect();
       const tooltipWidth = 320;
       // Position tooltip below the cell, ensuring it doesn't overflow viewport
