@@ -15,6 +15,7 @@ import { SingleArtifactDrawer } from "@vonlabs/design-components";
 import type {
   QueryColumn,
   CallTranscript,
+  EmailTranscript,
   ReportColumn,
 } from "@vonlabs/design-components";
 import {
@@ -24,7 +25,7 @@ import {
 import type { ArtifactState } from "../hooks/useArtifactState";
 import {
   isRagArtifact,
-  transformSingleArtifactToCalls,
+  separateCallsAndEmails,
 } from "../utils/transformArtifactsToCalls";
 import { transformIQArtifactToDataTable } from "../utils/transformArtifactsToTransparency";
 
@@ -52,6 +53,12 @@ interface TransformedCallsArtifact {
   calls: CallTranscript[];
 }
 
+interface TransformedConversationsArtifact {
+  viewMode: "conversations";
+  calls: CallTranscript[];
+  emails: EmailTranscript[];
+}
+
 interface TransformedMemoryArtifact {
   viewMode: "memory";
   memoryData: {
@@ -75,6 +82,7 @@ interface TransformedIQArtifact {
 type TransformedArtifact =
   | TransformedDataArtifact
   | TransformedCallsArtifact
+  | TransformedConversationsArtifact
   | TransformedMemoryArtifact
   | TransformedIQArtifact;
 
@@ -86,11 +94,23 @@ function transformArtifactToDisplayFormat(
 ): TransformedArtifact | null {
   const { tool_name, category, content } = artifact;
 
-  // Handle RAG/conversation search artifacts - render as calls timeline
+  // Handle RAG/conversation search artifacts - render with calls + emails tabs
   if (category && isRagArtifact(category)) {
+    const { calls, emails } = separateCallsAndEmails([artifact]);
+
+    // Use "conversations" mode if we have emails, otherwise fallback to "calls"
+    if (emails.length > 0) {
+      return {
+        viewMode: "conversations",
+        calls,
+        emails,
+      };
+    }
+
+    // Fallback: only calls (backward compatible)
     return {
       viewMode: "calls",
-      calls: transformSingleArtifactToCalls(artifact),
+      calls,
     };
   }
 
@@ -328,6 +348,22 @@ export const SingleArtifactDrawerContainer: React.FC<
         queryName={queryName}
         viewMode="memory"
         memoryData={displayData.memoryData}
+        isLoading={isLoading}
+        error={errorMessage}
+      />
+    );
+  }
+
+  if (displayData?.viewMode === "conversations") {
+    return (
+      <SingleArtifactDrawer
+        isOpen={isOpen}
+        onClose={onClose}
+        toolName={toolName}
+        queryName={queryName}
+        viewMode="conversations"
+        calls={displayData.calls}
+        emails={displayData.emails}
         isLoading={isLoading}
         error={errorMessage}
       />

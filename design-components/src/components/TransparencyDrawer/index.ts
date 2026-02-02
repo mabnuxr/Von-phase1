@@ -8,6 +8,7 @@ export type {
   QueryResult,
   QueryColumn,
   CallTranscript,
+  EmailTranscript,
   SentimentType,
   TopLevelTab,
   QueryTabProps,
@@ -29,6 +30,7 @@ export {
   QueryTab,
   QueryContent,
   CallsTabContent,
+  EmailsTabContent,
   TabNavigation,
   DataTabContent,
   DataTabShimmer,
@@ -36,7 +38,7 @@ export {
   CallsTabError,
   IQDataTabContent,
 } from './components';
-export type { IQQueryResult, IQDataTabContentProps } from './components';
+export type { IQQueryResult, IQDataTabContentProps, EmailsTabContentProps } from './components';
 
 // Re-export hooks
 export { useQueryPagination, useCallsExpansion } from './hooks';
