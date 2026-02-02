@@ -69,8 +69,10 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
   // Check if content is still loading (empty columns/rows with "Loading..." description)
   const isContentLoading = query.columns.length === 0 && query.description?.includes('Loading');
 
-  // Check if there's no data (columns exist but no rows, or no columns at all)
-  const hasNoData = query.rows.length === 0 && !isContentLoading;
+  // Check if there's no columns at all (no schema)
+  const hasNoColumns = query.columns.length === 0 && !isContentLoading;
+  // Check if there are columns but no rows (empty result set)
+  const hasEmptyRows = query.columns.length > 0 && query.rows.length === 0;
 
   // Show shimmer loading state for lazy-loaded content
   if (isContentLoading) {
@@ -172,8 +174,8 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
         </div>
       )}
 
-      {/* Data Table or Empty State */}
-      {hasNoData ? (
+      {/* No columns at all - show generic empty state */}
+      {hasNoColumns ? (
         <div className="flex-1 flex items-center justify-center mx-4 mt-4 border border-gray-200 rounded-lg">
           <p className="text-sm text-gray-500">No content found</p>
         </div>
@@ -184,14 +186,16 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
             <span className="text-[11px] text-gray-500">
               {totalRows} {totalRows === 1 ? 'row' : 'rows'}
             </span>
-            <button
-              onClick={handleDownloadCSV}
-              className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-              title="Download as CSV"
-            >
-              <DownloadSimpleIcon size={12} />
-              <span>CSV</span>
-            </button>
+            {!hasEmptyRows && (
+              <button
+                onClick={handleDownloadCSV}
+                className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                title="Download as CSV"
+              >
+                <DownloadSimpleIcon size={12} />
+                <span>CSV</span>
+              </button>
+            )}
           </div>
 
           <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg mt-2">
@@ -215,45 +219,56 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                 </tr>
               </thead>
               <tbody>
-                {currentRows.map((row, rowIndex) => (
-                  <tr
-                    key={startIndex + rowIndex}
-                    className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
-                  >
-                    {query.columns.map((col) => {
-                      const isNumeric =
-                        col.type === 'number' ||
-                        col.type === 'currency' ||
-                        col.type === 'percentage';
-                      const isDeepLink = col.key === 'deep_link';
+                {hasEmptyRows ? (
+                  <tr>
+                    <td
+                      colSpan={query.columns.length}
+                      className="px-3 py-8 text-center text-sm text-gray-500"
+                    >
+                      No results returned
+                    </td>
+                  </tr>
+                ) : (
+                  currentRows.map((row, rowIndex) => (
+                    <tr
+                      key={startIndex + rowIndex}
+                      className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                    >
+                      {query.columns.map((col) => {
+                        const isNumeric =
+                          col.type === 'number' ||
+                          col.type === 'currency' ||
+                          col.type === 'percentage';
+                        const isDeepLink = col.key === 'deep_link';
 
-                      // For numeric and deep_link columns, render without truncation
-                      if (isNumeric || isDeepLink) {
+                        // For numeric and deep_link columns, render without truncation
+                        if (isNumeric || isDeepLink) {
+                          return (
+                            <td
+                              key={col.key}
+                              className={`px-3 py-2 text-sm whitespace-nowrap ${
+                                isNumeric ? 'text-right tabular-nums' : 'text-left'
+                              } text-gray-700`}
+                            >
+                              {formatCellValue(col.key, row[col.key], col.type)}
+                            </td>
+                          );
+                        }
+
+                        // For text columns, use TruncatedTextCell with formatted value
                         return (
-                          <td
-                            key={col.key}
-                            className={`px-3 py-2 text-sm whitespace-nowrap ${
-                              isNumeric ? 'text-right tabular-nums' : 'text-left'
-                            } text-gray-700`}
-                          >
-                            {formatCellValue(col.key, row[col.key], col.type)}
+                          <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
+                            <TruncatedTextCell
+                              value={formatValue(row[col.key], col.type)}
+                              maxWidth={200}
+                              className="text-gray-700"
+                            />
                           </td>
                         );
-                      }
-
-                      // For text columns, use TruncatedTextCell with formatted value
-                      return (
-                        <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
-                          <TruncatedTextCell
-                            value={formatValue(row[col.key], col.type)}
-                            maxWidth={200}
-                            className="text-gray-700"
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                      })}
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -261,10 +276,12 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
           {/* Pagination Footer */}
           <div className="px-4 py-3 flex items-center justify-between shrink-0">
             <span className="text-[11px] text-gray-500">
-              Showing {startIndex + 1}–{endIndex} of {totalRows} {totalRows === 1 ? 'row' : 'rows'}
+              {hasEmptyRows
+                ? '0 rows'
+                : `Showing ${startIndex + 1}–${endIndex} of ${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`}
             </span>
             {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {totalPages > 1 && !hasEmptyRows && (
               <div className="flex items-center gap-1">
                 <button
                   onClick={goToPrevPage}

@@ -276,8 +276,16 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       return <ErrorState message={error} />;
     }
 
+    // For calls and IQ views, show empty state if no data
+    // For data view, let ArtifactContentViewer handle empty state (it shows the query section)
     if (!hasData) {
-      return isCallsView ? <CallsEmptyState /> : <EmptyState />;
+      if (isCallsView) {
+        return <CallsEmptyState />;
+      }
+      if (isIQView) {
+        return <EmptyState />;
+      }
+      // For data view, fall through to ArtifactContentViewer which handles empty state with query
     }
 
     if (isMemoryView) {
