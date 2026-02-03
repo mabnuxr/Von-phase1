@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
+import { FileTextIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
 import { CompactApprovalCard } from './CompactApprovalCard';
+import { BulkApprovalCard } from './BulkApprovalCard';
+import { TextShimmer } from './TextShimmer';
 
 // ============================================================================
 // Component
@@ -32,6 +34,13 @@ export const StepRow = React.memo<StepRowProps>(
     onArtifactClick,
     isLocallyApproved,
     isLocallyRejected,
+    defaultApprovalExpanded = true,
+    onApproveRecord,
+    onRejectRecord,
+    onApproveAll,
+    onRejectAll,
+    approvedRecordIds,
+    rejectedRecordIds,
   }) => {
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
@@ -67,64 +76,50 @@ export const StepRow = React.memo<StepRowProps>(
       return step.status;
     }, [isLocallyApproved, isLocallyRejected, step.status]);
 
-    const isInProgress = effectiveStatus === 'in-progress';
+    // Determine if text should shimmer (in-progress or awaiting-approval)
+    const shouldShimmer =
+      effectiveStatus === 'in-progress' || effectiveStatus === 'awaiting-approval';
 
     return (
-      <div className="relative flex">
-        {/* Timeline connector - small dot indicator */}
+      <div className="relative flex gap-1">
+        {/* Timeline connector - small dot indicator, centered with title */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center">
-            <StepIndicator status={effectiveStatus} />
+          <div className="w-6 h-5 flex items-center justify-center">
+            <StepIndicator
+              status={effectiveStatus}
+              isExpanded={isExpanded}
+              onToggle={hasExpandableContent ? onToggle : undefined}
+              hasExpandableContent={!!hasExpandableContent}
+            />
           </div>
-          {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
+          {!isLast && <div className="w-px flex-1 bg-gray-100 min-h-[8px]" />}
         </div>
 
         {/* Content */}
-        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
-          {/* Header - use div for reasoning steps (allows text selection and links), button for expandable rows */}
+        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-6'}`}>
+          {/* Header - use div for reasoning steps (allows text selection and links), div for other rows */}
           {isReasoningStep ? (
-            <div className="w-full flex items-start gap-2 text-left">
-              {/* Empty spacer to align with caret in other rows */}
-              <span className="flex-shrink-0 mt-1 w-3" />
+            <div className="w-full flex items-start text-left">
               {/* Reasoning text with full markdown support */}
-              <div
-                className={`
-                  flex-1 min-w-0 text-sm
-                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
-                `}
-              >
+              <div className="flex-1 min-w-0 text-sm leading-5 text-gray-900">
                 <Streamdown parseIncompleteMarkdown={true}>{step.text}</Streamdown>
               </div>
             </div>
           ) : (
-            <button
+            <div
               onClick={hasExpandableContent ? onToggle : undefined}
               className={`
-                w-full flex items-center gap-2 text-left group
+                w-full flex items-center text-left
                 ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
               `}
             >
-              {/* Expand caret */}
-              {hasExpandableContent ? (
-                <span className="flex-shrink-0">
-                  {isExpanded ? (
-                    <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
-                  ) : (
-                    <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
-                  )}
-                </span>
-              ) : null}
-
-              {/* Step text */}
-              <span
-                className={`
-                  flex-1 min-w-0 text-sm truncate
-                  ${isInProgress ? 'text-gray-900 font-medium' : 'text-gray-900'}
-                `}
-              >
-                {step.text}
-              </span>
-            </button>
+              {/* Step text - shimmer when in-progress or awaiting approval */}
+              {shouldShimmer ? (
+                <TextShimmer className="text-sm leading-5">{step.text}</TextShimmer>
+              ) : (
+                <span className="text-sm leading-5 text-gray-900">{step.text}</span>
+              )}
+            </div>
           )}
 
           {/* Expanded content */}
@@ -137,26 +132,39 @@ export const StepRow = React.memo<StepRowProps>(
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="mt-1 ml-5">
+                <div className="mt-0.5">
                   {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-sm text-gray-700 leading-relaxed">
+                    <div className="text-sm text-gray-800/80">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
 
-                  {/* Approval card */}
-                  {step.approval && (
-                    <CompactApprovalCard
-                      approval={step.approval}
-                      onApprove={onApprove || (() => {})}
-                      onReject={onReject || (() => {})}
-                      isApproved={
-                        (isLocallyApproved || step.status === 'complete') && step.status !== 'error'
-                      }
-                      isRejected={isLocallyRejected || step.status === 'error'}
-                    />
-                  )}
+                  {/* Approval card - use BulkApprovalCard for bulk records */}
+                  {step.approval &&
+                    (step.approval.bulkRecords && step.approval.bulkRecords.length > 0 ? (
+                      <BulkApprovalCard
+                        approval={step.approval}
+                        onApproveRecord={onApproveRecord || (() => {})}
+                        onRejectRecord={onRejectRecord || (() => {})}
+                        onApproveAll={onApproveAll || (() => {})}
+                        onRejectAll={onRejectAll || (() => {})}
+                        approvedRecordIds={approvedRecordIds}
+                        rejectedRecordIds={rejectedRecordIds}
+                      />
+                    ) : (
+                      <CompactApprovalCard
+                        approval={step.approval}
+                        onApprove={onApprove || (() => {})}
+                        onReject={onReject || (() => {})}
+                        isApproved={
+                          (isLocallyApproved || step.status === 'complete') &&
+                          step.status !== 'error'
+                        }
+                        isRejected={isLocallyRejected || step.status === 'error'}
+                        defaultExpanded={defaultApprovalExpanded}
+                      />
+                    ))}
 
                   {/* Code block preview - disabled
                   {step.code && (
@@ -182,9 +190,9 @@ export const StepRow = React.memo<StepRowProps>(
 
                   {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
-                    <div className="space-y-1.5 mt-1">
+                    <div className="pl-2 space-y-1.5 mt-1.5">
                       {step.subSteps.map((subStep) => (
-                        <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
+                        <div key={subStep.id} className="flex items-center gap-2 text-sm">
                           <StepIndicator status={subStep.status} />
                           <span
                             className={

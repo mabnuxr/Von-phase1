@@ -89,7 +89,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '8px 20px 8px 20px',
+    padding: '8px 12px 8px 14px',
     gap: '12px',
     height: '52px',
     backgroundColor: 'transparent',

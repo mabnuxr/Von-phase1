@@ -28,7 +28,7 @@ export const CallsTabShimmer: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0 pb-4">
+            <div className="flex-1 min-w-0 pb-6">
               <div className="flex items-center gap-2 mb-2">
                 <div className="h-4 flex-1 bg-gray-200 rounded animate-pulse" />
                 <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />

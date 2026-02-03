@@ -333,7 +333,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
               {/* Horizontal layout: Avatar + Content (reversed for user) */}
               <div
-                className={`flex gap-4 ${isUser ? `flex-row-reverse bg-gray-50 border border-gray-100 rounded-2xl p-2 ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
+                className={`flex gap-3 ${isUser ? `flex-row-reverse ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
               >
                 {/* Avatar and Status Badge */}
                 <div className="flex items-start gap-2 flex-shrink-0">
@@ -562,7 +562,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   ) : (
                     // User messages - with file attachments and text
-                    <div ref={userMessageRef}>
+                    <div
+                      ref={userMessageRef}
+                      className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2"
+                    >
                       {/* File attachments shown above text */}
                       {attachments && attachments.length > 0 && (
                         <MessageFilePreview attachments={attachments} />

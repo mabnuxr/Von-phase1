@@ -303,7 +303,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Expanded state - show full sidebar
   return (
     <motion.div
-      className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf"
+      className="px-2 py-2 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf"
       initial={{ width: 64 }}
       animate={{ width: 240 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
