@@ -580,21 +580,91 @@ const generateBulkRecords = () => {
     return {
       recordId: `record-${index + 1}`,
       recordName: dealName,
+      recordUrl: `https://mycompany.my.salesforce.com/lightning/r/Opportunity/006${String(index + 1).padStart(12, '0')}/view`,
       changes,
+    };
+  });
+};
+
+// Generate calendar events for bulk calendar approval
+const generateCalendarRecords = () => {
+  const meetingTypes = [
+    'Follow-up Call',
+    'Demo Session',
+    'Contract Review',
+    'Stakeholder Meeting',
+    'Technical Discussion',
+    'Pricing Review',
+    'Executive Briefing',
+    'Onboarding Call',
+  ];
+
+  const attendees = [
+    'john.smith@acme.com',
+    'sarah.jones@techstart.io',
+    'mike.chen@global.com',
+    'lisa.wong@innovate.co',
+    'david.kim@summit.io',
+  ];
+
+  // Generate 8 calendar events
+  return Array.from({ length: 8 }, (_, index) => {
+    const dealName = dealNames[index % dealNames.length];
+    const meetingType = meetingTypes[index % meetingTypes.length];
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + index + 1);
+    const newDate = new Date(baseDate);
+    newDate.setDate(newDate.getDate() + 2);
+
+    return {
+      recordId: `cal-record-${index + 1}`,
+      recordName: `${meetingType}: ${dealName.split(' - ')[0]}`,
+      changes: [
+        {
+          field: 'Date',
+          before: baseDate.toISOString().split('T')[0],
+          after: newDate.toISOString().split('T')[0],
+          fieldType: 'date' as const,
+        },
+        {
+          field: 'Time',
+          before: '10:00 AM',
+          after: '2:00 PM',
+          fieldType: 'text' as const,
+        },
+        {
+          field: 'Duration',
+          before: '30 min',
+          after: '45 min',
+          fieldType: 'text' as const,
+        },
+        {
+          field: 'Attendees',
+          before: attendees[index % attendees.length],
+          after: `${attendees[index % attendees.length]}; ${attendees[(index + 1) % attendees.length]}`,
+          fieldType: 'multi_picklist' as const,
+        },
+      ],
+      recordUrl: `https://calendar.google.com/calendar/event?eid=${btoa(`cal-event-${index + 1}`)}`,
     };
   });
 };
 
 // Interactive Bulk Approval component
 const BulkApprovalFlow = () => {
-  const [phase, setPhase] = useState<'thinking' | 'approval' | 'complete'>('thinking');
+  const [phase, setPhase] = useState<
+    'thinking' | 'sfdc-approval' | 'calendar-thinking' | 'calendar-approval' | 'complete'
+  >('thinking');
   const [steps, setSteps] = useState<TimelineStep[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [approvedRecordIds, setApprovedRecordIds] = useState<Set<string>>(new Set());
   const [rejectedRecordIds, setRejectedRecordIds] = useState<Set<string>>(new Set());
+  const [calendarApprovedIds, setCalendarApprovedIds] = useState<Set<string>>(new Set());
+  const [calendarRejectedIds, setCalendarRejectedIds] = useState<Set<string>>(new Set());
 
   // Pre-generate bulk records to keep them stable
   const [bulkRecords] = useState(() => generateBulkRecords());
+  const [calendarRecords] = useState(() => generateCalendarRecords());
 
   // Timer for elapsed time
   useEffect(() => {
@@ -621,7 +691,23 @@ const BulkApprovalFlow = () => {
         status: 'complete',
         type: 'tool_call',
         source: 'salesforce',
+        category: 'soql',
         description: 'Querying 30 opportunities that match the criteria for stage advancement.',
+        code: `SELECT Id, Name, StageName, Amount, CloseDate, OwnerId,
+       Account.Name, Account.Industry
+FROM Opportunity
+WHERE StageName NOT IN ('Closed Won', 'Closed Lost')
+  AND CloseDate >= THIS_QUARTER
+  AND Amount > 25000
+ORDER BY Amount DESC
+LIMIT 30`,
+        artifact: {
+          artifact_id: 'artifact-sf-001',
+          run_id: 'run-bulk-001',
+          tool_name: 'execute_soql_query',
+          artifact_type: 'table',
+        },
+        queryId: 'query-sf-opportunities',
       },
       {
         id: 'step-3',
@@ -636,6 +722,12 @@ const BulkApprovalFlow = () => {
           { id: '3-2', text: 'Identified 30 deals with progression signals', status: 'complete' },
           { id: '3-3', text: 'Extracted key moments and action items', status: 'complete' },
         ],
+        artifact: {
+          artifact_id: 'artifact-gong-001',
+          run_id: 'run-bulk-001',
+          tool_name: 'search_gong_calls',
+          artifact_type: 'table',
+        },
       },
       {
         id: 'step-4',
@@ -644,13 +736,54 @@ const BulkApprovalFlow = () => {
         type: 'tool_call',
         source: 'email',
         description: 'Checking email activity to confirm buyer engagement levels.',
+        artifact: {
+          artifact_id: 'artifact-email-001',
+          run_id: 'run-bulk-001',
+          tool_name: 'search_emails',
+          artifact_type: 'table',
+        },
       },
       {
         id: 'step-5',
         text: 'Calculating optimal stage updates',
         status: 'complete',
         type: 'code_execution',
+        category: 'sql',
         description: 'Running analysis to determine the appropriate stage for each opportunity.',
+        code: `-- Analyze deal progression signals
+WITH deal_signals AS (
+  SELECT
+    o.id AS opportunity_id,
+    o.name AS deal_name,
+    o.stage_name AS current_stage,
+    COUNT(DISTINCT g.call_id) AS call_count,
+    COUNT(DISTINCT e.email_id) AS email_count,
+    MAX(g.call_date) AS last_call_date,
+    AVG(g.sentiment_score) AS avg_sentiment
+  FROM opportunities o
+  LEFT JOIN gong_calls g ON g.opportunity_id = o.id
+  LEFT JOIN emails e ON e.opportunity_id = o.id
+  WHERE o.close_date >= CURRENT_DATE
+  GROUP BY o.id, o.name, o.stage_name
+)
+SELECT
+  opportunity_id,
+  deal_name,
+  current_stage,
+  CASE
+    WHEN call_count >= 3 AND avg_sentiment > 0.7 THEN 'Negotiation'
+    WHEN call_count >= 2 AND email_count >= 5 THEN 'Proposal'
+    ELSE 'Qualification'
+  END AS recommended_stage
+FROM deal_signals
+WHERE call_count > 0;`,
+        artifact: {
+          artifact_id: 'artifact-analysis-001',
+          run_id: 'run-bulk-001',
+          tool_name: 'execute_sql_query',
+          artifact_type: 'table',
+        },
+        queryId: 'query-stage-analysis',
       },
     ];
 
@@ -665,9 +798,9 @@ const BulkApprovalFlow = () => {
         setSteps((prev) => prev.map((s) => ({ ...s, status: 'complete' as const })));
       }
 
-      // Transition to approval phase
+      // Transition to Salesforce approval phase
       await new Promise((resolve) => setTimeout(resolve, 500));
-      setPhase('approval');
+      setPhase('sfdc-approval');
 
       // Add a single bulk approval step with all records
       const bulkApprovalStep: TimelineStep = {
@@ -695,41 +828,203 @@ const BulkApprovalFlow = () => {
     runThinkingPhase();
   }, [bulkRecords]);
 
-  const handleApproveRecord = useCallback((recordId: string) => {
-    setApprovedRecordIds((prev) => new Set([...prev, recordId]));
-  }, []);
+  // Transition to calendar phase when Salesforce approval is complete
+  useEffect(() => {
+    const sfdcPendingCount = bulkRecords.filter(
+      (r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId)
+    ).length;
 
-  const handleRejectRecord = useCallback((recordId: string) => {
-    setRejectedRecordIds((prev) => new Set([...prev, recordId]));
-  }, []);
+    if (phase === 'sfdc-approval' && sfdcPendingCount === 0) {
+      // Start calendar thinking phase
+      const runCalendarPhase = async () => {
+        setPhase('calendar-thinking');
+
+        // Mark Salesforce approval as complete
+        setSteps((prev) =>
+          prev.map((s) => (s.id === 'bulk-approval' ? { ...s, status: 'complete' as const } : s))
+        );
+
+        // Add calendar analysis steps
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        const calendarThinkingStep: TimelineStep = {
+          id: 'calendar-analysis',
+          text: 'Analyzing calendar conflicts',
+          status: 'in-progress',
+          type: 'tool_call',
+          source: 'calendar',
+          description:
+            'Checking Google Calendar for scheduling conflicts and optimal meeting times.',
+        };
+        setSteps((prev) => [...prev, calendarThinkingStep]);
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        // Complete calendar analysis and add artifact
+        setSteps((prev) =>
+          prev.map((s) =>
+            s.id === 'calendar-analysis'
+              ? {
+                  ...s,
+                  status: 'complete' as const,
+                  artifact: {
+                    artifact_id: 'artifact-calendar-001',
+                    run_id: 'run-bulk-001',
+                    tool_name: 'search_calendar_events',
+                    artifact_type: 'table',
+                  },
+                }
+              : s
+          )
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setPhase('calendar-approval');
+
+        // Add calendar bulk approval step
+        const calendarApprovalStep: TimelineStep = {
+          id: 'calendar-approval',
+          text: 'Reschedule 8 follow-up meetings',
+          status: 'awaiting-approval',
+          type: 'approval',
+          source: 'calendar',
+          description:
+            'The following calendar events need to be rescheduled based on the deal stage updates.',
+          approval: {
+            toolCallId: 'calendar-bulk-001',
+            summary: 'Bulk reschedule calendar events',
+            objectType: 'Calendar Event',
+            operation: 'update',
+            approvalType: 'bulk',
+            recordCount: 8,
+            bulkRecords: calendarRecords,
+          },
+        };
+
+        setSteps((prev) => [...prev, calendarApprovalStep]);
+      };
+
+      runCalendarPhase();
+    }
+  }, [phase, bulkRecords, approvedRecordIds, rejectedRecordIds, calendarRecords]);
+
+  const handleApproveRecord = useCallback(
+    (recordId: string) => {
+      if (phase === 'sfdc-approval') {
+        setApprovedRecordIds((prev) => new Set([...prev, recordId]));
+      } else if (phase === 'calendar-approval') {
+        setCalendarApprovedIds((prev) => new Set([...prev, recordId]));
+      }
+    },
+    [phase]
+  );
+
+  const handleRejectRecord = useCallback(
+    (recordId: string) => {
+      if (phase === 'sfdc-approval') {
+        setRejectedRecordIds((prev) => new Set([...prev, recordId]));
+      } else if (phase === 'calendar-approval') {
+        setCalendarRejectedIds((prev) => new Set([...prev, recordId]));
+      }
+    },
+    [phase]
+  );
 
   const handleApproveAll = useCallback(() => {
-    const pendingIds = bulkRecords
-      .filter((r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId))
-      .map((r) => r.recordId);
-    setApprovedRecordIds((prev) => new Set([...prev, ...pendingIds]));
-  }, [bulkRecords, approvedRecordIds, rejectedRecordIds]);
+    if (phase === 'sfdc-approval') {
+      const pendingIds = bulkRecords
+        .filter((r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId))
+        .map((r) => r.recordId);
+      setApprovedRecordIds((prev) => new Set([...prev, ...pendingIds]));
+    } else if (phase === 'calendar-approval') {
+      const pendingIds = calendarRecords
+        .filter((r) => !calendarApprovedIds.has(r.recordId) && !calendarRejectedIds.has(r.recordId))
+        .map((r) => r.recordId);
+      setCalendarApprovedIds((prev) => new Set([...prev, ...pendingIds]));
+    }
+  }, [
+    phase,
+    bulkRecords,
+    approvedRecordIds,
+    rejectedRecordIds,
+    calendarRecords,
+    calendarApprovedIds,
+    calendarRejectedIds,
+  ]);
 
   const handleRejectAll = useCallback(() => {
-    const pendingIds = bulkRecords
-      .filter((r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId))
-      .map((r) => r.recordId);
-    setRejectedRecordIds((prev) => new Set([...prev, ...pendingIds]));
-  }, [bulkRecords, approvedRecordIds, rejectedRecordIds]);
+    if (phase === 'sfdc-approval') {
+      const pendingIds = bulkRecords
+        .filter((r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId))
+        .map((r) => r.recordId);
+      setRejectedRecordIds((prev) => new Set([...prev, ...pendingIds]));
+    } else if (phase === 'calendar-approval') {
+      const pendingIds = calendarRecords
+        .filter((r) => !calendarApprovedIds.has(r.recordId) && !calendarRejectedIds.has(r.recordId))
+        .map((r) => r.recordId);
+      setCalendarRejectedIds((prev) => new Set([...prev, ...pendingIds]));
+    }
+  }, [
+    phase,
+    bulkRecords,
+    approvedRecordIds,
+    rejectedRecordIds,
+    calendarRecords,
+    calendarApprovedIds,
+    calendarRejectedIds,
+  ]);
 
-  const pendingCount = bulkRecords.filter(
+  const sfdcPendingCount = bulkRecords.filter(
     (r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId)
   ).length;
 
-  const isThinking = phase === 'thinking' || (phase === 'approval' && pendingCount > 0);
+  const calendarPendingCount = calendarRecords.filter(
+    (r) => !calendarApprovedIds.has(r.recordId) && !calendarRejectedIds.has(r.recordId)
+  ).length;
+
+  const isThinking =
+    phase === 'thinking' ||
+    phase === 'calendar-thinking' ||
+    (phase === 'sfdc-approval' && sfdcPendingCount > 0) ||
+    (phase === 'calendar-approval' && calendarPendingCount > 0);
+
+  // Determine which approval IDs to pass based on current phase
+  const currentApprovedIds =
+    phase === 'calendar-approval' ? calendarApprovedIds : approvedRecordIds;
+  const currentRejectedIds =
+    phase === 'calendar-approval' ? calendarRejectedIds : rejectedRecordIds;
 
   // Update step status when all records are processed
   const stepsWithStatus = steps.map((step) => {
-    if (step.id === 'bulk-approval' && pendingCount === 0 && phase === 'approval') {
+    if (step.id === 'bulk-approval' && sfdcPendingCount === 0 && phase !== 'thinking') {
+      return { ...step, status: 'complete' as const };
+    }
+    if (step.id === 'calendar-approval' && calendarPendingCount === 0 && phase === 'calendar-approval') {
       return { ...step, status: 'complete' as const };
     }
     return step;
   });
+
+  // Sample queries for the drawer
+  const queries = [
+    { id: 'query-sf-opportunities', name: 'Salesforce Opportunities Query' },
+    { id: 'query-stage-analysis', name: 'Stage Analysis Query' },
+  ];
+
+  // Handle query click - opens transparency drawer
+  const handleQueryClick = useCallback((queryId: string) => {
+    console.log('Query clicked:', queryId);
+    // In real app, this would open the TransparencyDrawer to the specific query
+  }, []);
+
+  // Handle artifact click - opens transparency drawer with results
+  const handleArtifactClick = useCallback(
+    (artifactId: string, toolName: string, artifactType: string, runId: string) => {
+      console.log('Artifact clicked:', { artifactId, toolName, artifactType, runId });
+      // In real app, this would open the TransparencyDrawer with the artifact data
+    },
+    []
+  );
 
   return (
     <div className="max-w-4xl">
@@ -742,8 +1037,11 @@ const BulkApprovalFlow = () => {
         onRejectRecord={handleRejectRecord}
         onApproveAll={handleApproveAll}
         onRejectAll={handleRejectAll}
-        approvedRecordIds={approvedRecordIds}
-        rejectedRecordIds={rejectedRecordIds}
+        approvedRecordIds={currentApprovedIds}
+        rejectedRecordIds={currentRejectedIds}
+        onQueryClick={handleQueryClick}
+        onArtifactClick={handleArtifactClick}
+        queries={queries}
       />
     </div>
   );
@@ -760,7 +1058,7 @@ export const BulkApprovalInteractive: Story = {
     docs: {
       description: {
         story:
-          'Interactive demo simulating a complete bulk approval flow with 30 opportunities. The first deal is expanded by default, and you can scroll through to approve/reject individually or use the bulk action buttons.',
+          'Interactive demo simulating a complete multi-phase bulk approval flow. First, 30 Salesforce opportunities are analyzed with SQL queries and tool calls (with expandable code blocks and artifact links). After approving/rejecting the Salesforce updates, the flow transitions to a Google Calendar phase where 8 follow-up meetings need to be rescheduled.',
       },
     },
   },

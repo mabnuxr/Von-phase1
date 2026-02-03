@@ -1,7 +1,95 @@
-import React, { useMemo } from 'react';
-import { CheckCircleIcon, XCircleIcon } from '@phosphor-icons/react';
-import type { ApprovalData } from '../types';
+import React, { useMemo, useState } from 'react';
+import { CheckCircleIcon, XCircleIcon, CaretDownIcon } from '@phosphor-icons/react';
+import type { ApprovalData, BulkApprovalRecord } from '../types';
 import { CompactApprovalCard } from './CompactApprovalCard';
+
+// ============================================================================
+// Completed Bulk Card - Expandable summary when all records are processed
+// ============================================================================
+
+interface CompletedBulkCardProps {
+  records: BulkApprovalRecord[];
+  approval: ApprovalData;
+  approvedRecordIds: Set<string>;
+  rejectedRecordIds: Set<string>;
+  approvedCount: number;
+  rejectedCount: number;
+  allApproved: boolean;
+}
+
+const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
+  records,
+  approval,
+  approvedRecordIds,
+  rejectedRecordIds,
+  approvedCount,
+  rejectedCount,
+  allApproved,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+      {/* Collapsed header - clickable to expand */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50/50 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {isExpanded ? (
+            <CaretDownIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+          ) : allApproved ? (
+            <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
+          ) : (
+            <XCircleIcon size={16} weight="fill" className="text-red-500 flex-shrink-0" />
+          )}
+          <span className="text-sm text-gray-900 truncate">
+            {allApproved ? 'Bulk update complete' : 'Bulk update stopped'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs flex-shrink-0 ml-2">
+          {approvedCount > 0 && (
+            <span className="text-emerald-700">{approvedCount} approved</span>
+          )}
+          {rejectedCount > 0 && <span className="text-red-600">{rejectedCount} rejected</span>}
+        </div>
+      </button>
+
+      {/* Expanded content - Show all records with their status */}
+      {isExpanded && (
+        <div className="border-t border-gray-100 max-h-[400px] overflow-y-auto px-3 py-2 space-y-2">
+          {records.map((record) => {
+            const isApproved = approvedRecordIds.has(record.recordId);
+            const isRejected = rejectedRecordIds.has(record.recordId);
+
+            // Convert bulk record to ApprovalData format for CompactApprovalCard
+            const recordApproval: ApprovalData = {
+              toolCallId: record.recordId,
+              summary: `Update ${record.recordName}`,
+              objectType: approval.objectType,
+              recordName: record.recordName,
+              recordUrl: record.recordUrl,
+              operation: approval.operation,
+              changes: record.changes,
+            };
+
+            return (
+              <CompactApprovalCard
+                key={record.recordId}
+                approval={recordApproval}
+                onApprove={() => {}}
+                onReject={() => {}}
+                isApproved={isApproved}
+                isRejected={isRejected}
+                defaultExpanded={false}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ============================================================================
 // Main Component
@@ -55,33 +143,19 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
       [records, rejectedRecordIds]
     );
 
-    // All done state - different message based on whether all approved or some rejected
+    // All done state - expandable to show individual record statuses
     if (pendingCount === 0 && records.length > 0) {
       const allApproved = rejectedCount === 0;
       return (
-        <div className="mt-2 px-3 py-2 bg-white rounded-xl border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {allApproved ? (
-                <>
-                  <CheckCircleIcon size={16} weight="fill" className="text-emerald-600" />
-                  <span className="text-sm text-gray-900">Bulk update complete</span>
-                </>
-              ) : (
-                <>
-                  <XCircleIcon size={16} weight="fill" className="text-red-500" />
-                  <span className="text-sm text-gray-900">Bulk update stopped</span>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              {approvedCount > 0 && (
-                <span className="text-emerald-700">{approvedCount} approved</span>
-              )}
-              {rejectedCount > 0 && <span className="text-red-600">{rejectedCount} rejected</span>}
-            </div>
-          </div>
-        </div>
+        <CompletedBulkCard
+          records={records}
+          approval={approval}
+          approvedRecordIds={approvedRecordIds}
+          rejectedRecordIds={rejectedRecordIds}
+          approvedCount={approvedCount}
+          rejectedCount={rejectedCount}
+          allApproved={allApproved}
+        />
       );
     }
 
@@ -112,6 +186,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
               summary: `Update ${record.recordName}`,
               objectType: approval.objectType,
               recordName: record.recordName,
+              recordUrl: record.recordUrl,
               operation: approval.operation,
               changes: record.changes,
             };

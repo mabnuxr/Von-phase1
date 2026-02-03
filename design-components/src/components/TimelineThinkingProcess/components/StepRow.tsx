@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileTextIcon } from '@phosphor-icons/react';
+import { ArrowsOutIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
@@ -52,7 +52,7 @@ export const StepRow = React.memo<StepRowProps>(
         !isFinalResponse &&
         !isReasoningStep &&
         (step.description ||
-          // step.code || // Code preview disabled
+          step.code ||
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
           step.artifact),
@@ -60,6 +60,7 @@ export const StepRow = React.memo<StepRowProps>(
         isFinalResponse,
         isReasoningStep,
         step.description,
+        step.code,
         step.subSteps,
         step.approval,
         step.artifact,
@@ -166,27 +167,19 @@ export const StepRow = React.memo<StepRowProps>(
                       />
                     ))}
 
-                  {/* Code block preview - disabled
+                  {/* Code block preview */}
                   {step.code && (
-                    <div
-                      className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code my-2"
-                      onClick={onExpand}
-                    >
-                      <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
-                        <span className="text-[11px] text-gray-400 font-mono">Code</span>
-                        <span className="text-[10px] text-gray-500 group-hover/code:text-gray-300 transition-colors">
-                          Click to expand
+                    <div className="relative rounded-lg bg-gray-900 overflow-hidden my-2">
+                      <div className="px-3 py-1.5 border-b border-gray-700 flex items-center justify-between">
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          {step.category === 'sql' || step.category === 'soql' ? 'SQL' : 'Code'}
                         </span>
                       </div>
-                      <pre className="px-3 py-2 text-[11px] text-gray-300 font-mono overflow-hidden max-h-[80px]">
-                        <code>
-                          {step.code.slice(0, 200)}
-                          {step.code.length > 200 ? '...' : ''}
-                        </code>
+                      <pre className="px-3 py-2 text-[11px] text-gray-300 font-mono overflow-x-auto max-h-[120px] overflow-y-auto">
+                        <code>{step.code}</code>
                       </pre>
                     </div>
                   )}
-                  */}
 
                   {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
@@ -209,7 +202,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Artifact reference - shown when artifact metadata is available */}
                   {step.artifact && (
                     <div
-                      className="flex items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-gray-50 border border-gray-200  rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
+                      className="flex w-72 items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-white shadow-xs border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         if (onArtifactClick) {
                           onArtifactClick(
@@ -224,8 +217,8 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                       }}
                     >
-                      <FileTextIcon size={14} className="text-gray-800" />
-                      <span className="text-sm text-gray-900">
+                      <ArrowsOutIcon size={14} className="text-gray-800 flex-shrink-0" />
+                      <span className="text-sm text-gray-900 truncate">
                         {step.artifact.tool_name} results
                       </span>
                     </div>

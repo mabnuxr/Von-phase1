@@ -52,6 +52,8 @@ export interface BulkApprovalRecord {
   recordId: string;
   /** Record name (e.g., deal name) */
   recordName: string;
+  /** URL to the record (e.g., Salesforce record URL, Google Calendar event URL) */
+  recordUrl?: string;
   /** Changes for this record */
   changes: Array<{
     field: string;
@@ -67,6 +69,8 @@ export interface ApprovalData {
   summary: string;
   objectType: string;
   recordName?: string;
+  /** URL to the record (e.g., Salesforce record URL, Google Calendar event URL) */
+  recordUrl?: string;
   operation: 'create' | 'update' | 'delete';
   changes?: Array<{
     field: string;

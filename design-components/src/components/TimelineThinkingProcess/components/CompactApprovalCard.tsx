@@ -42,16 +42,26 @@ const LongTextValue: React.FC<{ value: string; isStrikethrough?: boolean }> = ({
   isStrikethrough,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const lines = value.split('\n');
   const shouldTruncate = lines.length > 2 || value.length > 100;
   const truncatedValue = shouldTruncate
     ? lines.slice(0, 2).join('\n').slice(0, 100) + '...'
     : value;
 
+  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      top: rect.bottom + 4,
+      left: rect.left,
+    });
+    setShowTooltip(true);
+  };
+
   return (
     <div
       className="relative"
-      onMouseEnter={() => setShowTooltip(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShowTooltip(false)}
     >
       <span
@@ -59,9 +69,12 @@ const LongTextValue: React.FC<{ value: string; isStrikethrough?: boolean }> = ({
       >
         {truncatedValue}
       </span>
-      {/* Tooltip */}
+      {/* Tooltip - fixed position to escape overflow containers */}
       {shouldTruncate && showTooltip && (
-        <div className="absolute z-50 left-0 top-full mt-1 max-w-[300px] p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-pre-wrap">
+        <div
+          className="fixed z-[9999] max-w-[300px] p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-pre-wrap pointer-events-none"
+          style={{ top: tooltipPosition.top, left: tooltipPosition.left }}
+        >
           {value}
         </div>
       )}
@@ -179,22 +192,78 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
           ? 'UPDATE'
           : 'DELETE';
 
+    // Completed state - collapsible card that can expand to show details
     if (isApproved || isRejected) {
       return (
-        <div className="mt-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="flex items-center gap-2">
-            {isApproved ? (
-              <>
-                <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
-                <span className="text-sm font-medium text-emerald-700">Approved</span>
-              </>
-            ) : (
-              <>
-                <XCircleIcon size={14} weight="fill" className="text-red-500" />
-                <span className="text-sm font-medium text-red-600">Rejected</span>
-              </>
-            )}
-          </div>
+        <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+          {/* Collapsed header - clickable to expand */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50/50 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {isExpanded ? (
+                <CaretDownIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+              ) : (
+                <CaretRightIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+              )}
+              {isApproved ? (
+                <CheckCircleIcon size={14} weight="fill" className="text-emerald-600 flex-shrink-0" />
+              ) : (
+                <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
+              )}
+              {approval.recordUrl ? (
+                <a
+                  href={approval.recordUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm text-gray-900 truncate hover:text-indigo-600 hover:underline transition-colors"
+                >
+                  {approval.recordName}
+                </a>
+              ) : (
+                <span className="text-sm text-gray-900 truncate">{approval.recordName}</span>
+              )}
+            </div>
+            <span
+              className={`text-xs flex-shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
+            >
+              {isApproved ? 'Approved' : 'Rejected'}
+            </span>
+          </button>
+
+          {/* Expanded content - Changes table (read-only) */}
+          {isExpanded && approval.changes && approval.changes.length > 0 && (
+            <div className="border-t border-gray-100">
+              {/* Table header */}
+              <div className="grid grid-cols-[1fr_1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
+                <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
+                <span className="text-xs font-medium text-gray-700 tracking-wide">Before</span>
+                <span className="text-xs font-medium text-gray-700 tracking-wide">After</span>
+              </div>
+
+              {/* Table rows */}
+              {approval.changes.map((change, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-[1fr_1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
+                >
+                  <span className="text-sm text-gray-900">{change.field}</span>
+                  <div className="text-sm">
+                    <FieldValue
+                      value={change.before}
+                      fieldType={change.fieldType}
+                      isStrikethrough={true}
+                    />
+                  </div>
+                  <div className="text-sm">
+                    <FieldValue value={change.after} fieldType={change.fieldType} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }
@@ -202,7 +271,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     return (
       <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
         {/* Header - Single row: accordion | deal name | action type */}
-        <button
+        <div
           onClick={() => setIsExpanded(!isExpanded)}
           className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50/50 transition-colors cursor-pointer"
         >
@@ -212,12 +281,24 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
             ) : (
               <CaretRightIcon size={14} weight="bold" className="text-gray-700 flex-shrink-0" />
             )}
-            <span className="text-sm text-gray-900 truncate">{approval.recordName}</span>
+            {approval.recordUrl ? (
+              <a
+                href={approval.recordUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-sm text-gray-900 truncate hover:text-indigo-600 hover:underline transition-colors"
+              >
+                {approval.recordName}
+              </a>
+            ) : (
+              <span className="text-sm text-gray-900 truncate">{approval.recordName}</span>
+            )}
           </div>
           <span className="text-xs text-gray-600 flex-shrink-0 ml-2">
             {operationLabel} {approval.objectType}
           </span>
-        </button>
+        </div>
 
         {/* Expanded content - Changes table */}
         {isExpanded && approval.changes && approval.changes.length > 0 && (
@@ -253,7 +334,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
 
         {/* Action buttons - only shown when expanded */}
         {isExpanded && (
-          <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-100">
+          <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-gray-100">
             <button
               onClick={handleReject}
               className="px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
