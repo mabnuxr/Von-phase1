@@ -4,7 +4,8 @@
  * This component handles only rendering. Business logic is in useTransparencyDrawer hook.
  *
  * Data tab: Shows artifacts where category is NOT "RAG", "e2b", or "iq"
- * Calls tab: Shows artifacts where category IS "RAG", fetched via bulk API when drawer opens
+ * Calls tab: Shows call transcripts from RAG artifacts (type=call), fetched via bulk API when drawer opens
+ * Emails tab: Shows email transcripts from RAG artifacts (type=email), fetched via bulk API when drawer opens
  * Deep Research tab: Shows artifacts where category IS "iq" (automatically shown when IQ artifacts exist)
  */
 
@@ -12,6 +13,7 @@ import React, { useMemo } from "react";
 import {
   Database as DatabaseIcon,
   Phone as PhoneIcon,
+  Envelope as EnvelopeIcon,
   MagnifyingGlass as MagnifyingGlassIcon,
 } from "@phosphor-icons/react";
 import {
@@ -21,6 +23,7 @@ import {
   CallsTabContent,
   CallsTabShimmer,
   CallsTabError,
+  EmailsTabContent,
   IQDataTabContent,
   type TransparencyTabConfig,
 } from "@vonlabs/design-components";
@@ -29,6 +32,7 @@ import type { ArtifactSummary } from "../utils/transformArtifactsToTransparency"
 
 const DATA_TAB_ICON = <DatabaseIcon size={14} weight="regular" />;
 const CALLS_TAB_ICON = <PhoneIcon size={14} weight="regular" />;
+const EMAILS_TAB_ICON = <EnvelopeIcon size={14} weight="regular" />;
 const DEEP_RESEARCH_TAB_ICON = (
   <MagnifyingGlassIcon size={14} weight="regular" />
 );
@@ -56,6 +60,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     queries,
     handleQuerySelect,
     calls,
+    emails,
     isCallsLoading,
     callsError,
     vonIqQueries,
@@ -88,6 +93,16 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     [calls.length],
   );
 
+  const emailsTabConfig: TransparencyTabConfig = useMemo(
+    () => ({
+      id: "emails",
+      label: "Emails",
+      icon: EMAILS_TAB_ICON,
+      count: emails.length,
+    }),
+    [emails.length],
+  );
+
   const deepResearchTabConfig: TransparencyTabConfig = useMemo(
     () => ({
       id: "deep-research",
@@ -115,6 +130,16 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
           <CallsTabError message={callsError.message} />
         ) : (
           <CallsTabContent calls={calls} />
+        )}
+      </TransparencyDrawer.Tab>
+
+      <TransparencyDrawer.Tab config={emailsTabConfig}>
+        {isCallsLoading ? (
+          <CallsTabShimmer />
+        ) : callsError ? (
+          <CallsTabError message={callsError.message} />
+        ) : (
+          <EmailsTabContent emails={emails} />
         )}
       </TransparencyDrawer.Tab>
 

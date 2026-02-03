@@ -44,9 +44,24 @@ export function extractCallDate(row: Record<string, unknown>): string {
   if (row.start_time_iso) {
     return String(row.start_time_iso);
   }
-  if (typeof row.start_time === "number") {
-    return new Date(row.start_time * 1000).toISOString();
+
+  // Coerce start_time to number (handles both number type and numeric strings)
+  const startTime =
+    typeof row.start_time === "number"
+      ? row.start_time
+      : typeof row.start_time === "string"
+        ? Number(row.start_time)
+        : null;
+
+  if (startTime !== null && isFinite(startTime)) {
+    const timestamp = startTime * 1000;
+    const date = new Date(timestamp);
+    // Validate the date is valid before calling toISOString
+    if (!isNaN(date.getTime())) {
+      return date.toISOString();
+    }
   }
+
   return new Date().toISOString();
 }
 
@@ -354,12 +369,8 @@ function transformRowToEmail(
     subject,
     preview,
     content,
-    // Prefer start_time_iso (already formatted), otherwise convert Unix timestamp
-    date: row.start_time_iso
-      ? String(row.start_time_iso)
-      : row.start_time
-        ? new Date(Number(row.start_time) * 1000).toISOString()
-        : new Date().toISOString(),
+    // Use the same validated date extraction as calls
+    date: extractCallDate(row),
     sender: row.sender ? String(row.sender) : undefined,
     recipients:
       Array.isArray(row.recipients) && row.recipients.length > 0
