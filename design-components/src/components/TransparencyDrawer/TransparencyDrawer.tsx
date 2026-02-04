@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, Children, isValidElement } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, Children, isValidElement } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, DatabaseIcon } from '@phosphor-icons/react';
 import type { TransparencyDrawerProps, TransparencyDrawerTabProps, TabConfig } from './types';
@@ -32,7 +32,8 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
       }
     });
 
-    return tabData;
+    // Filter to only show tabs with data (count > 0)
+    return tabData.filter((tab) => tab.config.count > 0);
   }, [children]);
 
   const [internalActiveTab, setInternalActiveTab] = useState<string>(
@@ -40,6 +41,27 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
   );
 
   const activeTabId = controlledActiveTab ?? internalActiveTab;
+
+  // Automatically select the first tab with data when:
+  // 1. The drawer opens and no tab is selected
+  // 2. The currently active tab no longer has data
+  useEffect(() => {
+    if (tabs.length === 0) return;
+
+    const currentTabExists = tabs.some((tab) => tab.config.id === activeTabId);
+    const firstAvailableTabId = tabs[0]?.config.id;
+
+    // If current tab doesn't exist (filtered out due to no data) or no tab is selected,
+    // switch to the first available tab
+    if (!currentTabExists || !activeTabId) {
+      if (controlledActiveTab === undefined && firstAvailableTabId) {
+        setInternalActiveTab(firstAvailableTabId);
+      }
+      if (firstAvailableTabId && onTabChange) {
+        onTabChange(firstAvailableTabId);
+      }
+    }
+  }, [tabs, activeTabId, controlledActiveTab, onTabChange]);
 
   const handleTabChange = useCallback(
     (tabId: string) => {
