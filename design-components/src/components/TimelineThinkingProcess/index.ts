@@ -13,6 +13,7 @@ export type {
   CollapsedStepRowProps,
   CompactApprovalCardProps,
   StepIndicatorProps,
+  ApprovalFieldType,
 } from './types';
 
 // Re-export constants
@@ -34,3 +35,5 @@ export type { UseTimelineStateOptions, UseTimelineStateReturn } from './hooks';
 
 // Re-export utils
 export { formatElapsedTime } from './utils';
+export { formatValue, formatFieldName } from './utils/formatValue';
+export { buildSalesforceDeepLink, isSalesforceUrl } from './utils/salesforceDeepLink';

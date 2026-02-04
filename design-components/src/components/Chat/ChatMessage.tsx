@@ -380,6 +380,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       autoCollapse={v2FinalResponseStreaming}
                       initiallyCollapsed={!isStreaming && !!v2FinalResponse}
                       elapsedTime={thinkingElapsedTime}
+                      salesforceInstanceUrl={salesforceInstanceUrl}
                       onApprove={(stepId) => {
                         if (import.meta.env.DEV) {
                           console.log('[ChatMessage] onApprove wrapper called:', {

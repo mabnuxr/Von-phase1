@@ -111,12 +111,14 @@ interface DetectedApprovalData {
   summary: string;
   objectType: string;
   recordName?: string;
+  recordId?: string;
   operation: "create" | "update" | "delete";
   changes?: Array<{
     field: string;
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
+  fields?: Record<string, string | number | boolean | null>;
   approvalType:
     | "salesforce"
     | "calendar"
@@ -221,6 +223,40 @@ function detectApprovalFromArgs(
           )
         : undefined;
 
+      // Build fields for single calendar operation
+      let calendarFields:
+        | Record<string, string | number | boolean | null>
+        | undefined = undefined;
+      if (!isBulk && firstOp) {
+        const fields: Record<string, string | number | boolean | null> =
+          firstOp.fields || {};
+
+        // Add calendar-specific fields
+        if (firstOp.start_datetime && !fields["Start"]) {
+          fields["Start"] = firstOp.start_datetime;
+        }
+        if (firstOp.end_datetime && !fields["End"]) {
+          fields["End"] = firstOp.end_datetime;
+        }
+        if (firstOp.duration_minutes && !fields["Duration"]) {
+          fields["Duration"] = `${firstOp.duration_minutes} minutes`;
+        }
+        if (firstOp.attendees?.length && !fields["Attendees"]) {
+          fields["Attendees"] = firstOp.attendees.join(", ");
+        }
+        if (firstOp.attendees_emails?.length && !fields["Attendees"]) {
+          fields["Attendees"] = firstOp.attendees_emails.join(", ");
+        }
+        if (firstOp.location && !fields["Location"]) {
+          fields["Location"] = firstOp.location;
+        }
+        if (firstOp.description && !fields["Description"]) {
+          fields["Description"] = firstOp.description;
+        }
+
+        calendarFields = Object.keys(fields).length > 0 ? fields : undefined;
+      }
+
       return {
         toolCallId,
         summary: parsed.summary,
@@ -235,6 +271,7 @@ function detectApprovalFromArgs(
                 op.changes || [],
             )
           : firstOp?.changes,
+        fields: !isBulk ? calendarFields : undefined,
         approvalType: isBulk ? "bulk" : "calendar",
         operations: calendarBulkOperations,
         recordCount: isBulk ? ops.length : undefined,
@@ -249,6 +286,7 @@ function detectApprovalFromArgs(
             operation?: string;
             sobject_type?: string;
             record_name?: string;
+            record_id?: string;
             fields?: Record<string, string | number | boolean | null>;
             changes?: DetectedApprovalData["changes"];
           }) => ({
@@ -256,6 +294,7 @@ function detectApprovalFromArgs(
               (op.operation as "create" | "update" | "delete") || "update",
             sobject_type: op.sobject_type || "Record",
             record_name: op.record_name || "Unknown",
+            record_id: op.record_id,
             fields: op.fields,
             changes: op.changes,
           }),
@@ -271,6 +310,7 @@ function detectApprovalFromArgs(
       recordName: isBulk
         ? `${ops.length} records to ${firstOp?.operation || "update"}`
         : firstOp?.record_name,
+      recordId: !isBulk ? firstOp?.record_id : undefined,
       operation: firstOp?.operation || "update",
       changes: isBulk
         ? ops.flatMap(
@@ -278,6 +318,7 @@ function detectApprovalFromArgs(
               op.changes || [],
           )
         : firstOp?.changes,
+      fields: !isBulk ? firstOp?.fields : undefined,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
       recordCount: isBulk ? ops.length : undefined,
