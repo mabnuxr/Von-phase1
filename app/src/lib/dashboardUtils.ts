@@ -160,6 +160,7 @@ export interface V2LiveData {
   finalResponse: string;
   isFinalResponseStreaming: boolean;
   researchResults: ResearchResultsState;
+  stoppedByUser: boolean;
 }
 
 /**
@@ -220,6 +221,7 @@ function transformMessagesForV2(
         thinkingElapsedTime: v2LiveData.elapsedTime,
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
+        stoppedByUser: v2LiveData.stoppedByUser,
       };
     }
 
@@ -228,11 +230,26 @@ function transformMessagesForV2(
       const {
         steps,
         finalResponse,
-        isFinalResponseStreaming,
         researchResults,
+        stoppedByUser: persistedStoppedByUser,
       } = transformAguiToTimelineSteps(msg.events);
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
+
+      // For persisted (non-streaming) messages, ensure any remaining in-progress
+      // steps are marked complete. This handles cases where events were persisted
+      // before a RUN_FINISHED event (e.g., stopped runs without a final event).
+      for (const step of usableSteps) {
+        if (step.status === "in-progress" || step.status === "pending") {
+          step.status = "complete";
+        }
+      }
+
+      // Use stoppedByUser from events, falling back to the message-level flag
+      // (set by replayAguiEvents or the backend directly)
+      const effectiveStoppedByUser =
+        persistedStoppedByUser ||
+        ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
@@ -246,10 +263,12 @@ function transformMessagesForV2(
 
       return {
         ...msg,
+        isStreaming: false,
         timelineSteps: usableSteps,
         thinkingElapsedTime: elapsed,
         v2FinalResponse: finalResponse,
-        v2FinalResponseStreaming: isFinalResponseStreaming,
+        v2FinalResponseStreaming: false,
+        stoppedByUser: effectiveStoppedByUser,
       };
     }
 
@@ -315,6 +334,7 @@ export function transformConversationMessages(
       metadata: null,
       messageId: null,
     },
+    stoppedByUser: false,
   };
 
   return transformMessagesForV2(conversationMessages, liveData);

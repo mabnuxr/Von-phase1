@@ -50,6 +50,8 @@ export interface UseConversationPusherChannelV2Return {
   researchResults: ResearchResultsState;
   /** Whether a long-running deep research is in progress (user can leave) */
   isDeepResearchRunning: boolean;
+  /** Whether the response was stopped by the user */
+  stoppedByUser: boolean;
   /** Mark streaming as stopped - events will be batched and flushed on completion */
   markStopped: () => void;
 }
@@ -85,6 +87,7 @@ export function useConversationPusherChannelV2(
     messageId: null,
   });
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
+  const [stoppedByUser, setStoppedByUser] = useState(false);
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -222,6 +225,7 @@ export function useConversationPusherChannelV2(
           isAwaitingApproval: awaitingApproval,
           researchResults: research,
           isDeepResearchRunning: deepResearchRunning,
+          stoppedByUser: stopped,
         } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
@@ -234,6 +238,7 @@ export function useConversationPusherChannelV2(
           setIsAwaitingApproval(awaitingApproval);
           setResearchResults(research);
           setIsDeepResearchRunning(deepResearchRunning);
+          setStoppedByUser(stopped);
         });
 
         // Stop timer and update elapsed time when run finishes
@@ -283,6 +288,7 @@ export function useConversationPusherChannelV2(
         messageId: null,
       });
       setIsDeepResearchRunning(false);
+      setStoppedByUser(false);
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stoppedRef.current = false;
@@ -318,6 +324,7 @@ export function useConversationPusherChannelV2(
       isAwaitingApproval: awaitingApproval,
       researchResults: research,
       isDeepResearchRunning: deepResearchRunning,
+      stoppedByUser: stopped,
     } = transformAguiToTimelineSteps(seededEvents);
 
     // Skip seeding for fully completed runs
@@ -333,6 +340,7 @@ export function useConversationPusherChannelV2(
     setIsAwaitingApproval(awaitingApproval);
     setResearchResults(research);
     setIsDeepResearchRunning(deepResearchRunning);
+    setStoppedByUser(stopped);
 
     // Set elapsed time from actual event timestamps
     const elapsed = getElapsedTimeFromEvents(seededEvents);
@@ -528,6 +536,7 @@ export function useConversationPusherChannelV2(
     isAwaitingApproval,
     researchResults,
     isDeepResearchRunning,
+    stoppedByUser,
     markStopped,
   };
 }

@@ -426,6 +426,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     showTransparency={showTransparency}
                   />
                 )}
+                {/* Stopped by user indicator for V2 */}
+                {stoppedByUser && (
+                  <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <InfoIcon size={20} className="text-indigo-600" />
+                    </div>
+                    <span className="text-sm text-gray-800 leading-relaxed flex-1">
+                      Response stopped by the user
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -640,7 +651,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <div className="flex-shrink-0 mt-0.5">
                           <InfoIcon size={20} className="text-indigo-600" />
                         </div>
-                        <span className="text-sm text-gray-800  leading-relaxed flex-1">
+                        <span className="text-sm text-gray-800 leading-relaxed flex-1">
                           Response stopped by the user
                         </span>
                       </div>
