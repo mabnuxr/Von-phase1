@@ -491,6 +491,8 @@ export function transformAguiToTimelineSteps(
   const deniedToolCallIds = new Set<string>();
   // Accumulate tool arguments
   const toolArgsMap = new Map<string, string>();
+  // Accumulate tool results (for chunked TOOL_CALL_RESULT events)
+  const toolCallResultMap = new Map<string, string>();
   // Track the current active step (from STEP_STARTED, for tool calls only)
   let currentStep: TimelineStep | null = null;
   let currentStepNumber: number | null = null;
@@ -908,98 +910,179 @@ export function transformAguiToTimelineSteps(
         // Use step_number from event for proper correlation in interleaved scenarios
         const eventStepNumber = (event as { step_number?: number }).step_number;
 
-        // Check for denied approval - track the tool call ID
-        const contentStr = event.content?.trim() || "";
-        const isDenied =
-          contentStr.includes("tool call was denied") ||
-          contentStr.includes("Tool call was denied");
-        if (isDenied && toolId) {
-          deniedToolCallIds.add(toolId);
-        }
-
         if (toolId) {
-          // Priority: 1) direct map, 2) step_number from event, 3) toolCallToStepMap lookup
-          let step = toolCallToStepDirectMap.get(toolId);
-          if (!step) {
-            let stepNumber = eventStepNumber;
-            if (stepNumber === undefined) {
-              stepNumber = toolCallToStepMap.get(toolId);
-            }
-            step =
-              stepNumber !== undefined
-                ? stepNumberMap.get(stepNumber)
-                : undefined;
-          }
+          // Handle both delta (chunked) and content (non-chunked) fields
+          if (event.delta) {
+            // Chunked result - accumulate deltas
+            const currentResult = toolCallResultMap.get(toolId) || "";
+            toolCallResultMap.set(toolId, currentResult + event.delta);
 
-          if (step) {
-            // Check for denied approval tool call first
-            if (isDenied) {
-              step.status = "error" as StepStatus;
-              break;
+            // Try to parse accumulated result (may be incomplete)
+            const accumulated = toolCallResultMap.get(toolId) || "";
+
+            // Find the step for this tool call
+            let step = toolCallToStepDirectMap.get(toolId);
+            if (!step) {
+              let stepNumber = eventStepNumber;
+              if (stepNumber === undefined) {
+                stepNumber = toolCallToStepMap.get(toolId);
+              }
+              step =
+                stepNumber !== undefined
+                  ? stepNumberMap.get(stepNumber)
+                  : undefined;
             }
 
-            // Handle approval tool results that were accepted
-            if (step.status === "awaiting-approval") {
+            if (step) {
               try {
-                const result = event.content ? JSON.parse(event.content) : {};
+                const result = JSON.parse(accumulated);
 
-                // Trust backend's explicit approval status
-                if (result.approved === true) {
-                  step.status = "complete" as StepStatus;
-                } else if (result.approved === false) {
-                  step.status = "error" as StepStatus;
-                } else if (result.success === false || result.error) {
-                  // Fallback for execution errors (not approval decisions)
-                  step.status = "error" as StepStatus;
+                // Parse and update step (same logic as content handling)
+                if (step.status === "awaiting-approval") {
+                  // Handle approval results
+                  if (result.approved === true) {
+                    step.status = "complete" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  } else if (result.approved === false) {
+                    step.status = "error" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  } else if (result.success === false || result.error) {
+                    step.status = "error" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  } else {
+                    step.status = "complete" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  }
                 } else {
-                  // Default to complete for backwards compatibility
+                  // Handle non-approval tool results
+                  if (result._artifact) {
+                    if (result._artifact.success) {
+                      step.status = "complete" as StepStatus;
+                      step.artifact = {
+                        artifact_id: result._artifact.artifact_id,
+                        run_id: result._artifact.run_id,
+                        tool_name: result._artifact.tool_name,
+                        artifact_type: result._artifact.artifact_type,
+                      };
+                      toolCallResultMap.delete(toolId);
+                    } else {
+                      // Remove failed step from steps array
+                      const stepIndex = steps.indexOf(step);
+                      if (stepIndex !== -1) {
+                        steps.splice(stepIndex, 1);
+                      }
+                      toolCallResultMap.delete(toolId);
+                    }
+                  } else if (result.success === false) {
+                    // Remove failed step from steps array
+                    const stepIndex = steps.indexOf(step);
+                    if (stepIndex !== -1) {
+                      steps.splice(stepIndex, 1);
+                    }
+                    toolCallResultMap.delete(toolId);
+                  } else {
+                    step.status = "complete" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  }
+                }
+              } catch {
+                // JSON incomplete, continue accumulating
+                // Don't update step status yet - wait for more chunks
+              }
+            }
+          } else if (event.content) {
+            // Non-chunked result (backward compatibility)
+            const contentStr = event.content.trim();
+            const isDenied =
+              contentStr.includes("tool call was denied") ||
+              contentStr.includes("Tool call was denied");
+            if (isDenied) {
+              deniedToolCallIds.add(toolId);
+            }
+
+            // Find the step for this tool call
+            let step = toolCallToStepDirectMap.get(toolId);
+            if (!step) {
+              let stepNumber = eventStepNumber;
+              if (stepNumber === undefined) {
+                stepNumber = toolCallToStepMap.get(toolId);
+              }
+              step =
+                stepNumber !== undefined
+                  ? stepNumberMap.get(stepNumber)
+                  : undefined;
+            }
+
+            if (step) {
+              // Check for denied approval tool call first
+              if (isDenied) {
+                step.status = "error" as StepStatus;
+                break;
+              }
+
+              // Handle approval tool results that were accepted
+              if (step.status === "awaiting-approval") {
+                try {
+                  const result = JSON.parse(event.content);
+
+                  // Trust backend's explicit approval status
+                  if (result.approved === true) {
+                    step.status = "complete" as StepStatus;
+                  } else if (result.approved === false) {
+                    step.status = "error" as StepStatus;
+                  } else if (result.success === false || result.error) {
+                    // Fallback for execution errors (not approval decisions)
+                    step.status = "error" as StepStatus;
+                  } else {
+                    // Default to complete for backwards compatibility
+                    step.status = "complete" as StepStatus;
+                  }
+                } catch (e) {
+                  // Log parse errors instead of silently defaulting
+                  console.warn(
+                    "[transformAguiToTimelineSteps] Failed to parse approval result:",
+                    e,
+                  );
                   step.status = "complete" as StepStatus;
                 }
-              } catch (e) {
-                // Log parse errors instead of silently defaulting
-                console.warn(
-                  "[transformAguiToTimelineSteps] Failed to parse approval result:",
-                  e,
-                );
-                step.status = "complete" as StepStatus;
+                break;
               }
-              break;
-            }
 
-            // Handle non-approval tool results
-            try {
-              const result = event.content ? JSON.parse(event.content) : {};
+              // Handle non-approval tool results
+              try {
+                const result = JSON.parse(event.content);
 
-              // Check for artifact (success case)
-              if (result._artifact) {
-                if (result._artifact.success) {
-                  step.status = "complete" as StepStatus;
-                  // Store artifact metadata for clickable links
-                  // Display name is derived in the component from tool_name
-                  step.artifact = {
-                    artifact_id: result._artifact.artifact_id,
-                    run_id: result._artifact.run_id,
-                    tool_name: result._artifact.tool_name,
-                    artifact_type: result._artifact.artifact_type,
-                  };
-                } else {
+                // Check for artifact (success case)
+                if (result._artifact) {
+                  if (result._artifact.success) {
+                    step.status = "complete" as StepStatus;
+                    // Store artifact metadata for clickable links
+                    // Display name is derived in the component from tool_name
+                    step.artifact = {
+                      artifact_id: result._artifact.artifact_id,
+                      run_id: result._artifact.run_id,
+                      tool_name: result._artifact.tool_name,
+                      artifact_type: result._artifact.artifact_type,
+                    };
+                  } else {
+                    // Remove failed step from steps array
+                    const stepIndex = steps.indexOf(step);
+                    if (stepIndex !== -1) {
+                      steps.splice(stepIndex, 1);
+                    }
+                  }
+                } else if (result.success === false) {
                   // Remove failed step from steps array
                   const stepIndex = steps.indexOf(step);
                   if (stepIndex !== -1) {
                     steps.splice(stepIndex, 1);
                   }
+                } else {
+                  step.status = "complete" as StepStatus;
                 }
-              } else if (result.success === false) {
-                // Remove failed step from steps array
-                const stepIndex = steps.indexOf(step);
-                if (stepIndex !== -1) {
-                  steps.splice(stepIndex, 1);
-                }
-              } else {
+              } catch {
                 step.status = "complete" as StepStatus;
               }
-            } catch {
-              step.status = "complete" as StepStatus;
             }
           }
         }
@@ -1124,6 +1207,68 @@ export function transformAguiToTimelineSteps(
         step.status = "error" as StepStatus;
       }
     }
+  }
+
+  // Finalize any pending tool call results that were being accumulated
+  // This handles cases where chunked results didn't complete during streaming
+  if (toolCallResultMap.size > 0) {
+    for (const [toolId, accumulatedResult] of toolCallResultMap) {
+      const step = toolCallToStepDirectMap.get(toolId);
+      if (step && accumulatedResult) {
+        try {
+          const result = JSON.parse(accumulatedResult);
+
+          // Handle approval results
+          if (step.status === "awaiting-approval") {
+            if (result.approved === true) {
+              step.status = "complete" as StepStatus;
+            } else if (result.approved === false) {
+              step.status = "error" as StepStatus;
+            } else if (result.success === false || result.error) {
+              step.status = "error" as StepStatus;
+            } else {
+              step.status = "complete" as StepStatus;
+            }
+          } else {
+            // Handle non-approval tool results
+            if (result._artifact) {
+              if (result._artifact.success) {
+                step.status = "complete" as StepStatus;
+                step.artifact = {
+                  artifact_id: result._artifact.artifact_id,
+                  run_id: result._artifact.run_id,
+                  tool_name: result._artifact.tool_name,
+                  artifact_type: result._artifact.artifact_type,
+                };
+              } else {
+                // Remove failed step from steps array
+                const stepIndex = steps.indexOf(step);
+                if (stepIndex !== -1) {
+                  steps.splice(stepIndex, 1);
+                }
+              }
+            } else if (result.success === false) {
+              // Remove failed step from steps array
+              const stepIndex = steps.indexOf(step);
+              if (stepIndex !== -1) {
+                steps.splice(stepIndex, 1);
+              }
+            } else {
+              step.status = "complete" as StepStatus;
+            }
+          }
+        } catch {
+          // Failed to parse accumulated result
+          console.warn(
+            "[transformAguiToTimelineSteps] Failed to parse accumulated result for tool:",
+            toolId,
+          );
+          // Mark as complete anyway to avoid stuck UI
+          step.status = "complete" as StepStatus;
+        }
+      }
+    }
+    toolCallResultMap.clear();
   }
 
   return {
