@@ -77,6 +77,13 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
       (approval.operations || []).map((op) => ({ ...op, status: op.status || 'pending' }))
     );
 
+    // Resynchronize operations when approval.operations changes (e.g., new message arrives)
+    useEffect(() => {
+      setOperations(
+        (approval.operations || []).map((op) => ({ ...op, status: op.status || 'pending' }))
+      );
+    }, [approval.operations]);
+
     const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
     // Detect the source type (Salesforce vs Calendar)

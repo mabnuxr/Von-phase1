@@ -944,10 +944,16 @@ export function transformAguiToTimelineSteps(
                     step.status = "complete" as StepStatus;
                     toolCallResultMap.delete(toolId);
                   } else if (result.approved === false) {
-                    step.status = "error" as StepStatus;
+                    // User rejected - use 'rejected' status and store reason
+                    step.status = "rejected" as StepStatus;
+                    step.rejectionReason =
+                      result.message || "Operation rejected by user";
                     toolCallResultMap.delete(toolId);
                   } else if (result.success === false || result.error) {
+                    // System error - use 'error' status and store error message
                     step.status = "error" as StepStatus;
+                    step.errorMessage =
+                      result.error || result.message || "Operation failed";
                     toolCallResultMap.delete(toolId);
                   } else {
                     step.status = "complete" as StepStatus;
@@ -1029,10 +1035,15 @@ export function transformAguiToTimelineSteps(
                   if (result.approved === true) {
                     step.status = "complete" as StepStatus;
                   } else if (result.approved === false) {
-                    step.status = "error" as StepStatus;
+                    // User rejected - use 'rejected' status and store reason
+                    step.status = "rejected" as StepStatus;
+                    step.rejectionReason =
+                      result.message || "Operation rejected by user";
                   } else if (result.success === false || result.error) {
                     // Fallback for execution errors (not approval decisions)
                     step.status = "error" as StepStatus;
+                    step.errorMessage =
+                      result.error || result.message || "Operation failed";
                   } else {
                     // Default to complete for backwards compatibility
                     step.status = "complete" as StepStatus;
@@ -1223,9 +1234,15 @@ export function transformAguiToTimelineSteps(
             if (result.approved === true) {
               step.status = "complete" as StepStatus;
             } else if (result.approved === false) {
-              step.status = "error" as StepStatus;
+              // User rejected - use 'rejected' status and store reason
+              step.status = "rejected" as StepStatus;
+              step.rejectionReason =
+                result.message || "Operation rejected by user";
             } else if (result.success === false || result.error) {
+              // System error - use 'error' status and store error message
               step.status = "error" as StepStatus;
+              step.errorMessage =
+                result.error || result.message || "Operation failed";
             } else {
               step.status = "complete" as StepStatus;
             }

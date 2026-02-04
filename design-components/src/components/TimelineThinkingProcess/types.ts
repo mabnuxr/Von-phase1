@@ -26,7 +26,8 @@ export type StepStatus =
   | 'complete'
   | 'warning'
   | 'error'
-  | 'awaiting-approval';
+  | 'awaiting-approval'
+  | 'rejected';
 
 /**
  * Single operation in a bulk approval request
@@ -130,6 +131,14 @@ export interface TimelineStep {
    * Approval data for approval steps
    */
   approval?: ApprovalData;
+  /**
+   * Rejection reason when status is 'rejected' (user-provided explanation)
+   */
+  rejectionReason?: string;
+  /**
+   * Error message when status is 'error' (system failure message)
+   */
+  errorMessage?: string;
   /**
    * Event category
    */
