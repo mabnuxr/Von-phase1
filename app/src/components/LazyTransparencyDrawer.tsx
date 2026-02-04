@@ -86,9 +86,9 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       id: "calls",
       label: "Calls",
       icon: CALLS_TAB_ICON,
-      count: calls.length,
+      count: calls.length || (callsError ? 1 : 0),
     }),
-    [calls.length],
+    [calls.length, callsError],
   );
 
   const emailsTabConfig: TransparencyTabConfig = useMemo(
@@ -96,9 +96,9 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       id: "emails",
       label: "Emails",
       icon: EMAILS_TAB_ICON,
-      count: emails.length,
+      count: emails.length || (callsError ? 1 : 0),
     }),
-    [emails.length],
+    [emails.length, callsError],
   );
 
   const deepResearchTabConfig: TransparencyTabConfig = useMemo(
@@ -116,7 +116,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={title}
-      isLoading={isListLoading || isCallsLoading}
+      isLoading={isListLoading}
     >
       {!isListLoading && queries.length > 0 && (
         <TransparencyDrawer.Tab config={dataTabConfig}>
@@ -124,7 +124,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
         </TransparencyDrawer.Tab>
       )}
 
-      {!isCallsLoading && calls.length > 0 && (
+      {!isCallsLoading && (calls.length > 0 || callsError) && (
         <TransparencyDrawer.Tab config={callsTabConfig}>
           {callsError ? (
             <CallsTabError message={callsError.message} />
@@ -134,7 +134,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
         </TransparencyDrawer.Tab>
       )}
 
-      {!isCallsLoading && emails.length > 0 && (
+      {!isCallsLoading && (emails.length > 0 || callsError) && (
         <TransparencyDrawer.Tab config={emailsTabConfig}>
           {callsError ? (
             <CallsTabError message={callsError.message} />
