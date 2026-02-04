@@ -192,7 +192,8 @@ export function useTransparencyDrawer({
           s.category !== "rag" &&
           s.category !== "memory" &&
           s.category?.toLowerCase() !== "iq" &&
-          !MEMORY_TOOL_NAMES.has(s.tool_name),
+          !MEMORY_TOOL_NAMES.has(s.tool_name) &&
+          (s.row_count ?? 0) > 0,
       ),
     [artifactSummaries],
   );
