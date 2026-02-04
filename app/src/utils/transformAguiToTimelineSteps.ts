@@ -158,10 +158,11 @@ function detectApprovalFromArgs(
     const isBulk = ops.length > 1;
     const firstOp = ops[0];
 
-    // Detect if this is Google Calendar (has start_datetime or calendar_id)
+    // Detect if this is Google Calendar (has calendar-specific fields)
     const isCalendar =
       firstOp?.start_datetime ||
       firstOp?.calendar_id ||
+      firstOp?.event_id ||
       firstOp?.attendees_emails;
 
     if (isCalendar) {
@@ -334,6 +335,30 @@ function detectApprovalFromArgs(
       parsed.calendar_id ||
       parsed.attendees)
   ) {
+    // Build fields object from calendar properties
+    const fields: Record<string, string | number | boolean | null> = {};
+
+    if (parsed.start_datetime) {
+      fields["Start"] = parsed.start_datetime;
+    }
+    if (parsed.end_datetime) {
+      fields["End"] = parsed.end_datetime;
+    }
+    if (parsed.duration_minutes) {
+      fields["Duration"] = `${parsed.duration_minutes} minutes`;
+    }
+    if (parsed.attendees?.length) {
+      fields["Attendees"] = Array.isArray(parsed.attendees)
+        ? parsed.attendees.join(", ")
+        : parsed.attendees;
+    }
+    if (parsed.location) {
+      fields["Location"] = parsed.location;
+    }
+    if (parsed.description) {
+      fields["Description"] = parsed.description;
+    }
+
     return {
       toolCallId,
       summary: parsed.summary,
@@ -341,6 +366,7 @@ function detectApprovalFromArgs(
       recordName: parsed.event_summary || parsed.title || parsed.summary,
       operation: parsed.operation || "create",
       changes: parsed.changes,
+      fields: Object.keys(fields).length > 0 ? fields : undefined,
       approvalType: "calendar",
     };
   }
@@ -913,22 +939,28 @@ export function transformAguiToTimelineSteps(
             }
 
             // Handle approval tool results that were accepted
-            // Still need to check for failures in the tool execution result
             if (step.status === "awaiting-approval") {
               try {
                 const result = event.content ? JSON.parse(event.content) : {};
-                if (
-                  result.approved === false ||
-                  result.error ||
-                  result.success === false ||
-                  result._artifact?.success === false
-                ) {
+
+                // Trust backend's explicit approval status
+                if (result.approved === true) {
+                  step.status = "complete" as StepStatus;
+                } else if (result.approved === false) {
+                  step.status = "error" as StepStatus;
+                } else if (result.success === false || result.error) {
+                  // Fallback for execution errors (not approval decisions)
                   step.status = "error" as StepStatus;
                 } else {
+                  // Default to complete for backwards compatibility
                   step.status = "complete" as StepStatus;
                 }
-              } catch {
-                // If we can't parse the content, assume success (approval was accepted)
+              } catch (e) {
+                // Log parse errors instead of silently defaulting
+                console.warn(
+                  "[transformAguiToTimelineSteps] Failed to parse approval result:",
+                  e,
+                );
                 step.status = "complete" as StepStatus;
               }
               break;

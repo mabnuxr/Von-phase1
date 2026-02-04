@@ -158,6 +158,7 @@ export const StepRow = React.memo<StepRowProps>(
                           onApprove={onApprove || (() => {})}
                           onReject={onReject || (() => {})}
                           isApproved={
+                            !isLocallyRejected &&
                             (isLocallyApproved || step.status === 'complete') &&
                             step.status !== 'error'
                           }
