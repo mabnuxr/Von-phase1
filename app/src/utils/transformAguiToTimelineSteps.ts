@@ -376,6 +376,8 @@ export interface TransformResult {
   researchResults: ResearchResultsState;
   /** Whether a long-running deep research is in progress (user can leave) */
   isDeepResearchRunning: boolean;
+  /** Whether the response was stopped by the user */
+  stoppedByUser: boolean;
 }
 
 /**
@@ -403,6 +405,7 @@ export function transformAguiToTimelineSteps(
         messageId: null,
       },
       isDeepResearchRunning: false,
+      stoppedByUser: false,
     };
   }
 
@@ -451,6 +454,9 @@ export function transformAguiToTimelineSteps(
   let researchResultsMetadata: ResearchResultsMetadata | null = null;
   let researchResultsMessageId: string | null = null;
   let isDeepResearchRunning = false;
+
+  // Track if the response was stopped by the user
+  let stoppedByUser = false;
 
   // Track if we've seen RUN_FINISHED with pending approval (run paused for approval)
   let sawRunFinishedWithPendingApproval = false;
@@ -998,6 +1004,11 @@ export function transformAguiToTimelineSteps(
         isThinking = false;
         isFinalResponseStreaming = false;
 
+        // Extract stopped_by_user flag
+        if (event.type === "RUN_FINISHED" && event.result?.stopped_by_user) {
+          stoppedByUser = true;
+        }
+
         // Fallback: Extract the last TEXT_MESSAGE step as the final response
         // Only do this if we don't already have a finalResponse from explicit is_final_response flow
         if (!finalResponse && lastTextMessageId) {
@@ -1067,6 +1078,7 @@ export function transformAguiToTimelineSteps(
       messageId: researchResultsMessageId,
     },
     isDeepResearchRunning,
+    stoppedByUser,
   };
 }
 

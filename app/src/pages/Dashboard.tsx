@@ -613,6 +613,7 @@ const Dashboard = () => {
     isFinalResponseStreaming: v2IsFinalResponseStreaming,
     researchResults: v2ResearchResults,
     isDeepResearchRunning: v2IsDeepResearchRunning,
+    stoppedByUser: v2StoppedByUser,
     markStopped: v2MarkStopped,
   } = useConversationPusherChannelV2(v2ChannelConfig, v2InitialRunEvents);
 
@@ -630,6 +631,7 @@ const Dashboard = () => {
         finalResponse: v2FinalResponse,
         isFinalResponseStreaming: v2IsFinalResponseStreaming,
         researchResults: v2ResearchResults,
+        stoppedByUser: v2StoppedByUser,
       }),
     [
       conversationMessages,
@@ -640,6 +642,7 @@ const Dashboard = () => {
       v2IsFinalResponseStreaming,
       v2IsThinking,
       v2ResearchResults,
+      v2StoppedByUser,
     ],
   );
 
