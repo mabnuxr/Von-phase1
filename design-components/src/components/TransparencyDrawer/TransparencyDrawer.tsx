@@ -197,6 +197,13 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
                     </div>
                   </div>
                 </div>
+              ) : tabs.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
+                    <DatabaseIcon size={28} weight="duotone" className="text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">No sources found</p>
+                </div>
               ) : (
                 <>
                   <div className="px-5 py-3 border-b border-gray-100 shrink-0">
