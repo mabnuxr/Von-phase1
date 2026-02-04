@@ -19,9 +19,7 @@ import {
 import {
   TransparencyDrawer,
   DataTabContent,
-  DataTabShimmer,
   CallsTabContent,
-  CallsTabShimmer,
   CallsTabError,
   EmailsTabContent,
   IQDataTabContent,
@@ -88,9 +86,9 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       id: "calls",
       label: "Calls",
       icon: CALLS_TAB_ICON,
-      count: calls.length,
+      count: calls.length || (callsError ? 1 : 0),
     }),
-    [calls.length],
+    [calls.length, callsError],
   );
 
   const emailsTabConfig: TransparencyTabConfig = useMemo(
@@ -98,9 +96,9 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       id: "emails",
       label: "Emails",
       icon: EMAILS_TAB_ICON,
-      count: emails.length,
+      count: emails.length || (callsError ? 1 : 0),
     }),
-    [emails.length],
+    [emails.length, callsError],
   );
 
   const deepResearchTabConfig: TransparencyTabConfig = useMemo(
@@ -114,45 +112,44 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   );
 
   return (
-    <TransparencyDrawer isOpen={isOpen} onClose={onClose} title={title}>
-      <TransparencyDrawer.Tab config={dataTabConfig}>
-        {isListLoading ? (
-          <DataTabShimmer />
-        ) : (
+    <TransparencyDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      isLoading={isListLoading}
+    >
+      {!isListLoading && queries.length > 0 && (
+        <TransparencyDrawer.Tab config={dataTabConfig}>
           <DataTabContent queries={queries} onQuerySelect={handleQuerySelect} />
-        )}
-      </TransparencyDrawer.Tab>
+        </TransparencyDrawer.Tab>
+      )}
 
-      <TransparencyDrawer.Tab config={callsTabConfig}>
-        {isCallsLoading ? (
-          <CallsTabShimmer />
-        ) : callsError ? (
-          <CallsTabError message={callsError.message} />
-        ) : (
-          <CallsTabContent calls={calls} />
-        )}
-      </TransparencyDrawer.Tab>
-
-      <TransparencyDrawer.Tab config={emailsTabConfig}>
-        {isCallsLoading ? (
-          <CallsTabShimmer />
-        ) : callsError ? (
-          <CallsTabError message={callsError.message} />
-        ) : (
-          <EmailsTabContent emails={emails} />
-        )}
-      </TransparencyDrawer.Tab>
-
-      {hasVonIqArtifacts && (
-        <TransparencyDrawer.Tab config={deepResearchTabConfig}>
-          {isListLoading ? (
-            <DataTabShimmer />
+      {!isCallsLoading && (calls.length > 0 || callsError) && (
+        <TransparencyDrawer.Tab config={callsTabConfig}>
+          {callsError ? (
+            <CallsTabError message={callsError.message} />
           ) : (
-            <IQDataTabContent
-              queries={vonIqQueries}
-              onQuerySelect={handleVonIqSelect}
-            />
+            <CallsTabContent calls={calls} />
           )}
+        </TransparencyDrawer.Tab>
+      )}
+
+      {!isCallsLoading && (emails.length > 0 || callsError) && (
+        <TransparencyDrawer.Tab config={emailsTabConfig}>
+          {callsError ? (
+            <CallsTabError message={callsError.message} />
+          ) : (
+            <EmailsTabContent emails={emails} />
+          )}
+        </TransparencyDrawer.Tab>
+      )}
+
+      {!isListLoading && hasVonIqArtifacts && (
+        <TransparencyDrawer.Tab config={deepResearchTabConfig}>
+          <IQDataTabContent
+            queries={vonIqQueries}
+            onQuerySelect={handleVonIqSelect}
+          />
         </TransparencyDrawer.Tab>
       )}
     </TransparencyDrawer>

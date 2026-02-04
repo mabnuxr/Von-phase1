@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, Children, isValidElement } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, Children, isValidElement } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, DatabaseIcon } from '@phosphor-icons/react';
 import type { TransparencyDrawerProps, TransparencyDrawerTabProps, TabConfig } from './types';
@@ -19,6 +19,7 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
   activeTab: controlledActiveTab,
   defaultActiveTab,
   onTabChange,
+  isLoading = false,
 }) => {
   const tabs = useMemo(() => {
     const tabData: { config: TabConfig; content: React.ReactNode }[] = [];
@@ -32,7 +33,8 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
       }
     });
 
-    return tabData;
+    // Filter to only show tabs with data (count > 0)
+    return tabData.filter((tab) => tab.config.count > 0);
   }, [children]);
 
   const [internalActiveTab, setInternalActiveTab] = useState<string>(
@@ -40,6 +42,27 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
   );
 
   const activeTabId = controlledActiveTab ?? internalActiveTab;
+
+  // Automatically select the first tab with data when:
+  // 1. The drawer opens and no tab is selected
+  // 2. The currently active tab no longer has data
+  useEffect(() => {
+    if (tabs.length === 0) return;
+
+    const currentTabExists = tabs.some((tab) => tab.config.id === activeTabId);
+    const firstAvailableTabId = tabs[0]?.config.id;
+
+    // If current tab doesn't exist (filtered out due to no data) or no tab is selected,
+    // switch to the first available tab
+    if (!currentTabExists || !activeTabId) {
+      if (controlledActiveTab === undefined && firstAvailableTabId) {
+        setInternalActiveTab(firstAvailableTabId);
+      }
+      if (firstAvailableTabId && onTabChange) {
+        onTabChange(firstAvailableTabId);
+      }
+    }
+  }, [tabs, activeTabId, controlledActiveTab, onTabChange]);
 
   const handleTabChange = useCallback(
     (tabId: string) => {
@@ -106,28 +129,100 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
                 </button>
               </div>
 
-              <div className="px-5 py-3 border-b border-gray-100 shrink-0">
-                <TabNavigation
-                  tabs={tabConfigs}
-                  activeTab={activeTabId}
-                  onTabChange={handleTabChange}
-                />
-              </div>
+              {isLoading ? (
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <div className="flex flex-col h-full animate-pulse">
+                    {/* Tab navigation shimmer */}
+                    <div className="px-5 py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-3">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className="h-7 bg-gray-200 rounded-full"
+                            style={{ width: `${50 + i * 15}px` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
 
-              <div className="flex-1 overflow-hidden flex flex-col">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeTabId}
-                    initial={{ opacity: 0, x: activeTabIndex === 0 ? -10 : 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: activeTabIndex === 0 ? 10 : -10 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex-1 flex flex-col overflow-hidden"
-                  >
-                    {activeTabContent}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+                    {/* Content shimmer */}
+                    <div className="px-5 py-4 flex flex-col gap-4">
+                      {/* Query pills shimmer */}
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className="h-7 bg-gray-200 rounded-full"
+                            style={{ width: `${60 + i * 20}px` }}
+                          />
+                        ))}
+                      </div>
+
+                      {/* SQL section shimmer */}
+                      <div className="rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="px-3 py-2 bg-gray-50 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 bg-gray-200 rounded" />
+                            <div className="w-16 h-3 bg-gray-200 rounded" />
+                          </div>
+                          <div className="w-10 h-3 bg-gray-200 rounded" />
+                        </div>
+                      </div>
+
+                      {/* Table shimmer */}
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                              {[1, 2, 3, 4].map((i) => (
+                                <th key={i} className="px-3 py-2">
+                                  <div className="h-3 bg-gray-200 rounded w-16" />
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[1, 2, 3, 4, 5].map((row) => (
+                              <tr key={row} className="border-b border-gray-100">
+                                {[1, 2, 3, 4].map((col) => (
+                                  <td key={col} className="px-3 py-2">
+                                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="px-5 py-3 border-b border-gray-100 shrink-0">
+                    <TabNavigation
+                      tabs={tabConfigs}
+                      activeTab={activeTabId}
+                      onTabChange={handleTabChange}
+                    />
+                  </div>
+
+                  <div className="flex-1 overflow-hidden flex flex-col">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={activeTabId}
+                        initial={{ opacity: 0, x: activeTabIndex === 0 ? -10 : 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: activeTabIndex === 0 ? 10 : -10 }}
+                        transition={{ duration: 0.15 }}
+                        className="flex-1 flex flex-col overflow-hidden"
+                      >
+                        {activeTabContent}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </>
+              )}
             </div>
           </motion.div>
         </>

@@ -91,6 +91,7 @@ export interface TransparencyDrawerProps {
   activeTab?: string;
   defaultActiveTab?: string;
   onTabChange?: (tabId: string) => void;
+  isLoading?: boolean;
 }
 
 export interface QueryTabProps {
