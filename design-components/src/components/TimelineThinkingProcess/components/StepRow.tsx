@@ -202,7 +202,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Artifact reference - shown when artifact metadata is available */}
                   {step.artifact && (
                     <div
-                      className="flex w-72 items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-white shadow-xs border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                      className="flex w-full items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-white shadow-xs border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         if (onArtifactClick) {
                           onArtifactClick(
