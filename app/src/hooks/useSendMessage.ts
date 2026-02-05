@@ -67,6 +67,15 @@ export function useSendMessage() {
         return undefined;
       }
 
+      // FIX: Set showMessagesFromIndex BEFORE adding optimistic messages
+      // This ensures the index update and message addition happen synchronously,
+      // preventing flash of previous AI response
+      const existingMessages =
+        useChatStore.getState().messages[conversationId] || [];
+      useChatStore
+        .getState()
+        .setShowMessagesFromIndex(conversationId, existingMessages.length);
+
       // Generate optimistic IDs for tracking
       const optimisticId = generateOptimisticId();
       const optimisticAssistantId = generateOptimisticId();

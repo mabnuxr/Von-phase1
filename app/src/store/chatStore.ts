@@ -51,6 +51,12 @@ interface ChatState {
   // FIX: Force-complete message (timeout recovery)
   forceCompleteMessage: (conversationId: string, messageId: string) => void;
   markMessageTimeout: (conversationId: string, messageId: string) => void;
+
+  // Message filtering state for ChatGPT-style visual clearing
+  // Stored in Zustand for synchronous updates with message additions
+  showMessagesFromIndex: Record<string, number>;
+  setShowMessagesFromIndex: (conversationId: string, index: number) => void;
+  resetShowMessagesFromIndex: (conversationId: string) => void;
 }
 
 const useChatStoreBase = create<ChatState>((set) => ({
@@ -286,6 +292,23 @@ const useChatStoreBase = create<ChatState>((set) => ({
         },
       };
     }),
+
+  // Message filtering state - synchronous updates prevent flash of old content
+  showMessagesFromIndex: {},
+  setShowMessagesFromIndex: (conversationId, index) =>
+    set((state) => ({
+      showMessagesFromIndex: {
+        ...state.showMessagesFromIndex,
+        [conversationId]: index,
+      },
+    })),
+  resetShowMessagesFromIndex: (conversationId) =>
+    set((state) => ({
+      showMessagesFromIndex: {
+        ...state.showMessagesFromIndex,
+        [conversationId]: 0,
+      },
+    })),
 }));
 
 const useChatStore = createSelectors(useChatStoreBase);
