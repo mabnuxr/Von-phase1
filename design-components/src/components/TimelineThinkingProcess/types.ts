@@ -328,19 +328,6 @@ export interface CollapsedStepRowProps {
 }
 
 /**
- * Field types for approval card rendering
- */
-export type ApprovalFieldType =
-  | 'text'
-  | 'long_text'
-  | 'number'
-  | 'currency'
-  | 'date'
-  | 'picklist'
-  | 'multi_picklist'
-  | 'boolean';
-
-/**
  * Props for CompactApprovalCard component
  */
 export interface CompactApprovalCardProps {

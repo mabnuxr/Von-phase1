@@ -176,13 +176,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
             {/* Approval indicator */}
             {awaitingApprovalStep && (
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  focusOnStep(awaitingApprovalStep.id);
-                }}
-                className="flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-800 rounded-full cursor-pointer hover:bg-gray-200 transition-colors"
-              >
+              <div className="flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-800 rounded-full">
                 <span className="text-xs font-medium">Needs approval</span>
               </div>
             )}
