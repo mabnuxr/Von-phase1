@@ -104,9 +104,15 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
     const lastStep = visibleSteps[visibleSteps.length - 1];
 
-    // Don't show after approval steps (waiting for user action)
-    if (lastStep?.status === 'awaiting-approval') return false;
-    if (lastStep?.approval) return false;
+    // Don't show after approval steps that are still waiting for user action.
+    // If the user has locally approved/rejected (optimistic UI), treat the step
+    // as resolved and allow the placeholder to show.
+    const lastStepToolCallId = lastStep?.approval?.toolCallId || lastStep?.id;
+    const isLocallyResolved = lastStepToolCallId
+      ? localApprovalState.has(lastStepToolCallId)
+      : false;
+
+    if (lastStep?.status === 'awaiting-approval' && !isLocallyResolved) return false;
 
     // If there's an in-progress step, don't show placeholder (that step has its own spinner)
     const hasInProgressStep = visibleSteps.some((s) => s.status === 'in-progress');
@@ -114,7 +120,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
     // All steps complete, show placeholder for next expected step
     return true;
-  }, [isThinking, visibleSteps]);
+  }, [isThinking, visibleSteps, localApprovalState]);
 
   // Compute summary for header - shows current activity or progress count
   const summary = useMemo(() => {

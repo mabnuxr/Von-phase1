@@ -226,6 +226,7 @@ export function useConversationPusherChannelV2(
           researchResults: research,
           isDeepResearchRunning: deepResearchRunning,
           stoppedByUser: stopped,
+          hadApprovalPause,
         } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
@@ -243,10 +244,16 @@ export function useConversationPusherChannelV2(
 
         // Stop timer and update elapsed time when run finishes
         // We only do this once per run to avoid resetting the elapsed time
-        if (!thinking && !finishedRunsRef.current.has(run_id)) {
-          // Mark the run as finished so late events for this run_id are ignored.
-          // Approval pauses are handled by transformAguiToTimelineSteps (hasPendingApproval
-          // keeps isThinking=true), so it's safe to always record completion here.
+        // If the run went through an approval pause and hasn't produced a final
+        // response yet, this is a transitional RUN_FINISHED after the approval
+        // result — the agent will resume with new events on the same run_id.
+        // Don't mark it as finished or subsequent events would be dropped.
+        const isTransitionalFinish = hadApprovalPause && !response && !stopped;
+        if (
+          !thinking &&
+          !isTransitionalFinish &&
+          !finishedRunsRef.current.has(run_id)
+        ) {
           finishedRunsRef.current.add(run_id);
 
           stopElapsedTimer();

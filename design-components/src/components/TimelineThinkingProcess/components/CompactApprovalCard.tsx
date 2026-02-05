@@ -168,7 +168,15 @@ const FieldValue: React.FC<{
  * Note: For bulk operations, use ApprovalCard wrapper which delegates to BulkApprovalCard
  */
 export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
-  ({ approval, onApprove, onReject, isApproved, isRejected, defaultExpanded = true }) => {
+  ({
+    approval,
+    onApprove,
+    onReject,
+    isApproved,
+    isRejected,
+    defaultExpanded = true,
+    hideActions = false,
+  }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
     const handleApprove = useCallback(
@@ -338,8 +346,8 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
           </div>
         )}
 
-        {/* Action buttons - only shown when expanded */}
-        {isExpanded && (
+        {/* Action buttons - only shown when expanded and not hidden (hidden in bulk context) */}
+        {isExpanded && !hideActions && (
           <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-gray-100">
             <button
               onClick={handleReject}
