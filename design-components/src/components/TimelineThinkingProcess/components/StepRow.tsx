@@ -7,6 +7,7 @@ import { StepIndicator } from './StepIndicator';
 import { CompactApprovalCard } from './CompactApprovalCard';
 import { BulkApprovalCard } from './BulkApprovalCard';
 import { TextShimmer } from './TextShimmer';
+import { buildSalesforceDeepLink } from '../utils/salesforceDeepLink';
 
 // ============================================================================
 // Component
@@ -41,6 +42,7 @@ export const StepRow = React.memo<StepRowProps>(
     onRejectAll,
     approvedRecordIds,
     rejectedRecordIds,
+    salesforceInstanceUrl,
   }) => {
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
@@ -66,6 +68,25 @@ export const StepRow = React.memo<StepRowProps>(
         step.artifact,
       ]
     );
+
+    // Compute approval with fallback recordUrl for Salesforce deep links
+    const approvalWithUrl = useMemo(() => {
+      if (!step.approval) return undefined;
+      // If recordUrl is already provided, use it as-is
+      if (step.approval.recordUrl) return step.approval;
+      // Build fallback URL from objectType and recordId
+      if (step.approval.recordId && step.approval.objectType) {
+        const fallbackUrl = buildSalesforceDeepLink(
+          salesforceInstanceUrl,
+          step.approval.objectType,
+          step.approval.recordId
+        );
+        if (fallbackUrl) {
+          return { ...step.approval, recordUrl: fallbackUrl };
+        }
+      }
+      return step.approval;
+    }, [step.approval, salesforceInstanceUrl]);
 
     // Compute effective status - when locally approved/rejected, show as complete/error
     // This ensures the indicator turns green after approval even before backend updates
@@ -142,10 +163,10 @@ export const StepRow = React.memo<StepRowProps>(
                   )}
 
                   {/* Approval card - use BulkApprovalCard for bulk records */}
-                  {step.approval &&
-                    (step.approval.bulkRecords && step.approval.bulkRecords.length > 0 ? (
+                  {approvalWithUrl &&
+                    (approvalWithUrl.bulkRecords && approvalWithUrl.bulkRecords.length > 0 ? (
                       <BulkApprovalCard
-                        approval={step.approval}
+                        approval={approvalWithUrl}
                         onApproveRecord={onApproveRecord || (() => {})}
                         onRejectRecord={onRejectRecord || (() => {})}
                         onApproveAll={onApproveAll || (() => {})}
@@ -155,7 +176,7 @@ export const StepRow = React.memo<StepRowProps>(
                       />
                     ) : (
                       <CompactApprovalCard
-                        approval={step.approval}
+                        approval={approvalWithUrl}
                         onApprove={onApprove || (() => {})}
                         onReject={onReject || (() => {})}
                         isApproved={

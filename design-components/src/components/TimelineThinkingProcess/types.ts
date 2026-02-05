@@ -284,6 +284,11 @@ export interface TimelineThinkingProcessProps {
    */
   approvedRecordIds?: Set<string>;
   rejectedRecordIds?: Set<string>;
+
+  /**
+   * Salesforce instance URL for building deep links when recordUrl is not provided
+   */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -317,6 +322,8 @@ export interface StepRowProps {
   /** Set of approved/rejected record IDs for bulk approval */
   approvedRecordIds?: Set<string>;
   rejectedRecordIds?: Set<string>;
+  /** Salesforce instance URL for building deep links when recordUrl is not provided */
+  salesforceInstanceUrl?: string;
 }
 
 /**

@@ -45,6 +45,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onRejectAll,
   approvedRecordIds,
   rejectedRecordIds,
+  salesforceInstanceUrl,
 }) => {
   // Use custom hook for state management
   const {
@@ -271,6 +272,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         onRejectAll={onRejectAll}
                         approvedRecordIds={approvedRecordIds}
                         rejectedRecordIds={rejectedRecordIds}
+                        salesforceInstanceUrl={salesforceInstanceUrl}
                       />
                     );
                   })}
