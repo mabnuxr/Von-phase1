@@ -315,7 +315,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     if (isMemoryView) {
       const { memoryData } = props as MemoryViewProps;
       return (
-        <div className="p-4">
+        <div className="p-4 overflow-auto flex-1 min-h-0">
           <MemoryResultRenderer result={{ type: 'memory', memory: memoryData, raw: {} }} />
         </div>
       );

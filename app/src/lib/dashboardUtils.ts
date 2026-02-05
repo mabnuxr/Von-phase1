@@ -207,13 +207,20 @@ function transformMessagesForV2(
       return false;
     })();
 
-    // If this is the latest message and we have live V2 data from Pusher, use it
-    if (
-      isLastAssistant &&
-      (usableV2TimelineSteps.length > 0 ||
-        v2LiveData.finalResponse ||
-        v2LiveData.isThinking)
-    ) {
+    // If this is the latest message and we have live V2 data from Pusher, use it.
+    // Guard: when the message is already streaming (optimistic placeholder) but the
+    // V2 hook hasn't started a new run yet (no part of the run is active — neither
+    // thinking nor final response streaming), skip overwriting so the message keeps
+    // isStreaming=true and the thinking process UI renders immediately.
+    const hasLiveV2Data =
+      usableV2TimelineSteps.length > 0 ||
+      v2LiveData.finalResponse ||
+      v2LiveData.isThinking;
+    const isRunActive =
+      v2LiveData.isThinking || v2LiveData.isFinalResponseStreaming;
+    const isStaleV2Data = msg.isStreaming && !isRunActive;
+
+    if (isLastAssistant && hasLiveV2Data && !isStaleV2Data) {
       return {
         ...msg,
         isStreaming: v2LiveData.isThinking,

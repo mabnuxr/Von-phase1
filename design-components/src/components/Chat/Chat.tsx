@@ -323,6 +323,7 @@ export const Chat: React.FC<ChatProps> = ({
                   // V2 Thinking Process props
                   thinkingProcessVersion={thinkingProcessVersion}
                   timelineSteps={message.timelineSteps}
+                  thinkingElapsedTime={message.thinkingElapsedTime}
                   v2FinalResponse={message.v2FinalResponse}
                 />
               </div>
