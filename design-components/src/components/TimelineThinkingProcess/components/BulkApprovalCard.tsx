@@ -22,6 +22,9 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Check if objectType already starts with a number (e.g., "30 Salesforce Records")
+  const objectTypeAlreadyIncludesCount = /^\d+\s/.test(approval.objectType);
+
   return (
     <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
       {/* Collapsed header - clickable to expand */}
@@ -41,7 +44,9 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
             <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
           )}
           <span className="text-sm text-gray-900 truncate">
-            {recordCount} {approval.objectType}
+            {objectTypeAlreadyIncludesCount
+              ? approval.objectType
+              : `${recordCount} ${approval.objectType}`}
           </span>
         </div>
         <span
