@@ -259,6 +259,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           alt="Von logo"
           width={64}
           height={24}
+          className="-ml-1"
           style={{ cursor: onLogoClick ? 'pointer' : 'default' }}
           onClick={onLogoClick}
         />

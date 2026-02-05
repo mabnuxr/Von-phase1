@@ -1207,12 +1207,13 @@ export const ChatSidebarV3: React.FC<ChatSidebarProps> = ({
     <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
       {/* Logo Row */}
       <div className="flex items-center justify-between mb-3 px-1">
-        {/* Logo */}
+        {/* Logo - negative margin to align visual logo with New Chat button */}
         <img
           src={VON_COMBINATION_MARK_URL}
           alt="Von logo"
           width={64}
           height={24}
+          className="-ml-1"
           style={{ cursor: onLogoClick ? 'pointer' : 'default' }}
           onClick={onLogoClick}
         />

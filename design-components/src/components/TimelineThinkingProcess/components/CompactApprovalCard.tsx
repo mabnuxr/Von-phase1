@@ -205,7 +205,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     // Completed state - collapsible card that can expand to show details
     if (isApproved || isRejected) {
       return (
-        <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+        <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden min-w-0">
           {/* Collapsed header - clickable to expand */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -283,7 +283,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     }
 
     return (
-      <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+      <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden min-w-0">
         {/* Header - Single row: accordion | deal name | action type */}
         <div
           onClick={() => setIsExpanded(!isExpanded)}
