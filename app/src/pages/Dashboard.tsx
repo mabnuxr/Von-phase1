@@ -477,12 +477,10 @@ const Dashboard = () => {
       // Step 1: Reset UI state for clean transition
       resetShowMessagesFromIndex(urlConversationId);
 
-      // Step 2: Clear old messages to prevent flash of wrong content
-      // Keep new conversation's messages if they already exist (from cache)
-      const { clearAllMessagesExcept } = useChatStore.getState();
-      clearAllMessagesExcept(urlConversationId);
-
-      // Step 3: Update current conversation ID
+      // Step 2: Update current conversation ID
+      // Note: We no longer clear other conversations' messages here
+      // because it causes issues when switching back to a streaming chat
+      // The showMessagesFromIndex mechanism handles visual state instead
       // This triggers useMessages to fetch messages for new conversation
       setCurrentConversationId(urlConversationId);
     }
