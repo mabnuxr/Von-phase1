@@ -304,9 +304,6 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
           <span className="text-xs text-gray-600 flex-shrink-0 ml-2">
             {operationLabel} {approval.objectType}
           </span>
-          <span className="text-xs text-gray-600 flex-shrink-0 ml-2">
-            {operationLabel} {approval.objectType}
-          </span>
         </div>
 
         {/* Expanded content - Changes table */}
@@ -341,23 +338,6 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
           </div>
         )}
 
-        {/* Action buttons - only shown when expanded */}
-        {isExpanded && (
-          <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-gray-100">
-            <button
-              onClick={handleReject}
-              className="px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Reject
-            </button>
-            <button
-              onClick={handleApprove}
-              className="px-2.5 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-            >
-              Approve
-            </button>
-          </div>
-        )}
         {/* Action buttons - only shown when expanded */}
         {isExpanded && (
           <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-gray-100">
