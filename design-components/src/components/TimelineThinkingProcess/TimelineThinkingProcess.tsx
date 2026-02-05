@@ -4,7 +4,7 @@ import { CheckCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/
 import type { TimelineThinkingProcessProps } from './types';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
-import { StepRow, PlaceholderStepRow, VonShimmer, AnimatedDots } from './components';
+import { StepRow, PlaceholderStepRow, AnimatedDots } from './components';
 import { ThinkingDrawer, type ThinkingStepDetail } from '../ThinkingDrawer';
 
 // ============================================================================
@@ -122,19 +122,24 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     return true;
   }, [isThinking, visibleSteps, localApprovalState]);
 
-  // Compute summary for header - shows current activity or progress count
+  // Compute summary for header - shows "Thinking" for reasoning, tool name for tool calls
   const summary = useMemo(() => {
     if (steps.length === 0) return '';
 
     if (isThinking) {
       // Find the current in-progress step
       const inProgressStep = steps.find((s) => s.status === 'in-progress');
-      if (inProgressStep) {
-        return inProgressStep.text;
+      const currentStep = inProgressStep || steps[steps.length - 1];
+
+      if (!currentStep) return '';
+
+      // For reasoning steps, show "Thinking"
+      if (currentStep.type === 'reasoning') {
+        return 'Thinking';
       }
-      // If no in-progress step, show the last step
-      const lastStep = steps[steps.length - 1];
-      return lastStep?.text || '';
+
+      // For tool calls and other steps, show the step text (tool name)
+      return currentStep.text;
     }
 
     return '';
@@ -168,10 +173,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 {summary && <span className="text-sm text-gray-600 ml-1">({summary})</span>}
               </>
             ) : isThinking ? (
-              <VonShimmer className="text-sm truncate">
-                {summary ? `${title}: ${summary}` : title}
+              <span className="text-sm text-gray-800 truncate">
+                {summary || title}
                 <AnimatedDots />
-              </VonShimmer>
+              </span>
             ) : (
               <span className="text-sm text-gray-800">
                 {summary ? `${title} (${summary})` : title}
