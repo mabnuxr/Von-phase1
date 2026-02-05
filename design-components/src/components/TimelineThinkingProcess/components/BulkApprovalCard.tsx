@@ -1,30 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircleIcon, XCircleIcon, CaretDownIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, XCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { ApprovalData, BulkApprovalRecord } from '../types';
 import { CompactApprovalCard } from './CompactApprovalCard';
 
 // ============================================================================
-// Completed Bulk Card - Expandable summary when all records are processed
+// Completed Bulk Card - Collapsed summary when approved/rejected
 // ============================================================================
 
 interface CompletedBulkCardProps {
   records: BulkApprovalRecord[];
   approval: ApprovalData;
-  approvedRecordIds: Set<string>;
-  rejectedRecordIds: Set<string>;
-  approvedCount: number;
-  rejectedCount: number;
-  allApproved: boolean;
+  isApproved: boolean;
+  recordCount: number;
 }
 
 const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
   records,
   approval,
-  approvedRecordIds,
-  rejectedRecordIds,
-  approvedCount,
-  rejectedCount,
-  allApproved,
+  isApproved,
+  recordCount,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -38,29 +32,29 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
         <div className="flex items-center gap-2 min-w-0">
           {isExpanded ? (
             <CaretDownIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
-          ) : allApproved ? (
-            <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
           ) : (
-            <XCircleIcon size={16} weight="fill" className="text-red-500 flex-shrink-0" />
+            <CaretRightIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+          )}
+          {isApproved ? (
+            <CheckCircleIcon size={14} weight="fill" className="text-emerald-600 flex-shrink-0" />
+          ) : (
+            <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
           )}
           <span className="text-sm text-gray-900 truncate">
-            {allApproved ? 'Bulk update complete' : 'Bulk update stopped'}
+            {recordCount} {approval.objectType}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs flex-shrink-0 ml-2">
-          {approvedCount > 0 && <span className="text-emerald-700">{approvedCount} approved</span>}
-          {rejectedCount > 0 && <span className="text-red-600">{rejectedCount} rejected</span>}
-        </div>
+        <span
+          className={`text-xs flex-shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
+        >
+          {isApproved ? 'Approved' : 'Rejected'}
+        </span>
       </button>
 
-      {/* Expanded content - Show all records with their status */}
-      {isExpanded && (
+      {/* Expanded content - Show all records */}
+      {isExpanded && records.length > 0 && (
         <div className="border-t border-gray-100 max-h-[400px] overflow-y-auto px-3 py-2 space-y-2">
           {records.map((record) => {
-            const isApproved = approvedRecordIds.has(record.recordId);
-            const isRejected = rejectedRecordIds.has(record.recordId);
-
-            // Convert bulk record to ApprovalData format for CompactApprovalCard
             const recordApproval: ApprovalData = {
               toolCallId: record.recordId,
               summary: `Update ${record.recordName}`,
@@ -78,8 +72,9 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
                 onApprove={() => {}}
                 onReject={() => {}}
                 isApproved={isApproved}
-                isRejected={isRejected}
+                isRejected={!isApproved}
                 defaultExpanded={false}
+                hideActions
               />
             );
           })}
@@ -101,6 +96,10 @@ export interface BulkApprovalCardProps {
   onRejectAll: () => void;
   approvedRecordIds?: Set<string>;
   rejectedRecordIds?: Set<string>;
+  /** Whether the entire bulk operation was approved (from backend state on reload) */
+  isApproved?: boolean;
+  /** Whether the entire bulk operation was rejected (from backend state on reload) */
+  isRejected?: boolean;
 }
 
 /**
@@ -120,39 +119,39 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     onRejectAll,
     approvedRecordIds = new Set(),
     rejectedRecordIds = new Set(),
+    isApproved = false,
+    isRejected = false,
   }) => {
     const records = useMemo(() => approval.bulkRecords || [], [approval.bulkRecords]);
 
-    const pendingCount = useMemo(
-      () =>
-        records.filter(
-          (r) => !approvedRecordIds.has(r.recordId) && !rejectedRecordIds.has(r.recordId)
-        ).length,
-      [records, approvedRecordIds, rejectedRecordIds]
-    );
+    // Local state for bulk approve/reject (optimistic UI collapse)
+    const [bulkAction, setBulkAction] = useState<'approved' | 'rejected' | null>(null);
 
-    const approvedCount = useMemo(
-      () => records.filter((r) => approvedRecordIds.has(r.recordId)).length,
-      [records, approvedRecordIds]
-    );
+    const handleApproveAll = () => {
+      if (import.meta.env.DEV) {
+        console.log('[BulkApprovalCard] handleApproveAll called');
+      }
+      setBulkAction('approved');
+      onApproveAll();
+    };
 
-    const rejectedCount = useMemo(
-      () => records.filter((r) => rejectedRecordIds.has(r.recordId)).length,
-      [records, rejectedRecordIds]
-    );
+    const handleRejectAll = () => {
+      if (import.meta.env.DEV) {
+        console.log('[BulkApprovalCard] handleRejectAll called');
+      }
+      setBulkAction('rejected');
+      onRejectAll();
+    };
 
-    // All done state - expandable to show individual record statuses
-    if (pendingCount === 0 && records.length > 0) {
-      const allApproved = rejectedCount === 0;
+    // Show completed state when bulk action was taken locally OR from backend (on reload)
+    if (bulkAction || isApproved || isRejected) {
+      const showAsApproved = bulkAction === 'approved' || (isApproved && !isRejected);
       return (
         <CompletedBulkCard
           records={records}
           approval={approval}
-          approvedRecordIds={approvedRecordIds}
-          rejectedRecordIds={rejectedRecordIds}
-          approvedCount={approvedCount}
-          rejectedCount={rejectedCount}
-          allApproved={allApproved}
+          isApproved={showAsApproved}
+          recordCount={records.length || approval.recordCount || 0}
         />
       );
     }
@@ -198,30 +197,29 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
                 isApproved={isApproved}
                 isRejected={isRejected}
                 defaultExpanded={idx === 0}
+                hideActions
               />
             );
           })}
         </div>
 
         {/* Bulk action buttons at the bottom */}
-        {pendingCount > 0 && (
-          <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={onRejectAll}
-              className="px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Reject All
-            </button>
-            <button
-              type="button"
-              onClick={onApproveAll}
-              className="px-2.5 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-            >
-              Approve All
-            </button>
-          </div>
-        )}
+        <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={handleRejectAll}
+            className="px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            Reject
+          </button>
+          <button
+            type="button"
+            onClick={handleApproveAll}
+            className="px-2.5 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            Approve
+          </button>
+        </div>
       </div>
     );
   }

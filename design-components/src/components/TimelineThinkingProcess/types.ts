@@ -345,6 +345,8 @@ export interface CompactApprovalCardProps {
   isRejected?: boolean;
   /** Whether the card should be expanded by default (defaults to true) */
   defaultExpanded?: boolean;
+  /** Whether to hide individual approve/reject buttons (used in bulk approval context) */
+  hideActions?: boolean;
 }
 
 /**

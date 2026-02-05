@@ -128,6 +128,17 @@ interface DetectedApprovalData {
   // Bulk operations array for Salesforce bulk approvals
   operations?: BulkOperation[];
   recordCount?: number;
+  // Bulk records for per-record approval UI (maps operations to BulkApprovalRecord format)
+  bulkRecords?: Array<{
+    recordId: string;
+    recordName: string;
+    recordUrl?: string;
+    changes: Array<{
+      field: string;
+      before?: string | number | boolean | null;
+      after: string | number | boolean | null;
+    }>;
+  }>;
   // Deep research specific fields
   researchQuery?: string;
   estimatedTime?: string;
@@ -308,6 +319,68 @@ function detectApprovalFromArgs(
         calendarFields = Object.keys(fields).length > 0 ? fields : undefined;
       }
 
+      // Build bulkRecords for per-record approval UI
+      const calBulkRecords = isBulk
+        ? ops.map(
+            (op: {
+              operation?: string;
+              summary?: string;
+              event_summary?: string;
+              event_id?: string;
+              event_url?: string;
+              start_datetime?: string;
+              end_datetime?: string;
+              duration_minutes?: number;
+              attendees_emails?: string[];
+              changes?: DetectedApprovalData["changes"];
+              fields?: Record<string, string | number | boolean | null>;
+            }) => {
+              const opChanges = normalizeChanges(op.changes);
+              // For calendar events, build changes from event fields if no explicit changes
+              let changes: Array<{
+                field: string;
+                before?: string | number | boolean | null;
+                after: string | number | boolean | null;
+              }> = [];
+              if (opChanges && opChanges.length > 0) {
+                changes = opChanges;
+              } else if (op.fields) {
+                changes = Object.entries(op.fields).map(([field, value]) => ({
+                  field,
+                  after: value,
+                }));
+              } else {
+                // Build from calendar-specific fields
+                if (op.start_datetime)
+                  changes.push({
+                    field: "Start",
+                    after: op.start_datetime,
+                  });
+                if (op.end_datetime)
+                  changes.push({ field: "End", after: op.end_datetime });
+                if (op.duration_minutes)
+                  changes.push({
+                    field: "Duration",
+                    after: `${op.duration_minutes} minutes`,
+                  });
+                if (op.attendees_emails?.length)
+                  changes.push({
+                    field: "Attendees",
+                    after: op.attendees_emails.join(", "),
+                  });
+              }
+              return {
+                recordId:
+                  op.event_id ||
+                  `event-${op.summary || op.event_summary || "unknown"}`,
+                recordName: op.summary || op.event_summary || "Event",
+                recordUrl: op.event_url,
+                changes,
+              };
+            },
+          )
+        : undefined;
+
       return {
         toolCallId,
         summary: parsed.summary,
@@ -327,6 +400,7 @@ function detectApprovalFromArgs(
         fields: !isBulk ? calendarFields : undefined,
         approvalType: isBulk ? "bulk" : "calendar",
         operations: calendarBulkOperations,
+        bulkRecords: calBulkRecords,
         recordCount: isBulk ? ops.length : undefined,
       };
     }
@@ -354,6 +428,39 @@ function detectApprovalFromArgs(
         )
       : undefined;
 
+    // Build bulkRecords for per-record approval UI
+    const sfBulkRecords = isBulk
+      ? ops.map(
+          (op: {
+            operation?: string;
+            sobject_type?: string;
+            record_name?: string;
+            record_id?: string;
+            record_url?: string;
+            fields?: Record<string, string | number | boolean | null>;
+            changes?: DetectedApprovalData["changes"];
+          }) => {
+            // Use changes if available, otherwise convert fields to changes format
+            const opChanges = normalizeChanges(op.changes);
+            const changes =
+              opChanges && opChanges.length > 0
+                ? opChanges
+                : op.fields
+                  ? Object.entries(op.fields).map(([field, value]) => ({
+                      field,
+                      after: value,
+                    }))
+                  : [];
+            return {
+              recordId: op.record_id || `record-${op.record_name || "unknown"}`,
+              recordName: op.record_name || "Unknown",
+              recordUrl: op.record_url,
+              changes,
+            };
+          },
+        )
+      : undefined;
+
     return {
       toolCallId,
       summary: parsed.summary,
@@ -376,6 +483,7 @@ function detectApprovalFromArgs(
       fields: !isBulk ? firstOp?.fields : undefined,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
+      bulkRecords: sfBulkRecords,
       recordCount: isBulk ? ops.length : undefined,
     };
   }
@@ -499,6 +607,8 @@ export interface TransformResult {
   isDeepResearchRunning: boolean;
   /** Whether the response was stopped by the user */
   stoppedByUser: boolean;
+  /** Whether the run went through an approval pause (intermediate RUN_FINISHED) */
+  hadApprovalPause: boolean;
 }
 
 /**
@@ -527,6 +637,7 @@ export function transformAguiToTimelineSteps(
       },
       isDeepResearchRunning: false,
       stoppedByUser: false,
+      hadApprovalPause: false,
     };
   }
 
@@ -1375,6 +1486,7 @@ export function transformAguiToTimelineSteps(
     },
     isDeepResearchRunning,
     stoppedByUser,
+    hadApprovalPause: sawRunFinishedWithPendingApproval,
   };
 }
 

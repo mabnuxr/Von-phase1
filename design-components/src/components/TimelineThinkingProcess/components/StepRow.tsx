@@ -169,10 +169,46 @@ export const StepRow = React.memo<StepRowProps>(
                         approval={approvalWithUrl}
                         onApproveRecord={onApproveRecord || (() => {})}
                         onRejectRecord={onRejectRecord || (() => {})}
-                        onApproveAll={onApproveAll || (() => {})}
-                        onRejectAll={onRejectAll || (() => {})}
+                        onApproveAll={() => {
+                          if (import.meta.env.DEV) {
+                            console.log('[StepRow] BulkApprovalCard onApproveAll called', {
+                              hasOnApproveAll: !!onApproveAll,
+                              hasOnApprove: !!onApprove,
+                            });
+                          }
+                          if (onApproveAll) {
+                            onApproveAll();
+                          } else if (onApprove) {
+                            onApprove();
+                          }
+                        }}
+                        onRejectAll={() => {
+                          if (import.meta.env.DEV) {
+                            console.log('[StepRow] BulkApprovalCard onRejectAll called', {
+                              hasOnRejectAll: !!onRejectAll,
+                              hasOnReject: !!onReject,
+                            });
+                          }
+                          if (onRejectAll) {
+                            onRejectAll();
+                          } else if (onReject) {
+                            onReject();
+                          }
+                        }}
                         approvedRecordIds={approvedRecordIds}
                         rejectedRecordIds={rejectedRecordIds}
+                        isApproved={
+                          (isLocallyApproved || step.status === 'complete') &&
+                          step.status !== 'error' &&
+                          step.status !== 'rejected' &&
+                          !step.rejectionReason
+                        }
+                        isRejected={
+                          isLocallyRejected ||
+                          step.status === 'error' ||
+                          step.status === 'rejected' ||
+                          !!step.rejectionReason
+                        }
                       />
                     ) : (
                       <CompactApprovalCard
@@ -181,9 +217,16 @@ export const StepRow = React.memo<StepRowProps>(
                         onReject={onReject || (() => {})}
                         isApproved={
                           (isLocallyApproved || step.status === 'complete') &&
-                          step.status !== 'error'
+                          step.status !== 'error' &&
+                          step.status !== 'rejected' &&
+                          !step.rejectionReason
                         }
-                        isRejected={isLocallyRejected || step.status === 'error'}
+                        isRejected={
+                          isLocallyRejected ||
+                          step.status === 'error' ||
+                          step.status === 'rejected' ||
+                          !!step.rejectionReason
+                        }
                         defaultExpanded={defaultApprovalExpanded}
                       />
                     ))}
