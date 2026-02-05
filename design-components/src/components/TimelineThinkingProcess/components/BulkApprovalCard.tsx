@@ -1,15 +1,7 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CaretDownIcon,
-  CaretRightIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  CheckIcon,
-  XIcon,
-  CalendarIcon,
-} from '@phosphor-icons/react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { CalendarIcon } from '@phosphor-icons/react';
 import type { ApprovalData, BulkOperation } from '../types';
+import { BulkUpdateItemRow } from './BulkUpdateItemRow';
 
 // ============================================================================
 // Salesforce Icon
@@ -61,159 +53,6 @@ function getBulkApprovalLabel(source: BulkApprovalSource): string {
 }
 
 // ============================================================================
-// Truncated Text with Tooltip
-// ============================================================================
-
-interface TruncatedTextProps {
-  text: string;
-  maxLength?: number;
-  className?: string;
-}
-
-const TruncatedText: React.FC<TruncatedTextProps> = ({ text, maxLength = 40, className = '' }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const shouldTruncate = text.length > maxLength;
-  const displayText = shouldTruncate ? `${text.slice(0, maxLength)}...` : text;
-
-  if (!shouldTruncate) {
-    return <span className={className}>{text}</span>;
-  }
-
-  return (
-    <span
-      className={`relative ${className}`}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <span className="cursor-help">{displayText}</span>
-      <AnimatePresence>
-        {showTooltip && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.15 }}
-            className="absolute z-50 left-0 top-full mt-1 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg"
-            style={{ maxWidth: '480px', width: 'max-content' }}
-          >
-            {text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </span>
-  );
-};
-
-// ============================================================================
-// Bulk Operation Item Row
-// ============================================================================
-
-interface BulkOperationItemRowProps {
-  operation: BulkOperation;
-  isExpanded: boolean;
-  onToggle: () => void;
-  isFirst: boolean;
-}
-
-const BulkOperationItemRow: React.FC<BulkOperationItemRowProps> = ({
-  operation,
-  isExpanded,
-  onToggle,
-  isFirst,
-}) => {
-  const operationLabel =
-    operation.operation === 'delete'
-      ? 'delete'
-      : operation.operation === 'create'
-        ? 'create'
-        : 'update';
-
-  const hasChanges = (operation.changes?.length ?? 0) > 0;
-  const displayFields: Array<{ field: string; before?: unknown; after: unknown }> = hasChanges
-    ? operation.changes!
-    : Object.entries(operation.fields || {}).map(([field, value]) => ({
-        field,
-        after: value,
-      }));
-  const fieldCount = displayFields.length;
-
-  return (
-    <div className={`${!isFirst ? 'border-t border-gray-100' : ''}`}>
-      {/* Accordion Header */}
-      <button
-        onClick={onToggle}
-        className={`w-full flex items-center gap-1.5 px-2 py-2 text-left hover:bg-gray-50 transition-colors cursor-pointer ${isExpanded ? 'border-b border-gray-100' : ''}`}
-      >
-        <span className="flex-shrink-0 text-gray-400">
-          {isExpanded ? (
-            <CaretDownIcon size={12} weight="bold" />
-          ) : (
-            <CaretRightIcon size={12} weight="bold" />
-          )}
-        </span>
-
-        {/* Record name and field count */}
-        <div className="flex-1 min-w-0">
-          <span className="text-[13px] text-gray-900">
-            {operation.record_name} – {operationLabel} {fieldCount} field
-            {fieldCount !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {/* Object type badge */}
-        <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded flex-shrink-0">
-          {operation.sobject_type}
-        </span>
-      </button>
-
-      {/* Expanded Content */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden"
-          >
-            <div className="px-2 py-2 bg-gray-50/50">
-              {/* Fields List */}
-              <div className="divide-y divide-gray-100">
-                {displayFields.map((field, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 text-[12px] py-2 first:pt-0 last:pb-0"
-                  >
-                    <span className="text-gray-800 min-w-[80px] font-medium flex-shrink-0">
-                      {field.field}
-                    </span>
-                    {field.before !== undefined && field.before !== null && (
-                      <TruncatedText
-                        text={String(field.before)}
-                        maxLength={40}
-                        className="text-red-500 line-through"
-                      />
-                    )}
-                    {field.before !== undefined && field.before !== null && (
-                      <span className="text-gray-300 flex-shrink-0">→</span>
-                    )}
-                    <TruncatedText
-                      text={String(field.after ?? '')}
-                      maxLength={40}
-                      className="text-gray-900 font-medium"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// ============================================================================
 // Bulk Approval Card Props
 // ============================================================================
 
@@ -232,10 +71,20 @@ export interface BulkApprovalCardProps {
 export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
   ({ approval, onApprove, onReject, isApproved, isRejected }) => {
     const listRef = useRef<HTMLDivElement>(null);
-    const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
-    const operations = approval.operations || [];
-    const recordCount = operations.length;
+    // Initialize operations with pending status
+    const [operations, setOperations] = useState<BulkOperation[]>(() =>
+      (approval.operations || []).map((op) => ({ ...op, status: op.status || 'pending' }))
+    );
+
+    // Resynchronize operations when approval.operations changes (e.g., new message arrives)
+    useEffect(() => {
+      setOperations(
+        (approval.operations || []).map((op) => ({ ...op, status: op.status || 'pending' }))
+      );
+    }, [approval.operations]);
+
+    const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
     // Detect the source type (Salesforce vs Calendar)
     const source = detectBulkApprovalSource(approval);
@@ -260,49 +109,93 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
           )
         : SalesforceIcon;
 
-    const handleApprove = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onApprove();
+    // Count pending operations
+    const pendingCount = operations.filter((op) => op.status === 'pending').length;
+    const hasNoPending = pendingCount === 0;
+
+    // Individual item handlers
+    const handleUpdateItem = useCallback(
+      (index: number) => {
+        setOperations((prev) =>
+          prev.map((op, idx) => (idx === index ? { ...op, status: 'success' as const } : op))
+        );
+
+        // Auto-expand next pending item
+        const nextPendingIndex = operations.findIndex(
+          (op, idx) => idx > index && op.status === 'pending'
+        );
+        if (nextPendingIndex !== -1) {
+          setExpandedIndex(nextPendingIndex);
+        }
       },
-      [onApprove]
+      [operations]
     );
 
-    const handleReject = useCallback(
-      (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onReject();
+    const handleRejectItem = useCallback(
+      (index: number) => {
+        setOperations((prev) =>
+          prev.map((op, idx) => (idx === index ? { ...op, status: 'rejected' as const } : op))
+        );
+
+        // Auto-expand next pending item
+        const nextPendingIndex = operations.findIndex(
+          (op, idx) => idx > index && op.status === 'pending'
+        );
+        if (nextPendingIndex !== -1) {
+          setExpandedIndex(nextPendingIndex);
+        }
       },
-      [onReject]
+      [operations]
     );
+
+    // Bulk handlers
+    const handleApproveAll = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Mark all pending items as success
+      setOperations((prev) =>
+        prev.map((op) => (op.status === 'pending' ? { ...op, status: 'success' as const } : op))
+      );
+    }, []);
+
+    const handleRejectAll = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Mark all pending items as rejected
+      setOperations((prev) =>
+        prev.map((op) => (op.status === 'pending' ? { ...op, status: 'rejected' as const } : op))
+      );
+    }, []);
 
     const handleToggleItem = useCallback((index: number) => {
       setExpandedIndex((prev) => (prev === index ? null : index));
     }, []);
 
-    // Show approved/rejected state
+    // When all items are processed, call the main approval/rejection handler
+    useEffect(() => {
+      if (hasNoPending && !isApproved && !isRejected) {
+        const hasAnySuccess = operations.some((op) => op.status === 'success');
+        const allRejected = operations.every((op) => op.status === 'rejected');
+
+        if (allRejected) {
+          // All items were rejected/skipped
+          onReject();
+        } else if (hasAnySuccess) {
+          // At least one item was approved
+          onApprove();
+        }
+      }
+    }, [hasNoPending, operations, isApproved, isRejected, onApprove, onReject]);
+
+    // Show approved/rejected state (final state from backend)
     if (isApproved || isRejected) {
+      const recordCount = operations.length;
       return (
         <div className="mt-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex items-center gap-2">
             <SourceIcon size={16} />
-            {isApproved ? (
-              <>
-                <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />
-                <span className="text-[12px] font-medium text-emerald-700">
-                  {recordCount} {sourceLabel}
-                  {recordCount !== 1 ? 's' : ''} approved
-                </span>
-              </>
-            ) : (
-              <>
-                <XCircleIcon size={14} weight="fill" className="text-red-500" />
-                <span className="text-[12px] font-medium text-red-600">
-                  {recordCount} {sourceLabel}
-                  {recordCount !== 1 ? 's' : ''} rejected
-                </span>
-              </>
-            )}
+            <span className="text-[12px] font-medium text-gray-700">
+              {recordCount} {sourceLabel}
+              {recordCount !== 1 ? 's' : ''} {isApproved ? 'processed' : 'skipped'}
+            </span>
           </div>
         </div>
       );
@@ -315,8 +208,8 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
           <div className="flex items-center gap-2">
             <SourceIcon size={18} />
             <span className="text-[13px] font-medium text-gray-900">
-              {recordCount} {sourceLabel}
-              {recordCount !== 1 ? 's' : ''} to {operationLabel}
+              {operations.length} {sourceLabel}
+              {operations.length !== 1 ? 's' : ''} to {operationLabel}
             </span>
           </div>
         </div>
@@ -328,36 +221,38 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
         <div
           ref={listRef}
           className="border border-gray-200 rounded-lg overflow-hidden overflow-y-auto bg-white"
-          style={{ maxHeight: '300px' }}
+          style={{ maxHeight: '400px' }}
         >
           {operations.map((operation, idx) => (
-            <BulkOperationItemRow
+            <BulkUpdateItemRow
               key={idx}
               operation={operation}
               isExpanded={expandedIndex === idx}
               onToggle={() => handleToggleItem(idx)}
+              _onUpdate={() => handleUpdateItem(idx)}
+              _onReject={() => handleRejectItem(idx)}
               isFirst={idx === 0}
             />
           ))}
         </div>
 
-        {/* Bulk Action Buttons */}
-        <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-amber-200">
-          <button
-            onClick={handleReject}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <XIcon size={12} weight="bold" />
-            Reject All
-          </button>
-          <button
-            onClick={handleApprove}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            <CheckIcon size={12} weight="bold" />
-            Accept All
-          </button>
-        </div>
+        {/* Bulk Action Buttons - only show when there are pending items */}
+        {pendingCount > 0 && (
+          <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-amber-200">
+            <button
+              onClick={handleRejectAll}
+              className="px-3 py-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              Reject All
+            </button>
+            <button
+              onClick={handleApproveAll}
+              className="px-3 py-1.5 text-[11px] font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              Approve All
+            </button>
+          </div>
+        )}
       </div>
     );
   }

@@ -5,6 +5,7 @@ import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
 import { ApprovalCard } from './ApprovalCard';
+import { buildSalesforceDeepLink } from '../utils/salesforceDeepLink';
 
 // ============================================================================
 // Component
@@ -32,6 +33,7 @@ export const StepRow = React.memo<StepRowProps>(
     onArtifactClick,
     isLocallyApproved,
     isLocallyRejected,
+    salesforceInstanceUrl,
   }) => {
     // Don't show expandable content for final response steps (shown below timeline)
     const isFinalResponse = (step as unknown as { isFinalResponse?: boolean }).isFinalResponse;
@@ -134,17 +136,37 @@ export const StepRow = React.memo<StepRowProps>(
                   )}
 
                   {/* Approval card */}
-                  {step.approval && (
-                    <ApprovalCard
-                      approval={step.approval}
-                      onApprove={onApprove || (() => {})}
-                      onReject={onReject || (() => {})}
-                      isApproved={
-                        (isLocallyApproved || step.status === 'complete') && step.status !== 'error'
-                      }
-                      isRejected={isLocallyRejected || step.status === 'error'}
-                    />
-                  )}
+                  {step.approval &&
+                    (() => {
+                      // Build recordUrl from recordId if available
+                      const recordUrl = step.approval.recordId
+                        ? buildSalesforceDeepLink(
+                            salesforceInstanceUrl,
+                            step.approval.objectType,
+                            step.approval.recordId
+                          )
+                        : undefined;
+
+                      // Enrich approval data with recordUrl
+                      const enrichedApproval = recordUrl
+                        ? { ...step.approval, recordUrl }
+                        : step.approval;
+
+                      // Normalize rejection status (both 'error' and 'rejected' mean rejected)
+                      const isStepRejected = step.status === 'error' || step.status === 'rejected';
+                      const isStepApproved =
+                        !isStepRejected && (step.status === 'complete' || isLocallyApproved);
+
+                      return (
+                        <ApprovalCard
+                          approval={enrichedApproval}
+                          onApprove={onApprove || (() => {})}
+                          onReject={onReject || (() => {})}
+                          isApproved={isStepApproved}
+                          isRejected={isLocallyRejected || isStepRejected}
+                        />
+                      );
+                    })()}
 
                   {/* Code block preview - disabled
                   {step.code && (

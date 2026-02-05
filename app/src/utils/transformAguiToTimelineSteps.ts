@@ -111,12 +111,14 @@ interface DetectedApprovalData {
   summary: string;
   objectType: string;
   recordName?: string;
+  recordId?: string;
   operation: "create" | "update" | "delete";
   changes?: Array<{
     field: string;
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
+  fields?: Record<string, string | number | boolean | null>;
   approvalType:
     | "salesforce"
     | "calendar"
@@ -138,6 +140,56 @@ interface DetectedApprovalData {
 }
 
 /**
+ * Normalize changes array: convert old_value/new_value to before/after for consistency.
+ * Backend normalization may not reach frontend if TOOL_CALL_ARGS is emitted before validation.
+ */
+function normalizeChanges(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  changes: any[] | undefined,
+):
+  | Array<{
+      field: string;
+      before?: string | number | boolean | null;
+      after: string | number | boolean | null;
+      display_name?: string;
+    }>
+  | undefined {
+  if (!changes || changes.length === 0) return changes;
+
+  return changes.map((change) => {
+    const normalized: {
+      field: string;
+      before?: string | number | boolean | null;
+      after: string | number | boolean | null;
+      display_name?: string;
+    } = {
+      field: change.field,
+      after: null, // Default to null (required field)
+    };
+
+    // Prefer 'before' but fallback to 'old_value'
+    if ("before" in change) {
+      normalized.before = change.before;
+    } else if ("old_value" in change) {
+      normalized.before = change.old_value;
+    }
+
+    // Prefer 'after' but fallback to 'new_value', default to null
+    if ("after" in change && change.after !== undefined) {
+      normalized.after = change.after;
+    } else if ("new_value" in change && change.new_value !== undefined) {
+      normalized.after = change.new_value;
+    }
+
+    if (change.display_name) {
+      normalized.display_name = change.display_name;
+    }
+
+    return normalized;
+  });
+}
+
+/**
  * Generic approval detection from tool arguments
  * Supports: Salesforce, Google Calendar, Bulk operations, and generic approvals
  *
@@ -156,10 +208,11 @@ function detectApprovalFromArgs(
     const isBulk = ops.length > 1;
     const firstOp = ops[0];
 
-    // Detect if this is Google Calendar (has start_datetime or calendar_id)
+    // Detect if this is Google Calendar (has calendar-specific fields)
     const isCalendar =
       firstOp?.start_datetime ||
       firstOp?.calendar_id ||
+      firstOp?.event_id ||
       firstOp?.attendees_emails;
 
     if (isCalendar) {
@@ -214,12 +267,46 @@ function detectApprovalFromArgs(
                   (op.operation as "create" | "update" | "delete") || "create",
                 sobject_type: "Calendar Event",
                 record_name: op.summary || op.event_summary || "Event",
-                changes: op.changes,
+                changes: normalizeChanges(op.changes),
                 fields: Object.keys(fields).length > 0 ? fields : undefined,
               };
             },
           )
         : undefined;
+
+      // Build fields for single calendar operation
+      let calendarFields:
+        | Record<string, string | number | boolean | null>
+        | undefined = undefined;
+      if (!isBulk && firstOp) {
+        const fields: Record<string, string | number | boolean | null> =
+          firstOp.fields || {};
+
+        // Add calendar-specific fields
+        if (firstOp.start_datetime && !fields["Start"]) {
+          fields["Start"] = firstOp.start_datetime;
+        }
+        if (firstOp.end_datetime && !fields["End"]) {
+          fields["End"] = firstOp.end_datetime;
+        }
+        if (firstOp.duration_minutes && !fields["Duration"]) {
+          fields["Duration"] = `${firstOp.duration_minutes} minutes`;
+        }
+        if (firstOp.attendees?.length && !fields["Attendees"]) {
+          fields["Attendees"] = firstOp.attendees.join(", ");
+        }
+        if (firstOp.attendees_emails?.length && !fields["Attendees"]) {
+          fields["Attendees"] = firstOp.attendees_emails.join(", ");
+        }
+        if (firstOp.location && !fields["Location"]) {
+          fields["Location"] = firstOp.location;
+        }
+        if (firstOp.description && !fields["Description"]) {
+          fields["Description"] = firstOp.description;
+        }
+
+        calendarFields = Object.keys(fields).length > 0 ? fields : undefined;
+      }
 
       return {
         toolCallId,
@@ -230,11 +317,14 @@ function detectApprovalFromArgs(
           : firstOp?.summary || firstOp?.event_summary,
         operation: firstOp?.operation || "create",
         changes: isBulk
-          ? ops.flatMap(
-              (op: { changes?: DetectedApprovalData["changes"] }) =>
-                op.changes || [],
+          ? normalizeChanges(
+              ops.flatMap(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (op: any) => op.changes || [],
+              ),
             )
-          : firstOp?.changes,
+          : normalizeChanges(firstOp?.changes),
+        fields: !isBulk ? calendarFields : undefined,
         approvalType: isBulk ? "bulk" : "calendar",
         operations: calendarBulkOperations,
         recordCount: isBulk ? ops.length : undefined,
@@ -249,6 +339,7 @@ function detectApprovalFromArgs(
             operation?: string;
             sobject_type?: string;
             record_name?: string;
+            record_id?: string;
             fields?: Record<string, string | number | boolean | null>;
             changes?: DetectedApprovalData["changes"];
           }) => ({
@@ -256,8 +347,9 @@ function detectApprovalFromArgs(
               (op.operation as "create" | "update" | "delete") || "update",
             sobject_type: op.sobject_type || "Record",
             record_name: op.record_name || "Unknown",
+            record_id: op.record_id,
             fields: op.fields,
-            changes: op.changes,
+            changes: normalizeChanges(op.changes),
           }),
         )
       : undefined;
@@ -271,13 +363,17 @@ function detectApprovalFromArgs(
       recordName: isBulk
         ? `${ops.length} records to ${firstOp?.operation || "update"}`
         : firstOp?.record_name,
+      recordId: !isBulk ? firstOp?.record_id : undefined,
       operation: firstOp?.operation || "update",
       changes: isBulk
-        ? ops.flatMap(
-            (op: { changes?: DetectedApprovalData["changes"] }) =>
-              op.changes || [],
+        ? normalizeChanges(
+            ops.flatMap(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (op: any) => op.changes || [],
+            ),
           )
-        : firstOp?.changes,
+        : normalizeChanges(firstOp?.changes),
+      fields: !isBulk ? firstOp?.fields : undefined,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
       recordCount: isBulk ? ops.length : undefined,
@@ -293,6 +389,30 @@ function detectApprovalFromArgs(
       parsed.calendar_id ||
       parsed.attendees)
   ) {
+    // Build fields object from calendar properties
+    const fields: Record<string, string | number | boolean | null> = {};
+
+    if (parsed.start_datetime) {
+      fields["Start"] = parsed.start_datetime;
+    }
+    if (parsed.end_datetime) {
+      fields["End"] = parsed.end_datetime;
+    }
+    if (parsed.duration_minutes) {
+      fields["Duration"] = `${parsed.duration_minutes} minutes`;
+    }
+    if (parsed.attendees?.length) {
+      fields["Attendees"] = Array.isArray(parsed.attendees)
+        ? parsed.attendees.join(", ")
+        : parsed.attendees;
+    }
+    if (parsed.location) {
+      fields["Location"] = parsed.location;
+    }
+    if (parsed.description) {
+      fields["Description"] = parsed.description;
+    }
+
     return {
       toolCallId,
       summary: parsed.summary,
@@ -300,6 +420,7 @@ function detectApprovalFromArgs(
       recordName: parsed.event_summary || parsed.title || parsed.summary,
       operation: parsed.operation || "create",
       changes: parsed.changes,
+      fields: Object.keys(fields).length > 0 ? fields : undefined,
       approvalType: "calendar",
     };
   }
@@ -427,6 +548,8 @@ export function transformAguiToTimelineSteps(
   const deniedToolCallIds = new Set<string>();
   // Accumulate tool arguments
   const toolArgsMap = new Map<string, string>();
+  // Accumulate tool results (for chunked TOOL_CALL_RESULT events)
+  const toolCallResultMap = new Map<string, string>();
   // Track the current active step (from STEP_STARTED, for tool calls only)
   let currentStep: TimelineStep | null = null;
   let currentStepNumber: number | null = null;
@@ -683,22 +806,29 @@ export function transformAguiToTimelineSteps(
         }
 
         if (!step) {
-          // No STEP_STARTED - create a step for this tool call
-          // Use a unique step number based on tool_call_id hash
-          stepNum = steps.length + 1000; // Offset to avoid conflicts
-          const stepId = `tool-${toolId || stepNum}`;
+          // Check if we already have a step for this tool_call_id (deduplication)
+          if (toolId) {
+            step = toolCallToStepDirectMap.get(toolId);
+          }
 
-          step = {
-            id: stepId,
-            text: "",
-            status: "in-progress" as StepStatus,
-            type: "tool_call" as StepType,
-            source: getToolSource(toolName),
-            description: "",
-          };
+          if (!step) {
+            // No STEP_STARTED and no existing step - create a new step for this tool call
+            // Use a unique step number based on tool_call_id hash
+            stepNum = steps.length + 1000; // Offset to avoid conflicts
+            const stepId = `tool-${toolId || stepNum}`;
 
-          stepNumberMap.set(stepNum, step);
-          steps.push(step);
+            step = {
+              id: stepId,
+              text: "",
+              status: "in-progress" as StepStatus,
+              type: "tool_call" as StepType,
+              source: getToolSource(toolName),
+              description: "",
+            };
+
+            stepNumberMap.set(stepNum, step);
+            steps.push(step);
+          }
 
           // Mark current reasoning step as complete
           if (currentTextStep) {
@@ -847,92 +977,190 @@ export function transformAguiToTimelineSteps(
         // Use step_number from event for proper correlation in interleaved scenarios
         const eventStepNumber = (event as { step_number?: number }).step_number;
 
-        // Check for denied approval - track the tool call ID
-        const contentStr = event.content?.trim() || "";
-        const isDenied =
-          contentStr.includes("tool call was denied") ||
-          contentStr.includes("Tool call was denied");
-        if (isDenied && toolId) {
-          deniedToolCallIds.add(toolId);
-        }
-
         if (toolId) {
-          // Priority: 1) direct map, 2) step_number from event, 3) toolCallToStepMap lookup
-          let step = toolCallToStepDirectMap.get(toolId);
-          if (!step) {
-            let stepNumber = eventStepNumber;
-            if (stepNumber === undefined) {
-              stepNumber = toolCallToStepMap.get(toolId);
-            }
-            step =
-              stepNumber !== undefined
-                ? stepNumberMap.get(stepNumber)
-                : undefined;
-          }
+          // Handle both delta (chunked) and content (non-chunked) fields
+          if (event.delta) {
+            // Chunked result - accumulate deltas
+            const currentResult = toolCallResultMap.get(toolId) || "";
+            toolCallResultMap.set(toolId, currentResult + event.delta);
 
-          if (step) {
-            // Check for denied approval tool call first
-            if (isDenied) {
-              step.status = "error" as StepStatus;
-              break;
+            // Try to parse accumulated result (may be incomplete)
+            const accumulated = toolCallResultMap.get(toolId) || "";
+
+            // Find the step for this tool call
+            let step = toolCallToStepDirectMap.get(toolId);
+            if (!step) {
+              let stepNumber = eventStepNumber;
+              if (stepNumber === undefined) {
+                stepNumber = toolCallToStepMap.get(toolId);
+              }
+              step =
+                stepNumber !== undefined
+                  ? stepNumberMap.get(stepNumber)
+                  : undefined;
             }
 
-            // Handle approval tool results that were accepted
-            // Still need to check for failures in the tool execution result
-            if (step.status === "awaiting-approval") {
+            if (step) {
               try {
-                const result = event.content ? JSON.parse(event.content) : {};
-                if (
-                  result.approved === false ||
-                  result.error ||
-                  result.success === false ||
-                  result._artifact?.success === false
-                ) {
-                  step.status = "error" as StepStatus;
+                const result = JSON.parse(accumulated);
+
+                // Parse and update step (same logic as content handling)
+                if (step.status === "awaiting-approval") {
+                  // Handle approval results
+                  if (result.approved === true) {
+                    step.status = "complete" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  } else if (result.approved === false) {
+                    // User rejected - use 'rejected' status and store reason
+                    step.status = "rejected" as StepStatus;
+                    step.rejectionReason =
+                      result.message || "Operation rejected by user";
+                    toolCallResultMap.delete(toolId);
+                  } else if (result.success === false || result.error) {
+                    // System error - use 'error' status and store error message
+                    step.status = "error" as StepStatus;
+                    step.errorMessage =
+                      result.error || result.message || "Operation failed";
+                    toolCallResultMap.delete(toolId);
+                  } else {
+                    step.status = "complete" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  }
                 } else {
-                  step.status = "complete" as StepStatus;
+                  // Handle non-approval tool results
+                  if (result._artifact) {
+                    if (result._artifact.success) {
+                      step.status = "complete" as StepStatus;
+                      step.artifact = {
+                        artifact_id: result._artifact.artifact_id,
+                        run_id: result._artifact.run_id,
+                        tool_name: result._artifact.tool_name,
+                        artifact_type: result._artifact.artifact_type,
+                      };
+                      toolCallResultMap.delete(toolId);
+                    } else {
+                      // Remove failed step from steps array
+                      const stepIndex = steps.indexOf(step);
+                      if (stepIndex !== -1) {
+                        steps.splice(stepIndex, 1);
+                      }
+                      toolCallResultMap.delete(toolId);
+                    }
+                  } else if (result.success === false) {
+                    // Remove failed step from steps array
+                    const stepIndex = steps.indexOf(step);
+                    if (stepIndex !== -1) {
+                      steps.splice(stepIndex, 1);
+                    }
+                    toolCallResultMap.delete(toolId);
+                  } else {
+                    step.status = "complete" as StepStatus;
+                    toolCallResultMap.delete(toolId);
+                  }
                 }
               } catch {
-                // If we can't parse the content, assume success (approval was accepted)
-                step.status = "complete" as StepStatus;
+                // JSON incomplete, continue accumulating
+                // Don't update step status yet - wait for more chunks
               }
-              break;
+            }
+          } else if (event.content) {
+            // Non-chunked result (backward compatibility)
+            const contentStr = event.content.trim();
+            const isDenied =
+              contentStr.includes("tool call was denied") ||
+              contentStr.includes("Tool call was denied");
+            if (isDenied) {
+              deniedToolCallIds.add(toolId);
             }
 
-            // Handle non-approval tool results
-            try {
-              const result = event.content ? JSON.parse(event.content) : {};
+            // Find the step for this tool call
+            let step = toolCallToStepDirectMap.get(toolId);
+            if (!step) {
+              let stepNumber = eventStepNumber;
+              if (stepNumber === undefined) {
+                stepNumber = toolCallToStepMap.get(toolId);
+              }
+              step =
+                stepNumber !== undefined
+                  ? stepNumberMap.get(stepNumber)
+                  : undefined;
+            }
 
-              // Check for artifact (success case)
-              if (result._artifact) {
-                if (result._artifact.success) {
+            if (step) {
+              // Check for denied approval tool call first
+              if (isDenied) {
+                step.status = "error" as StepStatus;
+                break;
+              }
+
+              // Handle approval tool results that were accepted
+              if (step.status === "awaiting-approval") {
+                try {
+                  const result = JSON.parse(event.content);
+
+                  // Trust backend's explicit approval status
+                  if (result.approved === true) {
+                    step.status = "complete" as StepStatus;
+                  } else if (result.approved === false) {
+                    // User rejected - use 'rejected' status and store reason
+                    step.status = "rejected" as StepStatus;
+                    step.rejectionReason =
+                      result.message || "Operation rejected by user";
+                  } else if (result.success === false || result.error) {
+                    // Fallback for execution errors (not approval decisions)
+                    step.status = "error" as StepStatus;
+                    step.errorMessage =
+                      result.error || result.message || "Operation failed";
+                  } else {
+                    // Default to complete for backwards compatibility
+                    step.status = "complete" as StepStatus;
+                  }
+                } catch (e) {
+                  // Log parse errors instead of silently defaulting
+                  console.warn(
+                    "[transformAguiToTimelineSteps] Failed to parse approval result:",
+                    e,
+                  );
                   step.status = "complete" as StepStatus;
-                  // Store artifact metadata for clickable links
-                  // Display name is derived in the component from tool_name
-                  step.artifact = {
-                    artifact_id: result._artifact.artifact_id,
-                    run_id: result._artifact.run_id,
-                    tool_name: result._artifact.tool_name,
-                    artifact_type: result._artifact.artifact_type,
-                  };
-                } else {
+                }
+                break;
+              }
+
+              // Handle non-approval tool results
+              try {
+                const result = JSON.parse(event.content);
+
+                // Check for artifact (success case)
+                if (result._artifact) {
+                  if (result._artifact.success) {
+                    step.status = "complete" as StepStatus;
+                    // Store artifact metadata for clickable links
+                    // Display name is derived in the component from tool_name
+                    step.artifact = {
+                      artifact_id: result._artifact.artifact_id,
+                      run_id: result._artifact.run_id,
+                      tool_name: result._artifact.tool_name,
+                      artifact_type: result._artifact.artifact_type,
+                    };
+                  } else {
+                    // Remove failed step from steps array
+                    const stepIndex = steps.indexOf(step);
+                    if (stepIndex !== -1) {
+                      steps.splice(stepIndex, 1);
+                    }
+                  }
+                } else if (result.success === false) {
                   // Remove failed step from steps array
                   const stepIndex = steps.indexOf(step);
                   if (stepIndex !== -1) {
                     steps.splice(stepIndex, 1);
                   }
+                } else {
+                  step.status = "complete" as StepStatus;
                 }
-              } else if (result.success === false) {
-                // Remove failed step from steps array
-                const stepIndex = steps.indexOf(step);
-                if (stepIndex !== -1) {
-                  steps.splice(stepIndex, 1);
-                }
-              } else {
+              } catch {
                 step.status = "complete" as StepStatus;
               }
-            } catch {
-              step.status = "complete" as StepStatus;
             }
           }
         }
@@ -1062,6 +1290,74 @@ export function transformAguiToTimelineSteps(
         step.status = "error" as StepStatus;
       }
     }
+  }
+
+  // Finalize any pending tool call results that were being accumulated
+  // This handles cases where chunked results didn't complete during streaming
+  if (toolCallResultMap.size > 0) {
+    for (const [toolId, accumulatedResult] of toolCallResultMap) {
+      const step = toolCallToStepDirectMap.get(toolId);
+      if (step && accumulatedResult) {
+        try {
+          const result = JSON.parse(accumulatedResult);
+
+          // Handle approval results
+          if (step.status === "awaiting-approval") {
+            if (result.approved === true) {
+              step.status = "complete" as StepStatus;
+            } else if (result.approved === false) {
+              // User rejected - use 'rejected' status and store reason
+              step.status = "rejected" as StepStatus;
+              step.rejectionReason =
+                result.message || "Operation rejected by user";
+            } else if (result.success === false || result.error) {
+              // System error - use 'error' status and store error message
+              step.status = "error" as StepStatus;
+              step.errorMessage =
+                result.error || result.message || "Operation failed";
+            } else {
+              step.status = "complete" as StepStatus;
+            }
+          } else {
+            // Handle non-approval tool results
+            if (result._artifact) {
+              if (result._artifact.success) {
+                step.status = "complete" as StepStatus;
+                step.artifact = {
+                  artifact_id: result._artifact.artifact_id,
+                  run_id: result._artifact.run_id,
+                  tool_name: result._artifact.tool_name,
+                  artifact_type: result._artifact.artifact_type,
+                };
+              } else {
+                // Remove failed step from steps array
+                const stepIndex = steps.indexOf(step);
+                if (stepIndex !== -1) {
+                  steps.splice(stepIndex, 1);
+                }
+              }
+            } else if (result.success === false) {
+              // Remove failed step from steps array
+              const stepIndex = steps.indexOf(step);
+              if (stepIndex !== -1) {
+                steps.splice(stepIndex, 1);
+              }
+            } else {
+              step.status = "complete" as StepStatus;
+            }
+          }
+        } catch {
+          // Failed to parse accumulated result
+          console.warn(
+            "[transformAguiToTimelineSteps] Failed to parse accumulated result for tool:",
+            toolId,
+          );
+          // Mark as complete anyway to avoid stuck UI
+          step.status = "complete" as StepStatus;
+        }
+      }
+    }
+    toolCallResultMap.clear();
   }
 
   return {

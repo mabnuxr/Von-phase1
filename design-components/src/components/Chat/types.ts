@@ -354,7 +354,8 @@ export interface ToolCallResultEvent {
   type: 'TOOL_CALL_RESULT';
   message_id: string;
   tool_call_id: string;
-  content: string;
+  content?: string; // Optional for backward compatibility (non-chunked results)
+  delta?: string; // Optional for chunked results (accumulate across multiple events)
   role: 'tool';
   /** Step number for correlating tool calls with steps in interleaved scenarios */
   step_number?: number;

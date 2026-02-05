@@ -26,7 +26,8 @@ export type StepStatus =
   | 'complete'
   | 'warning'
   | 'error'
-  | 'awaiting-approval';
+  | 'awaiting-approval'
+  | 'rejected';
 
 /**
  * Single operation in a bulk approval request
@@ -35,12 +36,14 @@ export interface BulkOperation {
   operation: 'create' | 'update' | 'delete';
   sobject_type: string;
   record_name: string;
+  record_id?: string;
   fields?: Record<string, string | number | boolean | null>;
   changes?: Array<{
     field: string;
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
+  status?: 'pending' | 'updating' | 'success' | 'rejected';
 }
 
 /**
@@ -52,12 +55,16 @@ export interface ApprovalData {
   summary: string;
   objectType: string;
   recordName?: string;
+  recordId?: string;
+  recordUrl?: string;
   operation: 'create' | 'update' | 'delete';
   changes?: Array<{
     field: string;
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
   }>;
+  /** Fields for CREATE operations (initial values without before/after) */
+  fields?: Record<string, string | number | boolean | null>;
   /** The type of approval - salesforce, calendar, bulk, deep_research, generic, etc. */
   approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'deep_research' | 'generic';
   /** Number of records for bulk operations */
@@ -124,6 +131,14 @@ export interface TimelineStep {
    * Approval data for approval steps
    */
   approval?: ApprovalData;
+  /**
+   * Rejection reason when status is 'rejected' (user-provided explanation)
+   */
+  rejectionReason?: string;
+  /**
+   * Error message when status is 'error' (system failure message)
+   */
+  errorMessage?: string;
   /**
    * Event category
    */
@@ -221,6 +236,12 @@ export interface TimelineThinkingProcessProps {
     artifactType: string,
     runId: string
   ) => void;
+
+  /**
+   * Salesforce instance URL for building deep links in approval cards
+   * Example: "https://mycompany.my.salesforce.com"
+   */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -244,6 +265,10 @@ export interface StepRowProps {
   isLocallyApproved?: boolean;
   /** Whether this step was locally rejected (optimistic UI) */
   isLocallyRejected?: boolean;
+  /**
+   * Salesforce instance URL for building deep links
+   */
+  salesforceInstanceUrl?: string;
 }
 
 /**
@@ -255,6 +280,19 @@ export interface CollapsedStepRowProps {
 }
 
 /**
+ * Field types for approval card rendering
+ */
+export type ApprovalFieldType =
+  | 'text'
+  | 'long_text'
+  | 'number'
+  | 'currency'
+  | 'date'
+  | 'picklist'
+  | 'multi_picklist'
+  | 'boolean';
+
+/**
  * Props for CompactApprovalCard component
  */
 export interface CompactApprovalCardProps {
@@ -263,6 +301,7 @@ export interface CompactApprovalCardProps {
   onReject: () => void;
   isApproved?: boolean;
   isRejected?: boolean;
+  defaultExpanded?: boolean;
 }
 
 /**
@@ -270,4 +309,7 @@ export interface CompactApprovalCardProps {
  */
 export interface StepIndicatorProps {
   status: StepStatus;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  hasExpandableContent?: boolean;
 }

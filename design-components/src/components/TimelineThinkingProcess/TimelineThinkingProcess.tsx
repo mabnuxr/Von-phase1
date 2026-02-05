@@ -4,7 +4,6 @@ import {
   CheckCircleIcon,
   CaretDownIcon,
   CaretRightIcon,
-  BellIcon,
   SpinnerGapIcon,
 } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
@@ -47,6 +46,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onApprove,
   onReject,
   onArtifactClick,
+  salesforceInstanceUrl,
 }) => {
   // Use custom hook for state management
   const {
@@ -60,7 +60,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     handleToggleCollapse,
     toggleStep,
     handleExpandStep,
-    focusOnStep,
     markAsApproved,
     markAsRejected,
     allComplete,
@@ -150,7 +149,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
 
           {/* Right side */}
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            {/* Approval indicator with bell + shake animation */}
+            {/* DISABLED: Approval badge removed per user request
             {awaitingApprovalStep && (
               <motion.div
                 animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
@@ -165,6 +164,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 <span className="text-xs font-medium">Approval</span>
               </motion.div>
             )}
+            */}
 
             {/* Elapsed time - always shown */}
             <span className="text-xs text-gray-500 tabular-nums">
@@ -213,6 +213,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                             onToggle={() => toggleStep(step.id)}
                             onExpand={() => handleExpandStep(step)}
                             isLast={idx === visibleSteps.length - 1}
+                            salesforceInstanceUrl={salesforceInstanceUrl}
                             onApprove={
                               onApprove
                                 ? () => {
