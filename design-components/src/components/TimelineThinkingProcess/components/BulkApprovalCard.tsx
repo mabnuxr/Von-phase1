@@ -26,7 +26,7 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
   const objectTypeAlreadyIncludesCount = /^\d+\s/.test(approval.objectType);
 
   return (
-    <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+    <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden min-w-0">
       {/* Collapsed header - clickable to expand */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -162,7 +162,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     }
 
     return (
-      <div className="mt-2">
+      <div className="mt-2 min-w-0">
         {/* Header with count */}
         <div className="mb-2">
           <span className="text-sm font-medium text-gray-900">
