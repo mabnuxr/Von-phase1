@@ -384,11 +384,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <div>
                       {/* V2 Thinking Process - TimelineThinkingProcess component */}
                       {thinkingProcessVersion === 'v2' &&
-                        timelineSteps &&
-                        timelineSteps.length > 0 && (
+                        ((timelineSteps && timelineSteps.length > 0) || isStreaming) && (
                           <div className="mb-4">
                             <TimelineThinkingProcess
-                              steps={timelineSteps}
+                              steps={timelineSteps || []}
                               isThinking={isStreaming}
                               isStreaming={isStreaming}
                               autoCollapse={!isStreaming && !!v2FinalResponse}
