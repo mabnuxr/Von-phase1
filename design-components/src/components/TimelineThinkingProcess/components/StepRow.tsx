@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CaretDownIcon, CaretRightIcon, FileTextIcon } from '@phosphor-icons/react';
+import { ArrowsOutIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import type { StepRowProps } from '../types';
 import { StepIndicator } from './StepIndicator';
-import { ApprovalCard } from './ApprovalCard';
+import { CompactApprovalCard } from './CompactApprovalCard';
+import { BulkApprovalCard } from './BulkApprovalCard';
+import { TextShimmer } from './TextShimmer';
 import { buildSalesforceDeepLink } from '../utils/salesforceDeepLink';
 
 // ============================================================================
@@ -33,6 +35,13 @@ export const StepRow = React.memo<StepRowProps>(
     onArtifactClick,
     isLocallyApproved,
     isLocallyRejected,
+    defaultApprovalExpanded = true,
+    onApproveRecord,
+    onRejectRecord,
+    onApproveAll,
+    onRejectAll,
+    approvedRecordIds,
+    rejectedRecordIds,
     salesforceInstanceUrl,
   }) => {
     // Don't show expandable content for final response steps (shown below timeline)
@@ -45,7 +54,7 @@ export const StepRow = React.memo<StepRowProps>(
         !isFinalResponse &&
         !isReasoningStep &&
         (step.description ||
-          // step.code || // Code preview disabled
+          step.code ||
           (step.subSteps && step.subSteps.length > 0) ||
           step.approval ||
           step.artifact),
@@ -53,11 +62,31 @@ export const StepRow = React.memo<StepRowProps>(
         isFinalResponse,
         isReasoningStep,
         step.description,
+        step.code,
         step.subSteps,
         step.approval,
         step.artifact,
       ]
     );
+
+    // Compute approval with fallback recordUrl for Salesforce deep links
+    const approvalWithUrl = useMemo(() => {
+      if (!step.approval) return undefined;
+      // If recordUrl is already provided, use it as-is
+      if (step.approval.recordUrl) return step.approval;
+      // Build fallback URL from objectType and recordId
+      if (step.approval.recordId && step.approval.objectType) {
+        const fallbackUrl = buildSalesforceDeepLink(
+          salesforceInstanceUrl,
+          step.approval.objectType,
+          step.approval.recordId
+        );
+        if (fallbackUrl) {
+          return { ...step.approval, recordUrl: fallbackUrl };
+        }
+      }
+      return step.approval;
+    }, [step.approval, salesforceInstanceUrl]);
 
     // Compute effective status - when locally approved/rejected, show as complete/error
     // This ensures the indicator turns green after approval even before backend updates
@@ -69,52 +98,50 @@ export const StepRow = React.memo<StepRowProps>(
       return step.status;
     }, [isLocallyApproved, isLocallyRejected, step.status]);
 
+    // Determine if text should shimmer (in-progress or awaiting-approval)
+    const shouldShimmer =
+      effectiveStatus === 'in-progress' || effectiveStatus === 'awaiting-approval';
+
     return (
-      <div className="relative flex items-start gap-1">
-        {/* Timeline connector - small dot indicator */}
+      <div className="relative flex gap-1">
+        {/* Timeline connector - small dot indicator, centered with title */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <div className="w-5 h-5 rounded-full flex items-center justify-center">
-            <StepIndicator status={effectiveStatus} />
+          <div className="w-6 h-5 flex items-center justify-center">
+            <StepIndicator
+              status={effectiveStatus}
+              isExpanded={isExpanded}
+              onToggle={hasExpandableContent ? onToggle : undefined}
+              hasExpandableContent={!!hasExpandableContent}
+            />
           </div>
-          {!isLast && <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />}
+          {!isLast && <div className="w-px flex-1 bg-gray-100 min-h-[8px]" />}
         </div>
 
         {/* Content */}
-        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-2'}`}>
-          {/* Header - use div for reasoning steps (allows text selection and links), button for expandable rows */}
+        <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-6'}`}>
+          {/* Header - use div for reasoning steps (allows text selection and links), div for other rows */}
           {isReasoningStep ? (
-            <div className="w-full flex items-start gap-2 text-left">
-              {/* Empty spacer to align with caret in other rows */}
-              <span className="flex-shrink-0 mt-1 w-3" />
+            <div className="w-full flex items-start text-left">
               {/* Reasoning text with full markdown support */}
-              <div className="flex-1 min-w-0 text-sm text-gray-900">
+              <div className="flex-1 min-w-0 text-sm leading-5 text-gray-900">
                 <Streamdown parseIncompleteMarkdown={true}>{step.text}</Streamdown>
               </div>
             </div>
           ) : (
-            <button
+            <div
               onClick={hasExpandableContent ? onToggle : undefined}
               className={`
-                w-full flex items-start gap-2 text-left group
+                w-full flex items-center text-left
                 ${hasExpandableContent ? 'cursor-pointer' : 'cursor-default'}
               `}
             >
-              {/* Expand caret or spacer for alignment */}
-              {hasExpandableContent ? (
-                <span className="flex-shrink-0 mt-1">
-                  {isExpanded ? (
-                    <CaretDownIcon size={12} weight="bold" className="text-gray-500" />
-                  ) : (
-                    <CaretRightIcon size={12} weight="bold" className="text-gray-400" />
-                  )}
-                </span>
+              {/* Step text - shimmer when in-progress or awaiting approval */}
+              {shouldShimmer ? (
+                <TextShimmer className="text-sm leading-5">{step.text}</TextShimmer>
               ) : (
-                <span className="flex-shrink-0 w-3" />
+                <span className="text-sm leading-5 text-gray-900">{step.text}</span>
               )}
-
-              {/* Step text */}
-              <span className="flex-1 min-w-0 text-sm text-gray-900">{step.text}</span>
-            </button>
+            </div>
           )}
 
           {/* Expanded content */}
@@ -127,74 +154,59 @@ export const StepRow = React.memo<StepRowProps>(
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="mt-1 ml-5">
+                <div className="mt-0.5">
                   {/* Description - with markdown support */}
                   {step.description && (
-                    <div className="text-sm text-gray-700 leading-relaxed">
+                    <div className="text-sm text-gray-800/80">
                       <Streamdown parseIncompleteMarkdown={true}>{step.description}</Streamdown>
                     </div>
                   )}
 
-                  {/* Approval card */}
-                  {step.approval &&
-                    (() => {
-                      // Build recordUrl from recordId if available
-                      const recordUrl = step.approval.recordId
-                        ? buildSalesforceDeepLink(
-                            salesforceInstanceUrl,
-                            step.approval.objectType,
-                            step.approval.recordId
-                          )
-                        : undefined;
+                  {/* Approval card - use BulkApprovalCard for bulk records */}
+                  {approvalWithUrl &&
+                    (approvalWithUrl.bulkRecords && approvalWithUrl.bulkRecords.length > 0 ? (
+                      <BulkApprovalCard
+                        approval={approvalWithUrl}
+                        onApproveRecord={onApproveRecord || (() => {})}
+                        onRejectRecord={onRejectRecord || (() => {})}
+                        onApproveAll={onApproveAll || (() => {})}
+                        onRejectAll={onRejectAll || (() => {})}
+                        approvedRecordIds={approvedRecordIds}
+                        rejectedRecordIds={rejectedRecordIds}
+                      />
+                    ) : (
+                      <CompactApprovalCard
+                        approval={approvalWithUrl}
+                        onApprove={onApprove || (() => {})}
+                        onReject={onReject || (() => {})}
+                        isApproved={
+                          (isLocallyApproved || step.status === 'complete') &&
+                          step.status !== 'error'
+                        }
+                        isRejected={isLocallyRejected || step.status === 'error'}
+                        defaultExpanded={defaultApprovalExpanded}
+                      />
+                    ))}
 
-                      // Enrich approval data with recordUrl
-                      const enrichedApproval = recordUrl
-                        ? { ...step.approval, recordUrl }
-                        : step.approval;
-
-                      // Normalize rejection status (both 'error' and 'rejected' mean rejected)
-                      const isStepRejected = step.status === 'error' || step.status === 'rejected';
-                      const isStepApproved =
-                        !isStepRejected && (step.status === 'complete' || isLocallyApproved);
-
-                      return (
-                        <ApprovalCard
-                          approval={enrichedApproval}
-                          onApprove={onApprove || (() => {})}
-                          onReject={onReject || (() => {})}
-                          isApproved={isStepApproved}
-                          isRejected={isLocallyRejected || isStepRejected}
-                        />
-                      );
-                    })()}
-
-                  {/* Code block preview - disabled
+                  {/* Code block preview */}
                   {step.code && (
-                    <div
-                      className="relative rounded-lg bg-gray-900 overflow-hidden cursor-pointer group/code my-2"
-                      onClick={onExpand}
-                    >
-                      <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between">
-                        <span className="text-[11px] text-gray-400 font-mono">Code</span>
-                        <span className="text-[10px] text-gray-500 group-hover/code:text-gray-300 transition-colors">
-                          Click to expand
+                    <div className="relative rounded-lg bg-gray-900 overflow-hidden my-2">
+                      <div className="px-3 py-1.5 border-b border-gray-700 flex items-center justify-between">
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          {step.category === 'sql' || step.category === 'soql' ? 'SQL' : 'Code'}
                         </span>
                       </div>
-                      <pre className="px-3 py-2 text-[11px] text-gray-300 font-mono overflow-hidden max-h-[80px]">
-                        <code>
-                          {step.code.slice(0, 200)}
-                          {step.code.length > 200 ? '...' : ''}
-                        </code>
+                      <pre className="px-3 py-2 text-[11px] text-gray-300 font-mono overflow-x-auto max-h-[120px] overflow-y-auto">
+                        <code>{step.code}</code>
                       </pre>
                     </div>
                   )}
-                  */}
 
                   {/* Sub-steps */}
                   {step.subSteps && step.subSteps.length > 0 && (
-                    <div className="space-y-1.5 mt-1">
+                    <div className="pl-2 space-y-1.5 mt-1.5">
                       {step.subSteps.map((subStep) => (
-                        <div key={subStep.id} className="flex items-center gap-2 text-[12px]">
+                        <div key={subStep.id} className="flex items-center gap-2 text-sm">
                           <StepIndicator status={subStep.status} />
                           <span
                             className={
@@ -211,7 +223,7 @@ export const StepRow = React.memo<StepRowProps>(
                   {/* Artifact reference - shown when artifact metadata is available */}
                   {step.artifact && (
                     <div
-                      className="flex items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-gray-50 border border-gray-200  rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
+                      className="flex w-full items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-white shadow-xs border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => {
                         if (onArtifactClick) {
                           onArtifactClick(
@@ -226,8 +238,8 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                       }}
                     >
-                      <FileTextIcon size={14} className="text-gray-800" />
-                      <span className="text-sm text-gray-900">
+                      <ArrowsOutIcon size={14} className="text-gray-800 flex-shrink-0" />
+                      <span className="text-sm text-gray-900 truncate">
                         {step.artifact.tool_name} results
                       </span>
                     </div>

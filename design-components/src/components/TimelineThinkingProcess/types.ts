@@ -49,6 +49,38 @@ export interface BulkOperation {
 /**
  * Data for approval steps
  */
+/**
+ * Field type for approval changes - affects rendering
+ */
+export type ApprovalFieldType =
+  | 'text'
+  | 'long_text'
+  | 'number'
+  | 'currency'
+  | 'date'
+  | 'picklist'
+  | 'multi_picklist'
+  | 'boolean';
+
+/**
+ * Single record change for bulk approvals
+ */
+export interface BulkApprovalRecord {
+  /** Unique ID for this record */
+  recordId: string;
+  /** Record name (e.g., deal name) */
+  recordName: string;
+  /** URL to the record (e.g., Salesforce record URL, Google Calendar event URL) */
+  recordUrl?: string;
+  /** Changes for this record */
+  changes: Array<{
+    field: string;
+    before?: string | number | boolean | null;
+    after: string | number | boolean | null;
+    fieldType?: ApprovalFieldType;
+  }>;
+}
+
 export interface ApprovalData {
   /** The actual tool_call_id from the backend - used for approval/rejection API calls */
   toolCallId: string;
@@ -62,6 +94,8 @@ export interface ApprovalData {
     field: string;
     before?: string | number | boolean | null;
     after: string | number | boolean | null;
+    /** Field type - affects how the value is rendered */
+    fieldType?: ApprovalFieldType;
   }>;
   /** Fields for CREATE operations (initial values without before/after) */
   fields?: Record<string, string | number | boolean | null>;
@@ -69,8 +103,8 @@ export interface ApprovalData {
   approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'deep_research' | 'generic';
   /** Number of records for bulk operations */
   recordCount?: number;
-  /** Operations array for bulk approvals */
-  operations?: BulkOperation[];
+  /** Multiple records for bulk approvals */
+  bulkRecords?: BulkApprovalRecord[];
   /** Deep research specific fields */
   researchQuery?: string;
   estimatedTime?: string;
@@ -238,8 +272,21 @@ export interface TimelineThinkingProcessProps {
   ) => void;
 
   /**
-   * Salesforce instance URL for building deep links in approval cards
-   * Example: "https://mycompany.my.salesforce.com"
+   * Bulk approval handlers - for approving/rejecting individual records
+   */
+  onApproveRecord?: (recordId: string) => void;
+  onRejectRecord?: (recordId: string) => void;
+  onApproveAll?: () => void;
+  onRejectAll?: () => void;
+
+  /**
+   * Set of approved/rejected record IDs for bulk approval UI state
+   */
+  approvedRecordIds?: Set<string>;
+  rejectedRecordIds?: Set<string>;
+
+  /**
+   * Salesforce instance URL for building deep links when recordUrl is not provided
    */
   salesforceInstanceUrl?: string;
 }
@@ -265,9 +312,17 @@ export interface StepRowProps {
   isLocallyApproved?: boolean;
   /** Whether this step was locally rejected (optimistic UI) */
   isLocallyRejected?: boolean;
-  /**
-   * Salesforce instance URL for building deep links
-   */
+  /** Whether approval card should be expanded by default (for bulk scenarios) */
+  defaultApprovalExpanded?: boolean;
+  /** Bulk approval handlers */
+  onApproveRecord?: (recordId: string) => void;
+  onRejectRecord?: (recordId: string) => void;
+  onApproveAll?: () => void;
+  onRejectAll?: () => void;
+  /** Set of approved/rejected record IDs for bulk approval */
+  approvedRecordIds?: Set<string>;
+  rejectedRecordIds?: Set<string>;
+  /** Salesforce instance URL for building deep links when recordUrl is not provided */
   salesforceInstanceUrl?: string;
 }
 
@@ -280,19 +335,6 @@ export interface CollapsedStepRowProps {
 }
 
 /**
- * Field types for approval card rendering
- */
-export type ApprovalFieldType =
-  | 'text'
-  | 'long_text'
-  | 'number'
-  | 'currency'
-  | 'date'
-  | 'picklist'
-  | 'multi_picklist'
-  | 'boolean';
-
-/**
  * Props for CompactApprovalCard component
  */
 export interface CompactApprovalCardProps {
@@ -301,6 +343,7 @@ export interface CompactApprovalCardProps {
   onReject: () => void;
   isApproved?: boolean;
   isRejected?: boolean;
+  /** Whether the card should be expanded by default (defaults to true) */
   defaultExpanded?: boolean;
 }
 
@@ -309,7 +352,10 @@ export interface CompactApprovalCardProps {
  */
 export interface StepIndicatorProps {
   status: StepStatus;
+  /** Whether the step is expanded (for complete status with expandable content) */
   isExpanded?: boolean;
+  /** Callback to toggle expand/collapse (for complete status with expandable content) */
   onToggle?: () => void;
+  /** Whether the step has expandable content */
   hasExpandableContent?: boolean;
 }

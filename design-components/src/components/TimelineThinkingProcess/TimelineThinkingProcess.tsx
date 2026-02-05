@@ -1,18 +1,11 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  CheckCircleIcon,
-  CaretDownIcon,
-  CaretRightIcon,
-  SpinnerGapIcon,
-} from '@phosphor-icons/react';
+import { CheckCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
-import { StepRow } from './components';
-import { CONTAINER_HEIGHT } from './constants';
+import { StepRow, PlaceholderStepRow, VonShimmer, AnimatedDots } from './components';
 import { ThinkingDrawer, type ThinkingStepDetail } from '../ThinkingDrawer';
-import { EngagingMessage } from '../Chat/EngagingMessage';
 
 // ============================================================================
 // Main Component
@@ -35,7 +28,7 @@ import { EngagingMessage } from '../Chat/EngagingMessage';
 export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = ({
   steps,
   isThinking = false,
-  isStreaming = false,
+  // isStreaming - reserved for future use (active streaming vs waiting states)
   autoCollapse = false,
   initiallyCollapsed = false,
   elapsedTime = 0,
@@ -46,6 +39,12 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onApprove,
   onReject,
   onArtifactClick,
+  onApproveRecord,
+  onRejectRecord,
+  onApproveAll,
+  onRejectAll,
+  approvedRecordIds,
+  rejectedRecordIds,
   salesforceInstanceUrl,
 }) => {
   // Use custom hook for state management
@@ -92,28 +91,56 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     [steps]
   );
 
-  // Compute content signature for EngagingMessage - changes when steps update
-  const contentSignature = useMemo(() => {
-    const stepCount = steps.length;
-    const lastStepDescription = steps[steps.length - 1]?.description?.length || 0;
-    return `${stepCount}-${lastStepDescription}`;
-  }, [steps]);
+  // Determine if we should show a placeholder step for the "next" step
+  // Show placeholder when:
+  // - We're thinking AND
+  // - Either no steps yet, OR all current steps are complete (no in-progress step)
+  // Don't show after approval steps (waiting for user action)
+  const shouldShowPlaceholder = useMemo(() => {
+    if (!isThinking) return false;
 
-  // Check if any step is currently in-progress (loading or streaming)
-  // Used to hide EngagingMessage when processing is happening
-  const hasInProgressStep = useMemo(
-    () => visibleSteps.some((step) => step.status === 'in-progress'),
-    [visibleSteps]
-  );
+    // No steps yet - show placeholder
+    if (visibleSteps.length === 0) return true;
+
+    const lastStep = visibleSteps[visibleSteps.length - 1];
+
+    // Don't show after approval steps (waiting for user action)
+    if (lastStep?.status === 'awaiting-approval') return false;
+    if (lastStep?.approval) return false;
+
+    // If there's an in-progress step, don't show placeholder (that step has its own spinner)
+    const hasInProgressStep = visibleSteps.some((s) => s.status === 'in-progress');
+    if (hasInProgressStep) return false;
+
+    // All steps complete, show placeholder for next expected step
+    return true;
+  }, [isThinking, visibleSteps]);
+
+  // Compute summary for header - shows current activity or progress count
+  const summary = useMemo(() => {
+    if (steps.length === 0) return '';
+
+    if (isThinking) {
+      // Find the current in-progress step
+      const inProgressStep = steps.find((s) => s.status === 'in-progress');
+      if (inProgressStep) {
+        return inProgressStep.text;
+      }
+      // If no in-progress step, show the last step
+      const lastStep = steps[steps.length - 1];
+      return lastStep?.text || '';
+    }
+
+    return '';
+  }, [steps, isThinking]);
 
   return (
     <>
-      <div className="bg-gray-50/50 rounded-xl border border-gray-200 overflow-hidden p-1">
+      <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
         {/* Header - always visible */}
         <button
           onClick={handleToggleCollapse}
-          disabled={visibleSteps.length === 0}
-          className="w-full px-2 py-1.5 flex items-center justify-between cursor-pointer"
+          className="w-full px-2 p-1 flex items-center justify-between cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {/* Collapse/Expand Caret */}
@@ -131,43 +158,32 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                   weight="fill"
                   className="text-emerald-600 flex-shrink-0"
                 />
-                <span className="text-sm text-gray-700">{title} completed</span>
+                <span className="text-sm text-gray-800">{title} completed</span>
+                {summary && <span className="text-sm text-gray-600 ml-1">({summary})</span>}
               </>
+            ) : isThinking ? (
+              <VonShimmer className="text-sm truncate">
+                {summary ? `${title}: ${summary}` : title}
+                <AnimatedDots />
+              </VonShimmer>
             ) : (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="flex-shrink-0"
-                >
-                  <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
-                </motion.div>
-                <span className="text-sm text-gray-700 truncate">{title}</span>
-              </>
+              <span className="text-sm text-gray-800">
+                {summary ? `${title} (${summary})` : title}
+              </span>
             )}
           </div>
 
           {/* Right side */}
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            {/* DISABLED: Approval badge removed per user request
+            {/* Approval indicator */}
             {awaitingApprovalStep && (
-              <motion.div
-                animate={{ rotate: [0, -10, 10, -10, 10, 0] }}
-                transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  focusOnStep(awaitingApprovalStep.id);
-                }}
-                className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full cursor-pointer hover:bg-amber-200 transition-colors"
-              >
-                <BellIcon size={12} weight="fill" />
-                <span className="text-xs font-medium">Approval</span>
-              </motion.div>
+              <div className="flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-800 rounded-full">
+                <span className="text-xs font-medium">Needs approval</span>
+              </div>
             )}
-            */}
 
             {/* Elapsed time - always shown */}
-            <span className="text-xs text-gray-500 tabular-nums">
+            <span className="text-xs text-gray-800 tabular-nums">
               {formatElapsedTime(elapsedTime)}
             </span>
           </div>
@@ -183,110 +199,87 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              {visibleSteps.length > 0 && (
-                <div className="border border-gray-200 bg-white shadow-xs rounded-lg">
-                  <div
-                    ref={scrollContainerRef}
-                    className="overflow-y-auto px-3 py-3"
-                    style={{ maxHeight: CONTAINER_HEIGHT }}
-                  >
-                    <div className="space-y-0">
-                      {visibleSteps.map((step, idx) => {
-                        const displayMode = getStepDisplayMode(step, idx);
-                        const isExpanded = displayMode === 'expanded';
+              <div
+                ref={scrollContainerRef}
+                className="mt-1 border border-gray-100 bg-white shadow-xs rounded-lg overflow-y-auto px-2 py-2"
+              >
+                <div className="space-y-0">
+                  {visibleSteps.map((step, idx) => {
+                    const displayMode = getStepDisplayMode(step, idx);
+                    const isExpanded = displayMode === 'expanded';
 
-                        // Always use StepRow - description is always visible outside expanded block
-                        // The isExpanded prop controls whether code/approval/sub-steps are shown
-                        // Get the actual toolCallId from approval data, fallback to step.id
-                        const toolCallId = step.approval?.toolCallId || step.id;
+                    // Always use StepRow - description is always visible outside expanded block
+                    // The isExpanded prop controls whether code/approval/sub-steps are shown
+                    // Get the actual toolCallId from approval data, fallback to step.id
+                    const toolCallId = step.approval?.toolCallId || step.id;
 
-                        // Check local approval state for optimistic UI update
-                        const localState = localApprovalState.get(toolCallId);
-                        const isLocallyApproved = localState === 'approved';
-                        const isLocallyRejected = localState === 'rejected';
+                    // Check local approval state for optimistic UI update
+                    const localState = localApprovalState.get(toolCallId);
+                    const isLocallyApproved = localState === 'approved';
+                    const isLocallyRejected = localState === 'rejected';
 
-                        return (
-                          <StepRow
-                            key={step.id}
-                            step={step}
-                            isExpanded={isExpanded}
-                            onToggle={() => toggleStep(step.id)}
-                            onExpand={() => handleExpandStep(step)}
-                            isLast={idx === visibleSteps.length - 1}
-                            salesforceInstanceUrl={salesforceInstanceUrl}
-                            onApprove={
-                              onApprove
-                                ? () => {
-                                    if (import.meta.env.DEV) {
-                                      console.log('[TimelineThinkingProcess] onApprove called:', {
-                                        toolCallId,
-                                        stepId: step.id,
-                                        stepStatus: step.status,
-                                        approvalData: step.approval,
-                                      });
-                                    }
-                                    markAsApproved(toolCallId);
-                                    onApprove(toolCallId);
-                                  }
-                                : undefined
-                            }
-                            onReject={
-                              onReject
-                                ? () => {
-                                    if (import.meta.env.DEV) {
-                                      console.log('[TimelineThinkingProcess] onReject called:', {
-                                        toolCallId,
-                                        stepId: step.id,
-                                        stepStatus: step.status,
-                                        approvalData: step.approval,
-                                      });
-                                    }
-                                    markAsRejected(toolCallId);
-                                    onReject(toolCallId);
-                                  }
-                                : undefined
-                            }
-                            onArtifactClick={onArtifactClick}
-                            isLocallyApproved={isLocallyApproved}
-                            isLocallyRejected={isLocallyRejected}
-                          />
-                        );
-                      })}
-                      {/* Show EngagingMessage only when:
-                        - isThinking (process is ongoing)
-                        - No approval pending
-                        - No step is currently in-progress (loading/streaming)
-                        - Either no visible steps yet OR streaming has stopped
-                        AnimatePresence provides smooth fade-in/out transition */}
-                      <AnimatePresence>
-                        {isThinking &&
-                          !awaitingApprovalStep &&
-                          !hasInProgressStep &&
-                          visibleSteps.length > 0 &&
-                          !isStreaming && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.3, delay: 0.5 }}
-                              className="flex items-center gap-3 pt-2 ml-1"
-                            >
-                              <EngagingMessage
-                                isActive={isThinking}
-                                spinnerSize="sm"
-                                textSize="sm"
-                                contentSignature={contentSignature}
-                                showDelay={2000}
-                                initialText="Processing"
-                                className="text-gray-600"
-                              />
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
+                    // For bulk approval scenarios, only expand the first approval card by default
+                    const firstApprovalIdx = visibleSteps.findIndex((s) => s.approval);
+                    const isFirstApproval = step.approval && idx === firstApprovalIdx;
+
+                    return (
+                      <StepRow
+                        key={step.id}
+                        step={step}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleStep(step.id)}
+                        onExpand={() => handleExpandStep(step)}
+                        isLast={idx === visibleSteps.length - 1 && !shouldShowPlaceholder}
+                        onApprove={
+                          onApprove
+                            ? () => {
+                                if (import.meta.env.DEV) {
+                                  console.log('[TimelineThinkingProcess] onApprove called:', {
+                                    toolCallId,
+                                    stepId: step.id,
+                                    stepStatus: step.status,
+                                    approvalData: step.approval,
+                                  });
+                                }
+                                markAsApproved(toolCallId);
+                                onApprove(toolCallId);
+                              }
+                            : undefined
+                        }
+                        onReject={
+                          onReject
+                            ? () => {
+                                if (import.meta.env.DEV) {
+                                  console.log('[TimelineThinkingProcess] onReject called:', {
+                                    toolCallId,
+                                    stepId: step.id,
+                                    stepStatus: step.status,
+                                    approvalData: step.approval,
+                                  });
+                                }
+                                markAsRejected(toolCallId);
+                                onReject(toolCallId);
+                              }
+                            : undefined
+                        }
+                        onArtifactClick={onArtifactClick}
+                        isLocallyApproved={isLocallyApproved}
+                        isLocallyRejected={isLocallyRejected}
+                        defaultApprovalExpanded={isFirstApproval}
+                        onApproveRecord={onApproveRecord}
+                        onRejectRecord={onRejectRecord}
+                        onApproveAll={onApproveAll}
+                        onRejectAll={onRejectAll}
+                        approvedRecordIds={approvedRecordIds}
+                        rejectedRecordIds={rejectedRecordIds}
+                        salesforceInstanceUrl={salesforceInstanceUrl}
+                      />
+                    );
+                  })}
+                  {/* Show placeholder step when thinking and expecting more steps */}
+                  {shouldShowPlaceholder && <PlaceholderStepRow isLast={true} />}
                 </div>
-              )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
