@@ -152,17 +152,18 @@ export const StepRow = React.memo<StepRowProps>(
                         ? { ...step.approval, recordUrl }
                         : step.approval;
 
+                      // Normalize rejection status (both 'error' and 'rejected' mean rejected)
+                      const isStepRejected = step.status === 'error' || step.status === 'rejected';
+                      const isStepApproved =
+                        !isStepRejected && (step.status === 'complete' || isLocallyApproved);
+
                       return (
                         <ApprovalCard
                           approval={enrichedApproval}
                           onApprove={onApprove || (() => {})}
                           onReject={onReject || (() => {})}
-                          isApproved={
-                            !isLocallyRejected &&
-                            (isLocallyApproved || step.status === 'complete') &&
-                            step.status !== 'error'
-                          }
-                          isRejected={isLocallyRejected || step.status === 'error'}
+                          isApproved={isStepApproved}
+                          isRejected={isLocallyRejected || isStepRejected}
                         />
                       );
                     })()}

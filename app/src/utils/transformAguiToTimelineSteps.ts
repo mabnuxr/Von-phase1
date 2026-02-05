@@ -140,6 +140,56 @@ interface DetectedApprovalData {
 }
 
 /**
+ * Normalize changes array: convert old_value/new_value to before/after for consistency.
+ * Backend normalization may not reach frontend if TOOL_CALL_ARGS is emitted before validation.
+ */
+function normalizeChanges(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  changes: any[] | undefined,
+):
+  | Array<{
+      field: string;
+      before?: string | number | boolean | null;
+      after: string | number | boolean | null;
+      display_name?: string;
+    }>
+  | undefined {
+  if (!changes || changes.length === 0) return changes;
+
+  return changes.map((change) => {
+    const normalized: {
+      field: string;
+      before?: string | number | boolean | null;
+      after: string | number | boolean | null;
+      display_name?: string;
+    } = {
+      field: change.field,
+      after: null, // Default to null (required field)
+    };
+
+    // Prefer 'before' but fallback to 'old_value'
+    if ("before" in change) {
+      normalized.before = change.before;
+    } else if ("old_value" in change) {
+      normalized.before = change.old_value;
+    }
+
+    // Prefer 'after' but fallback to 'new_value', default to null
+    if ("after" in change && change.after !== undefined) {
+      normalized.after = change.after;
+    } else if ("new_value" in change && change.new_value !== undefined) {
+      normalized.after = change.new_value;
+    }
+
+    if (change.display_name) {
+      normalized.display_name = change.display_name;
+    }
+
+    return normalized;
+  });
+}
+
+/**
  * Generic approval detection from tool arguments
  * Supports: Salesforce, Google Calendar, Bulk operations, and generic approvals
  *
@@ -217,7 +267,7 @@ function detectApprovalFromArgs(
                   (op.operation as "create" | "update" | "delete") || "create",
                 sobject_type: "Calendar Event",
                 record_name: op.summary || op.event_summary || "Event",
-                changes: op.changes,
+                changes: normalizeChanges(op.changes),
                 fields: Object.keys(fields).length > 0 ? fields : undefined,
               };
             },
@@ -267,11 +317,13 @@ function detectApprovalFromArgs(
           : firstOp?.summary || firstOp?.event_summary,
         operation: firstOp?.operation || "create",
         changes: isBulk
-          ? ops.flatMap(
-              (op: { changes?: DetectedApprovalData["changes"] }) =>
-                op.changes || [],
+          ? normalizeChanges(
+              ops.flatMap(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (op: any) => op.changes || [],
+              ),
             )
-          : firstOp?.changes,
+          : normalizeChanges(firstOp?.changes),
         fields: !isBulk ? calendarFields : undefined,
         approvalType: isBulk ? "bulk" : "calendar",
         operations: calendarBulkOperations,
@@ -297,7 +349,7 @@ function detectApprovalFromArgs(
             record_name: op.record_name || "Unknown",
             record_id: op.record_id,
             fields: op.fields,
-            changes: op.changes,
+            changes: normalizeChanges(op.changes),
           }),
         )
       : undefined;
@@ -314,11 +366,13 @@ function detectApprovalFromArgs(
       recordId: !isBulk ? firstOp?.record_id : undefined,
       operation: firstOp?.operation || "update",
       changes: isBulk
-        ? ops.flatMap(
-            (op: { changes?: DetectedApprovalData["changes"] }) =>
-              op.changes || [],
+        ? normalizeChanges(
+            ops.flatMap(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (op: any) => op.changes || [],
+            ),
           )
-        : firstOp?.changes,
+        : normalizeChanges(firstOp?.changes),
       fields: !isBulk ? firstOp?.fields : undefined,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
@@ -746,22 +800,29 @@ export function transformAguiToTimelineSteps(
         }
 
         if (!step) {
-          // No STEP_STARTED - create a step for this tool call
-          // Use a unique step number based on tool_call_id hash
-          stepNum = steps.length + 1000; // Offset to avoid conflicts
-          const stepId = `tool-${toolId || stepNum}`;
+          // Check if we already have a step for this tool_call_id (deduplication)
+          if (toolId) {
+            step = toolCallToStepDirectMap.get(toolId);
+          }
 
-          step = {
-            id: stepId,
-            text: "",
-            status: "in-progress" as StepStatus,
-            type: "tool_call" as StepType,
-            source: getToolSource(toolName),
-            description: "",
-          };
+          if (!step) {
+            // No STEP_STARTED and no existing step - create a new step for this tool call
+            // Use a unique step number based on tool_call_id hash
+            stepNum = steps.length + 1000; // Offset to avoid conflicts
+            const stepId = `tool-${toolId || stepNum}`;
 
-          stepNumberMap.set(stepNum, step);
-          steps.push(step);
+            step = {
+              id: stepId,
+              text: "",
+              status: "in-progress" as StepStatus,
+              type: "tool_call" as StepType,
+              source: getToolSource(toolName),
+              description: "",
+            };
+
+            stepNumberMap.set(stepNum, step);
+            steps.push(step);
+          }
 
           // Mark current reasoning step as complete
           if (currentTextStep) {
