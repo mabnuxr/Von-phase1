@@ -276,6 +276,7 @@ export type {
   SourceType,
   EventCategory,
   ApprovalData,
+  BulkOperation,
   QueryResult,
 } from './TimelineThinkingProcess';
 
@@ -287,6 +288,7 @@ export {
   DataTabContent,
   DataTabShimmer,
   CallsTabContent,
+  EmailsTabContent,
   CallsTabShimmer,
   CallsTabError,
   DataTablesDrawer,
@@ -299,10 +301,12 @@ export type {
   QueryResult as TransparencyQueryResult,
   QueryColumn,
   CallTranscript,
+  EmailTranscript,
   SentimentType,
   TopLevelTab,
   DataTabContentProps,
   CallsTabContentProps,
+  EmailsTabContentProps,
   DataTablesDrawerProps,
   DataTableArtifact,
   IQQueryResult,

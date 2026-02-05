@@ -12,6 +12,7 @@ export interface UseTimelineStateOptions {
   controlledCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onExpandStep?: (step: TimelineStep) => void;
+  initiallyCollapsed?: boolean;
 }
 
 export interface UseTimelineStateReturn {
@@ -63,13 +64,12 @@ export function useTimelineState({
   steps,
   isThinking,
   autoCollapse,
-  controlledCollapsed,
-  onToggleCollapse,
   onExpandStep,
+  initiallyCollapsed = false,
 }: UseTimelineStateOptions): UseTimelineStateReturn {
   // State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [isCollapsed, setInternalCollapsed] = useState(initiallyCollapsed);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [selectedStepForDrawer, setSelectedStepForDrawer] = useState<TimelineStep | null>(null);
   const [focusedStepId, setFocusedStepId] = useState<string | null>(null);
@@ -81,12 +81,6 @@ export function useTimelineState({
   const [localApprovalState, setLocalApprovalState] = useState<
     Map<string, 'approved' | 'rejected'>
   >(new Map());
-
-  // Derived state
-  const isCollapsed = useMemo(
-    () => controlledCollapsed ?? internalCollapsed,
-    [controlledCollapsed, internalCollapsed]
-  );
 
   const completedCount = useMemo(
     () => steps.filter((s) => s.status === 'complete').length,
@@ -133,12 +127,13 @@ export function useTimelineState({
 
   // Handlers
   const handleToggleCollapse = useCallback(() => {
-    if (onToggleCollapse) {
-      onToggleCollapse();
-    } else {
-      setInternalCollapsed((prev) => !prev);
-    }
-  }, [onToggleCollapse]);
+    setInternalCollapsed((prev) => {
+      if (prev) {
+        return totalCount > 0 ? false : true;
+      }
+      return true;
+    });
+  }, [totalCount]);
 
   const toggleStep = useCallback((stepId: string) => {
     setExpandedSteps((prev) => {
@@ -289,10 +284,10 @@ export function useTimelineState({
 
   // Auto-collapse when autoCollapse becomes true (e.g., final response starts streaming)
   useEffect(() => {
-    if (autoCollapse && !controlledCollapsed) {
+    if (autoCollapse) {
       setInternalCollapsed(true);
     }
-  }, [autoCollapse, controlledCollapsed]);
+  }, [autoCollapse]);
 
   // Clear focused step when thinking state changes
   useEffect(() => {

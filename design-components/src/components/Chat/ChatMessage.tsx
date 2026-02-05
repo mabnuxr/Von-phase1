@@ -387,57 +387,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   )}
                 </div>
 
-                {/* Content Column */}
-                <div className="flex-1 min-w-0 -mt-0.5">
-                  {/* For assistant messages: check for errors first */}
-                  {!isUser && status === 'failed' && errorMessage ? (
-                    <MessageAreaError message={errorMessage} />
-                  ) : !isUser ? (
-                    <div>
-                      {/* V2 Thinking Process - TimelineThinkingProcess component */}
-                      {thinkingProcessVersion === 'v2' && (timelineSteps?.length || isStreaming) ? (
-                        <div className="space-y-4">
-                          <TimelineThinkingProcess
-                            steps={timelineSteps || []}
-                            isThinking={isStreaming && !v2FinalResponseStreaming}
-                            autoCollapse={v2FinalResponseStreaming}
-                            elapsedTime={thinkingElapsedTime}
-                            onApprove={(stepId) => {
-                              if (import.meta.env.DEV) {
-                                console.log('[ChatMessage] onApprove wrapper called:', {
-                                  stepId,
-                                  runId,
-                                  hasOnApprove: !!onApprove,
-                                });
-                              }
-                              onApprove?.(stepId, runId);
-                            }}
-                            onReject={(stepId) => {
-                              if (import.meta.env.DEV) {
-                                console.log('[ChatMessage] onReject wrapper called:', {
-                                  stepId,
-                                  runId,
-                                  hasOnReject: !!onReject,
-                                });
-                              }
-                              onReject?.(stepId, runId);
-                            }}
-                            onArtifactClick={handleArtifactClick}
-                          />
-                          {/* Final response - shown while streaming (when is_final_response) or after thinking completes */}
-                          {(!isStreaming || v2FinalResponseStreaming) && v2FinalResponse && (
-                            <div className="prose-sm markdown-content max-w-none">
-                              <Streamdown
-                                parseIncompleteMarkdown={v2FinalResponseStreaming}
-                                isAnimating={v2FinalResponseStreaming}
-                              >
-                                {v2FinalResponse}
-                              </Streamdown>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        /* V1 Thinking Process - Original ThinkingBlock components */
+                  {/* Content Column */}
+                  <div className="flex-1 min-w-0 -mt-0.5">
+                    {/* For assistant messages: check for errors first */}
+                    {!isUser && status === 'failed' && errorMessage ? (
+                      <MessageAreaError message={errorMessage} />
+                    ) : !isUser ? (
+                      <div>
+                        {/* V1 Thinking Process - Original ThinkingBlock components */}
                         <>
                           {isStreaming &&
                             !content &&
@@ -580,42 +537,43 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   )}
 
-                  {/* Show stopped indicator for assistant messages */}
-                  {!isUser && stoppedByUser && (
-                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <InfoIcon size={20} className="text-indigo-600" />
+                    {/* Show stopped indicator for assistant messages */}
+                    {!isUser && stoppedByUser && (
+                      <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <InfoIcon size={20} className="text-indigo-600" />
+                        </div>
+                        <span className="text-sm text-gray-800 leading-relaxed flex-1">
+                          Response stopped by the user
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-800  leading-relaxed flex-1">
-                        Response stopped by the user
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
-                  {!isUser &&
-                    !isStreaming &&
-                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
-                      <MessageActions
-                        messageContent={
-                          // For v2 thinking process, only use the final response (not intermediate steps)
-                          thinkingProcessVersion === 'v2' && v2FinalResponse
-                            ? v2FinalResponse
-                            : stepMessages && stepMessages.length > 0
-                              ? stepMessages.map((s) => s.content).join('\n\n')
-                              : content
-                        }
-                        messageId={messageId || ''}
-                        enableActions={enableActions}
-                        onConvertToDashboard={onConvertToDashboard}
-                        onTransparencyClick={onTransparencyClick}
-                        showTransparency={showTransparency}
-                      />
                     )}
+
+                    {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
+                    {!isUser &&
+                      !isStreaming &&
+                      !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
+                        <MessageActions
+                          messageContent={
+                            // For v2 thinking process, only use the final response (not intermediate steps)
+                            thinkingProcessVersion === 'v2' && v2FinalResponse
+                              ? v2FinalResponse
+                              : stepMessages && stepMessages.length > 0
+                                ? stepMessages.map((s) => s.content).join('\n\n')
+                                : content
+                          }
+                          messageId={messageId || ''}
+                          enableActions={enableActions}
+                          onConvertToDashboard={onConvertToDashboard}
+                          onTransparencyClick={onTransparencyClick}
+                          showTransparency={showTransparency}
+                        />
+                      )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

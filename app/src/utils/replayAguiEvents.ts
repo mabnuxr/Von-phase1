@@ -124,6 +124,22 @@ function parseToolResult(resultJson: any): ToolResult | null {
       };
     }
 
+    // Detect fetch_conversation results (individual call or email content)
+    if (
+      resultJson.conversation_id &&
+      resultJson.conversation_type &&
+      (resultJson.call_metadata ||
+        resultJson.email_metadata ||
+        resultJson.call_content ||
+        resultJson.email_content)
+    ) {
+      return {
+        raw: resultJson,
+        type: "fetch_conversation",
+        fetchConversation: resultJson,
+      };
+    }
+
     // Detect query information
     if (resultJson.queries && Array.isArray(resultJson.queries)) {
       return {
@@ -200,6 +216,7 @@ export function replayAguiEvents(
   const stepMessagesMap = new Map<string, StepMessage>();
   const toolCallsMap = new Map<string, ToolCall>();
   const toolCallArgsMap = new Map<string, string>();
+  const toolCallResultMap = new Map<string, string>();
 
   // Process each event
   for (const wrapper of sortedEvents) {
@@ -326,47 +343,100 @@ export function replayAguiEvents(
       }
 
       case "TOOL_CALL_RESULT": {
-        if (event.tool_call_id && event.content) {
-          const toolCall = toolCallsMap.get(event.tool_call_id);
+        if (event.tool_call_id) {
+          // Handle both delta (chunked) and content (non-chunked) fields
+          if (event.delta) {
+            // Chunked result - accumulate deltas (same pattern as TOOL_CALL_ARGS)
+            const currentResult =
+              toolCallResultMap.get(event.tool_call_id) || "";
+            toolCallResultMap.set(
+              event.tool_call_id,
+              currentResult + event.delta,
+            );
 
-          if (toolCall) {
-            try {
-              const resultData = JSON.parse(event.content);
+            // Try to parse accumulated result (may be incomplete)
+            const accumulated = toolCallResultMap.get(event.tool_call_id) || "";
+            const toolCall = toolCallsMap.get(event.tool_call_id);
 
-              // Check if this is an artifact reference
-              if (resultData._artifact) {
-                // Artifact-backed result - store metadata
-                toolCall.artifact = {
-                  artifact_id: resultData._artifact.artifact_id,
-                  artifact_type: resultData._artifact.artifact_type,
-                  size_bytes: resultData._artifact.size_bytes,
-                  tool_name: resultData._artifact.tool_name,
-                  run_id: resultData._artifact.run_id, // Include run_id for artifact fetching
-                  success: resultData._artifact.success, // Include tool execution success status
-                  error: resultData._artifact.error, // Include error message if present
-                };
-                // No inline result - will be fetched lazily
-                toolCall.result = undefined;
-                // Set status based on tool execution success
-                toolCall.status =
-                  resultData._artifact.success === false ? "error" : "success";
-              } else {
-                // Regular inline result (backward compatibility)
+            if (toolCall) {
+              try {
+                const resultData = JSON.parse(accumulated);
 
-                const parsedResult = parseToolResult(resultData);
+                // Parse and attach result (same logic as before)
+                if (resultData._artifact) {
+                  toolCall.artifact = {
+                    artifact_id: resultData._artifact.artifact_id,
+                    artifact_type: resultData._artifact.artifact_type,
+                    size_bytes: resultData._artifact.size_bytes,
+                    tool_name: resultData._artifact.tool_name,
+                    run_id: resultData._artifact.run_id,
+                    success: resultData._artifact.success,
+                    error: resultData._artifact.error,
+                  };
+                  toolCall.result = undefined;
+                  toolCall.status =
+                    resultData._artifact.success === false
+                      ? "error"
+                      : "success";
 
-                if (parsedResult) {
-                  toolCall.result = parsedResult;
-                  toolCall.status = "success";
+                  // Clear accumulator after successful parse
+                  toolCallResultMap.delete(event.tool_call_id);
                 } else {
-                  // parsedResult is null, meaning backend indicated failure
-                  toolCall.status = "error";
+                  const parsedResult = parseToolResult(resultData);
+                  if (parsedResult) {
+                    toolCall.result = parsedResult;
+                    toolCall.status = "success";
+
+                    // Clear accumulator after successful parse
+                    toolCallResultMap.delete(event.tool_call_id);
+                  }
                 }
+              } catch {
+                // JSON incomplete, continue accumulating
+                // Don't set error status yet - wait for more chunks
               }
-            } catch {
-              // If result is not JSON, store raw string in 'raw' field
-              toolCall.result = { raw: event.content, type: "json" };
-              toolCall.status = "error";
+            }
+          } else if (event.content) {
+            // Non-chunked result (backward compatibility)
+            const toolCall = toolCallsMap.get(event.tool_call_id);
+
+            if (toolCall) {
+              try {
+                const resultData = JSON.parse(event.content);
+
+                if (resultData._artifact) {
+                  // Artifact-backed result - store metadata
+                  toolCall.artifact = {
+                    artifact_id: resultData._artifact.artifact_id,
+                    artifact_type: resultData._artifact.artifact_type,
+                    size_bytes: resultData._artifact.size_bytes,
+                    tool_name: resultData._artifact.tool_name,
+                    run_id: resultData._artifact.run_id,
+                    success: resultData._artifact.success,
+                    error: resultData._artifact.error,
+                  };
+                  toolCall.result = undefined;
+                  toolCall.status =
+                    resultData._artifact.success === false
+                      ? "error"
+                      : "success";
+                } else {
+                  // Regular inline result
+                  const parsedResult = parseToolResult(resultData);
+
+                  if (parsedResult) {
+                    toolCall.result = parsedResult;
+                    toolCall.status = "success";
+                  } else {
+                    // parsedResult is null, meaning backend indicated failure
+                    toolCall.status = "error";
+                  }
+                }
+              } catch {
+                // If result is not JSON, store raw string in 'raw' field
+                toolCall.result = { raw: event.content, type: "json" };
+                toolCall.status = "error";
+              }
             }
           }
         }
@@ -378,6 +448,45 @@ export function replayAguiEvents(
   // Convert maps to arrays
   result.stepMessages = Array.from(stepMessagesMap.values());
   result.toolCalls = Array.from(toolCallsMap.values());
+
+  // Finalize any pending tool call results that were being accumulated
+  // This handles cases where chunked results didn't complete JSON parsing during streaming
+  for (const [toolId, accumulatedResult] of toolCallResultMap) {
+    const toolCall = toolCallsMap.get(toolId);
+    if (toolCall && !toolCall.result && accumulatedResult) {
+      try {
+        const resultData = JSON.parse(accumulatedResult);
+
+        if (resultData._artifact) {
+          toolCall.artifact = {
+            artifact_id: resultData._artifact.artifact_id,
+            artifact_type: resultData._artifact.artifact_type,
+            size_bytes: resultData._artifact.size_bytes,
+            tool_name: resultData._artifact.tool_name,
+            run_id: resultData._artifact.run_id,
+            success: resultData._artifact.success,
+            error: resultData._artifact.error,
+          };
+          toolCall.result = undefined;
+          toolCall.status =
+            resultData._artifact.success === false ? "error" : "success";
+        } else {
+          const parsedResult = parseToolResult(resultData);
+          if (parsedResult) {
+            toolCall.result = parsedResult;
+            toolCall.status = "success";
+          } else {
+            toolCall.status = "error";
+          }
+        }
+      } catch {
+        // Final attempt to parse failed - store raw accumulated content
+        toolCall.result = { raw: accumulatedResult, type: "json" };
+        toolCall.status = "error";
+      }
+    }
+  }
+  toolCallResultMap.clear();
 
   // Force-complete all pending tool calls to stop animations
   result.toolCalls.forEach((toolCall) => {

@@ -24,6 +24,7 @@ import {
   LongTextCell,
   PicklistCell,
   SourceIcon,
+  TruncatedTextCell,
 } from './CellRenderers';
 import { VonLogoButton } from './SourcePopover';
 
@@ -491,8 +492,24 @@ export function ReportTable<TData extends Record<string, unknown>>({
             <span className="text-gray-400">—</span>
           );
           break;
-        default:
-          content = <span className="text-gray-900">{formatValue(value, col.type)}</span>;
+        default: {
+          // For numeric types, render without truncation
+          const isNumeric =
+            col.type === 'number' || col.type === 'currency' || col.type === 'percentage';
+          if (isNumeric) {
+            content = <span className="text-gray-900">{formatValue(value, col.type)}</span>;
+          } else {
+            // For text, date, email, phone, url types - use truncation with tooltip
+            content = (
+              <TruncatedTextCell
+                value={formatValue(value, col.type)}
+                maxWidth={200}
+                className="text-gray-900"
+              />
+            );
+          }
+          break;
+        }
       }
 
       // For AI columns, add the Von logo button

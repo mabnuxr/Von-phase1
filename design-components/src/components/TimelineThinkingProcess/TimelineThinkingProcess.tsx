@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
@@ -30,12 +30,11 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   isThinking = false,
   // isStreaming - reserved for future use (active streaming vs waiting states)
   autoCollapse = false,
+  initiallyCollapsed = false,
   elapsedTime = 0,
   onQueryClick,
   queries = [],
   title = 'Thinking',
-  isCollapsed: controlledCollapsed,
-  onToggleCollapse,
   onExpandStep,
   onApprove,
   onReject,
@@ -59,7 +58,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     handleToggleCollapse,
     toggleStep,
     handleExpandStep,
-    focusOnStep,
     markAsApproved,
     markAsRejected,
     allComplete,
@@ -70,83 +68,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     steps,
     isThinking,
     autoCollapse,
-    controlledCollapsed,
-    onToggleCollapse,
     onExpandStep,
+    initiallyCollapsed,
   });
-
-  // Dynamic max-height: fill from the steps container's top to the bottom
-  // of the chat scroll container (.chat-messages-wrapper), so the thinking
-  // process is scrollable within the visible chat area.
-  const stepsContainerRef = useRef<HTMLDivElement>(null);
-  const chatContainerRef = useRef<Element | null>(null);
-  const observerRef = useRef<ResizeObserver | null>(null);
-  const scrollHandlerRef = useRef<(() => void) | null>(null);
-
-  const updateMaxHeight = useCallback((el: HTMLDivElement) => {
-    const chatContainer = chatContainerRef.current;
-    if (!chatContainer) return;
-
-    const elRect = el.getBoundingClientRect();
-    const chatRect = chatContainer.getBoundingClientRect();
-    // Distance from the steps container top to the chat container bottom, minus padding
-    const available = Math.max(chatRect.bottom - elRect.top - 24, 120);
-    el.style.maxHeight = `${available}px`;
-  }, []);
-
-  // Merged callback ref: assigns to both stepsContainerRef (for max-height)
-  // and scrollContainerRef (for auto-scroll tracking in useTimelineState)
-  const stepsContainerCallbackRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      // Clean up previous observer and scroll listener
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-      if (scrollHandlerRef.current && chatContainerRef.current) {
-        chatContainerRef.current.removeEventListener('scroll', scrollHandlerRef.current);
-        scrollHandlerRef.current = null;
-      }
-
-      stepsContainerRef.current = node;
-      // Also assign to scrollContainerRef so auto-scroll targets the scrollable element
-      (scrollContainerRef as React.RefObject<HTMLDivElement | null>).current = node;
-      if (!node) return;
-
-      // Find the chat scroll container once
-      chatContainerRef.current = node.closest('.chat-messages-wrapper');
-
-      // Initial measurement
-      updateMaxHeight(node);
-
-      if (chatContainerRef.current) {
-        // Re-measure when the chat container resizes
-        observerRef.current = new ResizeObserver(() => {
-          updateMaxHeight(node);
-        });
-        observerRef.current.observe(chatContainerRef.current);
-
-        // Re-measure on scroll so maxHeight updates when user scrolls back
-        // to the thinking block after it was mounted off-screen
-        scrollHandlerRef.current = () => updateMaxHeight(node);
-        chatContainerRef.current.addEventListener('scroll', scrollHandlerRef.current, {
-          passive: true,
-        });
-      }
-    },
-    [updateMaxHeight, scrollContainerRef]
-  );
-
-  // Re-measure on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (stepsContainerRef.current) {
-        updateMaxHeight(stepsContainerRef.current);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [updateMaxHeight]);
 
   // Convert steps to drawer format
   const drawerSteps: ThinkingStepDetail[] = useMemo(
@@ -262,6 +186,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 <span className="text-xs font-medium">Needs approval</span>
               </div>
             )}
+            */}
 
             {/* Elapsed time - always shown */}
             <span className="text-xs text-gray-800 tabular-nums">
@@ -289,10 +214,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                     const displayMode = getStepDisplayMode(step, idx);
                     const isExpanded = displayMode === 'expanded';
 
-                    // Always use StepRow - description is always visible outside expanded block
-                    // The isExpanded prop controls whether code/approval/sub-steps are shown
-                    // Get the actual toolCallId from approval data, fallback to step.id
-                    const toolCallId = step.approval?.toolCallId || step.id;
+                        // Always use StepRow - description is always visible outside expanded block
+                        // The isExpanded prop controls whether code/approval/sub-steps are shown
+                        // Get the actual toolCallId from approval data, fallback to step.id
+                        const toolCallId = step.approval?.toolCallId || step.id;
 
                     // Check local approval state for optimistic UI update
                     const localState = localApprovalState.get(toolCallId);

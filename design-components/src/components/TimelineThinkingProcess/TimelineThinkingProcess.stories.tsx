@@ -999,7 +999,11 @@ WHERE call_count > 0;`,
     if (step.id === 'bulk-approval' && sfdcPendingCount === 0 && phase !== 'thinking') {
       return { ...step, status: 'complete' as const };
     }
-    if (step.id === 'calendar-approval' && calendarPendingCount === 0 && phase === 'calendar-approval') {
+    if (
+      step.id === 'calendar-approval' &&
+      calendarPendingCount === 0 &&
+      phase === 'calendar-approval'
+    ) {
       return { ...step, status: 'complete' as const };
     }
     return step;

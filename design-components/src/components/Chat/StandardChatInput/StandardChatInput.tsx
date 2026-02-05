@@ -380,6 +380,11 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const handleSend = useCallback(() => {
+      // Block sending while streaming (agent is still running)
+      if (isStreaming) {
+        return;
+      }
+
       if (disableSubmit) {
         onDisabledInput?.();
         return;
@@ -408,6 +413,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
         }
       }
     }, [
+      isStreaming,
       disableSubmit,
       onDisabledInput,
       message,
@@ -444,7 +450,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       [isAttachmentsControlled, onRemoveAttachment, removeFile]
     );
 
-    const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
+    const canSend =
+      (message.trim() || hasAttachments) && !disabled && !disableSubmit && !isStreaming;
 
     const handlePlusButtonClick = useCallback(() => {
       setIsPlusMenuOpen(true);

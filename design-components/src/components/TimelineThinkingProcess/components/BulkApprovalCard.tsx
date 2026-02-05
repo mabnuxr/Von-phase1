@@ -48,9 +48,7 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs flex-shrink-0 ml-2">
-          {approvedCount > 0 && (
-            <span className="text-emerald-700">{approvedCount} approved</span>
-          )}
+          {approvedCount > 0 && <span className="text-emerald-700">{approvedCount} approved</span>}
           {rejectedCount > 0 && <span className="text-red-600">{rejectedCount} rejected</span>}
         </div>
       </button>

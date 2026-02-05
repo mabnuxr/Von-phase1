@@ -26,7 +26,25 @@ export type StepStatus =
   | 'complete'
   | 'warning'
   | 'error'
-  | 'awaiting-approval';
+  | 'awaiting-approval'
+  | 'rejected';
+
+/**
+ * Single operation in a bulk approval request
+ */
+export interface BulkOperation {
+  operation: 'create' | 'update' | 'delete';
+  sobject_type: string;
+  record_name: string;
+  record_id?: string;
+  fields?: Record<string, string | number | boolean | null>;
+  changes?: Array<{
+    field: string;
+    before?: string | number | boolean | null;
+    after: string | number | boolean | null;
+  }>;
+  status?: 'pending' | 'updating' | 'success' | 'rejected';
+}
 
 /**
  * Data for approval steps
@@ -69,7 +87,7 @@ export interface ApprovalData {
   summary: string;
   objectType: string;
   recordName?: string;
-  /** URL to the record (e.g., Salesforce record URL, Google Calendar event URL) */
+  recordId?: string;
   recordUrl?: string;
   operation: 'create' | 'update' | 'delete';
   changes?: Array<{
@@ -79,6 +97,8 @@ export interface ApprovalData {
     /** Field type - affects how the value is rendered */
     fieldType?: ApprovalFieldType;
   }>;
+  /** Fields for CREATE operations (initial values without before/after) */
+  fields?: Record<string, string | number | boolean | null>;
   /** The type of approval - salesforce, calendar, bulk, deep_research, generic, etc. */
   approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'deep_research' | 'generic';
   /** Number of records for bulk operations */
@@ -146,6 +166,14 @@ export interface TimelineStep {
    */
   approval?: ApprovalData;
   /**
+   * Rejection reason when status is 'rejected' (user-provided explanation)
+   */
+  rejectionReason?: string;
+  /**
+   * Error message when status is 'error' (system failure message)
+   */
+  errorMessage?: string;
+  /**
    * Event category
    */
   category?: EventCategory;
@@ -192,6 +220,12 @@ export interface TimelineThinkingProcessProps {
   autoCollapse?: boolean;
 
   /**
+   * When true, the thinking process starts in collapsed state.
+   * Used when a response already exists on page refresh.
+   */
+  initiallyCollapsed?: boolean;
+
+  /**
    * Elapsed time in seconds (for display)
    */
   elapsedTime?: number;
@@ -210,16 +244,6 @@ export interface TimelineThinkingProcessProps {
    * Title displayed in the header (e.g., "Thinking", "Deep Research")
    */
   title?: string;
-
-  /**
-   * Whether the thinking block is collapsed (hides the step details)
-   */
-  isCollapsed?: boolean;
-
-  /**
-   * Callback when collapse state changes
-   */
-  onToggleCollapse?: () => void;
 
   /**
    * Callback when a step is expanded to show full details
@@ -302,6 +326,19 @@ export interface CollapsedStepRowProps {
   step: TimelineStep;
   onClick: () => void;
 }
+
+/**
+ * Field types for approval card rendering
+ */
+export type ApprovalFieldType =
+  | 'text'
+  | 'long_text'
+  | 'number'
+  | 'currency'
+  | 'date'
+  | 'picklist'
+  | 'multi_picklist'
+  | 'boolean';
 
 /**
  * Props for CompactApprovalCard component

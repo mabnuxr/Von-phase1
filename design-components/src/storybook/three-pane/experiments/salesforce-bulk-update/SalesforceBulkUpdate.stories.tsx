@@ -358,7 +358,8 @@ const BulkApprovalCard: React.FC<BulkApprovalCardProps> = ({
             {displayCount} Salesforce record{displayCount !== 1 ? 's' : ''} to update
             {showBatchInfo && (
               <span className="text-gray-500 font-normal">
-                {' '}(batch {batchNumber} of {totalBatches})
+                {' '}
+                (batch {batchNumber} of {totalBatches})
               </span>
             )}
           </span>
@@ -435,9 +436,7 @@ const CompletedSummaryCard: React.FC<CompletedSummaryCardProps> = ({ items }) =>
           <span className="text-[13px] font-medium text-gray-900">
             {successCount} update{successCount !== 1 ? 's' : ''} completed
             {skippedCount > 0 && (
-              <span className="text-gray-500 font-normal">
-                {' '}· {skippedCount} skipped
-              </span>
+              <span className="text-gray-500 font-normal"> · {skippedCount} skipped</span>
             )}
           </span>
         </div>
@@ -855,7 +854,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       recordName: 'Cascade Enterprise Suite',
       changes: [
         { field: 'Champion', before: 'Robert Lee', after: 'Jennifer Martinez (SVP Engineering)' },
-        { field: 'Notes', before: null, after: 'New champion has stronger executive sponsorship and direct budget authority. Previous champion moved to different business unit.' },
+        {
+          field: 'Notes',
+          before: null,
+          after:
+            'New champion has stronger executive sponsorship and direct budget authority. Previous champion moved to different business unit.',
+        },
       ],
       status: 'pending',
     },
@@ -878,7 +882,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       recordName: 'Zenith Digital Transformation',
       changes: [
         { field: 'Amount', before: '$560,000', after: '$780,000' },
-        { field: 'Notes', before: 'Initial scope for NA region', after: 'Expanded scope to include EMEA and APAC regions. Customer requested unified global rollout after successful pilot in North America. Additional modules for compliance and reporting added.' },
+        {
+          field: 'Notes',
+          before: 'Initial scope for NA region',
+          after:
+            'Expanded scope to include EMEA and APAC regions. Customer requested unified global rollout after successful pilot in North America. Additional modules for compliance and reporting added.',
+        },
       ],
       status: 'pending',
     },
@@ -889,7 +898,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       recordName: 'Meridian Patient Management',
       changes: [
         { field: 'Deal Risk', before: 'High', after: 'Medium' },
-        { field: 'Notes', before: 'Competitor threat identified', after: 'Competitor concern addressed through enhanced pricing and additional support commitments. Executive sponsor confirmed continued support.' },
+        {
+          field: 'Notes',
+          before: 'Competitor threat identified',
+          after:
+            'Competitor concern addressed through enhanced pricing and additional support commitments. Executive sponsor confirmed continued support.',
+        },
         { field: 'Probability', before: '20%', after: '45%' },
       ],
       status: 'pending',
@@ -901,7 +915,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       recordName: 'Titan Manufacturing Suite',
       changes: [
         { field: 'Close Date', before: 'Apr 15', after: 'Jul 30' },
-        { field: 'Notes', before: null, after: 'Legal review extended due to compliance requirements for manufacturing sector. Customer legal team requested additional security documentation and SOC2 audit results.' },
+        {
+          field: 'Notes',
+          before: null,
+          after:
+            'Legal review extended due to compliance requirements for manufacturing sector. Customer legal team requested additional security documentation and SOC2 audit results.',
+        },
       ],
       status: 'pending',
     },
@@ -924,7 +943,11 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       changes: [
         { field: 'Stage', before: 'Qualification', after: 'Proposal' },
         { field: 'Close Date', before: 'Aug 15', after: 'Jun 30' },
-        { field: 'Notes', before: null, after: 'Customer has urgent need due to regulatory deadline' },
+        {
+          field: 'Notes',
+          before: null,
+          after: 'Customer has urgent need due to regulatory deadline',
+        },
       ],
       status: 'pending',
     },
@@ -935,7 +958,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       recordName: 'Aurora Cloud Migration',
       changes: [
         { field: 'Probability', before: '35%', after: '70%' },
-        { field: 'Notes', before: 'In evaluation with 2 competitors', after: 'Selected as preferred vendor after successful POC. Competitor eliminated due to performance issues in benchmark testing.' },
+        {
+          field: 'Notes',
+          before: 'In evaluation with 2 competitors',
+          after:
+            'Selected as preferred vendor after successful POC. Competitor eliminated due to performance issues in benchmark testing.',
+        },
         { field: 'Stage', before: 'Discovery', after: 'Negotiation' },
       ],
       status: 'pending',
@@ -947,7 +975,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       recordName: 'Coastal POS System',
       changes: [
         { field: 'Amount', before: '$180,000', after: '$520,000' },
-        { field: 'Notes', before: 'Single year contract', after: 'Converted to 3-year agreement with volume discount. Customer committed to enterprise-wide rollout across all 450 retail locations.' },
+        {
+          field: 'Notes',
+          before: 'Single year contract',
+          after:
+            'Converted to 3-year agreement with volume discount. Customer committed to enterprise-wide rollout across all 450 retail locations.',
+        },
       ],
       status: 'pending',
     },
@@ -959,7 +992,12 @@ const SalesforceBulkUpdatePrototype: React.FC = () => {
       changes: [
         { field: 'Champion', before: 'Technical Lead', after: 'CIO David Park' },
         { field: 'Probability', before: '40%', after: '65%' },
-        { field: 'Notes', before: null, after: 'Elevated to C-level sponsorship after strategic alignment with digital transformation initiative' },
+        {
+          field: 'Notes',
+          before: null,
+          after:
+            'Elevated to C-level sponsorship after strategic alignment with digital transformation initiative',
+        },
       ],
       status: 'pending',
     },

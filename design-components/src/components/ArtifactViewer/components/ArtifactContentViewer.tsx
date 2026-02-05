@@ -7,10 +7,11 @@ import {
   DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
-import { formatCellValue } from '../../TransparencyDrawer/utils';
+import { formatCellValue, formatValue } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
+import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
 
 // ============================================================================
 // Types
@@ -157,12 +158,14 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
       return <LoadingSkeleton />;
     }
 
-    // Check if there's no data
-    const hasNoData = columns.length === 0 || rows.length === 0;
+    // Check if there's no columns at all (no schema)
+    const hasNoColumns = columns.length === 0;
+    // Check if there are columns but no rows (empty result set)
+    const hasEmptyRows = columns.length > 0 && rows.length === 0;
 
     return (
       <div ref={containerRef} className="flex flex-col h-full min-h-0">
-        {/* SQL Query Section - Collapsible, collapsed by default */}
+        {/* SQL Query Section - Always show if query exists */}
         {query && (
           <div className="mx-4 mt-4 mb-3 rounded-lg border border-gray-200 overflow-hidden shrink-0 flex flex-col max-h-[40%]">
             <button
@@ -201,35 +204,34 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
           </div>
         )}
 
-        {/* Data Table, Error State, or Empty State */}
-        {hasNoData ? (
+        {/* Error State */}
+        {errorMessage ? (
           <div className="flex-1 flex flex-col items-center justify-center mx-4 border border-gray-200 rounded-lg p-6">
-            {errorMessage ? (
-              <>
-                <svg
-                  className="w-10 h-10 text-amber-500 mb-3"
-                  width="40"
-                  height="40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-                  <path
-                    d="M12 8v4M12 16h.01"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <p className="text-sm font-medium text-gray-700 mb-1">Query failed</p>
-                <p className="text-xs text-gray-500 text-center max-w-xs mb-2">{errorMessage}</p>
-                <p className="text-xs text-gray-400 text-center">
-                  Agent will attempt to correct and re-run the query.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-gray-500">No content found</p>
-            )}
+            <svg
+              className="w-10 h-10 text-amber-500 mb-3"
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+              <path
+                d="M12 8v4M12 16h.01"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <p className="text-sm font-medium text-gray-700 mb-1">Query failed</p>
+            <p className="text-xs text-gray-500 text-center max-w-xs mb-2">{errorMessage}</p>
+            <p className="text-xs text-gray-400 text-center">
+              Agent will attempt to correct and re-run the query.
+            </p>
+          </div>
+        ) : hasNoColumns ? (
+          /* No columns at all - show generic empty state */
+          <div className="flex-1 flex flex-col items-center justify-center mx-4 border border-gray-200 rounded-lg p-6">
+            <p className="text-sm text-gray-500">No content found</p>
           </div>
         ) : (
           <>
@@ -238,14 +240,16 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
               <span className="text-[11px] text-gray-500">
                 {totalRows} {totalRows === 1 ? 'row' : 'rows'}
               </span>
-              <button
-                onClick={handleDownloadCSV}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                title="Download as CSV"
-              >
-                <DownloadSimpleIcon size={12} />
-                <span>CSV</span>
-              </button>
+              {!hasEmptyRows && (
+                <button
+                  onClick={handleDownloadCSV}
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                  title="Download as CSV"
+                >
+                  <DownloadSimpleIcon size={12} />
+                  <span>CSV</span>
+                </button>
+              )}
             </div>
 
             <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg">
@@ -269,27 +273,56 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                   </tr>
                 </thead>
                 <tbody>
-                  {currentRows.map((row, rowIndex) => (
-                    <tr
-                      key={startIndex + rowIndex}
-                      className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
-                    >
-                      {columns.map((col) => (
-                        <td
-                          key={col.key}
-                          className={`px-3 py-2 text-sm whitespace-nowrap ${
+                  {hasEmptyRows ? (
+                    <tr>
+                      <td
+                        colSpan={columns.length}
+                        className="px-3 py-8 text-center text-sm text-gray-500"
+                      >
+                        No results returned
+                      </td>
+                    </tr>
+                  ) : (
+                    currentRows.map((row, rowIndex) => (
+                      <tr
+                        key={startIndex + rowIndex}
+                        className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                      >
+                        {columns.map((col) => {
+                          const isNumeric =
                             col.type === 'number' ||
                             col.type === 'currency' ||
-                            col.type === 'percentage'
-                              ? 'text-right tabular-nums'
-                              : 'text-left'
-                          } text-gray-700`}
-                        >
-                          {formatCellValue(col.key, row[col.key], col.type)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                            col.type === 'percentage';
+                          const isDeepLink = col.key === 'deep_link';
+
+                          // For numeric and deep_link columns, render without truncation
+                          if (isNumeric || isDeepLink) {
+                            return (
+                              <td
+                                key={col.key}
+                                className={`px-3 py-2 text-sm whitespace-nowrap ${
+                                  isNumeric ? 'text-right tabular-nums' : 'text-left'
+                                } text-gray-700`}
+                              >
+                                {formatCellValue(col.key, row[col.key], col.type)}
+                              </td>
+                            );
+                          }
+
+                          // For text columns, use TruncatedTextCell with formatted value
+                          return (
+                            <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
+                              <TruncatedTextCell
+                                value={formatValue(row[col.key], col.type)}
+                                maxWidth={200}
+                                className="text-gray-700"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -297,11 +330,12 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
             {/* Pagination Footer */}
             <div className="px-4 py-3 flex items-center justify-between shrink-0">
               <span className="text-[11px] text-gray-500">
-                Showing {startIndex + 1}–{endIndex} of {totalRows}{' '}
-                {totalRows === 1 ? 'row' : 'rows'}
+                {hasEmptyRows
+                  ? '0 rows'
+                  : `Showing ${startIndex + 1}–${endIndex} of ${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`}
               </span>
               {/* Pagination Controls */}
-              {totalPages > 1 && (
+              {totalPages > 1 && !hasEmptyRows && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={goToPrevPage}

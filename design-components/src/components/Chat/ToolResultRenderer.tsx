@@ -10,6 +10,7 @@ import { ValuesRenderer } from './ValuesRenderer';
 import { MemoryResultRenderer } from './MemoryResultRenderer';
 import { CallSearchUnionRenderer } from './CallSearchUnionRenderer';
 import { ConversationSearchRenderer } from './ConversationSearchRenderer';
+import { FetchConversationRenderer } from './FetchConversationRenderer';
 import type { ToolResult } from './types';
 
 export interface ToolResultRendererProps {
@@ -91,6 +92,10 @@ export const ToolResultRenderer: React.FC<ToolResultRendererProps> = ({ result }
     case 'consolidated_conversation_search':
       // Render consolidated conversation search results (calls + emails with queries)
       return <ConversationSearchRenderer result={result.raw} />;
+
+    case 'fetch_conversation':
+      // Render individual conversation (call or email) content
+      return <FetchConversationRenderer result={result} />;
 
     case 'json':
     default:

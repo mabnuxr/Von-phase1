@@ -12,6 +12,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import type {
   CallTranscript,
+  EmailTranscript,
   TransparencyQueryResult,
   IQQueryResult,
 } from "@vonlabs/design-components";
@@ -26,7 +27,7 @@ import {
   MEMORY_TOOL_NAMES,
   type ArtifactSummary,
 } from "../utils/transformArtifactsToTransparency";
-import { transformBulkArtifactsToCalls } from "../utils/transformArtifactsToCalls";
+import { separateCallsAndEmails } from "../utils/transformArtifactsToCalls";
 import type { ArtifactResponse } from "../services/conversationsService";
 
 export interface UseTransparencyDrawerParams {
@@ -44,6 +45,8 @@ export interface UseTransparencyDrawerReturn {
   calls: CallTranscript[];
   isCallsLoading: boolean;
   callsError: Error | null;
+  // Emails tab
+  emails: EmailTranscript[];
   // Deep Research tab (VonIQ artifacts)
   vonIqQueries: IQQueryResult[];
   handleVonIqSelect: (queryId: string) => void;
@@ -189,7 +192,8 @@ export function useTransparencyDrawer({
           s.category !== "rag" &&
           s.category !== "memory" &&
           s.category?.toLowerCase() !== "iq" &&
-          !MEMORY_TOOL_NAMES.has(s.tool_name),
+          !MEMORY_TOOL_NAMES.has(s.tool_name) &&
+          (s.row_count ?? 0) > 0,
       ),
     [artifactSummaries],
   );
@@ -372,9 +376,9 @@ export function useTransparencyDrawer({
     ],
   );
 
-  // Transform RAG artifacts to CallTranscripts
-  const calls = useMemo(
-    () => transformBulkArtifactsToCalls(bulkRagArtifacts),
+  // Transform RAG artifacts to CallTranscripts and EmailTranscripts
+  const { calls, emails } = useMemo(
+    () => separateCallsAndEmails(bulkRagArtifacts),
     [bulkRagArtifacts],
   );
 
@@ -394,6 +398,8 @@ export function useTransparencyDrawer({
     calls,
     isCallsLoading,
     callsError: callsError as Error | null,
+    // Emails tab
+    emails,
     // Deep Research tab
     vonIqQueries,
     handleVonIqSelect,

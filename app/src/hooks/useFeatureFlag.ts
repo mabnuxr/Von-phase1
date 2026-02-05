@@ -14,6 +14,7 @@ export const FEATURE_FLAGS = {
   USER_MEMORY: "enableUserMemory",
   DEEP_RESEARCH: "deepResearch",
   AGENT_V2_SOURCES: "agentSources",
+  DISABLED_TENANTS: "disabledTenants",
 } as const;
 
 /**
@@ -90,6 +91,11 @@ export function useFeatureFlag() {
      * Controls whether the Sources button is shown on assistant messages
      */
     isSourcesEnabled: flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
+
+    /**
+     * Controls whether the current tenant's subscription is inactive
+     */
+    isTenantDisabled: flags[FEATURE_FLAGS.DISABLED_TENANTS] === true,
 
     /**
      * Raw flags object for advanced usage
