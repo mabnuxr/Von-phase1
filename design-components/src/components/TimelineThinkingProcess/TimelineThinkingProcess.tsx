@@ -186,7 +186,6 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                 <span className="text-xs font-medium">Needs approval</span>
               </div>
             )}
-            */}
 
             {/* Elapsed time - always shown */}
             <span className="text-xs text-gray-800 tabular-nums">
@@ -206,7 +205,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               className="overflow-hidden"
             >
               <div
-                ref={stepsContainerCallbackRef}
+                ref={scrollContainerRef}
                 className="mt-1 border border-gray-100 bg-white shadow-xs rounded-lg overflow-y-auto px-2 py-2"
               >
                 <div className="space-y-0">
@@ -214,10 +213,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                     const displayMode = getStepDisplayMode(step, idx);
                     const isExpanded = displayMode === 'expanded';
 
-                        // Always use StepRow - description is always visible outside expanded block
-                        // The isExpanded prop controls whether code/approval/sub-steps are shown
-                        // Get the actual toolCallId from approval data, fallback to step.id
-                        const toolCallId = step.approval?.toolCallId || step.id;
+                    // Always use StepRow - description is always visible outside expanded block
+                    // The isExpanded prop controls whether code/approval/sub-steps are shown
+                    // Get the actual toolCallId from approval data, fallback to step.id
+                    const toolCallId = step.approval?.toolCallId || step.id;
 
                     // Check local approval state for optimistic UI update
                     const localState = localApprovalState.get(toolCallId);
