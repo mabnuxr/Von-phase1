@@ -8,6 +8,7 @@ import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
 import { TiptapViewer } from '../TiptapEditor';
+import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
 
@@ -381,8 +382,39 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
                     <div>
+                      {/* V2 Thinking Process - TimelineThinkingProcess component */}
+                      {thinkingProcessVersion === 'v2' && timelineSteps && timelineSteps.length > 0 && (
+                        <div className="mb-4">
+                          <TimelineThinkingProcess
+                            steps={timelineSteps}
+                            isThinking={isStreaming}
+                            isStreaming={isStreaming}
+                            autoCollapse={!isStreaming && !!v2FinalResponse}
+                            onApprove={onApprove ? (stepId) => onApprove(stepId, runId) : undefined}
+                            onReject={onReject ? (stepId) => onReject(stepId, runId) : undefined}
+                            onArtifactClick={handleArtifactClick}
+                            salesforceInstanceUrl={salesforceInstanceUrl}
+                          />
+                        </div>
+                      )}
+
+                      {/* V2 Final Response - rendered after timeline */}
+                      {thinkingProcessVersion === 'v2' && v2FinalResponse && (
+                        <div className="markdown-content max-w-none">
+                          <Streamdown
+                            parseIncompleteMarkdown={isStreaming}
+                            isAnimating={isStreaming}
+                            controls={{ table: true }}
+                            components={{ a: SalesforceLink }}
+                          >
+                            {v2FinalResponse}
+                          </Streamdown>
+                        </div>
+                      )}
+
                       {/* V1 Thinking Process - Original ThinkingBlock components */}
-                      <>
+                      {thinkingProcessVersion === 'v1' && (
+                        <>
                         {isStreaming &&
                           !content &&
                           !reasoningContent &&
@@ -502,6 +534,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           )
                         )}
                       </>
+                      )}
                     </div>
                   ) : (
                     // User messages - with file attachments and text
