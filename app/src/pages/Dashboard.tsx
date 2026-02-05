@@ -224,9 +224,14 @@ const Dashboard = () => {
   );
 
   // Message filtering state for ChatGPT-style visual clearing
-  // Track which messages to show (index in messages array)
-  // When user sends new message, we set this to current length to hide old messages
-  const [showMessagesFromIndex, setShowMessagesFromIndex] = useState<number>(0);
+  const showMessagesFromIndex = useChatStore((state) =>
+    currentConversationId
+      ? (state.showMessagesFromIndex[currentConversationId] ?? 0)
+      : 0,
+  );
+  const resetShowMessagesFromIndex = useChatStore(
+    (state) => state.resetShowMessagesFromIndex,
+  );
 
   // Auto-populate input when error occurs
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
@@ -470,7 +475,7 @@ const Dashboard = () => {
       }
 
       // Step 1: Reset UI state for clean transition
-      setShowMessagesFromIndex(0);
+      resetShowMessagesFromIndex(urlConversationId);
 
       // Step 2: Clear old messages to prevent flash of wrong content
       // Keep new conversation's messages if they already exist (from cache)
@@ -527,13 +532,9 @@ const Dashboard = () => {
     // Track last user message for error recovery
     lastUserMessageRef.current = content;
 
-    // Set the index to current message count to hide old messages
-    // This creates the ChatGPT-style clean slate effect
+    // Sync agent mode to backend if this is the first message
     if (currentConversationId) {
       const currentMessages = messages[currentConversationId] || [];
-      setShowMessagesFromIndex(currentMessages.length);
-
-      // Sync agent mode to backend if this is the first message
       if (currentMessages.length === 0 && options?.agentMode) {
         await syncAgentModeToBackend(options.agentMode);
       }
