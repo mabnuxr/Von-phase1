@@ -240,6 +240,11 @@ export interface ChatMessageProps {
   timelineSteps?: TimelineStep[];
 
   /**
+   * Elapsed time in seconds for v2 thinking process
+   */
+  thinkingElapsedTime?: number;
+
+  /**
    * Final response content for v2 (separated from reasoning steps)
    * This is the content from TEXT_MESSAGE with parent_message_id
    */
@@ -276,6 +281,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // V2 Thinking Process props
   thinkingProcessVersion = 'v1',
   timelineSteps,
+  thinkingElapsedTime,
   v2FinalResponse,
 }) => {
   const isUser = type === 'user';
@@ -390,7 +396,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               steps={timelineSteps || []}
                               isThinking={isStreaming}
                               isStreaming={isStreaming}
-                              autoCollapse={!isStreaming && !!v2FinalResponse}
+                              autoCollapse={!!v2FinalResponse}
+                              elapsedTime={thinkingElapsedTime}
                               onApprove={
                                 onApprove ? (stepId) => onApprove(stepId, runId) : undefined
                               }
