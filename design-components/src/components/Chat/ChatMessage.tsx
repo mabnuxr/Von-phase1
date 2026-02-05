@@ -7,7 +7,6 @@ import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
-import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import { TiptapViewer } from '../TiptapEditor';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
@@ -240,20 +239,10 @@ export interface ChatMessageProps {
   timelineSteps?: TimelineStep[];
 
   /**
-   * Elapsed time in seconds for v2 thinking process
-   */
-  thinkingElapsedTime?: number;
-
-  /**
    * Final response content for v2 (separated from reasoning steps)
    * This is the content from TEXT_MESSAGE with parent_message_id
    */
   v2FinalResponse?: string;
-
-  /**
-   * Whether the v2 final response is still streaming
-   */
-  v2FinalResponseStreaming?: boolean;
 }
 
 /**
@@ -286,9 +275,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // V2 Thinking Process props
   thinkingProcessVersion = 'v1',
   timelineSteps,
-  thinkingElapsedTime = 0,
   v2FinalResponse,
-  v2FinalResponseStreaming = false,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
