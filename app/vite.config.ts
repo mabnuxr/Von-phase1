@@ -38,6 +38,36 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss(), s3ProxyPlugin()],
+    resolve:
+      mode === "development"
+        ? {
+            alias: [
+              // CSS files use the built dist version to avoid @import ordering issues
+              {
+                find: "@vonlabs/design-components/dist/design-components.css",
+                replacement: path.resolve(
+                  __dirname,
+                  "../design-components/dist/design-components.css"
+                ),
+              },
+              {
+                find: "@vonlabs/design-components/styles",
+                replacement: path.resolve(
+                  __dirname,
+                  "../design-components/dist/design-components.css"
+                ),
+              },
+              // JS/TS files use source for better debugging with sourcemaps
+              {
+                find: "@vonlabs/design-components",
+                replacement: path.resolve(
+                  __dirname,
+                  "../design-components/src"
+                ),
+              },
+            ],
+          }
+        : undefined,
     envDir: path.resolve(__dirname, ".."),
     server: {
       port: 5173, // always start on 5173
