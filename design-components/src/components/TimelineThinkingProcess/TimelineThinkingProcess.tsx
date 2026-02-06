@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
+import { CONTAINER_HEIGHT } from './constants';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
 import { StepRow, PlaceholderStepRow, AnimatedDots } from './components';
@@ -213,6 +214,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               <div
                 ref={scrollContainerRef}
                 className="mt-1 border border-gray-100 bg-white shadow-xs rounded-lg overflow-y-auto px-2 py-2"
+                style={{ maxHeight: CONTAINER_HEIGHT }}
               >
                 <div className="space-y-0">
                   {visibleSteps.map((step, idx) => {
