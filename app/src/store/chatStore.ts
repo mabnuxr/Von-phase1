@@ -168,7 +168,9 @@ const useChatStoreBase = create<ChatState>((set) => ({
             id: message.id,
             contentPreview: message.messageContent?.slice(0, 50),
             existingOptimisticUserIds: existingMessages
-              .filter((m) => m.role === "user" && m.id.startsWith("optimistic-"))
+              .filter(
+                (m) => m.role === "user" && m.id.startsWith("optimistic-"),
+              )
               .map((m) => m.id),
           });
         }
