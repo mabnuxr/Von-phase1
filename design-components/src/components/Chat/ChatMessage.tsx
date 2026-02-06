@@ -578,6 +578,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   )}
 
+                  {/* Show timeout indicator for assistant messages */}
+                  {!isUser && status === 'timeout' && (
+                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <InfoIcon size={20} className="text-indigo-600" />
+                      </div>
+                      <span className="text-sm text-gray-800 leading-relaxed flex-1">
+                        Request timed out
+                      </span>
+                    </div>
+                  )}
+
                   {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
                   {!isUser &&
                     !isStreaming &&
