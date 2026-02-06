@@ -123,8 +123,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   }, [isThinking, visibleSteps, localApprovalState]);
 
   // Compute summary for header - shows "Thinking" for reasoning, tool name for tool calls
+  // When autoCollapse is true (final response streaming), don't show summary
   const summary = useMemo(() => {
-    if (steps.length === 0) return '';
+    if (steps.length === 0 || autoCollapse) return '';
 
     if (isThinking) {
       // Find the current in-progress step
@@ -143,7 +144,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     }
 
     return '';
-  }, [steps, isThinking]);
+  }, [steps, isThinking, autoCollapse]);
 
   return (
     <>

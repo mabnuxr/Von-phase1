@@ -243,6 +243,12 @@ export function useConversationPusherChannelV2(
           setStoppedByUser(stopped);
         });
 
+        // Stop timer when final response starts streaming (before run fully completes)
+        // This gives users immediate feedback that thinking is done
+        if (responseStreaming && elapsedTimerRef.current) {
+          stopElapsedTimer();
+        }
+
         // Stop timer and update elapsed time when run finishes
         // We only do this once per run to avoid resetting the elapsed time
         // If the run went through an approval pause and hasn't produced a final
