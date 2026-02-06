@@ -111,12 +111,17 @@ const useChatStoreBase = create<ChatState>((set) => ({
 
       // Fallback: For user messages, check for optimistic messages with same content
       // This handles race condition where Pusher arrives before HTTP response
+      // Normalize content for comparison to handle whitespace differences from backend
       if (existingIndex < 0 && message.role === "user") {
+        const normalizeContent = (content: string | undefined) =>
+          (content || "").trim().replace(/\s+/g, " ");
+        const incomingNormalized = normalizeContent(message.messageContent);
+
         existingIndex = existingMessages.findIndex(
           (m) =>
             m.id.startsWith("optimistic-") &&
             m.role === "user" &&
-            m.messageContent === message.messageContent,
+            normalizeContent(m.messageContent) === incomingNormalized,
         );
       }
 
@@ -157,6 +162,16 @@ const useChatStoreBase = create<ChatState>((set) => ({
         updatedConversationMessages[existingIndex] = mergedMessage;
       } else {
         // INSERT: Add new message
+        if (import.meta.env.DEV) {
+          console.log("[chatStore.upsertMessage] Inserting new message:", {
+            role: message.role,
+            id: message.id,
+            contentPreview: message.messageContent?.slice(0, 50),
+            existingOptimisticUserIds: existingMessages
+              .filter((m) => m.role === "user" && m.id.startsWith("optimistic-"))
+              .map((m) => m.id),
+          });
+        }
         updatedConversationMessages = [...existingMessages, message];
       }
 

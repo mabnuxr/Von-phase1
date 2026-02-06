@@ -179,6 +179,7 @@ export function useConversationPusherChannelV2(
             setIsFinalResponseStreaming(false);
             setIsAwaitingApproval(false);
             setCurrentRunId(run_id);
+            setElapsedTime(0);
           });
           startElapsedTimer();
         }
