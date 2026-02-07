@@ -506,7 +506,10 @@ const Dashboard = () => {
     setIsCreatingChat(true); // Instant skeleton
     try {
       const title = generateConversationTitle();
-      const response = await createConversation({ title });
+      const response = await createConversation({
+        title,
+        agentVersion: isAgentV2 ? "v2" : "v1",
+      });
       const newId = response.conversation.conversationId;
       setPendingConversationId(newId); // Track target
       await queryClient.refetchQueries({

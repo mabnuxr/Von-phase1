@@ -5,6 +5,7 @@ import { useCreateConversation } from "./useConversations";
 import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
 import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
+import { useFeatureFlag } from "./useFeatureFlag";
 
 /**
  * Initialize conversation on Dashboard mount
@@ -22,6 +23,9 @@ export function useConversationInit(urlConversationId?: string) {
   const navigate = useNavigate();
   const currentConversationId = useChatStore.use.currentConversationId();
   const setCurrentConversationId = useChatStore.use.setCurrentConversationId();
+
+  // Get feature flag for agent version
+  const { isAgentV2 } = useFeatureFlag();
 
   // Fetch conversations with infinite scroll (sorted by updatedAt DESC from backend)
   const {
@@ -99,7 +103,10 @@ export function useConversationInit(urlConversationId?: string) {
           console.log(`[useConversationInit] Creating: ${title}`);
         }
 
-        const response = await createConversation({ title });
+        const response = await createConversation({
+          title,
+          agentVersion: isAgentV2 ? "v2" : "v1",
+        });
         const newConversationId = response.conversation.conversationId;
 
         if (import.meta.env.DEV) {
@@ -123,6 +130,7 @@ export function useConversationInit(urlConversationId?: string) {
     setCurrentConversationId,
     navigate,
     createConversation,
+    isAgentV2,
   ]);
 
   return {

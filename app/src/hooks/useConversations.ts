@@ -18,6 +18,7 @@ import {
 export interface CreateConversationParams {
   title: string;
   mode?: ConversationMode;
+  agentVersion?: "v1" | "v2";
 }
 
 /**
@@ -88,7 +89,11 @@ export function useCreateConversation() {
 
   return useMutation({
     mutationFn: (params: CreateConversationParams) =>
-      conversationsService.createConversation(params.title, params.mode),
+      conversationsService.createConversation(
+        params.title,
+        params.mode,
+        params.agentVersion,
+      ),
     onSuccess: (data) => {
       if (import.meta.env.DEV) {
         console.log(
@@ -96,6 +101,8 @@ export function useCreateConversation() {
           data.conversation.conversationId,
           "mode:",
           data.conversation.mode,
+          "agentVersion:",
+          data.conversation.agentVersion,
         );
       }
       // Invalidate all conversation lists to refetch

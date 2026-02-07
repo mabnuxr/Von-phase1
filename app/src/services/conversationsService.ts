@@ -80,19 +80,22 @@ class ConversationsService {
 
   /**
    * Create a new conversation
-   * Backend expects: { title: string, mode?: ConversationMode }
+   * Backend expects: { title: string, mode?: ConversationMode, agentVersion?: string }
    * @param title - Conversation title
    * @param mode - Optional conversation mode (auto, deep_research, dashboard_builder)
+   * @param agentVersion - Optional agent version ("v1" or "v2")
    */
   async createConversation(
     title: string,
     mode?: ConversationMode,
+    agentVersion?: "v1" | "v2",
   ): Promise<CreateConversationResponse> {
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
       {
         title,
         mode,
+        agentVersion,
       },
     );
   }
