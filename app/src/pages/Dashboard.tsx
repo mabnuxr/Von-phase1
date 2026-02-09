@@ -497,7 +497,12 @@ const Dashboard = () => {
       // This triggers useMessages to fetch messages for new conversation
       setCurrentConversationId(urlConversationId);
     }
-  }, [urlConversationId, currentConversationId, setCurrentConversationId]);
+  }, [
+    urlConversationId,
+    currentConversationId,
+    setCurrentConversationId,
+    resetShowMessagesFromIndex,
+  ]);
 
   // Clear loading states when we arrive at the target conversation
   useEffect(() => {
