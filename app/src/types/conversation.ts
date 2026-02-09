@@ -21,6 +21,7 @@ export interface Conversation {
    * Default: "auto"
    */
   mode: ConversationMode;
+  agentVersion: "v1" | "v2";
   createdAt: string;
   createdBy: string | null; // Optional - can be null if context not set
   updatedAt: string | null;
