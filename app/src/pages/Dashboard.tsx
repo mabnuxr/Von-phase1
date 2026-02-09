@@ -174,7 +174,7 @@ const Dashboard = () => {
     isActionsEnabled,
     isDeepLinksEnabled,
     isSidebarV2,
-    isAgentV2,
+    isAgentV2: isAgentV2Flag,
     isDeepResearchEnabled,
     isSourcesEnabled,
     isTenantDisabled,
@@ -242,21 +242,34 @@ const Dashboard = () => {
   // Agent is locked if conversation has any messages
   const isAgentLocked = conversationMessages.length > 0;
 
+  // Flatten paginated conversations data for lookups
+  const allConversations = useMemo(
+    () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
+    [infiniteConversationsData?.pages],
+  );
+
+  // Find current conversation from the flattened list
+  const currentConversation = useMemo(
+    () =>
+      currentConversationId
+        ? allConversations.find(
+            (conv) => conv.conversationId === currentConversationId,
+          )
+        : undefined,
+    [allConversations, currentConversationId],
+  );
+
   // Get locked agent mode from backend (used when agent is locked)
   const lockedAgentMode = useMemo(() => {
-    if (currentConversationId && infiniteConversationsData) {
-      const allConversations = infiniteConversationsData.pages.flatMap(
-        (page) => page.data,
-      );
-      const conversation = allConversations.find(
-        (conv) => conv.conversationId === currentConversationId,
-      );
-      if (conversation?.mode) {
-        return conversationModeToAgentMode(conversation.mode);
-      }
+    if (currentConversation?.mode) {
+      return conversationModeToAgentMode(currentConversation.mode);
     }
     return DEFAULT_AGENT_MODE;
-  }, [currentConversationId, infiniteConversationsData]);
+  }, [currentConversation]);
+
+  // Determine agent version strictly from conversation metadata
+  // No fallback - only use stored agentVersion from the conversation
+  const isAgentV2 = currentConversation?.agentVersion === "v2";
 
   // Check if we're in deep research mode (V2 only)
   const isDeepResearchMode =
@@ -508,7 +521,7 @@ const Dashboard = () => {
       const title = generateConversationTitle();
       const response = await createConversation({
         title,
-        agentVersion: isAgentV2 ? "v2" : "v1",
+        agentVersion: isAgentV2Flag ? "v2" : "v1",
       });
       const newId = response.conversation.conversationId;
       setPendingConversationId(newId); // Track target
@@ -682,12 +695,6 @@ const Dashboard = () => {
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  // Flatten paginated conversations data
-  const allConversations = useMemo(
-    () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
-    [infiniteConversationsData?.pages],
-  );
-
   // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
   // Filter out conversations with empty titles (not yet named by LLM)
   const chatItems = useMemo(
@@ -761,12 +768,10 @@ const Dashboard = () => {
   }, []);
 
   // Get conversation title for dashboard header
-  const currentConversationTitle = useMemo(() => {
-    const conversation = allConversations.find(
-      (conv) => conv.conversationId === currentConversationId,
-    );
-    return conversation?.title || "Dashboard";
-  }, [allConversations, currentConversationId]);
+  const currentConversationTitle = useMemo(
+    () => currentConversation?.title || "Dashboard",
+    [currentConversation],
+  );
 
   // Conversation-level Pusher channel (for AGUI events)
   // Memoize config to prevent unnecessary reconnections
