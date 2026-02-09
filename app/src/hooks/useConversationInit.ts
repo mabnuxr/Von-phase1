@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useCreateConversation } from "./useConversations";
@@ -26,6 +26,10 @@ export function useConversationInit(urlConversationId?: string) {
 
   // Get feature flag for agent version
   const { isAgentV2 } = useFeatureFlag();
+
+  // Track whether we've already attempted to create the initial conversation
+  // Prevents duplicate creation when isAgentV2 flag value changes asynchronously
+  const hasCreatedInitialConversationRef = useRef(false);
 
   // Fetch conversations with infinite scroll (sorted by updatedAt DESC from backend)
   const {
@@ -95,6 +99,12 @@ export function useConversationInit(urlConversationId?: string) {
     }
 
     // CASE 3: No conversations - create first one
+    // Guard against duplicate creation when isAgentV2 flag changes asynchronously
+    if (hasCreatedInitialConversationRef.current) {
+      return;
+    }
+    hasCreatedInitialConversationRef.current = true;
+
     (async () => {
       try {
         const title = generateConversationTitle();
@@ -117,6 +127,8 @@ export function useConversationInit(urlConversationId?: string) {
         navigate(`/chat/${newConversationId}`, { replace: true });
         setCurrentConversationId(newConversationId);
       } catch (error) {
+        // Reset flag on error to allow retry
+        hasCreatedInitialConversationRef.current = false;
         console.error(
           "[useConversationInit] Failed to create conversation:",
           error,
