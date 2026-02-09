@@ -1,5 +1,4 @@
 import React from 'react';
-import { TableIcon } from '@phosphor-icons/react';
 import type { QueryTabProps } from '../types';
 
 // ============================================================================
