@@ -28,11 +28,6 @@ export const QueryTab = React.memo<QueryTabProps>(({ query, isActive, onClick })
         }
       `}
     >
-      <TableIcon
-        size={14}
-        weight={isActive ? 'fill' : 'regular'}
-        className={isActive ? 'text-white' : 'text-gray-500'}
-      />
       <span className="truncate max-w-[120px]">{query.name}</span>
     </button>
   );
