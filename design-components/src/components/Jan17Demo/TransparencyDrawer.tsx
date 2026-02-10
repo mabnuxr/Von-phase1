@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { QueryTab } from '../TransparencyDrawer/components/QueryTab';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   XIcon,
@@ -153,31 +154,6 @@ const getSentimentLabel = (sentiment?: SentimentType) => {
 // ============================================================================
 // Sub-components - Data Tab
 // ============================================================================
-
-interface QueryTabProps {
-  query: QueryResult;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-const QueryTab: React.FC<QueryTabProps> = ({ query, isActive, onClick }) => {
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        px-4 py-1.5 text-sm font-medium rounded-full
-        transition-colors duration-150 cursor-pointer whitespace-nowrap border
-        ${
-          isActive
-            ? 'bg-green-50 text-gray-900 border-green-300'
-            : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50 hover:text-gray-900'
-        }
-      `}
-    >
-      {query.name}
-    </button>
-  );
-};
 
 interface QueryContentProps {
   query: QueryResult;
