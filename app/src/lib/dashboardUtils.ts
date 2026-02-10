@@ -161,6 +161,8 @@ export interface V2LiveData {
   isFinalResponseStreaming: boolean;
   researchResults: ResearchResultsState;
   stoppedByUser: boolean;
+  /** Error message if the current run failed */
+  runErrorMessage: string;
 }
 
 /**
@@ -229,6 +231,13 @@ function transformMessagesForV2(
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
+        // Propagate error from failed run
+        ...(v2LiveData.runErrorMessage
+          ? {
+              status: "failed" as const,
+              errorMessage: v2LiveData.runErrorMessage,
+            }
+          : {}),
       };
     }
 
@@ -239,6 +248,7 @@ function transformMessagesForV2(
         finalResponse,
         researchResults,
         stoppedByUser: persistedStoppedByUser,
+        runErrorMessage: persistedRunErrorMessage,
       } = transformAguiToTimelineSteps(msg.events);
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
@@ -276,6 +286,13 @@ function transformMessagesForV2(
         v2FinalResponse: finalResponse,
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
+        // Propagate persisted error from events
+        ...(persistedRunErrorMessage
+          ? {
+              status: "failed" as const,
+              errorMessage: persistedRunErrorMessage,
+            }
+          : {}),
       };
     }
 
@@ -342,6 +359,7 @@ export function transformConversationMessages(
       messageId: null,
     },
     stoppedByUser: false,
+    runErrorMessage: "",
   };
 
   return transformMessagesForV2(conversationMessages, liveData);

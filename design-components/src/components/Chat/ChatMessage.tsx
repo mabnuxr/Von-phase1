@@ -383,12 +383,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                 {/* Content Column */}
                 <div className="flex-1 min-w-0 -mt-0.5">
-                  {/* For assistant messages: check for errors first */}
-                  {!isUser && status === 'failed' && errorMessage ? (
+                  {/* For V1 assistant messages: check for errors first (error replaces content) */}
+                  {!isUser && status === 'failed' && errorMessage && thinkingProcessVersion !== 'v2' ? (
                     <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
                     <div>
-                      {/* V2 Thinking Process - TimelineThinkingProcess component */}
+                      {/* V2 Thinking Process - always render if we have steps (even on error) */}
                       {thinkingProcessVersion === 'v2' &&
                         ((timelineSteps && timelineSteps.length > 0) || isStreaming) && (
                           <div className="mb-4">
@@ -396,7 +396,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               steps={timelineSteps || []}
                               isThinking={isStreaming}
                               isStreaming={isStreaming}
-                              autoCollapse={!!v2FinalResponse}
+                              autoCollapse={!!v2FinalResponse || (status === 'failed' && !!errorMessage)}
                               elapsedTime={thinkingElapsedTime}
                               onApprove={
                                 onApprove ? (stepId) => onApprove(stepId, runId) : undefined
@@ -408,8 +408,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           </div>
                         )}
 
-                      {/* V2 Final Response - rendered after timeline */}
-                      {thinkingProcessVersion === 'v2' && v2FinalResponse && (
+                      {/* V2 Error - shown below thinking process */}
+                      {thinkingProcessVersion === 'v2' && status === 'failed' && errorMessage && (
+                        <MessageAreaError message={errorMessage} />
+                      )}
+
+                      {/* V2 Final Response - rendered after timeline (not shown on error) */}
+                      {thinkingProcessVersion === 'v2' && v2FinalResponse && !(status === 'failed' && errorMessage) && (
                         <div className="markdown-content max-w-none">
                           <Streamdown
                             parseIncompleteMarkdown={isStreaming}
