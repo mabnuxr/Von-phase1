@@ -74,7 +74,7 @@ export const MESSAGES_PAGE_LIMIT = 10 as const;
  * OAuth polling timeout duration in milliseconds
  * After this time, polling will stop if authentication hasn't completed
  */
-export const OAUTH_POLLING_TIMEOUT_MS = 30000 as const; // 30 seconds
+export const OAUTH_POLLING_TIMEOUT_MS = 60000 as const; // 60 seconds
 
 /**
  * Interval in milliseconds for polling OAuth authentication status
