@@ -200,76 +200,6 @@ export function transformRowsToCalls(
 }
 
 /**
- * Transform multiple RAG artifacts to CallTranscript array
- * Used by useTransparencyDrawer for bulk RAG artifacts
- */
-export function transformBulkArtifactsToCalls(
-  bulkRagArtifacts:
-    | ArtifactResponse[]
-    | { artifacts?: ArtifactResponse[] }
-    | undefined,
-): CallTranscript[] {
-  const artifacts = Array.isArray(bulkRagArtifacts)
-    ? bulkRagArtifacts
-    : bulkRagArtifacts?.artifacts;
-
-  if (!artifacts || artifacts.length === 0) {
-    return [];
-  }
-
-  const allCalls: CallTranscript[] = [];
-  const seenIds = new Set<string>();
-
-  for (const artifact of artifacts) {
-    const content = artifact.content as {
-      sample?: {
-        rows?: Array<Record<string, unknown>>;
-      };
-      rows?: Array<Record<string, unknown>>;
-    };
-
-    // Support both formats: rows nested under sample or at top level
-    const rows = content.sample?.rows || content.rows;
-    if (!rows) continue;
-
-    const calls = transformRowsToCalls(rows, seenIds);
-    allCalls.push(...calls);
-  }
-
-  // Sort by relevance_score (highest first), use recency_score as tiebreaker
-  return allCalls.sort((a, b) => {
-    const relevanceA = a.relevanceScore ?? 0;
-    const relevanceB = b.relevanceScore ?? 0;
-
-    // Primary sort: by relevance score descending
-    if (relevanceA !== relevanceB) {
-      return relevanceB - relevanceA;
-    }
-
-    // Tiebreaker: by recency score descending (more recent = higher score)
-    const recencyA = a.recencyScore ?? 0;
-    const recencyB = b.recencyScore ?? 0;
-
-    if (recencyA !== recencyB) {
-      return recencyB - recencyA;
-    }
-
-    // Final fallback: by date descending (shouldn't reach here if recency_score exists)
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
-}
-
-/**
- * Transform a single RAG artifact to CallTranscript array
- * Used by SingleArtifactDrawerContainer
- */
-export function transformSingleArtifactToCalls(
-  artifact: ArtifactResponse,
-): CallTranscript[] {
-  return transformBulkArtifactsToCalls([artifact]);
-}
-
-/**
  * Check if the artifact is a RAG/conversation search artifact
  */
 export function isRagArtifact(category: string): boolean {
@@ -415,7 +345,170 @@ function sortByRelevanceAndRecency(
 }
 
 /**
+ * Content shape for fetch_conversation artifacts
+ */
+type FetchConversationContent = {
+  conversation_id?: string;
+  conversation_type?: string;
+  success?: boolean;
+  error_message?: string;
+  call_content?: {
+    summary?: string;
+    transcript?: string;
+  };
+  call_metadata?: {
+    call_title?: string;
+    call_start_time?: string;
+    call_end_time?: string;
+    call_duration_seconds?: number;
+    provider?: string;
+    speakers?: Array<{ name?: string; email?: string; type?: string }>;
+    deep_link?: string;
+    meeting_url?: string;
+  };
+  // Email-specific fields (for email fetch_conversation artifacts)
+  email_content?: {
+    content?: string;
+    body?: string;
+    subject?: string;
+  };
+  email_metadata?: {
+    sender?: string;
+    from?: string;
+    recipients?: string[];
+    to?: string[];
+    date?: string;
+    start_time?: string;
+    subject?: string;
+  };
+};
+
+/**
+ * Check if artifact content is a fetch_conversation shape
+ */
+function isFetchConversationContent(content: Record<string, unknown>): boolean {
+  return "conversation_id" in content && "conversation_type" in content;
+}
+
+/**
+ * Format duration seconds to a human-readable string (e.g., "7m", "1h 30m")
+ */
+function formatDurationSeconds(seconds: number): string {
+  const totalMinutes = Math.round(seconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+/**
+ * Transform a fetch_conversation artifact into a CallTranscript
+ */
+function transformFetchConversationToCall(
+  content: FetchConversationContent,
+  seenIds: Set<string>,
+): CallTranscript | null {
+  const id = content.conversation_id;
+  if (!id || seenIds.has(id)) return null;
+  seenIds.add(id);
+
+  const metadata = content.call_metadata;
+  const callContent = content.call_content;
+
+  const title = metadata?.call_title || "Untitled Call";
+  const date = metadata?.call_start_time || new Date().toISOString();
+
+  // Duration
+  let duration: string | undefined;
+  if (metadata?.call_duration_seconds) {
+    duration = formatDurationSeconds(metadata.call_duration_seconds);
+  } else if (metadata?.call_start_time && metadata?.call_end_time) {
+    const start = new Date(metadata.call_start_time).getTime();
+    const end = new Date(metadata.call_end_time).getTime();
+    if (!isNaN(start) && !isNaN(end) && end > start) {
+      duration = formatDurationSeconds((end - start) / 1000);
+    }
+  }
+
+  // Time range
+  let timeRange: string | undefined;
+  if (metadata?.call_start_time && metadata?.call_end_time) {
+    const start = new Date(metadata.call_start_time);
+    const end = new Date(metadata.call_end_time);
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      const fmt = (d: Date) =>
+        d.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      timeRange = `${fmt(start)} – ${fmt(end)}`;
+    }
+  }
+
+  // Participants from speakers (fall back to email when name is missing)
+  const participants = metadata?.speakers
+    ?.map((s) => s.name || s.email)
+    .filter((n): n is string => Boolean(n));
+
+  return {
+    id,
+    title,
+    date,
+    duration,
+    timeRange,
+    participants:
+      participants && participants.length > 0 ? participants : undefined,
+    summary:
+      callContent?.summary ||
+      callContent?.transcript?.slice(0, 500) ||
+      undefined,
+    sourceUrl: metadata?.deep_link,
+    meetingUrl: metadata?.meeting_url,
+  };
+}
+
+/**
+ * Transform a fetch_conversation artifact (email type) into an EmailTranscript
+ */
+function transformFetchConversationToEmail(
+  content: FetchConversationContent,
+  seenIds: Set<string>,
+): EmailTranscript | null {
+  const id = content.conversation_id;
+  if (!id || seenIds.has(id)) return null;
+
+  const emailContent = content.email_content;
+  const emailMeta = content.email_metadata;
+  const rawContent = (emailContent?.content ?? emailContent?.body ?? "").trim();
+  if (!rawContent) return null;
+
+  seenIds.add(id);
+
+  const subject = emailContent?.subject ?? emailMeta?.subject;
+  const date =
+    emailMeta?.date ?? emailMeta?.start_time ?? new Date().toISOString();
+  const sender = emailMeta?.sender ?? emailMeta?.from;
+  const recipients = emailMeta?.recipients ?? emailMeta?.to;
+
+  return {
+    id,
+    type: "email",
+    subject,
+    preview: rawContent.slice(0, 200),
+    content: rawContent,
+    date,
+    sender,
+    recipients,
+  };
+}
+
+/**
  * Separate calls and emails from bulk RAG artifacts
+ * Supports both row-based artifacts (execute_conversation_search) and
+ * single-conversation artifacts (fetch_conversation)
  * Returns both arrays sorted by relevance with recency tiebreaker
  */
 export function separateCallsAndEmails(
@@ -437,7 +530,42 @@ export function separateCallsAndEmails(
   const seenCallIds = new Set<string>();
   const seenEmailIds = new Set<string>();
 
+  // Partition artifacts: process fetch_conversation artifacts first so their
+  // rich data (title, summary, duration, speakers) populates the seenIds sets
+  // before row-based artifacts (which may only have call_id + minimal fields).
+  // This ensures deduplication keeps the richer version.
+  const fetchConversationArtifacts: ArtifactResponse[] = [];
+  const rowBasedArtifacts: ArtifactResponse[] = [];
+
   for (const artifact of artifacts) {
+    const content = artifact.content as Record<string, unknown>;
+    if (isFetchConversationContent(content)) {
+      fetchConversationArtifacts.push(artifact);
+    } else {
+      rowBasedArtifacts.push(artifact);
+    }
+  }
+
+  // Pass 1: fetch_conversation artifacts (rich single-conversation data)
+  for (const artifact of fetchConversationArtifacts) {
+    const content = artifact.content as FetchConversationContent;
+
+    // Skip failed fetch_conversation results
+    if (content.success === false || content.error_message) {
+      continue;
+    }
+
+    if (content.conversation_type === "email") {
+      const email = transformFetchConversationToEmail(content, seenEmailIds);
+      if (email) emails.push(email);
+    } else {
+      const call = transformFetchConversationToCall(content, seenCallIds);
+      if (call) calls.push(call);
+    }
+  }
+
+  // Pass 2: row-based artifacts (execute_conversation_search / execute_sql_query)
+  for (const artifact of rowBasedArtifacts) {
     const content = artifact.content as {
       sample?: { rows?: Array<Record<string, unknown>> };
       rows?: Array<Record<string, unknown>>;
