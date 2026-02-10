@@ -350,6 +350,8 @@ function sortByRelevanceAndRecency(
 type FetchConversationContent = {
   conversation_id?: string;
   conversation_type?: string;
+  success?: boolean;
+  error_message?: string;
   call_content?: {
     summary?: string;
     transcript?: string;
@@ -459,7 +461,10 @@ function transformFetchConversationToCall(
     timeRange,
     participants:
       participants && participants.length > 0 ? participants : undefined,
-    summary: callContent?.summary,
+    summary:
+      callContent?.summary ||
+      callContent?.transcript?.slice(0, 500) ||
+      undefined,
     sourceUrl: metadata?.deep_link,
     meetingUrl: metadata?.meeting_url,
   };
@@ -544,6 +549,12 @@ export function separateCallsAndEmails(
   // Pass 1: fetch_conversation artifacts (rich single-conversation data)
   for (const artifact of fetchConversationArtifacts) {
     const content = artifact.content as FetchConversationContent;
+
+    // Skip failed fetch_conversation results
+    if (content.success === false || content.error_message) {
+      continue;
+    }
+
     if (content.conversation_type === "email") {
       const email = transformFetchConversationToEmail(content, seenEmailIds);
       if (email) emails.push(email);
