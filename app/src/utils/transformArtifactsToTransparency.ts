@@ -93,6 +93,7 @@ export const MEMORY_TOOL_NAMES = new Set([
 const TOOL_NAME_MAP: Record<string, string> = {
   execute_sql_query: "Query",
   execute_salesforce_query: "Query",
+  salesforce_tooling_query: "Metadata Query",
   execute_conversation_search: "Conversation Search",
   search_calls: "Call Search",
   search_emails: "Email Search",

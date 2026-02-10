@@ -83,6 +83,10 @@ const TOOL_SOURCE_MAP: Record<string, SourceType> = {
   execute_sql_query: "salesforce",
   request_salesforce_approval: "salesforce",
 
+  // Salesforce Tooling API
+  salesforce_tooling_query: "salesforce",
+  salesforce_tooling_mutate: "salesforce",
+
   // Gong tools
   search_gong_calls: "gong",
   get_gong_call_transcript: "gong",

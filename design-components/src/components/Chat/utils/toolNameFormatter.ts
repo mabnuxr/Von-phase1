@@ -34,6 +34,10 @@ const TOOL_NAME_MAP: Record<string, string> = {
   transform_data: 'Transform Data',
   filter_data: 'Filter Data',
 
+  // Salesforce Tooling API
+  salesforce_tooling_query: 'Metadata Query',
+  salesforce_tooling_mutate: 'Metadata Approval',
+
   // Google Calendar Tools
   googlecalendar_create_event: 'Create Event',
   googlecalendar_update_event: 'Update Event',
