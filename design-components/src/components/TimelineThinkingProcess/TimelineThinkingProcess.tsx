@@ -176,7 +176,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               </>
             ) : isThinking ? (
               <span className="text-sm text-gray-800 truncate">
-                {summary || title}
+                {summary || title}{' '}
                 <AnimatedDots />
               </span>
             ) : (
