@@ -6,11 +6,8 @@
  * - SingleArtifactDrawerContainer (single RAG artifact)
  */
 
-import type {
-  CallTranscript,
-  EmailTranscript,
-} from "@vonlabs/design-components";
-import type { ArtifactResponse } from "../services/conversationsService";
+import type { CallTranscript, EmailTranscript } from '@vonlabs/design-components';
+import type { ArtifactResponse } from '../services/conversationsService';
 
 /**
  * Extract call title from row data
@@ -20,17 +17,15 @@ export function extractCallTitle(row: Record<string, unknown>): string {
   const rawTitle = row.call_title || row.conversation_title;
   if (rawTitle) {
     const title = String(rawTitle);
-    return title.length > 100 ? title.slice(0, 100) + "..." : title;
+    return title.length > 100 ? title.slice(0, 100) + '...' : title;
   }
 
-  const chunkText = String(row.chunk_text || "");
+  const chunkText = String(row.chunk_text || '');
   const titleMatch = chunkText.match(/^(?:=+\s*)?(.+?)(?:\s*=+)?$/m);
   const extractedTitle = titleMatch?.[1]?.trim() || chunkText.slice(0, 100);
 
-  if (!extractedTitle) return "Untitled Call";
-  return extractedTitle.length > 100
-    ? extractedTitle.slice(0, 100) + "..."
-    : extractedTitle;
+  if (!extractedTitle) return 'Untitled Call';
+  return extractedTitle.length > 100 ? extractedTitle.slice(0, 100) + '...' : extractedTitle;
 }
 
 /**
@@ -47,9 +42,9 @@ export function extractCallDate(row: Record<string, unknown>): string {
 
   // Coerce start_time to number (handles both number type and numeric strings)
   const startTime =
-    typeof row.start_time === "number"
+    typeof row.start_time === 'number'
       ? row.start_time
-      : typeof row.start_time === "string"
+      : typeof row.start_time === 'string'
         ? Number(row.start_time)
         : null;
 
@@ -74,7 +69,7 @@ function extractParticipants(row: Record<string, unknown>): string[] {
   const addNames = (field: unknown) => {
     if (Array.isArray(field)) {
       for (const name of field) {
-        if (typeof name === "string" && name.trim()) {
+        if (typeof name === 'string' && name.trim()) {
           participants.push(name.trim());
         }
       }
@@ -127,9 +122,9 @@ function extractTimeRange(row: Record<string, unknown>): string | undefined {
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return undefined;
 
   const fmt = (d: Date) =>
-    d.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
+    d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
       hour12: true,
     });
 
@@ -140,10 +135,10 @@ function extractTimeRange(row: Record<string, unknown>): string | undefined {
  * Extract summary from row data - prefers the rich summary field over chunk_text
  */
 function extractSummary(row: Record<string, unknown>): string | undefined {
-  if (typeof row.summary === "string" && row.summary.trim()) {
+  if (typeof row.summary === 'string' && row.summary.trim()) {
     return row.summary;
   }
-  if (typeof row.chunk_text === "string" && row.chunk_text.trim()) {
+  if (typeof row.chunk_text === 'string' && row.chunk_text.trim()) {
     return row.chunk_text;
   }
   return undefined;
@@ -155,18 +150,13 @@ function extractSummary(row: Record<string, unknown>): string | undefined {
  */
 export function transformRowsToCalls(
   rows: Array<Record<string, unknown>>,
-  seenIds?: Set<string>,
+  seenIds?: Set<string>
 ): CallTranscript[] {
   const seen = seenIds ?? new Set<string>();
   const calls: CallTranscript[] = [];
 
   for (const row of rows) {
-    const callId =
-      row.conversation_id ||
-      row.call_id ||
-      row.id ||
-      row.deep_link ||
-      row.meeting_url;
+    const callId = row.conversation_id || row.call_id || row.id || row.deep_link || row.meeting_url;
 
     if (!callId) continue;
 
@@ -187,12 +177,8 @@ export function transformRowsToCalls(
       sourceUrl: row.deep_link ? String(row.deep_link) : undefined,
       meetingUrl: row.meeting_url ? String(row.meeting_url) : undefined,
       summary: extractSummary(row),
-      relevanceScore:
-        typeof row.relevance_score === "number"
-          ? row.relevance_score
-          : undefined,
-      recencyScore:
-        typeof row.recency_score === "number" ? row.recency_score : undefined,
+      relevanceScore: typeof row.relevance_score === 'number' ? row.relevance_score : undefined,
+      recencyScore: typeof row.recency_score === 'number' ? row.recency_score : undefined,
     });
   }
 
@@ -200,80 +186,10 @@ export function transformRowsToCalls(
 }
 
 /**
- * Transform multiple RAG artifacts to CallTranscript array
- * Used by useTransparencyDrawer for bulk RAG artifacts
- */
-export function transformBulkArtifactsToCalls(
-  bulkRagArtifacts:
-    | ArtifactResponse[]
-    | { artifacts?: ArtifactResponse[] }
-    | undefined,
-): CallTranscript[] {
-  const artifacts = Array.isArray(bulkRagArtifacts)
-    ? bulkRagArtifacts
-    : bulkRagArtifacts?.artifacts;
-
-  if (!artifacts || artifacts.length === 0) {
-    return [];
-  }
-
-  const allCalls: CallTranscript[] = [];
-  const seenIds = new Set<string>();
-
-  for (const artifact of artifacts) {
-    const content = artifact.content as {
-      sample?: {
-        rows?: Array<Record<string, unknown>>;
-      };
-      rows?: Array<Record<string, unknown>>;
-    };
-
-    // Support both formats: rows nested under sample or at top level
-    const rows = content.sample?.rows || content.rows;
-    if (!rows) continue;
-
-    const calls = transformRowsToCalls(rows, seenIds);
-    allCalls.push(...calls);
-  }
-
-  // Sort by relevance_score (highest first), use recency_score as tiebreaker
-  return allCalls.sort((a, b) => {
-    const relevanceA = a.relevanceScore ?? 0;
-    const relevanceB = b.relevanceScore ?? 0;
-
-    // Primary sort: by relevance score descending
-    if (relevanceA !== relevanceB) {
-      return relevanceB - relevanceA;
-    }
-
-    // Tiebreaker: by recency score descending (more recent = higher score)
-    const recencyA = a.recencyScore ?? 0;
-    const recencyB = b.recencyScore ?? 0;
-
-    if (recencyA !== recencyB) {
-      return recencyB - recencyA;
-    }
-
-    // Final fallback: by date descending (shouldn't reach here if recency_score exists)
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
-}
-
-/**
- * Transform a single RAG artifact to CallTranscript array
- * Used by SingleArtifactDrawerContainer
- */
-export function transformSingleArtifactToCalls(
-  artifact: ArtifactResponse,
-): CallTranscript[] {
-  return transformBulkArtifactsToCalls([artifact]);
-}
-
-/**
  * Check if the artifact is a RAG/conversation search artifact
  */
 export function isRagArtifact(category: string): boolean {
-  return category === "rag";
+  return category === 'rag';
 }
 
 /**
@@ -281,13 +197,13 @@ export function isRagArtifact(category: string): boolean {
  */
 function cleanEmailContent(content: string): string {
   if (!content || !content.trim()) {
-    return "";
+    return '';
   }
 
   let cleaned = content;
 
   // Remove HTML tags
-  cleaned = cleaned.replace(/<[^>]*>/g, "");
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
 
   // Remove common email template footers/buttons (case insensitive)
   const footerPatterns = [
@@ -301,12 +217,12 @@ function cleanEmailContent(content: string): string {
   ];
 
   footerPatterns.forEach((pattern) => {
-    cleaned = cleaned.replace(pattern, "");
+    cleaned = cleaned.replace(pattern, '');
   });
 
   // Normalize whitespace: replace multiple newlines with max 2, trim spaces
-  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-  cleaned = cleaned.replace(/[ \t]+/g, " ");
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.replace(/[ \t]+/g, ' ');
   cleaned = cleaned.trim();
 
   return cleaned;
@@ -318,7 +234,7 @@ function cleanEmailContent(content: string): string {
  */
 function extractEmailSubject(content: string): string {
   if (!content || !content.trim()) {
-    return "No Subject";
+    return 'No Subject';
   }
 
   // Try to extract subject from common email header patterns
@@ -328,12 +244,12 @@ function extractEmailSubject(content: string): string {
   }
 
   // Fallback: use first line (truncated)
-  const firstLine = content.split("\n")[0].trim();
+  const firstLine = content.split('\n')[0].trim();
   if (firstLine) {
     return firstLine.slice(0, 100);
   }
 
-  return "No Subject";
+  return 'No Subject';
 }
 
 /**
@@ -341,16 +257,14 @@ function extractEmailSubject(content: string): string {
  */
 function transformRowToEmail(
   row: Record<string, unknown>,
-  seenIds: Set<string>,
+  seenIds: Set<string>
 ): EmailTranscript | null {
-  const id = String(row.conversation_id || row.id || "");
+  const id = String(row.conversation_id || row.id || '');
   if (!id || seenIds.has(id)) return null;
   seenIds.add(id);
 
   // Backend provides best_chunk_text for conversation search results
-  const rawContent = String(
-    row.best_chunk_text || row.content || row.chunk_text || "",
-  );
+  const rawContent = String(row.best_chunk_text || row.content || row.chunk_text || '');
   if (!rawContent.trim()) return null;
 
   // Clean up HTML, excessive whitespace, and email template artifacts
@@ -365,7 +279,7 @@ function transformRowToEmail(
 
   return {
     id,
-    type: "email",
+    type: 'email',
     subject,
     preview,
     content,
@@ -376,14 +290,10 @@ function transformRowToEmail(
       Array.isArray(row.recipients) && row.recipients.length > 0
         ? row.recipients.map(String)
         : undefined,
-    crmObjectType: row.crm_object_type
-      ? String(row.crm_object_type)
-      : undefined,
+    crmObjectType: row.crm_object_type ? String(row.crm_object_type) : undefined,
     crmObjectId: row.crm_object_id ? String(row.crm_object_id) : undefined,
-    relevanceScore:
-      typeof row.relevance_score === "number" ? row.relevance_score : undefined,
-    recencyScore:
-      typeof row.recency_score === "number" ? row.recency_score : undefined,
+    relevanceScore: typeof row.relevance_score === 'number' ? row.relevance_score : undefined,
+    recencyScore: typeof row.recency_score === 'number' ? row.recency_score : undefined,
   };
 }
 
@@ -392,7 +302,7 @@ function transformRowToEmail(
  */
 function sortByRelevanceAndRecency(
   a: { relevanceScore?: number; recencyScore?: number; date: string },
-  b: { relevanceScore?: number; recencyScore?: number; date: string },
+  b: { relevanceScore?: number; recencyScore?: number; date: string }
 ): number {
   const relevanceA = a.relevanceScore ?? 0;
   const relevanceB = b.relevanceScore ?? 0;
@@ -415,14 +325,153 @@ function sortByRelevanceAndRecency(
 }
 
 /**
+ * Content shape for fetch_conversation artifacts
+ */
+interface FetchConversationContent {
+  conversation_id?: string;
+  conversation_type?: string;
+  call_content?: {
+    summary?: string;
+    transcript?: string;
+  };
+  call_metadata?: {
+    call_title?: string;
+    call_start_time?: string;
+    call_end_time?: string;
+    call_duration_seconds?: number;
+    provider?: string;
+    speakers?: Array<{ name?: string; email?: string; type?: string }>;
+  };
+  // Email-specific fields (for email fetch_conversation artifacts)
+  email_content?: {
+    content?: string;
+    subject?: string;
+  };
+  email_metadata?: {
+    sender?: string;
+    recipients?: string[];
+    date?: string;
+  };
+}
+
+/**
+ * Check if artifact content is a fetch_conversation shape
+ */
+function isFetchConversationContent(
+  content: Record<string, unknown>
+): content is FetchConversationContent {
+  return 'conversation_id' in content && 'conversation_type' in content;
+}
+
+/**
+ * Format duration seconds to a human-readable string (e.g., "7m", "1h 30m")
+ */
+function formatDurationSeconds(seconds: number): string {
+  const totalMinutes = Math.round(seconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes}m`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+/**
+ * Transform a fetch_conversation artifact into a CallTranscript
+ */
+function transformFetchConversationToCall(
+  content: FetchConversationContent,
+  seenIds: Set<string>
+): CallTranscript | null {
+  const id = content.conversation_id;
+  if (!id || seenIds.has(id)) return null;
+  seenIds.add(id);
+
+  const metadata = content.call_metadata;
+  const callContent = content.call_content;
+
+  const title = metadata?.call_title || 'Untitled Call';
+  const date = metadata?.call_start_time || new Date().toISOString();
+
+  // Duration
+  let duration: string | undefined;
+  if (metadata?.call_duration_seconds) {
+    duration = formatDurationSeconds(metadata.call_duration_seconds);
+  } else if (metadata?.call_start_time && metadata?.call_end_time) {
+    const start = new Date(metadata.call_start_time).getTime();
+    const end = new Date(metadata.call_end_time).getTime();
+    if (!isNaN(start) && !isNaN(end) && end > start) {
+      duration = formatDurationSeconds((end - start) / 1000);
+    }
+  }
+
+  // Time range
+  let timeRange: string | undefined;
+  if (metadata?.call_start_time && metadata?.call_end_time) {
+    const start = new Date(metadata.call_start_time);
+    const end = new Date(metadata.call_end_time);
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      const fmt = (d: Date) =>
+        d.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+      timeRange = `${fmt(start)} – ${fmt(end)}`;
+    }
+  }
+
+  // Participants from speakers
+  const participants = metadata?.speakers?.map((s) => s.name).filter((n): n is string => !!n);
+
+  return {
+    id,
+    title,
+    date,
+    duration,
+    timeRange,
+    participants: participants && participants.length > 0 ? participants : undefined,
+    summary: callContent?.summary,
+  };
+}
+
+/**
+ * Transform a fetch_conversation artifact (email type) into an EmailTranscript
+ */
+function transformFetchConversationToEmail(
+  content: FetchConversationContent,
+  seenIds: Set<string>
+): EmailTranscript | null {
+  const id = content.conversation_id;
+  if (!id || seenIds.has(id)) return null;
+
+  const emailContent = content.email_content;
+  const emailMeta = content.email_metadata;
+  const rawContent = emailContent?.content || '';
+  if (!rawContent.trim()) return null;
+
+  seenIds.add(id);
+
+  return {
+    id,
+    type: 'email',
+    subject: emailContent?.subject,
+    preview: rawContent.slice(0, 200).trim(),
+    content: rawContent,
+    date: emailMeta?.date || new Date().toISOString(),
+    sender: emailMeta?.sender,
+    recipients: emailMeta?.recipients,
+  };
+}
+
+/**
  * Separate calls and emails from bulk RAG artifacts
+ * Supports both row-based artifacts (execute_conversation_search) and
+ * single-conversation artifacts (fetch_conversation)
  * Returns both arrays sorted by relevance with recency tiebreaker
  */
 export function separateCallsAndEmails(
-  bulkRagArtifacts:
-    | ArtifactResponse[]
-    | { artifacts?: ArtifactResponse[] }
-    | undefined,
+  bulkRagArtifacts: ArtifactResponse[] | { artifacts?: ArtifactResponse[] } | undefined
 ): { calls: CallTranscript[]; emails: EmailTranscript[] } {
   const artifacts = Array.isArray(bulkRagArtifacts)
     ? bulkRagArtifacts
@@ -437,7 +486,36 @@ export function separateCallsAndEmails(
   const seenCallIds = new Set<string>();
   const seenEmailIds = new Set<string>();
 
+  // Partition artifacts: process fetch_conversation artifacts first so their
+  // rich data (title, summary, duration, speakers) populates the seenIds sets
+  // before row-based artifacts (which may only have call_id + minimal fields).
+  // This ensures deduplication keeps the richer version.
+  const fetchConversationArtifacts: ArtifactResponse[] = [];
+  const rowBasedArtifacts: ArtifactResponse[] = [];
+
   for (const artifact of artifacts) {
+    const content = artifact.content as Record<string, unknown>;
+    if (isFetchConversationContent(content)) {
+      fetchConversationArtifacts.push(artifact);
+    } else {
+      rowBasedArtifacts.push(artifact);
+    }
+  }
+
+  // Pass 1: fetch_conversation artifacts (rich single-conversation data)
+  for (const artifact of fetchConversationArtifacts) {
+    const content = artifact.content as FetchConversationContent;
+    if (content.conversation_type === 'email') {
+      const email = transformFetchConversationToEmail(content, seenEmailIds);
+      if (email) emails.push(email);
+    } else {
+      const call = transformFetchConversationToCall(content, seenCallIds);
+      if (call) calls.push(call);
+    }
+  }
+
+  // Pass 2: row-based artifacts (execute_conversation_search / execute_sql_query)
+  for (const artifact of rowBasedArtifacts) {
     const content = artifact.content as {
       sample?: { rows?: Array<Record<string, unknown>> };
       rows?: Array<Record<string, unknown>>;
@@ -449,10 +527,10 @@ export function separateCallsAndEmails(
     for (const row of rows) {
       const type = row.type as string | undefined;
 
-      if (type === "call") {
+      if (type === 'call') {
         const callRows = transformRowsToCalls([row], seenCallIds);
         calls.push(...callRows);
-      } else if (type === "email") {
+      } else if (type === 'email') {
         const email = transformRowToEmail(row, seenEmailIds);
         if (email) emails.push(email);
       }
