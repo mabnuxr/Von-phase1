@@ -181,24 +181,7 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
         </div>
       ) : (
         <>
-          {/* Table Header with Download Button */}
-          <div className="px-4 pt-4 pb-2 flex items-center justify-between shrink-0">
-            <span className="text-[11px] text-gray-500">
-              {totalRows} {totalRows === 1 ? 'row' : 'rows'}
-            </span>
-            {!hasEmptyRows && (
-              <button
-                onClick={handleDownloadCSV}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                title="Download as CSV"
-              >
-                <DownloadSimpleIcon size={12} />
-                <span>CSV</span>
-              </button>
-            )}
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg mt-2">
+          <div className="flex-1 min-h-0 overflow-auto mx-4 border border-gray-200 rounded-lg mt-4">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -280,28 +263,40 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                 ? '0 rows'
                 : `Showing ${startIndex + 1}–${endIndex} of ${totalRows} ${totalRows === 1 ? 'row' : 'rows'}`}
             </span>
-            {/* Pagination Controls */}
-            {totalPages > 1 && !hasEmptyRows && (
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              {!hasEmptyRows && (
                 <button
-                  onClick={goToPrevPage}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  onClick={handleDownloadCSV}
+                  className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                  title="Download as CSV"
                 >
-                  <CaretLeftIcon size={14} weight="bold" />
+                  <DownloadSimpleIcon size={12} />
+                  <span>CSV</span>
                 </button>
-                <span className="text-[11px] text-gray-600 px-2 tabular-nums">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  <CaretRightIcon size={14} weight="bold" />
-                </button>
-              </div>
-            )}
+              )}
+              {/* Pagination Controls */}
+              {totalPages > 1 && !hasEmptyRows && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <CaretLeftIcon size={14} weight="bold" />
+                  </button>
+                  <span className="text-[11px] text-gray-600 px-2 tabular-nums">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <CaretRightIcon size={14} weight="bold" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
