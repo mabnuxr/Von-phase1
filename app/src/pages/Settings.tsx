@@ -9,7 +9,6 @@ import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import {
   GitCommitIcon,
-  TreeStructureIcon,
   RowsIcon,
   EnvelopeIcon,
   UsersIcon,
@@ -26,7 +25,6 @@ import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
-import { ProcessConfigurationTab } from "../components/tabs/ProcessConfigurationTab";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 const Settings = () => {
@@ -147,11 +145,6 @@ const Settings = () => {
     ],
     configurations: [
       {
-        id: "process",
-        label: "Process",
-        icon: <TreeStructureIcon size={20} weight="regular" />,
-      },
-      {
         id: "fields",
         label: "Fields",
         icon: <RowsIcon size={20} weight="regular" />,
@@ -187,8 +180,6 @@ const Settings = () => {
         return <IntegrationsPanel />;
       case "fields":
         return <FieldsTab />;
-      case "process":
-        return <ProcessConfigurationTab />;
       case "email":
         return <EmailCategorizationTab />;
       case "team":
