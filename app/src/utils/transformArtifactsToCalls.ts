@@ -361,16 +361,23 @@ type FetchConversationContent = {
     call_duration_seconds?: number;
     provider?: string;
     speakers?: Array<{ name?: string; email?: string; type?: string }>;
+    deep_link?: string;
+    meeting_url?: string;
   };
   // Email-specific fields (for email fetch_conversation artifacts)
   email_content?: {
     content?: string;
+    body?: string;
     subject?: string;
   };
   email_metadata?: {
     sender?: string;
+    from?: string;
     recipients?: string[];
+    to?: string[];
     date?: string;
+    start_time?: string;
+    subject?: string;
   };
 };
 
@@ -439,10 +446,10 @@ function transformFetchConversationToCall(
     }
   }
 
-  // Participants from speakers
+  // Participants from speakers (fall back to email when name is missing)
   const participants = metadata?.speakers
-    ?.map((s) => s.name)
-    .filter((n): n is string => !!n);
+    ?.map((s) => s.name || s.email)
+    .filter((n): n is string => Boolean(n));
 
   return {
     id,
@@ -453,6 +460,8 @@ function transformFetchConversationToCall(
     participants:
       participants && participants.length > 0 ? participants : undefined,
     summary: callContent?.summary,
+    sourceUrl: metadata?.deep_link,
+    meetingUrl: metadata?.meeting_url,
   };
 }
 
@@ -468,20 +477,25 @@ function transformFetchConversationToEmail(
 
   const emailContent = content.email_content;
   const emailMeta = content.email_metadata;
-  const rawContent = emailContent?.content || "";
-  if (!rawContent.trim()) return null;
+  const rawContent = (emailContent?.content ?? emailContent?.body ?? "").trim();
+  if (!rawContent) return null;
 
   seenIds.add(id);
+
+  const subject = emailContent?.subject ?? emailMeta?.subject;
+  const date = emailMeta?.date ?? emailMeta?.start_time ?? new Date().toISOString();
+  const sender = emailMeta?.sender ?? emailMeta?.from;
+  const recipients = emailMeta?.recipients ?? emailMeta?.to;
 
   return {
     id,
     type: "email",
-    subject: emailContent?.subject,
-    preview: rawContent.slice(0, 200).trim(),
+    subject,
+    preview: rawContent.slice(0, 200),
     content: rawContent,
-    date: emailMeta?.date || new Date().toISOString(),
-    sender: emailMeta?.sender,
-    recipients: emailMeta?.recipients,
+    date,
+    sender,
+    recipients,
   };
 }
 
