@@ -274,28 +274,28 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                   <span>CSV</span>
                 </button>
               )}
-            {/* Pagination Controls */}
-            {totalPages > 1 && !hasEmptyRows && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={goToPrevPage}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  <CaretLeftIcon size={14} weight="bold" />
-                </button>
-                <span className="text-[11px] text-gray-600 px-2 tabular-nums">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  <CaretRightIcon size={14} weight="bold" />
-                </button>
-              </div>
-            )}
+              {/* Pagination Controls */}
+              {totalPages > 1 && !hasEmptyRows && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={goToPrevPage}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <CaretLeftIcon size={14} weight="bold" />
+                  </button>
+                  <span className="text-[11px] text-gray-600 px-2 tabular-nums">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <CaretRightIcon size={14} weight="bold" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </>
