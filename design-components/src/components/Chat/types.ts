@@ -768,7 +768,7 @@ export interface ApprovalResult {
  * Check if a tool call is the Salesforce approval tool
  */
 export function isApprovalTool(toolName: string): boolean {
-  return toolName === 'request_salesforce_approval';
+  return toolName === 'request_salesforce_approval' || toolName === 'salesforce_tooling_mutate';
 }
 
 /**
