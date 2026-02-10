@@ -347,7 +347,7 @@ function sortByRelevanceAndRecency(
 /**
  * Content shape for fetch_conversation artifacts
  */
-interface FetchConversationContent {
+type FetchConversationContent = {
   conversation_id?: string;
   conversation_type?: string;
   call_content?: {
@@ -372,14 +372,12 @@ interface FetchConversationContent {
     recipients?: string[];
     date?: string;
   };
-}
+};
 
 /**
  * Check if artifact content is a fetch_conversation shape
  */
-function isFetchConversationContent(
-  content: Record<string, unknown>,
-): content is FetchConversationContent {
+function isFetchConversationContent(content: Record<string, unknown>): boolean {
   return "conversation_id" in content && "conversation_type" in content;
 }
 
