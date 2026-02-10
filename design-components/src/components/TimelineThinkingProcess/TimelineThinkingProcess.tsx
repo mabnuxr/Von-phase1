@@ -213,7 +213,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
             >
               <div
                 ref={scrollContainerRef}
-                className="mt-1 border border-gray-100 bg-white shadow-xs rounded-lg overflow-y-auto px-2 py-2"
+                className="mt-1 border border-gray-100 bg-white shadow-xs rounded-lg overflow-y-auto px-2 py-3"
                 style={{ maxHeight: CONTAINER_HEIGHT }}
               >
                 <div className="space-y-0">
