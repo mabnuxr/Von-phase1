@@ -21,6 +21,9 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { Avatar } from './Avatar';
 export type { AvatarProps } from './Avatar';
 
+export { Tooltip } from './Tooltip';
+export type { TooltipProps } from './Tooltip';
+
 export { Menu } from './Menu';
 export type { MenuProps, MenuItem } from './Menu';
 
@@ -406,3 +409,6 @@ export type { ExpensiveOperationModalProps } from './popups';
 // ============================================================================
 export { useAutoScroll } from '../hooks';
 export type { UseAutoScrollConfig, UseAutoScrollReturn } from '../hooks';
+
+export { useIsTruncated } from '../hooks';
+export type { UseIsTruncatedReturn } from '../hooks';
