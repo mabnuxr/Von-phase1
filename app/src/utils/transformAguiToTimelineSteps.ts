@@ -104,6 +104,22 @@ function getToolSource(toolName: string): SourceType {
 }
 
 /**
+ * Remove trailing colon from the previous step's text when a tool call step is hidden.
+ * This prevents a dangling colon that was introducing the now-removed step.
+ */
+function removeTrailingColonFromPreviousStep(
+  steps: TimelineStep[],
+  stepIndex: number,
+): void {
+  if (stepIndex > 0) {
+    const previousStep = steps[stepIndex - 1];
+    if (previousStep.text && previousStep.text.trimEnd().endsWith(":")) {
+      previousStep.text = previousStep.text.trimEnd().slice(0, -1);
+    }
+  }
+}
+
+/**
  * Approval data structure returned by detection
  */
 interface DetectedApprovalData {
@@ -1153,6 +1169,7 @@ export function transformAguiToTimelineSteps(
                       // Remove failed step from steps array
                       const stepIndex = steps.indexOf(step);
                       if (stepIndex !== -1) {
+                        removeTrailingColonFromPreviousStep(steps, stepIndex);
                         steps.splice(stepIndex, 1);
                       }
                       toolCallResultMap.delete(toolId);
@@ -1161,6 +1178,7 @@ export function transformAguiToTimelineSteps(
                     // Remove failed step from steps array
                     const stepIndex = steps.indexOf(step);
                     if (stepIndex !== -1) {
+                      removeTrailingColonFromPreviousStep(steps, stepIndex);
                       steps.splice(stepIndex, 1);
                     }
                     toolCallResultMap.delete(toolId);
@@ -1257,6 +1275,7 @@ export function transformAguiToTimelineSteps(
                     // Remove failed step from steps array
                     const stepIndex = steps.indexOf(step);
                     if (stepIndex !== -1) {
+                      removeTrailingColonFromPreviousStep(steps, stepIndex);
                       steps.splice(stepIndex, 1);
                     }
                   }
@@ -1264,6 +1283,7 @@ export function transformAguiToTimelineSteps(
                   // Remove failed step from steps array
                   const stepIndex = steps.indexOf(step);
                   if (stepIndex !== -1) {
+                    removeTrailingColonFromPreviousStep(steps, stepIndex);
                     steps.splice(stepIndex, 1);
                   }
                 } else {
@@ -1444,6 +1464,7 @@ export function transformAguiToTimelineSteps(
                 // Remove failed step from steps array
                 const stepIndex = steps.indexOf(step);
                 if (stepIndex !== -1) {
+                  removeTrailingColonFromPreviousStep(steps, stepIndex);
                   steps.splice(stepIndex, 1);
                 }
               }
@@ -1451,6 +1472,7 @@ export function transformAguiToTimelineSteps(
               // Remove failed step from steps array
               const stepIndex = steps.indexOf(step);
               if (stepIndex !== -1) {
+                removeTrailingColonFromPreviousStep(steps, stepIndex);
                 steps.splice(stepIndex, 1);
               }
             } else {
