@@ -483,7 +483,8 @@ function transformFetchConversationToEmail(
   seenIds.add(id);
 
   const subject = emailContent?.subject ?? emailMeta?.subject;
-  const date = emailMeta?.date ?? emailMeta?.start_time ?? new Date().toISOString();
+  const date =
+    emailMeta?.date ?? emailMeta?.start_time ?? new Date().toISOString();
   const sender = emailMeta?.sender ?? emailMeta?.from;
   const recipients = emailMeta?.recipients ?? emailMeta?.to;
 
