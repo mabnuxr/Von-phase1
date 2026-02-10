@@ -146,7 +146,7 @@ export function callSearchResultsToCSV(results: CallSearchResult[]): string {
     'External Companies',
     'Match Source',
     'Match Reason',
-    'Deep Link',
+    'Link',
   ].join(',');
 
   const dataRows = results.map((call) =>
