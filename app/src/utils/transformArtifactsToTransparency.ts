@@ -89,16 +89,28 @@ export const MEMORY_TOOL_NAMES = new Set([
 
 /**
  * Process columns to handle deep_link: remove the deep_link column and
- * mark the ID column with linkKey so the renderer can make it clickable.
+ * mark an ID-like column with linkKey so the renderer can make it clickable.
+ *
+ * Matches columns named "id" or ending with "_id" (e.g. conversation_id, call_id).
+ * If no suitable target column is found, keeps the deep_link column visible as a fallback.
  */
 export function applyDeepLinkTransform(columns: QueryColumn[]): QueryColumn[] {
-  const hasDeepLink = columns.some((col) => col.key === "deep_link");
-  if (!hasDeepLink) return columns;
+  const deepLinkColumn = columns.find((col) => col.key === "deep_link");
+  if (!deepLinkColumn) return columns;
+
+  const linkTarget = columns.find((col) => {
+    const key = col.key.toLowerCase();
+    return key === "id" || key.endsWith("_id");
+  });
+
+  if (!linkTarget) {
+    return columns; // no safe target, keep deep_link visible
+  }
 
   return columns
     .filter((col) => col.key !== "deep_link")
     .map((col) =>
-      col.key.toLowerCase() === "id" ? { ...col, linkKey: "deep_link" } : col,
+      col === linkTarget ? { ...col, linkKey: "deep_link" } : col,
     );
 }
 
