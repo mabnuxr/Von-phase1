@@ -3,6 +3,12 @@ import { apiClient } from "./apiClient";
 /**
  * Team member from backend API
  */
+export interface TeamMemberUsage {
+  total: number;
+  last_week: number;
+  last_month: number;
+}
+
 export interface TeamMember {
   id: string;
   email: string;
@@ -11,6 +17,7 @@ export interface TeamMember {
   role: string;
   joinedDate: string | null;
   isActive: boolean;
+  usage: TeamMemberUsage;
 }
 
 /**

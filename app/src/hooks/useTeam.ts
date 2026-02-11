@@ -79,6 +79,7 @@ export function useAddTeamMember(tenantId: string | undefined) {
           role: newMember.role,
           joinedDate: new Date().toISOString(),
           isActive: true,
+          usage: { total: 0, last_week: 0, last_month: 0 },
         };
 
         queryClient.setQueryData<TeamMember[]>(teamKeys.members(tenantId), [

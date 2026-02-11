@@ -4,7 +4,7 @@ import { useTeamMembers, useRemoveTeamMember } from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import usePreferencesStore from "../../store/preferencesStore";
-import { Banner } from "@vonlabs/design-components";
+import { Banner, Tooltip } from "@vonlabs/design-components";
 
 export function ManageUsersTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -179,6 +179,14 @@ export function ManageUsersTab() {
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
                     >
+                      <Tooltip content="Number of conversations created">
+                        <span className="cursor-default">Usage</span>
+                      </Tooltip>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
                       Joined
                     </th>
                     {canDeleteTeamMember && (
@@ -202,6 +210,9 @@ export function ManageUsersTab() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-5 bg-gray-200 rounded-full animate-pulse w-20"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
@@ -264,6 +275,14 @@ export function ManageUsersTab() {
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
                     >
+                      <Tooltip content="Number of conversations created">
+                        <span className="cursor-default">Usage</span>
+                      </Tooltip>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                    >
                       Joined
                     </th>
                     {canDeleteTeamMember && (
@@ -296,6 +315,20 @@ export function ManageUsersTab() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
                           {member.role}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Tooltip
+                          content={
+                            <div className="flex flex-col gap-1">
+                              <span>Last week: <span className="font-medium">{member.usage.last_week}</span></span>
+                              <span>Last month: <span className="font-medium">{member.usage.last_month}</span></span>
+                            </div>
+                          }
+                        >
+                          <span className="text-sm text-gray-700 cursor-default tabular-nums">
+                            {member.usage.total}
+                          </span>
+                        </Tooltip>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600">
