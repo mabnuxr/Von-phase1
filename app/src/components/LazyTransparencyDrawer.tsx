@@ -11,12 +11,6 @@
 
 import React, { useMemo } from "react";
 import {
-  Database as DatabaseIcon,
-  Phone as PhoneIcon,
-  Envelope as EnvelopeIcon,
-  MagnifyingGlass as MagnifyingGlassIcon,
-} from "@phosphor-icons/react";
-import {
   TransparencyDrawer,
   DataTabContent,
   CallsTabContent,
@@ -27,13 +21,6 @@ import {
 } from "@vonlabs/design-components";
 import { useTransparencyDrawer } from "../hooks/useTransparencyDrawer";
 import type { ArtifactSummary } from "../utils/transformArtifactsToTransparency";
-
-const DATA_TAB_ICON = <DatabaseIcon size={14} weight="regular" />;
-const CALLS_TAB_ICON = <PhoneIcon size={14} weight="regular" />;
-const EMAILS_TAB_ICON = <EnvelopeIcon size={14} weight="regular" />;
-const DEEP_RESEARCH_TAB_ICON = (
-  <MagnifyingGlassIcon size={14} weight="regular" />
-);
 
 interface LazyTransparencyDrawerProps {
   isOpen: boolean;
@@ -75,7 +62,6 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     () => ({
       id: "data",
       label: "Data",
-      icon: DATA_TAB_ICON,
       count: queries.length,
     }),
     [queries.length],
@@ -85,7 +71,6 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     () => ({
       id: "calls",
       label: "Calls",
-      icon: CALLS_TAB_ICON,
       count: calls.length || (callsError ? 1 : 0),
     }),
     [calls.length, callsError],
@@ -95,7 +80,6 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     () => ({
       id: "emails",
       label: "Emails",
-      icon: EMAILS_TAB_ICON,
       count: emails.length || (callsError ? 1 : 0),
     }),
     [emails.length, callsError],
@@ -105,7 +89,6 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     () => ({
       id: "deep-research",
       label: "Deep Research",
-      icon: DEEP_RESEARCH_TAB_ICON,
       count: vonIqQueries.length,
     }),
     [vonIqQueries.length],

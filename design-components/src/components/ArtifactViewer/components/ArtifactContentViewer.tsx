@@ -293,10 +293,9 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                             col.type === 'number' ||
                             col.type === 'currency' ||
                             col.type === 'percentage';
-                          const isDeepLink = col.key === 'deep_link';
 
-                          // For numeric and deep_link columns, render without truncation
-                          if (isNumeric || isDeepLink) {
+                          // Linked column (e.g. ID with deep link) or numeric — render without truncation
+                          if (col.linkKey || isNumeric) {
                             return (
                               <td
                                 key={col.key}
@@ -304,7 +303,11 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                                   isNumeric ? 'text-right tabular-nums' : 'text-left'
                                 } text-gray-700`}
                               >
-                                {formatCellValue(col.key, row[col.key], col.type)}
+                                {formatCellValue(
+                                  row[col.key],
+                                  col.type,
+                                  col.linkKey ? row[col.linkKey] : undefined
+                                )}
                               </td>
                             );
                           }
