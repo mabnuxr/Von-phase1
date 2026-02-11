@@ -88,6 +88,21 @@ export const MEMORY_TOOL_NAMES = new Set([
 ]);
 
 /**
+ * Process columns to handle deep_link: remove the deep_link column and
+ * mark the ID column with linkKey so the renderer can make it clickable.
+ */
+export function applyDeepLinkTransform(columns: QueryColumn[]): QueryColumn[] {
+  const hasDeepLink = columns.some((col) => col.key === "deep_link");
+  if (!hasDeepLink) return columns;
+
+  return columns
+    .filter((col) => col.key !== "deep_link")
+    .map((col) =>
+      col.key.toLowerCase() === "id" ? { ...col, linkKey: "deep_link" } : col,
+    );
+}
+
+/**
  * Human-readable tool name mapping
  */
 const TOOL_NAME_MAP: Record<string, string> = {
@@ -125,11 +140,13 @@ function transformArtifactToQueryResult(
       return null;
     }
 
-    const columns: QueryColumn[] = ragContent.sample.columns.map((col) => ({
-      key: col.name,
-      label: col.display_name,
-      type: "string" as const,
-    }));
+    const columns: QueryColumn[] = applyDeepLinkTransform(
+      ragContent.sample.columns.map((col) => ({
+        key: col.name,
+        label: col.display_name,
+        type: "string" as const,
+      })),
+    );
 
     // Transform rows to string values for display
     const rows = ragContent.sample.rows.map((row) => {
@@ -171,11 +188,13 @@ function transformArtifactToQueryResult(
       return null;
     }
 
-    const columns: QueryColumn[] = rawColumns.map((col) => ({
-      key: col.name,
-      label: col.display_name || col.name,
-      type: (col.type as QueryColumn["type"]) || "string",
-    }));
+    const columns: QueryColumn[] = applyDeepLinkTransform(
+      rawColumns.map((col) => ({
+        key: col.name,
+        label: col.display_name || col.name,
+        type: (col.type as QueryColumn["type"]) || "string",
+      })),
+    );
 
     // Transform rows to string values for display
     const rows = rawRows.map((row) => {
@@ -230,11 +249,13 @@ function transformArtifactToQueryResult(
       }>;
       const rawRows = genericContent.rows as Array<Record<string, unknown>>;
 
-      const columns: QueryColumn[] = cols.map((col) => ({
-        key: col.name,
-        label: col.display_name || col.name,
-        type: "string" as const,
-      }));
+      const columns: QueryColumn[] = applyDeepLinkTransform(
+        cols.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: "string" as const,
+        })),
+      );
 
       const rows = rawRows.map((row) => {
         const transformedRow: Record<string, string | number> = {};

@@ -2,6 +2,8 @@ export interface QueryColumn {
   key: string;
   label: string;
   type?: 'string' | 'number' | 'currency' | 'date' | 'percentage';
+  /** When set, render this column's value as a link using row[linkKey] as the URL */
+  linkKey?: string;
 }
 
 export interface QueryResult {
