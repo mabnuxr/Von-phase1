@@ -320,8 +320,18 @@ export function ManageUsersTab() {
                         <Tooltip
                           content={
                             <div className="flex flex-col gap-1">
-                              <span>Last week: <span className="font-medium">{member.usage.last_week}</span></span>
-                              <span>Last month: <span className="font-medium">{member.usage.last_month}</span></span>
+                              <span>
+                                Last week:{" "}
+                                <span className="font-medium">
+                                  {member.usage.last_week}
+                                </span>
+                              </span>
+                              <span>
+                                Last month:{" "}
+                                <span className="font-medium">
+                                  {member.usage.last_month}
+                                </span>
+                              </span>
                             </div>
                           }
                         >
