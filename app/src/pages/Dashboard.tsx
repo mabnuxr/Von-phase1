@@ -635,6 +635,7 @@ const Dashboard = () => {
     isDeepResearchRunning: v2IsDeepResearchRunning,
     stoppedByUser: v2StoppedByUser,
     runErrorMessage: v2RunErrorMessage,
+    currentRunId: v2CurrentRunId,
     markStopped: v2MarkStopped,
   } = useConversationPusherChannelV2(v2ChannelConfig, v2InitialRunEvents);
 
@@ -654,6 +655,7 @@ const Dashboard = () => {
         researchResults: v2ResearchResults,
         stoppedByUser: v2StoppedByUser,
         runErrorMessage: v2RunErrorMessage,
+        currentRunId: v2CurrentRunId,
       }),
     [
       conversationMessages,
@@ -666,6 +668,7 @@ const Dashboard = () => {
       v2ResearchResults,
       v2StoppedByUser,
       v2RunErrorMessage,
+      v2CurrentRunId,
     ],
   );
 

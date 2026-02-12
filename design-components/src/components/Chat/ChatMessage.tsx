@@ -400,7 +400,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               isThinking={isStreaming}
                               isStreaming={isStreaming}
                               autoCollapse={
-                                !!v2FinalResponse || (status === 'failed' && !!errorMessage)
+                                !!v2FinalResponse ||
+                                status === 'timeout' ||
+                                (status === 'failed' && !!errorMessage)
                               }
                               elapsedTime={thinkingElapsedTime}
                               onApprove={
@@ -413,14 +415,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           </div>
                         )}
 
-                      {/* V2 Error - shown below thinking process */}
-                      {thinkingProcessVersion === 'v2' && status === 'failed' && errorMessage && (
-                        <MessageAreaError message={errorMessage} />
-                      )}
+                      {/* V2 Error - shown below thinking process (failed only; timeout has its own indicator) */}
+                      {thinkingProcessVersion === 'v2' &&
+                        status === 'failed' &&
+                        errorMessage && <MessageAreaError message={errorMessage} />}
 
                       {/* V2 Final Response - rendered after timeline (not shown on error) */}
                       {thinkingProcessVersion === 'v2' &&
                         v2FinalResponse &&
+                        status !== 'timeout' &&
                         !(status === 'failed' && errorMessage) && (
                           <div className="markdown-content max-w-none">
                             <Streamdown

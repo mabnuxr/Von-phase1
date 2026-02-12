@@ -163,6 +163,8 @@ export interface V2LiveData {
   stoppedByUser: boolean;
   /** Error message if the current run failed */
   runErrorMessage: string;
+  /** Run ID currently being processed by V2 (null when no run has been received) */
+  currentRunId: string | null;
 }
 
 /**
@@ -217,14 +219,23 @@ function transformMessagesForV2(
     const hasLiveV2Data =
       usableV2TimelineSteps.length > 0 ||
       v2LiveData.finalResponse ||
-      v2LiveData.isThinking;
+      v2LiveData.isThinking ||
+      !!v2LiveData.runErrorMessage ||
+      v2LiveData.stoppedByUser ||
+      !!v2LiveData.currentRunId;
     const isRunActive =
       v2LiveData.isThinking || v2LiveData.isFinalResponseStreaming;
     // V2 data is "stale" only when the message is still marked as streaming (optimistic
-    // placeholder) but the V2 hook hasn't started a run yet. A failed run that has error
-    // data should never be considered stale — the error must be shown.
-    const isRunFailed = !!v2LiveData.runErrorMessage;
-    const isStaleV2Data = msg.isStreaming && !isRunActive && !isRunFailed;
+    // placeholder) but the V2 hook hasn't started a run yet. Once V2 has processed any
+    // run (currentRunId set) or reached a terminal state (steps, response, error, stopped),
+    // it should never be treated as stale — even if msg.isStreaming is still true.
+    const hasV2TerminalData =
+      usableV2TimelineSteps.length > 0 ||
+      v2LiveData.finalResponse ||
+      !!v2LiveData.runErrorMessage ||
+      v2LiveData.stoppedByUser ||
+      !!v2LiveData.currentRunId;
+    const isStaleV2Data = msg.isStreaming && !isRunActive && !hasV2TerminalData;
 
     if (isLastAssistant && hasLiveV2Data && !isStaleV2Data) {
       return {
@@ -364,6 +375,7 @@ export function transformConversationMessages(
     },
     stoppedByUser: false,
     runErrorMessage: "",
+    currentRunId: null,
   };
 
   return transformMessagesForV2(conversationMessages, liveData);
