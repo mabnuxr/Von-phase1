@@ -1,2 +1,8 @@
-export { formatValue, formatCellValue, getSentimentIcon, getSentimentLabel } from './formatters';
+export {
+  formatValue,
+  formatCellValue,
+  renderLinkedId,
+  getSentimentIcon,
+  getSentimentLabel,
+} from './formatters';
 export { groupCallsByMonth } from './groupCallsByMonth';

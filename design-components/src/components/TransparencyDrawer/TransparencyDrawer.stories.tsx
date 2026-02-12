@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { DatabaseIcon, PhoneIcon } from '@phosphor-icons/react';
 import { TransparencyDrawer, DataTabContent, CallsTabContent } from './index';
 import type { QueryResult, CallTranscript, TabConfig } from './types';
 
@@ -212,14 +211,12 @@ const sampleCalls: CallTranscript[] = [
 const createDataTabConfig = (queries: QueryResult[]): TabConfig => ({
   id: 'data',
   label: 'Data',
-  icon: <DatabaseIcon size={16} weight="duotone" />,
   count: queries.length,
 });
 
 const createCallsTabConfig = (calls: CallTranscript[]): TabConfig => ({
   id: 'calls',
   label: 'Calls',
-  icon: <PhoneIcon size={16} weight="duotone" />,
   count: calls.length,
 });
 

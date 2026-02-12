@@ -555,7 +555,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     // User messages - with file attachments and text
                     <div
                       ref={userMessageRef}
-                      className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2"
+                      className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2 overflow-hidden break-words"
                     >
                       {/* File attachments shown above text */}
                       {attachments && attachments.length > 0 && (
