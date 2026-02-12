@@ -475,9 +475,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             onFilesSelected?.(Array.from(e.dataTransfer.files));
             e.dataTransfer.clearData();
           }
-        } else {
-          handleDrop(e);
         }
+        // Always reset drag state (isDragActive + dragCounter)
+        handleDrop(e);
       },
       [isAttachmentsControlled, onFilesSelected, handleDrop]
     );
