@@ -70,6 +70,8 @@ export interface BulkApprovalRecord {
   recordId: string;
   /** Record name (e.g., deal name) */
   recordName: string;
+  /** Display label for the record type (e.g., "Opportunity", "Calendar Event") */
+  label: string;
   /** URL to the record (e.g., Salesforce record URL, Google Calendar event URL) */
   recordUrl?: string;
   /** Changes for this record */
@@ -85,7 +87,8 @@ export interface ApprovalData {
   /** The actual tool_call_id from the backend - used for approval/rejection API calls */
   toolCallId: string;
   summary: string;
-  objectType: string;
+  /** Display-ready label (e.g., "Opportunity", "30 Salesforce Records", "Calendar Event") */
+  label: string;
   recordName?: string;
   recordId?: string;
   recordUrl?: string;

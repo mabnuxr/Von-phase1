@@ -426,7 +426,7 @@ export const mockApprovalStep: TimelineStep = {
   approval: {
     toolCallId: "tool-approval-001",
     summary: "Update opportunity stage to Closed Won",
-    objectType: "Opportunity",
+    label: "Opportunity",
     recordName: "Acme Corp - Enterprise Deal",
     operation: "update",
     approvalType: "salesforce",
@@ -450,7 +450,7 @@ export const mockDeepResearchApprovalStep: TimelineStep = {
   approval: {
     toolCallId: "tool-dr-001",
     summary: "Run comprehensive churn analysis",
-    objectType: "Deep Research",
+    label: "Deep Research",
     operation: "create",
     approvalType: "deep_research",
     researchQuery: "What are the main drivers of customer churn in Q4?",

@@ -470,7 +470,7 @@ const approvalThinkingSteps: TimelineStep[] = [
     approval: {
       toolCallId: 'tc-approval-1',
       summary: 'Update opportunity with new close date and increased deal value',
-      objectType: 'Opportunity',
+      label: 'Opportunity',
       recordName: 'Acme Corp Enterprise Deal',
       operation: 'update',
       changes: [
