@@ -317,7 +317,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div
         className={`
           w-full transition-all duration-300
-          ${isUser ? 'py-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`}
+          ${isUser ? 'pt-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`}
         `}
       >
         {/* Centered container */}

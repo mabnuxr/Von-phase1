@@ -290,7 +290,7 @@ export const Chat: React.FC<ChatProps> = ({
           /* Standard message rendering */
           <div className="flex flex-col">
             {visibleMessages.map((message) => (
-              <div key={message.id} className="mb-4">
+              <div key={message.id}>
                 <ChatMessage
                   type={message.type}
                   content={message.content}
