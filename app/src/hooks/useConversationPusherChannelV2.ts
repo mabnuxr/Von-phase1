@@ -177,11 +177,14 @@ export function useConversationPusherChannelV2(
         }
       });
     } else {
-      // No active events yet — just stop the UI
+      // No active events yet — just stop the UI.
+      // Clear runErrorMessage so a stale error from a prior failed run
+      // doesn't propagate into this new run via transformConversationMessages.
       flushSync(() => {
         setIsThinking(false);
         setIsFinalResponseStreaming(false);
         setStoppedByUser(true);
+        setRunErrorMessage("");
       });
     }
 
