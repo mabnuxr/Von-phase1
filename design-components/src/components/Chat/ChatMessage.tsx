@@ -425,7 +425,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         v2FinalResponse &&
                         status !== 'timeout' &&
                         !(status === 'failed' && errorMessage) && (
-                          <div className="markdown-content max-w-none overflow-hidden">
+                          <div className="markdown-content max-w-none">
                             <Streamdown
                               parseIncompleteMarkdown={isStreaming}
                               isAnimating={isStreaming}
@@ -507,7 +507,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                       <div className="space-y-3">
                                         {/* Final step content */}
                                         {finalStep.content && (
-                                          <div className="markdown-content max-w-none overflow-hidden">
+                                          <div className="markdown-content max-w-none">
                                             <Streamdown
                                               parseIncompleteMarkdown={false}
                                               isAnimating={false}
@@ -546,7 +546,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           ) : (
                             /* Fallback: render plain content if no stepMessages */
                             content && (
-                              <div className="markdown-content max-w-none overflow-hidden">
+                              <div className="markdown-content max-w-none">
                                 <Streamdown
                                   parseIncompleteMarkdown={isStreaming}
                                   isAnimating={isStreaming}
