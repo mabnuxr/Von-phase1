@@ -67,6 +67,12 @@ export interface ChatInputSelectorProps {
   lockedAgentMode?: AgentMode;
   /** Whether to show the plus menu button (with agents and upload options) */
   showPlusMenu?: boolean;
+  /** Controlled file attachments (when provided, input uses controlled mode) */
+  attachments?: FileAttachment[];
+  /** Callback when a file is removed in controlled mode */
+  onRemoveAttachment?: (id: string) => void;
+  /** Callback when files are selected in controlled mode */
+  onFilesSelected?: (files: File[]) => void;
 }
 
 /**
@@ -99,6 +105,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       isAgentLocked,
       lockedAgentMode,
       showPlusMenu,
+      attachments: controlledAttachments,
+      onRemoveAttachment,
+      onFilesSelected,
     },
     ref
   ) => {
@@ -126,6 +135,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         isAgentLocked,
         lockedAgentMode,
         showPlusMenu,
+        attachments: controlledAttachments,
+        onRemoveAttachment,
+        onFilesSelected,
       };
 
       if (enableCommands) {

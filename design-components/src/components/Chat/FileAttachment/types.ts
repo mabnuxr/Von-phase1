@@ -79,6 +79,10 @@ export interface FileAttachment {
   status: 'pending' | 'uploading' | 'uploaded' | 'error';
   /** Error message if upload failed */
   error?: string;
+  /** Backend file ID — set after presign */
+  uploadId?: string;
+  /** S3 key — set after presign */
+  s3Key?: string;
 }
 
 /**

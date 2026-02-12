@@ -1,7 +1,18 @@
 import { useMutation } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import useChatStore from "../store/chatStore";
-import type { MessageWithStreaming } from "../types/conversation";
+import type {
+  MessageWithStreaming,
+  MessageFileAttachment,
+} from "../types/conversation";
+
+/**
+ * Payload for sending a message
+ */
+export interface SendMessagePayload {
+  content: string;
+  fileAttachments?: MessageFileAttachment[];
+}
 
 /**
  * Generate a temporary ID for optimistic updates
@@ -42,26 +53,29 @@ export function useSendMessage() {
   const { currentConversationId } = useChatStore();
 
   return useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async (payload: SendMessagePayload) => {
       if (!currentConversationId) {
         throw new Error("No active conversation");
       }
 
       if (import.meta.env.DEV) {
-        console.log("[useSendMessage] Sending message:", content);
+        console.log("[useSendMessage] Sending message:", payload.content);
       }
 
       // Send to backend
       // Backend will emit Pusher events that add the real message
       return conversationsService.sendMessage(
         currentConversationId,
-        content,
+        payload.content,
         "text",
+        payload.fileAttachments,
       );
     },
 
     // Optimistic update: Add message to UI immediately before API call
-    onMutate: async (content: string): Promise<MutationContext | undefined> => {
+    onMutate: async (
+      payload: SendMessagePayload,
+    ): Promise<MutationContext | undefined> => {
       const conversationId = useChatStore.getState().currentConversationId;
       if (!conversationId) {
         return undefined;
@@ -86,12 +100,13 @@ export function useSendMessage() {
         runId: optimisticId,
         conversationId: conversationId,
         messageType: "text",
-        messageContent: content,
+        messageContent: payload.content,
         role: "user",
         createdAt: new Date().toISOString(),
         createdBy: null,
         isStreaming: false,
         status: "completed",
+        fileAttachments: payload.fileAttachments,
       };
 
       // Create optimistic assistant message with streaming state

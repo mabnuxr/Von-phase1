@@ -20,9 +20,9 @@ export interface FilePreviewProps {
   onRemove?: (id: string) => void;
   /** Whether the preview is removable */
   removable?: boolean;
-  /** Size variant (kept for API compat, pill is always compact) */
+  /** Size variant (kept for API compat) */
   size?: 'small' | 'medium';
-  /** Style variant (kept for API compat, pill style is always used) */
+  /** Style variant (kept for API compat) */
   variant?: 'default' | 'minimal';
 }
 
@@ -51,14 +51,35 @@ function getFileIcon(category: FileCategory, extension: string) {
 }
 
 /**
- * FilePreview component — compact rounded-full pill design
- *
- * - White bg, border-gray-100, shadow-xs, rounded-full
- * - Max width 220px, name truncated beyond that
- * - If image with preview: shows small circular thumbnail on the left
- * - Otherwise: shows file type icon on the left
- * - On hover: bg-gray-50/50, shows X icon on the far right
- * - Click X to remove
+ * Get category-specific colors for the icon area
+ */
+function getCategoryColors(
+  category: FileCategory,
+  extension: string
+): { bg: string; text: string } {
+  switch (category) {
+    case 'document':
+      if (extension === 'PDF') return { bg: 'bg-red-50', text: 'text-red-600' };
+      if (extension === 'DOC' || extension === 'DOCX')
+        return { bg: 'bg-blue-50', text: 'text-blue-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
+    case 'spreadsheet':
+      return { bg: 'bg-green-50', text: 'text-green-600' };
+    case 'presentation':
+      return { bg: 'bg-orange-50', text: 'text-orange-500' };
+    case 'image':
+      return { bg: 'bg-purple-50', text: 'text-purple-500' };
+    case 'text':
+      if (extension === 'JSON' || extension === 'MD')
+        return { bg: 'bg-slate-100', text: 'text-slate-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
+    default:
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
+  }
+}
+
+/**
+ * FilePreview component — card-style file attachment with colored icon
  */
 export const FilePreview: React.FC<FilePreviewProps> = ({
   attachment,
@@ -69,18 +90,20 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   const isImage = attachment.category === 'image';
   const hasPreview = isImage && attachment.previewUrl;
   const IconComponent = getFileIcon(attachment.category, attachment.extension);
+  const colors = getCategoryColors(attachment.category, attachment.extension);
+  const isLoading = attachment.status === 'uploading';
 
   return (
     <div
-      className={`relative flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border border-gray-100 bg-white shadow-xs max-w-[220px] flex-shrink-0 transition-colors duration-150 ${
+      className={`relative flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0 transition-colors duration-150 ${
         isHovered ? 'bg-gray-50/50' : ''
-      }`}
+      } ${isLoading ? 'animate-pulse opacity-70' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Left side: image preview or file icon */}
+      {/* Left side: image preview or colored file icon */}
       {hasPreview ? (
-        <div className="w-5 h-5 rounded-full overflow-hidden flex-shrink-0">
+        <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
           <img
             src={attachment.previewUrl}
             alt={attachment.name}
@@ -88,13 +111,18 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
           />
         </div>
       ) : (
-        <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <IconComponent size={12} weight="duotone" className="text-gray-500" />
+        <div
+          className={`w-9 h-9 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}
+        >
+          <IconComponent size={18} weight="duotone" className={colors.text} />
         </div>
       )}
 
       {/* File name — truncated */}
-      <span className="text-xs text-gray-800 truncate min-w-0" title={attachment.name}>
+      <span
+        className="text-[13px] font-medium text-gray-800 truncate min-w-0"
+        title={attachment.name}
+      >
         {attachment.name}
       </span>
 
@@ -105,21 +133,11 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
             e.stopPropagation();
             onRemove?.(attachment.id);
           }}
-          className="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors ml-auto"
+          className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors ml-auto"
           aria-label={`Remove ${attachment.name}`}
         >
-          <X size={10} weight="bold" className="text-gray-800" />
+          <X size={12} weight="bold" className="text-gray-800" />
         </button>
-      )}
-
-      {/* Upload progress indicator */}
-      {attachment.status === 'uploading' && attachment.uploadProgress !== undefined && (
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-500 transition-all duration-200"
-            style={{ width: `${attachment.uploadProgress}%` }}
-          />
-        </div>
       )}
     </div>
   );

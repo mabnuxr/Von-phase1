@@ -27,6 +27,7 @@ import {
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
+import { DragDropOverlay } from '../FileAttachment/DragDropOverlay';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -34,7 +35,6 @@ import { Toggle as _Toggle } from '../../forms/toggle';
 import { SecondaryIconButton, RemoveButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } from './types';
-import type { BuildMode } from '../../DashboardBuilder/types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
@@ -88,12 +88,6 @@ function getReferenceLabel(type: ReferenceContext['type']) {
       return 'Reference';
   }
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _MODE_OPTIONS = [
-  { value: 'ask' as BuildMode, label: 'Ask' },
-  { value: 'build' as BuildMode, label: 'Build' },
-];
 
 // Re-export AgentMode type from types for external use
 export type { AgentMode } from './types';
@@ -301,6 +295,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       droppedFiles,
       onDroppedFilesProcessed,
       onFileError,
+      onFilesSelected,
       referenceContext,
       onRemoveReference,
       showFormattingToolbar = false,
@@ -352,6 +347,11 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       removeFile,
       clearFiles,
       fileInputRef,
+      isDragActive,
+      handleDragEnter,
+      handleDragLeave,
+      handleDragOver,
+      handleDrop,
     } = useFileUpload({
       onError: (error, message) => {
         onFileError?.(error, message);
@@ -365,11 +365,15 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
     // Handle dropped files from parent
     useEffect(() => {
-      if (droppedFiles && droppedFiles.length > 0 && !isAttachmentsControlled) {
-        addFiles(droppedFiles);
+      if (droppedFiles && droppedFiles.length > 0) {
+        if (isAttachmentsControlled) {
+          onFilesSelected?.(droppedFiles);
+        } else {
+          addFiles(droppedFiles);
+        }
         onDroppedFilesProcessed?.();
       }
-    }, [droppedFiles, isAttachmentsControlled, addFiles, onDroppedFilesProcessed]);
+    }, [droppedFiles, isAttachmentsControlled, onFilesSelected, addFiles, onDroppedFilesProcessed]);
 
     // Determine if component is controlled
     const isControlled = value !== undefined;
@@ -439,11 +443,15 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const handleFileInputChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-          addFiles(e.target.files);
+          if (isAttachmentsControlled) {
+            onFilesSelected?.(Array.from(e.target.files));
+          } else {
+            addFiles(e.target.files);
+          }
           e.target.value = '';
         }
       },
-      [addFiles]
+      [isAttachmentsControlled, onFilesSelected, addFiles]
     );
 
     const handleRemoveAttachment = useCallback(
@@ -455,6 +463,23 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
         }
       },
       [isAttachmentsControlled, onRemoveAttachment, removeFile]
+    );
+
+    // Wrap drop handler for controlled mode
+    const wrappedHandleDrop = useCallback(
+      (e: React.DragEvent) => {
+        if (isAttachmentsControlled) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            onFilesSelected?.(Array.from(e.dataTransfer.files));
+            e.dataTransfer.clearData();
+          }
+        } else {
+          handleDrop(e);
+        }
+      },
+      [isAttachmentsControlled, onFilesSelected, handleDrop]
     );
 
     const canSend =
@@ -542,8 +567,15 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 ? '#e5e7eb'
                 : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
             }}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={wrappedHandleDrop}
           >
             <div className="flex flex-col bg-white rounded-[15px]">
+              {/* Drag-and-drop overlay */}
+              <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
+
               {/* File previews - shown above the input when files are attached */}
               {hasAttachments && (
                 <div className="px-4 pt-3 pb-1">

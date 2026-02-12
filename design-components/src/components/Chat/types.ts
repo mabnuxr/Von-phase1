@@ -5,6 +5,7 @@
 import type { AgentMode } from './StandardChatInput/types';
 import type { Command } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
+import type { FileAttachment } from './FileAttachment/types';
 
 /**
  * Additional options passed with the send message callback
@@ -966,7 +967,7 @@ export interface ChatProps {
    */
   onSendMessage?: (
     message: string,
-    attachments?: MessageFileAttachment[],
+    attachments?: FileAttachment[],
     options?: SendMessageOptions
   ) => void;
 
@@ -1259,6 +1260,22 @@ export interface ChatProps {
    * @default false
    */
   showPlusMenu?: boolean;
+
+  /**
+   * Controlled file attachments for the chat input.
+   * When provided, the input uses controlled mode — parent owns state.
+   */
+  controlledAttachments?: FileAttachment[];
+
+  /**
+   * Callback when a file is removed in controlled mode
+   */
+  onRemoveAttachment?: (id: string) => void;
+
+  /**
+   * Callback when files are selected via plus menu or drag-drop in controlled mode
+   */
+  onFilesSelected?: (files: File[]) => void;
 
   // ============================================================================
   // Deep Research Results Props (V2 only)

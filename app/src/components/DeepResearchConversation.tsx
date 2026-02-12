@@ -20,7 +20,11 @@ import {
   useAutoScroll,
   ScrollToBottomButton,
 } from "@vonlabs/design-components";
-import type { Message, SendMessageOptions } from "@vonlabs/design-components";
+import type {
+  Message,
+  SendMessageOptions,
+  FileAttachment,
+} from "@vonlabs/design-components";
 
 /** Ref handle for ChatInputSelector */
 interface ChatInputSelectorRef {
@@ -67,7 +71,7 @@ export interface DeepResearchConversationProps {
   /** Callback when message is sent */
   onSendMessage?: (
     content: string,
-    attachments?: unknown[],
+    attachments?: FileAttachment[],
     options?: SendMessageOptions,
   ) => void;
   /** Callback when stop streaming is requested */
@@ -234,7 +238,7 @@ export const DeepResearchConversation: React.FC<
   const handleSendMessage = useCallback(
     (
       content: string,
-      attachments?: unknown[],
+      attachments?: FileAttachment[],
       options?: SendMessageOptions,
     ) => {
       onBeforeSend();

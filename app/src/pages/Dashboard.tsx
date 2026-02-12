@@ -12,6 +12,7 @@ import { AvatarMenu } from "../components/AvatarMenu";
 import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useSendMessage } from "../hooks/useSendMessage";
+import { useFileUploadPipeline } from "../hooks/useFileUploadPipeline";
 import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
@@ -61,7 +62,11 @@ import {
   Banner,
   DashboardCanvas,
 } from "@vonlabs/design-components";
-import type { AgentMode, SendMessageOptions } from "@vonlabs/design-components";
+import type {
+  AgentMode,
+  SendMessageOptions,
+  FileAttachment,
+} from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -148,6 +153,16 @@ const Dashboard = () => {
 
   // Send message mutation
   const { mutate: sendMessage } = useSendMessage();
+
+  // Eager file upload — uploads start immediately when files are attached
+  const {
+    attachments: fileAttachmentState,
+    addFiles: handleFilesSelected,
+    removeFile: handleRemoveAttachment,
+    uploadPendingFiles,
+    clearFiles: clearFileAttachments,
+    hasAttachments: hasFileAttachments,
+  } = useFileUploadPipeline(currentConversationId);
 
   // Stop streaming mutation
   const { mutate: stopStreaming } = useStopStreaming();
@@ -545,7 +560,7 @@ const Dashboard = () => {
 
   const handleSendMessage = async (
     content: string,
-    _attachments?: unknown,
+    _attachments?: FileAttachment[],
     options?: SendMessageOptions,
   ) => {
     // Track last user message for error recovery
@@ -558,7 +573,21 @@ const Dashboard = () => {
         await syncAgentModeToBackend(options.agentMode);
       }
     }
-    sendMessage(content);
+
+    // Collect file metadata from eager uploads
+    let fileAttachments;
+    if (hasFileAttachments && currentConversationId) {
+      try {
+        // uploadPendingFiles handles both already-uploaded and still-pending files
+        fileAttachments = await uploadPendingFiles(currentConversationId);
+      } catch (error) {
+        console.error("[Dashboard] File upload failed:", error);
+        return; // Don't send message if uploads fail
+      }
+    }
+
+    sendMessage({ content, fileAttachments });
+    clearFileAttachments();
   };
 
   // Auto-populate input when error occurs (handled by chatStore updates from hook)
@@ -1120,6 +1149,9 @@ const Dashboard = () => {
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
                 showPlusMenu={true}
+                controlledAttachments={fileAttachmentState}
+                onRemoveAttachment={handleRemoveAttachment}
+                onFilesSelected={handleFilesSelected}
               />
             )}
           </motion.div>

@@ -75,6 +75,15 @@ export type { TextProps } from './Text';
 export { Heading } from './Heading';
 export type { HeadingProps } from './Heading';
 
+// File Attachment Types & Components
+export type { FileAttachment, FileCategory } from './Chat/FileAttachment';
+export {
+  getFileInfo,
+  generateFileId,
+  FILE_SIZE_LIMIT_BYTES,
+  MAX_FILES,
+} from './Chat/FileAttachment';
+
 // Chat Atoms
 // ----------
 export { ChatHeader } from './Chat';

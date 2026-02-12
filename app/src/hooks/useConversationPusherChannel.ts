@@ -6,6 +6,7 @@ import type { AguiEventWrapper } from "@vonlabs/design-components";
 
 import type {
   MessageWithStreaming,
+  MessageFileAttachment,
   PusherUserMessageData,
   PusherUserMessageStartData,
   PusherUserMessageContentData,
@@ -53,6 +54,7 @@ export function useConversationPusherChannel(
           messageType: string;
           createdAt: string;
           createdBy: string | null;
+          fileAttachments?: MessageFileAttachment[];
         };
       }
     >
@@ -166,6 +168,7 @@ export function useConversationPusherChannel(
         createdBy: parsed.createdBy,
         isStreaming: false,
         status: "completed",
+        fileAttachments: parsed.fileAttachments,
       };
 
       useChatStore.getState().upsertMessage(parsed.conversationId, userMessage);
@@ -253,6 +256,7 @@ export function useConversationPusherChannel(
           messageType: parsed.messageType,
           createdAt: parsed.createdAt,
           createdBy: parsed.createdBy,
+          fileAttachments: parsed.fileAttachments,
         },
       });
     },
@@ -313,6 +317,7 @@ export function useConversationPusherChannel(
           createdBy: entry.metadata.createdBy,
           isStreaming: false,
           status: "completed",
+          fileAttachments: entry.metadata.fileAttachments,
         };
 
         useChatStore
