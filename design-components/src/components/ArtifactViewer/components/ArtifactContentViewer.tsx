@@ -7,7 +7,7 @@ import {
   DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import type { QueryColumn } from '../../TransparencyDrawer/types';
-import { formatCellValue, formatValue } from '../../TransparencyDrawer/utils';
+import { formatValue, renderLinkedId } from '../../TransparencyDrawer/utils';
 import { useArtifactContent } from '../hooks/useArtifactContent';
 import { useDynamicPageSize } from '../hooks/useDynamicPageSize';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
@@ -294,20 +294,26 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                             col.type === 'currency' ||
                             col.type === 'percentage';
 
-                          // Linked column (e.g. ID with deep link) or numeric — render without truncation
-                          if (col.linkKey || isNumeric) {
+                          // Linked column (e.g. ID with deep link) — render as clickable link
+                          if (col.linkKey) {
                             return (
                               <td
                                 key={col.key}
-                                className={`px-3 py-2 text-sm whitespace-nowrap ${
-                                  isNumeric ? 'text-right tabular-nums' : 'text-left'
-                                } text-gray-700`}
+                                className="px-3 py-2 text-sm whitespace-nowrap text-left text-gray-700"
                               >
-                                {formatCellValue(
-                                  row[col.key],
-                                  col.type,
-                                  col.linkKey ? row[col.linkKey] : undefined
-                                )}
+                                {renderLinkedId(row[col.key], row[col.linkKey])}
+                              </td>
+                            );
+                          }
+
+                          // For numeric columns, render without truncation
+                          if (isNumeric) {
+                            return (
+                              <td
+                                key={col.key}
+                                className="px-3 py-2 text-sm whitespace-nowrap text-right tabular-nums text-gray-700"
+                              >
+                                {formatValue(row[col.key], col.type)}
                               </td>
                             );
                           }

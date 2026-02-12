@@ -8,7 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
 import { useQueryPagination, useDynamicPageSize } from '../hooks';
-import { formatCellValue, formatValue } from '../utils';
+import { formatValue, renderLinkedId } from '../utils';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
 import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
 
@@ -223,20 +223,26 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                           col.type === 'currency' ||
                           col.type === 'percentage';
 
-                        // Linked column (e.g. ID with deep link) or numeric — render without truncation
-                        if (col.linkKey || isNumeric) {
+                        // Linked column (e.g. ID with deep link) — render as clickable link
+                        if (col.linkKey) {
                           return (
                             <td
                               key={col.key}
-                              className={`px-3 py-2 text-sm whitespace-nowrap ${
-                                isNumeric ? 'text-right tabular-nums' : 'text-left'
-                              } text-gray-700`}
+                              className="px-3 py-2 text-sm whitespace-nowrap text-left text-gray-700"
                             >
-                              {formatCellValue(
-                                row[col.key],
-                                col.type,
-                                col.linkKey ? row[col.linkKey] : undefined
-                              )}
+                              {renderLinkedId(row[col.key], row[col.linkKey])}
+                            </td>
+                          );
+                        }
+
+                        // For numeric columns, render without truncation
+                        if (isNumeric) {
+                          return (
+                            <td
+                              key={col.key}
+                              className="px-3 py-2 text-sm whitespace-nowrap text-right tabular-nums text-gray-700"
+                            >
+                              {formatValue(row[col.key], col.type)}
                             </td>
                           );
                         }

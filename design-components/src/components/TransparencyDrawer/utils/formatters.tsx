@@ -3,6 +3,33 @@ import { SmileyIcon, SmileySadIcon, SmileyMehIcon } from '@phosphor-icons/react'
 import type { QueryColumn, SentimentType } from '../types';
 
 // ============================================================================
+// Deep Link Rendering
+// ============================================================================
+
+/**
+ * Renders an ID cell value as a clickable deep link if a URL is available.
+ */
+export function renderLinkedId(
+  value: string | number,
+  deepLinkUrl: string | number | undefined
+): React.ReactNode {
+  const strUrl = deepLinkUrl != null ? String(deepLinkUrl) : '';
+  if (strUrl && isUrl(strUrl)) {
+    return (
+      <a
+        href={strUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-indigo-600 hover:text-indigo-800 hover:underline"
+      >
+        {String(value)}
+      </a>
+    );
+  }
+  return String(value);
+}
+
+// ============================================================================
 // Value Formatters
 // ============================================================================
 
