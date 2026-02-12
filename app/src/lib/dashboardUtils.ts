@@ -161,6 +161,10 @@ export interface V2LiveData {
   isFinalResponseStreaming: boolean;
   researchResults: ResearchResultsState;
   stoppedByUser: boolean;
+  /** Error message if the current run failed */
+  runErrorMessage: string;
+  /** Run ID currently being processed by V2 (null when no run has been received) */
+  currentRunId: string | null;
 }
 
 /**
@@ -215,10 +219,23 @@ function transformMessagesForV2(
     const hasLiveV2Data =
       usableV2TimelineSteps.length > 0 ||
       v2LiveData.finalResponse ||
-      v2LiveData.isThinking;
+      v2LiveData.isThinking ||
+      !!v2LiveData.runErrorMessage ||
+      v2LiveData.stoppedByUser ||
+      !!v2LiveData.currentRunId;
     const isRunActive =
       v2LiveData.isThinking || v2LiveData.isFinalResponseStreaming;
-    const isStaleV2Data = msg.isStreaming && !isRunActive;
+    // V2 data is "stale" only when the message is still marked as streaming (optimistic
+    // placeholder) but the V2 hook hasn't started a run yet. Once V2 has processed any
+    // run (currentRunId set) or reached a terminal state (steps, response, error, stopped),
+    // it should never be treated as stale — even if msg.isStreaming is still true.
+    const hasV2TerminalData =
+      usableV2TimelineSteps.length > 0 ||
+      v2LiveData.finalResponse ||
+      !!v2LiveData.runErrorMessage ||
+      v2LiveData.stoppedByUser ||
+      !!v2LiveData.currentRunId;
+    const isStaleV2Data = msg.isStreaming && !isRunActive && !hasV2TerminalData;
 
     if (isLastAssistant && hasLiveV2Data && !isStaleV2Data) {
       return {
@@ -229,6 +246,13 @@ function transformMessagesForV2(
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
+        // Propagate error from failed run
+        ...(v2LiveData.runErrorMessage
+          ? {
+              status: "failed" as const,
+              errorMessage: v2LiveData.runErrorMessage,
+            }
+          : {}),
       };
     }
 
@@ -239,6 +263,7 @@ function transformMessagesForV2(
         finalResponse,
         researchResults,
         stoppedByUser: persistedStoppedByUser,
+        runErrorMessage: persistedRunErrorMessage,
       } = transformAguiToTimelineSteps(msg.events);
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
@@ -276,6 +301,13 @@ function transformMessagesForV2(
         v2FinalResponse: finalResponse,
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
+        // Propagate persisted error from events
+        ...(persistedRunErrorMessage
+          ? {
+              status: "failed" as const,
+              errorMessage: persistedRunErrorMessage,
+            }
+          : {}),
       };
     }
 
@@ -342,6 +374,8 @@ export function transformConversationMessages(
       messageId: null,
     },
     stoppedByUser: false,
+    runErrorMessage: "",
+    currentRunId: null,
   };
 
   return transformMessagesForV2(conversationMessages, liveData);

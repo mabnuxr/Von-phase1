@@ -52,6 +52,8 @@ export interface UseConversationPusherChannelV2Return {
   isDeepResearchRunning: boolean;
   /** Whether the response was stopped by the user */
   stoppedByUser: boolean;
+  /** Error message if the run failed */
+  runErrorMessage: string;
   /** Mark streaming as stopped - events will be batched and flushed on completion */
   markStopped: () => void;
 }
@@ -88,6 +90,7 @@ export function useConversationPusherChannelV2(
   });
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
+  const [runErrorMessage, setRunErrorMessage] = useState("");
 
   const pusherRef = useRef<Pusher | null>(null);
   const channelRef = useRef<Channel | null>(null);
@@ -105,16 +108,6 @@ export function useConversationPusherChannelV2(
 
   // Track if user has stopped streaming - events will be batched until terminal event
   const stoppedRef = useRef<boolean>(false);
-
-  // Mark streaming as stopped - events will accumulate without UI updates until completion
-  const markStopped = useCallback(() => {
-    stoppedRef.current = true;
-    if (import.meta.env.DEV) {
-      console.log(
-        "[useConversationPusherChannelV2] Streaming marked as stopped - batching remaining events",
-      );
-    }
-  }, []);
 
   // Start elapsed time timer
   const startElapsedTimer = useCallback(() => {
@@ -136,6 +129,67 @@ export function useConversationPusherChannelV2(
       elapsedTimerRef.current = null;
     }
   }, []);
+
+  // Mark streaming as stopped - immediately flush accumulated events and stop animations.
+  // Subsequent non-terminal events will be batched until the terminal event arrives.
+  const markStopped = useCallback(() => {
+    stoppedRef.current = true;
+
+    if (import.meta.env.DEV) {
+      console.log(
+        "[useConversationPusherChannelV2] Streaming marked as stopped - flushing immediately",
+      );
+    }
+
+    // Find the active (non-finished) run's events
+    let activeRunEvents: AguiEventWrapper[] | undefined;
+    for (const [runId, events] of eventsRef.current) {
+      if (!finishedRunsRef.current.has(runId)) {
+        activeRunEvents = events;
+        break;
+      }
+    }
+
+    if (activeRunEvents && activeRunEvents.length > 0) {
+      // Transform current accumulated events to get final state
+      const {
+        steps,
+        finalResponse: response,
+        researchResults: research,
+        isDeepResearchRunning: deepResearchRunning,
+        runErrorMessage: errorMsg,
+      } = transformAguiToTimelineSteps(activeRunEvents);
+
+      const actualElapsed = getElapsedTimeFromEvents(activeRunEvents);
+
+      // Flush the complete state immediately — no more streaming animation
+      flushSync(() => {
+        setTimelineSteps(steps);
+        setIsThinking(false);
+        setIsFinalResponseStreaming(false);
+        setStoppedByUser(true);
+        setFinalResponse(response);
+        setResearchResults(research);
+        setIsDeepResearchRunning(deepResearchRunning);
+        setRunErrorMessage(errorMsg);
+        if (actualElapsed > 0) {
+          setElapsedTime(actualElapsed);
+        }
+      });
+    } else {
+      // No active events yet — just stop the UI.
+      // Clear runErrorMessage so a stale error from a prior failed run
+      // doesn't propagate into this new run via transformConversationMessages.
+      flushSync(() => {
+        setIsThinking(false);
+        setIsFinalResponseStreaming(false);
+        setStoppedByUser(true);
+        setRunErrorMessage("");
+      });
+    }
+
+    stopElapsedTimer();
+  }, [stopElapsedTimer]);
 
   // Process AGUI event and transform to timeline steps
   const handleAguiEvent = useCallback(
@@ -180,6 +234,7 @@ export function useConversationPusherChannelV2(
             setIsAwaitingApproval(false);
             setCurrentRunId(run_id);
             setElapsedTime(0);
+            setRunErrorMessage("");
           });
           startElapsedTimer();
         }
@@ -228,6 +283,7 @@ export function useConversationPusherChannelV2(
           isDeepResearchRunning: deepResearchRunning,
           stoppedByUser: stopped,
           hadApprovalPause,
+          runErrorMessage: errorMsg,
         } = transformAguiToTimelineSteps(runEvents);
 
         // Update state with flushSync for smooth streaming
@@ -241,6 +297,7 @@ export function useConversationPusherChannelV2(
           setResearchResults(research);
           setIsDeepResearchRunning(deepResearchRunning);
           setStoppedByUser(stopped);
+          setRunErrorMessage(errorMsg);
         });
 
         // Stop timer when final response starts streaming (before run fully completes)
@@ -303,6 +360,7 @@ export function useConversationPusherChannelV2(
       });
       setIsDeepResearchRunning(false);
       setStoppedByUser(false);
+      setRunErrorMessage("");
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stoppedRef.current = false;
@@ -339,6 +397,7 @@ export function useConversationPusherChannelV2(
       researchResults: research,
       isDeepResearchRunning: deepResearchRunning,
       stoppedByUser: stopped,
+      runErrorMessage: errorMsg,
     } = transformAguiToTimelineSteps(seededEvents);
 
     // Skip seeding for fully completed runs
@@ -355,6 +414,7 @@ export function useConversationPusherChannelV2(
     setResearchResults(research);
     setIsDeepResearchRunning(deepResearchRunning);
     setStoppedByUser(stopped);
+    setRunErrorMessage(errorMsg);
 
     // Set elapsed time from actual event timestamps
     const elapsed = getElapsedTimeFromEvents(seededEvents);
@@ -551,6 +611,7 @@ export function useConversationPusherChannelV2(
     researchResults,
     isDeepResearchRunning,
     stoppedByUser,
+    runErrorMessage,
     markStopped,
   };
 }
