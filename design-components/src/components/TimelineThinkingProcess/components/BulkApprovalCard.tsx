@@ -13,11 +13,7 @@ interface CompletedBulkCardProps {
   isApproved: boolean;
 }
 
-const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
-  records,
-  approval,
-  isApproved,
-}) => {
+const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({ records, approval, isApproved }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -38,9 +34,7 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
           ) : (
             <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
           )}
-          <span className="text-sm text-gray-900 truncate">
-            {approval.label}
-          </span>
+          <span className="text-sm text-gray-900 truncate">{approval.label}</span>
         </div>
         <span
           className={`text-xs flex-shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
@@ -145,11 +139,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     if (bulkAction || isApproved || isRejected) {
       const showAsApproved = bulkAction === 'approved' || (isApproved && !isRejected);
       return (
-        <CompletedBulkCard
-          records={records}
-          approval={approval}
-          isApproved={showAsApproved}
-        />
+        <CompletedBulkCard records={records} approval={approval} isApproved={showAsApproved} />
       );
     }
 
