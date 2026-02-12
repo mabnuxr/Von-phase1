@@ -152,7 +152,7 @@ export function ManageUsersTab() {
 
           {/* Table Content */}
           {/* Loading State */}
-          {isLoading && (
+          {(isLoading || !teamMembers) && !error && (
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -177,10 +177,10 @@ export function ManageUsersTab() {
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide"
                     >
                       <Tooltip content="Number of conversations created">
-                        <span className="cursor-default">Usage</span>
+                        <span className="cursor-default">Questions</span>
                       </Tooltip>
                     </th>
                     <th
@@ -211,15 +211,17 @@ export function ManageUsersTab() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-5 bg-gray-200 rounded-full animate-pulse w-20"></div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-12 mx-auto"></div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
-                      </td>
+                      {canDeleteTeamMember && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -237,18 +239,21 @@ export function ManageUsersTab() {
           )}
 
           {/* Empty State */}
-          {!isLoading && !error && filteredUsers.length === 0 && (
-            <div className="flex items-center justify-center min-h-[300px]">
-              <p className="text-sm text-gray-500">
-                {searchQuery
-                  ? "No users found matching your search"
-                  : "No team members yet"}
-              </p>
-            </div>
-          )}
+          {!isLoading &&
+            !error &&
+            teamMembers &&
+            filteredUsers.length === 0 && (
+              <div className="flex items-center justify-center min-h-[300px]">
+                <p className="text-sm text-gray-500">
+                  {searchQuery
+                    ? "No users found matching your search"
+                    : "No team members yet"}
+                </p>
+              </div>
+            )}
 
           {/* Data Table */}
-          {!isLoading && !error && filteredUsers.length > 0 && (
+          {!isLoading && !error && teamMembers && filteredUsers.length > 0 && (
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -273,10 +278,10 @@ export function ManageUsersTab() {
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide"
                     >
                       <Tooltip content="Number of conversations created">
-                        <span className="cursor-default">Usage</span>
+                        <span className="cursor-default">Questions</span>
                       </Tooltip>
                     </th>
                     <th
@@ -316,26 +321,32 @@ export function ManageUsersTab() {
                           {member.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Tooltip
                           content={
                             <div className="flex flex-col gap-1">
                               <span>
-                                Last week:{" "}
+                                Last 7 d:{" "}
                                 <span className="font-medium">
                                   {member.usage.last_week}
                                 </span>
                               </span>
                               <span>
-                                Last month:{" "}
+                                Last 30 d:{" "}
                                 <span className="font-medium">
                                   {member.usage.last_month}
+                                </span>
+                              </span>
+                              <span>
+                                All time:{" "}
+                                <span className="font-medium">
+                                  {member.usage.total}
                                 </span>
                               </span>
                             </div>
                           }
                         >
-                          <span className="text-sm text-gray-700 cursor-default tabular-nums">
+                          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150">
                             {member.usage.total}
                           </span>
                         </Tooltip>
