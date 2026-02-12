@@ -109,6 +109,27 @@ export function useConversationPusherChannelV2(
   // Track if user has stopped streaming - events will be batched until terminal event
   const stoppedRef = useRef<boolean>(false);
 
+  // Start elapsed time timer
+  const startElapsedTimer = useCallback(() => {
+    if (elapsedTimerRef.current) {
+      clearInterval(elapsedTimerRef.current);
+    }
+
+    setElapsedTime(0);
+
+    elapsedTimerRef.current = setInterval(() => {
+      setElapsedTime((prev) => prev + 1);
+    }, 1000);
+  }, []);
+
+  // Stop elapsed time timer
+  const stopElapsedTimer = useCallback(() => {
+    if (elapsedTimerRef.current) {
+      clearInterval(elapsedTimerRef.current);
+      elapsedTimerRef.current = null;
+    }
+  }, []);
+
   // Mark streaming as stopped - immediately flush accumulated events and stop animations.
   // Subsequent non-terminal events will be batched until the terminal event arrives.
   const markStopped = useCallback(() => {
@@ -166,27 +187,6 @@ export function useConversationPusherChannelV2(
 
     stopElapsedTimer();
   }, [stopElapsedTimer]);
-
-  // Start elapsed time timer
-  const startElapsedTimer = useCallback(() => {
-    if (elapsedTimerRef.current) {
-      clearInterval(elapsedTimerRef.current);
-    }
-
-    setElapsedTime(0);
-
-    elapsedTimerRef.current = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-  }, []);
-
-  // Stop elapsed time timer
-  const stopElapsedTimer = useCallback(() => {
-    if (elapsedTimerRef.current) {
-      clearInterval(elapsedTimerRef.current);
-      elapsedTimerRef.current = null;
-    }
-  }, []);
 
   // Process AGUI event and transform to timeline steps
   const handleAguiEvent = useCallback(
