@@ -374,6 +374,8 @@ export interface RunFinishedEvent {
   result: {
     status: 'completed' | 'failed';
     stopped_by_user?: boolean;
+    error_occurred?: boolean;
+    error_message?: string;
   };
 }
 
