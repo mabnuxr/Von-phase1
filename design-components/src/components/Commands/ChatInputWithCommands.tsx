@@ -94,7 +94,7 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
                   'radial-gradient(198.27% 158.06% at 85.59% -18.75%, #FFF2E9 0%, #FF9E8C 26%, #BE9AF3 100%)',
               }}
             >
-              <div className="flex flex-col bg-white rounded-[15px] px-3 py-2">
+              <div className="flex flex-col bg-white rounded-[15px] px-3 py-2 overflow-hidden">
                 {/* Command Chip Row */}
                 <div className="pb-2 border-b border-gray-100">
                   <CommandChip

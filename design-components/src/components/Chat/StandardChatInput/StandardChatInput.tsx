@@ -536,7 +536,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
             }}
           >
-            <div className="flex flex-col bg-white rounded-[15px]">
+            <div className="flex flex-col bg-white rounded-[15px] overflow-hidden">
               {/* File previews - shown above the input when files are attached */}
               {hasAttachments && (
                 <div className="px-4 pt-4 pb-2">

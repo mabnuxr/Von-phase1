@@ -139,7 +139,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                 : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
             }}
           >
-            <div className="flex flex-col bg-white rounded-[15px]">
+            <div className="flex flex-col bg-white rounded-[15px] overflow-hidden">
               {/* Command Chip Row */}
               <div className="px-4 pt-3 pb-2 border-b border-gray-100">
                 <CommandChip

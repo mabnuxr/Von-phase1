@@ -410,7 +410,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                       {/* V2 Final Response - rendered after timeline */}
                       {thinkingProcessVersion === 'v2' && v2FinalResponse && (
-                        <div className="markdown-content max-w-none">
+                        <div className="markdown-content max-w-none overflow-hidden">
                           <Streamdown
                             parseIncompleteMarkdown={isStreaming}
                             isAnimating={isStreaming}
@@ -492,7 +492,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                       <div className="space-y-3">
                                         {/* Final step content */}
                                         {finalStep.content && (
-                                          <div className="markdown-content max-w-none">
+                                          <div className="markdown-content max-w-none overflow-hidden">
                                             <Streamdown
                                               parseIncompleteMarkdown={false}
                                               isAnimating={false}
@@ -531,7 +531,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           ) : (
                             /* Fallback: render plain content if no stepMessages */
                             content && (
-                              <div className="markdown-content max-w-none">
+                              <div className="markdown-content max-w-none overflow-hidden">
                                 <Streamdown
                                   parseIncompleteMarkdown={isStreaming}
                                   isAnimating={isStreaming}
