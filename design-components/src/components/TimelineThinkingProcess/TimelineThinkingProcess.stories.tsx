@@ -93,7 +93,7 @@ const approvalStep: TimelineStep = {
   description: 'Requesting approval to update the opportunity stage in Salesforce.',
   approval: {
     summary: 'Update opportunity stage to Closed Won',
-    objectType: 'Opportunity',
+    label: 'Opportunity',
     recordName: 'Acme Corp - Enterprise Deal',
     operation: 'update',
     changes: [
@@ -347,7 +347,7 @@ export const AllStepStatuses: Story = {
         approval: {
           toolCallId: 'tool-call-1',
           summary: 'Update opportunity stage to Closed Won',
-          objectType: 'Opportunity',
+          label: 'Opportunity',
           recordName: 'Acme Corp - Enterprise Deal',
           operation: 'update',
           changes: [
@@ -580,6 +580,7 @@ const generateBulkRecords = () => {
     return {
       recordId: `record-${index + 1}`,
       recordName: dealName,
+      label: 'Opportunity',
       recordUrl: `https://mycompany.my.salesforce.com/lightning/r/Opportunity/006${String(index + 1).padStart(12, '0')}/view`,
       changes,
     };
@@ -619,6 +620,7 @@ const generateCalendarRecords = () => {
     return {
       recordId: `cal-record-${index + 1}`,
       recordName: `${meetingType}: ${dealName.split(' - ')[0]}`,
+      label: 'Calendar Event',
       changes: [
         {
           field: 'Date',
@@ -814,7 +816,7 @@ WHERE call_count > 0;`,
         approval: {
           toolCallId: 'bulk-update-001',
           summary: 'Bulk update opportunity stages',
-          objectType: 'Opportunity',
+          label: '30 Opportunities',
           operation: 'update',
           approvalType: 'bulk',
           recordCount: 30,
@@ -893,7 +895,7 @@ WHERE call_count > 0;`,
           approval: {
             toolCallId: 'calendar-bulk-001',
             summary: 'Bulk reschedule calendar events',
-            objectType: 'Calendar Event',
+            label: '8 Calendar Events',
             operation: 'update',
             approvalType: 'bulk',
             recordCount: 8,
