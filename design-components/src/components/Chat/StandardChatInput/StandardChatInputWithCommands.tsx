@@ -170,11 +170,13 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
                   }}
                   placeholder={effectivePlaceholder(placeholder)}
                   disabled={disabled && !isStreaming}
-                  className="w-full resize-none outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400 overflow-y-auto"
+                  className="w-full min-w-0 resize-none outline-none bg-transparent text-sm text-gray-900 placeholder-gray-400 overflow-y-auto"
                   style={{
                     minHeight: '24px',
                     maxHeight: '200px',
                     lineHeight: '1.5',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
                   }}
                   rows={1}
                 />

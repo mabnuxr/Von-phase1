@@ -116,11 +116,13 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
                       }
                     }}
                     placeholder={effectivePlaceholder(placeholder)}
-                    className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto settings-scrollbar"
+                    className="flex-1 w-0 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto settings-scrollbar"
                     style={{
                       minHeight: '20px',
                       maxHeight: '200px',
                       lineHeight: '1.5',
+                      overflowWrap: 'break-word',
+                      wordBreak: 'break-word',
                     }}
                     rows={1}
                   />
