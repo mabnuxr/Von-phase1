@@ -321,6 +321,8 @@
   font-size: 14px;
   line-height: 1.7;
   letter-spacing: 0 !important;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Reset letter-spacing for all non-heading elements */
@@ -592,6 +594,8 @@
 .markdown-body {
   background-color: transparent !important;
   background-image: none !important;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Reduce spacing for more compact, professional look */
