@@ -1345,8 +1345,7 @@ export function transformAguiToTimelineSteps(
       case "RUN_ERROR": {
         // Detect if this RUN_FINISHED is actually a failure
         const isFailedRun =
-          event.type === "RUN_FINISHED" &&
-          event.result?.status === "failed";
+          event.type === "RUN_FINISHED" && event.result?.status === "failed";
 
         // Check if there's a pending approval step
         // If so, this is an intermediate RUN_FINISHED (run paused for approval)
@@ -1403,8 +1402,7 @@ export function transformAguiToTimelineSteps(
 
         // Extract error message from RUN_ERROR
         if (event.type === "RUN_ERROR") {
-          runErrorMessage =
-            event.error || event.message || "An error occurred";
+          runErrorMessage = event.error || event.message || "An error occurred";
         }
 
         // Fallback: Extract the last TEXT_MESSAGE step as the final response

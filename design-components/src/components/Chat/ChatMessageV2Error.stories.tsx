@@ -8,7 +8,8 @@ const meta = {
   component: ChatMessage,
   parameters: {
     layout: 'padded',
-    componentSubtitle: 'V2 agent error handling — thinking process preserved alongside error messages',
+    componentSubtitle:
+      'V2 agent error handling — thinking process preserved alongside error messages',
   },
   tags: ['autodocs'],
   decorators: [
@@ -207,7 +208,7 @@ const SimulatedFailedRun = () => {
       setSteps((prev) => [...prev, { ...thinkingSteps[1], status: 'in-progress' }]);
       await new Promise((r) => setTimeout(r, 2000));
       setSteps((prev) =>
-        prev.map((s) => (s.id === '2' ? { ...s, status: 'complete' as const } : s)),
+        prev.map((s) => (s.id === '2' ? { ...s, status: 'complete' as const } : s))
       );
 
       // Step 3: Gong call — fails mid-execution
@@ -216,9 +217,7 @@ const SimulatedFailedRun = () => {
 
       // RUN_FINISHED with status: "failed" arrives
       setSteps((prev) =>
-        prev.map((s) =>
-          s.status === 'in-progress' ? { ...s, status: 'error' as const } : s,
-        ),
+        prev.map((s) => (s.status === 'in-progress' ? { ...s, status: 'error' as const } : s))
       );
       setIsThinking(false);
       setStatus('failed');

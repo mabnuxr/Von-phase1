@@ -384,7 +384,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 {/* Content Column */}
                 <div className="flex-1 min-w-0 -mt-0.5">
                   {/* For V1 assistant messages: check for errors first (error replaces content) */}
-                  {!isUser && status === 'failed' && errorMessage && thinkingProcessVersion !== 'v2' ? (
+                  {!isUser &&
+                  status === 'failed' &&
+                  errorMessage &&
+                  thinkingProcessVersion !== 'v2' ? (
                     <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
                     <div>
@@ -396,7 +399,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               steps={timelineSteps || []}
                               isThinking={isStreaming}
                               isStreaming={isStreaming}
-                              autoCollapse={!!v2FinalResponse || (status === 'failed' && !!errorMessage)}
+                              autoCollapse={
+                                !!v2FinalResponse || (status === 'failed' && !!errorMessage)
+                              }
                               elapsedTime={thinkingElapsedTime}
                               onApprove={
                                 onApprove ? (stepId) => onApprove(stepId, runId) : undefined
@@ -414,18 +419,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       )}
 
                       {/* V2 Final Response - rendered after timeline (not shown on error) */}
-                      {thinkingProcessVersion === 'v2' && v2FinalResponse && !(status === 'failed' && errorMessage) && (
-                        <div className="markdown-content max-w-none">
-                          <Streamdown
-                            parseIncompleteMarkdown={isStreaming}
-                            isAnimating={isStreaming}
-                            controls={{ table: true }}
-                            components={{ a: SalesforceLink }}
-                          >
-                            {v2FinalResponse}
-                          </Streamdown>
-                        </div>
-                      )}
+                      {thinkingProcessVersion === 'v2' &&
+                        v2FinalResponse &&
+                        !(status === 'failed' && errorMessage) && (
+                          <div className="markdown-content max-w-none">
+                            <Streamdown
+                              parseIncompleteMarkdown={isStreaming}
+                              isAnimating={isStreaming}
+                              controls={{ table: true }}
+                              components={{ a: SalesforceLink }}
+                            >
+                              {v2FinalResponse}
+                            </Streamdown>
+                          </div>
+                        )}
 
                       {/* V1 Thinking Process - Original ThinkingBlock components */}
                       {thinkingProcessVersion === 'v1' && (
