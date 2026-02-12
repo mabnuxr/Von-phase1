@@ -114,7 +114,7 @@ const SuccessfulRunSimulation = () => {
       isLatestMessage: true,
       ...overrides,
     }),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -279,7 +279,7 @@ const FailedRunSimulation = () => {
       isLatestMessage: true,
       ...overrides,
     }),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -410,7 +410,7 @@ const FailedRunWithLateEventsSimulation = () => {
       isLatestMessage: true,
       ...overrides,
     }),
-    [],
+    []
   );
 
   useEffect(() => {

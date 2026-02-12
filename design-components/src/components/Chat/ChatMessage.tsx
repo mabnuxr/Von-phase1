@@ -416,9 +416,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         )}
 
                       {/* V2 Error - shown below thinking process (failed only; timeout has its own indicator) */}
-                      {thinkingProcessVersion === 'v2' &&
-                        status === 'failed' &&
-                        errorMessage && <MessageAreaError message={errorMessage} />}
+                      {thinkingProcessVersion === 'v2' && status === 'failed' && errorMessage && (
+                        <MessageAreaError message={errorMessage} />
+                      )}
 
                       {/* V2 Final Response - rendered after timeline (not shown on error) */}
                       {thinkingProcessVersion === 'v2' &&
