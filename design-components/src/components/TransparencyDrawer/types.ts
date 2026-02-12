@@ -76,7 +76,6 @@ export interface ArtifactResponse {
 export interface TabConfig {
   id: string;
   label: string;
-  icon: React.ReactNode;
   count: number;
 }
 

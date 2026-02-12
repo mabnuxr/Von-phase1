@@ -1,7 +1,6 @@
 import React from 'react';
 import { SmileyIcon, SmileySadIcon, SmileyMehIcon } from '@phosphor-icons/react';
 import type { QueryColumn, SentimentType } from '../types';
-import { isSalesforceUrl } from '../../Chat/utils/salesforceDeepLink';
 
 // ============================================================================
 // Deep Link Rendering
@@ -42,41 +41,30 @@ function isUrl(value: string): boolean {
 }
 
 /**
- * Format a table cell value with special handling for deep_link columns.
- * Renders Salesforce deep links as clickable "View in Salesforce" links,
- * other URLs as clickable links, and falls back to formatValue for everything else.
+ * Format a table cell value with special handling for linked columns.
+ * When a linkUrl is provided (from col.linkKey), renders the value as a clickable link.
+ * Falls back to formatValue for everything else.
  */
 export function formatCellValue(
-  columnKey: string,
   value: string | number,
-  columnType?: QueryColumn['type']
+  columnType?: QueryColumn['type'],
+  linkUrl?: string | number
 ): React.ReactNode {
-  const strValue = String(value);
-
-  if (columnKey === 'deep_link' && isUrl(strValue)) {
-    if (isSalesforceUrl(strValue)) {
+  // Handle linked columns (e.g. ID column linked via deep_link)
+  if (linkUrl != null) {
+    const strUrl = String(linkUrl);
+    if (isUrl(strUrl)) {
       return (
         <a
-          href={strValue}
+          href={strUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-          title="Open in Salesforce"
+          className="text-indigo-600 hover:text-indigo-800 hover:underline"
         >
-          View in Salesforce
+          {String(value)}
         </a>
       );
     }
-    return (
-      <a
-        href={strValue}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-indigo-600 hover:text-indigo-800 hover:underline break-all"
-      >
-        {strValue}
-      </a>
-    );
   }
 
   return formatValue(value, columnType);

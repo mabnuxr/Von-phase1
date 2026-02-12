@@ -124,7 +124,7 @@ export function ManageUsersTab() {
 
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
-        <div className="pt-6 pb-12 space-y-6 max-w-3xl mx-auto">
+        <div className="pt-6 pb-12 space-y-6 w-full">
           {/* Actions Row */}
           <div className="flex items-center gap-4">
             {/* Search Input - Full Width */}
@@ -153,7 +153,7 @@ export function ManageUsersTab() {
           {/* Table Content */}
           {/* Loading State */}
           {isLoading && (
-            <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -249,7 +249,7 @@ export function ManageUsersTab() {
 
           {/* Data Table */}
           {!isLoading && !error && filteredUsers.length > 0 && (
-            <div className="overflow-hidden border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
