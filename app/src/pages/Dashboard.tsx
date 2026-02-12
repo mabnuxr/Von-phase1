@@ -175,7 +175,7 @@ const Dashboard = () => {
     isDeepLinksEnabled,
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
-    isDeepResearchEnabled,
+    //isDeepResearchEnabled,
     isSourcesEnabled,
     isTenantDisabled,
   } = useFeatureFlag();
@@ -1119,7 +1119,7 @@ const Dashboard = () => {
                 useStandardInput={isAgentV2}
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
-                showPlusMenu={isDeepResearchEnabled}
+                showPlusMenu={true}
               />
             )}
           </motion.div>

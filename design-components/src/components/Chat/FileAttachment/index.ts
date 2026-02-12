@@ -28,6 +28,9 @@ export type { MessageFilePreviewProps } from './MessageFilePreview';
 export { DragDropOverlay } from './DragDropOverlay';
 export type { DragDropOverlayProps } from './DragDropOverlay';
 
+export { FileErrorToast } from './FileErrorToast';
+export type { FileErrorToastProps } from './FileErrorToast';
+
 // Hooks
 export { useFileUpload } from './useFileUpload';
 export type { UseFileUploadOptions, UseFileUploadReturn } from './useFileUpload';

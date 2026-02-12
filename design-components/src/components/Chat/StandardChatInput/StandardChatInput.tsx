@@ -31,7 +31,7 @@ import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Toggle as _Toggle } from '../../forms/toggle';
-import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
+import { SecondaryIconButton, RemoveButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } from './types';
 import type { BuildMode } from '../../DashboardBuilder/types';
@@ -107,8 +107,10 @@ interface PlusButtonMenuProps {
   onOpen: () => void;
   onAgentModeChange: (mode: AgentMode) => void;
   onBuildDashboard?: () => void;
+  onUploadClick?: () => void;
   selectedAgentMode: AgentMode;
   disabled?: boolean;
+  isAgentLocked?: boolean;
 }
 
 const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
@@ -117,8 +119,10 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   onOpen,
   onAgentModeChange,
   onBuildDashboard,
+  onUploadClick,
   selectedAgentMode,
   disabled = false,
+  isAgentLocked = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAgentSubmenuOpen, setIsAgentSubmenuOpen] = useState(false);
@@ -157,105 +161,108 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
       {/* Main Menu */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
-          >
-            {/* Upload option - disabled with "Soon" tag */}
-            <button
-              disabled
-              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-400 cursor-not-allowed text-left"
+          <>
+            {/* Click outside to close */}
+            <div className="fixed inset-0 z-40" onClick={handleMenuClose} />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.1 }}
+              className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
             >
-              <div className="flex items-center gap-2.5">
-                <UploadSimpleIcon size={16} className="text-gray-300" />
-                <span>Upload</span>
+              <div className="py-0.5">
+                {/* Upload option */}
+                <TransparentButton
+                  icon={<UploadSimpleIcon size={16} className="text-gray-800" />}
+                  onClick={() => {
+                    onUploadClick?.();
+                    onClose();
+                  }}
+                >
+                  Upload
+                </TransparentButton>
               </div>
-              <span className="text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-md font-medium">
-                Soon
-              </span>
-            </button>
 
-            {/* Divider */}
-            <div className="my-1.5 border-t border-gray-100" />
+              {/* Divider */}
+              <div className="my-0.5 border-t border-gray-100 mx-1" />
 
-            {/* Agents submenu trigger */}
-            <div
-              className="relative"
-              onMouseEnter={() => setIsAgentSubmenuOpen(true)}
-              onMouseLeave={() => setIsAgentSubmenuOpen(false)}
-            >
-              <button className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left">
-                <div className="flex items-center gap-2.5">
-                  <RobotIcon size={16} className="text-gray-500" />
-                  <span>Agents</span>
-                </div>
-                <CaretRightIcon size={14} className="text-gray-400" />
-              </button>
+              {/* Agents submenu trigger */}
+              <div
+                className={`relative py-0.5 ${isAgentLocked ? 'opacity-50 pointer-events-none' : ''}`}
+                onMouseEnter={() => setIsAgentSubmenuOpen(true)}
+                onMouseLeave={() => setIsAgentSubmenuOpen(false)}
+              >
+                <TransparentButton
+                  icon={<RobotIcon size={16} className="text-gray-800" />}
+                  rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
+                  onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
+                >
+                  Agents
+                </TransparentButton>
 
-              {/* Agents submenu */}
-              <AnimatePresence>
-                {isAgentSubmenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -4 }}
-                    transition={{ duration: 0.1 }}
-                    className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50"
-                  >
-                    {/* Auto (default) */}
-                    <button
-                      onClick={() => handleAgentSelect('auto')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                {/* Agents submenu */}
+                <AnimatePresence>
+                  {isAgentSubmenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, x: -8 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, x: -8 }}
+                      transition={{ duration: 0.1 }}
+                      className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <RobotIcon size={16} className="text-gray-500" />
-                        <span>Auto</span>
-                      </div>
-                      {selectedAgentMode === 'auto' && (
-                        <CheckIcon size={14} weight="bold" className="text-green-600" />
-                      )}
-                    </button>
+                      <div className="py-0.5">
+                        {/* Auto (default) */}
+                        <TransparentButton
+                          icon={<RobotIcon size={16} className="text-gray-500" />}
+                          onClick={() => handleAgentSelect('auto')}
+                          active={selectedAgentMode === 'auto'}
+                          rightContent={
+                            selectedAgentMode === 'auto' ? (
+                              <CheckIcon size={14} weight="bold" className="text-green-600" />
+                            ) : undefined
+                          }
+                        >
+                          Auto
+                        </TransparentButton>
 
-                    {/* Build Dashboard */}
-                    <button
-                      onClick={() => handleAgentSelect('build-dashboard')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <ChartBarIcon size={16} className="text-gray-500" />
-                        <span>Build Dashboard</span>
-                      </div>
-                      {selectedAgentMode === 'build-dashboard' && (
-                        <CheckIcon size={14} weight="bold" className="text-green-600" />
-                      )}
-                    </button>
+                        {/* Build Dashboard */}
+                        <TransparentButton
+                          icon={<ChartBarIcon size={16} className="text-gray-500" />}
+                          onClick={() => handleAgentSelect('build-dashboard')}
+                          active={selectedAgentMode === 'build-dashboard'}
+                          rightContent={
+                            selectedAgentMode === 'build-dashboard' ? (
+                              <CheckIcon size={14} weight="bold" className="text-green-600" />
+                            ) : undefined
+                          }
+                        >
+                          Build Dashboard
+                        </TransparentButton>
 
-                    {/* Deep Research */}
-                    <button
-                      onClick={() => handleAgentSelect('deep-research')}
-                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <AtomIcon size={16} className="text-gray-500" />
-                        <span>Deep Research</span>
+                        {/* Deep Research */}
+                        <TransparentButton
+                          icon={<AtomIcon size={16} className="text-gray-500" />}
+                          onClick={() => handleAgentSelect('deep-research')}
+                          active={selectedAgentMode === 'deep-research'}
+                          rightContent={
+                            selectedAgentMode === 'deep-research' ? (
+                              <CheckIcon size={14} weight="bold" className="text-green-600" />
+                            ) : undefined
+                          }
+                        >
+                          Deep Research
+                        </TransparentButton>
                       </div>
-                      {selectedAgentMode === 'deep-research' && (
-                        <CheckIcon size={14} weight="bold" className="text-green-600" />
-                      )}
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
-
-      {/* Click outside to close */}
-      {isOpen && <div className="fixed inset-0 z-40" onClick={handleMenuClose} />}
     </div>
   );
 };
@@ -539,16 +546,14 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             <div className="flex flex-col bg-white rounded-[15px]">
               {/* File previews - shown above the input when files are attached */}
               {hasAttachments && (
-                <div className="px-4 pt-4 pb-2">
-                  <div className="flex flex-wrap gap-2">
+                <div className="px-4 pt-3 pb-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {attachments.map((attachment) => (
                       <FilePreview
                         key={attachment.id}
                         attachment={attachment}
                         onRemove={handleRemoveAttachment}
                         removable={!disabled}
-                        size="medium"
-                        variant="minimal"
                       />
                     ))}
                   </div>
@@ -570,14 +575,18 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 <>
                   {/* Text input area - Tiptap Editor */}
                   <div className="px-4 py-3">
-                    <TiptapEditor
-                      content={message}
-                      onChange={handleChange}
-                      onSubmit={handleSend}
-                      placeholder={placeholder}
-                      disabled={disabled && !isStreaming}
-                      editorRef={editorRef}
-                    />
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <TiptapEditor
+                          content={message}
+                          onChange={handleChange}
+                          onSubmit={handleSend}
+                          placeholder={placeholder}
+                          disabled={disabled && !isStreaming}
+                          editorRef={editorRef}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Formatting toolbar - Slack-style */}
@@ -596,8 +605,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                         onOpen={handlePlusButtonClick}
                         onAgentModeChange={handleAgentModeChange}
                         onBuildDashboard={onBuildDashboard}
+                        onUploadClick={() => fileInputRef.current?.click()}
                         selectedAgentMode={selectedAgentMode}
-                        disabled={(disabled && !isStreaming) || isAgentLocked}
+                        disabled={disabled && !isStreaming}
+                        isAgentLocked={isAgentLocked}
                       />
 
                       {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
@@ -710,7 +721,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 /* Inline layout - text input with send button on same row */
                 <div className="flex items-center gap-2 px-4 py-3">
                   {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <TiptapEditor
                       content={message}
                       onChange={handleChange}
