@@ -101,7 +101,6 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   avatarLabel,
   onProfileClick,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
   position = { top: 0, right: 0 },
   className = '',

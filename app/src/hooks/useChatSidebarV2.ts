@@ -1,5 +1,9 @@
 import { useMemo, useCallback, useState, useRef } from "react";
-import { useQueries, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import {
+  useQueries,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { useChatSidebar, chatSidebarKeys } from "./useChatSidebar";
 import { useCreateFolder } from "./useCreateFolder";
 import { useDeleteFolder } from "./useDeleteFolder";
@@ -320,9 +324,9 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       queryClient.cancelQueries({ queryKey: folderConversationsKeys.all });
 
       // Snapshot sidebar data for rollback (InfiniteData shape)
-      const previousSidebarData = queryClient.getQueryData<InfiniteData<ChatSidebarResponse>>(
-        chatSidebarKeys.sidebar(),
-      );
+      const previousSidebarData = queryClient.getQueryData<
+        InfiniteData<ChatSidebarResponse>
+      >(chatSidebarKeys.sidebar());
 
       // Snapshot folder conversations for rollback
       const previousFolderSnapshots: Record<
