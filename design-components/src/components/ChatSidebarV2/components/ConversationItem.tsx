@@ -82,9 +82,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const content = (
     <div
       className={`
-        group relative flex items-center gap-2.5 px-2 h-8 rounded-lg text-sm
+        group relative flex items-center gap-2.5 px-2 h-8 rounded-xl text-sm
         transition-colors duration-150
-        ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
+        ${isEditing ? 'bg-gray-50' : isSelected ? 'shadow-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 cursor-pointer' : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer'}
       `}
       onClick={isEditing ? undefined : handleClick}
       onContextMenu={isEditing ? undefined : onContextMenu}

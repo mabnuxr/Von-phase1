@@ -131,9 +131,12 @@ export function useChatSidebarState({
   // Collapsed sidebar hover dropdown
   const [isChatsHovered, setIsChatsHovered] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [isFoldersHovered, setIsFoldersHovered] = useState(false);
+  const [foldersDropdownPosition, setFoldersDropdownPosition] = useState({ top: 0, left: 0 });
 
   // Refs
   const chatButtonRef = useRef<HTMLButtonElement>(null);
+  const foldersButtonRef = useRef<HTMLButtonElement>(null);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
 
@@ -361,6 +364,17 @@ export function useChatSidebarState({
     setIsChatsHovered(isHovering);
   }, []);
 
+  const handleFoldersHover = useCallback((isHovering: boolean) => {
+    if (isHovering && foldersButtonRef.current) {
+      const rect = foldersButtonRef.current.getBoundingClientRect();
+      setFoldersDropdownPosition({
+        top: rect.top,
+        left: rect.right + 8,
+      });
+    }
+    setIsFoldersHovered(isHovering);
+  }, []);
+
   const handleAvatarClick = useCallback(() => {
     if (avatarButtonRef.current) {
       const rect = avatarButtonRef.current.getBoundingClientRect();
@@ -393,6 +407,8 @@ export function useChatSidebarState({
     popoverPosition,
     isChatsHovered,
     dropdownPosition,
+    isFoldersHovered,
+    foldersDropdownPosition,
 
     // Inline folder creation
     isCreatingFolder,
@@ -405,6 +421,7 @@ export function useChatSidebarState({
 
     // Refs
     chatButtonRef,
+    foldersButtonRef,
     avatarButtonRef,
 
     // Derived state
@@ -442,6 +459,7 @@ export function useChatSidebarState({
 
     // UI handlers
     handleChatsHover,
+    handleFoldersHover,
     handleAvatarClick,
     handleCloseProfile,
   };

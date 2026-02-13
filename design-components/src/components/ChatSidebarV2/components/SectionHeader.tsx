@@ -25,7 +25,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <span className="text-xs font-medium text-gray-700">{label}</span>
+      <span className="text-xs font-medium text-gray-600">{label}</span>
       {onAdd && (
         <div className={`transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
           <AddButton

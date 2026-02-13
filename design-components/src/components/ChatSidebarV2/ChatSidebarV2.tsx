@@ -2,12 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   SidebarSimpleIcon,
-  PlusIcon,
+  PlusCircleIcon,
+  FolderPlusIcon,
   FolderSimpleIcon,
   CheckIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { GhostButton, TertiaryIconButton } from '../forms/buttons';
+import { TertiaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
 import {
@@ -159,6 +160,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     popoverPosition,
     isChatsHovered,
     dropdownPosition,
+    isFoldersHovered,
+    foldersDropdownPosition,
 
     // Inline folder creation
     isCreatingFolder,
@@ -171,6 +174,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
     // Refs
     chatButtonRef,
+    foldersButtonRef,
     avatarButtonRef,
 
     // Derived state
@@ -208,6 +212,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
     // UI handlers
     handleChatsHover,
+    handleFoldersHover,
     handleAvatarClick,
     handleCloseProfile,
   } = useChatSidebarState({
@@ -233,6 +238,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     return (
       <CollapsedSidebar
         items={items}
+        folders={folders}
+        folderItems={folderItems}
         selectedItemId={selectedItemId}
         onToggleCollapse={onToggleCollapse}
         onNewChatClick={onNewChatClick}
@@ -241,6 +248,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         dropdownPosition={dropdownPosition}
         chatButtonRef={chatButtonRef}
         onChatsHover={handleChatsHover}
+        isFoldersHovered={isFoldersHovered}
+        foldersDropdownPosition={foldersDropdownPosition}
+        foldersButtonRef={foldersButtonRef}
+        onFoldersHover={handleFoldersHover}
         userName={userName}
         userEmail={userEmail}
         avatarSrc={avatarSrc}
@@ -264,7 +275,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   return (
     <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
       {/* Logo Row */}
-      <div className="flex items-center justify-between mb-3 px-1">
+      <div className="flex items-center justify-between mb-3 px-2">
         <img
           src={VON_COMBINATION_MARK_URL}
           alt="Von logo"
@@ -281,38 +292,38 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       </div>
 
       {/* New Chat Button */}
-      <div className="my-2 px-1 flex flex-col gap-1.5">
-        <GhostButton
+      <div className="mt-2 mb-3">
+        <div
+          className="flex items-center gap-1.5 px-1.5 h-8 rounded-xl text-sm text-gray-900 bg-white border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
           onClick={onNewChatClick}
-          className="w-full flex items-center gap-1.5 overflow-hidden"
         >
-          <PlusIcon size={14} weight="bold" className="flex-shrink-0" />
+          <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
           <span className="whitespace-nowrap">New Chat</span>
-        </GhostButton>
+        </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
         {/* Loading Skeleton */}
         {isLoading && <ChatSidebarSkeleton />}
 
         {/* Folders Section */}
         {!isLoading && (
-          <div className="mb-2">
+          <div className="mb-3">
             <SectionHeader label="Folders" />
             <div>
               {/* "New Folder" button - always visible at the top */}
               <div
-                className="flex items-center gap-2.5 px-2 h-8 rounded-lg text-sm text-gray-900 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-2 h-8 rounded-xl text-sm text-gray-900 border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
                 onClick={handleStartFolderCreation}
               >
-                <PlusIcon size={16} weight="regular" className="flex-shrink-0" />
+                <FolderPlusIcon size={18} weight="regular" className="flex-shrink-0" />
                 <span>New folder</span>
               </div>
 
               {/* Inline new folder input */}
               {isCreatingFolder && (
-                <div className="flex items-center gap-2 px-2 h-8 rounded-lg bg-gray-50">
+                <div className="flex items-center gap-2 px-2 h-8 rounded-xl bg-gray-50">
                   <FolderSimpleIcon
                     size={16}
                     weight="regular"
@@ -428,15 +439,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       {/* More Content Indicator */}
       {hasNextPage && !isFetchingMore && (
         <motion.div
-          className="flex items-center justify-center py-1.5"
+          className="flex items-center justify-start py-1.5"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           <button
-            className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-800/80 hover:text-gray-900 transition-colors cursor-pointer"
             onClick={onLoadMore}
           >
-            Load more
+            See more
           </button>
         </motion.div>
       )}
