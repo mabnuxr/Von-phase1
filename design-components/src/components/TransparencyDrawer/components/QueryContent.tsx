@@ -58,11 +58,10 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
     );
 
     const csvContent = [header, ...dataRows].join('\n');
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-    const filename = `query_export_${timestamp}.csv`;
+    const filename = `${query.name || 'query_export'}.csv`;
 
     downloadCSV(csvContent, filename);
-  }, [query.columns, query.rows]);
+  }, [query.columns, query.rows, query.name]);
 
   const totalRows = query.rows.length;
 
