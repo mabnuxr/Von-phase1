@@ -25,6 +25,9 @@ export type { FilePreviewProps } from './FilePreview';
 export { MessageFilePreview } from './MessageFilePreview';
 export type { MessageFilePreviewProps } from './MessageFilePreview';
 
+export { FilePreviewModal } from './FilePreviewModal';
+export type { FilePreviewModalProps } from './FilePreviewModal';
+
 export { DragDropOverlay } from './DragDropOverlay';
 export type { DragDropOverlayProps } from './DragDropOverlay';
 

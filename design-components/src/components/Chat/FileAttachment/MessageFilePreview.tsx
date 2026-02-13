@@ -9,12 +9,15 @@ import {
   FileDoc,
   FileImage,
   FileCode,
+  ArrowsOutIcon,
 } from '@phosphor-icons/react';
 import type { MessageFileAttachment } from '../types';
 
 export interface MessageFilePreviewProps {
   /** The file attachments to display */
   attachments: MessageFileAttachment[];
+  /** Callback when a file pill is clicked (for preview/download) */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 type FileCategory = 'document' | 'spreadsheet' | 'presentation' | 'text' | 'image';
@@ -72,9 +75,13 @@ function getCategoryColors(
 }
 
 /**
- * MessageFilePreview component — card-style file attachment with colored icon (read-only)
+ * MessageFilePreview component — card-style file attachment with colored icon
+ * Clickable with expand icon on hover for preview/download
  */
-export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({ attachments }) => {
+export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({
+  attachments,
+  onFileClick,
+}) => {
   if (!attachments || attachments.length === 0) {
     return null;
   }
@@ -89,11 +96,15 @@ export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({ attachme
           attachment.extension
         );
         const colors = getCategoryColors(attachment.category as FileCategory, attachment.extension);
+        const isClickable = !!onFileClick;
 
         return (
           <div
             key={attachment.id}
-            className="flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0"
+            className={`group/pill relative flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0 transition-colors ${
+              isClickable ? 'cursor-pointer hover:bg-gray-50' : ''
+            }`}
+            onClick={isClickable ? () => onFileClick(attachment) : undefined}
           >
             {/* Left side: image preview or colored file icon */}
             {hasPreview ? (
@@ -119,6 +130,13 @@ export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({ attachme
             >
               {attachment.name}
             </span>
+
+            {/* Expand icon — shows on hover */}
+            {isClickable && (
+              <div className="absolute top-1 right-1 opacity-0 group-hover/pill:opacity-100 transition-opacity p-0.5 rounded bg-gray-200/70">
+                <ArrowsOutIcon size={12} weight="bold" className="text-gray-600" />
+              </div>
+            )}
           </div>
         );
       })}

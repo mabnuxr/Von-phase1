@@ -1116,6 +1116,11 @@ export interface ChatProps {
   ) => void;
 
   /**
+   * Callback when a file attachment pill is clicked (for preview/download)
+   */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
+
+  /**
    * Banner element to show above the chat input
    * Use this to show warnings or important messages to the user
    */

@@ -4,6 +4,7 @@ export type { DeepResearchChatProps } from './DeepResearchChat';
 export type {
   ChatProps,
   Message,
+  MessageFileAttachment,
   FixedPosition,
   ChatSession,
   ChatUser,

@@ -1,4 +1,5 @@
 import { authService, conversationsService } from "../services";
+import { fileUploadService } from "../services/fileUploadService";
 import { config } from "../config";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -61,11 +62,13 @@ import {
   ChatSkeleton,
   Banner,
   DashboardCanvas,
+  FilePreviewModal,
 } from "@vonlabs/design-components";
 import type {
   AgentMode,
   SendMessageOptions,
   FileAttachment,
+  MessageFileAttachment,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
@@ -163,6 +166,12 @@ const Dashboard = () => {
     clearFiles: clearFileAttachments,
     hasAttachments: hasFileAttachments,
   } = useFileUploadPipeline(currentConversationId);
+
+  // File preview modal state
+  const [filePreviewAttachment, setFilePreviewAttachment] =
+    useState<MessageFileAttachment | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [isFilePreviewLoading, setIsFilePreviewLoading] = useState(false);
 
   // Stop streaming mutation
   const { mutate: stopStreaming } = useStopStreaming();
@@ -842,6 +851,29 @@ const Dashboard = () => {
     [stopStreaming, v2MarkStopped],
   );
 
+  // File preview — fetch presigned download URL when user clicks a file pill
+  const handleFileClick = useCallback(
+    async (attachment: MessageFileAttachment) => {
+      setFilePreviewAttachment(attachment);
+      setFilePreviewUrl(null);
+      setIsFilePreviewLoading(true);
+      try {
+        if (currentConversationId) {
+          const { downloadUrl } = await fileUploadService.getDownloadUrl(
+            currentConversationId,
+            attachment.id,
+          );
+          setFilePreviewUrl(downloadUrl);
+        }
+      } catch (err) {
+        console.error("[Dashboard] Failed to get download URL:", err);
+      } finally {
+        setIsFilePreviewLoading(false);
+      }
+    },
+    [currentConversationId],
+  );
+
   // Separate pusherConfig for Chat component
   const pusherConfig = useMemo(
     () => ({
@@ -1152,6 +1184,7 @@ const Dashboard = () => {
                 controlledAttachments={fileAttachmentState}
                 onRemoveAttachment={handleRemoveAttachment}
                 onFilesSelected={handleFilesSelected}
+                onFileClick={handleFileClick}
               />
             )}
           </motion.div>
@@ -1180,6 +1213,19 @@ const Dashboard = () => {
             conversationId={currentConversationId}
             paneState={artifactState}
             onClose={closeArtifact}
+          />
+        )}
+
+        {/* File Preview Modal — triggered by clicking file pills in messages */}
+        {filePreviewAttachment && (
+          <FilePreviewModal
+            attachment={filePreviewAttachment}
+            downloadUrl={filePreviewUrl}
+            isLoading={isFilePreviewLoading}
+            onClose={() => {
+              setFilePreviewAttachment(null);
+              setFilePreviewUrl(null);
+            }}
           />
         )}
       </div>

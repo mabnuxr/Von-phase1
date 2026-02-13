@@ -46,6 +46,7 @@ export const Chat: React.FC<ChatProps> = ({
   isFetchingMore = false,
   showMessagesFromIndex = 0,
   onArtifactClick,
+  onFileClick,
   banner,
   topBanner,
   disableSubmit = false,
@@ -333,6 +334,7 @@ export const Chat: React.FC<ChatProps> = ({
                   thinkingElapsedTime={message.thinkingElapsedTime}
                   v2FinalResponse={message.v2FinalResponse}
                   attachments={message.attachments}
+                  onFileClick={onFileClick}
                 />
               </div>
             ))}
