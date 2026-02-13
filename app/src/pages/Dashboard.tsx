@@ -63,6 +63,7 @@ import {
   Banner,
   DashboardCanvas,
   FilePreviewModal,
+  FileErrorToast,
 } from "@vonlabs/design-components";
 import type {
   AgentMode,
@@ -157,6 +158,18 @@ const Dashboard = () => {
   // Send message mutation
   const { mutate: sendMessage } = useSendMessage();
 
+  // File error toast state
+  const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
+  const fileErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleFileError = useCallback((_error: string, message: string) => {
+    setFileErrorMessage(message);
+    if (fileErrorTimerRef.current) clearTimeout(fileErrorTimerRef.current);
+    fileErrorTimerRef.current = setTimeout(
+      () => setFileErrorMessage(null),
+      4000,
+    );
+  }, []);
+
   // Eager file upload — uploads start immediately when files are attached
   const {
     attachments: fileAttachmentState,
@@ -165,7 +178,9 @@ const Dashboard = () => {
     uploadPendingFiles,
     clearFiles: clearFileAttachments,
     hasAttachments: hasFileAttachments,
-  } = useFileUploadPipeline(currentConversationId);
+  } = useFileUploadPipeline(currentConversationId, {
+    onError: handleFileError,
+  });
 
   // File preview modal state
   const [filePreviewAttachment, setFilePreviewAttachment] =
@@ -1185,10 +1200,18 @@ const Dashboard = () => {
                 onRemoveAttachment={handleRemoveAttachment}
                 onFilesSelected={handleFilesSelected}
                 onFileClick={handleFileClick}
+                onFileError={handleFileError}
               />
             )}
           </motion.div>
         </div>
+
+        {/* File validation error toast — fixed above chat input */}
+        <FileErrorToast
+          isVisible={!!fileErrorMessage}
+          message={fileErrorMessage || ""}
+          onDismiss={() => setFileErrorMessage(null)}
+        />
 
         {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
         <LazyTransparencyDrawer

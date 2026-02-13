@@ -84,7 +84,10 @@ export {
   generateFileId,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_BYTES,
 } from './Chat/FileAttachment';
+export { FileErrorToast } from './Chat/FileAttachment';
+export type { FileErrorToastProps } from './Chat/FileAttachment';
 
 // Chat Atoms
 // ----------

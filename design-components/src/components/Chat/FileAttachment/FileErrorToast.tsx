@@ -27,11 +27,11 @@ export const FileErrorToast: React.FC<FileErrorToastProps> = ({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 8 }}
+          exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="absolute bottom-full left-0 right-0 max-w-3xl mx-auto mb-2 z-50"
+          className="fixed top-[60px] right-3 w-80 z-[9999]"
         >
           <div className="bg-amber-50 border border-amber-200 text-sm px-4 py-3 rounded-xl shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-2">

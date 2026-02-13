@@ -6,6 +6,7 @@ import {
   generateFileId,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_BYTES,
 } from "@vonlabs/design-components";
 import {
   fileUploadService,
@@ -27,6 +28,10 @@ export interface MessageFileAttachment {
   s3Key: string;
 }
 
+export interface UseFileUploadPipelineOptions {
+  onError?: (error: string, message: string) => void;
+}
+
 /**
  * Hook that manages file attachments with eager upload.
  *
@@ -34,13 +39,20 @@ export interface MessageFileAttachment {
  * (presign → S3 PUT → confirm) starts immediately. The attachment status
  * transitions: pending → uploading → uploaded/error.
  *
- * Dashboard owns the FileAttachment[] state (controlled mode) and passes it
- * down to StandardChatInput for rendering.
+ * Enforces limits:
+ * - Per-file: 5MB max
+ * - Per-batch: 5 files max
  */
-export function useFileUploadPipeline(conversationId: string | null) {
+export function useFileUploadPipeline(
+  conversationId: string | null,
+  options?: UseFileUploadPipelineOptions,
+) {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   // Map of attachment ID → MessageFileAttachment (for completed uploads)
   const metadataRef = useRef<Map<string, MessageFileAttachment>>(new Map());
+
+  const onErrorRef = useRef(options?.onError);
+  onErrorRef.current = options?.onError;
 
   /**
    * Run the upload pipeline for a single attachment.
@@ -132,33 +144,62 @@ export function useFileUploadPipeline(conversationId: string | null) {
    */
   const addFiles = useCallback(
     (rawFiles: File[]) => {
+      // Validate total file count (existing + new)
+      if (attachments.length + rawFiles.length > MAX_FILES) {
+        onErrorRef.current?.(
+          "max_files_exceeded",
+          `You can attach up to ${MAX_FILES} files at a time`,
+        );
+        return;
+      }
+
+      // Validate total size (existing + new must be under 10MB)
+      const existingSize = attachments.reduce((sum, a) => sum + a.size, 0);
+      const newSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
+      if (existingSize + newSize > AGGREGATE_SIZE_LIMIT_BYTES) {
+        onErrorRef.current?.(
+          "aggregate_size_exceeded",
+          "Total size of attached files exceeds 10MB",
+        );
+        return;
+      }
+
       const newAttachments: FileAttachment[] = [];
-      let currentCount = attachments.length;
 
       for (const file of rawFiles) {
-        // Validate max files
-        if (currentCount >= MAX_FILES) {
-          break;
-        }
-
-        // Validate size
+        // Validate per-file size
         if (file.size > FILE_SIZE_LIMIT_BYTES) {
+          onErrorRef.current?.(
+            "file_too_large",
+            `${file.name} exceeds 5MB limit`,
+          );
           continue;
         }
 
         // Validate type
         const fileInfo = getFileInfo(file.type);
         if (!fileInfo) {
-          // Fallback: try extension
           const ext = file.name.split(".").pop()?.toUpperCase();
-          if (!ext) continue;
+          if (!ext) {
+            onErrorRef.current?.(
+              "unsupported_type",
+              `${file.name} is not a supported file type`,
+            );
+            continue;
+          }
         }
 
         // Check duplicates
         const isDuplicate = attachments.some(
           (a) => a.name === file.name && a.size === file.size,
         );
-        if (isDuplicate) continue;
+        if (isDuplicate) {
+          onErrorRef.current?.(
+            "duplicate_file",
+            `${file.name} is already attached`,
+          );
+          continue;
+        }
 
         const fallbackExt = file.name.split(".").pop()?.toUpperCase() || "FILE";
 
@@ -177,7 +218,6 @@ export function useFileUploadPipeline(conversationId: string | null) {
         };
 
         newAttachments.push(attachment);
-        currentCount++;
       }
 
       if (newAttachments.length === 0) return;

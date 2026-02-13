@@ -12,6 +12,7 @@ export {
   FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_BYTES,
   getFileInfo,
   getAcceptString,
   formatFileSize,
