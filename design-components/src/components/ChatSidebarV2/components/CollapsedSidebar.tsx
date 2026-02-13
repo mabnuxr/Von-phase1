@@ -71,7 +71,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   return (
     <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
-      <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-100 mb-2">
+      <div className="flex flex-col items-center px-1 pb-3 border-b border-gray-100 mb-2">
         <TertiaryIconButton
           icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
           onClick={onToggleCollapse}

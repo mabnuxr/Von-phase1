@@ -284,10 +284,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <div className="my-2 px-1 flex flex-col gap-1.5">
         <PrimaryButton
           onClick={onNewChatClick}
-          className="w-full flex items-center justify-center gap-1.5"
+          className="w-full flex items-center gap-1.5 overflow-hidden"
         >
-          <PlusIcon size={14} weight="bold" />
-          New Chat
+          <PlusIcon size={14} weight="bold" className="flex-shrink-0" />
+          <span className="whitespace-nowrap">New Chat</span>
         </PrimaryButton>
       </div>
 
