@@ -359,8 +359,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               {sortedFolders.map((folder) => {
                 const folderItemsList = itemsByFolder[folder.id] || [];
                 const isFolderLoading = folderLoadingMap[folder.id] || false;
-                if (folderItemsList.length === 0 && !isFolderLoading) return null;
-
                 return (
                   <div key={folder.id} className="mb-1">
                     <FolderRow
