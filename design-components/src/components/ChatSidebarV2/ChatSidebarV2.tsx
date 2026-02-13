@@ -388,7 +388,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   </div>
                 );
               })}
-
             </div>
           </div>
         )}
@@ -398,22 +397,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <div className="mb-2">
             <SectionHeader label="Chats" />
             <div>
-              {rootItems.map(
-                (item) => (
-                  <ConversationItem
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedItemId}
-                    onClick={() => onItemClick?.(item.id)}
-                    onContextMenu={(e) => handleContextMenu(e, item)}
-                    isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                    isEditing={editingItemId === item.id}
-                    onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                    onCancelEdit={handleCancelRename}
-                  />
-                )
-              )}
-
+              {rootItems.map((item) => (
+                <ConversationItem
+                  key={item.id}
+                  item={item}
+                  isSelected={item.id === selectedItemId}
+                  onClick={() => onItemClick?.(item.id)}
+                  onContextMenu={(e) => handleContextMenu(e, item)}
+                  isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                  isEditing={editingItemId === item.id}
+                  onSaveEdit={(newName) => handleSaveRename(item, newName)}
+                  onCancelEdit={handleCancelRename}
+                />
+              ))}
             </div>
           </div>
         )}
