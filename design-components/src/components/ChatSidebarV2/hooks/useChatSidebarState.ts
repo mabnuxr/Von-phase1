@@ -75,7 +75,6 @@ export function useChatSidebarState({
   onRenameFolder,
   onDeleteFolder,
   onPinFolder,
-  onFolderToggle,
   onNewChatFolderClick,
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
