@@ -488,7 +488,7 @@ function detectApprovalFromArgs(
       toolCallId,
       summary: parsed.summary,
       label: isBulk
-        ? `${ops.length} Salesforce Records`
+        ? `${ops.length} Salesforce records`
         : firstOp?.sobject_type || "Salesforce Record",
       recordName: isBulk
         ? `${ops.length} records to ${firstOp?.operation || "update"}`
