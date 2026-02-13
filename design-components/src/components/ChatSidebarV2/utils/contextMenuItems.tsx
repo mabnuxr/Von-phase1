@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   PencilSimpleIcon,
   TrashIcon,
@@ -15,7 +14,7 @@ import type { ContextMenuItem } from '../../popups';
 export function getContextMenuItems(options: { isInFolder?: boolean } = {}): ContextMenuItem[] {
   return [
     { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
-    { id: 'move', label: 'Move', icon: <ArrowBendUpRightIcon size={14} /> },
+    { id: 'move', label: 'Move to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
     ...(options.isInFolder
       ? [
           {

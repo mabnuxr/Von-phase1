@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatTextIcon, SidebarSimpleIcon, PlusIcon } from '@phosphor-icons/react';
-import { PrimaryIconButton, TertiaryIconButton } from '../../forms/buttons';
+import { SecondaryIconButton, TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import type { SidebarItem } from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';
@@ -71,7 +71,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   return (
     <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
-      <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-100 mb-2">
+      <div className="flex flex-col items-center px-1 pb-3 border-b border-gray-100 mb-2">
         <TertiaryIconButton
           icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
           onClick={onToggleCollapse}
@@ -83,7 +83,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
       <div className="flex-1 px-1">
         <div className="flex flex-col items-center gap-1">
           {/* New Button */}
-          <PrimaryIconButton
+          <SecondaryIconButton
             icon={<PlusIcon size={16} weight="bold" />}
             onClick={onNewChatClick}
             title="New Chat"
