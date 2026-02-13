@@ -8,21 +8,29 @@ import { chatSidebarKeys } from "./useChatSidebar";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
 
 /**
- * Delete a folder by ID
+ * Parameters for pinning/unpinning a folder
+ */
+export interface PinFolderParams {
+  folderId: string;
+  displayOrder: number;
+}
+
+/**
+ * Pin or unpin a folder by updating its displayOrder
  * Uses optimistic updates for instant UI feedback
  */
-export function useDeleteFolder() {
+export function usePinFolder() {
   const queryClient = useQueryClient();
 
   return useMutation<
     void,
     Error,
-    string,
+    PinFolderParams,
     { previousData: InfiniteData<ChatSidebarResponse> | undefined }
   >({
-    mutationFn: (folderId: string) =>
-      conversationsService.deleteFolder(folderId),
-    onMutate: async (folderId) => {
+    mutationFn: ({ folderId, displayOrder }: PinFolderParams) =>
+      conversationsService.updateFolderDisplayOrder(folderId, displayOrder),
+    onMutate: async ({ folderId, displayOrder }) => {
       // Cancel any outgoing refetches to prevent overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
 
@@ -31,7 +39,7 @@ export function useDeleteFolder() {
         InfiniteData<ChatSidebarResponse>
       >(chatSidebarKeys.sidebar());
 
-      // Optimistically remove the folder from the first page
+      // Optimistically update the folder's displayOrder on the first page
       if (previousData) {
         queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
           chatSidebarKeys.sidebar(),
@@ -41,8 +49,14 @@ export function useDeleteFolder() {
               index === 0
                 ? {
                     ...page,
-                    folders: page.folders.filter(
-                      (folder) => folder.folderId !== folderId,
+                    folders: page.folders.map((folder) =>
+                      folder.folderId === folderId
+                        ? {
+                            ...folder,
+                            displayOrder,
+                            updatedAt: new Date().toISOString(),
+                          }
+                        : folder,
                     ),
                   }
                 : page,
@@ -53,13 +67,18 @@ export function useDeleteFolder() {
 
       return { previousData };
     },
-    onSuccess: (_, folderId) => {
+    onSuccess: (_, { folderId, displayOrder }) => {
       if (import.meta.env.DEV) {
-        console.log("[useDeleteFolder] Deleted folder:", folderId);
+        console.log(
+          "[usePinFolder] Updated displayOrder:",
+          folderId,
+          "to:",
+          displayOrder,
+        );
       }
     },
     onError: (error, _, context) => {
-      console.error("[useDeleteFolder] Error:", error);
+      console.error("[usePinFolder] Error:", error);
       // Rollback to previous data on error
       if (context?.previousData) {
         queryClient.setQueryData(

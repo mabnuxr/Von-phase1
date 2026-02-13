@@ -238,8 +238,13 @@ class ConversationsService {
    * Fetch chat sidebar data with folders and unfiled conversations
    * Used for ChatSidebarV2 component
    */
-  async getChatSidebar(): Promise<ChatSidebarResponse> {
-    return apiClient.get<ChatSidebarResponse>(`/api/v1/chat/sidebar`);
+  async getChatSidebar(
+    unfiledPage: number = 1,
+    unfiledLimit: number = 20,
+  ): Promise<ChatSidebarResponse> {
+    return apiClient.get<ChatSidebarResponse>(
+      `/api/v1/chat/sidebar?unfiledPage=${unfiledPage}&unfiledLimit=${unfiledLimit}`,
+    );
   }
 
   /**
@@ -263,6 +268,19 @@ class ConversationsService {
    */
   async renameFolder(folderId: string, name: string): Promise<void> {
     return apiClient.patch<void>(`/api/v1/folders/${folderId}`, { name });
+  }
+
+  /**
+   * Update a folder's display order (used for pinning/unpinning)
+   * Pin: displayOrder = 0, Unpin: displayOrder = 100 (default)
+   */
+  async updateFolderDisplayOrder(
+    folderId: string,
+    displayOrder: number,
+  ): Promise<void> {
+    return apiClient.patch<void>(`/api/v1/folders/${folderId}`, {
+      displayOrder,
+    });
   }
 
   /**

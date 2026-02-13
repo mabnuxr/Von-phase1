@@ -25,7 +25,6 @@ export const TabNavigation = React.memo<TabNavigationProps>(({ tabs, activeTab, 
               }
             `}
         >
-          {tab.icon}
           {tab.label}
           {tab.count > 0 && (
             <span

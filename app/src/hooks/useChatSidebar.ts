@@ -1,7 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
-import { CONVERSATIONS_STALE_TIME } from "../config/constants";
+import {
+  CONVERSATIONS_STALE_TIME,
+  CONVERSATIONS_PAGE_LIMIT,
+} from "../config/constants";
 
 /**
  * Query keys for chat sidebar
@@ -13,19 +16,21 @@ export const chatSidebarKeys = {
 };
 
 /**
- * Fetch chat sidebar data with folders and unfiled conversations
- * Returns folders and paginated unfiled conversations for sidebar display
+ * Fetch chat sidebar data with folders and infinite-scroll unfiled conversations.
  *
- * Uses optimized settings to prevent unnecessary refetches:
- * - staleTime: Data considered fresh for 30 seconds
- * - gcTime: Keep cached data for 5 minutes
- * - refetchOnWindowFocus: Disabled to prevent refetch when switching tabs
- * - refetchOnMount: Only refetch if data is stale
+ * Page 1 returns folders + first page of unfiled conversations.
+ * Subsequent pages only add more unfiled conversations (folders stay the same).
  */
-export function useChatSidebar() {
-  return useQuery<ChatSidebarResponse>({
+export function useChatSidebar(limit: number = CONVERSATIONS_PAGE_LIMIT) {
+  return useInfiniteQuery<ChatSidebarResponse>({
     queryKey: chatSidebarKeys.sidebar(),
-    queryFn: () => conversationsService.getChatSidebar(),
+    queryFn: ({ pageParam }) =>
+      conversationsService.getChatSidebar(pageParam as number, limit),
+    getNextPageParam: (lastPage) => {
+      const { pagination } = lastPage.unfiled;
+      return pagination.hasNextPage ? pagination.page + 1 : undefined;
+    },
+    initialPageParam: 1,
     staleTime: CONVERSATIONS_STALE_TIME,
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,

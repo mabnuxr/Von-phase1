@@ -129,7 +129,7 @@ function removeTrailingColonFromPreviousStep(
 interface DetectedApprovalData {
   toolCallId: string;
   summary: string;
-  objectType: string;
+  label: string;
   recordName?: string;
   recordId?: string;
   operation: "create" | "update" | "delete";
@@ -152,6 +152,7 @@ interface DetectedApprovalData {
   bulkRecords?: Array<{
     recordId: string;
     recordName: string;
+    label: string;
     recordUrl?: string;
     changes: Array<{
       field: string;
@@ -394,6 +395,7 @@ function detectApprovalFromArgs(
                   op.event_id ||
                   `event-${op.summary || op.event_summary || "unknown"}`,
                 recordName: op.summary || op.event_summary || "Event",
+                label: "Calendar Event",
                 recordUrl: op.event_url,
                 changes,
               };
@@ -404,7 +406,7 @@ function detectApprovalFromArgs(
       return {
         toolCallId,
         summary: parsed.summary,
-        objectType: isBulk ? `${ops.length} Calendar Events` : "Calendar Event",
+        label: isBulk ? `${ops.length} Calendar Events` : "Calendar Event",
         recordName: isBulk
           ? `${ops.length} events to ${firstOp?.operation || "create"}`
           : firstOp?.summary || firstOp?.event_summary,
@@ -474,6 +476,7 @@ function detectApprovalFromArgs(
             return {
               recordId: op.record_id || `record-${op.record_name || "unknown"}`,
               recordName: op.record_name || "Unknown",
+              label: op.sobject_type || "Salesforce Record",
               recordUrl: op.record_url,
               changes,
             };
@@ -484,8 +487,8 @@ function detectApprovalFromArgs(
     return {
       toolCallId,
       summary: parsed.summary,
-      objectType: isBulk
-        ? `${ops.length} Salesforce Records`
+      label: isBulk
+        ? `${ops.length} Salesforce records`
         : firstOp?.sobject_type || "Salesforce Record",
       recordName: isBulk
         ? `${ops.length} records to ${firstOp?.operation || "update"}`
@@ -544,7 +547,7 @@ function detectApprovalFromArgs(
     return {
       toolCallId,
       summary: parsed.summary,
-      objectType: "Calendar Event",
+      label: "Calendar Event",
       recordName: parsed.event_summary || parsed.title || parsed.summary,
       operation: parsed.operation || "create",
       changes: parsed.changes,
@@ -558,7 +561,7 @@ function detectApprovalFromArgs(
     return {
       toolCallId,
       summary: parsed.summary,
-      objectType: "Deep Research",
+      label: "Deep Research",
       recordName: parsed.research_query,
       operation: "create", // Research is always a "create" operation conceptually
       approvalType: "deep_research",
@@ -579,7 +582,7 @@ function detectApprovalFromArgs(
     return {
       toolCallId,
       summary: parsed.summary,
-      objectType: parsed.object_type || parsed.resource_type || "Resource",
+      label: parsed.object_type || parsed.resource_type || "Resource",
       recordName: parsed.record_name || parsed.name || parsed.title,
       operation: parsed.operation || parsed.action || "update",
       changes: parsed.changes || parsed.modifications,
@@ -596,7 +599,7 @@ function detectApprovalFromArgs(
     return {
       toolCallId,
       summary: parsed.summary,
-      objectType: parsed.resource_type || parsed.type || "Resource",
+      label: parsed.resource_type || parsed.type || "Resource",
       recordName: parsed.resource || parsed.target || parsed.record,
       operation:
         parsed.action === "create" || parsed.action === "add"
@@ -629,6 +632,8 @@ export interface TransformResult {
   stoppedByUser: boolean;
   /** Whether the run went through an approval pause (intermediate RUN_FINISHED) */
   hadApprovalPause: boolean;
+  /** Error message if the run failed (from RUN_FINISHED with status=failed or RUN_ERROR) */
+  runErrorMessage: string;
 }
 
 /**
@@ -658,6 +663,7 @@ export function transformAguiToTimelineSteps(
       isDeepResearchRunning: false,
       stoppedByUser: false,
       hadApprovalPause: false,
+      runErrorMessage: "",
     };
   }
 
@@ -711,6 +717,9 @@ export function transformAguiToTimelineSteps(
 
   // Track if the response was stopped by the user
   let stoppedByUser = false;
+
+  // Track error message from failed RUN_FINISHED or RUN_ERROR
+  let runErrorMessage = "";
 
   // Track if we've seen RUN_FINISHED with pending approval (run paused for approval)
   let sawRunFinishedWithPendingApproval = false;
@@ -978,7 +987,7 @@ export function transformAguiToTimelineSteps(
           step.status = "awaiting-approval" as StepStatus;
           // Initialize approval data with tool call info (will be populated with args later)
           const approvalType = getApprovalType(toolName);
-          const objectType =
+          const label =
             approvalType === "calendar"
               ? "Calendar Event"
               : approvalType === "deep_research"
@@ -990,7 +999,7 @@ export function transformAguiToTimelineSteps(
               approvalType === "deep_research"
                 ? "Awaiting approval to proceed with full research..."
                 : "Requesting approval...",
-            objectType,
+            label,
             operation: approvalType === "deep_research" ? "create" : "update",
             approvalType,
           };
@@ -1334,14 +1343,23 @@ export function transformAguiToTimelineSteps(
 
       case "RUN_FINISHED":
       case "RUN_ERROR": {
+        // Detect if this RUN_FINISHED is actually a failure
+        const isFailedRun =
+          event.type === "RUN_FINISHED" && event.result?.status === "failed";
+
         // Check if there's a pending approval step
         // If so, this is an intermediate RUN_FINISHED (run paused for approval)
         // Don't finalize - wait for the next RUN_FINISHED after approval
+        // But never treat a failed RUN_FINISHED as intermediate
         const hasPendingApproval = steps.some(
           (s) => s.status === "awaiting-approval",
         );
 
-        if (hasPendingApproval && event.type === "RUN_FINISHED") {
+        if (
+          hasPendingApproval &&
+          event.type === "RUN_FINISHED" &&
+          !isFailedRun
+        ) {
           // Intermediate RUN_FINISHED - run paused for approval
           // Keep isThinking = true so the UI continues showing the loading state,
           // timer keeps ticking, and message actions don't appear prematurely.
@@ -1372,6 +1390,21 @@ export function transformAguiToTimelineSteps(
           stoppedByUser = true;
         }
 
+        // Extract error message from failed RUN_FINISHED
+        if (
+          event.type === "RUN_FINISHED" &&
+          event.result?.status === "failed"
+        ) {
+          runErrorMessage =
+            (event.result as { error_message?: string }).error_message ||
+            "Agent run failed";
+        }
+
+        // Extract error message from RUN_ERROR
+        if (event.type === "RUN_ERROR") {
+          runErrorMessage = event.error || event.message || "An error occurred";
+        }
+
         // Fallback: Extract the last TEXT_MESSAGE step as the final response
         // Only do this if we don't already have a finalResponse from explicit is_final_response flow
         if (!finalResponse && lastTextMessageId) {
@@ -1388,9 +1421,9 @@ export function transformAguiToTimelineSteps(
           }
         }
 
-        // Mark any in-progress steps as complete (or error for RUN_ERROR)
+        // Mark any in-progress steps as complete (or error for RUN_ERROR / failed RUN_FINISHED)
         const finalStatus =
-          event.type === "RUN_ERROR"
+          event.type === "RUN_ERROR" || isFailedRun
             ? ("error" as StepStatus)
             : ("complete" as StepStatus);
 
@@ -1513,6 +1546,7 @@ export function transformAguiToTimelineSteps(
     isDeepResearchRunning,
     stoppedByUser,
     hadApprovalPause: sawRunFinishedWithPendingApproval,
+    runErrorMessage,
   };
 }
 

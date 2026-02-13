@@ -44,13 +44,13 @@ export interface UseChatSidebarStateOptions {
   items: SidebarItem[];
   folders: Folder[];
   folderItems: FolderItemsMap;
-  newlyCreatedFolderId?: string | null;
   onRenameItem?: (id: string, newName: string) => void;
   onDeleteItem?: (id: string) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
+  onPinFolder?: (folderId: string, isPinned: boolean) => void;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
-  onCollapseAllClick?: () => void;
+  onNewChatFolderClick?: (folderName: string) => void;
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
   onRemoveItemFromFolder?: (itemId: string) => void;
@@ -64,13 +64,12 @@ export function useChatSidebarState({
   items,
   folders,
   folderItems,
-  newlyCreatedFolderId,
   onRenameItem,
   onDeleteItem,
   onRenameFolder,
   onDeleteFolder,
-  onFolderToggle,
-  onCollapseAllClick,
+  onPinFolder,
+  onNewChatFolderClick,
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
   onRemoveItemFromFolder,
@@ -79,11 +78,9 @@ export function useChatSidebarState({
   // State
   // ============================================================================
 
-  // Search
-  const [searchValue, setSearchValue] = useState('');
-
-  // Section expansion
-  const [isChatsExpanded, setIsChatsExpanded] = useState(true);
+  // Inline folder creation
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   // Item context menu
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -134,67 +131,83 @@ export function useChatSidebarState({
   // Collapsed sidebar hover dropdown
   const [isChatsHovered, setIsChatsHovered] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [isFoldersHovered, setIsFoldersHovered] = useState(false);
+  const [foldersDropdownPosition, setFoldersDropdownPosition] = useState({ top: 0, left: 0 });
 
   // Refs
   const chatButtonRef = useRef<HTMLButtonElement>(null);
+  const foldersButtonRef = useRef<HTMLButtonElement>(null);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
 
   // ============================================================================
   // Effects
   // ============================================================================
 
-  // Auto-edit newly created folder
+  // Focus new folder input when creating
   useEffect(() => {
-    if (newlyCreatedFolderId) {
-      setEditingFolderId(newlyCreatedFolderId);
+    if (isCreatingFolder && newFolderInputRef.current) {
+      newFolderInputRef.current.focus();
     }
-  }, [newlyCreatedFolderId]);
+  }, [isCreatingFolder]);
 
   // ============================================================================
   // Derived State
   // ============================================================================
 
-  // Filter items based on search
-  const filteredItems = useMemo(
-    () => items.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase())),
-    [items, searchValue]
-  );
-
   // Root items (not in any folder)
-  const rootItems = useMemo(() => filteredItems.filter((item) => !item.folderId), [filteredItems]);
+  const rootItems = useMemo(() => items.filter((item) => !item.folderId), [items]);
 
   // Items by folder - use folderItems prop if provided, otherwise filter from items
   const itemsByFolder = useMemo(() => {
     return folders.reduce(
       (acc, folder) => {
         const itemsFromProp = folderItems[folder.id] || [];
-        const itemsFromFilter = filteredItems.filter((item) => item.folderId === folder.id);
-        const folderItemsList = itemsFromProp.length > 0 ? itemsFromProp : itemsFromFilter;
-
-        acc[folder.id] = searchValue
-          ? folderItemsList.filter((item) =>
-              item.label.toLowerCase().includes(searchValue.toLowerCase())
-            )
-          : folderItemsList;
+        const itemsFromFilter = items.filter((item) => item.folderId === folder.id);
+        acc[folder.id] = itemsFromProp.length > 0 ? itemsFromProp : itemsFromFilter;
         return acc;
       },
       {} as Record<string, SidebarItem[]>
     );
-  }, [folders, folderItems, filteredItems, searchValue]);
+  }, [folders, folderItems, items]);
 
-  // Count total chats
-  const totalChats = useMemo(() => {
-    const folderItemCount = folders.reduce(
-      (sum, folder) => sum + (itemsByFolder[folder.id]?.length || 0),
-      0
-    );
-    return rootItems.length + folderItemCount;
-  }, [folders, itemsByFolder, rootItems]);
+  // Sorted folders: by displayOrder ASC (pinned=0 first), then alphabetical by label
+  const sortedFolders = useMemo(() => {
+    return [...folders].sort((a, b) => {
+      const orderA = a.displayOrder ?? 100;
+      const orderB = b.displayOrder ?? 100;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.label.localeCompare(b.label);
+    });
+  }, [folders]);
 
   // Available folders for move (excludes current folder)
   const getAvailableFoldersForMove = useCallback(() => {
     return folders.map((f) => ({ id: f.id, label: f.label }));
   }, [folders]);
+
+  // ============================================================================
+  // Inline Folder Creation Handlers
+  // ============================================================================
+
+  const handleStartFolderCreation = useCallback(() => {
+    setIsCreatingFolder(true);
+    setNewFolderName('');
+  }, []);
+
+  const handleConfirmFolderCreation = useCallback(() => {
+    const trimmed = newFolderName.trim();
+    if (trimmed) {
+      onNewChatFolderClick?.(trimmed);
+    }
+    setIsCreatingFolder(false);
+    setNewFolderName('');
+  }, [newFolderName, onNewChatFolderClick]);
+
+  const handleCancelFolderCreation = useCallback(() => {
+    setIsCreatingFolder(false);
+    setNewFolderName('');
+  }, []);
 
   // ============================================================================
   // Item Handlers
@@ -203,9 +216,10 @@ export function useChatSidebarState({
   const handleContextMenu = useCallback((e: React.MouseEvent, item: SidebarItem) => {
     e.preventDefault();
     e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setContextMenu({
       isOpen: true,
-      position: { top: e.clientY, left: e.clientX + 8 },
+      position: { top: rect.bottom + 4, left: rect.left },
       item,
     });
   }, []);
@@ -252,9 +266,10 @@ export function useChatSidebarState({
   const handleFolderContextMenu = useCallback((e: React.MouseEvent, folder: Folder) => {
     e.preventDefault();
     e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setFolderContextMenu({
       isOpen: true,
-      position: { top: e.clientY, left: e.clientX + 8 },
+      position: { top: rect.bottom + 4, left: rect.left },
       folder,
     });
   }, []);
@@ -294,6 +309,13 @@ export function useChatSidebarState({
     setFolderDeleteConfirmation({ isOpen: false, folder: null });
   }, []);
 
+  const handlePinFolder = useCallback(
+    (folder: Folder) => {
+      onPinFolder?.(folder.id, !folder.isPinned);
+    },
+    [onPinFolder]
+  );
+
   // ============================================================================
   // Move to Folder Handlers
   // ============================================================================
@@ -331,16 +353,6 @@ export function useChatSidebarState({
   // UI Handlers
   // ============================================================================
 
-  const handleCollapseAll = useCallback(() => {
-    setIsChatsExpanded(false);
-    folders.forEach((folder) => {
-      if (folder.isExpanded) {
-        onFolderToggle?.(folder.id, false);
-      }
-    });
-    onCollapseAllClick?.();
-  }, [folders, onFolderToggle, onCollapseAllClick]);
-
   const handleChatsHover = useCallback((isHovering: boolean) => {
     if (isHovering && chatButtonRef.current) {
       const rect = chatButtonRef.current.getBoundingClientRect();
@@ -352,12 +364,23 @@ export function useChatSidebarState({
     setIsChatsHovered(isHovering);
   }, []);
 
+  const handleFoldersHover = useCallback((isHovering: boolean) => {
+    if (isHovering && foldersButtonRef.current) {
+      const rect = foldersButtonRef.current.getBoundingClientRect();
+      setFoldersDropdownPosition({
+        top: rect.top,
+        left: rect.right + 8,
+      });
+    }
+    setIsFoldersHovered(isHovering);
+  }, []);
+
   const handleAvatarClick = useCallback(() => {
     if (avatarButtonRef.current) {
       const rect = avatarButtonRef.current.getBoundingClientRect();
       setPopoverPosition({
         bottom: window.innerHeight - rect.top + 8,
-        left: rect.right + 8,
+        left: rect.left,
       });
     }
     setIsProfileOpen((prev) => !prev);
@@ -373,10 +396,6 @@ export function useChatSidebarState({
 
   return {
     // State
-    searchValue,
-    setSearchValue,
-    isChatsExpanded,
-    setIsChatsExpanded,
     contextMenu,
     editingItemId,
     deleteConfirmation,
@@ -388,16 +407,27 @@ export function useChatSidebarState({
     popoverPosition,
     isChatsHovered,
     dropdownPosition,
+    isFoldersHovered,
+    foldersDropdownPosition,
+
+    // Inline folder creation
+    isCreatingFolder,
+    newFolderName,
+    setNewFolderName,
+    newFolderInputRef,
+    handleStartFolderCreation,
+    handleConfirmFolderCreation,
+    handleCancelFolderCreation,
 
     // Refs
     chatButtonRef,
+    foldersButtonRef,
     avatarButtonRef,
 
     // Derived state
-    filteredItems,
     rootItems,
     itemsByFolder,
-    totalChats,
+    sortedFolders,
     getAvailableFoldersForMove,
 
     // Item handlers
@@ -419,6 +449,7 @@ export function useChatSidebarState({
     handleShowFolderDeleteConfirmation,
     handleConfirmFolderDelete,
     handleCancelFolderDelete,
+    handlePinFolder,
 
     // Move handlers
     handleShowMoveToFolder,
@@ -427,8 +458,8 @@ export function useChatSidebarState({
     handleRemoveFromFolder,
 
     // UI handlers
-    handleCollapseAll,
     handleChatsHover,
+    handleFoldersHover,
     handleAvatarClick,
     handleCloseProfile,
   };

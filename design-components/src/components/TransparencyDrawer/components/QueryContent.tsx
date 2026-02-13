@@ -8,7 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import type { QueryContentProps } from '../types';
 import { useQueryPagination, useDynamicPageSize } from '../hooks';
-import { formatCellValue, formatValue } from '../utils';
+import { formatValue, renderLinkedId } from '../utils';
 import { escapeCsvValue, downloadCSV } from '../../Chat/utils/csvExport';
 import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
 
@@ -58,11 +58,10 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
     );
 
     const csvContent = [header, ...dataRows].join('\n');
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
-    const filename = `query_export_${timestamp}.csv`;
+    const filename = `${query.name || 'query_export'}.csv`;
 
     downloadCSV(csvContent, filename);
-  }, [query.columns, query.rows]);
+  }, [query.columns, query.rows, query.name]);
 
   const totalRows = query.rows.length;
 
@@ -222,18 +221,27 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                           col.type === 'number' ||
                           col.type === 'currency' ||
                           col.type === 'percentage';
-                        const isDeepLink = col.key === 'deep_link';
 
-                        // For numeric and deep_link columns, render without truncation
-                        if (isNumeric || isDeepLink) {
+                        // Linked column (e.g. ID with deep link) — render as clickable link
+                        if (col.linkKey) {
                           return (
                             <td
                               key={col.key}
-                              className={`px-3 py-2 text-sm whitespace-nowrap ${
-                                isNumeric ? 'text-right tabular-nums' : 'text-left'
-                              } text-gray-700`}
+                              className="px-3 py-2 text-sm whitespace-nowrap text-left text-gray-700"
                             >
-                              {formatCellValue(col.key, row[col.key], col.type)}
+                              {renderLinkedId(row[col.key], row[col.linkKey])}
+                            </td>
+                          );
+                        }
+
+                        // For numeric columns, render without truncation
+                        if (isNumeric) {
+                          return (
+                            <td
+                              key={col.key}
+                              className="px-3 py-2 text-sm whitespace-nowrap text-right tabular-nums text-gray-700"
+                            >
+                              {formatValue(row[col.key], col.type)}
                             </td>
                           );
                         }

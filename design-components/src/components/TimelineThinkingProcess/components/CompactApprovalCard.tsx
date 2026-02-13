@@ -310,7 +310,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
             )}
           </div>
           <span className="text-xs text-gray-600 flex-shrink-0 ml-2">
-            {operationLabel} {approval.objectType}
+            {operationLabel} {approval.label}
           </span>
         </div>
 

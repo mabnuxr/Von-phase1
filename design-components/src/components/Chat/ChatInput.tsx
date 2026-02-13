@@ -300,7 +300,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 : 'radial-gradient(198.27% 158.06% at 85.59% -18.75%, #FFF2E9 0%, #FF9E8C 26%, #BE9AF3 100%)',
           }}
         >
-          <div className="flex flex-col bg-white rounded-[15px]">
+          <div className="flex flex-col bg-white rounded-[15px] overflow-hidden">
             {/* File previews - shown above the input when files are attached */}
             {hasAttachments && (
               <div className="px-3 pt-3 pb-2 border-b border-gray-100">
@@ -360,11 +360,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
-                  className="flex-1 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
+                  className="flex-1 w-0 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
                   style={{
                     minHeight: '20px',
                     maxHeight: '200px',
                     lineHeight: '1.5',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
                   }}
                 />
               ) : (
@@ -376,11 +378,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
                   autoFocus={autoFocus}
-                  className="flex-1 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto disabled:cursor-not-allowed settings-scrollbar"
+                  className="flex-1 w-0 min-w-0 resize-none outline-none bg-transparent text-sm placeholder-gray-400 overflow-y-auto overflow-x-hidden disabled:cursor-not-allowed settings-scrollbar"
                   style={{
                     minHeight: '20px',
                     maxHeight: '200px',
                     lineHeight: '1.5',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
                   }}
                   rows={1}
                 />

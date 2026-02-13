@@ -11,19 +11,10 @@ interface CompletedBulkCardProps {
   records: BulkApprovalRecord[];
   approval: ApprovalData;
   isApproved: boolean;
-  recordCount: number;
 }
 
-const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
-  records,
-  approval,
-  isApproved,
-  recordCount,
-}) => {
+const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({ records, approval, isApproved }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Check if objectType already starts with a number (e.g., "30 Salesforce Records")
-  const objectTypeAlreadyIncludesCount = /^\d+\s/.test(approval.objectType);
 
   return (
     <div className="mt-2 bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden min-w-0">
@@ -43,11 +34,7 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
           ) : (
             <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
           )}
-          <span className="text-sm text-gray-900 truncate">
-            {objectTypeAlreadyIncludesCount
-              ? approval.objectType
-              : `${recordCount} ${approval.objectType}`}
-          </span>
+          <span className="text-sm text-gray-900 truncate">{approval.label}</span>
         </div>
         <span
           className={`text-xs flex-shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
@@ -63,7 +50,7 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({
             const recordApproval: ApprovalData = {
               toolCallId: record.recordId,
               summary: `Update ${record.recordName}`,
-              objectType: approval.objectType,
+              label: record.label,
               recordName: record.recordName,
               recordUrl: record.recordUrl,
               operation: approval.operation,
@@ -152,12 +139,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     if (bulkAction || isApproved || isRejected) {
       const showAsApproved = bulkAction === 'approved' || (isApproved && !isRejected);
       return (
-        <CompletedBulkCard
-          records={records}
-          approval={approval}
-          isApproved={showAsApproved}
-          recordCount={records.length || approval.recordCount || 0}
-        />
+        <CompletedBulkCard records={records} approval={approval} isApproved={showAsApproved} />
       );
     }
 
@@ -166,13 +148,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
         {/* Header with count */}
         <div className="mb-2">
           <span className="text-sm font-medium text-gray-900">
-            {records.length}{' '}
-            {records.length === 1
-              ? approval.objectType
-              : approval.objectType.endsWith('y')
-                ? approval.objectType.slice(0, -1) + 'ies'
-                : approval.objectType + 's'}{' '}
-            to update
+            {approval.label} to {approval.operation}
           </span>
         </div>
 
@@ -186,7 +162,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
             const recordApproval: ApprovalData = {
               toolCallId: record.recordId,
               summary: `Update ${record.recordName}`,
-              objectType: approval.objectType,
+              label: record.label,
               recordName: record.recordName,
               recordUrl: record.recordUrl,
               operation: approval.operation,

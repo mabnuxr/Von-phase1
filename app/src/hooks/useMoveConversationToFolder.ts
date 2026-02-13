@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { folderConversationsKeys } from "./useFolderConversations";
@@ -32,7 +36,7 @@ export interface RemoveFromFolderParams {
 }
 
 interface MoveConversationContext {
-  previousSidebarData: ChatSidebarResponse | undefined;
+  previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined;
   previousSourceFolderData: FolderConversationsResponse | undefined;
   previousTargetFolderData: FolderConversationsResponse | undefined;
 }
@@ -66,10 +70,10 @@ export function useAddConversationToFolder() {
         queryKey: folderConversationsKeys.folder(targetFolderId),
       });
 
-      // Snapshot previous values for rollback
-      const previousSidebarData = queryClient.getQueryData<ChatSidebarResponse>(
-        chatSidebarKeys.sidebar(),
-      );
+      // Snapshot previous values for rollback (InfiniteData shape)
+      const previousSidebarData = queryClient.getQueryData<
+        InfiniteData<ChatSidebarResponse>
+      >(chatSidebarKeys.sidebar());
 
       const previousSourceFolderData = sourceFolderId
         ? queryClient.getQueryData<FolderConversationsResponse>(
@@ -88,11 +92,14 @@ export function useAddConversationToFolder() {
         | FolderConversation
         | undefined;
 
-      // Check unfiled conversations first
-      if (previousSidebarData?.unfiled?.conversations) {
-        conversationToMove = previousSidebarData.unfiled.conversations.find(
-          (c) => c.conversationId === conversationId,
-        );
+      // Check unfiled conversations across all pages
+      if (previousSidebarData) {
+        for (const page of previousSidebarData.pages) {
+          conversationToMove = page.unfiled?.conversations?.find(
+            (c) => c.conversationId === conversationId,
+          );
+          if (conversationToMove) break;
+        }
       }
 
       // Check source folder if provided and not found in unfiled
@@ -102,18 +109,21 @@ export function useAddConversationToFolder() {
         );
       }
 
-      // Optimistically update sidebar (remove from unfiled if present)
+      // Optimistically update sidebar (remove from unfiled across all pages)
       if (previousSidebarData) {
-        queryClient.setQueryData<ChatSidebarResponse>(
+        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
           chatSidebarKeys.sidebar(),
           {
             ...previousSidebarData,
-            unfiled: {
-              ...previousSidebarData.unfiled,
-              conversations: previousSidebarData.unfiled.conversations.filter(
-                (c) => c.conversationId !== conversationId,
-              ),
-            },
+            pages: previousSidebarData.pages.map((page) => ({
+              ...page,
+              unfiled: {
+                ...page.unfiled,
+                conversations: page.unfiled.conversations.filter(
+                  (c) => c.conversationId !== conversationId,
+                ),
+              },
+            })),
           },
         );
       }
@@ -231,7 +241,7 @@ export function useRemoveConversationFromFolder() {
     Error,
     RemoveFromFolderParams,
     {
-      previousSidebarData: ChatSidebarResponse | undefined;
+      previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined;
       previousFolderData: FolderConversationsResponse | undefined;
     }
   >({
@@ -248,10 +258,10 @@ export function useRemoveConversationFromFolder() {
         queryKey: folderConversationsKeys.folder(sourceFolderId),
       });
 
-      // Snapshot previous values for rollback
-      const previousSidebarData = queryClient.getQueryData<ChatSidebarResponse>(
-        chatSidebarKeys.sidebar(),
-      );
+      // Snapshot previous values for rollback (InfiniteData shape)
+      const previousSidebarData = queryClient.getQueryData<
+        InfiniteData<ChatSidebarResponse>
+      >(chatSidebarKeys.sidebar());
 
       const previousFolderData =
         queryClient.getQueryData<FolderConversationsResponse>(
@@ -276,7 +286,7 @@ export function useRemoveConversationFromFolder() {
         );
       }
 
-      // Optimistically update sidebar (add to unfiled)
+      // Optimistically update sidebar (add to unfiled on the first page)
       if (previousSidebarData && conversationToMove) {
         const newUnfiledConversation: SidebarConversation = {
           conversationId: conversationToMove.conversationId,
@@ -285,17 +295,24 @@ export function useRemoveConversationFromFolder() {
           updatedAt: conversationToMove.updatedAt,
         };
 
-        queryClient.setQueryData<ChatSidebarResponse>(
+        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
           chatSidebarKeys.sidebar(),
           {
             ...previousSidebarData,
-            unfiled: {
-              ...previousSidebarData.unfiled,
-              conversations: [
-                newUnfiledConversation,
-                ...previousSidebarData.unfiled.conversations,
-              ],
-            },
+            pages: previousSidebarData.pages.map((page, index) =>
+              index === 0
+                ? {
+                    ...page,
+                    unfiled: {
+                      ...page.unfiled,
+                      conversations: [
+                        newUnfiledConversation,
+                        ...page.unfiled.conversations,
+                      ],
+                    },
+                  }
+                : page,
+            ),
           },
         );
       }

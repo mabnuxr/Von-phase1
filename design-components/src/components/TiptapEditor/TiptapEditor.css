@@ -20,6 +20,8 @@
     'Cantarell', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Placeholder styling */
@@ -237,6 +239,8 @@
   font-family: var(--font-family-sans); /* Inter font from theme */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Paragraphs */

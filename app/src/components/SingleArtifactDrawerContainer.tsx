@@ -27,7 +27,10 @@ import {
   isRagArtifact,
   separateCallsAndEmails,
 } from "../utils/transformArtifactsToCalls";
-import { transformIQArtifactToDataTable } from "../utils/transformArtifactsToTransparency";
+import {
+  transformIQArtifactToDataTable,
+  applyDeepLinkTransform,
+} from "../utils/transformArtifactsToTransparency";
 
 export interface SingleArtifactDrawerContainerProps {
   /** Conversation ID for fetching artifact */
@@ -329,11 +332,13 @@ function transformArtifactToDisplayFormat(
       };
     }
 
-    const columns: QueryColumn[] = rawColumns.map((col) => ({
-      key: col.name,
-      label: col.display_name || col.name,
-      type: (col.type as QueryColumn["type"]) || "string",
-    }));
+    const columns: QueryColumn[] = applyDeepLinkTransform(
+      rawColumns.map((col) => ({
+        key: col.name,
+        label: col.display_name || col.name,
+        type: (col.type as QueryColumn["type"]) || "string",
+      })),
+    );
 
     const rows = rawRows.map((row) => {
       const transformedRow: Record<string, string | number> = {};
@@ -373,11 +378,13 @@ function transformArtifactToDisplayFormat(
     const rawRows = genericContent.sample?.rows || genericContent.rows;
 
     if (rawColumns && rawRows) {
-      const columns: QueryColumn[] = rawColumns.map((col) => ({
-        key: col.name,
-        label: col.display_name || col.name,
-        type: "string" as const,
-      }));
+      const columns: QueryColumn[] = applyDeepLinkTransform(
+        rawColumns.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: "string" as const,
+        })),
+      );
 
       const rows = rawRows.map((row) => {
         const transformedRow: Record<string, string | number> = {};

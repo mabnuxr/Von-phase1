@@ -309,10 +309,10 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.4 }}
       >
-        <h2 className="text-3xl text-gray-900">
+        <h2 className="text-3xl text-gray-900 tracking-tight">
           {greeting}, {displayName}
         </h2>
-        <p className="text-3xl text-gray-600">How can I help you today?</p>
+        <p className="text-3xl text-gray-800/80 tracking-tight">How can I help you today?</p>
       </motion.div>
 
       {/* Banner (if provided) */}

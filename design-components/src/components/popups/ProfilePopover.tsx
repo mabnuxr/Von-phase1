@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GearIcon, SignOutIcon, UserIcon, QuestionIcon } from '@phosphor-icons/react';
+import { GearIcon, SignOutIcon, UserIcon } from '@phosphor-icons/react';
 
 export interface ProfilePopoverProps {
   /**
@@ -101,7 +101,6 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   avatarLabel,
   onProfileClick,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
   position = { top: 0, right: 0 },
   className = '',
@@ -204,14 +203,6 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
               label="Settings"
               onClick={() => {
                 onSettingsClick?.();
-                onClose();
-              }}
-            />
-            <MenuItem
-              icon={<QuestionIcon size={16} weight="regular" />}
-              label="Help & Support"
-              onClick={() => {
-                onHelpClick?.();
                 onClose();
               }}
             />

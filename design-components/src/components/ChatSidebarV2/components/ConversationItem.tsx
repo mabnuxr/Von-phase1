@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatTextIcon, DotsThreeIcon } from '@phosphor-icons/react';
+import { DotsThreeIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
 import type { SidebarItem } from '../ChatSidebarV2';
 
@@ -18,7 +18,8 @@ export interface ConversationItemProps {
  * ConversationItem - A single conversation row in the sidebar
  *
  * Features:
- * - Chat icon always displayed
+ * - Status indicators (running spinner, complete green dot)
+ * - Chat icon displayed when no status
  * - Inline editing with Enter to save, Escape to cancel
  * - Context menu trigger on hover or right-click
  * - Link wrapper if href is present
@@ -70,22 +71,27 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     }
   };
 
+  // Handle click: use SPA navigation (preventDefault) for normal clicks,
+  // allow Cmd/Ctrl+Click and middle-click for native "open in new tab"
+  const handleClick = (e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.button === 1) return;
+    e.preventDefault();
+    onClick();
+  };
+
   const content = (
     <div
       className={`
-        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm
+        group relative flex items-center gap-2.5 px-2 h-8 rounded-xl text-sm
         transition-colors duration-150
-        ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
+        ${isEditing ? 'bg-gray-50' : isSelected ? 'shadow-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 cursor-pointer' : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer'}
       `}
-      onClick={isEditing ? undefined : onClick}
+      onClick={isEditing ? undefined : handleClick}
       onContextMenu={isEditing ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       title={isEditing ? undefined : item.label}
     >
-      {/* Chat icon - always visible */}
-      <ChatTextIcon size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
-
       {isEditing ? (
         <input
           ref={inputRef}
@@ -94,7 +100,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (

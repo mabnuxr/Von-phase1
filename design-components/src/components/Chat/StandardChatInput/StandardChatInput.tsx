@@ -572,10 +572,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             onDragOver={handleDragOver}
             onDrop={wrappedHandleDrop}
           >
-            <div className="flex flex-col bg-white rounded-[15px]">
+            <div className="flex flex-col bg-white rounded-[15px] overflow-x-hidden">
               {/* Drag-and-drop overlay */}
               <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
-
               {/* File previews - shown above the input when files are attached */}
               {hasAttachments && (
                 <div className="px-4 pt-3 pb-1">

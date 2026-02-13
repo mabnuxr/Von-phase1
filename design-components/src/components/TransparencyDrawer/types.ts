@@ -2,6 +2,8 @@ export interface QueryColumn {
   key: string;
   label: string;
   type?: 'string' | 'number' | 'currency' | 'date' | 'percentage';
+  /** When set, render this column's value as a link using row[linkKey] as the URL */
+  linkKey?: string;
 }
 
 export interface QueryResult {
@@ -74,7 +76,6 @@ export interface ArtifactResponse {
 export interface TabConfig {
   id: string;
   label: string;
-  icon: React.ReactNode;
   count: number;
 }
 
@@ -106,6 +107,7 @@ export interface QueryContentProps {
 
 export interface CallsTabContentProps {
   calls: CallTranscript[];
+  isLoading?: boolean;
 }
 
 export interface DataTabContentProps {

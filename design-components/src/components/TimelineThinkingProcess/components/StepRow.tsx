@@ -72,11 +72,11 @@ export const StepRow = React.memo<StepRowProps>(
       if (!step.approval) return undefined;
       // If recordUrl is already provided, use it as-is
       if (step.approval.recordUrl) return step.approval;
-      // Build fallback URL from objectType and recordId
-      if (step.approval.recordId && step.approval.objectType) {
+      // Build fallback URL for Salesforce single-record approvals
+      if (step.approval.approvalType === 'salesforce' && step.approval.recordId) {
         const fallbackUrl = buildSalesforceDeepLink(
           salesforceInstanceUrl,
-          step.approval.objectType,
+          step.approval.label,
           step.approval.recordId
         );
         if (fallbackUrl) {
