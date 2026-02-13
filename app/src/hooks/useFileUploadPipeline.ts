@@ -24,6 +24,7 @@ export interface MessageFileAttachment {
   mimeType: string;
   extension: string;
   category: string;
+  s3Key: string;
 }
 
 /**
@@ -94,6 +95,7 @@ export function useFileUploadPipeline(conversationId: string | null) {
           mimeType: attachment.type,
           extension: attachment.extension,
           category: attachment.category,
+          s3Key: presignResponse.s3Key,
         };
         metadataRef.current.set(attachment.id, metadata);
 

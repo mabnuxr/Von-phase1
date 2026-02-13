@@ -52,6 +52,7 @@ export interface MessageFileAttachment {
   mimeType: string;
   extension: string;
   category: string;
+  s3Key: string;
 }
 
 /**
