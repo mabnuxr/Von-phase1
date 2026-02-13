@@ -217,6 +217,7 @@ const Dashboard = () => {
     //isDeepResearchEnabled,
     isSourcesEnabled,
     isTenantDisabled,
+    isFileUploadEnabled,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -1146,6 +1147,7 @@ const Dashboard = () => {
                   disableSubmit={!canSubmit}
                   onInputWhileDisabled={handleDisabledInteraction}
                   enableCommands={isSlashCommandsEnabled}
+                  showPlusMenu={isFileUploadEnabled}
                 />
               </>
             ) : (
@@ -1195,7 +1197,7 @@ const Dashboard = () => {
                 useStandardInput={isAgentV2}
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
-                showPlusMenu={true}
+                showPlusMenu={isFileUploadEnabled}
                 controlledAttachments={fileAttachmentState}
                 onRemoveAttachment={handleRemoveAttachment}
                 onFilesSelected={handleFilesSelected}
