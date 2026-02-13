@@ -9,7 +9,7 @@
  * Deep Research tab: Shows artifacts where category IS "iq" (automatically shown when IQ artifacts exist)
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 import {
   TransparencyDrawer,
   DataTabContent,
@@ -18,9 +18,9 @@ import {
   EmailsTabContent,
   IQDataTabContent,
   type TransparencyTabConfig,
-} from '@vonlabs/design-components';
-import { useTransparencyDrawer } from '../hooks/useTransparencyDrawer';
-import type { ArtifactSummary } from '../utils/transformArtifactsToTransparency';
+} from "@vonlabs/design-components";
+import { useTransparencyDrawer } from "../hooks/useTransparencyDrawer";
+import type { ArtifactSummary } from "../utils/transformArtifactsToTransparency";
 
 interface LazyTransparencyDrawerProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ interface LazyTransparencyDrawerProps {
 export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   isOpen,
   onClose,
-  title = 'Sources',
+  title = "Sources",
   conversationId,
   runId,
   artifactSummaries,
@@ -60,42 +60,47 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
 
   const dataTabConfig: TransparencyTabConfig = useMemo(
     () => ({
-      id: 'data',
-      label: 'Data',
+      id: "data",
+      label: "Data",
       count: queries.length,
     }),
-    [queries.length]
+    [queries.length],
   );
 
   const callsTabConfig: TransparencyTabConfig = useMemo(
     () => ({
-      id: 'calls',
-      label: 'Calls',
+      id: "calls",
+      label: "Calls",
       count: calls.length || (isCallsLoading ? 1 : 0) || (callsError ? 1 : 0),
     }),
-    [calls.length, isCallsLoading, callsError]
+    [calls.length, isCallsLoading, callsError],
   );
 
   const emailsTabConfig: TransparencyTabConfig = useMemo(
     () => ({
-      id: 'emails',
-      label: 'Emails',
+      id: "emails",
+      label: "Emails",
       count: emails.length || (callsError ? 1 : 0),
     }),
-    [emails.length, callsError]
+    [emails.length, callsError],
   );
 
   const deepResearchTabConfig: TransparencyTabConfig = useMemo(
     () => ({
-      id: 'deep-research',
-      label: 'Deep Research',
+      id: "deep-research",
+      label: "Deep Research",
       count: vonIqQueries.length,
     }),
-    [vonIqQueries.length]
+    [vonIqQueries.length],
   );
 
   return (
-    <TransparencyDrawer isOpen={isOpen} onClose={onClose} title={title} isLoading={isListLoading}>
+    <TransparencyDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      isLoading={isListLoading}
+    >
       {!isListLoading && queries.length > 0 && (
         <TransparencyDrawer.Tab config={dataTabConfig}>
           <DataTabContent queries={queries} onQuerySelect={handleQuerySelect} />
@@ -124,7 +129,10 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
 
       {!isListLoading && hasVonIqArtifacts && (
         <TransparencyDrawer.Tab config={deepResearchTabConfig}>
-          <IQDataTabContent queries={vonIqQueries} onQuerySelect={handleVonIqSelect} />
+          <IQDataTabContent
+            queries={vonIqQueries}
+            onQuerySelect={handleVonIqSelect}
+          />
         </TransparencyDrawer.Tab>
       )}
     </TransparencyDrawer>
