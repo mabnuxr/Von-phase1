@@ -71,9 +71,9 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     () => ({
       id: "calls",
       label: "Calls",
-      count: calls.length || (callsError ? 1 : 0),
+      count: calls.length || (isCallsLoading ? 1 : 0) || (callsError ? 1 : 0),
     }),
-    [calls.length, callsError],
+    [calls.length, isCallsLoading, callsError],
   );
 
   const emailsTabConfig: TransparencyTabConfig = useMemo(
@@ -107,12 +107,12 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
         </TransparencyDrawer.Tab>
       )}
 
-      {!isCallsLoading && (calls.length > 0 || callsError) && (
+      {(isCallsLoading || calls.length > 0 || callsError) && (
         <TransparencyDrawer.Tab config={callsTabConfig}>
           {callsError ? (
             <CallsTabError message={callsError.message} />
           ) : (
-            <CallsTabContent calls={calls} />
+            <CallsTabContent calls={calls} isLoading={isCallsLoading} />
           )}
         </TransparencyDrawer.Tab>
       )}

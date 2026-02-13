@@ -131,7 +131,7 @@ const TransparencyDrawerBase: React.FC<TransparencyDrawerProps> = ({
 
               {isLoading ? (
                 <div className="flex-1 overflow-hidden flex flex-col">
-                  <div className="flex flex-col h-full animate-pulse">
+                  <div className="flex flex-col h-full">
                     {/* Tab navigation shimmer */}
                     <div className="px-5 py-3 border-b border-gray-100">
                       <div className="flex items-center gap-3">

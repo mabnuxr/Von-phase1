@@ -12,6 +12,7 @@ import type { CallsTabContentProps, CallTranscript } from '../types';
 import { useCallsExpansion } from '../hooks';
 import { groupCallsByMonth, getSentimentIcon, getSentimentLabel } from '../utils';
 import { ChatMarkdown } from '../../Chat/ChatMarkdown';
+import { CallsTabShimmer } from './CallsTabShimmer';
 
 interface CallItemProps {
   call: CallTranscript;
@@ -180,7 +181,7 @@ CallItem.displayName = 'CallItem';
  * - Expandable summary
  * - Links to Gong recordings
  */
-export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
+export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls, isLoading = false }) => {
   const { toggleExpanded, isExpanded } = useCallsExpansion(calls[0]?.id);
 
   // Check if calls have relevance scores (semantic search results)
@@ -194,6 +195,11 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
     },
     [toggleExpanded]
   );
+
+  // Loading state
+  if (isLoading) {
+    return <CallsTabShimmer />;
+  }
 
   // Empty state
   if (calls.length === 0) {
