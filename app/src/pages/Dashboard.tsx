@@ -113,7 +113,9 @@ const Dashboard = () => {
     folderItems: sidebarV2FolderItems,
     folderLoadingMap: sidebarV2FolderLoadingMap,
     isLoading: isSidebarV2Loading,
-    pagination: sidebarV2Pagination,
+    fetchNextPage: fetchNextPageV2,
+    hasNextPage: hasNextPageV2,
+    isFetchingNextPage: isFetchingNextPageV2,
     createFolder,
     deleteFolder,
     renameFolder,
@@ -125,11 +127,18 @@ const Dashboard = () => {
     removeItemFromFolder,
   } = useChatSidebarV2();
 
-  // Infinite scroll hook for loading more conversations
+  // Infinite scroll hook for loading more conversations (V1)
   const loadMoreConversationsRef = useInfiniteScroll({
     onLoadMore: () => fetchNextPage(),
     hasMore: !!hasNextPage,
     isLoading: isFetchingNextPage,
+  });
+
+  // Infinite scroll hook for loading more unfiled conversations (V2)
+  const loadMoreConversationsV2Ref = useInfiniteScroll({
+    onLoadMore: () => fetchNextPageV2(),
+    hasMore: hasNextPageV2,
+    isLoading: isFetchingNextPageV2,
   });
 
   // Fetch messages for current conversation with infinite scroll
@@ -1001,9 +1010,9 @@ const Dashboard = () => {
                 onRemoveItemFromFolder={removeItemFromFolder}
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
-                loadMoreRef={loadMoreConversationsRef}
-                isFetchingMore={isFetchingNextPage}
-                hasNextPage={!!sidebarV2Pagination?.hasNextPage}
+                loadMoreRef={loadMoreConversationsV2Ref}
+                isFetchingMore={isFetchingNextPageV2}
+                hasNextPage={hasNextPageV2}
                 avatarSrc={avatarSrc}
                 avatarLabel={avatarLabel}
                 userName={displayName}

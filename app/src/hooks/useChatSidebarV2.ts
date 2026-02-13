@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useState, useRef } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { useChatSidebar, chatSidebarKeys } from "./useChatSidebar";
 import { useCreateFolder } from "./useCreateFolder";
 import { useDeleteFolder } from "./useDeleteFolder";
@@ -62,6 +62,12 @@ export interface UseChatSidebarV2Return {
   unfiledConversations: SidebarConversation[];
   /** Pagination info for unfiled conversations */
   pagination: SidebarPagination | null;
+  /** Fetch next page of unfiled conversations */
+  fetchNextPage: () => void;
+  /** Whether there are more unfiled conversations to load */
+  hasNextPage: boolean;
+  /** Whether next page is currently being fetched */
+  isFetchingNextPage: boolean;
   /** Whether any data is loading */
   isLoading: boolean;
   /** Whether there's an error */
@@ -117,12 +123,18 @@ export interface UseChatSidebarV2Return {
  */
 export function useChatSidebarV2(): UseChatSidebarV2Return {
   const {
-    data: sidebarData,
+    data: infiniteData,
     isLoading: isQueryLoading,
     isError,
     error,
     refetch,
+    fetchNextPage: fetchNextPageRQ,
+    hasNextPage: hasNextPageRQ,
+    isFetchingNextPage,
   } = useChatSidebar();
+
+  // First page contains folders (same across all pages)
+  const firstPage = infiniteData?.pages[0];
 
   // Track expanded folder IDs
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
@@ -137,8 +149,8 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
 
   // Get folder IDs for querying
   const folderIds = useMemo(
-    () => sidebarData?.folders?.map((f) => f.folderId) ?? [],
-    [sidebarData?.folders],
+    () => firstPage?.folders?.map((f) => f.folderId) ?? [],
+    [firstPage?.folders],
   );
 
   // Fetch folder conversations for all expanded folders using useQueries
@@ -233,7 +245,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   // Transform folders to ChatSidebarV2 format with expansion state
   const folders = useMemo(
     () =>
-      (sidebarData?.folders ?? []).map((folder) => ({
+      (firstPage?.folders ?? []).map((folder) => ({
         id: folder.folderId,
         label: folder.name,
         type: folder.folderType,
@@ -241,26 +253,28 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
         isPinned: folder.displayOrder === 0,
         displayOrder: folder.displayOrder,
       })),
-    [sidebarData?.folders, expandedFolderIds],
+    [firstPage?.folders, expandedFolderIds],
+  );
+
+  // Flatten unfiled conversations across all pages
+  const allUnfiledConversations = useMemo(
+    () =>
+      infiniteData?.pages.flatMap((page) => page.unfiled.conversations) ?? [],
+    [infiniteData?.pages],
   );
 
   // Transform unfiled conversations to ChatSidebarV2 SidebarItem format
   const items = useMemo(
-    () =>
-      transformConversationsToSidebarItems(
-        sidebarData?.unfiled?.conversations ?? [],
-      ),
-    [sidebarData?.unfiled?.conversations],
+    () => transformConversationsToSidebarItems(allUnfiledConversations),
+    [allUnfiledConversations],
   );
 
   // Raw unfiled conversations
-  const unfiledConversations = useMemo(
-    () => sidebarData?.unfiled?.conversations ?? [],
-    [sidebarData?.unfiled?.conversations],
-  );
+  const unfiledConversations = allUnfiledConversations;
 
-  // Pagination info
-  const pagination = sidebarData?.unfiled?.pagination ?? null;
+  // Pagination info from the last page
+  const lastPage = infiniteData?.pages[infiniteData.pages.length - 1];
+  const pagination = lastPage?.unfiled?.pagination ?? null;
 
   // Stable callback for creating folders
   const createFolder = useCallback(
@@ -305,8 +319,8 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
       queryClient.cancelQueries({ queryKey: folderConversationsKeys.all });
 
-      // Snapshot sidebar data for rollback
-      const previousSidebarData = queryClient.getQueryData<ChatSidebarResponse>(
+      // Snapshot sidebar data for rollback (InfiniteData shape)
+      const previousSidebarData = queryClient.getQueryData<InfiniteData<ChatSidebarResponse>>(
         chatSidebarKeys.sidebar(),
       );
 
@@ -322,18 +336,21 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
           );
       });
 
-      // Optimistically remove from unfiled conversations
+      // Optimistically remove from unfiled conversations across all pages
       if (previousSidebarData) {
-        queryClient.setQueryData<ChatSidebarResponse>(
+        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
           chatSidebarKeys.sidebar(),
           {
             ...previousSidebarData,
-            unfiled: {
-              ...previousSidebarData.unfiled,
-              conversations: previousSidebarData.unfiled.conversations.filter(
-                (c) => c.conversationId !== conversationId,
-              ),
-            },
+            pages: previousSidebarData.pages.map((page) => ({
+              ...page,
+              unfiled: {
+                ...page.unfiled,
+                conversations: page.unfiled.conversations.filter(
+                  (c) => c.conversationId !== conversationId,
+                ),
+              },
+            })),
           },
         );
       }
@@ -506,6 +523,10 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     [pinFolderMutation],
   );
 
+  const fetchNextPage = useCallback(() => {
+    fetchNextPageRQ();
+  }, [fetchNextPageRQ]);
+
   return {
     folders,
     items,
@@ -513,6 +534,9 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     folderLoadingMap,
     unfiledConversations,
     pagination,
+    fetchNextPage,
+    hasNextPage: !!hasNextPageRQ,
+    isFetchingNextPage,
     isLoading: isQueryLoading,
     isError,
     error: error as Error | null,

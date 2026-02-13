@@ -232,8 +232,13 @@ class ConversationsService {
    * Fetch chat sidebar data with folders and unfiled conversations
    * Used for ChatSidebarV2 component
    */
-  async getChatSidebar(): Promise<ChatSidebarResponse> {
-    return apiClient.get<ChatSidebarResponse>(`/api/v1/chat/sidebar`);
+  async getChatSidebar(
+    unfiledPage: number = 1,
+    unfiledLimit: number = 20,
+  ): Promise<ChatSidebarResponse> {
+    return apiClient.get<ChatSidebarResponse>(
+      `/api/v1/chat/sidebar?unfiledPage=${unfiledPage}&unfiledLimit=${unfiledLimit}`,
+    );
   }
 
   /**
