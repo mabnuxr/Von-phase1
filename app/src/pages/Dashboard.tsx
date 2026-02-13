@@ -652,7 +652,11 @@ const Dashboard = () => {
     runErrorMessage: v2RunErrorMessage,
     currentRunId: v2CurrentRunId,
     markStopped: v2MarkStopped,
-  } = useConversationPusherChannelV2(v2ChannelConfig, v2InitialRunEvents);
+  } = useConversationPusherChannelV2(
+    v2ChannelConfig,
+    v2InitialRunEvents,
+    refetchMessages,
+  );
 
   // Transform backend messages to Chat component format
   // Handles both V1 (simple) and V2 (timeline steps, research results) agents

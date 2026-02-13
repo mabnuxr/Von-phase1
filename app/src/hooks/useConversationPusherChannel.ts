@@ -14,6 +14,10 @@ import type {
 import useChatStore from "../store/chatStore";
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { config as appConfig } from "../config";
+import {
+  PUSHER_ACTIVITY_TIMEOUT_S,
+  PUSHER_PONG_TIMEOUT_S,
+} from "../config/constants";
 
 export interface UseConversationPusherChannelConfig {
   conversationId: string | null;
@@ -386,6 +390,8 @@ export function useConversationPusherChannel(
           cluster: appConfig.pusherCluster,
           authEndpoint: appConfig.pusherAuthEndpoint,
           forceTLS: true,
+          activityTimeout: PUSHER_ACTIVITY_TIMEOUT_S * 1000,
+          pongTimeout: PUSHER_PONG_TIMEOUT_S * 1000,
           auth: {
             headers: {
               Authorization: `Bearer ${accessToken.trim()}`,

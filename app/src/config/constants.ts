@@ -113,6 +113,38 @@ export const MAX_REPLAY_CACHE_SIZE = 1000 as const;
 export const STREAM_TIMEOUT_MS = 300000 as const; // 300 seconds (5 minutes)
 
 // ============================================================================
+// Pusher Connection & Reconciliation Constants
+// ============================================================================
+
+/**
+ * Pusher activity timeout in seconds.
+ * Time without any Pusher activity before considering the connection dead.
+ * Default is 120s — reduced to 45s for faster dead-connection detection.
+ * Backend has 30s timeout to send events, so 45s provides safe margin.
+ */
+export const PUSHER_ACTIVITY_TIMEOUT_S = 45 as const;
+
+/**
+ * Pusher pong timeout in seconds.
+ * Time to wait for a pong response from the Pusher server.
+ * Default is 30s — reduced to 10s for faster failure detection.
+ */
+export const PUSHER_PONG_TIMEOUT_S = 10 as const;
+
+/**
+ * Stall threshold in milliseconds.
+ * If no AGUI events are received for this duration during active streaming,
+ * the connection is considered stalled and reconciliation is triggered.
+ */
+export const RECONCILIATION_STALL_THRESHOLD_MS = 45000 as const; // 45 seconds
+
+/**
+ * Health check interval in milliseconds.
+ * How frequently to check for stalled connections during active streaming.
+ */
+export const RECONCILIATION_CHECK_INTERVAL_MS = 10000 as const; // 10 seconds
+
+// ============================================================================
 // Permissions Query Configuration Constants
 // ============================================================================
 
@@ -215,6 +247,10 @@ export const QUERY_CONSTANTS = {
   INFINITE_SCROLL_THRESHOLD,
   MAX_REPLAY_CACHE_SIZE,
   STREAM_TIMEOUT_MS,
+  PUSHER_ACTIVITY_TIMEOUT_S,
+  PUSHER_PONG_TIMEOUT_S,
+  RECONCILIATION_STALL_THRESHOLD_MS,
+  RECONCILIATION_CHECK_INTERVAL_MS,
   PERMISSIONS_STALE_TIME,
   PERMISSIONS_GC_TIME,
   PERMISSIONS_RETRY_COUNT,

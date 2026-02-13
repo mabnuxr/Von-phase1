@@ -21,6 +21,13 @@ import type {
 
 import { config as appConfig } from "../config";
 import {
+  PUSHER_ACTIVITY_TIMEOUT_S,
+  PUSHER_PONG_TIMEOUT_S,
+  RECONCILIATION_STALL_THRESHOLD_MS,
+  RECONCILIATION_CHECK_INTERVAL_MS,
+} from "../config/constants";
+import { conversationsService } from "../services/conversationsService";
+import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
   type ResearchResultsState,
@@ -68,6 +75,7 @@ export interface UseConversationPusherChannelV2Return {
 export function useConversationPusherChannelV2(
   config: UseConversationPusherChannelV2Config,
   initialRunEvents?: AguiEventWrapper[],
+  onReconcile?: () => void,
 ): UseConversationPusherChannelV2Return {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -108,6 +116,14 @@ export function useConversationPusherChannelV2(
 
   // Track if user has stopped streaming - events will be batched until terminal event
   const stoppedRef = useRef<boolean>(false);
+
+  // Health monitoring: track when we last received an event (for stall detection)
+  const lastEventTimeRef = useRef<number>(0);
+  // Guard to prevent concurrent reconciliation calls
+  const isReconcilingRef = useRef<boolean>(false);
+  // Stable ref for the onReconcile callback (avoids effect dependency churn)
+  const onReconcileRef = useRef(onReconcile);
+  onReconcileRef.current = onReconcile;
 
   // Start elapsed time timer
   const startElapsedTimer = useCallback(() => {
@@ -191,6 +207,154 @@ export function useConversationPusherChannelV2(
     stopElapsedTimer();
   }, [stopElapsedTimer]);
 
+  // Reconcile state from the backend API when a stall is detected.
+  // Fetches the latest events from MongoDB (authoritative source), merges with
+  // local events, and re-transforms to recover from missed Pusher events.
+  const reconcile = useCallback(async () => {
+    if (!config.conversationId || isReconcilingRef.current) return;
+
+    // Don't reconcile if user has stopped streaming
+    if (stoppedRef.current) return;
+
+    isReconcilingRef.current = true;
+
+    console.log(
+      "[useConversationPusherChannelV2] Stall detected — reconciling from backend API",
+    );
+
+    try {
+      // Step 1: Force Pusher reconnect to recover from zombie connections.
+      // Pusher auto-resubscribes to channels after reconnect.
+      if (pusherRef.current) {
+        console.log(
+          "[useConversationPusherChannelV2] Forcing Pusher reconnect",
+        );
+        pusherRef.current.disconnect();
+        pusherRef.current.connect();
+      }
+
+      // Step 2: Fetch latest messages from backend (authoritative source)
+      const response =
+        await conversationsService.getConversationMessages(
+          config.conversationId,
+          1,
+          5,
+        );
+
+      // Step 3: Find the latest assistant message with events
+      const latestAssistantMsg = response.data.find(
+        (m) =>
+          m.role === "assistant" && m.events && m.events.length > 0,
+      );
+
+      if (!latestAssistantMsg?.events || latestAssistantMsg.events.length === 0) {
+        console.log(
+          "[useConversationPusherChannelV2] No events found in backend response",
+        );
+        return;
+      }
+
+      const apiEvents = latestAssistantMsg.events;
+      const runId = apiEvents[0]?.run_id;
+      if (!runId) return;
+
+      // Don't reconcile for runs that are already finished
+      if (finishedRunsRef.current.has(runId)) return;
+
+      // Step 4: Merge local events with API events (union, deduplicated by run_id + sequence)
+      const localEvents = eventsRef.current.get(runId) || [];
+      const mergedMap = new Map<string, AguiEventWrapper>();
+
+      // Add local events first
+      for (const evt of localEvents) {
+        mergedMap.set(`${evt.run_id}:${evt.sequence}`, evt);
+      }
+      // API events override (authoritative)
+      for (const evt of apiEvents) {
+        mergedMap.set(`${evt.run_id}:${evt.sequence}`, evt);
+      }
+
+      const mergedEvents = Array.from(mergedMap.values()).sort(
+        (a, b) => a.sequence - b.sequence,
+      );
+
+      // Update eventsRef with merged events
+      eventsRef.current.set(runId, mergedEvents);
+
+      // Step 5: Re-transform to get current state
+      const {
+        steps,
+        isThinking: thinking,
+        finalResponse: response_,
+        isFinalResponseStreaming: responseStreaming,
+        isAwaitingApproval: awaitingApproval,
+        researchResults: research,
+        isDeepResearchRunning: deepResearchRunning,
+        stoppedByUser: stopped,
+        hadApprovalPause,
+        runErrorMessage: errorMsg,
+      } = transformAguiToTimelineSteps(mergedEvents);
+
+      // Step 6: Update state
+      flushSync(() => {
+        setTimelineSteps(steps);
+        setIsThinking(thinking);
+        setCurrentRunId(runId);
+        setFinalResponse(response_);
+        setIsFinalResponseStreaming(responseStreaming);
+        setIsAwaitingApproval(awaitingApproval);
+        setResearchResults(research);
+        setIsDeepResearchRunning(deepResearchRunning);
+        setStoppedByUser(stopped);
+        setRunErrorMessage(errorMsg);
+      });
+
+      // Step 7: Handle run completion from reconciled events
+      const isTransitionalFinish =
+        hadApprovalPause && !response_ && !stopped;
+      if (
+        !thinking &&
+        !isTransitionalFinish &&
+        !finishedRunsRef.current.has(runId)
+      ) {
+        finishedRunsRef.current.add(runId);
+        stopElapsedTimer();
+        stoppedRef.current = false;
+
+        const actualElapsed = getElapsedTimeFromEvents(mergedEvents);
+        if (actualElapsed > 0) {
+          setElapsedTime(actualElapsed);
+        }
+      }
+
+      // Reset stall timer so we don't immediately re-trigger
+      lastEventTimeRef.current = Date.now();
+
+      console.log(
+        "[useConversationPusherChannelV2] Reconciliation complete — local:",
+        localEvents.length,
+        "API:",
+        apiEvents.length,
+        "merged:",
+        mergedEvents.length,
+        "isThinking:",
+        thinking,
+      );
+
+      // Notify caller so chatStore can be synced with authoritative backend state
+      onReconcileRef.current?.();
+    } catch (err) {
+      console.error(
+        "[useConversationPusherChannelV2] Reconciliation failed:",
+        err,
+      );
+      // Reset stall timer even on failure so next interval retries
+      lastEventTimeRef.current = Date.now();
+    } finally {
+      isReconcilingRef.current = false;
+    }
+  }, [config.conversationId, stopElapsedTimer]);
+
   // Process AGUI event and transform to timeline steps
   const handleAguiEvent = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -248,6 +412,9 @@ export function useConversationPusherChannelV2(
         // Append and sort
         runEvents.push(wrapper);
         runEvents.sort((a, b) => a.sequence - b.sequence);
+
+        // Track last event time for stall detection
+        lastEventTimeRef.current = Date.now();
 
         // If stopped and not a terminal event, just accumulate without UI update
         // This batches all remaining events until the run completes
@@ -364,6 +531,8 @@ export function useConversationPusherChannelV2(
       eventsRef.current.clear();
       finishedRunsRef.current.clear();
       stoppedRef.current = false;
+      lastEventTimeRef.current = 0;
+      isReconcilingRef.current = false;
       stopElapsedTimer();
     }
   }, [config.conversationId, stopElapsedTimer]);
@@ -447,6 +616,34 @@ export function useConversationPusherChannelV2(
     }
   }, [initialRunEvents]);
 
+  // Health check interval: detect stalled connections during active streaming.
+  // Runs every RECONCILIATION_CHECK_INTERVAL_MS while isThinking is true.
+  // If no events received for RECONCILIATION_STALL_THRESHOLD_MS, triggers reconciliation.
+  useEffect(() => {
+    if (!isThinking || !config.conversationId) return;
+
+    const intervalId = setInterval(() => {
+      // Skip if user has stopped streaming or we're already reconciling
+      if (stoppedRef.current || isReconcilingRef.current) return;
+
+      // Skip if we haven't received any events yet (lastEventTime = 0 means
+      // the run just started via seeding and no Pusher events have arrived)
+      if (lastEventTimeRef.current === 0) return;
+
+      const timeSinceLastEvent = Date.now() - lastEventTimeRef.current;
+      if (timeSinceLastEvent >= RECONCILIATION_STALL_THRESHOLD_MS) {
+        console.log(
+          "[useConversationPusherChannelV2] No events for",
+          Math.round(timeSinceLastEvent / 1000),
+          "seconds — triggering reconciliation",
+        );
+        reconcile();
+      }
+    }, RECONCILIATION_CHECK_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [isThinking, config.conversationId, reconcile]);
+
   // Pusher connection management
   useEffect(() => {
     if (!config.conversationId || !config.tenantId || !config.userId) {
@@ -499,6 +696,8 @@ export function useConversationPusherChannelV2(
           cluster: appConfig.pusherCluster,
           authEndpoint: appConfig.pusherAuthEndpoint,
           forceTLS: true,
+          activityTimeout: PUSHER_ACTIVITY_TIMEOUT_S * 1000,
+          pongTimeout: PUSHER_PONG_TIMEOUT_S * 1000,
           auth: {
             headers: {
               Authorization: `Bearer ${accessToken.trim()}`,
