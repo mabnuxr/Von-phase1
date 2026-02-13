@@ -107,6 +107,7 @@ export interface QueryContentProps {
 
 export interface CallsTabContentProps {
   calls: CallTranscript[];
+  isLoading?: boolean;
 }
 
 export interface DataTabContentProps {

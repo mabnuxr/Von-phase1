@@ -180,7 +180,7 @@ CallItem.displayName = 'CallItem';
  * - Expandable summary
  * - Links to Gong recordings
  */
-export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
+export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls, isLoading = false }) => {
   const { toggleExpanded, isExpanded } = useCallsExpansion(calls[0]?.id);
 
   // Check if calls have relevance scores (semantic search results)
@@ -194,6 +194,28 @@ export const CallsTabContent = React.memo<CallsTabContentProps>(({ calls }) => {
     },
     [toggleExpanded]
   );
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-full overflow-hidden px-4 py-4">
+        <div className="animate-pulse space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-3">
+              <div className="w-7 h-7 bg-gray-200 rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="h-4 bg-gray-200 rounded w-48" />
+                  <div className="h-3 bg-gray-200 rounded w-20" />
+                </div>
+                <div className="h-3 bg-gray-200 rounded w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Empty state
   if (calls.length === 0) {
