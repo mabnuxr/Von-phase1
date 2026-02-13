@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatTextIcon, SidebarSimpleIcon, PlusIcon } from '@phosphor-icons/react';
-import { PrimaryIconButton, TertiaryIconButton } from '../../forms/buttons';
+import { SecondaryIconButton, TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import type { SidebarItem } from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';
@@ -83,7 +83,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
       <div className="flex-1 px-1">
         <div className="flex flex-col items-center gap-1">
           {/* New Button */}
-          <PrimaryIconButton
+          <SecondaryIconButton
             icon={<PlusIcon size={16} weight="bold" />}
             onClick={onNewChatClick}
             title="New Chat"

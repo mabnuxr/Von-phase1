@@ -364,7 +364,7 @@ export function useChatSidebarState({
       const rect = avatarButtonRef.current.getBoundingClientRect();
       setPopoverPosition({
         bottom: window.innerHeight - rect.top + 8,
-        left: rect.right + 8,
+        left: rect.left,
       });
     }
     setIsProfileOpen((prev) => !prev);

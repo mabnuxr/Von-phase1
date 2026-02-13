@@ -7,7 +7,7 @@ import {
   CheckIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { PrimaryButton, TertiaryIconButton } from '../forms/buttons';
+import { GhostButton, TertiaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
 import {
@@ -282,13 +282,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
       {/* New Chat Button */}
       <div className="my-2 px-1 flex flex-col gap-1.5">
-        <PrimaryButton
+        <GhostButton
           onClick={onNewChatClick}
           className="w-full flex items-center gap-1.5 overflow-hidden"
         >
           <PlusIcon size={14} weight="bold" className="flex-shrink-0" />
           <span className="whitespace-nowrap">New Chat</span>
-        </PrimaryButton>
+        </GhostButton>
       </div>
 
       {/* Scrollable Content */}
