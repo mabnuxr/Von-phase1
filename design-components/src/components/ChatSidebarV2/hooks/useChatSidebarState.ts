@@ -3,12 +3,6 @@ import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebarV2';
 import type { MoveToFolderConfig } from '../../popups';
 
 // ============================================================================
-// Constants
-// ============================================================================
-
-export const INITIAL_VISIBLE_COUNT = 5;
-
-// ============================================================================
 // Types
 // ============================================================================
 
@@ -84,13 +78,6 @@ export function useChatSidebarState({
   // State
   // ============================================================================
 
-  // Search
-  const [searchValue, setSearchValue] = useState('');
-
-  // "See more" expansion for sections
-  const [isFoldersSeeMore, setIsFoldersSeeMore] = useState(false);
-  const [isChatsSeeMore, setIsChatsSeeMore] = useState(false);
-
   // Inline folder creation
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -165,33 +152,21 @@ export function useChatSidebarState({
   // Derived State
   // ============================================================================
 
-  // Filter items based on search
-  const filteredItems = useMemo(
-    () => items.filter((item) => item.label.toLowerCase().includes(searchValue.toLowerCase())),
-    [items, searchValue]
-  );
-
   // Root items (not in any folder)
-  const rootItems = useMemo(() => filteredItems.filter((item) => !item.folderId), [filteredItems]);
+  const rootItems = useMemo(() => items.filter((item) => !item.folderId), [items]);
 
   // Items by folder - use folderItems prop if provided, otherwise filter from items
   const itemsByFolder = useMemo(() => {
     return folders.reduce(
       (acc, folder) => {
         const itemsFromProp = folderItems[folder.id] || [];
-        const itemsFromFilter = filteredItems.filter((item) => item.folderId === folder.id);
-        const folderItemsList = itemsFromProp.length > 0 ? itemsFromProp : itemsFromFilter;
-
-        acc[folder.id] = searchValue
-          ? folderItemsList.filter((item) =>
-              item.label.toLowerCase().includes(searchValue.toLowerCase())
-            )
-          : folderItemsList;
+        const itemsFromFilter = items.filter((item) => item.folderId === folder.id);
+        acc[folder.id] = itemsFromProp.length > 0 ? itemsFromProp : itemsFromFilter;
         return acc;
       },
       {} as Record<string, SidebarItem[]>
     );
-  }, [folders, folderItems, filteredItems, searchValue]);
+  }, [folders, folderItems, items]);
 
   // Sorted folders: by displayOrder ASC (pinned=0 first), then alphabetical by label
   const sortedFolders = useMemo(() => {
@@ -405,8 +380,6 @@ export function useChatSidebarState({
 
   return {
     // State
-    searchValue,
-    setSearchValue,
     contextMenu,
     editingItemId,
     deleteConfirmation,
@@ -418,12 +391,6 @@ export function useChatSidebarState({
     popoverPosition,
     isChatsHovered,
     dropdownPosition,
-
-    // "See more" state
-    isFoldersSeeMore,
-    setIsFoldersSeeMore,
-    isChatsSeeMore,
-    setIsChatsSeeMore,
 
     // Inline folder creation
     isCreatingFolder,
@@ -439,7 +406,6 @@ export function useChatSidebarState({
     avatarButtonRef,
 
     // Derived state
-    filteredItems,
     rootItems,
     itemsByFolder,
     sortedFolders,

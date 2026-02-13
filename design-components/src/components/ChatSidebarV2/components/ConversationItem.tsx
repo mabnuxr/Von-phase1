@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatTextIcon, DotsThreeIcon, SpinnerGapIcon } from '@phosphor-icons/react';
-import { motion } from 'framer-motion';
+import { DotsThreeIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
 import type { SidebarItem } from '../ChatSidebarV2';
 
@@ -93,25 +92,6 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
       onMouseLeave={() => setIsHovered(false)}
       title={isEditing ? undefined : item.label}
     >
-      {/* Status indicator - spinning for running, green dot for complete */}
-      {item.status === 'running' && (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="flex-shrink-0"
-        >
-          <SpinnerGapIcon size={14} weight="regular" className="text-indigo-600" />
-        </motion.div>
-      )}
-      {item.status === 'complete' && (
-        <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
-      )}
-
-      {/* Chat icon - only when no status */}
-      {(!item.status || item.status === 'idle') && (
-        <ChatTextIcon size={16} weight="regular" className="text-gray-700 flex-shrink-0" />
-      )}
-
       {isEditing ? (
         <input
           ref={inputRef}

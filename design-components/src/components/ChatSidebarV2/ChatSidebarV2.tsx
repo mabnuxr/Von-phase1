@@ -2,10 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import {
   SidebarSimpleIcon,
-  MagnifyingGlassIcon,
   PlusIcon,
   FolderSimpleIcon,
-  CaretDownIcon,
   CheckIcon,
   XIcon,
 } from '@phosphor-icons/react';
@@ -20,7 +18,7 @@ import {
   CollapsedSidebar,
   ProfileSection,
 } from './components';
-import { useChatSidebarState, INITIAL_VISIBLE_COUNT } from './hooks';
+import { useChatSidebarState } from './hooks';
 import { getContextMenuItems, getFolderContextMenuItems } from './utils';
 
 const VON_COMBINATION_MARK_URL =
@@ -84,7 +82,6 @@ export interface ChatSidebarProps {
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
   onPinFolder?: (folderId: string, isPinned: boolean) => void;
-  onSearchChange?: (value: string) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   loadMoreRef?: React.RefObject<HTMLDivElement | null>;
@@ -151,8 +148,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   // Use the sidebar state hook
   const {
     // State
-    searchValue,
-    setSearchValue,
     contextMenu,
     editingItemId,
     deleteConfirmation,
@@ -164,12 +159,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     popoverPosition,
     isChatsHovered,
     dropdownPosition,
-
-    // "See more" state
-    isFoldersSeeMore,
-    setIsFoldersSeeMore,
-    isChatsSeeMore,
-    setIsChatsSeeMore,
 
     // Inline folder creation
     isCreatingFolder,
@@ -291,20 +280,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         />
       </div>
 
-      {/* Search */}
-      <div className="mb-2 px-1 flex items-center gap-1.5">
-        <div className="flex-1 flex items-center gap-1.5 px-2 py-1.25 bg-white rounded-lg border border-gray-100 focus-within:border-gray-200 focus-within:ring-1 focus-within:ring-gray-100 transition-colors">
-          <MagnifyingGlassIcon size={14} className="text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none text-sm text-gray-900 placeholder:text-gray-400"
-          />
-        </div>
-      </div>
-
       {/* New Chat Button */}
       <div className="my-2 px-1 flex flex-col gap-1.5">
         <PrimaryButton
@@ -322,7 +297,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {isLoading && <ChatSidebarSkeleton />}
 
         {/* Folders Section */}
-        {!isLoading && (sortedFolders.length > 0 || isCreatingFolder) && (
+        {!isLoading && (
           <div className="mb-2">
             <SectionHeader label="Folders" />
             <div>
@@ -380,14 +355,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 </div>
               )}
 
-              {/* Folder rows with see-more pagination */}
-              {(isFoldersSeeMore
-                ? sortedFolders
-                : sortedFolders.slice(0, INITIAL_VISIBLE_COUNT)
-              ).map((folder) => {
+              {/* Folder rows */}
+              {sortedFolders.map((folder) => {
                 const folderItemsList = itemsByFolder[folder.id] || [];
                 const isFolderLoading = folderLoadingMap[folder.id] || false;
-                if (folderItemsList.length === 0 && searchValue && !isFolderLoading) return null;
+                if (folderItemsList.length === 0 && !isFolderLoading) return null;
 
                 return (
                   <div key={folder.id} className="mb-1">
@@ -419,22 +391,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 );
               })}
 
-              {/* See more / Show less for folders */}
-              {sortedFolders.length > INITIAL_VISIBLE_COUNT && (
-                <button
-                  onClick={() => setIsFoldersSeeMore(!isFoldersSeeMore)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-800/80 hover:text-gray-900 transition-colors cursor-pointer w-full"
-                >
-                  <CaretDownIcon
-                    size={12}
-                    weight="bold"
-                    className={`transition-transform duration-150 ${isFoldersSeeMore ? 'rotate-180' : ''}`}
-                  />
-                  {isFoldersSeeMore
-                    ? 'Show less'
-                    : `See more (${sortedFolders.length - INITIAL_VISIBLE_COUNT})`}
-                </button>
-              )}
             </div>
           </div>
         )}
@@ -444,7 +400,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <div className="mb-2">
             <SectionHeader label="Chats" />
             <div>
-              {(isChatsSeeMore ? rootItems : rootItems.slice(0, INITIAL_VISIBLE_COUNT)).map(
+              {rootItems.map(
                 (item) => (
                   <ConversationItem
                     key={item.id}
@@ -460,28 +416,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 )
               )}
 
-              {/* See more / Show less for chats */}
-              {rootItems.length > INITIAL_VISIBLE_COUNT && (
-                <button
-                  onClick={() => setIsChatsSeeMore(!isChatsSeeMore)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer w-full"
-                >
-                  <CaretDownIcon
-                    size={12}
-                    weight="bold"
-                    className={`transition-transform duration-150 ${isChatsSeeMore ? 'rotate-180' : ''}`}
-                  />
-                  {isChatsSeeMore
-                    ? 'Show less'
-                    : `See more (${rootItems.length - INITIAL_VISIBLE_COUNT})`}
-                </button>
-              )}
             </div>
           </div>
         )}
 
         {/* Empty state */}
-        {!isLoading && rootItems.length === 0 && sortedFolders.length === 0 && !searchValue && (
+        {!isLoading && rootItems.length === 0 && sortedFolders.length === 0 && (
           <div className="py-3 text-center">
             <p className="text-[12px] text-gray-400">No chats yet</p>
           </div>
