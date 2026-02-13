@@ -124,14 +124,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     refetch,
   } = useChatSidebar();
 
-  // Once sidebar data has loaded once, never show skeleton again.
-  // This prevents flash/shimmer during conversation switches caused by
-  // transient query observer state changes.
-  const hasEverLoaded = useRef(false);
-  if (sidebarData) {
-    hasEverLoaded.current = true;
-  }
-
   // Track expanded folder IDs
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
     new Set(),
@@ -521,8 +513,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     folderLoadingMap,
     unfiledConversations,
     pagination,
-    // Only show skeleton on the very first load — once data has arrived, never show it again
-    isLoading: !hasEverLoaded.current && isQueryLoading,
+    isLoading: isQueryLoading,
     isError,
     error: error as Error | null,
     refetch,
