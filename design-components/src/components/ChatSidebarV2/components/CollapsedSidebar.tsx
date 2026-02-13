@@ -171,7 +171,9 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                     )}
                     {folders.map((folder) => {
                       const isExpanded = expandedFolderIds.has(folder.id);
-                      const folderItemsList = folderItems[folder.id] || [];
+                      const folderItemsList =
+                        folderItems[folder.id] ??
+                        items.filter((item) => item.folderId === folder.id);
 
                       return (
                         <div key={folder.id}>
