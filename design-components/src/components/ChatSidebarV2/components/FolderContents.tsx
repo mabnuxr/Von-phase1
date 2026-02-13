@@ -66,19 +66,21 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
               <p className="text-[11px] text-gray-400">No items in folder</p>
             </div>
           ) : (
-            items.map((item) => (
-              <ConversationItem
-                key={item.id}
-                item={item}
-                isSelected={item.id === selectedItemId}
-                onClick={() => onItemClick(item.id)}
-                onContextMenu={(e) => onItemContextMenu(e, item)}
-                isMenuOpen={menuOpenItemId === item.id}
-                isEditing={editingItemId === item.id}
-                onSaveEdit={(newName) => onSaveEdit?.(item, newName)}
-                onCancelEdit={onCancelEdit}
-              />
-            ))
+            <div className="max-h-44 overflow-y-auto">
+              {items.map((item) => (
+                <ConversationItem
+                  key={item.id}
+                  item={item}
+                  isSelected={item.id === selectedItemId}
+                  onClick={() => onItemClick(item.id)}
+                  onContextMenu={(e) => onItemContextMenu(e, item)}
+                  isMenuOpen={menuOpenItemId === item.id}
+                  isEditing={editingItemId === item.id}
+                  onSaveEdit={(newName) => onSaveEdit?.(item, newName)}
+                  onCancelEdit={onCancelEdit}
+                />
+              ))}
+            </div>
           )}
         </motion.div>
       )}

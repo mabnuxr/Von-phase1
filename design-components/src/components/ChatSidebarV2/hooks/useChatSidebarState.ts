@@ -213,9 +213,10 @@ export function useChatSidebarState({
   const handleContextMenu = useCallback((e: React.MouseEvent, item: SidebarItem) => {
     e.preventDefault();
     e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setContextMenu({
       isOpen: true,
-      position: { top: e.clientY, left: e.clientX + 8 },
+      position: { top: rect.bottom + 4, left: rect.left },
       item,
     });
   }, []);
@@ -262,9 +263,10 @@ export function useChatSidebarState({
   const handleFolderContextMenu = useCallback((e: React.MouseEvent, folder: Folder) => {
     e.preventDefault();
     e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setFolderContextMenu({
       isOpen: true,
-      position: { top: e.clientY, left: e.clientX + 8 },
+      position: { top: rect.bottom + 4, left: rect.left },
       folder,
     });
   }, []);
