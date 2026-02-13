@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { WarningIcon } from '@phosphor-icons/react';
+import { TrashIcon } from '@phosphor-icons/react';
 
 // ============================================================================
 // Types
@@ -75,14 +75,14 @@ const getDefaultSubtext = (itemType: DeleteItemType): string | undefined => {
 // ============================================================================
 
 /**
- * DeleteConfirmationPopup - A slide-up confirmation dialog for delete actions
+ * DeleteConfirmationPopup - A centered confirmation dialog for delete actions
  *
  * Features:
- * - Animated slide-up panel with red gradient background
- * - Backdrop blur overlay
+ * - Centered modal with backdrop blur overlay
  * - Contextual messaging based on item type
  * - Optional subtext for additional warnings
- * - Confirm/Cancel buttons
+ * - Red delete button for destructive action
+ * - Styled to match the folder creation popup design
  */
 export const DeleteConfirmationPopup: React.FC<DeleteConfirmationPopupProps> = ({
   isOpen,
@@ -98,58 +98,57 @@ export const DeleteConfirmationPopup: React.FC<DeleteConfirmationPopupProps> = (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop blur overlay */}
+          {/* Backdrop overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-[99] bg-white/10 backdrop-blur-[1.75px]"
+            className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-[2px]"
             onClick={onCancel}
           />
 
-          {/* Delete confirmation panel */}
+          {/* Centered modal */}
           <motion.div
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute bottom-0 left-0 right-0 h-[60%] z-[100] flex flex-col rounded-t-2xl overflow-hidden"
+            className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] max-w-[90vw] bg-white rounded-2xl border border-gray-100 shadow-xl flex flex-col"
           >
-            {/* Red gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-red-600 via-red-500 to-red-300/70" />
-
             {/* Content */}
-            <div className="relative z-10 flex flex-col items-start justify-start flex-1 px-6 py-6 text-center">
-              <div className="p-2 rounded-xl bg-red-500/80 shadow-xs mb-3">
-                <WarningIcon size={32} weight="duotone" className="text-white" />
+            <div className="flex flex-col p-4">
+              {/* Header */}
+              <div className="flex flex-row items-center gap-2 pb-3 mb-3 border-b border-gray-100">
+                <div className="p-1 rounded-lg bg-red-50">
+                  <TrashIcon size={16} weight="regular" className="text-red-600" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-900">
+                  Delete {getItemTypeLabel(itemType)}
+                </h3>
               </div>
-              <h3 className="text-lg text-left leading-[1.4rem] font-semibold text-white mb-2">
-                Delete{' '}
-                <span className="italic underline">
-                  "{itemLabel}" {getItemTypeLabel(itemType)}?
-                </span>{' '}
-                This action is irreversible.
-              </h3>
 
-              {/* Optional subtext */}
-              {displaySubtext && (
-                <p className="text-sm text-left text-white/90 mb-4">{displaySubtext}</p>
-              )}
+              {/* Message */}
+              <p className="text-sm text-gray-900">
+                Are you sure you want to delete <span className="font-medium">"{itemLabel}"</span>?
+              </p>
+              <p className="text-sm text-gray-800/80 mt-1.5">
+                This action cannot be undone.{displaySubtext ? ` ${displaySubtext}` : ''}
+              </p>
 
               {/* Action buttons */}
-              <div className="w-full flex flex-col items-center gap-3 mt-2">
-                <button
-                  onClick={onConfirm}
-                  className="w-full px-4 py-1.5 text-sm font-medium text-red-700 bg-white rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-                >
-                  Yes, Delete
-                </button>
+              <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-100">
                 <button
                   onClick={onCancel}
-                  className="w-full px-4 py-1.5 text-sm font-medium text-white border border-white rounded-lg hover:bg-white/20 transition-colors cursor-pointer"
+                  className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
                 >
-                  Don't delete
+                  Cancel
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Delete
                 </button>
               </div>
             </div>

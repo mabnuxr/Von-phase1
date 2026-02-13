@@ -217,6 +217,7 @@ export type {
   SidebarItem,
   Folder,
   ItemType,
+  ItemStatus,
   FolderItemsMap,
   FolderLoadingMap,
 } from './ChatSidebarV2';

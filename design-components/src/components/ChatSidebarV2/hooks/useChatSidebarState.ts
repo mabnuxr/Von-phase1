@@ -3,6 +3,12 @@ import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebarV2';
 import type { MoveToFolderConfig } from '../../popups';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+export const INITIAL_VISIBLE_COUNT = 5;
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -44,13 +50,13 @@ export interface UseChatSidebarStateOptions {
   items: SidebarItem[];
   folders: Folder[];
   folderItems: FolderItemsMap;
-  newlyCreatedFolderId?: string | null;
   onRenameItem?: (id: string, newName: string) => void;
   onDeleteItem?: (id: string) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
+  onPinFolder?: (folderId: string, isPinned: boolean) => void;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
-  onCollapseAllClick?: () => void;
+  onNewChatFolderClick?: (folderName: string) => void;
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
   onRemoveItemFromFolder?: (itemId: string) => void;
@@ -64,13 +70,13 @@ export function useChatSidebarState({
   items,
   folders,
   folderItems,
-  newlyCreatedFolderId,
   onRenameItem,
   onDeleteItem,
   onRenameFolder,
   onDeleteFolder,
+  onPinFolder,
   onFolderToggle,
-  onCollapseAllClick,
+  onNewChatFolderClick,
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
   onRemoveItemFromFolder,
@@ -82,8 +88,13 @@ export function useChatSidebarState({
   // Search
   const [searchValue, setSearchValue] = useState('');
 
-  // Section expansion
-  const [isChatsExpanded, setIsChatsExpanded] = useState(true);
+  // "See more" expansion for sections
+  const [isFoldersSeeMore, setIsFoldersSeeMore] = useState(false);
+  const [isChatsSeeMore, setIsChatsSeeMore] = useState(false);
+
+  // Inline folder creation
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   // Item context menu
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -138,17 +149,18 @@ export function useChatSidebarState({
   // Refs
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
 
   // ============================================================================
   // Effects
   // ============================================================================
 
-  // Auto-edit newly created folder
+  // Focus new folder input when creating
   useEffect(() => {
-    if (newlyCreatedFolderId) {
-      setEditingFolderId(newlyCreatedFolderId);
+    if (isCreatingFolder && newFolderInputRef.current) {
+      newFolderInputRef.current.focus();
     }
-  }, [newlyCreatedFolderId]);
+  }, [isCreatingFolder]);
 
   // ============================================================================
   // Derived State
@@ -182,19 +194,43 @@ export function useChatSidebarState({
     );
   }, [folders, folderItems, filteredItems, searchValue]);
 
-  // Count total chats
-  const totalChats = useMemo(() => {
-    const folderItemCount = folders.reduce(
-      (sum, folder) => sum + (itemsByFolder[folder.id]?.length || 0),
-      0
-    );
-    return rootItems.length + folderItemCount;
-  }, [folders, itemsByFolder, rootItems]);
+  // Sorted folders: by displayOrder ASC (pinned=0 first), then alphabetical by label
+  const sortedFolders = useMemo(() => {
+    return [...folders].sort((a, b) => {
+      const orderA = a.displayOrder ?? 100;
+      const orderB = b.displayOrder ?? 100;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.label.localeCompare(b.label);
+    });
+  }, [folders]);
 
   // Available folders for move (excludes current folder)
   const getAvailableFoldersForMove = useCallback(() => {
     return folders.map((f) => ({ id: f.id, label: f.label }));
   }, [folders]);
+
+  // ============================================================================
+  // Inline Folder Creation Handlers
+  // ============================================================================
+
+  const handleStartFolderCreation = useCallback(() => {
+    setIsCreatingFolder(true);
+    setNewFolderName('');
+  }, []);
+
+  const handleConfirmFolderCreation = useCallback(() => {
+    const trimmed = newFolderName.trim();
+    if (trimmed) {
+      onNewChatFolderClick?.(trimmed);
+    }
+    setIsCreatingFolder(false);
+    setNewFolderName('');
+  }, [newFolderName, onNewChatFolderClick]);
+
+  const handleCancelFolderCreation = useCallback(() => {
+    setIsCreatingFolder(false);
+    setNewFolderName('');
+  }, []);
 
   // ============================================================================
   // Item Handlers
@@ -294,6 +330,13 @@ export function useChatSidebarState({
     setFolderDeleteConfirmation({ isOpen: false, folder: null });
   }, []);
 
+  const handlePinFolder = useCallback(
+    (folder: Folder) => {
+      onPinFolder?.(folder.id, !folder.isPinned);
+    },
+    [onPinFolder]
+  );
+
   // ============================================================================
   // Move to Folder Handlers
   // ============================================================================
@@ -331,16 +374,6 @@ export function useChatSidebarState({
   // UI Handlers
   // ============================================================================
 
-  const handleCollapseAll = useCallback(() => {
-    setIsChatsExpanded(false);
-    folders.forEach((folder) => {
-      if (folder.isExpanded) {
-        onFolderToggle?.(folder.id, false);
-      }
-    });
-    onCollapseAllClick?.();
-  }, [folders, onFolderToggle, onCollapseAllClick]);
-
   const handleChatsHover = useCallback((isHovering: boolean) => {
     if (isHovering && chatButtonRef.current) {
       const rect = chatButtonRef.current.getBoundingClientRect();
@@ -375,8 +408,6 @@ export function useChatSidebarState({
     // State
     searchValue,
     setSearchValue,
-    isChatsExpanded,
-    setIsChatsExpanded,
     contextMenu,
     editingItemId,
     deleteConfirmation,
@@ -389,6 +420,21 @@ export function useChatSidebarState({
     isChatsHovered,
     dropdownPosition,
 
+    // "See more" state
+    isFoldersSeeMore,
+    setIsFoldersSeeMore,
+    isChatsSeeMore,
+    setIsChatsSeeMore,
+
+    // Inline folder creation
+    isCreatingFolder,
+    newFolderName,
+    setNewFolderName,
+    newFolderInputRef,
+    handleStartFolderCreation,
+    handleConfirmFolderCreation,
+    handleCancelFolderCreation,
+
     // Refs
     chatButtonRef,
     avatarButtonRef,
@@ -397,7 +443,7 @@ export function useChatSidebarState({
     filteredItems,
     rootItems,
     itemsByFolder,
-    totalChats,
+    sortedFolders,
     getAvailableFoldersForMove,
 
     // Item handlers
@@ -419,6 +465,7 @@ export function useChatSidebarState({
     handleShowFolderDeleteConfirmation,
     handleConfirmFolderDelete,
     handleCancelFolderDelete,
+    handlePinFolder,
 
     // Move handlers
     handleShowMoveToFolder,
@@ -427,7 +474,6 @@ export function useChatSidebarState({
     handleRemoveFromFolder,
 
     // UI handlers
-    handleCollapseAll,
     handleChatsHover,
     handleAvatarClick,
     handleCloseProfile,

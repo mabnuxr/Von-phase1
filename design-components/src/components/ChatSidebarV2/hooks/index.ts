@@ -1,7 +1,7 @@
 export { useInlineEdit } from './useInlineEdit';
 export type { UseInlineEditOptions, UseInlineEditReturn } from './useInlineEdit';
 
-export { useChatSidebarState } from './useChatSidebarState';
+export { useChatSidebarState, INITIAL_VISIBLE_COUNT } from './useChatSidebarState';
 export type {
   ContextMenuState,
   FolderContextMenuState,

@@ -260,6 +260,19 @@ class ConversationsService {
   }
 
   /**
+   * Update a folder's display order (used for pinning/unpinning)
+   * Pin: displayOrder = 0, Unpin: displayOrder = 100 (default)
+   */
+  async updateFolderDisplayOrder(
+    folderId: string,
+    displayOrder: number,
+  ): Promise<void> {
+    return apiClient.patch<void>(`/api/v1/folders/${folderId}`, {
+      displayOrder,
+    });
+  }
+
+  /**
    * Fetch conversations within a folder
    * Returns folder details and list of conversations
    */

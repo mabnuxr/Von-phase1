@@ -15,6 +15,10 @@ import {
   CaretUpDownIcon,
   UsersIcon,
   SpinnerGapIcon,
+  CheckIcon,
+  XIcon,
+  PushPinIcon,
+  PushPinSimpleSlashIcon,
 } from '@phosphor-icons/react';
 // CaretDownIcon and CaretRightIcon used in FolderSection for expand/collapse
 import { PrimaryButton, AddButton, PrimaryIconButton, TertiaryIconButton } from '../forms/buttons';
@@ -57,6 +61,7 @@ export interface Folder {
   id: string;
   label: string;
   isExpanded?: boolean;
+  isPinned?: boolean;
 }
 
 export type FolderItemsMap = Record<string, SidebarItem[]>;
@@ -71,12 +76,13 @@ export interface ChatSidebarV4Props {
   selectedItemId?: string;
   onItemClick?: (id: string, type: ItemType) => void;
   onNewChatClick?: () => void;
-  onNewChatFolderClick?: () => void;
+  onNewChatFolderClick?: (folderName: string) => void;
   onRenameItem?: (id: string, type: ItemType, newName: string) => void;
   onDeleteItem?: (id: string, type: ItemType) => void;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
+  onPinFolder?: (folderId: string, isPinned: boolean) => void;
   onMoveItemToFolder?: (itemId: string, itemType: ItemType, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, itemType: ItemType, newFolderName: string) => void;
   onRemoveItemFromFolder?: (itemId: string, itemType: ItemType) => void;
@@ -110,7 +116,7 @@ const getContextMenuItems = (
   const { isInFolder = false } = options;
   return [
     { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
-    { id: 'move', label: 'Move to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
+    { id: 'move', label: 'Add to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
     ...(isInFolder
       ? [
           {
@@ -124,7 +130,12 @@ const getContextMenuItems = (
   ];
 };
 
-const getFolderContextMenuItems = (): ContextMenuItem[] => [
+const getFolderContextMenuItems = (options: { isPinned?: boolean } = {}): ContextMenuItem[] => [
+  {
+    id: 'pin',
+    label: options.isPinned ? 'Unpin' : 'Pin',
+    icon: options.isPinned ? <PushPinSimpleSlashIcon size={14} /> : <PushPinIcon size={14} />,
+  },
   { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
   { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' },
 ];
@@ -133,12 +144,16 @@ interface SectionHeaderProps {
   label: string;
   onAdd?: () => void;
   addButtonLabel?: string;
+  addButtonIcon?: React.ReactNode;
+  alwaysShowAdd?: boolean;
 }
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({
   label,
   onAdd,
   addButtonLabel = 'Add new',
+  addButtonIcon,
+  alwaysShowAdd = false,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -150,15 +165,30 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
     >
       <span className="text-xs font-medium text-gray-700">{label}</span>
       {onAdd && (
-        <div className={`transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-          <AddButton
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdd();
-            }}
-          >
-            {addButtonLabel}
-          </AddButton>
+        <div
+          className={`transition-opacity ${alwaysShowAdd ? 'opacity-100' : isHovered ? 'opacity-100' : 'opacity-0'}`}
+        >
+          {alwaysShowAdd ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
+              className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+            >
+              {addButtonIcon}
+              {addButtonLabel}
+            </button>
+          ) : (
+            <AddButton
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
+            >
+              {addButtonLabel}
+            </AddButton>
+          )}
         </div>
       )}
     </div>
@@ -226,7 +256,7 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
   const content = (
     <div
       className={`
-        group relative flex items-center gap-2.5 px-2 py-1 rounded-lg text-sm
+        group relative flex items-center gap-2.5 px-2 h-8 rounded-lg text-sm
         transition-colors duration-150
         ${isEditing ? 'bg-gray-50' : isSelected ? 'bg-gray-50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}
       `}
@@ -282,7 +312,7 @@ const SidebarItemRow: React.FC<SidebarItemRowProps> = ({
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleSave}
-          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -333,6 +363,7 @@ interface FolderSectionProps {
   onFolderContextMenu?: (e: React.MouseEvent) => void;
   onSaveFolderEdit?: (newName: string) => void;
   onCancelFolderEdit?: () => void;
+  onPinFolder?: () => void;
 }
 
 const FolderSection: React.FC<FolderSectionProps> = ({
@@ -352,6 +383,7 @@ const FolderSection: React.FC<FolderSectionProps> = ({
   onFolderContextMenu,
   onSaveFolderEdit,
   onCancelFolderEdit,
+  onPinFolder,
 }) => {
   // Folders start collapsed by default (isExpanded defaults to false)
   const isExpanded = folder.isExpanded ?? false;
@@ -393,7 +425,7 @@ const FolderSection: React.FC<FolderSectionProps> = ({
   return (
     <div className="mb-1">
       <div
-        className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+        className="group relative flex items-center justify-between gap-2.5 px-2 h-8 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
         onClick={isFolderEditing ? undefined : () => onToggle(!isExpanded)}
         onContextMenu={isFolderEditing ? undefined : onFolderContextMenu}
         onMouseEnter={() => setIsHovered(true)}
@@ -413,24 +445,52 @@ const FolderSection: React.FC<FolderSectionProps> = ({
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
               onBlur={handleSave}
-              className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <span className="text-left truncate">{folder.label}</span>
+            <span className="text-left truncate flex-1 min-w-0" title={folder.label}>
+              {folder.label}
+            </span>
           )}
         </div>
 
         {!isFolderEditing && (
-          <PrimaryIconButton
-            icon={<DotsThreeIcon size={16} weight="bold" />}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              e.stopPropagation();
-              onFolderContextMenu?.(e);
-            }}
-            visible={showButton}
-            size="small"
-          />
+          <div className="flex items-center gap-0.5 flex-shrink-0 h-6">
+            {/* Pin button: always rendered, uses opacity to avoid layout shifts */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPinFolder?.();
+              }}
+              className={`flex items-center justify-center w-6 h-6 rounded-md hover:bg-gray-100 transition-all cursor-pointer ${
+                folder.isPinned || isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              title={folder.isPinned ? 'Unpin folder' : 'Pin folder'}
+            >
+              <PushPinIcon
+                size={14}
+                weight={folder.isPinned ? 'fill' : 'regular'}
+                className={
+                  folder.isPinned
+                    ? 'text-gray-400 hover:text-gray-600'
+                    : 'text-gray-800 hover:text-gray-900'
+                }
+              />
+            </button>
+            {/* Three-dot menu: only rendered when hovered/menu open so pin moves to far right when idle */}
+            {showButton && (
+              <PrimaryIconButton
+                icon={<DotsThreeIcon size={16} weight="bold" />}
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                  e.stopPropagation();
+                  onFolderContextMenu?.(e);
+                }}
+                visible={true}
+                size="small"
+              />
+            )}
+          </div>
         )}
       </div>
 
@@ -501,6 +561,7 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
   onFolderToggle,
   onRenameFolder,
   onDeleteFolder,
+  onPinFolder,
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
   onRemoveItemFromFolder,
@@ -552,6 +613,17 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
     item: SidebarItem | null;
   }>({ isOpen: false, item: null });
 
+  // Inline folder creation state
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const newFolderInputRef = useRef<HTMLInputElement>(null);
+
+  // "See more" expansion state for each section
+  const INITIAL_VISIBLE_COUNT = 5;
+  const [isFoldersExpanded, setIsFoldersExpanded] = useState(false);
+  const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
+  const [isChatsExpanded, setIsChatsExpanded] = useState(false);
+
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   const [isChatsHovered, setIsChatsHovered] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
@@ -599,6 +671,13 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
   const rootItems = filteredItems.filter((item) => !item.folderId);
   const rootChats = rootItems.filter((item) => item.type === 'chat');
   const rootDashboards = rootItems.filter((item) => item.type === 'dashboard');
+
+  // Sort folders: pinned first, then original order
+  const sortedFolders = [...folders].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return 0;
+  });
 
   const handleContextMenu = (e: React.MouseEvent, item: SidebarItem) => {
     e.preventDefault();
@@ -712,6 +791,27 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
 
   const handleRemoveFromFolder = (item: SidebarItem) => {
     onRemoveItemFromFolder?.(item.id, item.type);
+  };
+
+  // Focus input when creating a new folder
+  useEffect(() => {
+    if (isCreatingFolder && newFolderInputRef.current) {
+      newFolderInputRef.current.focus();
+    }
+  }, [isCreatingFolder]);
+
+  const handleConfirmNewFolder = () => {
+    const trimmed = newFolderName.trim();
+    if (trimmed) {
+      onNewChatFolderClick?.(trimmed);
+    }
+    setIsCreatingFolder(false);
+    setNewFolderName('');
+  };
+
+  const handleDiscardNewFolder = () => {
+    setIsCreatingFolder(false);
+    setNewFolderName('');
   };
 
   const getAvailableFoldersForMove = () => {
@@ -933,12 +1033,69 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 min-h-0">
         {isLoading && <ChatSidebarSkeleton />}
 
-        {/* Projects Section (formerly Folders) */}
-        {!isLoading && folders.length > 0 && (
+        {/* Folders Section */}
+        {!isLoading && (folders.length > 0 || isCreatingFolder) && (
           <div className="mb-2">
-            <SectionHeader label="Projects" onAdd={onNewChatFolderClick} addButtonLabel="Add" />
+            <SectionHeader label="Folders" />
             <div>
-              {folders.map((folder) => {
+              {/* "New Folder" button - always visible at the top */}
+              <div
+                className="flex items-center gap-2.5 px-2 h-8 rounded-lg text-sm text-gray-900 hover:text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => setIsCreatingFolder(true)}
+              >
+                <PlusIcon size={16} weight="regular" className="flex-shrink-0" />
+                <span>New folder</span>
+              </div>
+
+              {/* Inline new folder input - appears below the button */}
+              {isCreatingFolder && (
+                <div className="flex items-center gap-2 px-2 h-8 rounded-lg bg-gray-50">
+                  <FolderSimpleIcon
+                    size={16}
+                    weight="regular"
+                    className="text-gray-800 flex-shrink-0"
+                  />
+                  <input
+                    ref={newFolderInputRef}
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleConfirmNewFolder();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleDiscardNewFolder();
+                      }
+                    }}
+                    onBlur={handleDiscardNewFolder}
+                    placeholder="Folder name..."
+                    className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
+                  />
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleConfirmNewFolder}
+                    className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-emerald-50 transition-colors cursor-pointer"
+                    title="Create folder"
+                  >
+                    <CheckIcon size={14} weight="bold" className="text-emerald-600" />
+                  </button>
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleDiscardNewFolder}
+                    className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
+                    title="Discard"
+                  >
+                    <XIcon size={14} weight="bold" className="text-gray-400" />
+                  </button>
+                </div>
+              )}
+
+              {(isFoldersExpanded
+                ? sortedFolders
+                : sortedFolders.slice(0, INITIAL_VISIBLE_COUNT)
+              ).map((folder) => {
                 const folderItemsList = itemsByFolder[folder.id] || [];
                 const isFolderLoading = folderLoadingMap[folder.id] || false;
 
@@ -963,9 +1120,25 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
                     onFolderContextMenu={(e) => handleFolderContextMenu(e, folder)}
                     onSaveFolderEdit={(newName) => handleSaveFolderRename(folder, newName)}
                     onCancelFolderEdit={handleCancelFolderRename}
+                    onPinFolder={() => onPinFolder?.(folder.id, !folder.isPinned)}
                   />
                 );
               })}
+              {sortedFolders.length > INITIAL_VISIBLE_COUNT && (
+                <button
+                  onClick={() => setIsFoldersExpanded(!isFoldersExpanded)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-800/80 hover:text-gray-900 transition-colors cursor-pointer w-full"
+                >
+                  <CaretDownIcon
+                    size={12}
+                    weight="bold"
+                    className={`transition-transform duration-150 ${isFoldersExpanded ? 'rotate-180' : ''}`}
+                  />
+                  {isFoldersExpanded
+                    ? 'Show less'
+                    : `See more (${sortedFolders.length - INITIAL_VISIBLE_COUNT})`}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -975,7 +1148,10 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
           <div className="mb-2">
             <SectionHeader label="Dashboards" />
             <div>
-              {rootDashboards.map((item) => (
+              {(isDashboardsExpanded
+                ? rootDashboards
+                : rootDashboards.slice(0, INITIAL_VISIBLE_COUNT)
+              ).map((item) => (
                 <SidebarItemRow
                   key={item.id}
                   item={item}
@@ -989,6 +1165,21 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
                   onCancelEdit={handleCancelRename}
                 />
               ))}
+              {rootDashboards.length > INITIAL_VISIBLE_COUNT && (
+                <button
+                  onClick={() => setIsDashboardsExpanded(!isDashboardsExpanded)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer w-full"
+                >
+                  <CaretDownIcon
+                    size={12}
+                    weight="bold"
+                    className={`transition-transform duration-150 ${isDashboardsExpanded ? 'rotate-180' : ''}`}
+                  />
+                  {isDashboardsExpanded
+                    ? 'Show less'
+                    : `See more (${rootDashboards.length - INITIAL_VISIBLE_COUNT})`}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -998,20 +1189,37 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
           <div className="mb-2">
             <SectionHeader label="Chats" />
             <div>
-              {rootChats.map((item) => (
-                <SidebarItemRow
-                  key={item.id}
-                  item={item}
-                  isSelected={item.id === selectedItemId}
-                  onClick={() => onItemClick?.(item.id, item.type)}
-                  onContextMenu={(e) => handleContextMenu(e, item)}
-                  showIcon={false}
-                  isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                  isEditing={editingItemId === item.id}
-                  onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                  onCancelEdit={handleCancelRename}
-                />
-              ))}
+              {(isChatsExpanded ? rootChats : rootChats.slice(0, INITIAL_VISIBLE_COUNT)).map(
+                (item) => (
+                  <SidebarItemRow
+                    key={item.id}
+                    item={item}
+                    isSelected={item.id === selectedItemId}
+                    onClick={() => onItemClick?.(item.id, item.type)}
+                    onContextMenu={(e) => handleContextMenu(e, item)}
+                    showIcon={false}
+                    isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                    isEditing={editingItemId === item.id}
+                    onSaveEdit={(newName) => handleSaveRename(item, newName)}
+                    onCancelEdit={handleCancelRename}
+                  />
+                )
+              )}
+              {rootChats.length > INITIAL_VISIBLE_COUNT && (
+                <button
+                  onClick={() => setIsChatsExpanded(!isChatsExpanded)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer w-full"
+                >
+                  <CaretDownIcon
+                    size={12}
+                    weight="bold"
+                    className={`transition-transform duration-150 ${isChatsExpanded ? 'rotate-180' : ''}`}
+                  />
+                  {isChatsExpanded
+                    ? 'Show less'
+                    : `See more (${rootChats.length - INITIAL_VISIBLE_COUNT})`}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -1143,11 +1351,13 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
       <ContextMenu
         isOpen={folderContextMenu.isOpen}
         onClose={() => setFolderContextMenu({ ...folderContextMenu, isOpen: false })}
-        items={getFolderContextMenuItems()}
+        items={getFolderContextMenuItems({ isPinned: folderContextMenu.folder?.isPinned })}
         fixedPosition={folderContextMenu.position}
         width={128}
         onItemClick={(item) => {
-          if (item.id === 'rename' && folderContextMenu.folder) {
+          if (item.id === 'pin' && folderContextMenu.folder) {
+            onPinFolder?.(folderContextMenu.folder.id, !folderContextMenu.folder.isPinned);
+          } else if (item.id === 'rename' && folderContextMenu.folder) {
             handleStartFolderRename(folderContextMenu.folder);
           } else if (item.id === 'delete' && folderContextMenu.folder) {
             handleShowFolderDeleteConfirmation(folderContextMenu.folder);

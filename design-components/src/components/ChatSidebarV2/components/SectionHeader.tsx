@@ -1,32 +1,21 @@
 import React, { useState } from 'react';
-import { CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { AddButton } from '../../forms/buttons';
 
 export interface SectionHeaderProps {
   label: string;
-  isExpanded: boolean;
-  onToggle: () => void;
   onAdd?: () => void;
   addButtonLabel?: string;
-  count?: number;
 }
 
 /**
- * SectionHeader - Expandable section header with optional add button
+ * SectionHeader - Static section label with optional add button on hover
  *
- * Features:
- * - Clickable label to toggle expansion
- * - Caret icon indicating expansion state
- * - Optional count display
- * - Add button that appears on hover
+ * Matches V4 style: simple label with an add button that appears on hover.
  */
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
   label,
-  isExpanded,
-  onToggle,
   onAdd,
   addButtonLabel = 'Add new',
-  count,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -36,24 +25,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <button
-        className="flex items-center justify-between text-xs font-medium text-gray-700 hover:text-gray-800 transition-colors cursor-pointer"
-        onClick={onToggle}
-      >
-        <span>{label}</span>
-        <div className="flex items-center gap-1.5">
-          {count !== undefined && (
-            <span className="pl-0.5 text-[11px] text-gray-700 font-mono normal-case -mb-0.5">
-              [{count}]
-            </span>
-          )}
-          {isExpanded ? (
-            <CaretDownIcon size={12} weight="duotone" className="text-gray-800" />
-          ) : (
-            <CaretRightIcon size={12} weight="duotone" className="text-gray-800" />
-          )}
-        </div>
-      </button>
+      <span className="text-xs font-medium text-gray-700">{label}</span>
       {onAdd && (
         <div className={`transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
           <AddButton

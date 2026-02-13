@@ -113,14 +113,16 @@ const Dashboard = () => {
     folderItems: sidebarV2FolderItems,
     folderLoadingMap: sidebarV2FolderLoadingMap,
     isLoading: isSidebarV2Loading,
+    pagination: sidebarV2Pagination,
     createFolder,
     deleteFolder,
     renameFolder,
     toggleFolderExpanded,
-    moveConversationToFolder,
-    newlyCreatedFolderId,
-    clearNewlyCreatedFolderId,
-    createFolderAndMoveItem,
+    deleteConversation,
+    pinFolder,
+    moveItemToFolder,
+    createFolderForItem,
+    removeItemFromFolder,
   } = useChatSidebarV2();
 
   // Infinite scroll hook for loading more conversations
@@ -516,9 +518,22 @@ const Dashboard = () => {
   }, [currentConversationId, pendingConversationId]);
 
   // Chat handlers
-  const handleChatClick = (conversationId: string) => {
-    navigate(`/chat/${conversationId}`);
-  };
+  const handleChatClick = useCallback(
+    (conversationId: string) => {
+      navigate(`/chat/${conversationId}`);
+    },
+    [navigate],
+  );
+
+  const handleDeleteItem = useCallback(
+    (id: string) => {
+      deleteConversation(id);
+      if (id === currentConversationId) {
+        navigate("/chat");
+      }
+    },
+    [deleteConversation, currentConversationId, navigate],
+  );
 
   const handleNewChatClick = async () => {
     setIsCreatingChat(true); // Instant skeleton
@@ -934,14 +949,16 @@ const Dashboard = () => {
 
       {/* Full-width container */}
       <div className="w-full h-full flex flex-col overflow-hidden">
-        {/* TopBar in White Rounded Container */}
-        <div className="bg-transparent">
-          <TopBar
-            onLogoClick={() => navigate("/chat")}
-            showMenu={false}
-            onNewChatClick={handleNewChatClick}
-          />
-        </div>
+        {/* TopBar in White Rounded Container (V1 sidebar only — V2 has its own header) */}
+        {!isSidebarV2 && (
+          <div className="bg-transparent">
+            <TopBar
+              onLogoClick={() => navigate("/chat")}
+              showMenu={false}
+              onNewChatClick={handleNewChatClick}
+            />
+          </div>
+        )}
 
         {/* Avatar Menu Dropdown */}
         <AvatarMenu
@@ -955,7 +972,9 @@ const Dashboard = () => {
         />
 
         {/* Two-Pane Layout with Rounded Corners */}
-        <div className="flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0">
+        <div
+          className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
+        >
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
           <div
             className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
@@ -971,40 +990,20 @@ const Dashboard = () => {
                 selectedItemId={currentConversationId || undefined}
                 onItemClick={handleChatClick}
                 onNewChatClick={handleNewChatClick}
-                onNewChatFolderClick={() => createFolder("New Folder")}
-                newlyCreatedFolderId={newlyCreatedFolderId}
+                onNewChatFolderClick={createFolder}
+                onDeleteItem={handleDeleteItem}
                 onDeleteFolder={deleteFolder}
                 onRenameFolder={renameFolder}
+                onPinFolder={pinFolder}
                 onFolderToggle={toggleFolderExpanded}
-                onMoveItemToFolder={(itemId: string, folderId: string) => {
-                  const item = [
-                    ...sidebarV2Items,
-                    ...Object.values(sidebarV2FolderItems).flat(),
-                  ].find((i) => i.id === itemId);
-                  moveConversationToFolder(itemId, folderId, item?.folderId);
-                  clearNewlyCreatedFolderId();
-                }}
-                onCreateFolderAndMoveItem={(
-                  itemId: string,
-                  folderName: string,
-                ) => {
-                  const item = [
-                    ...sidebarV2Items,
-                    ...Object.values(sidebarV2FolderItems).flat(),
-                  ].find((i) => i.id === itemId);
-                  createFolderAndMoveItem(itemId, folderName, item?.folderId);
-                }}
-                onRemoveItemFromFolder={(itemId: string) => {
-                  const item = [
-                    ...sidebarV2Items,
-                    ...Object.values(sidebarV2FolderItems).flat(),
-                  ].find((i) => i.id === itemId);
-                  moveConversationToFolder(itemId, null, item?.folderId);
-                }}
+                onMoveItemToFolder={moveItemToFolder}
+                onCreateFolderAndMoveItem={createFolderForItem}
+                onRemoveItemFromFolder={removeItemFromFolder}
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
                 loadMoreRef={loadMoreConversationsRef}
                 isFetchingMore={isFetchingNextPage}
+                hasNextPage={!!sidebarV2Pagination?.hasNextPage}
                 avatarSrc={avatarSrc}
                 avatarLabel={avatarLabel}
                 userName={displayName}

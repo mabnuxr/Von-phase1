@@ -5,13 +5,11 @@ import {
   CheckCircleIcon,
   CaretLeftIcon,
   CaretRightIcon,
-  SpinnerGapIcon,
   XIcon,
   DotsThreeIcon,
   ArrowsOutIcon,
   DownloadSimpleIcon,
   GridFourIcon,
-  CaretDownIcon,
   ThumbsUpIcon,
   ThumbsDownIcon,
   CopyIcon,
@@ -24,7 +22,7 @@ import type {
   ItemType,
   ItemStatus,
 } from '../../../components/Jan17Demo/ChatSidebarV4';
-import { StandardChatInput } from '../../../components/Chat/StandardChatInput';
+import { StandardChatInputWithCommands } from '../../../components/Chat/StandardChatInput';
 import type { ReferenceContext as InputReferenceContext } from '../../../components/Chat/StandardChatInput/types';
 import {
   DEFAULT_TEMPLATES,
@@ -81,6 +79,11 @@ import {
   generateDashboardFromData,
   type GeneratedDashboardData,
 } from './deepResearchDashboardUtils';
+import {
+  TimelineThinkingProcess,
+  type TimelineStep,
+} from '../../../components/TimelineThinkingProcess';
+import type { Command } from '../../../components/Commands/types';
 
 // ============================================================================
 // Convert Deep Research Tables for Transparency Drawer
@@ -984,54 +987,17 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ initials, size = 24 }) => (
 );
 
 // ============================================================================
-// Step Icon Component (indigo indicator circle)
+// Timeline Helpers
 // ============================================================================
 
-const StepIcon: React.FC<{ icon?: string; status: string }> = ({ status }) => {
-  if (status === 'in-progress') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
-  }
-  if (status === 'complete') {
-    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
-  }
-  // pending
-  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
-};
-
-// ============================================================================
-// Status Icon Component
-// ============================================================================
-
-const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
-  switch (status) {
-    case 'complete':
-      return <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />;
-    case 'in-progress':
-      return (
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        >
-          <SpinnerGapIcon size={14} weight="regular" className="text-indigo-600" />
-        </motion.div>
-      );
-    default:
-      return <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300" />;
-  }
-};
-
-// ============================================================================
-// Format elapsed time helper
-// ============================================================================
-
-const formatElapsedTime = (seconds: number): string => {
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs}s`;
-};
+const toTimelineSteps = (steps: DeepResearchThinkingStep[]): TimelineStep[] =>
+  steps.map((step) => ({
+    id: step.id,
+    text: step.text,
+    status: step.status,
+    type: 'tool_call',
+    description: step.subtitle,
+  }));
 
 // ============================================================================
 // Deep Research Thinking Block with Progress (Dashboard V2 style)
@@ -1058,144 +1024,52 @@ const DeepResearchThinkingBlock: React.FC<DeepResearchThinkingBlockProps> = ({
   showProgressBar = true,
   defaultCollapsed = false,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
-  const prevAllCompleteRef = useRef(false);
-  const visibleSteps = steps.filter((s) => s.status !== 'pending');
   const completedCount = steps.filter((s) => s.status === 'complete').length;
   const totalCount = steps.length;
   const allComplete = completedCount === totalCount && totalCount > 0 && !isThinking;
-
-  // Auto-collapse when thinking completes
-  useLayoutEffect(() => {
-    if (allComplete && !prevAllCompleteRef.current) {
-      // Delay collapse slightly so user sees the completion state
-      const timeout = setTimeout(() => {
-        setIsCollapsed(true);
-      }, 500);
-      return () => clearTimeout(timeout);
-    }
-    prevAllCompleteRef.current = allComplete;
-  }, [allComplete]);
+  const timelineSteps = useMemo(() => toTimelineSteps(steps), [steps]);
 
   return (
-    <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
-      {/* Header - Collapsible */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full px-2 py-1.5 flex items-center justify-between cursor-pointer"
-      >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          {isCollapsed ? (
-            <CaretRightIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
-          ) : (
-            <CaretDownIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
-          )}
+    <div className="space-y-2">
+      <TimelineThinkingProcess
+        steps={timelineSteps}
+        isThinking={isThinking}
+        elapsedTime={elapsedTime}
+        autoCollapse={allComplete}
+        initiallyCollapsed={defaultCollapsed}
+        title={title}
+      />
 
-          {allComplete ? (
-            <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
-          ) : (
+      {!allComplete && showProgressBar && (
+        <div className="px-2">
+          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="flex-shrink-0"
-            >
-              <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
-            </motion.div>
-          )}
-
-          {allComplete ? (
-            <span className="text-sm text-gray-700">
-              {title} · {formatElapsedTime(elapsedTime)}
+              className="h-full bg-indigo-500 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[11px] text-gray-500">Progress</span>
+            <span className="text-[11px] font-medium text-gray-700">
+              {estimatedTimeRemaining} remaining
             </span>
-          ) : (
-            <span className="text-sm font-medium text-gray-900">{title}</span>
-          )}
+          </div>
         </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-          {!allComplete && (
-            <span className="text-[11px] text-gray-500 tabular-nums">
-              {formatElapsedTime(elapsedTime)}
-            </span>
-          )}
-        </div>
-      </button>
-
-      {/* Steps - Timeline style */}
-      <AnimatePresence>
-        {!isCollapsed && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="overflow-hidden"
-          >
-            <div className="border border-gray-100 bg-white rounded-lg">
-              <div className="px-3 py-3 space-y-0">
-                {visibleSteps.map((step, idx) => (
-                  <div key={step.id} className="relative flex">
-                    {/* Timeline connector */}
-                    <div className="flex flex-col items-center mr-3 flex-shrink-0">
-                      <div
-                        className={`
-                          w-6 h-6 rounded-full flex items-center justify-center
-                          ${step.status === 'in-progress' ? 'bg-indigo-50' : 'bg-gray-50'}
-                        `}
-                      >
-                        <StepIcon icon={step.icon} status={step.status} />
-                      </div>
-                      {idx < visibleSteps.length - 1 && (
-                        <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className={`flex-1 ${idx < visibleSteps.length - 1 ? 'pb-3' : ''}`}>
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`
-                            text-sm
-                            ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-700'}
-                          `}
-                        >
-                          {step.text}
-                        </span>
-                        <StatusIcon status={step.status} />
-                      </div>
-                      {step.subtitle && (
-                        <p className="text-[12px] text-gray-500 mt-0.5">{step.subtitle}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Progress bar - only show if showProgressBar is true and not complete */}
-            {!allComplete && showProgressBar && (
-              <div className="px-2 py-2">
-                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-indigo-500 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span className="text-[11px] text-gray-500">Progress</span>
-                  <span className="text-[11px] font-medium text-gray-700">
-                    {estimatedTimeRemaining} remaining
-                  </span>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      )}
     </div>
   );
+};
+
+const getCommandDisplayMessage = (message: string, command?: Command) => {
+  if (!command) return message;
+  let display = message;
+  if (message.startsWith(command.prompt)) {
+    display = message.slice(command.prompt.length).trim();
+  }
+  display = display.replace(/^Additional context:\s*/i, '').trim();
+  return display || `/ ${command.name}`;
 };
 
 // ============================================================================
@@ -1420,7 +1294,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-white rounded-xl shadow-xl w-[90vw] max-w-4xl h-[85vh] flex flex-col overflow-hidden"
+        className="relative bg-white rounded-xl shadow-xl w-[90vw] max-w-3xl h-[85vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
@@ -1461,7 +1335,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 // ============================================================================
 
 interface LandingPageProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, command?: Command) => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
@@ -1519,8 +1393,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
   }, []);
 
   const handleSend = useCallback(
-    (message: string) => {
-      onSendMessage(message);
+    (message: string, _attachments?: unknown, command?: Command) => {
+      onSendMessage(message, command);
     },
     [onSendMessage]
   );
@@ -1593,12 +1467,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35, duration: 0.4 }}
       >
-        <StandardChatInput
-          placeholder="Ask Von for a deep research analysis..."
+        <StandardChatInputWithCommands
+          placeholder="Ask Von for a deep research analysis"
           value={inputValue}
           onChange={setInputValue}
           onSend={handleSend}
-          agentMode="deep-research"
         />
       </motion.div>
 
@@ -1801,7 +1674,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
         )}
       </AnimatePresence>
 
-      <div ref={contentRef} className="max-w-2xl mx-auto space-y-4">
+      <div ref={contentRef} className="max-w-3xl mx-auto space-y-4">
         {/* User message */}
         {messages.length > 0 && messages[0].type === 'user' && (
           <div className="flex justify-end gap-2">
@@ -1814,7 +1687,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
 
         {/* Sample thinking phase */}
         {(phase === 'sample-thinking' || phase === 'sample-complete') && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 pr-4">
             <div className="flex-shrink-0 mt-0.5">
               <VonLogo size={28} />
             </div>
@@ -2067,6 +1940,10 @@ const DeepResearchDemo = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [selectedSidebarItem, setSelectedSidebarItem] = useState<string>('');
   const [folders, setFolders] = useState<Folder[]>(dummyFolders);
+  // Track item overrides (folderId, label changes, deletions) for interactive demo
+  const [itemOverrides, setItemOverrides] = useState<
+    Record<string, { folderId?: string | null; label?: string; deleted?: boolean }>
+  >({});
 
   // Thinking state
   const [sampleSteps, setSampleSteps] = useState<DeepResearchThinkingStep[]>([]);
@@ -2087,6 +1964,8 @@ const DeepResearchDemo = () => {
 
   // Chat messages
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [initialUserMessage, setInitialUserMessage] = useState(DEEP_RESEARCH_PROMPT);
+  const [initialUserCommand, setInitialUserCommand] = useState<Command | null>(null);
 
   // Chat pane state
   const [isChatPaneCollapsed, setIsChatPaneCollapsed] = useState(true);
@@ -2176,9 +2055,10 @@ const DeepResearchDemo = () => {
 
     const deepResearchStatus = getDeepResearchStatus();
 
+    let baseItems: SidebarItem[];
     // Only show deep research item in sidebar once we're past landing/sample phases
     if (phase !== 'landing' && phase !== 'sample-thinking' && phase !== 'sample-complete') {
-      return [
+      baseItems = [
         {
           id: 'deep-research-current',
           label: 'Q4 Sales Performance Analysis',
@@ -2187,10 +2067,24 @@ const DeepResearchDemo = () => {
         },
         ...dummySidebarItems,
       ];
+    } else {
+      baseItems = dummySidebarItems;
     }
 
-    return dummySidebarItems;
-  }, [phase]);
+    // Apply overrides (folderId, label, deletions)
+    return baseItems
+      .map((item) => {
+        const override = itemOverrides[item.id];
+        if (!override) return item;
+        if (override.deleted) return null;
+        return {
+          ...item,
+          ...(override.folderId !== undefined ? { folderId: override.folderId } : {}),
+          ...(override.label !== undefined ? { label: override.label } : {}),
+        };
+      })
+      .filter((item): item is SidebarItem => item !== null);
+  }, [phase, itemOverrides]);
 
   // Timeout refs
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
@@ -2219,9 +2113,12 @@ const DeepResearchDemo = () => {
   }, []);
 
   // Handle landing page message
-  const handleLandingMessage = (content: string) => {
+  const handleLandingMessage = (content: string, command?: Command) => {
+    const displayContent = getCommandDisplayMessage(content, command);
+    setInitialUserMessage(displayContent);
+    setInitialUserCommand(command || null);
     setPhase('sample-thinking');
-    setChatMessages([{ id: 'msg-1', type: 'user', content }]);
+    setChatMessages([{ id: 'msg-1', type: 'user', content: displayContent }]);
     setSampleElapsedTime(0);
 
     // Initialize sample thinking steps
@@ -2414,7 +2311,8 @@ const DeepResearchDemo = () => {
       {
         id: 'msg-1-user-request',
         type: 'user',
-        content: DEEP_RESEARCH_PROMPT,
+        content: initialUserMessage,
+        command: initialUserCommand || undefined,
       },
       // 2. Sample analysis with thinking steps (collapsed)
       {
@@ -2545,7 +2443,7 @@ const DeepResearchDemo = () => {
     addTimeout(() => {
       setAgentStatus('idle');
     }, time + 2500);
-  }, [addTimeout, sampleElapsedTime, fullElapsedTime]);
+  }, [addTimeout, sampleElapsedTime, fullElapsedTime, initialUserMessage, initialUserCommand]);
 
   // Reset to landing
   const handleReset = useCallback(() => {
@@ -2563,6 +2461,8 @@ const DeepResearchDemo = () => {
     setShowToast(false);
     setIsChatPaneCollapsed(true);
     setChatMessages([]);
+    setInitialUserMessage(DEEP_RESEARCH_PROMPT);
+    setInitialUserCommand(null);
   }, [clearAllTimeouts]);
 
   // Handle sidebar item click
@@ -2727,8 +2627,49 @@ const DeepResearchDemo = () => {
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           onItemClick={handleSidebarItemClick}
           onNewChatClick={handleReset}
+          onNewChatFolderClick={(folderName) => {
+            setFolders([
+              ...folders,
+              { id: `folder-${Date.now()}`, label: folderName, isExpanded: false },
+            ]);
+          }}
           onFolderToggle={(folderId, isExpanded) => {
             setFolders(folders.map((f) => (f.id === folderId ? { ...f, isExpanded } : f)));
+          }}
+          onDeleteFolder={(folderId) => {
+            setFolders(folders.filter((f) => f.id !== folderId));
+          }}
+          onRenameFolder={(folderId, newName) => {
+            setFolders(folders.map((f) => (f.id === folderId ? { ...f, label: newName } : f)));
+          }}
+          onPinFolder={(folderId, isPinned) => {
+            setFolders(folders.map((f) => (f.id === folderId ? { ...f, isPinned } : f)));
+          }}
+          onRenameItem={(id, _type, newName) => {
+            setItemOverrides((prev) => ({ ...prev, [id]: { ...prev[id], label: newName } }));
+          }}
+          onDeleteItem={(id) => {
+            setItemOverrides((prev) => ({ ...prev, [id]: { ...prev[id], deleted: true } }));
+          }}
+          onMoveItemToFolder={(itemId, _itemType, folderId) => {
+            setItemOverrides((prev) => ({ ...prev, [itemId]: { ...prev[itemId], folderId } }));
+          }}
+          onCreateFolderAndMoveItem={(itemId, _itemType, newFolderName) => {
+            const newFolderId = `folder-${Date.now()}`;
+            setFolders((prev) => [
+              ...prev,
+              { id: newFolderId, label: newFolderName, isExpanded: true },
+            ]);
+            setItemOverrides((prev) => ({
+              ...prev,
+              [itemId]: { ...prev[itemId], folderId: newFolderId },
+            }));
+          }}
+          onRemoveItemFromFolder={(itemId) => {
+            setItemOverrides((prev) => ({
+              ...prev,
+              [itemId]: { ...prev[itemId], folderId: null },
+            }));
           }}
           userName="John Doe"
           userEmail="john@example.com"
@@ -2788,8 +2729,9 @@ const DeepResearchDemo = () => {
                 {/* Deep Research notification bar - shown during long-running research */}
                 <DeepResearchNotificationBar isVisible={phase === 'full-thinking'} />
               </div>
-              <StandardChatInput
-                placeholder="Ask a follow-up question..."
+
+              <StandardChatInputWithCommands
+                placeholder="Ask a follow-up question"
                 isStreaming={phase === 'sample-thinking' || phase === 'full-thinking'}
                 onStop={() => {
                   // In a real app, this would cancel the request
