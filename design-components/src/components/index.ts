@@ -75,6 +75,20 @@ export type { TextProps } from './Text';
 export { Heading } from './Heading';
 export type { HeadingProps } from './Heading';
 
+// File Attachment Types & Components
+export type { FileAttachment, FileCategory } from './Chat/FileAttachment';
+export { FilePreviewModal } from './Chat/FileAttachment';
+export type { FilePreviewModalProps } from './Chat/FileAttachment';
+export {
+  getFileInfo,
+  generateFileId,
+  FILE_SIZE_LIMIT_BYTES,
+  MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_BYTES,
+} from './Chat/FileAttachment';
+export { FileErrorToast } from './Chat/FileAttachment';
+export type { FileErrorToastProps } from './Chat/FileAttachment';
+
 // Chat Atoms
 // ----------
 export { ChatHeader } from './Chat';
@@ -167,7 +181,14 @@ export type { HeaderProps } from './Header';
 
 // Chat Organism (uses: ChatHeader + ChatMessage + ChatInput, manages chat state & API)
 export { Chat } from './Chat';
-export type { ChatProps, Message, FixedPosition, AgentMode, SendMessageOptions } from './Chat';
+export type {
+  ChatProps,
+  Message,
+  MessageFileAttachment,
+  FixedPosition,
+  AgentMode,
+  SendMessageOptions,
+} from './Chat';
 
 // ChatInputSelector - Selector component for different input variants
 export { ChatInputSelector } from './Chat';

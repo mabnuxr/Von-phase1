@@ -156,6 +156,9 @@ const useChatStoreBase = create<ChatState>((set) => ({
             message.errorMessage !== undefined
               ? message.errorMessage
               : existingMessage.errorMessage,
+          // Preserve fileAttachments from optimistic message if incoming doesn't have them
+          fileAttachments:
+            message.fileAttachments || existingMessage.fileAttachments,
         };
 
         updatedConversationMessages = [...existingMessages];

@@ -12,7 +12,6 @@ import {
   FileCode,
 } from '@phosphor-icons/react';
 import type { FileAttachment, FileCategory } from './types';
-import { formatFileSize } from './types';
 
 export interface FilePreviewProps {
   /** The file attachment to preview */
@@ -21,14 +20,9 @@ export interface FilePreviewProps {
   onRemove?: (id: string) => void;
   /** Whether the preview is removable */
   removable?: boolean;
-  /** Size variant */
+  /** Size variant (kept for API compat) */
   size?: 'small' | 'medium';
-  /**
-   * Style variant
-   * - 'default': Colored background based on file category
-   * - 'minimal': White background with gray border, colored badge/icon only
-   * @default 'default'
-   */
+  /** Style variant (kept for API compat) */
   variant?: 'default' | 'minimal';
 }
 
@@ -57,178 +51,93 @@ function getFileIcon(category: FileCategory, extension: string) {
 }
 
 /**
- * Get background color based on file category
+ * Get category-specific colors for the icon area
  */
-function getCategoryColor(category: FileCategory): string {
+function getCategoryColors(
+  category: FileCategory,
+  extension: string
+): { bg: string; text: string } {
   switch (category) {
-    case 'image':
-      return 'bg-purple-50';
-    case 'spreadsheet':
-      return 'bg-green-50';
     case 'document':
-      return 'bg-red-50';
+      if (extension === 'PDF') return { bg: 'bg-red-50', text: 'text-red-600' };
+      if (extension === 'DOC' || extension === 'DOCX')
+        return { bg: 'bg-blue-50', text: 'text-blue-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
+    case 'spreadsheet':
+      return { bg: 'bg-green-50', text: 'text-green-600' };
     case 'presentation':
-      return 'bg-orange-50';
+      return { bg: 'bg-orange-50', text: 'text-orange-500' };
+    case 'image':
+      return { bg: 'bg-purple-50', text: 'text-purple-500' };
     case 'text':
-      return 'bg-blue-50';
+      if (extension === 'JSON' || extension === 'MD')
+        return { bg: 'bg-slate-100', text: 'text-slate-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
     default:
-      return 'bg-gray-50';
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
   }
 }
 
 /**
- * Get icon color based on file category
- */
-function getCategoryIconColor(category: FileCategory): string {
-  switch (category) {
-    case 'image':
-      return 'text-purple-600';
-    case 'spreadsheet':
-      return 'text-green-600';
-    case 'document':
-      return 'text-red-600';
-    case 'presentation':
-      return 'text-orange-600';
-    case 'text':
-      return 'text-blue-600';
-    default:
-      return 'text-gray-600';
-  }
-}
-
-/**
- * Get badge color based on file category
- */
-function getCategoryBadgeColor(category: FileCategory): string {
-  switch (category) {
-    case 'image':
-      return 'bg-purple-100 text-purple-700';
-    case 'spreadsheet':
-      return 'bg-green-100 text-green-700';
-    case 'document':
-      return 'bg-red-100 text-red-700';
-    case 'presentation':
-      return 'bg-orange-100 text-orange-700';
-    case 'text':
-      return 'bg-blue-100 text-blue-700';
-    default:
-      return 'bg-gray-100 text-gray-700';
-  }
-}
-
-/**
- * FilePreview component for displaying attached files
- * Shows image preview for images, icon + name for other files
+ * FilePreview component — card-style file attachment with colored icon
  */
 export const FilePreview: React.FC<FilePreviewProps> = ({
   attachment,
   onRemove,
   removable = true,
-  size = 'medium',
-  variant = 'default',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const isImage = attachment.category === 'image';
+  const hasPreview = isImage && attachment.previewUrl;
   const IconComponent = getFileIcon(attachment.category, attachment.extension);
-
-  const dimensions = size === 'small' ? 'h-16 w-16' : 'h-20 w-20';
-  const iconSize = size === 'small' ? 24 : 28;
-
-  // Truncate filename if too long
-  const truncatedName =
-    attachment.name.length > 20 ? `${attachment.name.substring(0, 17)}...` : attachment.name;
-
-  if (isImage && attachment.previewUrl) {
-    // Image preview - square format
-    return (
-      <div
-        className={`relative ${dimensions} rounded-xl overflow-hidden border border-gray-200 flex-shrink-0 group`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <img
-          src={attachment.previewUrl}
-          alt={attachment.name}
-          className="w-full h-full object-cover"
-        />
-
-        {/* Hover overlay with remove button */}
-        {removable && isHovered && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity">
-            <button
-              onClick={() => onRemove?.(attachment.id)}
-              className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
-              aria-label={`Remove ${attachment.name}`}
-            >
-              <X size={16} weight="bold" className="text-gray-700" />
-            </button>
-          </div>
-        )}
-
-        {/* Upload progress indicator */}
-        {attachment.status === 'uploading' && attachment.uploadProgress !== undefined && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-            <div
-              className="h-full bg-blue-500 transition-all duration-200"
-              style={{ width: `${attachment.uploadProgress}%` }}
-            />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Non-image file preview - rectangular box
-  const isMinimal = variant === 'minimal';
-  const containerBg = isMinimal ? 'bg-white' : getCategoryColor(attachment.category);
+  const colors = getCategoryColors(attachment.category, attachment.extension);
+  const isLoading = attachment.status === 'uploading';
 
   return (
     <div
-      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 ${containerBg} flex-shrink-0 group min-w-[180px] max-w-[220px]`}
+      className={`relative flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0 transition-colors duration-150 ${
+        isHovered ? 'bg-gray-50/50' : ''
+      } ${isLoading ? 'animate-pulse opacity-70' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* File icon */}
-      <div
-        className={`flex-shrink-0 w-10 h-10 rounded-lg ${isMinimal ? 'bg-gray-50' : 'bg-white'} flex items-center justify-center ${getCategoryIconColor(attachment.category)}`}
-      >
-        <IconComponent size={iconSize} weight="duotone" />
-      </div>
-
-      {/* File info */}
-      <div className="flex-1 min-w-0 overflow-hidden">
-        <div className="text-sm font-medium text-gray-800 truncate" title={attachment.name}>
-          {truncatedName}
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${getCategoryBadgeColor(attachment.category)}`}
-          >
-            {attachment.extension}
-          </span>
-          <span className="text-[11px] text-gray-500">{formatFileSize(attachment.size)}</span>
-        </div>
-      </div>
-
-      {/* Remove button */}
-      {removable && isHovered && (
-        <button
-          onClick={() => onRemove?.(attachment.id)}
-          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors shadow-sm"
-          aria-label={`Remove ${attachment.name}`}
-        >
-          <X size={12} weight="bold" className="text-white" />
-        </button>
-      )}
-
-      {/* Upload progress indicator */}
-      {attachment.status === 'uploading' && attachment.uploadProgress !== undefined && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 rounded-b-xl overflow-hidden">
-          <div
-            className="h-full bg-blue-500 transition-all duration-200"
-            style={{ width: `${attachment.uploadProgress}%` }}
+      {/* Left side: image preview or colored file icon */}
+      {hasPreview ? (
+        <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+          <img
+            src={attachment.previewUrl}
+            alt={attachment.name}
+            className="w-full h-full object-cover"
           />
         </div>
+      ) : (
+        <div
+          className={`w-9 h-9 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}
+        >
+          <IconComponent size={18} weight="duotone" className={colors.text} />
+        </div>
+      )}
+
+      {/* File name — truncated */}
+      <span
+        className="text-[13px] font-medium text-gray-800 truncate min-w-0"
+        title={attachment.name}
+      >
+        {attachment.name}
+      </span>
+
+      {/* X icon — shown on hover */}
+      {removable && isHovered && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove?.(attachment.id);
+          }}
+          className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors ml-auto"
+          aria-label={`Remove ${attachment.name}`}
+        >
+          <X size={12} weight="bold" className="text-gray-800" />
+        </button>
       )}
     </div>
   );

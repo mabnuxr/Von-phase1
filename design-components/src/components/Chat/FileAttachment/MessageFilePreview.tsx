@@ -9,13 +9,15 @@ import {
   FileDoc,
   FileImage,
   FileCode,
+  ArrowsOutIcon,
 } from '@phosphor-icons/react';
 import type { MessageFileAttachment } from '../types';
-import { formatFileSize } from './types';
 
 export interface MessageFilePreviewProps {
   /** The file attachments to display */
   attachments: MessageFileAttachment[];
+  /** Callback when a file pill is clicked (for preview/download) */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 type FileCategory = 'document' | 'spreadsheet' | 'presentation' | 'text' | 'image';
@@ -45,70 +47,41 @@ function getFileIcon(category: FileCategory, extension: string) {
 }
 
 /**
- * Get background color based on file category
+ * Get category-specific colors for the icon area
  */
-function getCategoryColor(category: FileCategory): string {
+function getCategoryColors(
+  category: FileCategory,
+  extension: string
+): { bg: string; text: string } {
   switch (category) {
-    case 'image':
-      return 'bg-purple-50';
-    case 'spreadsheet':
-      return 'bg-green-50';
     case 'document':
-      return 'bg-red-50';
+      if (extension === 'PDF') return { bg: 'bg-red-50', text: 'text-red-600' };
+      if (extension === 'DOC' || extension === 'DOCX')
+        return { bg: 'bg-blue-50', text: 'text-blue-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
+    case 'spreadsheet':
+      return { bg: 'bg-green-50', text: 'text-green-600' };
     case 'presentation':
-      return 'bg-orange-50';
+      return { bg: 'bg-orange-50', text: 'text-orange-500' };
+    case 'image':
+      return { bg: 'bg-purple-50', text: 'text-purple-500' };
     case 'text':
-      return 'bg-blue-50';
+      if (extension === 'JSON' || extension === 'MD')
+        return { bg: 'bg-slate-100', text: 'text-slate-600' };
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
     default:
-      return 'bg-gray-50';
+      return { bg: 'bg-gray-100', text: 'text-gray-500' };
   }
 }
 
 /**
- * Get icon color based on file category
+ * MessageFilePreview component — card-style file attachment with colored icon
+ * Clickable with expand icon on hover for preview/download
  */
-function getCategoryIconColor(category: FileCategory): string {
-  switch (category) {
-    case 'image':
-      return 'text-purple-600';
-    case 'spreadsheet':
-      return 'text-green-600';
-    case 'document':
-      return 'text-red-600';
-    case 'presentation':
-      return 'text-orange-600';
-    case 'text':
-      return 'text-blue-600';
-    default:
-      return 'text-gray-600';
-  }
-}
-
-/**
- * Get badge color based on file category
- */
-function getCategoryBadgeColor(category: FileCategory): string {
-  switch (category) {
-    case 'image':
-      return 'bg-purple-100 text-purple-700';
-    case 'spreadsheet':
-      return 'bg-green-100 text-green-700';
-    case 'document':
-      return 'bg-red-100 text-red-700';
-    case 'presentation':
-      return 'bg-orange-100 text-orange-700';
-    case 'text':
-      return 'bg-blue-100 text-blue-700';
-    default:
-      return 'bg-gray-100 text-gray-700';
-  }
-}
-
-/**
- * MessageFilePreview component for displaying attached files in sent messages
- * Non-removable, read-only display
- */
-export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({ attachments }) => {
+export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({
+  attachments,
+  onFileClick,
+}) => {
   if (!attachments || attachments.length === 0) {
     return null;
   }
@@ -117,58 +90,53 @@ export const MessageFilePreview: React.FC<MessageFilePreviewProps> = ({ attachme
     <div className="flex flex-wrap gap-2 mb-3">
       {attachments.map((attachment) => {
         const isImage = attachment.category === 'image';
-        const IconComponent = getFileIcon(attachment.category, attachment.extension);
+        const hasPreview = isImage && attachment.previewUrl;
+        const IconComponent = getFileIcon(
+          attachment.category as FileCategory,
+          attachment.extension
+        );
+        const colors = getCategoryColors(attachment.category as FileCategory, attachment.extension);
+        const isClickable = !!onFileClick;
 
-        // Truncate filename if too long
-        const truncatedName =
-          attachment.name.length > 18 ? `${attachment.name.substring(0, 15)}...` : attachment.name;
-
-        if (isImage && attachment.previewUrl) {
-          // Image preview - square format
-          return (
-            <div
-              key={attachment.id}
-              className="relative h-16 w-16 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0"
-            >
-              <img
-                src={attachment.previewUrl}
-                alt={attachment.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          );
-        }
-
-        // Non-image file preview - compact rectangular box
         return (
           <div
             key={attachment.id}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-gray-200 ${getCategoryColor(attachment.category)} flex-shrink-0`}
+            className={`group/pill relative flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0 transition-colors ${
+              isClickable ? 'cursor-pointer hover:bg-gray-50' : ''
+            }`}
+            onClick={isClickable ? () => onFileClick(attachment) : undefined}
           >
-            {/* File icon */}
-            <div
-              className={`flex-shrink-0 w-7 h-7 rounded bg-white flex items-center justify-center ${getCategoryIconColor(attachment.category)}`}
-            >
-              <IconComponent size={16} weight="duotone" />
-            </div>
-
-            {/* File info */}
-            <div className="min-w-0 overflow-hidden">
+            {/* Left side: image preview or colored file icon */}
+            {hasPreview ? (
+              <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+                <img
+                  src={attachment.previewUrl}
+                  alt={attachment.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
               <div
-                className="text-xs font-medium text-gray-800 truncate max-w-[120px]"
-                title={attachment.name}
+                className={`w-9 h-9 rounded-lg ${colors.bg} flex items-center justify-center flex-shrink-0`}
               >
-                {truncatedName}
+                <IconComponent size={18} weight="duotone" className={colors.text} />
               </div>
-              <div className="flex items-center gap-1">
-                <span
-                  className={`text-[9px] font-semibold px-1 py-0.5 rounded ${getCategoryBadgeColor(attachment.category)}`}
-                >
-                  {attachment.extension}
-                </span>
-                <span className="text-[10px] text-gray-500">{formatFileSize(attachment.size)}</span>
+            )}
+
+            {/* File name — truncated */}
+            <span
+              className="text-[13px] font-medium text-gray-800 truncate min-w-0"
+              title={attachment.name}
+            >
+              {attachment.name}
+            </span>
+
+            {/* Expand icon — shows on hover */}
+            {isClickable && (
+              <div className="absolute top-1 right-1 opacity-0 group-hover/pill:opacity-100 transition-opacity p-0.5 rounded bg-gray-200/70">
+                <ArrowsOutIcon size={12} weight="bold" className="text-gray-600" />
               </div>
-            </div>
+            )}
           </div>
         );
       })}

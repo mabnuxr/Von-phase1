@@ -249,6 +249,11 @@ export interface ChatMessageProps {
    * This is the content from TEXT_MESSAGE with parent_message_id
    */
   v2FinalResponse?: string;
+
+  /**
+   * Callback when a file attachment pill is clicked (for preview/download)
+   */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 /**
@@ -283,6 +288,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   timelineSteps,
   thinkingElapsedTime,
   v2FinalResponse,
+  onFileClick,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -569,7 +575,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     >
                       {/* File attachments shown above text */}
                       {attachments && attachments.length > 0 && (
-                        <MessageFilePreview attachments={attachments} />
+                        <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
                       )}
                       {/* Text content - render markdown using TiptapViewer */}
                       {content && (

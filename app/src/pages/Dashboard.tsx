@@ -1,4 +1,5 @@
 import { authService, conversationsService } from "../services";
+import { fileUploadService } from "../services/fileUploadService";
 import { config } from "../config";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -12,6 +13,7 @@ import { AvatarMenu } from "../components/AvatarMenu";
 import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useSendMessage } from "../hooks/useSendMessage";
+import { useFileUploadPipeline } from "../hooks/useFileUploadPipeline";
 import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
@@ -60,8 +62,15 @@ import {
   ChatSkeleton,
   Banner,
   DashboardCanvas,
+  FilePreviewModal,
+  FileErrorToast,
 } from "@vonlabs/design-components";
-import type { AgentMode, SendMessageOptions } from "@vonlabs/design-components";
+import type {
+  AgentMode,
+  SendMessageOptions,
+  FileAttachment,
+  MessageFileAttachment,
+} from "@vonlabs/design-components";
 import { motion } from "framer-motion";
 import {
   CONVERSATIONS_PAGE_LIMIT,
@@ -160,6 +169,36 @@ const Dashboard = () => {
   // Send message mutation
   const { mutate: sendMessage } = useSendMessage();
 
+  // File error toast state
+  const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
+  const fileErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleFileError = useCallback((_error: string, message: string) => {
+    setFileErrorMessage(message);
+    if (fileErrorTimerRef.current) clearTimeout(fileErrorTimerRef.current);
+    fileErrorTimerRef.current = setTimeout(
+      () => setFileErrorMessage(null),
+      4000,
+    );
+  }, []);
+
+  // Eager file upload — uploads start immediately when files are attached
+  const {
+    attachments: fileAttachmentState,
+    addFiles: handleFilesSelected,
+    removeFile: handleRemoveAttachment,
+    uploadPendingFiles,
+    clearFiles: clearFileAttachments,
+    hasAttachments: hasFileAttachments,
+  } = useFileUploadPipeline(currentConversationId, {
+    onError: handleFileError,
+  });
+
+  // File preview modal state
+  const [filePreviewAttachment, setFilePreviewAttachment] =
+    useState<MessageFileAttachment | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [isFilePreviewLoading, setIsFilePreviewLoading] = useState(false);
+
   // Stop streaming mutation
   const { mutate: stopStreaming } = useStopStreaming();
 
@@ -186,9 +225,10 @@ const Dashboard = () => {
     isDeepLinksEnabled,
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
-    isDeepResearchEnabled,
+    //isDeepResearchEnabled,
     isSourcesEnabled,
     isTenantDisabled,
+    isFileUploadEnabled,
   } = useFeatureFlag();
 
   // Build Salesforce instance URL from integration config for deep links in approval cards
@@ -569,7 +609,7 @@ const Dashboard = () => {
 
   const handleSendMessage = async (
     content: string,
-    _attachments?: unknown,
+    _attachments?: FileAttachment[],
     options?: SendMessageOptions,
   ) => {
     // Track last user message for error recovery
@@ -582,7 +622,21 @@ const Dashboard = () => {
         await syncAgentModeToBackend(options.agentMode);
       }
     }
-    sendMessage(content);
+
+    // Collect file metadata from eager uploads
+    let fileAttachments;
+    if (hasFileAttachments && currentConversationId) {
+      try {
+        // uploadPendingFiles handles both already-uploaded and still-pending files
+        fileAttachments = await uploadPendingFiles(currentConversationId);
+      } catch (error) {
+        console.error("[Dashboard] File upload failed:", error);
+        return; // Don't send message if uploads fail
+      }
+    }
+
+    sendMessage({ content, fileAttachments });
+    clearFileAttachments();
   };
 
   // Auto-populate input when error occurs (handled by chatStore updates from hook)
@@ -843,6 +897,29 @@ const Dashboard = () => {
     [stopStreaming, v2MarkStopped],
   );
 
+  // File preview — fetch presigned download URL when user clicks a file pill
+  const handleFileClick = useCallback(
+    async (attachment: MessageFileAttachment) => {
+      setFilePreviewAttachment(attachment);
+      setFilePreviewUrl(null);
+      setIsFilePreviewLoading(true);
+      try {
+        if (currentConversationId) {
+          const { downloadUrl } = await fileUploadService.getDownloadUrl(
+            currentConversationId,
+            attachment.id,
+          );
+          setFilePreviewUrl(downloadUrl);
+        }
+      } catch (err) {
+        console.error("[Dashboard] Failed to get download URL:", err);
+      } finally {
+        setIsFilePreviewLoading(false);
+      }
+    },
+    [currentConversationId],
+  );
+
   // Separate pusherConfig for Chat component
   const pusherConfig = useMemo(
     () => ({
@@ -1084,6 +1161,7 @@ const Dashboard = () => {
                   disableSubmit={!canSubmit}
                   onInputWhileDisabled={handleDisabledInteraction}
                   enableCommands={isSlashCommandsEnabled}
+                  showPlusMenu={isFileUploadEnabled}
                 />
               </>
             ) : (
@@ -1133,11 +1211,23 @@ const Dashboard = () => {
                 useStandardInput={isAgentV2}
                 isAgentLocked={isAgentLocked}
                 lockedAgentMode={lockedAgentMode}
-                showPlusMenu={isDeepResearchEnabled}
+                showPlusMenu={isFileUploadEnabled}
+                controlledAttachments={fileAttachmentState}
+                onRemoveAttachment={handleRemoveAttachment}
+                onFilesSelected={handleFilesSelected}
+                onFileClick={handleFileClick}
+                onFileError={handleFileError}
               />
             )}
           </motion.div>
         </div>
+
+        {/* File validation error toast — fixed above chat input */}
+        <FileErrorToast
+          isVisible={!!fileErrorMessage}
+          message={fileErrorMessage || ""}
+          onDismiss={() => setFileErrorMessage(null)}
+        />
 
         {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
         <LazyTransparencyDrawer
@@ -1162,6 +1252,19 @@ const Dashboard = () => {
             conversationId={currentConversationId}
             paneState={artifactState}
             onClose={closeArtifact}
+          />
+        )}
+
+        {/* File Preview Modal — triggered by clicking file pills in messages */}
+        {filePreviewAttachment && (
+          <FilePreviewModal
+            attachment={filePreviewAttachment}
+            downloadUrl={filePreviewUrl}
+            isLoading={isFilePreviewLoading}
+            onClose={() => {
+              setFilePreviewAttachment(null);
+              setFilePreviewUrl(null);
+            }}
           />
         )}
       </div>

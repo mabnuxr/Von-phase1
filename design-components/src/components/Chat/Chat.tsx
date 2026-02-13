@@ -46,6 +46,7 @@ export const Chat: React.FC<ChatProps> = ({
   isFetchingMore = false,
   showMessagesFromIndex = 0,
   onArtifactClick,
+  onFileClick,
   banner,
   topBanner,
   disableSubmit = false,
@@ -69,6 +70,10 @@ export const Chat: React.FC<ChatProps> = ({
   lockedAgentMode = 'auto',
   // Plus menu visibility (defaults to false when not provided)
   showPlusMenu = false,
+  // Controlled attachment props
+  controlledAttachments,
+  onRemoveAttachment,
+  onFilesSelected,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -285,6 +290,9 @@ export const Chat: React.FC<ChatProps> = ({
             isAgentLocked={isAgentLocked}
             lockedAgentMode={lockedAgentMode}
             showPlusMenu={showPlusMenu}
+            controlledAttachments={controlledAttachments}
+            onRemoveAttachment={onRemoveAttachment}
+            onFilesSelected={onFilesSelected}
           />
         ) : (
           /* Standard message rendering */
@@ -325,6 +333,8 @@ export const Chat: React.FC<ChatProps> = ({
                   timelineSteps={message.timelineSteps}
                   thinkingElapsedTime={message.thinkingElapsedTime}
                   v2FinalResponse={message.v2FinalResponse}
+                  attachments={message.attachments}
+                  onFileClick={onFileClick}
                 />
               </div>
             ))}
@@ -366,6 +376,9 @@ export const Chat: React.FC<ChatProps> = ({
           isAgentLocked={isAgentLocked}
           lockedAgentMode={lockedAgentMode}
           showPlusMenu={showPlusMenu}
+          attachments={controlledAttachments}
+          onRemoveAttachment={onRemoveAttachment}
+          onFilesSelected={onFilesSelected}
         />
       )}
     </div>

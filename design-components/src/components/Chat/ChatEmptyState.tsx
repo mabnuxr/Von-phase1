@@ -101,6 +101,18 @@ export interface ChatEmptyStateProps {
    * Whether to show the plus menu button (with agents and upload options)
    */
   showPlusMenu?: boolean;
+  /**
+   * Controlled attachments from parent (wired to useFileUploadPipeline)
+   */
+  controlledAttachments?: FileAttachment[];
+  /**
+   * Callback to remove an attachment (controlled mode)
+   */
+  onRemoveAttachment?: (id: string) => void;
+  /**
+   * Callback when files are selected (controlled mode)
+   */
+  onFilesSelected?: (files: File[]) => void;
 }
 
 /**
@@ -143,6 +155,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   isAgentLocked,
   lockedAgentMode,
   showPlusMenu,
+  controlledAttachments,
+  onRemoveAttachment,
+  onFilesSelected,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -341,6 +356,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           isAgentLocked={isAgentLocked}
           lockedAgentMode={lockedAgentMode}
           showPlusMenu={showPlusMenu}
+          attachments={controlledAttachments}
+          onRemoveAttachment={onRemoveAttachment}
+          onFilesSelected={onFilesSelected}
         />
       </motion.div>
 

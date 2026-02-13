@@ -15,6 +15,7 @@ export const FEATURE_FLAGS = {
   DEEP_RESEARCH: "deepResearch",
   AGENT_V2_SOURCES: "agentSources",
   DISABLED_TENANTS: "disabledTenants",
+  FILE_UPLOAD: "enableFileUpload",
 } as const;
 
 /**
@@ -96,6 +97,11 @@ export function useFeatureFlag() {
      * Controls whether the current tenant's subscription is inactive
      */
     isTenantDisabled: flags[FEATURE_FLAGS.DISABLED_TENANTS] === true,
+
+    /**
+     * Controls whether file upload (plus menu) is enabled in chat
+     */
+    isFileUploadEnabled: flags[FEATURE_FLAGS.FILE_UPLOAD] === true,
 
     /**
      * Raw flags object for advanced usage

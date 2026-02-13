@@ -74,6 +74,19 @@ export function transformMessagesToChatFormat(
       runId: streamingMsg.runId, // Preserve run ID separately
       conversationId: streamingMsg.conversationId,
       stoppedByUser,
+      attachments: streamingMsg.fileAttachments?.map((fa) => ({
+        id: fa.fileId,
+        name: fa.fileName,
+        size: fa.fileSize,
+        type: fa.mimeType,
+        extension: fa.extension,
+        category: fa.category as
+          | "document"
+          | "spreadsheet"
+          | "presentation"
+          | "text"
+          | "image",
+      })),
     } as ChatMessage;
   });
 }

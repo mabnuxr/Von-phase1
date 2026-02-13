@@ -12,6 +12,7 @@ export {
   FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_BYTES,
   getFileInfo,
   getAcceptString,
   formatFileSize,
@@ -25,8 +26,14 @@ export type { FilePreviewProps } from './FilePreview';
 export { MessageFilePreview } from './MessageFilePreview';
 export type { MessageFilePreviewProps } from './MessageFilePreview';
 
+export { FilePreviewModal } from './FilePreviewModal';
+export type { FilePreviewModalProps } from './FilePreviewModal';
+
 export { DragDropOverlay } from './DragDropOverlay';
 export type { DragDropOverlayProps } from './DragDropOverlay';
+
+export { FileErrorToast } from './FileErrorToast';
+export type { FileErrorToastProps } from './FileErrorToast';
 
 // Hooks
 export { useFileUpload } from './useFileUpload';

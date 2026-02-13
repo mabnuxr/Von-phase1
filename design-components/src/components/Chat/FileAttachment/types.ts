@@ -51,7 +51,9 @@ export type FileCategory = 'document' | 'spreadsheet' | 'presentation' | 'text' 
  */
 export const FILE_SIZE_LIMIT_MB = 5;
 export const FILE_SIZE_LIMIT_BYTES = FILE_SIZE_LIMIT_MB * 1024 * 1024;
-export const MAX_FILES = 10;
+export const MAX_FILES = 5;
+export const AGGREGATE_SIZE_LIMIT_MB = 10;
+export const AGGREGATE_SIZE_LIMIT_BYTES = AGGREGATE_SIZE_LIMIT_MB * 1024 * 1024;
 
 /**
  * Represents an attached file
@@ -79,6 +81,10 @@ export interface FileAttachment {
   status: 'pending' | 'uploading' | 'uploaded' | 'error';
   /** Error message if upload failed */
   error?: string;
+  /** Backend file ID — set after presign */
+  uploadId?: string;
+  /** S3 key — set after presign */
+  s3Key?: string;
 }
 
 /**
@@ -88,7 +94,9 @@ export type FileValidationError =
   | 'file_too_large'
   | 'unsupported_type'
   | 'max_files_exceeded'
-  | 'duplicate_file';
+  | 'duplicate_file'
+  | 'aggregate_size_exceeded'
+  | 'conversation_files_exceeded';
 
 /**
  * File validation result

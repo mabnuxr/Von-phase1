@@ -20,7 +20,11 @@ import {
   useAutoScroll,
   ScrollToBottomButton,
 } from "@vonlabs/design-components";
-import type { Message, SendMessageOptions } from "@vonlabs/design-components";
+import type {
+  Message,
+  SendMessageOptions,
+  FileAttachment,
+} from "@vonlabs/design-components";
 
 /** Ref handle for ChatInputSelector */
 interface ChatInputSelectorRef {
@@ -67,7 +71,7 @@ export interface DeepResearchConversationProps {
   /** Callback when message is sent */
   onSendMessage?: (
     content: string,
-    attachments?: unknown[],
+    attachments?: FileAttachment[],
     options?: SendMessageOptions,
   ) => void;
   /** Callback when stop streaming is requested */
@@ -91,6 +95,8 @@ export interface DeepResearchConversationProps {
   onInputWhileDisabled?: () => void;
   /** Whether slash commands are enabled */
   enableCommands?: boolean;
+  /** Whether to show the plus menu (file upload) */
+  showPlusMenu?: boolean;
   /** Callback when thumbs up is clicked */
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
@@ -115,6 +121,7 @@ export const DeepResearchConversation: React.FC<
   disableSubmit = false,
   onInputWhileDisabled,
   enableCommands = false,
+  showPlusMenu = false,
   onLike,
   onDislike,
 }) => {
@@ -234,7 +241,7 @@ export const DeepResearchConversation: React.FC<
   const handleSendMessage = useCallback(
     (
       content: string,
-      attachments?: unknown[],
+      attachments?: FileAttachment[],
       options?: SendMessageOptions,
     ) => {
       onBeforeSend();
@@ -297,7 +304,7 @@ export const DeepResearchConversation: React.FC<
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
           lockedAgentMode="deep-research"
-          showPlusMenu={true}
+          showPlusMenu={showPlusMenu}
         />
       )}
 

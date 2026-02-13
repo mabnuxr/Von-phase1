@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CloudArrowUp, File, FileImage, FileXls, FilePdf } from '@phosphor-icons/react';
+import { CloudArrowUp } from '@phosphor-icons/react';
 import { FILE_SIZE_LIMIT_MB, MAX_FILES } from './types';
 
 export interface DragDropOverlayProps {
@@ -12,7 +12,8 @@ export interface DragDropOverlayProps {
 
 /**
  * DragDropOverlay component
- * Full-screen overlay shown when dragging files over the chat area
+ * Compact inline overlay that replaces the chat input area when dragging files.
+ * Uses muted colors consistent with the design system (bg-gray-50, border-gray-100).
  */
 export const DragDropOverlay: React.FC<DragDropOverlayProps> = ({
   isVisible,
@@ -22,78 +23,38 @@ export const DragDropOverlay: React.FC<DragDropOverlayProps> = ({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="absolute inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 4 }}
+          transition={{ duration: 0.15 }}
+          className="w-full max-4-xl"
         >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.2, delay: 0.05 }}
+          <div
             className={`
-              flex flex-col items-center justify-center p-12 rounded-3xl
-              border-2 border-dashed transition-colors duration-200
-              ${isDragActive ? 'border-orange-400 bg-orange-50/50' : 'border-gray-300 bg-gray-50/50'}
+              flex items-center gap-4 px-5 py-4 rounded-2xl
+              border border-dashed transition-colors duration-150
+              ${isDragActive ? 'border-gray-300 bg-gray-50/50' : 'border-gray-200 bg-gray-50/50'}
             `}
           >
             {/* Upload icon */}
             <motion.div
-              animate={isDragActive ? { y: [-4, 0, -4] } : { y: 0 }}
+              animate={isDragActive ? { y: [-2, 0, -2] } : { y: 0 }}
               transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-              className={`
-                w-20 h-20 rounded-2xl flex items-center justify-center mb-6
-                ${isDragActive ? 'bg-orange-100' : 'bg-gray-100'}
-              `}
+              className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-xs"
             >
-              <CloudArrowUp
-                size={48}
-                weight="duotone"
-                className={isDragActive ? 'text-orange-500' : 'text-gray-500'}
-              />
+              <CloudArrowUp size={22} weight="duotone" className="text-gray-500" />
             </motion.div>
 
-            {/* Title */}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {isDragActive ? 'Release to upload' : 'Drop files here'}
-            </h3>
-
-            {/* Subtitle */}
-            <p className="text-sm text-gray-500 mb-6">
-              {isDragActive
-                ? 'Your files will be attached to your message'
-                : 'Drag and drop files to attach them'}
-            </p>
-
-            {/* Supported file types */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <FilePdf size={16} weight="duotone" className="text-red-500" />
-                <span>PDF</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <FileXls size={16} weight="duotone" className="text-green-500" />
-                <span>Excel</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <File size={16} weight="duotone" className="text-blue-500" />
-                <span>CSV</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <FileImage size={16} weight="duotone" className="text-purple-500" />
-                <span>Images</span>
-              </div>
+            {/* Text */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900">
+                {isDragActive ? 'Release to upload' : 'Drop files here'}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                PDF, Excel, CSV, Word, Images — max {MAX_FILES} files, {FILE_SIZE_LIMIT_MB}MB each
+              </p>
             </div>
-
-            {/* Limitations */}
-            <div className="flex items-center gap-3 text-[11px] text-gray-400">
-              <span>Max {MAX_FILES} files</span>
-              <span className="w-1 h-1 rounded-full bg-gray-300" />
-              <span>Up to {FILE_SIZE_LIMIT_MB}MB each</span>
-            </div>
-          </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

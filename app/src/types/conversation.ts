@@ -42,6 +42,20 @@ export type MessageStatus =
   | "timeout";
 
 /**
+ * Denormalized file metadata stored on a message.
+ * Enables rendering file pills without extra API calls.
+ */
+export interface MessageFileAttachment {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  extension: string;
+  category: string;
+  s3Key: string;
+}
+
+/**
  * Message entity from backend
  */
 export interface Message {
@@ -53,6 +67,7 @@ export interface Message {
   role: "user" | "assistant";
   createdAt: string;
   createdBy: string | null;
+  fileAttachments?: MessageFileAttachment[];
 }
 
 /**
@@ -68,6 +83,7 @@ export type PusherUserMessageData = Pick<
   | "role"
   | "createdAt"
   | "createdBy"
+  | "fileAttachments"
 >;
 
 /**
@@ -83,6 +99,7 @@ export interface PusherUserMessageStartData {
   role: "user";
   createdAt: string;
   createdBy: string | null;
+  fileAttachments?: MessageFileAttachment[];
 }
 
 /** Event: user_message.content - Content chunk with sequence number */

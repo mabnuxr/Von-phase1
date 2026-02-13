@@ -2,6 +2,7 @@ import { apiClient } from "./apiClient";
 import type {
   Conversation,
   ConversationMode,
+  MessageFileAttachment,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
   CreateConversationResponse,
@@ -141,16 +142,21 @@ class ConversationsService {
 
   /**
    * Send a message in a conversation
-   * Backend expects: { content: string, messageType: string }
+   * Backend expects: { content: string, messageType: string, fileAttachments?: [...] }
    */
   async sendMessage(
     conversationId: string,
     content: string,
     messageType: "text" | "json" | "markdown" = "text",
+    fileAttachments?: MessageFileAttachment[],
   ): Promise<CreateMessageResponse> {
+    const body: Record<string, unknown> = { content, messageType };
+    if (fileAttachments?.length) {
+      body.fileAttachments = fileAttachments;
+    }
     return apiClient.post<CreateMessageResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages`,
-      { content, messageType },
+      body,
     );
   }
 
