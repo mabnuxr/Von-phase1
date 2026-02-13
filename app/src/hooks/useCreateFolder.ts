@@ -36,6 +36,7 @@ export function useCreateFolder() {
           name,
           folderType: "chat" as const,
           conversationCount: 0,
+          displayOrder: 100,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -77,6 +78,7 @@ export function useCreateFolder() {
                     name: data.name,
                     folderType: data.folderType,
                     conversationCount: data.itemCount,
+                    displayOrder: 100,
                     createdAt: data.createdAt,
                     updatedAt: data.updatedAt,
                   }
