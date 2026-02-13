@@ -289,6 +289,9 @@ export const Chat: React.FC<ChatProps> = ({
             isAgentLocked={isAgentLocked}
             lockedAgentMode={lockedAgentMode}
             showPlusMenu={showPlusMenu}
+            controlledAttachments={controlledAttachments}
+            onRemoveAttachment={onRemoveAttachment}
+            onFilesSelected={onFilesSelected}
           />
         ) : (
           /* Standard message rendering */

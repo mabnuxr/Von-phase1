@@ -184,7 +184,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
 
               {/* Agents submenu trigger */}
               <div
-                className={`relative py-0.5 ${isAgentLocked ? 'opacity-50 pointer-events-none' : ''}`}
+                className={`relative py-0.5 opacity-50 pointer-events-none`}
                 onMouseEnter={() => setIsAgentSubmenuOpen(true)}
                 onMouseLeave={() => setIsAgentSubmenuOpen(false)}
               >
