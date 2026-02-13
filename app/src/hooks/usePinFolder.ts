@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { chatSidebarKeys } from "./useChatSidebar";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
@@ -22,7 +26,7 @@ export function usePinFolder() {
     void,
     Error,
     PinFolderParams,
-    { previousData: ChatSidebarResponse | undefined }
+    { previousData: InfiniteData<ChatSidebarResponse> | undefined }
   >({
     mutationFn: ({ folderId, displayOrder }: PinFolderParams) =>
       conversationsService.updateFolderDisplayOrder(folderId, displayOrder),
@@ -30,25 +34,32 @@ export function usePinFolder() {
       // Cancel any outgoing refetches to prevent overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
 
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData<ChatSidebarResponse>(
-        chatSidebarKeys.sidebar(),
-      );
+      // Snapshot previous value (InfiniteData shape from useInfiniteQuery)
+      const previousData = queryClient.getQueryData<
+        InfiniteData<ChatSidebarResponse>
+      >(chatSidebarKeys.sidebar());
 
-      // Optimistically update the folder's displayOrder
+      // Optimistically update the folder's displayOrder on the first page
       if (previousData) {
-        queryClient.setQueryData<ChatSidebarResponse>(
+        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
           chatSidebarKeys.sidebar(),
           {
             ...previousData,
-            folders: previousData.folders.map((folder) =>
-              folder.folderId === folderId
+            pages: previousData.pages.map((page, index) =>
+              index === 0
                 ? {
-                    ...folder,
-                    displayOrder,
-                    updatedAt: new Date().toISOString(),
+                    ...page,
+                    folders: page.folders.map((folder) =>
+                      folder.folderId === folderId
+                        ? {
+                            ...folder,
+                            displayOrder,
+                            updatedAt: new Date().toISOString(),
+                          }
+                        : folder,
+                    ),
                   }
-                : folder,
+                : page,
             ),
           },
         );

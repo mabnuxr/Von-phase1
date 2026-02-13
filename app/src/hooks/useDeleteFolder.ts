@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { chatSidebarKeys } from "./useChatSidebar";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
@@ -14,7 +18,7 @@ export function useDeleteFolder() {
     void,
     Error,
     string,
-    { previousData: ChatSidebarResponse | undefined }
+    { previousData: InfiniteData<ChatSidebarResponse> | undefined }
   >({
     mutationFn: (folderId: string) =>
       conversationsService.deleteFolder(folderId),
@@ -22,19 +26,26 @@ export function useDeleteFolder() {
       // Cancel any outgoing refetches to prevent overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
 
-      // Snapshot previous value
-      const previousData = queryClient.getQueryData<ChatSidebarResponse>(
-        chatSidebarKeys.sidebar(),
-      );
+      // Snapshot previous value (InfiniteData shape from useInfiniteQuery)
+      const previousData = queryClient.getQueryData<
+        InfiniteData<ChatSidebarResponse>
+      >(chatSidebarKeys.sidebar());
 
-      // Optimistically remove the folder
+      // Optimistically remove the folder from the first page
       if (previousData) {
-        queryClient.setQueryData<ChatSidebarResponse>(
+        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
           chatSidebarKeys.sidebar(),
           {
             ...previousData,
-            folders: previousData.folders.filter(
-              (folder) => folder.folderId !== folderId,
+            pages: previousData.pages.map((page, index) =>
+              index === 0
+                ? {
+                    ...page,
+                    folders: page.folders.filter(
+                      (folder) => folder.folderId !== folderId,
+                    ),
+                  }
+                : page,
             ),
           },
         );
