@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FolderSimpleIcon, DotsThreeIcon } from '@phosphor-icons/react';
+import { FolderSimpleIcon, DotsThreeIcon, PushPinIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
 import type { Folder } from '../ChatSidebarV2';
 
@@ -9,6 +9,7 @@ export interface FolderRowProps {
   isMenuOpen?: boolean;
   onClick: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onPinFolder?: () => void;
   onSaveEdit?: (newName: string) => void;
   onCancelEdit?: () => void;
 }
@@ -18,6 +19,7 @@ export interface FolderRowProps {
  *
  * Features:
  * - Folder icon + name
+ * - Pin icon (visible on hover or when pinned)
  * - Inline editing for rename
  * - Click to toggle expansion
  * - Context menu on right-click or button click
@@ -28,6 +30,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
   isMenuOpen = false,
   onClick,
   onContextMenu,
+  onPinFolder,
   onSaveEdit,
   onCancelEdit,
 }) => {
@@ -35,6 +38,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
   const [editValue, setEditValue] = useState(folder.label);
   const inputRef = useRef<HTMLInputElement>(null);
   const showButton = (isHovered || isMenuOpen) && !isEditing;
+  const showPinButton = (folder.isPinned || isHovered) && !isEditing;
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -70,7 +74,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
 
   return (
     <div
-      className="group relative flex items-center justify-between gap-2.5 px-2 py-1 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+      className="group relative flex items-center justify-between gap-2.5 px-2 h-8 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
       onClick={isEditing ? undefined : onClick}
       onContextMenu={isEditing ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
@@ -82,6 +86,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
           weight="regular"
           className="text-gray-800 mb-[1px] flex-shrink-0"
         />
+
         {isEditing ? (
           <input
             ref={inputRef}
@@ -90,25 +95,52 @@ export const FolderRow: React.FC<FolderRowProps> = ({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className="text-left truncate">{folder.label}</span>
+          <span className="flex-1 text-left truncate min-w-0" title={folder.label}>
+            {folder.label}
+          </span>
         )}
       </div>
 
-      {/* More options button - shows on hover or when menu is open */}
       {!isEditing && (
-        <PrimaryIconButton
-          icon={<DotsThreeIcon size={16} weight="bold" />}
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.stopPropagation();
-            onContextMenu?.(e);
-          }}
-          visible={showButton}
-          size="small"
-        />
+        <div className="flex items-center gap-0.5 flex-shrink-0 h-6">
+          {/* Pin button: always rendered, uses opacity to avoid layout shifts */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPinFolder?.();
+            }}
+            className={`flex items-center justify-center w-6 h-6 rounded-md hover:bg-gray-100 transition-all cursor-pointer ${
+              showPinButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+            title={folder.isPinned ? 'Unpin folder' : 'Pin folder'}
+          >
+            <PushPinIcon
+              size={14}
+              weight={folder.isPinned ? 'fill' : 'regular'}
+              className={
+                folder.isPinned
+                  ? 'text-gray-400 hover:text-gray-600'
+                  : 'text-gray-800 hover:text-gray-900'
+              }
+            />
+          </button>
+          {/* Three-dot menu: only rendered when hovered/menu open so pin moves to far right when idle */}
+          {showButton && (
+            <PrimaryIconButton
+              icon={<DotsThreeIcon size={16} weight="bold" />}
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                onContextMenu?.(e);
+              }}
+              visible={true}
+              size="small"
+            />
+          )}
+        </div>
       )}
     </div>
   );

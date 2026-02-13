@@ -1,19 +1,23 @@
-import { useMemo, useCallback, useState } from "react";
-import { useQueries } from "@tanstack/react-query";
+import { useMemo, useCallback, useState, useRef } from "react";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useChatSidebar, chatSidebarKeys } from "./useChatSidebar";
 import { useCreateFolder } from "./useCreateFolder";
 import { useDeleteFolder } from "./useDeleteFolder";
 import { useRenameFolder } from "./useRenameFolder";
+import { usePinFolder } from "./usePinFolder";
 import {
   useAddConversationToFolder,
   useRemoveConversationFromFolder,
 } from "./useMoveConversationToFolder";
+import { useDeleteConversation } from "./useConversations";
 import { folderConversationsKeys } from "./useFolderConversations";
 import { conversationsService } from "../services";
 import { CONVERSATIONS_STALE_TIME } from "../config/constants";
 import type {
   SidebarConversation,
   SidebarPagination,
+  ChatSidebarResponse,
+  FolderConversationsResponse,
 } from "../types/chatSidebar";
 import type { Folder, SidebarItem } from "@vonlabs/design-components";
 
@@ -82,24 +86,20 @@ export interface UseChatSidebarV2Return {
   expandedFolderIds: Set<string>;
   /** Toggle folder expansion and trigger fetch if needed */
   toggleFolderExpanded: (folderId: string) => void;
-  /** Move a conversation to a folder (or remove from folder if targetFolderId is null) */
-  moveConversationToFolder: (
-    conversationId: string,
-    targetFolderId: string | null,
-    sourceFolderId?: string | null,
-  ) => void;
   /** Whether conversation move is in progress */
   isMovingConversation: boolean;
-  /** ID of newly created folder (for auto-edit mode) */
-  newlyCreatedFolderId: string | null;
-  /** Clear the newly created folder ID after editing is complete */
-  clearNewlyCreatedFolderId: () => void;
-  /** Create a new folder and move a conversation to it */
-  createFolderAndMoveItem: (
-    conversationId: string,
-    folderName: string,
-    sourceFolderId?: string | null,
-  ) => void;
+  /** Delete a conversation */
+  deleteConversation: (conversationId: string) => void;
+  /** Whether conversation deletion is in progress */
+  isDeletingConversation: boolean;
+  /** Pin/unpin a folder (placeholder — backend TBD) */
+  pinFolder: (folderId: string, isPinned: boolean) => void;
+  /** Move an item to a folder (auto-resolves source folder) */
+  moveItemToFolder: (itemId: string, targetFolderId: string) => void;
+  /** Create a new folder and move an item to it (auto-resolves source folder) */
+  createFolderForItem: (itemId: string, folderName: string) => void;
+  /** Remove an item from its current folder (auto-resolves source folder) */
+  removeItemFromFolder: (itemId: string) => void;
 }
 
 /**
@@ -118,7 +118,7 @@ export interface UseChatSidebarV2Return {
 export function useChatSidebarV2(): UseChatSidebarV2Return {
   const {
     data: sidebarData,
-    isLoading,
+    isLoading: isQueryLoading,
     isError,
     error,
     refetch,
@@ -128,11 +128,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
     new Set(),
   );
-
-  // Track newly created folder ID for auto-edit mode
-  const [newlyCreatedFolderId, setNewlyCreatedFolderId] = useState<
-    string | null
-  >(null);
 
   // Track pending move operation (for create folder + move flow)
   const [pendingMoveItem, setPendingMoveItem] = useState<{
@@ -214,6 +209,9 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   const { mutate: renameFolderMutation, isPending: isRenamingFolder } =
     useRenameFolder();
 
+  // Folder pin/unpin mutation
+  const { mutate: pinFolderMutation } = usePinFolder();
+
   // Add conversation to folder mutation
   const { mutate: addToFolderMutation, isPending: isAddingToFolder } =
     useAddConversationToFolder();
@@ -221,6 +219,13 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   // Remove conversation from folder mutation
   const { mutate: removeFromFolderMutation, isPending: isRemovingFromFolder } =
     useRemoveConversationFromFolder();
+
+  // Delete conversation mutation
+  const queryClient = useQueryClient();
+  const {
+    mutate: deleteConversationMutation,
+    isPending: isDeletingConversation,
+  } = useDeleteConversation();
 
   // Combined loading state for move operations
   const isMovingConversation = isAddingToFolder || isRemovingFromFolder;
@@ -233,6 +238,8 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
         label: folder.name,
         type: folder.folderType,
         isExpanded: expandedFolderIds.has(folder.folderId),
+        isPinned: folder.displayOrder === 0,
+        displayOrder: folder.displayOrder,
       })),
     [sidebarData?.folders, expandedFolderIds],
   );
@@ -255,13 +262,11 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   // Pagination info
   const pagination = sidebarData?.unfiled?.pagination ?? null;
 
-  // Stable callback for creating folders - tracks newly created folder ID
+  // Stable callback for creating folders
   const createFolder = useCallback(
     (name: string) => {
       createFolderMutation(name, {
         onSuccess: (data) => {
-          setNewlyCreatedFolderId(data.folderId);
-
           // If there's a pending move operation, execute it now
           if (pendingMoveItem) {
             addToFolderMutation({
@@ -277,11 +282,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     [createFolderMutation, pendingMoveItem, addToFolderMutation],
   );
 
-  // Clear newly created folder ID after editing is complete
-  const clearNewlyCreatedFolderId = useCallback(() => {
-    setNewlyCreatedFolderId(null);
-  }, []);
-
   // Stable callback for deleting folders
   const deleteFolder = useCallback(
     (folderId: string) => {
@@ -296,6 +296,101 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       renameFolderMutation({ folderId, name: newName });
     },
     [renameFolderMutation],
+  );
+
+  // Stable callback for deleting a conversation with optimistic updates
+  const deleteConversation = useCallback(
+    (conversationId: string) => {
+      // Cancel outgoing refetches to prevent overwriting optimistic update
+      queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
+      queryClient.cancelQueries({ queryKey: folderConversationsKeys.all });
+
+      // Snapshot sidebar data for rollback
+      const previousSidebarData = queryClient.getQueryData<ChatSidebarResponse>(
+        chatSidebarKeys.sidebar(),
+      );
+
+      // Snapshot folder conversations for rollback
+      const previousFolderSnapshots: Record<
+        string,
+        FolderConversationsResponse | undefined
+      > = {};
+      folderIds.forEach((folderId) => {
+        previousFolderSnapshots[folderId] =
+          queryClient.getQueryData<FolderConversationsResponse>(
+            folderConversationsKeys.folder(folderId),
+          );
+      });
+
+      // Optimistically remove from unfiled conversations
+      if (previousSidebarData) {
+        queryClient.setQueryData<ChatSidebarResponse>(
+          chatSidebarKeys.sidebar(),
+          {
+            ...previousSidebarData,
+            unfiled: {
+              ...previousSidebarData.unfiled,
+              conversations: previousSidebarData.unfiled.conversations.filter(
+                (c) => c.conversationId !== conversationId,
+              ),
+            },
+          },
+        );
+      }
+
+      // Optimistically remove from any folder conversations cache
+      folderIds.forEach((folderId) => {
+        const folderData = previousFolderSnapshots[folderId];
+        if (
+          folderData?.conversations.some(
+            (c) => c.conversationId === conversationId,
+          )
+        ) {
+          queryClient.setQueryData<FolderConversationsResponse>(
+            folderConversationsKeys.folder(folderId),
+            {
+              ...folderData,
+              conversations: folderData.conversations.filter(
+                (c) => c.conversationId !== conversationId,
+              ),
+            },
+          );
+        }
+      });
+
+      deleteConversationMutation(conversationId, {
+        onSuccess: () => {
+          // Invalidate to refetch fresh data from server
+          queryClient.invalidateQueries({
+            queryKey: chatSidebarKeys.sidebar(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: folderConversationsKeys.all,
+          });
+        },
+        onError: () => {
+          // Rollback sidebar data
+          if (previousSidebarData) {
+            queryClient.setQueryData(
+              chatSidebarKeys.sidebar(),
+              previousSidebarData,
+            );
+          }
+          // Rollback folder conversations
+          Object.entries(previousFolderSnapshots).forEach(
+            ([folderId, data]) => {
+              if (data) {
+                queryClient.setQueryData(
+                  folderConversationsKeys.folder(folderId),
+                  data,
+                );
+              }
+            },
+          );
+        },
+      });
+    },
+    [deleteConversationMutation, queryClient, folderIds],
   );
 
   // Stable callback for moving conversations to folders
@@ -341,7 +436,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       // Create folder - move will happen in onSuccess callback
       createFolderMutation(folderName, {
         onSuccess: (data) => {
-          setNewlyCreatedFolderId(data.folderId);
           // Execute the move (add to the new folder)
           addToFolderMutation({
             conversationId,
@@ -355,6 +449,63 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     [createFolderMutation, addToFolderMutation],
   );
 
+  // Refs for stable callback access to latest data (avoids unstable deps)
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const folderItemsRef = useRef(folderItems);
+  folderItemsRef.current = folderItems;
+
+  // Stable helper: find item across unfiled + folder items
+  const findItemById = useCallback(
+    (itemId: string): SidebarItem | undefined => {
+      const unfiled = itemsRef.current.find((i) => i.id === itemId);
+      if (unfiled) return unfiled;
+      for (const list of Object.values(folderItemsRef.current)) {
+        const found = list.find((i) => i.id === itemId);
+        if (found) return found;
+      }
+      return undefined;
+    },
+    [],
+  );
+
+  // Move item to a folder (auto-resolves source folder from current data)
+  const moveItemToFolder = useCallback(
+    (itemId: string, targetFolderId: string) => {
+      const item = findItemById(itemId);
+      moveConversationToFolder(itemId, targetFolderId, item?.folderId);
+    },
+    [findItemById, moveConversationToFolder],
+  );
+
+  // Create a new folder and move item to it (auto-resolves source folder)
+  const createFolderForItem = useCallback(
+    (itemId: string, folderName: string) => {
+      const item = findItemById(itemId);
+      createFolderAndMoveItem(itemId, folderName, item?.folderId);
+    },
+    [findItemById, createFolderAndMoveItem],
+  );
+
+  // Remove item from its current folder (auto-resolves source folder)
+  const removeItemFromFolder = useCallback(
+    (itemId: string) => {
+      const item = findItemById(itemId);
+      moveConversationToFolder(itemId, null, item?.folderId);
+    },
+    [findItemById, moveConversationToFolder],
+  );
+
+  // Pin/unpin a folder by updating its displayOrder
+  // Pin: displayOrder = 0, Unpin: displayOrder = 100 (default)
+  const pinFolder = useCallback(
+    (folderId: string, isPinned: boolean) => {
+      const displayOrder = isPinned ? 0 : 100;
+      pinFolderMutation({ folderId, displayOrder });
+    },
+    [pinFolderMutation],
+  );
+
   return {
     folders,
     items,
@@ -362,7 +513,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     folderLoadingMap,
     unfiledConversations,
     pagination,
-    isLoading,
+    isLoading: isQueryLoading,
     isError,
     error: error as Error | null,
     refetch,
@@ -374,11 +525,13 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     isRenamingFolder,
     expandedFolderIds,
     toggleFolderExpanded,
-    moveConversationToFolder,
     isMovingConversation,
-    newlyCreatedFolderId,
-    clearNewlyCreatedFolderId,
-    createFolderAndMoveItem,
+    deleteConversation,
+    isDeletingConversation,
+    pinFolder,
+    moveItemToFolder,
+    createFolderForItem,
+    removeItemFromFolder,
   };
 }
 

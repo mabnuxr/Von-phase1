@@ -11,6 +11,7 @@ export interface ChatFolder {
   name: string;
   folderType: "chat" | "dashboard";
   conversationCount: number;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 }

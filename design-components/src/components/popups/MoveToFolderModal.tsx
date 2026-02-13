@@ -74,7 +74,7 @@ const CREATE_NEW_FOLDER_ID = '__create_new__';
 // ============================================================================
 
 /**
- * MoveToFolderModal - A slide-up modal for moving items to folders
+ * MoveToFolderModal - A centered modal for adding items to folders
  *
  * Features:
  * - Dropdown to select existing folder
@@ -168,43 +168,38 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop blur overlay */}
+          {/* Backdrop overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-[99] bg-white/10 backdrop-blur-[2px]"
+            className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-[2px]"
             onClick={handleCancel}
           />
 
-          {/* Modal panel */}
+          {/* Centered modal */}
           <motion.div
-            initial={{ opacity: 0, y: '100%' }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: '100%' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute bottom-0 left-0 right-0 h-[90%] z-[100] px-2 flex flex-col rounded-t-2xl border border-gray-100 shadow-[0_-8px_30px_-8px_rgba(255,237,213,0.8)]"
+            className="fixed z-[9999] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw] bg-white rounded-xl border border-gray-100 shadow-xl flex flex-col"
           >
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white to-gray-50 rounded-t-2xl overflow-hidden" />
-
             {/* Content */}
-            <div className="relative z-10 flex flex-col flex-1 py-3 overflow-hidden">
+            <div className="flex flex-col p-5">
               {/* Header */}
-              <div className="flex flex-row items-center gap-2 px-1 pb-3 mb-3 border-b border-gray-100">
+              <div className="flex flex-row items-center gap-2 pb-4 mb-4 border-b border-gray-100">
                 <FolderSimple size={18} weight="duotone" className="text-gray-700" />
-                <div>
-                  <h3 className="font-medium text-gray-900">Move to Folder</h3>
-                </div>
+                <h3 className="font-medium text-gray-900">Add to Folder</h3>
               </div>
 
               {/* Form Content */}
-              <div className="px-1 space-y-4 flex-1">
+              <div className="space-y-4">
                 {/* Item being moved */}
                 <div className="text-sm text-gray-600">
-                  Moving <span className="font-medium text-gray-900">"{itemName}"</span> (
-                  {itemTypeLabel})
+                  Adding <span className="font-medium text-gray-900">"{itemName}"</span> (
+                  {itemTypeLabel}) to a folder
                 </div>
 
                 {/* Folder Selection */}
@@ -277,17 +272,17 @@ export const MoveToFolderModal: React.FC<MoveToFolderModalProps> = ({
               </div>
 
               {/* Action buttons */}
-              <div className="flex flex-col items-center gap-2 pt-3 mt-auto border-t border-gray-100 px-1">
+              <div className="flex items-center gap-2 pt-4 mt-4 border-t border-gray-100">
+                <SecondaryButton onClick={handleCancel} fullWidth>
+                  Cancel
+                </SecondaryButton>
                 <PrimaryButton
                   onClick={handleConfirm}
                   fullWidth
                   disabled={!selectedFolderId && availableFolders.length > 0}
                 >
-                  {isCreatingNew ? 'Create Folder & Move' : 'Move'}
+                  {isCreatingNew ? 'Create Folder & Add' : 'Add'}
                 </PrimaryButton>
-                <SecondaryButton onClick={handleCancel} fullWidth>
-                  Cancel
-                </SecondaryButton>
               </div>
             </div>
           </motion.div>
