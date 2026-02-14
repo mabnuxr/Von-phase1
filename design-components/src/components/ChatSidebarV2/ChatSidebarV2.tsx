@@ -387,7 +387,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                               folder={folder}
                               isEditing={editingFolderId === folder.id}
                               isMenuOpen={
-                                folderContextMenu.isOpen && folderContextMenu.folder?.id === folder.id
+                                folderContextMenu.isOpen &&
+                                folderContextMenu.folder?.id === folder.id
                               }
                               onClick={() => onFolderToggle?.(folder.id, !folder.isExpanded)}
                               onContextMenu={(e) => handleFolderContextMenu(e, folder)}
