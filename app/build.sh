@@ -71,12 +71,12 @@ if ! PUSHER_CLUSTER=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314
   exit 1
 fi
 
-if ! DD_APPLICATION_ID=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/datadog/rum-application-id" --region us-west-2 --query 'Parameter.Value' --output text); then
+if ! DD_APPLICATION_ID=$(aws ssm get-parameter --with-decryption --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/datadog/rum-application-id" --region us-west-2 --query 'Parameter.Value' --output text); then
   echo "ERROR: Failed to fetch DD_APPLICATION_ID from AWS SSM"
   exit 1
 fi
 
-if ! DD_CLIENT_TOKEN=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/datadog/rum-client-token" --region us-west-2 --query 'Parameter.Value' --output text); then
+if ! DD_CLIENT_TOKEN=$(aws ssm get-parameter --with-decryption --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/datadog/rum-client-token" --region us-west-2 --query 'Parameter.Value' --output text); then
   echo "ERROR: Failed to fetch DD_CLIENT_TOKEN from AWS SSM"
   exit 1
 fi
