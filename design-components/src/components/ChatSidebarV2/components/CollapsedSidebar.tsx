@@ -17,6 +17,7 @@ export interface CollapsedSidebarProps {
   folders?: Folder[];
   folderItems?: FolderItemsMap;
   selectedItemId?: string;
+  isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onNewChatClick?: () => void;
   onItemClick?: (id: string) => void;
@@ -64,6 +65,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   folders = [],
   folderItems = {},
   selectedItemId,
+  isCollapsed,
   onToggleCollapse,
   onNewChatClick,
   onItemClick,
@@ -107,8 +109,9 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   return (
     <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
-      <div className="flex flex-col items-center px-1 pb-3 border-b border-gray-100 mb-2">
+      <div className="flex flex-col items-start pb-2 border-b border-gray-100 mb-2">
         <TertiaryIconButton
+          size="large"
           icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
           onClick={onToggleCollapse}
           title="Expand sidebar"
@@ -116,8 +119,8 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
       </div>
 
       {/* Collapsed Menu */}
-      <div className="flex-1 px-1">
-        <div className="flex flex-col items-center gap-2">
+      <div className="flex-1">
+        <div className="flex flex-col items-start gap-2">
           {/* New Chat Button */}
           <button
             className="flex items-center justify-center w-8 h-8 rounded-lg border border-transparent cursor-pointer transition-all duration-150 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs"
@@ -295,11 +298,11 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
 
       {/* User Profile Section - Collapsed */}
       {(userName || userEmail || avatarLabel) && (
-        <div className="mt-auto pt-2 px-1 border-t border-gray-100">
+        <div className="mt-auto pt-2 pb-1 border-t border-gray-100">
           <button
             ref={avatarButtonRef}
             onClick={onAvatarClick}
-            className="w-full flex items-center justify-center py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            className="flex items-center justify-center w-8 py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             title={userName || userEmail}
           >
             <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
@@ -319,20 +322,22 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
         </div>
       )}
 
-      {/* Profile Popover */}
-      <ProfilePopover
-        isOpen={isProfileOpen}
-        onClose={onCloseProfile}
-        userName={userName}
-        userEmail={userEmail}
-        avatarSrc={avatarSrc}
-        avatarLabel={avatarLabel}
-        position={popoverPosition}
-        onProfileClick={onProfileClick}
-        onSettingsClick={onSettingsClick}
-        onHelpClick={onHelpClick}
-        onSignOutClick={onSignOutClick}
-      />
+      {/* Profile Popover — only render when collapsed to avoid duplicate with ProfileSection's popover */}
+      {isCollapsed && (
+        <ProfilePopover
+          isOpen={isProfileOpen}
+          onClose={onCloseProfile}
+          userName={userName}
+          userEmail={userEmail}
+          avatarSrc={avatarSrc}
+          avatarLabel={avatarLabel}
+          position={popoverPosition}
+          onProfileClick={onProfileClick}
+          onSettingsClick={onSettingsClick}
+          onHelpClick={onHelpClick}
+          onSignOutClick={onSignOutClick}
+        />
+      )}
     </div>
   );
 };

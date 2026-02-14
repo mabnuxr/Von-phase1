@@ -182,7 +182,7 @@ export const MoreOptionsButton: React.FC<MoreOptionsButtonProps> = ({
       title={title}
       className={`
         p-0.5 rounded-md transition-opacity duration-150 cursor-pointer z-10
-        text-white bg-gray-800 hover:bg-gray-700
+        text-gray-900 bg-gray-300 hover:bg-gray-400
         disabled:opacity-50 disabled:cursor-not-allowed
         ${visible ? 'opacity-100' : 'opacity-0'}
         ${className}
@@ -235,7 +235,7 @@ export const PrimaryIconButton: React.FC<PrimaryIconButtonProps> = ({
       title={title}
       className={`
         ${sizeClasses[size]} flex items-center justify-center rounded-lg
-        text-white bg-gray-800 hover:bg-gray-700
+        text-gray-900 bg-gray-300 hover:bg-gray-400
         transition-all duration-150 cursor-pointer
         disabled:opacity-50 disabled:cursor-not-allowed
         ${visible ? 'opacity-100' : 'opacity-0'}
