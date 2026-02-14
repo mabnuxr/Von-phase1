@@ -74,6 +74,9 @@ export const Chat: React.FC<ChatProps> = ({
   controlledAttachments,
   onRemoveAttachment,
   onFilesSelected,
+  // File error props
+  fileErrorMessage,
+  onDismissFileError,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -293,6 +296,8 @@ export const Chat: React.FC<ChatProps> = ({
             controlledAttachments={controlledAttachments}
             onRemoveAttachment={onRemoveAttachment}
             onFilesSelected={onFilesSelected}
+            fileErrorMessage={fileErrorMessage}
+            onDismissFileError={onDismissFileError}
           />
         ) : (
           /* Standard message rendering */
@@ -379,6 +384,8 @@ export const Chat: React.FC<ChatProps> = ({
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}
+          fileErrorMessage={fileErrorMessage}
+          onDismissFileError={onDismissFileError}
         />
       )}
     </div>

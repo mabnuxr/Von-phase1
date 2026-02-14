@@ -144,22 +144,33 @@ export function useFileUploadPipeline(
    */
   const addFiles = useCallback(
     (rawFiles: File[]) => {
-      // Validate total file count (existing + new)
+      // 1. Validate per-file size first (most intuitive — user just picked this file)
+      for (const file of rawFiles) {
+        if (file.size > FILE_SIZE_LIMIT_BYTES) {
+          onErrorRef.current?.(
+            "file_too_large",
+            `"${file.name}" exceeds the 5 MB limit. Please choose a smaller file.`,
+          );
+          return;
+        }
+      }
+
+      // 2. Validate total file count (existing + new)
       if (attachments.length + rawFiles.length > MAX_FILES) {
         onErrorRef.current?.(
           "max_files_exceeded",
-          `You can attach up to ${MAX_FILES} files at a time`,
+          `Up to ${MAX_FILES} files can be attached per message.`,
         );
         return;
       }
 
-      // Validate total size (existing + new must be under 10MB)
+      // 3. Validate aggregate size (existing + new must be under 10MB)
       const existingSize = attachments.reduce((sum, a) => sum + a.size, 0);
       const newSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
       if (existingSize + newSize > AGGREGATE_SIZE_LIMIT_BYTES) {
         onErrorRef.current?.(
           "aggregate_size_exceeded",
-          "Total size of attached files exceeds 10MB",
+          "Total attachment size cannot exceed 10 MB. Try removing a file or using a smaller one.",
         );
         return;
       }
@@ -167,15 +178,6 @@ export function useFileUploadPipeline(
       const newAttachments: FileAttachment[] = [];
 
       for (const file of rawFiles) {
-        // Validate per-file size
-        if (file.size > FILE_SIZE_LIMIT_BYTES) {
-          onErrorRef.current?.(
-            "file_too_large",
-            `${file.name} exceeds 5MB limit`,
-          );
-          continue;
-        }
-
         // Validate type
         const fileInfo = getFileInfo(file.type);
         if (!fileInfo) {
@@ -183,7 +185,7 @@ export function useFileUploadPipeline(
           if (!ext) {
             onErrorRef.current?.(
               "unsupported_type",
-              `${file.name} is not a supported file type`,
+              `"${file.name}" is not a supported format. Accepted types: PDF, Excel, CSV, Word, PowerPoint, images, and text files.`,
             );
             continue;
           }
@@ -196,7 +198,7 @@ export function useFileUploadPipeline(
         if (isDuplicate) {
           onErrorRef.current?.(
             "duplicate_file",
-            `${file.name} is already attached`,
+            `"${file.name}" is already attached.`,
           );
           continue;
         }

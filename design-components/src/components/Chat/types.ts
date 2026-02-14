@@ -1223,6 +1223,16 @@ export interface ChatProps {
   onFileError?: (error: string, message: string) => void;
 
   /**
+   * File validation error message to display inline above the input
+   */
+  fileErrorMessage?: string | null;
+
+  /**
+   * Callback to dismiss the file error toast
+   */
+  onDismissFileError?: () => void;
+
+  /**
    * Enable deep links for Salesforce URLs in artifact pane DataTable
    * When enabled, URLs are rendered as clickable links
    * @default false
