@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { chatSidebarKeys } from "./useChatSidebar";
+import { conversationKeys } from "./useConversations";
 import { folderConversationsKeys } from "./useFolderConversations";
 import type { Conversation } from "../types/conversation";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
@@ -102,6 +103,10 @@ export function useRenameConversation() {
           title,
         );
       }
+      // Invalidate conversation list queries so V1 sidebar and currentConversationTitle stay in sync
+      queryClient.invalidateQueries({
+        queryKey: conversationKeys.lists(),
+      });
     },
     onError: (error, _, context) => {
       console.error("[useRenameConversation] Error:", error);
