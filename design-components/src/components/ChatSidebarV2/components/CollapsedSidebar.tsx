@@ -17,6 +17,7 @@ export interface CollapsedSidebarProps {
   folders?: Folder[];
   folderItems?: FolderItemsMap;
   selectedItemId?: string;
+  isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onNewChatClick?: () => void;
   onItemClick?: (id: string) => void;
@@ -64,6 +65,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   folders = [],
   folderItems = {},
   selectedItemId,
+  isCollapsed,
   onToggleCollapse,
   onNewChatClick,
   onItemClick,
@@ -320,20 +322,22 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
         </div>
       )}
 
-      {/* Profile Popover */}
-      <ProfilePopover
-        isOpen={isProfileOpen}
-        onClose={onCloseProfile}
-        userName={userName}
-        userEmail={userEmail}
-        avatarSrc={avatarSrc}
-        avatarLabel={avatarLabel}
-        position={popoverPosition}
-        onProfileClick={onProfileClick}
-        onSettingsClick={onSettingsClick}
-        onHelpClick={onHelpClick}
-        onSignOutClick={onSignOutClick}
-      />
+      {/* Profile Popover — only render when collapsed to avoid duplicate with ProfileSection's popover */}
+      {isCollapsed && (
+        <ProfilePopover
+          isOpen={isProfileOpen}
+          onClose={onCloseProfile}
+          userName={userName}
+          userEmail={userEmail}
+          avatarSrc={avatarSrc}
+          avatarLabel={avatarLabel}
+          position={popoverPosition}
+          onProfileClick={onProfileClick}
+          onSettingsClick={onSettingsClick}
+          onHelpClick={onHelpClick}
+          onSignOutClick={onSignOutClick}
+        />
+      )}
     </div>
   );
 };

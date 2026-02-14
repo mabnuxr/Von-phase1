@@ -246,6 +246,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           folders={folders}
           folderItems={folderItems}
           selectedItemId={selectedItemId}
+          isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
           onNewChatClick={onNewChatClick}
           onItemClick={onItemClick}
