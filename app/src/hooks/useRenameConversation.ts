@@ -36,6 +36,9 @@ export function useRenameConversation() {
     onMutate: async ({ conversationId, title }) => {
       // Cancel any outgoing refetches to prevent overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
+      await queryClient.cancelQueries({
+        queryKey: folderConversationsKeys.all,
+      });
 
       // Snapshot previous value (InfiniteData shape from useInfiniteQuery)
       const previousSidebarData = queryClient.getQueryData<
