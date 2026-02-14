@@ -6,11 +6,11 @@ export function initDatadog() {
   const applicationId = import.meta.env.VITE_DD_APPLICATION_ID;
   const clientToken = import.meta.env.VITE_DD_CLIENT_TOKEN;
   const site = import.meta.env.VITE_DD_SITE || "us5.datadoghq.com";
-  const environment = import.meta.env.VITE_APP_ENV || "development";
+  const environment = import.meta.env.VITE_APP_ENV ?? "production";
   const version = import.meta.env.VITE_BUILD_VERSION;
 
   // Skip in development or if credentials not configured
-  if (environment === "development" || !applicationId || !clientToken) {
+  if (import.meta.env.DEV || !applicationId || !clientToken) {
     return;
   }
 
