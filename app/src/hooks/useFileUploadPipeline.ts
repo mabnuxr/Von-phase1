@@ -185,7 +185,7 @@ export function useFileUploadPipeline(
           if (!ext) {
             onErrorRef.current?.(
               "unsupported_type",
-              `"${file.name}" is not a supported format. Accepted types: PDF, Excel, CSV, Word, PowerPoint, images, and text files.`,
+              `"${file.name}" is not a supported format. Accepted types: PDF, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX, TXT, MD, JSON, PNG, JPG, and GIF.`,
             );
             continue;
           }

@@ -90,7 +90,7 @@ function validateFile(
       return {
         valid: false,
         error: 'unsupported_type',
-        message: `"${file.name}" is not a supported format. Accepted types: PDF, Excel, CSV, Word, PowerPoint, images, and text files.`,
+        message: `"${file.name}" is not a supported format. Accepted types: PDF, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX, TXT, MD, JSON, PNG, JPG, and GIF.`,
       };
     }
   }
