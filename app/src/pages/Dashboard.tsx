@@ -130,6 +130,7 @@ const Dashboard = () => {
     renameFolder,
     toggleFolderExpanded,
     deleteConversation,
+    renameConversation,
     pinFolder,
     moveItemToFolder,
     createFolderForItem,
@@ -1077,6 +1078,7 @@ const Dashboard = () => {
                 onItemClick={handleChatClick}
                 onNewChatClick={handleNewChatClick}
                 onNewChatFolderClick={createFolder}
+                onRenameItem={renameConversation}
                 onDeleteItem={handleDeleteItem}
                 onDeleteFolder={deleteFolder}
                 onRenameFolder={renameFolder}
