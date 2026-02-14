@@ -22,6 +22,11 @@ export const config = {
   scalekitLogoutPath: import.meta.env.VITE_SCALEKIT_AUTH_LOGOUT_PATH as string,
   scalekitRedirectUri: `${location.origin}/callback`,
 
+  // Datadog RUM configuration
+  datadogApplicationId: import.meta.env.VITE_DD_APPLICATION_ID as string,
+  datadogClientToken: import.meta.env.VITE_DD_CLIENT_TOKEN as string,
+  datadogSite: (import.meta.env.VITE_DD_SITE as string) || "us5.datadoghq.com",
+
   // OAuth standard parameters
   oauthResponseType: "code",
   oauthScope: "openid profile offline_access email",
