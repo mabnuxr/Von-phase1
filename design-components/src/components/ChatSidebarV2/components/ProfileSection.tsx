@@ -48,11 +48,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
   return (
     <>
-      <div className="mt-auto pt-2 px-1 border-t border-gray-100">
+      <div className="mt-auto pt-2 border-t border-gray-100">
         <button
           ref={avatarButtonRef}
           onClick={onAvatarClick}
-          className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          className="w-full flex items-center gap-2.5 pl-0.5 pr-2 py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
         >
           {/* Avatar */}
           <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
