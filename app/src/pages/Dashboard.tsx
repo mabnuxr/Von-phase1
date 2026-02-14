@@ -27,6 +27,7 @@ import { useConversationInit } from "../hooks/useConversationInit";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
+import { useToast } from "../hooks/useToast";
 import {
   transformConversationsToChatItems,
   handleToolApproval,
@@ -79,6 +80,7 @@ import {
 } from "../config/constants";
 
 const Dashboard = () => {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
@@ -1084,9 +1086,18 @@ const Dashboard = () => {
                 onRenameFolder={renameFolder}
                 onPinFolder={pinFolder}
                 onFolderToggle={toggleFolderExpanded}
-                onMoveItemToFolder={moveItemToFolder}
-                onCreateFolderAndMoveItem={createFolderForItem}
-                onRemoveItemFromFolder={removeItemFromFolder}
+                onMoveItemToFolder={(itemId, targetFolderId) => {
+                  moveItemToFolder(itemId, targetFolderId);
+                  showToast({ message: "Chat added to folder", variant: "info" });
+                }}
+                onCreateFolderAndMoveItem={(itemId, folderName) => {
+                  createFolderForItem(itemId, folderName);
+                  showToast({ message: "Chat added to new folder", variant: "info" });
+                }}
+                onRemoveItemFromFolder={(itemId) => {
+                  removeItemFromFolder(itemId);
+                  showToast({ message: "Chat removed from folder", variant: "info" });
+                }}
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
                 loadMoreRef={loadMoreConversationsV2Ref}
