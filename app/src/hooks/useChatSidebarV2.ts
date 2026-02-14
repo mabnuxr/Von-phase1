@@ -8,6 +8,7 @@ import { useChatSidebar, chatSidebarKeys } from "./useChatSidebar";
 import { useCreateFolder } from "./useCreateFolder";
 import { useDeleteFolder } from "./useDeleteFolder";
 import { useRenameFolder } from "./useRenameFolder";
+import { useRenameConversation } from "./useRenameConversation";
 import { usePinFolder } from "./usePinFolder";
 import {
   useAddConversationToFolder,
@@ -104,6 +105,10 @@ export interface UseChatSidebarV2Return {
   isDeletingConversation: boolean;
   /** Pin/unpin a folder (placeholder — backend TBD) */
   pinFolder: (folderId: string, isPinned: boolean) => void;
+  /** Rename a conversation */
+  renameConversation: (conversationId: string, newName: string) => void;
+  /** Whether conversation renaming is in progress */
+  isRenamingConversation: boolean;
   /** Move an item to a folder (auto-resolves source folder) */
   moveItemToFolder: (itemId: string, targetFolderId: string) => void;
   /** Create a new folder and move an item to it (auto-resolves source folder) */
@@ -225,6 +230,12 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
   const { mutate: renameFolderMutation, isPending: isRenamingFolder } =
     useRenameFolder();
 
+  // Conversation rename mutation
+  const {
+    mutate: renameConversationMutation,
+    isPending: isRenamingConversation,
+  } = useRenameConversation();
+
   // Folder pin/unpin mutation
   const { mutate: pinFolderMutation } = usePinFolder();
 
@@ -314,6 +325,14 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       renameFolderMutation({ folderId, name: newName });
     },
     [renameFolderMutation],
+  );
+
+  // Stable callback for renaming conversations
+  const renameConversation = useCallback(
+    (conversationId: string, newName: string) => {
+      renameConversationMutation({ conversationId, title: newName });
+    },
+    [renameConversationMutation],
   );
 
   // Stable callback for deleting a conversation with optimistic updates
@@ -551,6 +570,8 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     isDeletingFolder,
     renameFolder,
     isRenamingFolder,
+    renameConversation,
+    isRenamingConversation,
     expandedFolderIds,
     toggleFolderExpanded,
     isMovingConversation,
