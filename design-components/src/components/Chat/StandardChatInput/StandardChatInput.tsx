@@ -378,8 +378,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             </div>
           )}
 
-          {/* Toast + input wrapper — no gap so toast sits flush on the input */}
-          <div className="flex flex-col">
+          {/* Toast + input wrapper */}
+          <div className="flex flex-col gap-1.5">
             {/* File validation error toast — inline above input */}
             <FileErrorToast
               isVisible={!!fileErrorMessage}
@@ -445,6 +445,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             placeholder={placeholder}
                             disabled={disabled && !isStreaming}
                             editorRef={editorRef}
+                            onPasteFiles={(files) => {
+                              if (isAttachmentsControlled) {
+                                onFilesSelected?.(files);
+                              } else {
+                                addFiles(files);
+                              }
+                            }}
                           />
                         </div>
                       </div>
@@ -585,6 +592,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                         placeholder={placeholder}
                         disabled={disabled && !isStreaming}
                         editorRef={editorRef}
+                        onPasteFiles={(files) => {
+                          if (isAttachmentsControlled) {
+                            onFilesSelected?.(files);
+                          } else {
+                            addFiles(files);
+                          }
+                        }}
                       />
                     </div>
 

@@ -14,6 +14,7 @@ export interface RichTextInputProps {
   value: string;
   onChange: (value: string) => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  onPaste?: (e: React.ClipboardEvent) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -65,7 +66,16 @@ function renderHighlightedText(text: string): React.ReactNode[] {
 
 export const RichTextInput = forwardRef<RichTextInputRef, RichTextInputProps>(
   (
-    { value, onChange, onKeyDown, placeholder = '', disabled = false, className = '', style },
+    {
+      value,
+      onChange,
+      onKeyDown,
+      onPaste,
+      placeholder = '',
+      disabled = false,
+      className = '',
+      style,
+    },
     ref
   ) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -120,6 +130,7 @@ export const RichTextInput = forwardRef<RichTextInputRef, RichTextInputProps>(
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onPaste={onPaste}
           placeholder={placeholder}
           disabled={disabled}
           className={`resize-none ${className}`}
@@ -152,6 +163,7 @@ export const RichTextInput = forwardRef<RichTextInputRef, RichTextInputProps>(
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onPaste={onPaste}
           onScroll={handleScroll}
           placeholder={placeholder}
           disabled={disabled}
