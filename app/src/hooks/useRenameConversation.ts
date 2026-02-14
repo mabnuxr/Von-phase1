@@ -6,6 +6,7 @@ import {
 import { conversationsService } from "../services";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { folderConversationsKeys } from "./useFolderConversations";
+import type { Conversation } from "../types/conversation";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
 
 /**
@@ -24,7 +25,7 @@ export function useRenameConversation() {
   const queryClient = useQueryClient();
 
   return useMutation<
-    void,
+    Conversation,
     Error,
     RenameConversationParams,
     { previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined }
