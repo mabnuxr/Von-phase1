@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService, ApiError, type User } from "../services";
 
@@ -35,7 +35,7 @@ export function useUser(): UseUserResult {
   const [isConnectionError, setIsConnectionError] = useState(false);
   const navigate = useNavigate();
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -79,12 +79,11 @@ export function useUser(): UseUserResult {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchUser]);
 
   return {
     user,
