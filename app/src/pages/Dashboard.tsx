@@ -1088,15 +1088,24 @@ const Dashboard = () => {
                 onFolderToggle={toggleFolderExpanded}
                 onMoveItemToFolder={(itemId, targetFolderId) => {
                   moveItemToFolder(itemId, targetFolderId);
-                  showToast({ message: "Chat added to folder", variant: "info" });
+                  showToast({
+                    message: "Chat added to folder",
+                    variant: "info",
+                  });
                 }}
                 onCreateFolderAndMoveItem={(itemId, folderName) => {
                   createFolderForItem(itemId, folderName);
-                  showToast({ message: "Chat added to new folder", variant: "info" });
+                  showToast({
+                    message: "Chat added to new folder",
+                    variant: "info",
+                  });
                 }}
                 onRemoveItemFromFolder={(itemId) => {
                   removeItemFromFolder(itemId);
-                  showToast({ message: "Chat removed from folder", variant: "info" });
+                  showToast({
+                    message: "Chat removed from folder",
+                    variant: "info",
+                  });
                 }}
                 isCollapsed={isSidebarCollapsed}
                 onToggleCollapse={toggleSidebar}
