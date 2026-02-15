@@ -25,6 +25,7 @@ import type {
   FolderConversationsResponse,
 } from "../types/chatSidebar";
 import type { Folder, SidebarItem } from "@vonlabs/design-components";
+import { useToast } from "./useToast";
 
 /**
  * Transform API conversations to ChatSidebarV2 SidebarItem format
@@ -131,6 +132,7 @@ export interface UseChatSidebarV2Return {
  * ```
  */
 export function useChatSidebarV2(): UseChatSidebarV2Return {
+  const { showToast } = useToast();
   const {
     data: infiniteData,
     isLoading: isQueryLoading,
@@ -444,21 +446,46 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       if (targetFolderId === null) {
         // Remove from folder (move to root)
         if (sourceFolderId) {
-          removeFromFolderMutation({
-            conversationId,
-            sourceFolderId,
-          });
+          removeFromFolderMutation(
+            { conversationId, sourceFolderId },
+            {
+              onSuccess: () => {
+                showToast({
+                  message: "Chat removed from folder",
+                  variant: "success",
+                });
+              },
+              onError: () => {
+                showToast({
+                  message: "Failed to remove chat from folder",
+                  variant: "error",
+                });
+              },
+            },
+          );
         }
       } else {
         // Add to target folder
-        addToFolderMutation({
-          conversationId,
-          targetFolderId,
-          sourceFolderId,
-        });
+        addToFolderMutation(
+          { conversationId, targetFolderId, sourceFolderId },
+          {
+            onSuccess: () => {
+              showToast({
+                message: "Chat added to folder",
+                variant: "success",
+              });
+            },
+            onError: () => {
+              showToast({
+                message: "Failed to add chat to folder",
+                variant: "error",
+              });
+            },
+          },
+        );
       }
     },
-    [addToFolderMutation, removeFromFolderMutation],
+    [addToFolderMutation, removeFromFolderMutation, showToast],
   );
 
   // Create folder and move item in one flow
@@ -477,11 +504,27 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       createFolderMutation(folderName, {
         onSuccess: (data) => {
           // Execute the move (add to the new folder)
-          addToFolderMutation({
-            conversationId,
-            targetFolderId: data.folderId,
-            sourceFolderId: sourceFolderId ?? undefined,
-          });
+          addToFolderMutation(
+            {
+              conversationId,
+              targetFolderId: data.folderId,
+              sourceFolderId: sourceFolderId ?? undefined,
+            },
+            {
+              onSuccess: () => {
+                showToast({
+                  message: "Chat added to new folder",
+                  variant: "success",
+                });
+              },
+              onError: () => {
+                showToast({
+                  message: "Failed to add chat to folder",
+                  variant: "error",
+                });
+              },
+            },
+          );
           setPendingMoveItem(null);
         },
       });

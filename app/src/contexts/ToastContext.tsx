@@ -45,7 +45,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
       {children}
 
       {/* Toast container - fixed below TopBar, right side */}
-      <div className="fixed top-[68px] right-4 z-[9999] flex flex-col gap-2">
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}
