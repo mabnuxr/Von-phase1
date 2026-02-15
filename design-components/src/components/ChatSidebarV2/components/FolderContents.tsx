@@ -11,7 +11,7 @@ export interface FolderContentsProps {
   menuOpenItemId?: string | null;
   editingItemId?: string | null;
   onItemClick: (id: string) => void;
-  onItemContextMenu: (e: React.MouseEvent, item: SidebarItem) => void;
+  onItemContextMenu?: (e: React.MouseEvent, item: SidebarItem) => void;
   onSaveEdit?: (item: SidebarItem, newName: string) => void;
   onCancelEdit?: () => void;
 }
@@ -73,7 +73,7 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
                   item={item}
                   isSelected={item.id === selectedItemId}
                   onClick={() => onItemClick(item.id)}
-                  onContextMenu={(e) => onItemContextMenu(e, item)}
+                  onContextMenu={onItemContextMenu ? (e) => onItemContextMenu(e, item) : undefined}
                   isMenuOpen={menuOpenItemId === item.id}
                   isEditing={editingItemId === item.id}
                   onSaveEdit={(newName) => onSaveEdit?.(item, newName)}

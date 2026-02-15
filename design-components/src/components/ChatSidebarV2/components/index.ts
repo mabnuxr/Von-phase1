@@ -7,6 +7,9 @@ export type { FolderRowProps } from './FolderRow';
 export { FolderContents } from './FolderContents';
 export type { FolderContentsProps } from './FolderContents';
 
+export { FolderList } from './FolderList';
+export type { FolderListProps } from './FolderList';
+
 export { SectionHeader } from './SectionHeader';
 export type { SectionHeaderProps } from './SectionHeader';
 
