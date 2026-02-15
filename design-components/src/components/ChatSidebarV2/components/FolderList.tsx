@@ -105,11 +105,7 @@ export const FolderList: React.FC<FolderListProps> = ({
       {/* Inline new folder input — full mode only */}
       {!minimal && isCreatingFolder && (
         <div className="flex items-center gap-2 px-2 h-8 rounded-xl bg-gray-50">
-          <FolderSimpleIcon
-            size={16}
-            weight="regular"
-            className="text-gray-800 flex-shrink-0"
-          />
+          <FolderSimpleIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />
           <input
             ref={newFolderInputRef}
             type="text"
@@ -146,15 +142,9 @@ export const FolderList: React.FC<FolderListProps> = ({
                 folderContextMenu?.folder?.id === folder.id
               }
               onClick={() => onFolderToggle?.(folder.id, !folder.isExpanded)}
-              onContextMenu={
-                minimal ? undefined : (e) => onFolderContextMenu?.(e, folder)
-              }
-              onPinFolder={
-                minimal ? undefined : () => onPinFolder?.(folder)
-              }
-              onSaveEdit={
-                minimal ? undefined : (newName) => onSaveFolderRename?.(folder, newName)
-              }
+              onContextMenu={minimal ? undefined : (e) => onFolderContextMenu?.(e, folder)}
+              onPinFolder={minimal ? undefined : () => onPinFolder?.(folder)}
+              onSaveEdit={minimal ? undefined : (newName) => onSaveFolderRename?.(folder, newName)}
               onCancelEdit={minimal ? undefined : onCancelFolderRename}
             />
             <FolderContents
@@ -162,11 +152,9 @@ export const FolderList: React.FC<FolderListProps> = ({
               isLoading={isFolderLoading}
               items={folderItemsList}
               selectedItemId={selectedItemId}
-              menuOpenItemId={
-                !minimal && contextMenu?.isOpen ? contextMenu.item?.id : null
-              }
+              menuOpenItemId={!minimal && contextMenu?.isOpen ? contextMenu.item?.id : null}
               editingItemId={
-                !minimal && editingItemFolderId === folder.id ? editingItemId ?? null : null
+                !minimal && editingItemFolderId === folder.id ? (editingItemId ?? null) : null
               }
               onItemClick={(id) => onItemClick?.(id)}
               onItemContextMenu={minimal ? undefined : onItemContextMenu}
