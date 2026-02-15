@@ -7,7 +7,7 @@ export interface ConversationItemProps {
   item: SidebarItem;
   isSelected: boolean;
   onClick: () => void;
-  onContextMenu: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   isMenuOpen?: boolean;
   isEditing?: boolean;
   onSaveEdit?: (newName: string) => void;
@@ -37,7 +37,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [editValue, setEditValue] = useState(item.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  const showButton = (isHovered || isMenuOpen) && !isEditing;
+  const showButton = !!onContextMenu && (isHovered || isMenuOpen) && !isEditing;
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -110,7 +110,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           {/* More options button - shows on hover or when menu is open */}
           <PrimaryIconButton
             icon={<DotsThreeIcon size={16} weight="bold" />}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu(e)}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu?.(e)}
             visible={showButton}
             size="small"
             className="absolute right-1"

@@ -37,8 +37,9 @@ export const FolderRow: React.FC<FolderRowProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [editValue, setEditValue] = useState(folder.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  const showButton = (isHovered || isMenuOpen) && !isEditing;
-  const showPinButton = (folder.isPinned || isHovered) && !isEditing;
+  const hasActions = !!(onContextMenu || onPinFolder);
+  const showButton = hasActions && (isHovered || isMenuOpen) && !isEditing;
+  const showPinButton = hasActions && (folder.isPinned || isHovered) && !isEditing;
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -105,7 +106,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
         )}
       </div>
 
-      {!isEditing && (
+      {!isEditing && hasActions && (
         <div className="flex items-center gap-0.5 flex-shrink-0 h-6">
           {/* Pin button: always rendered, uses opacity to avoid layout shifts */}
           <button
