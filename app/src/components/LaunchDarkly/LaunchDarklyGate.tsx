@@ -21,7 +21,10 @@ interface LaunchDarklyGateProps {
  * </LaunchDarklyGate>
  * ```
  */
-export function LaunchDarklyGate({ fallback, children }: LaunchDarklyGateProps) {
+export function LaunchDarklyGate({
+  fallback,
+  children,
+}: LaunchDarklyGateProps) {
   const isIdentified = useContext(LaunchDarklyIdentityContext);
 
   if (!isIdentified) {
