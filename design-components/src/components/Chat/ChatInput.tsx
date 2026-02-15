@@ -263,6 +263,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     [isStreaming, disableSubmit, handleSend]
   );
 
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      if (!enableFileUpload) return;
+      const files = Array.from(e.clipboardData.files);
+      if (files.length > 0) {
+        e.preventDefault();
+        addFiles(files);
+      }
+    },
+    [enableFileUpload, addFiles]
+  );
+
   const handleFileInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files.length > 0) {
@@ -358,6 +370,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   value={message}
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
                   className="flex-1 w-0 min-w-0 outline-none bg-transparent text-sm placeholder-gray-400 disabled:cursor-not-allowed settings-scrollbar"
@@ -375,6 +388,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   value={message}
                   onChange={(e) => handleChange(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={placeholder}
                   disabled={disabled && !isStreaming}
                   autoFocus={autoFocus}

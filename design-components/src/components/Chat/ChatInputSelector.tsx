@@ -73,6 +73,10 @@ export interface ChatInputSelectorProps {
   onRemoveAttachment?: (id: string) => void;
   /** Callback when files are selected in controlled mode */
   onFilesSelected?: (files: File[]) => void;
+  /** File validation error message to display above the input */
+  fileErrorMessage?: string | null;
+  /** Callback to dismiss the file error toast */
+  onDismissFileError?: () => void;
 }
 
 /**
@@ -108,6 +112,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       attachments: controlledAttachments,
       onRemoveAttachment,
       onFilesSelected,
+      fileErrorMessage,
+      onDismissFileError,
     },
     ref
   ) => {
@@ -138,6 +144,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         attachments: controlledAttachments,
         onRemoveAttachment,
         onFilesSelected,
+        fileErrorMessage,
+        onDismissFileError,
       };
 
       if (enableCommands) {

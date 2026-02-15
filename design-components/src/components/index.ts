@@ -82,9 +82,12 @@ export type { FilePreviewModalProps } from './Chat/FileAttachment';
 export {
   getFileInfo,
   generateFileId,
+  FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_MB,
   AGGREGATE_SIZE_LIMIT_BYTES,
+  SUPPORTED_FILE_TYPES,
 } from './Chat/FileAttachment';
 export { FileErrorToast } from './Chat/FileAttachment';
 export type { FileErrorToastProps } from './Chat/FileAttachment';

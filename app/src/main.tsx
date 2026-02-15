@@ -9,10 +9,12 @@ import { QueryProvider } from "./providers/QueryProvider";
 import { LaunchDarklyProvider } from "./providers/LaunchDarklyProvider";
 import { ToastProvider } from "./contexts/ToastContext";
 import { initSentry } from "./lib/sentry";
+import { initDatadog } from "./lib/datadog";
 import { SentryErrorFallback } from "./components/SentryErrorFallback";
 
-// Initialize Sentry BEFORE React renders
+// Initialize observability BEFORE React renders
 initSentry();
+initDatadog();
 
 const isSentryEnabled = import.meta.env.VITE_APP_ENV !== "development";
 

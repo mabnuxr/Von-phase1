@@ -25,6 +25,7 @@ import type {
   FolderConversationsResponse,
 } from "../types/chatSidebar";
 import type { Folder, SidebarItem } from "@vonlabs/design-components";
+import { useToast } from "./useToast";
 
 /**
  * Transform API conversations to ChatSidebarV2 SidebarItem format
@@ -131,6 +132,7 @@ export interface UseChatSidebarV2Return {
  * ```
  */
 export function useChatSidebarV2(): UseChatSidebarV2Return {
+  const { showToast } = useToast();
   const {
     data: infiniteData,
     isLoading: isQueryLoading,
@@ -514,6 +516,10 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     (itemId: string, targetFolderId: string) => {
       const item = findItemById(itemId);
       moveConversationToFolder(itemId, targetFolderId, item?.folderId);
+      showToast({
+        message: "Chat added to folder",
+        variant: "info",
+      });
     },
     [findItemById, moveConversationToFolder],
   );
@@ -523,6 +529,10 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     (itemId: string, folderName: string) => {
       const item = findItemById(itemId);
       createFolderAndMoveItem(itemId, folderName, item?.folderId);
+      showToast({
+        message: "Chat added to new folder",
+        variant: "info",
+      });
     },
     [findItemById, createFolderAndMoveItem],
   );
@@ -532,6 +542,10 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     (itemId: string) => {
       const item = findItemById(itemId);
       moveConversationToFolder(itemId, null, item?.folderId);
+      showToast({
+        message: "Chat removed from folder",
+        variant: "info",
+      });
     },
     [findItemById, moveConversationToFolder],
   );

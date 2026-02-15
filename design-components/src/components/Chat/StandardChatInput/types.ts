@@ -261,4 +261,18 @@ export interface StandardChatInputProps {
    * @default 'auto'
    */
   lockedAgentMode?: AgentMode;
+
+  // ============================================================================
+  // File Error Props
+  // ============================================================================
+
+  /**
+   * File validation error message to display above the input
+   */
+  fileErrorMessage?: string | null;
+
+  /**
+   * Callback to dismiss the file error toast
+   */
+  onDismissFileError?: () => void;
 }

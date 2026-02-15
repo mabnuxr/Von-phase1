@@ -59,21 +59,21 @@ function validateFile(
   maxFiles: number,
   maxSizeBytes: number
 ): FileValidationResult {
-  // Check max files
-  if (currentCount >= maxFiles) {
-    return {
-      valid: false,
-      error: 'max_files_exceeded',
-      message: `Maximum ${maxFiles} files allowed`,
-    };
-  }
-
   // Check file size
   if (file.size > maxSizeBytes) {
     return {
       valid: false,
       error: 'file_too_large',
-      message: `File too large. Please select a file under ${FILE_SIZE_LIMIT_MB}MB`,
+      message: `"${file.name}" exceeds the ${FILE_SIZE_LIMIT_MB} MB limit. Please choose a smaller file.`,
+    };
+  }
+
+  // Check max files
+  if (currentCount >= maxFiles) {
+    return {
+      valid: false,
+      error: 'max_files_exceeded',
+      message: `Up to ${maxFiles} files can be attached per message.`,
     };
   }
 
@@ -90,7 +90,7 @@ function validateFile(
       return {
         valid: false,
         error: 'unsupported_type',
-        message: `Unsupported file type. Supported formats: PDF, Excel, CSV, Word, PowerPoint, Images, Text`,
+        message: `"${file.name}" is not a supported format. Accepted types: PDF, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX, TXT, MD, JSON, PNG, JPG, and GIF.`,
       };
     }
   }
@@ -103,7 +103,7 @@ function validateFile(
     return {
       valid: false,
       error: 'duplicate_file',
-      message: `File "${file.name}" is already attached`,
+      message: `"${file.name}" is already attached.`,
     };
   }
 

@@ -4,9 +4,12 @@ import {
   type FileCategory,
   getFileInfo,
   generateFileId,
+  FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_MB,
   AGGREGATE_SIZE_LIMIT_BYTES,
+  SUPPORTED_FILE_TYPES,
 } from "@vonlabs/design-components";
 import {
   fileUploadService,
@@ -40,7 +43,7 @@ export interface UseFileUploadPipelineOptions {
  * transitions: pending → uploading → uploaded/error.
  *
  * Enforces limits:
- * - Per-file: 5MB max
+ * - Per-file: 7MB max
  * - Per-batch: 5 files max
  */
 export function useFileUploadPipeline(
@@ -50,6 +53,9 @@ export function useFileUploadPipeline(
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   // Map of attachment ID → MessageFileAttachment (for completed uploads)
   const metadataRef = useRef<Map<string, MessageFileAttachment>>(new Map());
+  const prevConversationIdRef = useRef<string | null>(conversationId);
+  const conversationIdRef = useRef(conversationId);
+  conversationIdRef.current = conversationId;
 
   const onErrorRef = useRef(options?.onError);
   onErrorRef.current = options?.onError;
@@ -109,6 +115,8 @@ export function useFileUploadPipeline(
           category: attachment.category,
           s3Key: presignResponse.s3Key,
         };
+        // Only write metadata if we're still on the same conversation
+        if (conversationIdRef.current !== convId) return;
         metadataRef.current.set(attachment.id, metadata);
 
         setAttachments((prev) =>
@@ -144,22 +152,33 @@ export function useFileUploadPipeline(
    */
   const addFiles = useCallback(
     (rawFiles: File[]) => {
-      // Validate total file count (existing + new)
+      // 1. Validate per-file size first (most intuitive — user just picked this file)
+      for (const file of rawFiles) {
+        if (file.size > FILE_SIZE_LIMIT_BYTES) {
+          onErrorRef.current?.(
+            "file_too_large",
+            `"${file.name}" exceeds the ${FILE_SIZE_LIMIT_MB} MB limit. Please choose a smaller file.`,
+          );
+          return;
+        }
+      }
+
+      // 2. Validate total file count (existing + new)
       if (attachments.length + rawFiles.length > MAX_FILES) {
         onErrorRef.current?.(
           "max_files_exceeded",
-          `You can attach up to ${MAX_FILES} files at a time`,
+          `Up to ${MAX_FILES} files can be attached per message.`,
         );
         return;
       }
 
-      // Validate total size (existing + new must be under 10MB)
+      // 3. Validate aggregate size (existing + new must be under 20MB)
       const existingSize = attachments.reduce((sum, a) => sum + a.size, 0);
       const newSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
       if (existingSize + newSize > AGGREGATE_SIZE_LIMIT_BYTES) {
         onErrorRef.current?.(
           "aggregate_size_exceeded",
-          "Total size of attached files exceeds 10MB",
+          `Total attachment size cannot exceed ${AGGREGATE_SIZE_LIMIT_MB} MB. Try removing a file or using a smaller one.`,
         );
         return;
       }
@@ -167,23 +186,17 @@ export function useFileUploadPipeline(
       const newAttachments: FileAttachment[] = [];
 
       for (const file of rawFiles) {
-        // Validate per-file size
-        if (file.size > FILE_SIZE_LIMIT_BYTES) {
-          onErrorRef.current?.(
-            "file_too_large",
-            `${file.name} exceeds 5MB limit`,
-          );
-          continue;
-        }
-
         // Validate type
         const fileInfo = getFileInfo(file.type);
         if (!fileInfo) {
-          const ext = file.name.split(".").pop()?.toUpperCase();
-          if (!ext) {
+          const ext = file.name.split(".").pop()?.toLowerCase();
+          const supportedExtensions = Object.values(SUPPORTED_FILE_TYPES).map(
+            (t) => t.extension.toLowerCase(),
+          );
+          if (!ext || !supportedExtensions.includes(ext)) {
             onErrorRef.current?.(
               "unsupported_type",
-              `${file.name} is not a supported file type`,
+              `"${file.name}" is not a supported format. Accepted types: PDF, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX, TXT, MD, JSON, PNG, JPG, and GIF.`,
             );
             continue;
           }
@@ -196,7 +209,7 @@ export function useFileUploadPipeline(
         if (isDuplicate) {
           onErrorRef.current?.(
             "duplicate_file",
-            `${file.name} is already attached`,
+            `"${file.name}" is already attached.`,
           );
           continue;
         }
@@ -244,6 +257,27 @@ export function useFileUploadPipeline(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]); // Only react to conversationId changes to avoid double uploads
+
+  // Clear file state when switching between conversations.
+  // null → ID is skipped (new conversation being assigned, keep files).
+  // ID_A → ID_B means user switched — clear stale attachments and S3 metadata.
+  useEffect(() => {
+    const prev = prevConversationIdRef.current;
+    prevConversationIdRef.current = conversationId;
+
+    if (prev !== null && prev !== conversationId) {
+      setAttachments((currentAttachments) => {
+        for (const a of currentAttachments) {
+          if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+          if (a.uploadId && prev) {
+            fileUploadService.deleteFile(prev, a.uploadId).catch(() => {});
+          }
+        }
+        return [];
+      });
+      metadataRef.current.clear();
+    }
+  }, [conversationId]);
 
   /**
    * Remove a file. If it was uploaded, delete metadata on backend (fire-and-forget).
