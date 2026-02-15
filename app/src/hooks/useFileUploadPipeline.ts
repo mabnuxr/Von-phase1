@@ -7,6 +7,7 @@ import {
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
   AGGREGATE_SIZE_LIMIT_BYTES,
+  SUPPORTED_FILE_TYPES,
 } from "@vonlabs/design-components";
 import {
   fileUploadService,
@@ -181,8 +182,11 @@ export function useFileUploadPipeline(
         // Validate type
         const fileInfo = getFileInfo(file.type);
         if (!fileInfo) {
-          const ext = file.name.split(".").pop()?.toUpperCase();
-          if (!ext) {
+          const ext = file.name.split(".").pop()?.toLowerCase();
+          const supportedExtensions = Object.values(SUPPORTED_FILE_TYPES).map(
+            (t) => t.extension.toLowerCase(),
+          );
+          if (!ext || !supportedExtensions.includes(ext)) {
             onErrorRef.current?.(
               "unsupported_type",
               `"${file.name}" is not a supported format. Accepted types: PDF, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX, TXT, MD, JSON, PNG, JPG, and GIF.`,
