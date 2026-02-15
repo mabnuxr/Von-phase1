@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { useCreateConversation, conversationKeys } from './useConversations';
-import { chatSidebarKeys } from './useChatSidebar';
-import { generateConversationTitle } from '../lib/conversationUtils';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCreateConversation, conversationKeys } from "./useConversations";
+import { chatSidebarKeys } from "./useChatSidebar";
+import { generateConversationTitle } from "../lib/conversationUtils";
 
 interface UseNewChatParams {
   currentConversationId: string | null;
@@ -29,11 +29,16 @@ export function useNewChat({
   const { mutateAsync: createConversation } = useCreateConversation();
 
   const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const [pendingConversationId, setPendingConversationId] = useState<string | null>(null);
+  const [pendingConversationId, setPendingConversationId] = useState<
+    string | null
+  >(null);
 
   // Clear loading states when we arrive at the target conversation
   useEffect(() => {
-    if (pendingConversationId && currentConversationId === pendingConversationId) {
+    if (
+      pendingConversationId &&
+      currentConversationId === pendingConversationId
+    ) {
       setIsCreatingChat(false);
       setPendingConversationId(null);
     }
@@ -45,17 +50,19 @@ export function useNewChat({
       const title = generateConversationTitle();
       const response = await createConversation({
         title,
-        agentVersion: isAgentV2Flag ? 'v2' : 'v1',
+        agentVersion: isAgentV2Flag ? "v2" : "v1",
       });
       const newId = response.conversation.conversationId;
       setPendingConversationId(newId);
       await queryClient.refetchQueries({
-        queryKey: isSidebarV2 ? chatSidebarKeys.sidebar() : conversationKeys.lists(),
+        queryKey: isSidebarV2
+          ? chatSidebarKeys.sidebar()
+          : conversationKeys.lists(),
       });
       navigate(`/chat/${newId}`);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('[useNewChat] Failed to create conversation:', error);
+        console.error("[useNewChat] Failed to create conversation:", error);
       }
       setIsCreatingChat(false);
       setPendingConversationId(null);
