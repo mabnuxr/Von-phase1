@@ -94,6 +94,11 @@ export function useSendMessage() {
       const optimisticId = generateOptimisticId();
       const optimisticAssistantId = generateOptimisticId();
 
+      // Bug 5 fix: Track pending optimistic IDs so Pusher event handlers
+      // know to merge instead of inserting duplicates
+      useChatStore.getState().addPendingOptimisticId(optimisticId);
+      useChatStore.getState().addPendingOptimisticId(optimisticAssistantId);
+
       // Create optimistic user message
       const optimisticUserMessage: MessageWithStreaming = {
         id: optimisticId,
@@ -165,6 +170,10 @@ export function useSendMessage() {
             response.messageId,
           );
 
+        // Clean up pending optimistic IDs now that real IDs are assigned
+        useChatStore.getState().removePendingOptimisticId(context.optimisticId);
+        useChatStore.getState().removePendingOptimisticId(context.optimisticAssistantId);
+
         if (import.meta.env.DEV) {
           console.log(
             "[useSendMessage] Updated optimistic ID to real ID:",
@@ -193,14 +202,18 @@ export function useSendMessage() {
 
         if (filteredMessages.length !== conversationMessages.length) {
           setMessages(context.conversationId, filteredMessages);
+        }
 
-          if (import.meta.env.DEV) {
-            console.log(
-              "[useSendMessage] Removed optimistic messages due to error:",
-              context.optimisticId,
-              context.optimisticAssistantId,
-            );
-          }
+        // Clean up pending optimistic IDs
+        useChatStore.getState().removePendingOptimisticId(context.optimisticId);
+        useChatStore.getState().removePendingOptimisticId(context.optimisticAssistantId);
+
+        if (import.meta.env.DEV) {
+          console.log(
+            "[useSendMessage] Removed optimistic messages due to error:",
+            context.optimisticId,
+            context.optimisticAssistantId,
+          );
         }
       }
     },
