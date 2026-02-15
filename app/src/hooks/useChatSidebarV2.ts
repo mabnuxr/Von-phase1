@@ -532,51 +532,43 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     [createFolderMutation, addToFolderMutation],
   );
 
-  // Refs for stable callback access to latest data (avoids unstable deps)
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
+  // Ref for stable callback access to latest data (avoids unstable deps)
   const folderItemsRef = useRef(folderItems);
   folderItemsRef.current = folderItems;
 
-  // Stable helper: find item across unfiled + folder items
-  const findItemById = useCallback(
-    (itemId: string): SidebarItem | undefined => {
-      const unfiled = itemsRef.current.find((i) => i.id === itemId);
-      if (unfiled) return unfiled;
-      for (const list of Object.values(folderItemsRef.current)) {
-        const found = list.find((i) => i.id === itemId);
-        if (found) return found;
-      }
-      return undefined;
-    },
-    [],
-  );
+  // Stable helper: find which folder an item belongs to (by map key)
+  const findFolderIdForItem = useCallback((itemId: string): string | null => {
+    for (const [folderId, list] of Object.entries(folderItemsRef.current)) {
+      if (list.some((i) => i.id === itemId)) return folderId;
+    }
+    return null;
+  }, []);
 
   // Move item to a folder (auto-resolves source folder from current data)
   const moveItemToFolder = useCallback(
     (itemId: string, targetFolderId: string) => {
-      const item = findItemById(itemId);
-      moveConversationToFolder(itemId, targetFolderId, item?.folderId);
+      const sourceFolderId = findFolderIdForItem(itemId);
+      moveConversationToFolder(itemId, targetFolderId, sourceFolderId);
     },
-    [findItemById, moveConversationToFolder],
+    [findFolderIdForItem, moveConversationToFolder],
   );
 
   // Create a new folder and move item to it (auto-resolves source folder)
   const createFolderForItem = useCallback(
     (itemId: string, folderName: string) => {
-      const item = findItemById(itemId);
-      createFolderAndMoveItem(itemId, folderName, item?.folderId);
+      const sourceFolderId = findFolderIdForItem(itemId);
+      createFolderAndMoveItem(itemId, folderName, sourceFolderId);
     },
-    [findItemById, createFolderAndMoveItem],
+    [findFolderIdForItem, createFolderAndMoveItem],
   );
 
   // Remove item from its current folder (auto-resolves source folder)
   const removeItemFromFolder = useCallback(
     (itemId: string) => {
-      const item = findItemById(itemId);
-      moveConversationToFolder(itemId, null, item?.folderId);
+      const folderId = findFolderIdForItem(itemId);
+      moveConversationToFolder(itemId, null, folderId);
     },
-    [findItemById, moveConversationToFolder],
+    [findFolderIdForItem, moveConversationToFolder],
   );
 
   // Pin/unpin a folder by updating its displayOrder
