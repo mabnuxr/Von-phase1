@@ -947,7 +947,10 @@ const Dashboard = () => {
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
 
   // Combined submit check: Salesforce ready, tenant active, and files fully uploaded
-  const canSubmit = isSalesforceReady && !isTenantDisabled && (!hasFileAttachments || allUploaded);
+  const canSubmit =
+    isSalesforceReady &&
+    !isTenantDisabled &&
+    (!hasFileAttachments || allUploaded);
 
   // Handler for when user interacts with disabled input - shakes the appropriate banner
   const handleDisabledInteraction = useCallback(() => {

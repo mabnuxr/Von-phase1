@@ -4,8 +4,10 @@ import {
   type FileCategory,
   getFileInfo,
   generateFileId,
+  FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
+  AGGREGATE_SIZE_LIMIT_MB,
   AGGREGATE_SIZE_LIMIT_BYTES,
   SUPPORTED_FILE_TYPES,
 } from "@vonlabs/design-components";
@@ -41,7 +43,7 @@ export interface UseFileUploadPipelineOptions {
  * transitions: pending → uploading → uploaded/error.
  *
  * Enforces limits:
- * - Per-file: 5MB max
+ * - Per-file: 7MB max
  * - Per-batch: 5 files max
  */
 export function useFileUploadPipeline(
@@ -155,7 +157,7 @@ export function useFileUploadPipeline(
         if (file.size > FILE_SIZE_LIMIT_BYTES) {
           onErrorRef.current?.(
             "file_too_large",
-            `"${file.name}" exceeds the 5 MB limit. Please choose a smaller file.`,
+            `"${file.name}" exceeds the ${FILE_SIZE_LIMIT_MB} MB limit. Please choose a smaller file.`,
           );
           return;
         }
@@ -170,13 +172,13 @@ export function useFileUploadPipeline(
         return;
       }
 
-      // 3. Validate aggregate size (existing + new must be under 10MB)
+      // 3. Validate aggregate size (existing + new must be under 20MB)
       const existingSize = attachments.reduce((sum, a) => sum + a.size, 0);
       const newSize = rawFiles.reduce((sum, f) => sum + f.size, 0);
       if (existingSize + newSize > AGGREGATE_SIZE_LIMIT_BYTES) {
         onErrorRef.current?.(
           "aggregate_size_exceeded",
-          "Total attachment size cannot exceed 10 MB. Try removing a file or using a smaller one.",
+          `Total attachment size cannot exceed ${AGGREGATE_SIZE_LIMIT_MB} MB. Try removing a file or using a smaller one.`,
         );
         return;
       }
