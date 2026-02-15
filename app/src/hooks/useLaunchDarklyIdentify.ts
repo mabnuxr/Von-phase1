@@ -1,17 +1,22 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useLDClient } from "launchdarkly-react-client-sdk";
 import { authService } from "../services";
 
 /**
  * Hook to identify user in LaunchDarkly after login
  * Call this after successful authentication to update the LaunchDarkly context
+ *
+ * Returns `isIdentified` so callers can gate rendering until flags are evaluated
+ * against the real user context.
  */
 export function useLaunchDarklyIdentify() {
   const ldClient = useLDClient();
+  const [isIdentified, setIsIdentified] = useState(false);
 
   const identifyUser = useCallback(async () => {
     if (!ldClient) {
       console.warn("[LaunchDarkly] Client not available for identify");
+      setIsIdentified(true);
       return;
     }
 
@@ -47,8 +52,10 @@ export function useLaunchDarklyIdentify() {
       });
     } catch (error) {
       console.error("[LaunchDarkly] Failed to identify user:", error);
+    } finally {
+      setIsIdentified(true);
     }
   }, [ldClient]);
 
-  return { identifyUser };
+  return { identifyUser, isIdentified };
 }

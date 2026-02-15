@@ -529,7 +529,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
         },
       });
     },
-    [createFolderMutation, addToFolderMutation],
+    [createFolderMutation, addToFolderMutation, showToast],
   );
 
   // Ref for stable callback access to latest data (avoids unstable deps)

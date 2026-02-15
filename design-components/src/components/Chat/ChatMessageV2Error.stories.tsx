@@ -354,7 +354,6 @@ const SimulatedStopStreaming = () => {
  * render instantly with no further animation.
  */
 export const SimulatedStopStreaming_: Story = {
-  name: 'Simulated Stop Streaming',
   args: {
     type: 'assistant',
     content: '',
@@ -577,7 +576,6 @@ const SimulatedFailureDuringTextStreamingRender = () => {
  * thinking process steps preserved (collapsed).
  */
 export const SimulatedFailureDuringTextStreaming: Story = {
-  name: 'Simulated Failure During Text Streaming',
   args: {
     type: 'assistant',
     content: '',
