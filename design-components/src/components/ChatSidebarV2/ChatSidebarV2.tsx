@@ -404,7 +404,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                               items={folderItemsList}
                               selectedItemId={selectedItemId}
                               menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                              editingItemId={editingItemFolderId === folder.id ? editingItemId : null}
+                              editingItemId={
+                                editingItemFolderId === folder.id ? editingItemId : null
+                              }
                               onItemClick={(id) => onItemClick?.(id)}
                               onItemContextMenu={handleContextMenu}
                               onSaveEdit={handleSaveRename}
