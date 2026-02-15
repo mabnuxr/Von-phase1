@@ -189,6 +189,7 @@ const Dashboard = () => {
     uploadPendingFiles,
     clearFiles: clearFileAttachments,
     hasAttachments: hasFileAttachments,
+    allUploaded,
   } = useFileUploadPipeline(currentConversationId, {
     onError: handleFileError,
   });
@@ -945,8 +946,8 @@ const Dashboard = () => {
   // Determine if Salesforce is properly connected
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
 
-  // Combined submit check: both Salesforce must be ready and tenant must be active
-  const canSubmit = isSalesforceReady && !isTenantDisabled;
+  // Combined submit check: Salesforce ready, tenant active, and files fully uploaded
+  const canSubmit = isSalesforceReady && !isTenantDisabled && (!hasFileAttachments || allUploaded);
 
   // Handler for when user interacts with disabled input - shakes the appropriate banner
   const handleDisabledInteraction = useCallback(() => {
