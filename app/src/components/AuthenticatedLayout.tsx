@@ -3,13 +3,15 @@ import { Outlet } from "react-router-dom";
 import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 import { getUserContextFromToken } from "../lib/auth";
 import { identifyDatadogUser } from "../lib/datadog";
+import { LaunchDarklyIdentityContext } from "./LaunchDarklyGate";
 
 /**
- * Layout wrapper for authenticated routes
- * Handles LaunchDarkly and Datadog user identification on mount
+ * Layout wrapper for authenticated routes.
+ * Resolves LaunchDarkly identity and exposes it via context so child routes
+ * can gate their content with `<LaunchDarklyGate fallback={…}>`.
  */
 export function AuthenticatedLayout() {
-  const { identifyUser } = useLaunchDarklyIdentify();
+  const { identifyUser, isIdentified } = useLaunchDarklyIdentify();
 
   useEffect(() => {
     identifyUser();
@@ -25,5 +27,9 @@ export function AuthenticatedLayout() {
     }
   }, [identifyUser]);
 
-  return <Outlet />;
+  return (
+    <LaunchDarklyIdentityContext.Provider value={isIdentified}>
+      <Outlet />
+    </LaunchDarklyIdentityContext.Provider>
+  );
 }

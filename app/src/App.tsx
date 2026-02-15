@@ -7,6 +7,8 @@ import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
+import { LaunchDarklyGate } from "./components/LaunchDarklyGate";
+import { DashboardSkeleton } from "./components/DashboardSkeleton";
 
 export default function App() {
   return (
@@ -21,9 +23,34 @@ export default function App() {
 
         {/* Authenticated routes - wrapped with LaunchDarkly identification */}
         <Route element={<AuthenticatedLayout />}>
-          <Route path="/chat" element={<Dashboard />} />
-          <Route path="/chat/:conversationId" element={<Dashboard />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route
+            path="/chat"
+            element={
+              <LaunchDarklyGate fallback={<DashboardSkeleton />}>
+                <Dashboard />
+              </LaunchDarklyGate>
+            }
+          />
+          <Route
+            path="/chat/:conversationId"
+            element={
+              <LaunchDarklyGate fallback={<DashboardSkeleton />}>
+                <Dashboard />
+              </LaunchDarklyGate>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <LaunchDarklyGate
+                fallback={
+                  <div className="h-screen bg-gray-100 animate-pulse" />
+                }
+              >
+                <Settings />
+              </LaunchDarklyGate>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>
