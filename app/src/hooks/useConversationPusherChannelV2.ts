@@ -234,20 +234,21 @@ export function useConversationPusherChannelV2(
       }
 
       // Step 2: Fetch latest messages from backend (authoritative source)
-      const response =
-        await conversationsService.getConversationMessages(
-          config.conversationId,
-          1,
-          5,
-        );
+      const response = await conversationsService.getConversationMessages(
+        config.conversationId,
+        1,
+        5,
+      );
 
       // Step 3: Find the latest assistant message with events
       const latestAssistantMsg = response.data.find(
-        (m) =>
-          m.role === "assistant" && m.events && m.events.length > 0,
+        (m) => m.role === "assistant" && m.events && m.events.length > 0,
       );
 
-      if (!latestAssistantMsg?.events || latestAssistantMsg.events.length === 0) {
+      if (
+        !latestAssistantMsg?.events ||
+        latestAssistantMsg.events.length === 0
+      ) {
         console.log(
           "[useConversationPusherChannelV2] No events found in backend response",
         );
@@ -310,8 +311,7 @@ export function useConversationPusherChannelV2(
       });
 
       // Step 7: Handle run completion from reconciled events
-      const isTransitionalFinish =
-        hadApprovalPause && !response_ && !stopped;
+      const isTransitionalFinish = hadApprovalPause && !response_ && !stopped;
       if (
         !thinking &&
         !isTransitionalFinish &&
