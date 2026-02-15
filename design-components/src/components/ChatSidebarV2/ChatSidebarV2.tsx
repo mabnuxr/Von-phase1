@@ -5,8 +5,6 @@ import {
   PlusCircleIcon,
   FolderPlusIcon,
   FolderSimpleIcon,
-  CheckIcon,
-  XIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
@@ -360,22 +358,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             placeholder="Folder name..."
                             className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
                           />
-                          <button
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={handleConfirmFolderCreation}
-                            className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-emerald-50 transition-colors cursor-pointer"
-                            title="Create folder"
-                          >
-                            <CheckIcon size={14} weight="bold" className="text-emerald-600" />
-                          </button>
-                          <button
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={handleCancelFolderCreation}
-                            className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-red-50 transition-colors cursor-pointer"
-                            title="Discard"
-                          >
-                            <XIcon size={14} weight="bold" className="text-gray-400" />
-                          </button>
                         </div>
                       )}
 
