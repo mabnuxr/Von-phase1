@@ -51,6 +51,9 @@ export function useFileUploadPipeline(
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   // Map of attachment ID → MessageFileAttachment (for completed uploads)
   const metadataRef = useRef<Map<string, MessageFileAttachment>>(new Map());
+  const prevConversationIdRef = useRef<string | null>(conversationId);
+  const conversationIdRef = useRef(conversationId);
+  conversationIdRef.current = conversationId;
 
   const onErrorRef = useRef(options?.onError);
   onErrorRef.current = options?.onError;
@@ -110,6 +113,8 @@ export function useFileUploadPipeline(
           category: attachment.category,
           s3Key: presignResponse.s3Key,
         };
+        // Only write metadata if we're still on the same conversation
+        if (conversationIdRef.current !== convId) return;
         metadataRef.current.set(attachment.id, metadata);
 
         setAttachments((prev) =>
@@ -250,6 +255,27 @@ export function useFileUploadPipeline(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]); // Only react to conversationId changes to avoid double uploads
+
+  // Clear file state when switching between conversations.
+  // null → ID is skipped (new conversation being assigned, keep files).
+  // ID_A → ID_B means user switched — clear stale attachments and S3 metadata.
+  useEffect(() => {
+    const prev = prevConversationIdRef.current;
+    prevConversationIdRef.current = conversationId;
+
+    if (prev !== null && prev !== conversationId) {
+      setAttachments((currentAttachments) => {
+        for (const a of currentAttachments) {
+          if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+          if (a.uploadId && prev) {
+            fileUploadService.deleteFile(prev, a.uploadId).catch(() => {});
+          }
+        }
+        return [];
+      });
+      metadataRef.current.clear();
+    }
+  }, [conversationId]);
 
   /**
    * Remove a file. If it was uploaded, delete metadata on backend (fire-and-forget).
