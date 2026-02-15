@@ -93,6 +93,8 @@ export interface ChatSidebarProps {
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
+  /** Whether the "New Chat" button should appear in active/selected state */
+  isNewChatActive?: boolean;
 }
 
 // ============================================================================
@@ -137,6 +139,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
+  isNewChatActive = false,
 }) => {
   // Use the sidebar state hook
   const {
@@ -297,13 +300,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
               {/* New Chat Button */}
               <div className="mt-2 mb-3">
-                <div
-                  className="flex items-center gap-1.5 px-1.5 h-8 rounded-xl text-sm text-gray-900 bg-white border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
+                <button
+                  className={`flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isNewChatActive
+                      ? 'bg-gray-50 border-gray-200 shadow-xs'
+                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+                  }`}
                   onClick={onNewChatClick}
+                  type="button"
                 >
                   <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
                   <span className="whitespace-nowrap">New Chat</span>
-                </div>
+                </button>
               </div>
 
               {/* Scrollable Content */}

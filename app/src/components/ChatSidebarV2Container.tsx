@@ -126,6 +126,20 @@ export function ChatSidebarV2Container({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
+  // Show "New Chat" button in active state when the current conversation
+  // has an empty title (filtered out from sidebar items, i.e. no messages yet)
+  const isNewChatActive = useMemo(() => {
+    if (!currentConversationId) return false;
+    // Check if the current conversation appears in unfiled items
+    if (items.some((item) => item.id === currentConversationId)) return false;
+    // Check if it appears in any folder's items
+    for (const folderItemList of Object.values(folderItems)) {
+      if (folderItemList.some((item) => item.id === currentConversationId))
+        return false;
+    }
+    return true;
+  }, [currentConversationId, items, folderItems]);
+
   return (
     <ChatSidebarV2
       items={animatedItems}
@@ -156,6 +170,7 @@ export function ChatSidebarV2Container({
       userEmail={user?.email}
       onSignOutClick={onLogoutClick}
       onSettingsClick={onSettingsClick}
+      isNewChatActive={isNewChatActive}
     />
   );
 }
