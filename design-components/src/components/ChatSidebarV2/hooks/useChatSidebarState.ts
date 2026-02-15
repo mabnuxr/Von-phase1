@@ -89,8 +89,10 @@ export function useChatSidebarState({
     item: null,
   });
 
-  // Item editing
+  // Item editing (track both item ID and folder context to avoid ambiguity
+  // when the same conversation appears in both folder and root sections)
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingItemFolderId, setEditingItemFolderId] = useState<string | null>(null);
 
   // Item delete confirmation
   const [deleteConfirmation, setDeleteConfirmation] = useState<DeleteConfirmationState>({
@@ -230,18 +232,21 @@ export function useChatSidebarState({
 
   const handleStartRename = useCallback((item: SidebarItem) => {
     setEditingItemId(item.id);
+    setEditingItemFolderId(item.folderId ?? null);
   }, []);
 
   const handleSaveRename = useCallback(
     (item: SidebarItem, newName: string) => {
       onRenameItem?.(item.id, newName);
       setEditingItemId(null);
+      setEditingItemFolderId(null);
     },
     [onRenameItem]
   );
 
   const handleCancelRename = useCallback(() => {
     setEditingItemId(null);
+    setEditingItemFolderId(null);
   }, []);
 
   const handleShowDeleteConfirmation = useCallback((item: SidebarItem) => {
@@ -398,6 +403,7 @@ export function useChatSidebarState({
     // State
     contextMenu,
     editingItemId,
+    editingItemFolderId,
     deleteConfirmation,
     folderContextMenu,
     editingFolderId,

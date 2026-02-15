@@ -151,6 +151,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     // State
     contextMenu,
     editingItemId,
+    editingItemFolderId,
     deleteConfirmation,
     folderContextMenu,
     editingFolderId,
@@ -403,7 +404,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                               items={folderItemsList}
                               selectedItemId={selectedItemId}
                               menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                              editingItemId={editingItemId}
+                              editingItemId={editingItemFolderId === folder.id ? editingItemId : null}
                               onItemClick={(id) => onItemClick?.(id)}
                               onItemContextMenu={handleContextMenu}
                               onSaveEdit={handleSaveRename}
@@ -429,7 +430,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                           onClick={() => onItemClick?.(item.id)}
                           onContextMenu={(e) => handleContextMenu(e, item)}
                           isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                          isEditing={editingItemId === item.id}
+                          isEditing={editingItemId === item.id && editingItemFolderId === null}
                           onSaveEdit={(newName) => handleSaveRename(item, newName)}
                           onCancelEdit={handleCancelRename}
                         />
