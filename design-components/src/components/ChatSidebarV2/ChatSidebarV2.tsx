@@ -266,6 +266,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
+          isNewChatActive={isNewChatActive}
         />
       </div>
 

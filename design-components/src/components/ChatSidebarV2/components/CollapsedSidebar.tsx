@@ -47,6 +47,8 @@ export interface CollapsedSidebarProps {
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
+  /** Whether the "New Chat" button should appear in active/selected state */
+  isNewChatActive?: boolean;
 }
 
 /**
@@ -88,6 +90,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
+  isNewChatActive = false,
 }) => {
   // Local state for folder expansion in dropdown (doesn't affect main sidebar)
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
@@ -121,7 +124,11 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
         <div className="flex flex-col items-start gap-2">
           {/* New Chat Button */}
           <button
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-transparent cursor-pointer transition-all duration-150 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs"
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border cursor-pointer transition-all duration-150 ${
+              isNewChatActive
+                ? 'bg-gray-50 border-gray-200 shadow-xs'
+                : 'border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+            }`}
             onClick={onNewChatClick}
             title="New Chat"
           >
