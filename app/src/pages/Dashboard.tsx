@@ -2,14 +2,10 @@ import { authService, conversationsService } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
 import { config } from "../config";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  useCreateConversation,
-  conversationKeys,
-} from "../hooks/useConversations";
-import { generateConversationTitle } from "../lib/conversationUtils";
 import useChatStore from "../store/chatStore";
 import { useUser } from "../hooks/useUser";
-import { AvatarMenu } from "../components/AvatarMenu";
+import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
+import { ChatSidebarV2Container } from "../components/ChatSidebarV2Container";
 import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useSendMessage } from "../hooks/useSendMessage";
@@ -17,6 +13,7 @@ import { useFileUploadPipeline } from "../hooks/useFileUploadPipeline";
 import { useStopStreaming } from "../hooks/useStopStreaming";
 import { useStreamTimeout } from "../hooks/useStreamTimeout";
 import { useSidebarState } from "../hooks/useSidebarState";
+import { useNewChat } from "../hooks/useNewChat";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { startProviderLogout } from "../lib/authFlow";
@@ -31,11 +28,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
-import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
-import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import {
-  transformConversationsToChatItems,
   handleToolApproval,
   handleToolRejection,
   transformConversationMessages,
@@ -47,13 +41,8 @@ import {
 } from "../lib/conversationModeUtils";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
-import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
 import { useConversationPusherChannelV2 } from "../hooks/useConversationPusherChannelV2";
-import {
-  UserChannelEvents,
-  type ConversationTitleUpdatedEvent,
-} from "../types/userChannelEvents";
 import type { MessageWithStreaming } from "../types/conversation";
 import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
 import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
@@ -63,8 +52,6 @@ import { SingleArtifactDrawerContainer } from "../components/SingleArtifactDrawe
 import { useArtifactState } from "../hooks/useArtifactState";
 import {
   TopBar,
-  ChatSidebar,
-  ChatSidebarV2,
   Chat,
   ChatSkeleton,
   Banner,
@@ -105,58 +92,10 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // New chat creation mutation
-  const { mutateAsync: createConversation } = useCreateConversation();
-
-  // Track new chat creation state (instant feedback + target tracking)
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const [pendingConversationId, setPendingConversationId] = useState<
-    string | null
-  >(null);
-
-  // Fetch conversations with infinite scroll for sidebar (V1)
-  const {
-    data: infiniteConversationsData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteConversations(CONVERSATIONS_PAGE_LIMIT);
-
-  // Fetch sidebar data with folders (V2)
-  const {
-    folders: sidebarV2Folders,
-    items: sidebarV2Items,
-    folderItems: sidebarV2FolderItems,
-    folderLoadingMap: sidebarV2FolderLoadingMap,
-    isLoading: isSidebarV2Loading,
-    fetchNextPage: fetchNextPageV2,
-    hasNextPage: hasNextPageV2,
-    isFetchingNextPage: isFetchingNextPageV2,
-    createFolder,
-    deleteFolder,
-    renameFolder,
-    toggleFolderExpanded,
-    deleteConversation,
-    renameConversation,
-    pinFolder,
-    moveItemToFolder,
-    createFolderForItem,
-    removeItemFromFolder,
-  } = useChatSidebarV2();
-
-  // Infinite scroll hook for loading more conversations (V1)
-  const loadMoreConversationsRef = useInfiniteScroll({
-    onLoadMore: fetchNextPage,
-    hasMore: !!hasNextPage,
-    isLoading: isFetchingNextPage,
-  });
-
-  // Infinite scroll hook for loading more unfiled conversations (V2)
-  const loadMoreConversationsV2Ref = useInfiniteScroll({
-    onLoadMore: fetchNextPageV2,
-    hasMore: hasNextPageV2,
-    isLoading: isFetchingNextPageV2,
-  });
+  // Fetch conversations for current conversation lookup
+  const { data: infiniteConversationsData } = useInfiniteConversations(
+    CONVERSATIONS_PAGE_LIMIT,
+  );
 
   // Fetch messages for current conversation with infinite scroll
   const {
@@ -211,12 +150,6 @@ const Dashboard = () => {
   // Stop streaming mutation
   const { mutate: stopStreaming } = useStopStreaming();
 
-  // State for title update animation (received from user channel)
-  const [titleUpdate, setTitleUpdate] = useState<{
-    conversationId: string;
-    title: string;
-  } | null>(null);
-
   // Get query client for cache invalidation
   const queryClient = useQueryClient();
 
@@ -248,8 +181,6 @@ const Dashboard = () => {
       : undefined;
 
   // UI state
-  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
-  const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
@@ -278,10 +209,13 @@ const Dashboard = () => {
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
     useSidebarState();
 
-  // Track animated titles for smooth typing effect
-  const [animatedTitles, setAnimatedTitles] = useState<Map<string, string>>(
-    new Map(),
-  );
+  // New chat creation (version-aware sidebar refetch)
+  const { handleNewChatClick, isCreatingChat, pendingConversationId } =
+    useNewChat({
+      currentConversationId,
+      isSidebarV2,
+      isAgentV2Flag: isAgentV2Flag,
+    });
 
   // Message filtering state for ChatGPT-style visual clearing
   const showMessagesFromIndex = useChatStore((state) =>
@@ -370,101 +304,6 @@ const Dashboard = () => {
     isInitializing ||
     (isLoadingMessages && conversationMessages.length === 0);
 
-  // User channel for title updates (same pattern as conversation channel)
-  const { channel: userChannel } = useUserPusherChannel({
-    tenantId: user?.tenantId,
-    userId: user?.id,
-  });
-
-  // Subscribe to title updates on user channel
-  useEffect(() => {
-    if (!userChannel) return;
-
-    const handleTitleUpdate = (data: ConversationTitleUpdatedEvent) => {
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Title update received via user channel:",
-          data.title,
-          "for conversation:",
-          data.conversationId,
-        );
-      }
-
-      // Update state to trigger animation
-      setTitleUpdate({
-        conversationId: data.conversationId,
-        title: data.title,
-      });
-
-      // Invalidate conversations cache to refetch with new title
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    };
-
-    if (import.meta.env.DEV) {
-      console.log(
-        "[Dashboard] Binding to user channel event:",
-        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
-      );
-    }
-
-    userChannel.bind(
-      UserChannelEvents.CONVERSATION_TITLE_UPDATED,
-      handleTitleUpdate,
-    );
-
-    return () => {
-      userChannel.unbind(
-        UserChannelEvents.CONVERSATION_TITLE_UPDATED,
-        handleTitleUpdate,
-      );
-    };
-  }, [userChannel, queryClient]);
-
-  // Handle title updates with typing animation
-  useEffect(() => {
-    if (!titleUpdate) return;
-
-    const { conversationId, title } = titleUpdate;
-
-    // Use interval for typing animation instead of recursive setTimeout
-    let currentIndex = 0;
-    const targetTitle = title;
-    let clearTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const interval = setInterval(() => {
-      if (currentIndex <= targetTitle.length) {
-        const partial = targetTitle.substring(0, currentIndex);
-        setAnimatedTitles((prev) => {
-          const newMap = new Map(prev);
-          newMap.set(conversationId, partial);
-          return newMap;
-        });
-        currentIndex++;
-      } else {
-        // Animation complete
-        clearInterval(interval);
-
-        // Keep final title for 1 second before clearing
-        clearTimer = setTimeout(() => {
-          setAnimatedTitles((prev) => {
-            const newMap = new Map(prev);
-            newMap.delete(conversationId);
-            return newMap;
-          });
-          setTitleUpdate(null);
-        }, 1000);
-      }
-    }, 30);
-
-    // CRITICAL: Cleanup interval and timer on unmount or dependency change
-    return () => {
-      clearInterval(interval);
-      if (clearTimer) {
-        clearTimeout(clearTimer);
-      }
-    };
-  }, [titleUpdate]);
-
   // Show/hide connection banner based on connection error state
   useEffect(() => {
     if (isConnectionError) {
@@ -478,12 +317,6 @@ const Dashboard = () => {
       console.log("[Dashboard] Retrying connection...");
     }
     await refetch();
-  };
-
-  // Handle avatar click
-  const handleAvatarClick = (rect: DOMRect) => {
-    setAvatarRect(rect);
-    setIsAvatarMenuOpen(true);
   };
 
   // Handle Settings click
@@ -563,58 +396,6 @@ const Dashboard = () => {
     setCurrentConversationId,
     resetShowMessagesFromIndex,
   ]);
-
-  // Clear loading states when we arrive at the target conversation
-  useEffect(() => {
-    if (
-      pendingConversationId &&
-      currentConversationId === pendingConversationId
-    ) {
-      setIsCreatingChat(false);
-      setPendingConversationId(null);
-    }
-  }, [currentConversationId, pendingConversationId]);
-
-  // Chat handlers
-  const handleChatClick = useCallback(
-    (conversationId: string) => {
-      navigate(`/chat/${conversationId}`);
-    },
-    [navigate],
-  );
-
-  const handleDeleteItem = useCallback(
-    (id: string) => {
-      deleteConversation(id);
-      if (id === currentConversationId) {
-        navigate("/chat");
-      }
-    },
-    [deleteConversation, currentConversationId, navigate],
-  );
-
-  const handleNewChatClick = async () => {
-    setIsCreatingChat(true); // Instant skeleton
-    try {
-      const title = generateConversationTitle();
-      const response = await createConversation({
-        title,
-        agentVersion: isAgentV2Flag ? "v2" : "v1",
-      });
-      const newId = response.conversation.conversationId;
-      setPendingConversationId(newId); // Track target
-      await queryClient.refetchQueries({
-        queryKey: conversationKeys.lists(),
-      });
-      navigate(`/chat/${newId}`);
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("[Dashboard] Failed to create conversation:", error);
-      }
-      setIsCreatingChat(false);
-      setPendingConversationId(null);
-    }
-  };
 
   const handleSendMessage = async (
     content: string,
@@ -787,21 +568,6 @@ const Dashboard = () => {
       onTimeout: handleStreamTimeout,
       onForceComplete: handleForceComplete,
     },
-  );
-
-  // Compute avatar props from user data
-  const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
-  const avatarSrc =
-    typeof user?.avatarUrl === "string" ? user.avatarUrl : undefined;
-  const displayName = user
-    ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
-    : undefined;
-
-  // Transform conversations for ChatSidebar - use conversationId (UUID) as primary identifier
-  // Filter out conversations with empty titles (not yet named by LLM)
-  const chatItems = useMemo(
-    () => transformConversationsToChatItems(allConversations, animatedTitles),
-    [allConversations, animatedTitles],
   );
 
   // Handle convert to dashboard action
@@ -1063,17 +829,6 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Avatar Menu Dropdown */}
-          <AvatarMenu
-            userName={displayName}
-            userEmail={user?.email}
-            isOpen={isAvatarMenuOpen}
-            onClose={() => setIsAvatarMenuOpen(false)}
-            onSettingsClick={handleSettingsClick}
-            onLogoutClick={handleLogoutClick}
-            triggerRect={avatarRect}
-          />
-
           {/* Two-Pane Layout with Rounded Corners */}
           <div
             className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
@@ -1084,53 +839,23 @@ const Dashboard = () => {
               style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
             >
               {isSidebarV2 ? (
-                <ChatSidebarV2
-                  items={sidebarV2Items}
-                  folders={sidebarV2Folders}
-                  folderItems={sidebarV2FolderItems}
-                  folderLoadingMap={sidebarV2FolderLoadingMap}
-                  isLoading={isSidebarV2Loading}
-                  selectedItemId={currentConversationId || undefined}
-                  onItemClick={handleChatClick}
+                <ChatSidebarV2Container
+                  currentConversationId={currentConversationId}
+                  user={user}
                   onNewChatClick={handleNewChatClick}
-                  onNewChatFolderClick={createFolder}
-                  onRenameItem={renameConversation}
-                  onDeleteItem={handleDeleteItem}
-                  onDeleteFolder={deleteFolder}
-                  onRenameFolder={renameFolder}
-                  onPinFolder={pinFolder}
-                  onFolderToggle={toggleFolderExpanded}
-                  onMoveItemToFolder={moveItemToFolder}
-                  onCreateFolderAndMoveItem={createFolderForItem}
-                  onRemoveItemFromFolder={removeItemFromFolder}
                   isCollapsed={isSidebarCollapsed}
                   onToggleCollapse={toggleSidebar}
-                  loadMoreRef={loadMoreConversationsV2Ref}
-                  isFetchingMore={isFetchingNextPageV2}
-                  avatarSrc={avatarSrc}
-                  avatarLabel={avatarLabel}
-                  userName={displayName}
-                  userEmail={user?.email}
-                  onSignOutClick={handleLogoutClick}
                   onSettingsClick={handleSettingsClick}
+                  onLogoutClick={handleLogoutClick}
                 />
               ) : (
-                <ChatSidebar
-                  chatItems={chatItems}
-                  selectedChatId={currentConversationId || undefined}
-                  onChatClick={handleChatClick}
-                  searchPlaceholder="Search conversations..."
+                <ChatSidebarV1Container
+                  currentConversationId={currentConversationId}
+                  user={user}
                   isCollapsed={isSidebarCollapsed}
                   onToggleCollapse={toggleSidebar}
-                  loadMoreRef={loadMoreConversationsRef}
-                  isFetchingMore={isFetchingNextPage}
-                  hasNextPage={!!hasNextPage}
-                  onLoadMore={fetchNextPage}
-                  avatarSrc={avatarSrc}
-                  avatarLabel={avatarLabel}
-                  userName={displayName}
-                  userEmail={user?.email}
-                  onAvatarClick={handleAvatarClick}
+                  onSettingsClick={handleSettingsClick}
+                  onLogoutClick={handleLogoutClick}
                 />
               )}
             </div>

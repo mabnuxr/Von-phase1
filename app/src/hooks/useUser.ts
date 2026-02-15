@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { authService, ApiError, type User } from "../services";
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { authService, ApiError, type User } from '../services';
 
 interface UseUserResult {
   user: User | null;
@@ -35,7 +35,7 @@ export function useUser(): UseUserResult {
   const [isConnectionError, setIsConnectionError] = useState(false);
   const navigate = useNavigate();
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -45,7 +45,7 @@ export function useUser(): UseUserResult {
       setUser(userData);
 
       if (import.meta.env.DEV) {
-        console.log("[useUser] User data fetched successfully:", userData);
+        console.log('[useUser] User data fetched successfully:', userData);
       }
     } catch (err) {
       const error = err as Error;
@@ -54,37 +54,36 @@ export function useUser(): UseUserResult {
       // Detect connection errors (network failures, timeouts, etc.)
       const isNetworkError =
         (err instanceof ApiError && err.statusCode === 0) ||
-        error.message.toLowerCase().includes("failed to fetch") ||
-        error.message.toLowerCase().includes("network") ||
-        error.message.toLowerCase().includes("timeout") ||
-        error.name === "TypeError";
+        error.message.toLowerCase().includes('failed to fetch') ||
+        error.message.toLowerCase().includes('network') ||
+        error.message.toLowerCase().includes('timeout') ||
+        error.name === 'TypeError';
 
       setIsConnectionError(isNetworkError);
 
       // Handle 401 Unauthorized - redirect to login
       if (err instanceof ApiError && err.statusCode === 401) {
         if (import.meta.env.DEV) {
-          console.error("[useUser] Unauthorized, redirecting to login");
+          console.error('[useUser] Unauthorized, redirecting to login');
         }
-        navigate("/", { replace: true });
+        navigate('/', { replace: true });
       } else if (isNetworkError) {
         if (import.meta.env.DEV) {
-          console.error("[useUser] Connection error:", error);
+          console.error('[useUser] Connection error:', error);
         }
       } else {
         if (import.meta.env.DEV) {
-          console.error("[useUser] Failed to fetch user:", error);
+          console.error('[useUser] Failed to fetch user:', error);
         }
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchUser]);
 
   return {
     user,
