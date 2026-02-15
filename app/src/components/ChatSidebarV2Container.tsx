@@ -76,6 +76,7 @@ export function ChatSidebarV2Container({
     moveItemToFolder,
     createFolderForItem,
     removeItemFromFolder,
+    unfiledConversations,
   } = useChatSidebarV2();
 
   // Title animation (shared with V1)
@@ -126,6 +127,30 @@ export function ChatSidebarV2Container({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
+  // Show "New Chat" button in active state when the current conversation
+  // is definitively an untitled chat (exists in raw data with empty title).
+  // We cannot assume "not found" means "new" because items/folderItems only
+  // cover fetched pages and expanded folders — a conversation in a collapsed
+  // folder or unfetched page would be absent without being untitled.
+  const isNewChatActive = useMemo(() => {
+    if (!currentConversationId) return false;
+    // Already visible in the sidebar — not a new/untitled chat
+    if (items.some((item) => item.id === currentConversationId)) return false;
+    for (const folderItemList of Object.values(folderItems)) {
+      if (folderItemList.some((item) => item.id === currentConversationId))
+        return false;
+    }
+    // Definitive check: the conversation exists in raw unfiled data with an
+    // empty title (these are filtered out of `items` but still present in the
+    // pre-filter list). If the conversation isn't in raw data at all, it could
+    // live in a collapsed folder or unfetched page — default to false.
+    return unfiledConversations.some(
+      (conv) =>
+        conv.conversationId === currentConversationId &&
+        (!conv.title || conv.title.trim() === ""),
+    );
+  }, [currentConversationId, items, folderItems, unfiledConversations]);
+
   return (
     <ChatSidebarV2
       items={animatedItems}
@@ -156,6 +181,7 @@ export function ChatSidebarV2Container({
       userEmail={user?.email}
       onSignOutClick={onLogoutClick}
       onSettingsClick={onSettingsClick}
+      isNewChatActive={isNewChatActive}
     />
   );
 }

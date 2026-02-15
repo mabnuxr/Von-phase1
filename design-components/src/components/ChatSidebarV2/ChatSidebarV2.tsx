@@ -93,6 +93,8 @@ export interface ChatSidebarProps {
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
+  /** Whether the "New Chat" button should appear in active/selected state */
+  isNewChatActive?: boolean;
 }
 
 // ============================================================================
@@ -137,6 +139,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
+  isNewChatActive = false,
 }) => {
   // Use the sidebar state hook
   const {
@@ -277,9 +280,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             transition={{ duration: 0.2 }}
             className="absolute top-0 bottom-0 left-0 w-60 bg-white"
           >
-            <div className="relative px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
+            <div className="relative pl-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
               {/* Logo Row */}
-              <div className="flex items-center justify-between mb-3 px-2">
+              <div className="flex items-center justify-between mb-3 px-2 pr-4">
                 <img
                   src={VON_COMBINATION_MARK_URL}
                   alt="Von logo"
@@ -296,18 +299,23 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </div>
 
               {/* New Chat Button */}
-              <div className="mt-2 mb-3">
-                <div
-                  className="flex items-center gap-1.5 px-1.5 h-8 rounded-xl text-sm text-gray-900 bg-white border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
+              <div className="mt-2 mb-3 pr-2">
+                <button
+                  className={`flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isNewChatActive
+                      ? 'bg-gray-50 border-gray-200 shadow-xs'
+                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+                  }`}
                   onClick={onNewChatClick}
+                  type="button"
                 >
                   <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
                   <span className="whitespace-nowrap">New Chat</span>
-                </div>
+                </button>
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 settings-scrollbar">
                 {/* Loading Skeleton */}
                 {isLoading && <ChatSidebarSkeleton />}
 
@@ -359,7 +367,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         const folderItemsList = itemsByFolder[folder.id] || [];
                         const isFolderLoading = folderLoadingMap[folder.id] || false;
                         return (
-                          <div key={folder.id} className="mb-1">
+                          <div key={folder.id}>
                             <FolderRow
                               folder={folder}
                               isEditing={editingFolderId === folder.id}
