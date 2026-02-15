@@ -95,7 +95,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
 
   return (
     <div
-      className={`relative flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0 transition-colors duration-150 ${
+      className={`relative flex items-center gap-2.5 p-2 pr-3 rounded-xl border border-gray-200 bg-white shadow-xs max-w-[240px] flex-shrink-0 transition-colors duration-150 cursor-pointer ${
         isHovered ? 'bg-gray-50/50' : ''
       } ${isLoading ? 'animate-pulse opacity-70' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
@@ -133,7 +133,7 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
             e.stopPropagation();
             onRemove?.(attachment.id);
           }}
-          className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors ml-auto"
+          className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 hover:cursor-pointer transition-colors ml-auto"
           aria-label={`Remove ${attachment.name}`}
         >
           <X size={12} weight="bold" className="text-gray-800" />

@@ -39,8 +39,6 @@ export const SUPPORTED_FILE_TYPES = {
   'image/jpeg': { extension: 'JPG', category: 'image' },
   'image/png': { extension: 'PNG', category: 'image' },
   'image/gif': { extension: 'GIF', category: 'image' },
-  'image/webp': { extension: 'WEBP', category: 'image' },
-  'image/svg+xml': { extension: 'SVG', category: 'image' },
 } as const;
 
 export type SupportedMimeType = keyof typeof SUPPORTED_FILE_TYPES;
@@ -116,11 +114,6 @@ export function getFileInfo(
   const info = SUPPORTED_FILE_TYPES[mimeType as SupportedMimeType];
   if (info) {
     return { extension: info.extension, category: info.category };
-  }
-
-  // Fallback: try to determine from MIME type
-  if (mimeType.startsWith('image/')) {
-    return { extension: mimeType.split('/')[1].toUpperCase(), category: 'image' };
   }
 
   return null;

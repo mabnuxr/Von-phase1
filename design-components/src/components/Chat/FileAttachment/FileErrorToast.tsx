@@ -1,13 +1,12 @@
 /**
  * FileErrorToast component
- * Toast notification shown above the chat input when file validation fails.
- * Positioned similarly to CommandDuplicateToast — right above the input area.
- * Uses amber/gold color scheme with a warning icon.
+ * Inline toast shown above the chat input when file validation fails.
+ * Designed to be rendered inside the chat input wrapper (not fixed-position).
  */
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Warning, X } from '@phosphor-icons/react';
+import { WarningCircle, X } from '@phosphor-icons/react';
 
 export interface FileErrorToastProps {
   /** Whether the toast is visible */
@@ -27,23 +26,23 @@ export const FileErrorToast: React.FC<FileErrorToastProps> = ({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
-          className="fixed top-[60px] right-3 w-80 z-[9999]"
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="w-full"
         >
-          <div className="bg-amber-50 border border-amber-200 text-sm px-4 py-3 rounded-xl shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Warning size={16} weight="fill" className="text-amber-600 flex-shrink-0" />
-              <span className="text-amber-800 font-medium">{message}</span>
-            </div>
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-amber-200 bg-amber-50">
+            <WarningCircle size={16} weight="fill" className="text-amber-500 flex-shrink-0" />
+            <span className="text-[13px] font-medium text-amber-700 truncate min-w-0 flex-1">
+              {message}
+            </span>
             <button
               onClick={onDismiss}
-              className="text-amber-400 hover:text-amber-600 ml-3 cursor-pointer flex-shrink-0"
+              className="text-amber-300 hover:text-amber-500 transition-colors cursor-pointer flex-shrink-0 p-0.5 rounded-md hover:bg-amber-100"
               aria-label="Dismiss"
             >
-              <X size={14} />
+              <X size={12} weight="bold" />
             </button>
           </div>
         </motion.div>

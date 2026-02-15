@@ -113,6 +113,14 @@ export interface ChatEmptyStateProps {
    * Callback when files are selected (controlled mode)
    */
   onFilesSelected?: (files: File[]) => void;
+  /**
+   * File validation error message to display above the input
+   */
+  fileErrorMessage?: string | null;
+  /**
+   * Callback to dismiss the file error toast
+   */
+  onDismissFileError?: () => void;
 }
 
 /**
@@ -158,6 +166,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   controlledAttachments,
   onRemoveAttachment,
   onFilesSelected,
+  fileErrorMessage,
+  onDismissFileError,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -359,6 +369,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}
+          fileErrorMessage={fileErrorMessage}
+          onDismissFileError={onDismissFileError}
         />
       </motion.div>
 

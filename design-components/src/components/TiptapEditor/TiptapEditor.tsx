@@ -45,6 +45,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   placeholder = 'Type a message...',
   disabled = false,
   editorRef,
+  onPasteFiles,
 }) => {
   const editor = useEditor({
     extensions: [
@@ -127,6 +128,15 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     editorProps: {
       attributes: {
         class: 'tiptap-editor',
+      },
+      handlePaste: (_view, event) => {
+        const files = Array.from(event.clipboardData?.files || []);
+        if (files.length > 0) {
+          event.preventDefault();
+          onPasteFiles?.(files);
+          return true;
+        }
+        return false;
       },
       handleKeyDown: (view, event) => {
         // Handle Enter key for submission (Shift+Enter is handled by CustomListItem extension)

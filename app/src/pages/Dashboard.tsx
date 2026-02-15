@@ -70,7 +70,6 @@ import {
   Banner,
   DashboardCanvas,
   FilePreviewModal,
-  FileErrorToast,
 } from "@vonlabs/design-components";
 import type {
   AgentMode,
@@ -1230,17 +1229,12 @@ const Dashboard = () => {
                   onFilesSelected={handleFilesSelected}
                   onFileClick={handleFileClick}
                   onFileError={handleFileError}
+                  fileErrorMessage={fileErrorMessage}
+                  onDismissFileError={() => setFileErrorMessage(null)}
                 />
               )}
             </motion.div>
           </div>
-
-          {/* File validation error toast — fixed above chat input */}
-          <FileErrorToast
-            isVisible={!!fileErrorMessage}
-            message={fileErrorMessage || ""}
-            onDismiss={() => setFileErrorMessage(null)}
-          />
 
           {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
           <LazyTransparencyDrawer

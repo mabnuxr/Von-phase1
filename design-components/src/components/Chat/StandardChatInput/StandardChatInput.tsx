@@ -6,7 +6,6 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   MicrophoneIcon,
@@ -14,16 +13,9 @@ import {
   Table,
   FileText,
   X,
-  XIcon,
-  CheckIcon,
   ChartLineIcon,
   HashIcon,
   DatabaseIcon,
-  RobotIcon,
-  ChartBarIcon,
-  CaretRightIcon,
-  UploadSimpleIcon,
-  AtomIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -32,14 +24,14 @@ import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Toggle as _Toggle } from '../../forms/toggle';
-import { SecondaryIconButton, RemoveButton, TransparentButton } from '../../forms/buttons';
+import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } from './types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
 import { ChatInputPopover } from './ChatInputPopover';
-import type { AgentMode } from './types';
+import { FileErrorToast } from '../FileAttachment/FileErrorToast';
 
 /**
  * Get icon for reference type
@@ -93,175 +85,6 @@ function getReferenceLabel(type: ReferenceContext['type']) {
 export type { AgentMode } from './types';
 
 /**
- * PlusButtonMenu - Plus button with context menu for agent modes
- */
-interface PlusButtonMenuProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onOpen: () => void;
-  onAgentModeChange: (mode: AgentMode) => void;
-  onBuildDashboard?: () => void;
-  onUploadClick?: () => void;
-  selectedAgentMode: AgentMode;
-  disabled?: boolean;
-  isAgentLocked?: boolean;
-}
-
-const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
-  isOpen,
-  onClose,
-  onOpen,
-  onAgentModeChange,
-  onBuildDashboard,
-  onUploadClick,
-  selectedAgentMode,
-  disabled = false,
-  isAgentLocked = false,
-}) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isAgentSubmenuOpen, setIsAgentSubmenuOpen] = useState(false);
-
-  const handleAgentSelect = (mode: AgentMode) => {
-    onAgentModeChange(mode);
-    if (mode === 'build-dashboard' && onBuildDashboard) {
-      onBuildDashboard();
-    }
-    onClose();
-    setIsAgentSubmenuOpen(false);
-  };
-
-  const handleMenuClose = () => {
-    onClose();
-    setIsAgentSubmenuOpen(false);
-  };
-
-  return (
-    <div ref={containerRef} className="relative group/plusbtn">
-      <SecondaryIconButton
-        icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
-        onClick={onOpen}
-        disabled={disabled}
-        title=""
-        className="w-8.5 h-8.5 rounded-xl"
-      />
-      {/* Tooltip - shows on hover when disabled */}
-      {disabled && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/plusbtn:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
-          Source and file upload. Coming soon
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-        </div>
-      )}
-
-      {/* Main Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Click outside to close */}
-            <div className="fixed inset-0 z-40" onClick={handleMenuClose} />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 8 }}
-              transition={{ duration: 0.1 }}
-              className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
-            >
-              <div className="py-0.5">
-                {/* Upload option */}
-                <TransparentButton
-                  icon={<UploadSimpleIcon size={16} className="text-gray-800" />}
-                  onClick={() => {
-                    onUploadClick?.();
-                    onClose();
-                  }}
-                >
-                  Upload
-                </TransparentButton>
-              </div>
-
-              {/* Divider */}
-              <div className="my-0.5 border-t border-gray-100 mx-1" />
-
-              {/* Agents submenu trigger */}
-              <div
-                className={`relative py-0.5 opacity-50 pointer-events-none`}
-                onMouseEnter={() => setIsAgentSubmenuOpen(true)}
-                onMouseLeave={() => setIsAgentSubmenuOpen(false)}
-              >
-                <TransparentButton
-                  icon={<RobotIcon size={16} className="text-gray-800" />}
-                  rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
-                  onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
-                >
-                  Agents
-                </TransparentButton>
-
-                {/* Agents submenu */}
-                <AnimatePresence>
-                  {isAgentSubmenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, x: -8 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, x: -8 }}
-                      transition={{ duration: 0.1 }}
-                      className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
-                    >
-                      <div className="py-0.5">
-                        {/* Auto (default) */}
-                        <TransparentButton
-                          icon={<RobotIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect('auto')}
-                          active={selectedAgentMode === 'auto'}
-                          rightContent={
-                            selectedAgentMode === 'auto' ? (
-                              <CheckIcon size={14} weight="bold" className="text-green-600" />
-                            ) : undefined
-                          }
-                        >
-                          Auto
-                        </TransparentButton>
-
-                        {/* Build Dashboard */}
-                        <TransparentButton
-                          icon={<ChartBarIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect('build-dashboard')}
-                          active={selectedAgentMode === 'build-dashboard'}
-                          rightContent={
-                            selectedAgentMode === 'build-dashboard' ? (
-                              <CheckIcon size={14} weight="bold" className="text-green-600" />
-                            ) : undefined
-                          }
-                        >
-                          Build Dashboard
-                        </TransparentButton>
-
-                        {/* Deep Research */}
-                        <TransparentButton
-                          icon={<AtomIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect('deep-research')}
-                          active={selectedAgentMode === 'deep-research'}
-                          rightContent={
-                            selectedAgentMode === 'deep-research' ? (
-                              <CheckIcon size={14} weight="bold" className="text-green-600" />
-                            ) : undefined
-                          }
-                        >
-                          Deep Research
-                        </TransparentButton>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-/**
  * StandardChatInput - A standardized chat input component
  *
  * Features:
@@ -309,21 +132,24 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onPopoverPrimaryAction,
       onPopoverFeedback,
       // Agent props
-      onBuildDashboard,
+      // onBuildDashboard,
       // Disclaimer
       hideDisclaimer = false,
       // Plus menu visibility (defaults to false when not provided, feature flag controls this)
       showPlusMenu = false,
       // Agent selection props (for locking after first message)
-      isAgentLocked = false,
-      lockedAgentMode = 'auto',
+      // isAgentLocked = false,
+      // lockedAgentMode = 'auto',
+      // File error props
+      fileErrorMessage,
+      onDismissFileError,
     },
     ref
   ) => {
     const [internalMessage, setInternalMessage] = useState('');
-    const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
-    const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-    const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
+    // TODO: Uncomment when agent mode functionality is reimplemented
+    // const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
+    // const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
     const editorRef = useRef<Editor | null>(null);
 
     // Expose focus method via ref
@@ -337,8 +163,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       []
     );
 
-    // When locked, show the locked mode from backend; otherwise use internal state
-    const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
+    // TODO: Uncomment when agent mode is reimplemented
+    // const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
 
     // File upload hook for uncontrolled mode
     const {
@@ -409,7 +235,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
         // Send markdown directly
         const messageToSend = message.trim();
 
-        onSend(messageToSend, hasAttachments ? attachments : undefined, selectedAgentMode);
+        onSend(messageToSend, hasAttachments ? attachments : undefined, 'auto');
         if (isControlled) {
           onChange?.('');
         } else {
@@ -435,7 +261,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onChange,
       isAttachmentsControlled,
       clearFiles,
-      selectedAgentMode,
     ]);
 
     // handleKeyDown is now managed by TiptapEditor
@@ -485,36 +310,32 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const canSend =
       (message.trim() || hasAttachments) && !disabled && !disableSubmit && !isStreaming;
 
-    const handlePlusButtonClick = useCallback(() => {
-      setIsPlusMenuOpen(true);
-    }, []);
-
-    const handleAgentModeChange = useCallback(
-      (mode: AgentMode) => {
-        if (!isAgentLocked) {
-          setInternalAgentMode(mode);
-        }
-      },
-      [isAgentLocked]
-    );
-
-    const handleCancelAgentMode = useCallback(() => {
-      if (!isAgentLocked) {
-        setInternalAgentMode('auto');
-      }
-    }, [isAgentLocked]);
-
-    // Helper to get agent mode display label and icon
-    const getAgentModeDisplay = (mode: AgentMode) => {
-      switch (mode) {
-        case 'auto':
-          return { label: 'Auto', icon: RobotIcon };
-        case 'build-dashboard':
-          return { label: 'Build Dashboard', icon: ChartBarIcon };
-        case 'deep-research':
-          return { label: 'Deep Research', icon: null }; // Uses green dot instead of icon
-      }
-    };
+    // TODO: Uncomment when agent mode is reimplemented
+    // const handleAgentModeChange = useCallback(
+    //   (mode: AgentMode) => {
+    //     if (!isAgentLocked) {
+    //       setInternalAgentMode(mode);
+    //     }
+    //   },
+    //   [isAgentLocked]
+    // );
+    //
+    // const handleCancelAgentMode = useCallback(() => {
+    //   if (!isAgentLocked) {
+    //     setInternalAgentMode('auto');
+    //   }
+    // }, [isAgentLocked]);
+    //
+    // const getAgentModeDisplay = (mode: AgentMode) => {
+    //   switch (mode) {
+    //     case 'auto':
+    //       return { label: 'Auto', icon: RobotIcon };
+    //     case 'build-dashboard':
+    //       return { label: 'Build Dashboard', icon: ChartBarIcon };
+    //     case 'deep-research':
+    //       return { label: 'Deep Research', icon: null };
+    //   }
+    // };
 
     return (
       <div className="bg-white antialiased font-sf">
@@ -557,93 +378,105 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             </div>
           )}
 
-          {/* Main input container with gradient border */}
-          <div
-            className={`p-[1px] rounded-2xl transition-all duration-200 ${
-              disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
-            }`}
-            style={{
-              background: disabled
-                ? '#e5e7eb'
-                : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
-            }}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={wrappedHandleDrop}
-          >
-            <div className="flex flex-col bg-white rounded-[15px]">
-              {/* Drag-and-drop overlay */}
-              <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
-              {/* File previews - shown above the input when files are attached */}
-              {hasAttachments && (
-                <div className="px-4 pt-3 pb-1">
-                  <div className="flex flex-wrap gap-1.5">
-                    {attachments.map((attachment) => (
-                      <FilePreview
-                        key={attachment.id}
-                        attachment={attachment}
-                        onRemove={handleRemoveAttachment}
-                        removable={!disabled}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+          {/* Toast + input wrapper */}
+          <div className="flex flex-col gap-1.5">
+            {/* File validation error toast — inline above input */}
+            <FileErrorToast
+              isVisible={!!fileErrorMessage}
+              message={fileErrorMessage || ''}
+              onDismiss={onDismissFileError || (() => {})}
+            />
 
-              {/* Hidden file input - always render for ref access */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={getAcceptString()}
-                onChange={handleFileInputChange}
-                className="hidden"
-                aria-hidden="true"
-              />
-
-              {showPlusMenu ? (
-                <>
-                  {/* Text input area - Tiptap Editor */}
-                  <div className="px-4 py-3">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <TiptapEditor
-                          content={message}
-                          onChange={handleChange}
-                          onSubmit={handleSend}
-                          placeholder={placeholder}
-                          disabled={disabled && !isStreaming}
-                          editorRef={editorRef}
+            {/* Main input container with gradient border */}
+            <div
+              className={`p-[1px] rounded-2xl transition-all duration-200 ${
+                disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
+              }`}
+              style={{
+                background: disabled
+                  ? '#e5e7eb'
+                  : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
+              }}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={wrappedHandleDrop}
+            >
+              <div className="flex flex-col bg-white rounded-[15px]">
+                {/* Drag-and-drop overlay */}
+                <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
+                {/* File previews - shown above the input when files are attached */}
+                {hasAttachments && (
+                  <div className="px-4 pt-3 pb-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      {attachments.map((attachment) => (
+                        <FilePreview
+                          key={attachment.id}
+                          attachment={attachment}
+                          onRemove={handleRemoveAttachment}
+                          removable={!disabled}
                         />
-                      </div>
+                      ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Formatting toolbar - Slack-style */}
-                  {showFormattingToolbar && editorRef.current && (
-                    <EditorToolbar editor={editorRef.current} />
-                  )}
+                {/* Hidden file input - always render for ref access */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept={getAcceptString()}
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                  aria-hidden="true"
+                />
 
-                  {/* Bottom toolbar with plus menu */}
-                  <div className="flex items-center justify-between px-3 pb-3">
-                    {/* Left side - Plus button and Mode toggle */}
-                    <div className="flex items-center gap-2">
-                      {/* Plus button - opens menu with options */}
-                      <PlusButtonMenu
-                        isOpen={isPlusMenuOpen}
-                        onClose={() => setIsPlusMenuOpen(false)}
-                        onOpen={handlePlusButtonClick}
-                        onAgentModeChange={handleAgentModeChange}
-                        onBuildDashboard={onBuildDashboard}
-                        onUploadClick={() => fileInputRef.current?.click()}
-                        selectedAgentMode={selectedAgentMode}
-                        disabled={disabled && !isStreaming}
-                        isAgentLocked={isAgentLocked}
-                      />
+                {showPlusMenu ? (
+                  <>
+                    {/* Text input area - Tiptap Editor */}
+                    <div className="px-4 py-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <TiptapEditor
+                            content={message}
+                            onChange={handleChange}
+                            onSubmit={handleSend}
+                            placeholder={placeholder}
+                            disabled={disabled && !isStreaming}
+                            editorRef={editorRef}
+                            onPasteFiles={(files) => {
+                              if (isAttachmentsControlled) {
+                                onFilesSelected?.(files);
+                              } else {
+                                addFiles(files);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
 
-                      {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
-                      <AnimatePresence>
+                    {/* Formatting toolbar - Slack-style */}
+                    {showFormattingToolbar && editorRef.current && (
+                      <EditorToolbar editor={editorRef.current} />
+                    )}
+
+                    {/* Bottom toolbar with plus menu */}
+                    <div className="flex items-center justify-between px-3 pb-3">
+                      {/* Left side - Plus button and Mode toggle */}
+                      <div className="flex items-center gap-2">
+                        {/* Plus button - directly opens file picker */}
+                        <SecondaryIconButton
+                          icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={disabled && !isStreaming}
+                          title="Upload file"
+                          className="w-8.5 h-8.5 rounded-xl"
+                        />
+
+                        {/* TODO: Uncomment when agent mode is reimplemented */}
+                        {/* <AnimatePresence>
                         {selectedAgentMode !== 'auto' && (
                           <motion.button
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -676,7 +509,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 }
                               />
                             ) : selectedAgentMode === 'deep-research' ? (
-                              // Green dot indicator for Deep Research
                               <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                             ) : (
                               (() => {
@@ -689,103 +521,111 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             {getAgentModeDisplay(selectedAgentMode).label}
                           </motion.button>
                         )}
-                      </AnimatePresence>
+                      </AnimatePresence> */}
 
-                      {/* Mode selector - Auto edits: off/on/Plan Mode */}
-                      {showModeSelector && onAutoEditModeChange && (
-                        <ModeSelector
-                          mode={autoEditMode}
-                          onModeChange={onAutoEditModeChange}
-                          disabled={disabled && !isStreaming}
-                        />
-                      )}
+                        {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                        {showModeSelector && onAutoEditModeChange && (
+                          <ModeSelector
+                            mode={autoEditMode}
+                            onModeChange={onAutoEditModeChange}
+                            disabled={disabled && !isStreaming}
+                          />
+                        )}
+                      </div>
+
+                      {/* Right side - Voice and Send buttons */}
+                      <div className="flex items-center gap-2">
+                        {/* Voice input button */}
+                        {onVoiceInput && (
+                          <SecondaryIconButton
+                            icon={
+                              <MicrophoneIcon
+                                size={16}
+                                weight={isRecording ? 'fill' : 'bold'}
+                                className={isRecording ? 'text-red-500' : 'text-gray-800'}
+                              />
+                            }
+                            onClick={onVoiceInput}
+                            disabled={disabled && !isStreaming}
+                            title={isRecording ? 'Stop recording' : 'Start voice input'}
+                            className={
+                              isRecording
+                                ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
+                                : 'w-8.5 h-8.5 rounded-xl'
+                            }
+                          />
+                        )}
+
+                        {/* Send/Stop button */}
+                        {isStreaming ? (
+                          <SecondaryIconButton
+                            icon={<StopIcon />}
+                            onClick={onStop}
+                            title="Stop generating"
+                            className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
+                          />
+                        ) : (
+                          <SecondaryIconButton
+                            icon={<SendIcon size={16} />}
+                            onClick={handleSend}
+                            disabled={!canSend}
+                            title="Send message"
+                            className={
+                              canSend
+                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                                : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Inline layout - text input with send button on same row */
+                  <div className="flex items-center gap-2 px-4 py-3">
+                    {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
+                    <div className="flex-1 min-w-0">
+                      <TiptapEditor
+                        content={message}
+                        onChange={handleChange}
+                        onSubmit={handleSend}
+                        placeholder={placeholder}
+                        disabled={disabled && !isStreaming}
+                        editorRef={editorRef}
+                        onPasteFiles={(files) => {
+                          if (isAttachmentsControlled) {
+                            onFilesSelected?.(files);
+                          } else {
+                            addFiles(files);
+                          }
+                        }}
+                      />
                     </div>
 
-                    {/* Right side - Voice and Send buttons */}
-                    <div className="flex items-center gap-2">
-                      {/* Voice input button */}
-                      {onVoiceInput && (
-                        <SecondaryIconButton
-                          icon={
-                            <MicrophoneIcon
-                              size={16}
-                              weight={isRecording ? 'fill' : 'bold'}
-                              className={isRecording ? 'text-red-500' : 'text-gray-800'}
-                            />
-                          }
-                          onClick={onVoiceInput}
-                          disabled={disabled && !isStreaming}
-                          title={isRecording ? 'Stop recording' : 'Start voice input'}
-                          className={
-                            isRecording
-                              ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
-                              : 'w-8.5 h-8.5 rounded-xl'
-                          }
-                        />
-                      )}
-
-                      {/* Send/Stop button */}
-                      {isStreaming ? (
-                        <SecondaryIconButton
-                          icon={<StopIcon />}
-                          onClick={onStop}
-                          title="Stop generating"
-                          className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
-                        />
-                      ) : (
-                        <SecondaryIconButton
-                          icon={<SendIcon size={16} />}
-                          onClick={handleSend}
-                          disabled={!canSend}
-                          title="Send message"
-                          className={
-                            canSend
-                              ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
-                              : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                          }
-                        />
-                      )}
-                    </div>
+                    {/* Send/Stop button inline */}
+                    {isStreaming ? (
+                      <SecondaryIconButton
+                        icon={<StopIcon />}
+                        onClick={onStop}
+                        title="Stop generating"
+                        className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
+                      />
+                    ) : (
+                      <SecondaryIconButton
+                        icon={<SendIcon size={16} />}
+                        onClick={handleSend}
+                        disabled={!canSend}
+                        title="Send message"
+                        className={`flex-shrink-0 ${
+                          canSend
+                            ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                            : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                        }`}
+                      />
+                    )}
                   </div>
-                </>
-              ) : (
-                /* Inline layout - text input with send button on same row */
-                <div className="flex items-center gap-2 px-4 py-3">
-                  {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                  <div className="flex-1 min-w-0">
-                    <TiptapEditor
-                      content={message}
-                      onChange={handleChange}
-                      onSubmit={handleSend}
-                      placeholder={placeholder}
-                      disabled={disabled && !isStreaming}
-                      editorRef={editorRef}
-                    />
-                  </div>
-
-                  {/* Send/Stop button inline */}
-                  {isStreaming ? (
-                    <SecondaryIconButton
-                      icon={<StopIcon />}
-                      onClick={onStop}
-                      title="Stop generating"
-                      className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
-                    />
-                  ) : (
-                    <SecondaryIconButton
-                      icon={<SendIcon size={16} />}
-                      onClick={handleSend}
-                      disabled={!canSend}
-                      title="Send message"
-                      className={`flex-shrink-0 ${
-                        canSend
-                          ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
-                          : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                      }`}
-                    />
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
