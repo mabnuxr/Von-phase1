@@ -315,7 +315,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2">
+              <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 settings-scrollbar">
                 {/* Loading Skeleton */}
                 {isLoading && <ChatSidebarSkeleton />}
 
@@ -367,7 +367,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         const folderItemsList = itemsByFolder[folder.id] || [];
                         const isFolderLoading = folderLoadingMap[folder.id] || false;
                         return (
-                          <div key={folder.id} className="mb-1">
+                          <div key={folder.id}>
                             <FolderRow
                               folder={folder}
                               isEditing={editingFolderId === folder.id}
