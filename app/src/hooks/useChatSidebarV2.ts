@@ -446,21 +446,46 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       if (targetFolderId === null) {
         // Remove from folder (move to root)
         if (sourceFolderId) {
-          removeFromFolderMutation({
-            conversationId,
-            sourceFolderId,
-          });
+          removeFromFolderMutation(
+            { conversationId, sourceFolderId },
+            {
+              onSuccess: () => {
+                showToast({
+                  message: "Chat removed from folder",
+                  variant: "success",
+                });
+              },
+              onError: () => {
+                showToast({
+                  message: "Failed to remove chat from folder",
+                  variant: "error",
+                });
+              },
+            },
+          );
         }
       } else {
         // Add to target folder
-        addToFolderMutation({
-          conversationId,
-          targetFolderId,
-          sourceFolderId,
-        });
+        addToFolderMutation(
+          { conversationId, targetFolderId, sourceFolderId },
+          {
+            onSuccess: () => {
+              showToast({
+                message: "Chat added to folder",
+                variant: "success",
+              });
+            },
+            onError: () => {
+              showToast({
+                message: "Failed to add chat to folder",
+                variant: "error",
+              });
+            },
+          },
+        );
       }
     },
-    [addToFolderMutation, removeFromFolderMutation],
+    [addToFolderMutation, removeFromFolderMutation, showToast],
   );
 
   // Create folder and move item in one flow
@@ -479,11 +504,27 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       createFolderMutation(folderName, {
         onSuccess: (data) => {
           // Execute the move (add to the new folder)
-          addToFolderMutation({
-            conversationId,
-            targetFolderId: data.folderId,
-            sourceFolderId: sourceFolderId ?? undefined,
-          });
+          addToFolderMutation(
+            {
+              conversationId,
+              targetFolderId: data.folderId,
+              sourceFolderId: sourceFolderId ?? undefined,
+            },
+            {
+              onSuccess: () => {
+                showToast({
+                  message: "Chat added to new folder",
+                  variant: "success",
+                });
+              },
+              onError: () => {
+                showToast({
+                  message: "Failed to add chat to folder",
+                  variant: "error",
+                });
+              },
+            },
+          );
           setPendingMoveItem(null);
         },
       });
@@ -516,10 +557,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     (itemId: string, targetFolderId: string) => {
       const item = findItemById(itemId);
       moveConversationToFolder(itemId, targetFolderId, item?.folderId);
-      showToast({
-        message: "Chat added to folder",
-        variant: "info",
-      });
     },
     [findItemById, moveConversationToFolder],
   );
@@ -529,10 +566,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     (itemId: string, folderName: string) => {
       const item = findItemById(itemId);
       createFolderAndMoveItem(itemId, folderName, item?.folderId);
-      showToast({
-        message: "Chat added to new folder",
-        variant: "info",
-      });
     },
     [findItemById, createFolderAndMoveItem],
   );
@@ -542,10 +575,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     (itemId: string) => {
       const item = findItemById(itemId);
       moveConversationToFolder(itemId, null, item?.folderId);
-      showToast({
-        message: "Chat removed from folder",
-        variant: "info",
-      });
     },
     [findItemById, moveConversationToFolder],
   );
