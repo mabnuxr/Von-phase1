@@ -456,7 +456,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
               onSuccess: () => {
                 showToast({
                   message: "Chat removed from folder",
-                  variant: "success",
+                  variant: "info",
                 });
               },
               onError: () => {
@@ -476,7 +476,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
             onSuccess: () => {
               showToast({
                 message: "Chat added to folder",
-                variant: "success",
+                variant: "info",
               });
             },
             onError: () => {
@@ -518,7 +518,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
               onSuccess: () => {
                 showToast({
                   message: "Chat added to new folder",
-                  variant: "success",
+                  variant: "info",
                 });
               },
               onError: () => {
