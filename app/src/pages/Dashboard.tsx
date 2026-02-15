@@ -146,14 +146,14 @@ const Dashboard = () => {
 
   // Infinite scroll hook for loading more conversations (V1)
   const loadMoreConversationsRef = useInfiniteScroll({
-    onLoadMore: () => fetchNextPage(),
+    onLoadMore: fetchNextPage,
     hasMore: !!hasNextPage,
     isLoading: isFetchingNextPage,
   });
 
   // Infinite scroll hook for loading more unfiled conversations (V2)
   const loadMoreConversationsV2Ref = useInfiniteScroll({
-    onLoadMore: () => fetchNextPageV2(),
+    onLoadMore: fetchNextPageV2,
     hasMore: hasNextPageV2,
     isLoading: isFetchingNextPageV2,
   });
@@ -169,7 +169,7 @@ const Dashboard = () => {
 
   // Infinite scroll hook for loading older messages
   const loadMoreMessagesRef = useInfiniteScroll({
-    onLoadMore: () => fetchNextMessagePage(),
+    onLoadMore: fetchNextMessagePage,
     hasMore: !!hasNextMessagePage,
     isLoading: isFetchingNextMessagePage,
   });
@@ -1107,7 +1107,6 @@ const Dashboard = () => {
                   onToggleCollapse={toggleSidebar}
                   loadMoreRef={loadMoreConversationsV2Ref}
                   isFetchingMore={isFetchingNextPageV2}
-                  hasNextPage={hasNextPageV2}
                   avatarSrc={avatarSrc}
                   avatarLabel={avatarLabel}
                   userName={displayName}

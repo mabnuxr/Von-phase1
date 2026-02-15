@@ -79,7 +79,6 @@ export interface ChatSidebarSimpleProps {
   userEmail?: string;
   avatarSrc?: string;
   avatarLabel?: string;
-  onProfileClick?: () => void;
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
@@ -462,7 +461,6 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
   userEmail,
   avatarSrc,
   avatarLabel,
-  onProfileClick,
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
@@ -794,7 +792,6 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
           avatarSrc={avatarSrc}
           avatarLabel={avatarLabel}
           position={popoverPosition}
-          onProfileClick={onProfileClick}
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
@@ -963,7 +960,6 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         position={popoverPosition}
-        onProfileClick={onProfileClick}
         onSettingsClick={onSettingsClick}
         onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}

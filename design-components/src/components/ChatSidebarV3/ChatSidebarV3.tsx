@@ -247,11 +247,6 @@ export interface ChatSidebarProps {
   avatarLabel?: string;
 
   /**
-   * Callback when profile is clicked in popover
-   */
-  onProfileClick?: () => void;
-
-  /**
    * Callback when settings is clicked in popover
    */
   onSettingsClick?: () => void;
@@ -727,7 +722,6 @@ export const ChatSidebarV3: React.FC<ChatSidebarProps> = ({
   userEmail,
   avatarSrc,
   avatarLabel,
-  onProfileClick,
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
@@ -1191,7 +1185,6 @@ export const ChatSidebarV3: React.FC<ChatSidebarProps> = ({
           avatarSrc={avatarSrc}
           avatarLabel={avatarLabel}
           position={popoverPosition}
-          onProfileClick={onProfileClick}
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
@@ -1514,7 +1507,6 @@ export const ChatSidebarV3: React.FC<ChatSidebarProps> = ({
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         position={popoverPosition}
-        onProfileClick={onProfileClick}
         onSettingsClick={onSettingsClick}
         onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}

@@ -202,7 +202,6 @@ export const LandingPage: Story = {
           userName="Sarah Chen"
           userEmail="sarah@company.com"
           avatarLabel="SC"
-          onProfileClick={() => console.log('Profile clicked')}
           onSettingsClick={() => console.log('Settings clicked')}
           onHelpClick={() => console.log('Help clicked')}
           onSignOutClick={() => console.log('Sign out clicked')}
@@ -479,7 +478,6 @@ export const EmptyState: Story = {
           userName="Sarah Chen"
           userEmail="sarah@company.com"
           avatarLabel="SC"
-          onProfileClick={() => console.log('Profile clicked')}
           onSettingsClick={() => console.log('Settings clicked')}
           onHelpClick={() => console.log('Help clicked')}
           onSignOutClick={() => console.log('Sign out clicked')}

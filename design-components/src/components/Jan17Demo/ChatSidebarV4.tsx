@@ -98,7 +98,6 @@ export interface ChatSidebarV4Props {
   userEmail?: string;
   avatarSrc?: string;
   avatarLabel?: string;
-  onProfileClick?: () => void;
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
@@ -576,7 +575,6 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
   userEmail,
   avatarSrc,
   avatarLabel,
-  onProfileClick,
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
@@ -972,7 +970,6 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
           avatarSrc={avatarSrc}
           avatarLabel={avatarLabel}
           position={popoverPosition}
-          onProfileClick={onProfileClick}
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
@@ -1311,7 +1308,6 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         position={popoverPosition}
-        onProfileClick={onProfileClick}
         onSettingsClick={onSettingsClick}
         onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}
