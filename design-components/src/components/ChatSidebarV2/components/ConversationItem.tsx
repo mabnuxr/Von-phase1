@@ -110,7 +110,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           {/* More options button - shows on hover or when menu is open */}
           <PrimaryIconButton
             icon={<DotsThreeIcon size={16} weight="bold" />}
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu(e)}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu?.(e)}
             visible={showButton}
             size="small"
             className="absolute right-1"
