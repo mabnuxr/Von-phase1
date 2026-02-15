@@ -226,6 +226,22 @@ class ConversationsService {
   }
 
   /**
+   * Rename a conversation
+   * Backend expects: { title: string }
+   * @param conversationId - Conversation UUID
+   * @param title - New conversation title
+   */
+  async renameConversation(
+    conversationId: string,
+    title: string,
+  ): Promise<Conversation> {
+    return apiClient.patch<Conversation>(
+      `/api/v1/chat/conversations/${conversationId}`,
+      { title },
+    );
+  }
+
+  /**
    * Send stop signal to interrupt streaming
    */
   async stopStreaming(conversationId: string): Promise<{ success: boolean }> {

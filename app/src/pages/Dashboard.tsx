@@ -129,6 +129,7 @@ const Dashboard = () => {
     renameFolder,
     toggleFolderExpanded,
     deleteConversation,
+    renameConversation,
     pinFolder,
     moveItemToFolder,
     createFolderForItem,
@@ -1063,7 +1064,7 @@ const Dashboard = () => {
           {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
           <div
             className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
-            style={{ width: isSidebarCollapsed ? "64px" : "240px" }}
+            style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
           >
             {isSidebarV2 ? (
               <ChatSidebarV2
@@ -1076,6 +1077,7 @@ const Dashboard = () => {
                 onItemClick={handleChatClick}
                 onNewChatClick={handleNewChatClick}
                 onNewChatFolderClick={createFolder}
+                onRenameItem={renameConversation}
                 onDeleteItem={handleDeleteItem}
                 onDeleteFolder={deleteFolder}
                 onRenameFolder={renameFolder}
