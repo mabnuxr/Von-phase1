@@ -255,7 +255,6 @@ I've created a dashboard with detailed breakdowns by region, industry, and indiv
               userName="Sarah Chen"
               userEmail="sarah@company.com"
               avatarLabel="SC"
-              onProfileClick={() => console.log('Profile clicked')}
               onSettingsClick={() => console.log('Settings clicked')}
               onSignOutClick={() => console.log('Sign out clicked')}
             />

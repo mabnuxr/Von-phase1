@@ -92,9 +92,10 @@ export const OAUTH_POPUP_CHECK_DELAY_MS = 100 as const;
 
 /**
  * Threshold for Intersection Observer in infinite scroll
- * 1.0 means the element must be fully visible before triggering
+ * 0.1 means the callback fires when 10% of the sentinel is visible,
+ * which is more reliable than 1.0 for small sentinel elements
  */
-export const INFINITE_SCROLL_THRESHOLD = 1.0 as const;
+export const INFINITE_SCROLL_THRESHOLD = 0.1 as const;
 
 // ============================================================================
 // Message Cache Constants

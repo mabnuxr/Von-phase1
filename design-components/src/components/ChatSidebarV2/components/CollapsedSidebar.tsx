@@ -44,7 +44,6 @@ export interface CollapsedSidebarProps {
   avatarButtonRef: React.RefObject<HTMLButtonElement | null>;
   onAvatarClick: () => void;
   onCloseProfile: () => void;
-  onProfileClick?: () => void;
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
@@ -86,7 +85,6 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   avatarButtonRef,
   onAvatarClick,
   onCloseProfile,
-  onProfileClick,
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
@@ -332,7 +330,6 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
           avatarSrc={avatarSrc}
           avatarLabel={avatarLabel}
           position={popoverPosition}
-          onProfileClick={onProfileClick}
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}

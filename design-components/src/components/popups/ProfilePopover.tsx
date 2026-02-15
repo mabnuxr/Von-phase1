@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GearIcon, SignOutIcon, UserIcon } from '@phosphor-icons/react';
+import { GearIcon, SignOutIcon } from '@phosphor-icons/react';
 
 export interface ProfilePopoverProps {
   /**
@@ -32,11 +32,6 @@ export interface ProfilePopoverProps {
    * Avatar initials/label (shown when no image)
    */
   avatarLabel?: string;
-
-  /**
-   * Callback when profile is clicked
-   */
-  onProfileClick?: () => void;
 
   /**
    * Callback when settings is clicked
@@ -99,7 +94,6 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   userEmail,
   avatarSrc,
   avatarLabel,
-  onProfileClick,
   onSettingsClick,
   onSignOutClick,
   position = { top: 0, right: 0 },
@@ -190,14 +184,6 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
 
           {/* Menu Items */}
           <div className="p-1.5">
-            <MenuItem
-              icon={<UserIcon size={16} weight="regular" />}
-              label="Profile"
-              onClick={() => {
-                onProfileClick?.();
-                onClose();
-              }}
-            />
             <MenuItem
               icon={<GearIcon size={16} weight="regular" />}
               label="Settings"

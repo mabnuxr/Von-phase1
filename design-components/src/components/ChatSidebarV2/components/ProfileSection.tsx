@@ -13,7 +13,6 @@ export interface ProfileSectionProps {
   avatarButtonRef: React.RefObject<HTMLButtonElement | null>;
   onAvatarClick: () => void;
   onCloseProfile: () => void;
-  onProfileClick?: () => void;
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
@@ -37,7 +36,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   avatarButtonRef,
   onAvatarClick,
   onCloseProfile,
-  onProfileClick,
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
@@ -87,7 +85,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         position={popoverPosition}
-        onProfileClick={onProfileClick}
         onSettingsClick={onSettingsClick}
         onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}

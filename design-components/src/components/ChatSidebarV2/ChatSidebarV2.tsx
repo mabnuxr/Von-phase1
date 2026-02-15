@@ -85,14 +85,11 @@ export interface ChatSidebarProps {
   onToggleCollapse?: () => void;
   loadMoreRef?: React.RefObject<HTMLDivElement | null>;
   isFetchingMore?: boolean;
-  hasNextPage?: boolean;
-  onLoadMore?: () => void;
   onLogoClick?: () => void;
   userName?: string;
   userEmail?: string;
   avatarSrc?: string;
   avatarLabel?: string;
-  onProfileClick?: () => void;
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
@@ -132,14 +129,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onToggleCollapse,
   loadMoreRef,
   isFetchingMore = false,
-  hasNextPage = false,
-  onLoadMore,
   onLogoClick,
   userName,
   userEmail,
   avatarSrc,
   avatarLabel,
-  onProfileClick,
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
@@ -266,7 +260,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           avatarButtonRef={avatarButtonRef}
           onAvatarClick={handleAvatarClick}
           onCloseProfile={handleCloseProfile}
-          onProfileClick={onProfileClick}
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
@@ -434,22 +427,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {loadMoreRef && <div ref={loadMoreRef} className="h-px flex-shrink-0" />}
               </div>
 
-              {/* More Content Indicator */}
-              {hasNextPage && !isFetchingMore && (
-                <motion.div
-                  className="flex items-center justify-start py-1.5"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <button
-                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-800/80 hover:text-gray-900 transition-colors cursor-pointer"
-                    onClick={onLoadMore}
-                  >
-                    See more
-                  </button>
-                </motion.div>
-              )}
-
               {/* Loading indicator */}
               {isFetchingMore && (
                 <div className="flex items-center justify-center py-1.5">
@@ -477,7 +454,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 avatarButtonRef={avatarButtonRef}
                 onAvatarClick={handleAvatarClick}
                 onCloseProfile={handleCloseProfile}
-                onProfileClick={onProfileClick}
                 onSettingsClick={onSettingsClick}
                 onHelpClick={onHelpClick}
                 onSignOutClick={onSignOutClick}
