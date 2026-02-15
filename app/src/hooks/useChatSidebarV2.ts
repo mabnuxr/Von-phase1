@@ -33,13 +33,15 @@ import { useToast } from "./useToast";
 function transformConversationsToSidebarItems(
   conversations: SidebarConversation[],
 ): SidebarItem[] {
-  return conversations.map((conv) => ({
-    id: conv.conversationId,
-    label: conv.title,
-    type: "chat" as const,
-    href: `/chat/${conv.conversationId}`,
-    folderId: null,
-  }));
+  return conversations
+    .filter((conv) => conv.title && conv.title.trim() !== "")
+    .map((conv) => ({
+      id: conv.conversationId,
+      label: conv.title,
+      type: "chat" as const,
+      href: `/chat/${conv.conversationId}`,
+      folderId: null,
+    }));
 }
 
 /**
@@ -183,13 +185,15 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     folderIds.forEach((folderId, index) => {
       const query = folderConversationsQueries[index];
       if (query?.data?.conversations) {
-        map[folderId] = query.data.conversations.map((conv) => ({
-          id: conv.conversationId,
-          label: conv.title,
-          type: "chat" as const,
-          href: `/chat/${conv.conversationId}`,
-          folderId: conv.folderId,
-        }));
+        map[folderId] = query.data.conversations
+          .filter((conv) => conv.title && conv.title.trim() !== "")
+          .map((conv) => ({
+            id: conv.conversationId,
+            label: conv.title,
+            type: "chat" as const,
+            href: `/chat/${conv.conversationId}`,
+            folderId: conv.folderId,
+          }));
       } else {
         map[folderId] = [];
       }
