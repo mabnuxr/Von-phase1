@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Profiler } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { TopBar } from "@vonlabs/design-components";
 import { useUser } from "../hooks/useUser";
@@ -26,6 +26,7 @@ import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { reportRenderTiming } from "../lib/datadog";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -192,79 +193,81 @@ const Settings = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
-      {/* Field Detail Pane - Global */}
-      <FieldDetailPane />
+    <Profiler id="Settings" onRender={reportRenderTiming}>
+      <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
+        {/* Field Detail Pane - Global */}
+        <FieldDetailPane />
 
-      {/* Add Team Member Pane - Global */}
-      <AddTeamMemberPane />
+        {/* Add Team Member Pane - Global */}
+        <AddTeamMemberPane />
 
-      {/* Full-width container */}
-      <div className="w-full h-full flex flex-col overflow-hidden">
-        {/* TopBar with transparent background */}
-        <div className="bg-transparent">
-          <TopBar
-            onLogoClick={() => navigate("/chat")}
-            showMenu={false}
-            leftElement={
-              <button
-                onClick={() => navigate("/chat")}
-                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                title="Back to chat"
-              >
-                <ArrowLeftIcon
-                  size={20}
-                  weight="regular"
-                  className="text-gray-600"
-                />
-              </button>
-            }
-            rightElement={<></>}
-          />
-        </div>
-
-        {/* Avatar Menu Dropdown */}
-        <AvatarMenu
-          userName={displayName}
-          userEmail={user?.email}
-          isOpen={isAvatarMenuOpen}
-          onClose={() => setIsAvatarMenuOpen(false)}
-          onSettingsClick={handleSettingsClick}
-          onLogoutClick={handleLogoutClick}
-          triggerRect={avatarRect}
-        />
-
-        {/* Two-Pane Layout with Rounded Corners */}
-        <div className="flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0">
-          {/* Left Pane - SettingsSidebar with rounded corners */}
-          <div
-            className="h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
-            style={{ width: isSidebarCollapsed ? "56px" : "240px" }}
-          >
-            <SettingsSidebar
-              settingsItems={settingsItems}
-              selectedSettingId={selectedSettingId}
-              onSettingClick={handleTabChange}
-              width="100%"
-              isCollapsed={isSidebarCollapsed}
-              onToggleCollapse={() =>
-                setIsSidebarCollapsed(!isSidebarCollapsed)
+        {/* Full-width container */}
+        <div className="w-full h-full flex flex-col overflow-hidden">
+          {/* TopBar with transparent background */}
+          <div className="bg-transparent">
+            <TopBar
+              onLogoClick={() => navigate("/chat")}
+              showMenu={false}
+              leftElement={
+                <button
+                  onClick={() => navigate("/chat")}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  title="Back to chat"
+                >
+                  <ArrowLeftIcon
+                    size={20}
+                    weight="regular"
+                    className="text-gray-600"
+                  />
+                </button>
               }
-              avatarSrc={avatarSrc}
-              avatarLabel={avatarLabel}
-              userName={displayName}
-              userEmail={user?.email}
-              onAvatarClick={handleAvatarClick}
+              rightElement={<></>}
             />
           </div>
 
-          {/* Right Pane - Content Area with rounded corners */}
-          <div className="flex-1 rounded-lg bg-white shadow-xs border border-gray-200 min-w-0">
-            {renderContent()}
+          {/* Avatar Menu Dropdown */}
+          <AvatarMenu
+            userName={displayName}
+            userEmail={user?.email}
+            isOpen={isAvatarMenuOpen}
+            onClose={() => setIsAvatarMenuOpen(false)}
+            onSettingsClick={handleSettingsClick}
+            onLogoutClick={handleLogoutClick}
+            triggerRect={avatarRect}
+          />
+
+          {/* Two-Pane Layout with Rounded Corners */}
+          <div className="flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0">
+            {/* Left Pane - SettingsSidebar with rounded corners */}
+            <div
+              className="h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
+              style={{ width: isSidebarCollapsed ? "56px" : "240px" }}
+            >
+              <SettingsSidebar
+                settingsItems={settingsItems}
+                selectedSettingId={selectedSettingId}
+                onSettingClick={handleTabChange}
+                width="100%"
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={() =>
+                  setIsSidebarCollapsed(!isSidebarCollapsed)
+                }
+                avatarSrc={avatarSrc}
+                avatarLabel={avatarLabel}
+                userName={displayName}
+                userEmail={user?.email}
+                onAvatarClick={handleAvatarClick}
+              />
+            </div>
+
+            {/* Right Pane - Content Area with rounded corners */}
+            <div className="flex-1 rounded-lg bg-white shadow-xs border border-gray-200 min-w-0">
+              {renderContent()}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Profiler>
   );
 };
 

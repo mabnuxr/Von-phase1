@@ -20,7 +20,14 @@ import { useSidebarState } from "../hooks/useSidebarState";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { startProviderLogout } from "../lib/authFlow";
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+  Profiler,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
@@ -76,6 +83,7 @@ import {
   MESSAGES_PAGE_LIMIT,
   STREAM_TIMEOUT_MS,
 } from "../config/constants";
+import { reportRenderTiming } from "../lib/datadog";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -1011,260 +1019,264 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
-      {/* Connection Error Banner */}
-      {showConnectionBanner && (
-        <Banner
-          variant="error"
-          message="Issue Connecting to Backend Services"
-          onClose={() => setShowConnectionBanner(false)}
-          action={{ label: "Retry", onClick: handleRetry }}
-          dismissible={true}
-        />
-      )}
-
-      {/* Initialization Error Banner */}
-      {initError && (
-        <Banner
-          variant="error"
-          message="Failed to load conversations"
-          onClose={() => {}}
-          dismissible={false}
-        />
-      )}
-
-      {/* Full-width container */}
-      <div className="w-full h-full flex flex-col overflow-hidden">
-        {/* TopBar in White Rounded Container (V1 sidebar only — V2 has its own header) */}
-        {!isSidebarV2 && (
-          <div className="bg-transparent">
-            <TopBar
-              onLogoClick={() => navigate("/chat")}
-              showMenu={false}
-              onNewChatClick={handleNewChatClick}
-            />
-          </div>
+    <Profiler id="dashboard" onRender={reportRenderTiming}>
+      <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
+        {/* Connection Error Banner */}
+        {showConnectionBanner && (
+          <Banner
+            variant="error"
+            message="Issue Connecting to Backend Services"
+            onClose={() => setShowConnectionBanner(false)}
+            action={{ label: "Retry", onClick: handleRetry }}
+            dismissible={true}
+          />
         )}
 
-        {/* Avatar Menu Dropdown */}
-        <AvatarMenu
-          userName={displayName}
-          userEmail={user?.email}
-          isOpen={isAvatarMenuOpen}
-          onClose={() => setIsAvatarMenuOpen(false)}
-          onSettingsClick={handleSettingsClick}
-          onLogoutClick={handleLogoutClick}
-          triggerRect={avatarRect}
-        />
+        {/* Initialization Error Banner */}
+        {initError && (
+          <Banner
+            variant="error"
+            message="Failed to load conversations"
+            onClose={() => {}}
+            dismissible={false}
+          />
+        )}
 
-        {/* Two-Pane Layout with Rounded Corners */}
-        <div
-          className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
-        >
-          {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
-          <div
-            className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
-            style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
-          >
-            {isSidebarV2 ? (
-              <ChatSidebarV2
-                items={sidebarV2Items}
-                folders={sidebarV2Folders}
-                folderItems={sidebarV2FolderItems}
-                folderLoadingMap={sidebarV2FolderLoadingMap}
-                isLoading={isSidebarV2Loading}
-                selectedItemId={currentConversationId || undefined}
-                onItemClick={handleChatClick}
+        {/* Full-width container */}
+        <div className="w-full h-full flex flex-col overflow-hidden">
+          {/* TopBar in White Rounded Container (V1 sidebar only — V2 has its own header) */}
+          {!isSidebarV2 && (
+            <div className="bg-transparent">
+              <TopBar
+                onLogoClick={() => navigate("/chat")}
+                showMenu={false}
                 onNewChatClick={handleNewChatClick}
-                onNewChatFolderClick={createFolder}
-                onRenameItem={renameConversation}
-                onDeleteItem={handleDeleteItem}
-                onDeleteFolder={deleteFolder}
-                onRenameFolder={renameFolder}
-                onPinFolder={pinFolder}
-                onFolderToggle={toggleFolderExpanded}
-                onMoveItemToFolder={moveItemToFolder}
-                onCreateFolderAndMoveItem={createFolderForItem}
-                onRemoveItemFromFolder={removeItemFromFolder}
-                isCollapsed={isSidebarCollapsed}
-                onToggleCollapse={toggleSidebar}
-                loadMoreRef={loadMoreConversationsV2Ref}
-                isFetchingMore={isFetchingNextPageV2}
-                hasNextPage={hasNextPageV2}
-                avatarSrc={avatarSrc}
-                avatarLabel={avatarLabel}
-                userName={displayName}
-                userEmail={user?.email}
-                onSignOutClick={handleLogoutClick}
-                onSettingsClick={handleSettingsClick}
               />
-            ) : (
-              <ChatSidebar
-                chatItems={chatItems}
-                selectedChatId={currentConversationId || undefined}
-                onChatClick={handleChatClick}
-                searchPlaceholder="Search conversations..."
-                isCollapsed={isSidebarCollapsed}
-                onToggleCollapse={toggleSidebar}
-                loadMoreRef={loadMoreConversationsRef}
-                isFetchingMore={isFetchingNextPage}
-                hasNextPage={!!hasNextPage}
-                onLoadMore={fetchNextPage}
-                avatarSrc={avatarSrc}
-                avatarLabel={avatarLabel}
-                userName={displayName}
-                userEmail={user?.email}
-                onAvatarClick={handleAvatarClick}
-              />
-            )}
+            </div>
+          )}
+
+          {/* Avatar Menu Dropdown */}
+          <AvatarMenu
+            userName={displayName}
+            userEmail={user?.email}
+            isOpen={isAvatarMenuOpen}
+            onClose={() => setIsAvatarMenuOpen(false)}
+            onSettingsClick={handleSettingsClick}
+            onLogoutClick={handleLogoutClick}
+            triggerRect={avatarRect}
+          />
+
+          {/* Two-Pane Layout with Rounded Corners */}
+          <div
+            className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
+          >
+            {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
+            <div
+              className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
+              style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
+            >
+              {isSidebarV2 ? (
+                <ChatSidebarV2
+                  items={sidebarV2Items}
+                  folders={sidebarV2Folders}
+                  folderItems={sidebarV2FolderItems}
+                  folderLoadingMap={sidebarV2FolderLoadingMap}
+                  isLoading={isSidebarV2Loading}
+                  selectedItemId={currentConversationId || undefined}
+                  onItemClick={handleChatClick}
+                  onNewChatClick={handleNewChatClick}
+                  onNewChatFolderClick={createFolder}
+                  onRenameItem={renameConversation}
+                  onDeleteItem={handleDeleteItem}
+                  onDeleteFolder={deleteFolder}
+                  onRenameFolder={renameFolder}
+                  onPinFolder={pinFolder}
+                  onFolderToggle={toggleFolderExpanded}
+                  onMoveItemToFolder={moveItemToFolder}
+                  onCreateFolderAndMoveItem={createFolderForItem}
+                  onRemoveItemFromFolder={removeItemFromFolder}
+                  isCollapsed={isSidebarCollapsed}
+                  onToggleCollapse={toggleSidebar}
+                  loadMoreRef={loadMoreConversationsV2Ref}
+                  isFetchingMore={isFetchingNextPageV2}
+                  hasNextPage={hasNextPageV2}
+                  avatarSrc={avatarSrc}
+                  avatarLabel={avatarLabel}
+                  userName={displayName}
+                  userEmail={user?.email}
+                  onSignOutClick={handleLogoutClick}
+                  onSettingsClick={handleSettingsClick}
+                />
+              ) : (
+                <ChatSidebar
+                  chatItems={chatItems}
+                  selectedChatId={currentConversationId || undefined}
+                  onChatClick={handleChatClick}
+                  searchPlaceholder="Search conversations..."
+                  isCollapsed={isSidebarCollapsed}
+                  onToggleCollapse={toggleSidebar}
+                  loadMoreRef={loadMoreConversationsRef}
+                  isFetchingMore={isFetchingNextPage}
+                  hasNextPage={!!hasNextPage}
+                  onLoadMore={fetchNextPage}
+                  avatarSrc={avatarSrc}
+                  avatarLabel={avatarLabel}
+                  userName={displayName}
+                  userEmail={user?.email}
+                  onAvatarClick={handleAvatarClick}
+                />
+              )}
+            </div>
+
+            {/* Dashboard Canvas - appears when converting message to dashboard */}
+            {isDashboardOpen &&
+              dashboardMessageId &&
+              dashboardMessageContent && (
+                <DashboardCanvas
+                  title={currentConversationTitle}
+                  messageContent={dashboardMessageContent}
+                  messageId={dashboardMessageId}
+                  isOpen={isDashboardOpen}
+                  onClose={handleCloseDashboard}
+                  thesysApiKey={import.meta.env.VITE_THESYS_API_KEY || ""}
+                />
+              )}
+
+            {/* Right Pane - Chat with rounded corners (shrinks when dashboard is open) */}
+            <motion.div
+              className="flex min-w-0"
+              initial={false}
+              animate={{
+                flex: isDashboardOpen ? "0 0 35%" : "1 1 auto",
+              }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              {isLoading ? (
+                <ChatSkeleton messageCount={4} />
+              ) : isDeepResearchMode && transformedMessages.length > 0 ? (
+                /* Deep Research Mode - dedicated component */
+                <>
+                  {chatBanner}
+                  <DeepResearchConversation
+                    messages={transformedMessages}
+                    userName={user?.firstName || user?.name?.split(" ")[0]}
+                    userEmail={user?.email}
+                    conversationId={currentConversationId}
+                    researchResults={effectiveResearchResults ?? undefined}
+                    isDeepResearchRunning={v2IsDeepResearchRunning}
+                    onSendMessage={handleSendMessage}
+                    onStopStreaming={handleStopStreaming}
+                    onArtifactClick={handleArtifactClick}
+                    onApprove={handleApproval}
+                    onReject={handleRejection}
+                    placeholder="Ask von anything"
+                    disableSubmit={!canSubmit}
+                    onInputWhileDisabled={handleDisabledInteraction}
+                    enableCommands={isSlashCommandsEnabled}
+                    showPlusMenu={isFileUploadEnabled}
+                  />
+                </>
+              ) : (
+                /* Regular Mode - standard Chat component */
+                <Chat
+                  title="von AI"
+                  userId={user?.id}
+                  userName={user?.firstName || user?.name?.split(" ")[0]}
+                  userEmail={user?.email}
+                  apiBaseUrl={config.apiBaseUrl}
+                  pusherConfig={pusherConfig}
+                  conversationId={currentConversationId || undefined}
+                  enableRealtime={
+                    !!currentConversationId &&
+                    !!import.meta.env.VITE_PUSHER_KEY &&
+                    !!import.meta.env.VITE_PUSHER_CLUSTER
+                  }
+                  messages={transformedMessages}
+                  onSendMessage={handleSendMessage}
+                  onStopStreaming={handleStopStreaming}
+                  inputValue={autoPopulatedInput}
+                  onInputValueChange={setAutoPopulatedInput}
+                  isLoading={false}
+                  loadMoreRef={loadMoreMessagesRef}
+                  isFetchingMore={isFetchingNextMessagePage}
+                  placeholder="Ask von anything"
+                  variant="floating"
+                  height="100%"
+                  width="100%"
+                  showMessagesFromIndex={showMessagesFromIndex}
+                  onArtifactClick={handleArtifactClick}
+                  banner={chatBanner}
+                  disableSubmit={!canSubmit}
+                  examplePromptsDisabled={!canSubmit}
+                  onExamplePromptDisabledClick={handleDisabledInteraction}
+                  onInputWhileDisabled={handleDisabledInteraction}
+                  enableCommands={isSlashCommandsEnabled}
+                  enableActions={isActionsEnabled}
+                  onApprove={handleApproval}
+                  onReject={handleRejection}
+                  onConvertToDashboard={handleConvertToDashboard}
+                  showTransparency={isAgentV2 && isSourcesEnabled}
+                  onTransparencyClick={handleTransparencyClick}
+                  salesforceInstanceUrl={salesforceInstanceUrl}
+                  enableDeepLinks={isDeepLinksEnabled}
+                  thinkingProcessVersion={isAgentV2 ? "v2" : "v1"}
+                  useStandardInput={isAgentV2}
+                  isAgentLocked={isAgentLocked}
+                  lockedAgentMode={lockedAgentMode}
+                  showPlusMenu={isFileUploadEnabled}
+                  controlledAttachments={fileAttachmentState}
+                  onRemoveAttachment={handleRemoveAttachment}
+                  onFilesSelected={handleFilesSelected}
+                  onFileClick={handleFileClick}
+                  onFileError={handleFileError}
+                  fileErrorMessage={fileErrorMessage}
+                  onDismissFileError={() => setFileErrorMessage(null)}
+                />
+              )}
+            </motion.div>
           </div>
 
-          {/* Dashboard Canvas - appears when converting message to dashboard */}
-          {isDashboardOpen && dashboardMessageId && dashboardMessageContent && (
-            <DashboardCanvas
-              title={currentConversationTitle}
-              messageContent={dashboardMessageContent}
-              messageId={dashboardMessageId}
-              isOpen={isDashboardOpen}
-              onClose={handleCloseDashboard}
-              thesysApiKey={import.meta.env.VITE_THESYS_API_KEY || ""}
+          {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
+          <LazyTransparencyDrawer
+            isOpen={isTransparencyOpen}
+            onClose={handleCloseTransparency}
+            conversationId={currentConversationId}
+            runId={transparencyRunId}
+            artifactSummaries={transparencyArtifactSummaries}
+            isListLoading={isTransparencyLoading}
+            title="Data Sources"
+          />
+
+          {/* Artifact Viewer - renders V1 Pane or V2 Drawer based on thinking process version */}
+          {isAgentV2 ? (
+            <SingleArtifactDrawerContainer
+              conversationId={currentConversationId}
+              drawerState={artifactState}
+              onClose={closeArtifact}
+            />
+          ) : (
+            <ArtifactPaneContainer
+              conversationId={currentConversationId}
+              paneState={artifactState}
+              onClose={closeArtifact}
             />
           )}
 
-          {/* Right Pane - Chat with rounded corners (shrinks when dashboard is open) */}
-          <motion.div
-            className="flex min-w-0"
-            initial={false}
-            animate={{
-              flex: isDashboardOpen ? "0 0 35%" : "1 1 auto",
-            }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            {isLoading ? (
-              <ChatSkeleton messageCount={4} />
-            ) : isDeepResearchMode && transformedMessages.length > 0 ? (
-              /* Deep Research Mode - dedicated component */
-              <>
-                {chatBanner}
-                <DeepResearchConversation
-                  messages={transformedMessages}
-                  userName={user?.firstName || user?.name?.split(" ")[0]}
-                  userEmail={user?.email}
-                  conversationId={currentConversationId}
-                  researchResults={effectiveResearchResults ?? undefined}
-                  isDeepResearchRunning={v2IsDeepResearchRunning}
-                  onSendMessage={handleSendMessage}
-                  onStopStreaming={handleStopStreaming}
-                  onArtifactClick={handleArtifactClick}
-                  onApprove={handleApproval}
-                  onReject={handleRejection}
-                  placeholder="Ask von anything"
-                  disableSubmit={!canSubmit}
-                  onInputWhileDisabled={handleDisabledInteraction}
-                  enableCommands={isSlashCommandsEnabled}
-                  showPlusMenu={isFileUploadEnabled}
-                />
-              </>
-            ) : (
-              /* Regular Mode - standard Chat component */
-              <Chat
-                title="von AI"
-                userId={user?.id}
-                userName={user?.firstName || user?.name?.split(" ")[0]}
-                userEmail={user?.email}
-                apiBaseUrl={config.apiBaseUrl}
-                pusherConfig={pusherConfig}
-                conversationId={currentConversationId || undefined}
-                enableRealtime={
-                  !!currentConversationId &&
-                  !!import.meta.env.VITE_PUSHER_KEY &&
-                  !!import.meta.env.VITE_PUSHER_CLUSTER
-                }
-                messages={transformedMessages}
-                onSendMessage={handleSendMessage}
-                onStopStreaming={handleStopStreaming}
-                inputValue={autoPopulatedInput}
-                onInputValueChange={setAutoPopulatedInput}
-                isLoading={false}
-                loadMoreRef={loadMoreMessagesRef}
-                isFetchingMore={isFetchingNextMessagePage}
-                placeholder="Ask von anything"
-                variant="floating"
-                height="100%"
-                width="100%"
-                showMessagesFromIndex={showMessagesFromIndex}
-                onArtifactClick={handleArtifactClick}
-                banner={chatBanner}
-                disableSubmit={!canSubmit}
-                examplePromptsDisabled={!canSubmit}
-                onExamplePromptDisabledClick={handleDisabledInteraction}
-                onInputWhileDisabled={handleDisabledInteraction}
-                enableCommands={isSlashCommandsEnabled}
-                enableActions={isActionsEnabled}
-                onApprove={handleApproval}
-                onReject={handleRejection}
-                onConvertToDashboard={handleConvertToDashboard}
-                showTransparency={isAgentV2 && isSourcesEnabled}
-                onTransparencyClick={handleTransparencyClick}
-                salesforceInstanceUrl={salesforceInstanceUrl}
-                enableDeepLinks={isDeepLinksEnabled}
-                thinkingProcessVersion={isAgentV2 ? "v2" : "v1"}
-                useStandardInput={isAgentV2}
-                isAgentLocked={isAgentLocked}
-                lockedAgentMode={lockedAgentMode}
-                showPlusMenu={isFileUploadEnabled}
-                controlledAttachments={fileAttachmentState}
-                onRemoveAttachment={handleRemoveAttachment}
-                onFilesSelected={handleFilesSelected}
-                onFileClick={handleFileClick}
-                onFileError={handleFileError}
-                fileErrorMessage={fileErrorMessage}
-                onDismissFileError={() => setFileErrorMessage(null)}
-              />
-            )}
-          </motion.div>
+          {/* File Preview Modal — triggered by clicking file pills in messages */}
+          {filePreviewAttachment && (
+            <FilePreviewModal
+              attachment={filePreviewAttachment}
+              downloadUrl={filePreviewUrl}
+              isLoading={isFilePreviewLoading}
+              onClose={() => {
+                setFilePreviewAttachment(null);
+                setFilePreviewUrl(null);
+              }}
+            />
+          )}
         </div>
-
-        {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
-        <LazyTransparencyDrawer
-          isOpen={isTransparencyOpen}
-          onClose={handleCloseTransparency}
-          conversationId={currentConversationId}
-          runId={transparencyRunId}
-          artifactSummaries={transparencyArtifactSummaries}
-          isListLoading={isTransparencyLoading}
-          title="Data Sources"
-        />
-
-        {/* Artifact Viewer - renders V1 Pane or V2 Drawer based on thinking process version */}
-        {isAgentV2 ? (
-          <SingleArtifactDrawerContainer
-            conversationId={currentConversationId}
-            drawerState={artifactState}
-            onClose={closeArtifact}
-          />
-        ) : (
-          <ArtifactPaneContainer
-            conversationId={currentConversationId}
-            paneState={artifactState}
-            onClose={closeArtifact}
-          />
-        )}
-
-        {/* File Preview Modal — triggered by clicking file pills in messages */}
-        {filePreviewAttachment && (
-          <FilePreviewModal
-            attachment={filePreviewAttachment}
-            downloadUrl={filePreviewUrl}
-            isLoading={isFilePreviewLoading}
-            onClose={() => {
-              setFilePreviewAttachment(null);
-              setFilePreviewUrl(null);
-            }}
-          />
-        )}
       </div>
-    </div>
+    </Profiler>
   );
 };
 

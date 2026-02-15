@@ -71,11 +71,23 @@ if ! PUSHER_CLUSTER=$(aws ssm get-parameter --name "arn:aws:ssm:us-west-2:814314
   exit 1
 fi
 
+if ! DD_APPLICATION_ID=$(aws ssm get-parameter --with-decryption --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/datadog/rum-application-id" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch DD_APPLICATION_ID from AWS SSM"
+  exit 1
+fi
+
+if ! DD_CLIENT_TOKEN=$(aws ssm get-parameter --with-decryption --name "arn:aws:ssm:us-west-2:814314855241:parameter/revenue-os/prod/datadog/rum-client-token" --region us-west-2 --query 'Parameter.Value' --output text); then
+  echo "ERROR: Failed to fetch DD_CLIENT_TOKEN from AWS SSM"
+  exit 1
+fi
+
 echo "Fetched SCALEKIT_CLIENT_ID: ${SCALEKIT_CLIENT_ID:0:10}..."
 echo "Fetched SCALEKIT_ENVIRONMENT_URL: ${SCALEKIT_ENVIRONMENT_URL:0:20}..."
 echo "Fetched LAUNCHDARKLY_CLIENT_ID: ${LAUNCHDARKLY_CLIENT_ID:0:10}..."
 echo "Fetched PUSHER_KEY: ${PUSHER_KEY:0:10}..."
 echo "Fetched PUSHER_CLUSTER: ${PUSHER_CLUSTER}"
+echo "Fetched DD_APPLICATION_ID: ${DD_APPLICATION_ID:0:10}..."
+echo "Fetched DD_CLIENT_TOKEN: ${DD_CLIENT_TOKEN:0:10}..."
 
 # Create .env file from environment variables set by App Runner
 echo "=== Creating .env file at workspace root ==="
@@ -90,6 +102,9 @@ VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback
 VITE_API_BASE_URL=https://apiv2.vonlabs.ai
 VITE_PUSHER_KEY=${PUSHER_KEY}
 VITE_PUSHER_CLUSTER=${PUSHER_CLUSTER}
+VITE_DD_APPLICATION_ID=${DD_APPLICATION_ID}
+VITE_DD_CLIENT_TOKEN=${DD_CLIENT_TOKEN}
+VITE_DD_SITE=us5.datadoghq.com
 EOF
 
 echo "=== .env file contents ==="
