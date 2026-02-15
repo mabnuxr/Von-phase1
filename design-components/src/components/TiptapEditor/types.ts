@@ -13,6 +13,8 @@ export interface TiptapEditorProps {
   disabled?: boolean;
   /** Ref to access the editor instance */
   editorRef?: React.RefObject<Editor | null>;
+  /** Callback when files are pasted from clipboard */
+  onPasteFiles?: (files: File[]) => void;
 }
 
 export interface EditorToolbarProps {
