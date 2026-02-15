@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 import { getUserContextFromToken } from "../lib/auth";
 import { identifyDatadogUser } from "../lib/datadog";
-import { LaunchDarklyIdentityContext } from "./LaunchDarklyGate";
+import { LaunchDarklyIdentityContext } from "./LaunchDarkly";
 
 /**
  * Layout wrapper for authenticated routes.

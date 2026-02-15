@@ -7,7 +7,7 @@ import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
-import { LaunchDarklyGate } from "./components/LaunchDarklyGate";
+import { LaunchDarklyGate } from "./components/LaunchDarkly";
 import { DashboardSkeleton } from "./components/DashboardSkeleton";
 
 export default function App() {
