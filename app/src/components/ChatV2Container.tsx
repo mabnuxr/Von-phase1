@@ -176,7 +176,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
           onRemoveAttachment={chatV2.handleRemoveAttachment}
           onFilesSelected={chatV2.handleFilesSelected}
           onFileClick={chatV2.handleFileClick}
-          onFileError={(error: string, message: string) => {
+          onFileError={(_error: string, message: string) => {
             chatV2.setFileErrorMessage(message);
           }}
           fileErrorMessage={chatV2.fileErrorMessage}
