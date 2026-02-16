@@ -268,11 +268,6 @@ export function useRemoveConversationFromFolder() {
           folderConversationsKeys.folder(sourceFolderId),
         );
 
-      // Find the conversation to remove from folder
-      const conversationToMove = previousFolderData?.conversations.find(
-        (c) => c.conversationId === conversationId,
-      );
-
       // Optimistically update folder (remove conversation)
       if (previousFolderData) {
         queryClient.setQueryData<FolderConversationsResponse>(
@@ -281,37 +276,6 @@ export function useRemoveConversationFromFolder() {
             ...previousFolderData,
             conversations: previousFolderData.conversations.filter(
               (c) => c.conversationId !== conversationId,
-            ),
-          },
-        );
-      }
-
-      // Optimistically update sidebar (add to unfiled on the first page)
-      if (previousSidebarData && conversationToMove) {
-        const newUnfiledConversation: SidebarConversation = {
-          conversationId: conversationToMove.conversationId,
-          title: conversationToMove.title,
-          createdAt: conversationToMove.createdAt,
-          updatedAt: conversationToMove.updatedAt,
-        };
-
-        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
-          chatSidebarKeys.sidebar(),
-          {
-            ...previousSidebarData,
-            pages: previousSidebarData.pages.map((page, index) =>
-              index === 0
-                ? {
-                    ...page,
-                    unfiled: {
-                      ...page.unfiled,
-                      conversations: [
-                        newUnfiledConversation,
-                        ...page.unfiled.conversations,
-                      ],
-                    },
-                  }
-                : page,
             ),
           },
         );

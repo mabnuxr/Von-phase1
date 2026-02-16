@@ -3,6 +3,8 @@
  * Types for the new sidebar API that supports folders and organized conversations
  */
 
+import type { ConversationMode } from "./conversation";
+
 /**
  * Folder entity for organizing conversations
  */
@@ -22,6 +24,8 @@ export interface ChatFolder {
 export interface SidebarConversation {
   conversationId: string;
   title: string;
+  mode: ConversationMode;
+  agentVersion: "v1" | "v2";
   createdAt: string;
   updatedAt: string;
 }

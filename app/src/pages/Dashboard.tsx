@@ -28,7 +28,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useConversationInit } from "../hooks/useConversationInit";
-import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
+import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import {
   handleToolApproval,
   handleToolRejection,
@@ -65,11 +65,7 @@ import type {
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 import { motion } from "framer-motion";
-import {
-  CONVERSATIONS_PAGE_LIMIT,
-  MESSAGES_PAGE_LIMIT,
-  STREAM_TIMEOUT_MS,
-} from "../config/constants";
+import { MESSAGES_PAGE_LIMIT, STREAM_TIMEOUT_MS } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
 const Dashboard = () => {
@@ -92,9 +88,9 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // Fetch conversations for current conversation lookup
-  const { data: infiniteConversationsData } = useInfiniteConversations(
-    CONVERSATIONS_PAGE_LIMIT,
+  // Fetch current conversation metadata (agentVersion, mode, title)
+  const { data: currentConversation } = useCurrentConversation(
+    currentConversationId,
   );
 
   // Fetch messages for current conversation with infinite scroll
@@ -235,23 +231,6 @@ const Dashboard = () => {
 
   // Agent is locked if conversation has any messages
   const isAgentLocked = conversationMessages.length > 0;
-
-  // Flatten paginated conversations data for lookups
-  const allConversations = useMemo(
-    () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
-    [infiniteConversationsData?.pages],
-  );
-
-  // Find current conversation from the flattened list
-  const currentConversation = useMemo(
-    () =>
-      currentConversationId
-        ? allConversations.find(
-            (conv) => conv.conversationId === currentConversationId,
-          )
-        : undefined,
-    [allConversations, currentConversationId],
-  );
 
   // Get locked agent mode from backend (used when agent is locked)
   const lockedAgentMode = useMemo(() => {
