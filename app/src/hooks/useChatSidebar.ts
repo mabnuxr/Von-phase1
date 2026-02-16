@@ -21,7 +21,10 @@ export const chatSidebarKeys = {
  * Page 1 returns folders + first page of unfiled conversations.
  * Subsequent pages only add more unfiled conversations (folders stay the same).
  */
-export function useChatSidebar(limit: number = CONVERSATIONS_PAGE_LIMIT) {
+export function useChatSidebar(
+  limit: number = CONVERSATIONS_PAGE_LIMIT,
+  enabled: boolean = true,
+) {
   return useInfiniteQuery<ChatSidebarResponse>({
     queryKey: chatSidebarKeys.sidebar(),
     queryFn: ({ pageParam }) =>
@@ -35,5 +38,6 @@ export function useChatSidebar(limit: number = CONVERSATIONS_PAGE_LIMIT) {
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    enabled,
   });
 }

@@ -1,26 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChatTextIcon,
   SidebarSimpleIcon,
   PlusCircleIcon,
   FolderSimpleIcon,
-  CaretRightIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
-import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebarV2';
+import { FolderList } from './FolderList';
+import type { SidebarItem, Folder, FolderItemsMap, FolderLoadingMap } from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';
 
 export interface CollapsedSidebarProps {
   items: SidebarItem[];
   folders?: Folder[];
   folderItems?: FolderItemsMap;
+  folderLoadingMap?: FolderLoadingMap;
   selectedItemId?: string;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onNewChatClick?: () => void;
   onItemClick?: (id: string) => void;
+  onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
 
   // Hover dropdown state - Chats
   isChatsHovered: boolean;
@@ -47,6 +49,12 @@ export interface CollapsedSidebarProps {
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   onSignOutClick?: () => void;
+  /** Whether the "New Chat" button should appear in active/selected state */
+  isNewChatActive?: boolean;
+
+  // Folder data (derived, for the FolderList)
+  sortedFolders: Folder[];
+  itemsByFolder: Record<string, SidebarItem[]>;
 }
 
 /**
@@ -56,18 +64,18 @@ export interface CollapsedSidebarProps {
  * - Expand button
  * - New chat button (PlusCircleIcon)
  * - Chats icon with hover dropdown showing recent items
- * - Folders icon with hover dropdown showing folders and their items
+ * - Folders icon with hover dropdown showing folders (minimal / read-only)
  * - User profile avatar with popover
  */
 export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   items,
-  folders = [],
-  folderItems = {},
+  folderLoadingMap = {},
   selectedItemId,
   isCollapsed,
   onToggleCollapse,
   onNewChatClick,
   onItemClick,
+  onFolderToggle,
   isChatsHovered,
   dropdownPosition,
   chatButtonRef,
@@ -88,22 +96,10 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onSettingsClick,
   onHelpClick,
   onSignOutClick,
+  isNewChatActive = false,
+  sortedFolders,
+  itemsByFolder,
 }) => {
-  // Local state for folder expansion in dropdown (doesn't affect main sidebar)
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
-
-  const toggleFolderExpansion = (folderId: string) => {
-    setExpandedFolderIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(folderId)) {
-        next.delete(folderId);
-      } else {
-        next.add(folderId);
-      }
-      return next;
-    });
-  };
-
   return (
     <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
@@ -121,7 +117,11 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
         <div className="flex flex-col items-start gap-2">
           {/* New Chat Button */}
           <button
-            className="flex items-center justify-center w-8 h-8 rounded-lg border border-transparent cursor-pointer transition-all duration-150 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs"
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border cursor-pointer transition-all duration-150 ${
+              isNewChatActive
+                ? 'bg-gray-50 border-gray-200 shadow-xs'
+                : 'border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+            }`}
             onClick={onNewChatClick}
             title="New Chat"
           >
@@ -147,7 +147,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
               <FolderSimpleIcon size={18} weight="regular" />
             </button>
 
-            {/* Folders Hover Dropdown */}
+            {/* Folders Hover Dropdown — minimal / read-only */}
             <AnimatePresence>
               {isFoldersHovered && (
                 <motion.div
@@ -167,60 +167,16 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                     </span>
                   </div>
                   <div className="overflow-y-auto max-h-64 py-0.5">
-                    {folders.length === 0 && (
-                      <div className="px-3 py-3 text-xs text-gray-400 text-center">No folders</div>
-                    )}
-                    {folders.map((folder) => {
-                      const isExpanded = expandedFolderIds.has(folder.id);
-                      const folderItemsList =
-                        folderItems[folder.id] ??
-                        items.filter((item) => item.folderId === folder.id);
-
-                      return (
-                        <div key={folder.id}>
-                          {/* Folder row */}
-                          <div
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors duration-150 cursor-pointer text-gray-900 hover:bg-gray-50"
-                            onClick={() => toggleFolderExpansion(folder.id)}
-                          >
-                            <CaretRightIcon
-                              size={12}
-                              weight="bold"
-                              className={`text-gray-400 flex-shrink-0 transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
-                            />
-                            <FolderSimpleIcon
-                              size={14}
-                              weight="regular"
-                              className="text-gray-800 flex-shrink-0"
-                            />
-                            <span className="truncate">{folder.label}</span>
-                          </div>
-
-                          {/* Folder items (expanded) */}
-                          {isExpanded && (
-                            <div className="pl-7">
-                              {folderItemsList.length === 0 ? (
-                                <div className="px-3 py-2 text-xs text-gray-400">No items</div>
-                              ) : (
-                                folderItemsList.map((item) => (
-                                  <div
-                                    key={item.id}
-                                    className={`
-                                      px-3 py-2 rounded-xl text-sm transition-colors duration-150 cursor-pointer
-                                      ${item.id === selectedItemId ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
-                                    `}
-                                    onClick={() => onItemClick?.(item.id)}
-                                    title={item.label}
-                                  >
-                                    <span className="truncate block">{item.label}</span>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    <FolderList
+                      minimal
+                      showEmptyState
+                      sortedFolders={sortedFolders}
+                      itemsByFolder={itemsByFolder}
+                      folderLoadingMap={folderLoadingMap}
+                      selectedItemId={selectedItemId}
+                      onFolderToggle={onFolderToggle}
+                      onItemClick={onItemClick}
+                    />
                   </div>
                 </motion.div>
               )}

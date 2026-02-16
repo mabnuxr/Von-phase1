@@ -26,7 +26,6 @@ import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useMessages } from "../hooks/useMessages";
 import { useConversationInit } from "../hooks/useConversationInit";
-import { useInfiniteConversations } from "../hooks/useInfiniteConversations";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSidebarState } from "../hooks/useSidebarState";
@@ -37,16 +36,14 @@ import { ChatV1Container } from "../components/ChatV1Container";
 import { ChatV2Container } from "../components/ChatV2Container";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
+import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import {
   agentModeToConversationMode,
   conversationModeToAgentMode,
   DEFAULT_AGENT_MODE,
 } from "../lib/conversationModeUtils";
 import { startProviderLogout } from "../lib/authFlow";
-import {
-  CONVERSATIONS_PAGE_LIMIT,
-  MESSAGES_PAGE_LIMIT,
-} from "../config/constants";
+import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
 const Dashboard = () => {
@@ -69,9 +66,9 @@ const Dashboard = () => {
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
-  // --- Infinite Conversations (for current conversation lookup) ---
-  const { data: infiniteConversationsData } = useInfiniteConversations(
-    CONVERSATIONS_PAGE_LIMIT,
+  // Fetch current conversation metadata (agentVersion, mode, title)
+  const { data: currentConversation } = useCurrentConversation(
+    currentConversationId,
   );
 
   // --- Messages ---
@@ -119,22 +116,6 @@ const Dashboard = () => {
       isSidebarV2,
       isAgentV2Flag,
     });
-
-  // --- Conversation Lookup ---
-  const allConversations = useMemo(
-    () => infiniteConversationsData?.pages.flatMap((page) => page.data) || [],
-    [infiniteConversationsData?.pages],
-  );
-
-  const currentConversation = useMemo(
-    () =>
-      currentConversationId
-        ? allConversations.find(
-            (conv) => conv.conversationId === currentConversationId,
-          )
-        : undefined,
-    [allConversations, currentConversationId],
-  );
 
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";

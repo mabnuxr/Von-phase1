@@ -1,20 +1,19 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useInfiniteConversations } from "./useInfiniteConversations";
+import { useFirstConversationId } from "./useFirstConversationId";
 import { useCreateConversation } from "./useConversations";
 import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
-import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
 import { useFeatureFlag } from "./useFeatureFlag";
 
 /**
  * Initialize conversation on Dashboard mount
  *
  * Flow:
- * 1. Fetch user's conversations from backend
- * 2. If URL has conversationId → Validate and use it
- * 3. If no URL param or invalid → Redirect to first conversation
- * 4. If no conversations exist → Create "New Chat 1" and redirect to it
+ * 1. If URL has conversationId → Trust and use it directly
+ * 2. If no URL param → Redirect to most recent conversation
+ *    (lightweight fetch — only 1 item, version-aware endpoint)
+ * 3. If no conversations exist → Create "New Chat 1" and redirect to it
  *
  * @param urlConversationId - Optional conversation ID from URL params
  * @returns Current conversation ID and initialization state
@@ -24,19 +23,20 @@ export function useConversationInit(urlConversationId?: string) {
   const currentConversationId = useChatStore.use.currentConversationId();
   const setCurrentConversationId = useChatStore.use.setCurrentConversationId();
 
-  // Get feature flag for agent version
+  // Get feature flag for agent version (used when creating first conversation)
   const { isAgentV2 } = useFeatureFlag();
 
   // Track whether we've already attempted to create the initial conversation
   // Prevents duplicate creation when isAgentV2 flag value changes asynchronously
   const hasCreatedInitialConversationRef = useRef(false);
 
-  // Fetch conversations with infinite scroll (sorted by updatedAt DESC from backend)
+  // Lightweight fetch — only 1 conversation, version-aware endpoint.
+  // Own query key, no interference with sidebar caches.
   const {
-    data: infiniteConversationsData,
-    isLoading: isLoadingConversations,
-    error: conversationsError,
-  } = useInfiniteConversations(CONVERSATIONS_PAGE_LIMIT);
+    data: firstConversationId,
+    isLoading,
+    error: fetchError,
+  } = useFirstConversationId();
 
   // Mutation for creating new conversation
   const {
@@ -47,58 +47,37 @@ export function useConversationInit(urlConversationId?: string) {
 
   // Run initialization logic once data is available
   useEffect(() => {
-    // Guard clauses
-    if (isLoadingConversations) return;
-    if (!infiniteConversationsData) return;
-
-    // Get all conversations
-    const conversations = infiniteConversationsData.pages.flatMap(
-      (page) => page.data,
-    );
-
-    // CASE 1: URL has conversationId - validate it
+    // CASE 1: URL has conversationId — trust it directly.
+    // No validation against loaded pages; useMessages handles fetching.
     if (urlConversationId) {
-      const exists = conversations.some(
-        (conv) => conv.conversationId === urlConversationId,
-      );
-
-      if (exists) {
-        // Valid conversation - set as current and we're done
-        setCurrentConversationId(urlConversationId);
-
-        if (import.meta.env.DEV) {
-          console.log(
-            `[useConversationInit] Loaded conversation from URL: ${urlConversationId}`,
-          );
-        }
-        return;
-      }
-
-      // Invalid conversation ID in URL - fall through to CASE 2
-      if (import.meta.env.DEV) {
-        console.warn(
-          `[useConversationInit] Invalid conversation ID in URL: ${urlConversationId}`,
-        );
-      }
-    }
-
-    // CASE 2: No URL param OR invalid conversation - redirect to first conversation
-    if (conversations.length > 0) {
-      const mostRecent = conversations[0];
+      setCurrentConversationId(urlConversationId);
 
       if (import.meta.env.DEV) {
         console.log(
-          `[useConversationInit] Redirecting to most recent conversation: ${mostRecent.conversationId}`,
+          `[useConversationInit] Loaded conversation from URL: ${urlConversationId}`,
+        );
+      }
+      return;
+    }
+
+    // For CASE 2 & 3 we need data
+    if (isLoading) return;
+
+    // CASE 2: Redirect to most recent conversation
+    if (firstConversationId) {
+      if (import.meta.env.DEV) {
+        console.log(
+          `[useConversationInit] Redirecting to most recent conversation: ${firstConversationId}`,
         );
       }
 
       // Navigate with replace to avoid back button issues
-      navigate(`/chat/${mostRecent.conversationId}`, { replace: true });
-      // Don't set store here - the URL change will trigger Dashboard's useEffect
+      navigate(`/chat/${firstConversationId}`, { replace: true });
+      // Don't set store here — the URL change will trigger Dashboard's useEffect
       return;
     }
 
-    // CASE 3: No conversations - create first one
+    // CASE 3: No conversations — create first one
     // Guard against duplicate creation when isAgentV2 flag changes asynchronously
     if (hasCreatedInitialConversationRef.current) {
       return;
@@ -136,8 +115,8 @@ export function useConversationInit(urlConversationId?: string) {
       }
     })();
   }, [
-    infiniteConversationsData,
-    isLoadingConversations,
+    firstConversationId,
+    isLoading,
     urlConversationId,
     setCurrentConversationId,
     navigate,
@@ -147,7 +126,7 @@ export function useConversationInit(urlConversationId?: string) {
 
   return {
     currentConversationId,
-    isInitializing: isLoadingConversations || isCreating,
-    error: conversationsError || createError,
+    isInitializing: isLoading || isCreating,
+    error: fetchError || createError,
   };
 }

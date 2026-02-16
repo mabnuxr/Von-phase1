@@ -1,18 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  SidebarSimpleIcon,
-  PlusCircleIcon,
-  FolderPlusIcon,
-  FolderSimpleIcon,
-} from '@phosphor-icons/react';
+import { SidebarSimpleIcon, PlusCircleIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
 import {
   ConversationItem,
-  FolderRow,
-  FolderContents,
+  FolderList,
   SectionHeader,
   CollapsedSidebar,
   ProfileSection,
@@ -241,11 +235,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           items={items}
           folders={folders}
           folderItems={folderItems}
+          folderLoadingMap={folderLoadingMap}
           selectedItemId={selectedItemId}
           isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
           onNewChatClick={onNewChatClick}
           onItemClick={onItemClick}
+          onFolderToggle={onFolderToggle}
           isChatsHovered={isChatsHovered}
           dropdownPosition={dropdownPosition}
           chatButtonRef={chatButtonRef}
@@ -266,6 +262,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onSettingsClick={onSettingsClick}
           onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
+          isNewChatActive={isNewChatActive}
+          sortedFolders={sortedFolders}
+          itemsByFolder={itemsByFolder}
         />
       </div>
 
@@ -324,80 +323,33 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   <div className="mb-3">
                     <SectionHeader label="Folders" />
                     <div>
-                      {/* "New Folder" button - always visible at the top */}
-                      <div
-                        className="flex items-center gap-1.5 px-2 h-8 rounded-xl text-sm text-gray-900 border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
-                        onClick={handleStartFolderCreation}
-                      >
-                        <FolderPlusIcon size={16} weight="regular" className="flex-shrink-0" />
-                        <span>New folder</span>
-                      </div>
-
-                      {/* Inline new folder input */}
-                      {isCreatingFolder && (
-                        <div className="flex items-center gap-2 px-2 h-8 rounded-xl bg-gray-50">
-                          <FolderSimpleIcon
-                            size={16}
-                            weight="regular"
-                            className="text-gray-800 flex-shrink-0"
-                          />
-                          <input
-                            ref={newFolderInputRef}
-                            type="text"
-                            value={newFolderName}
-                            onChange={(e) => setNewFolderName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleConfirmFolderCreation();
-                              } else if (e.key === 'Escape') {
-                                e.preventDefault();
-                                handleCancelFolderCreation();
-                              }
-                            }}
-                            onBlur={handleCancelFolderCreation}
-                            placeholder="Folder name..."
-                            className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
-                          />
-                        </div>
-                      )}
-
-                      {/* Folder rows */}
-                      {sortedFolders.map((folder) => {
-                        const folderItemsList = itemsByFolder[folder.id] || [];
-                        const isFolderLoading = folderLoadingMap[folder.id] || false;
-                        return (
-                          <div key={folder.id}>
-                            <FolderRow
-                              folder={folder}
-                              isEditing={editingFolderId === folder.id}
-                              isMenuOpen={
-                                folderContextMenu.isOpen &&
-                                folderContextMenu.folder?.id === folder.id
-                              }
-                              onClick={() => onFolderToggle?.(folder.id, !folder.isExpanded)}
-                              onContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                              onPinFolder={() => handlePinFolder(folder)}
-                              onSaveEdit={(newName) => handleSaveFolderRename(folder, newName)}
-                              onCancelEdit={handleCancelFolderRename}
-                            />
-                            <FolderContents
-                              isExpanded={folder.isExpanded ?? false}
-                              isLoading={isFolderLoading}
-                              items={folderItemsList}
-                              selectedItemId={selectedItemId}
-                              menuOpenItemId={contextMenu.isOpen ? contextMenu.item?.id : null}
-                              editingItemId={
-                                editingItemFolderId === folder.id ? editingItemId : null
-                              }
-                              onItemClick={(id) => onItemClick?.(id)}
-                              onItemContextMenu={handleContextMenu}
-                              onSaveEdit={handleSaveRename}
-                              onCancelEdit={handleCancelRename}
-                            />
-                          </div>
-                        );
-                      })}
+                      <FolderList
+                        sortedFolders={sortedFolders}
+                        itemsByFolder={itemsByFolder}
+                        folderLoadingMap={folderLoadingMap}
+                        selectedItemId={selectedItemId}
+                        isCreatingFolder={isCreatingFolder}
+                        newFolderName={newFolderName}
+                        onNewFolderNameChange={setNewFolderName}
+                        newFolderInputRef={newFolderInputRef}
+                        onStartFolderCreation={handleStartFolderCreation}
+                        onConfirmFolderCreation={handleConfirmFolderCreation}
+                        onCancelFolderCreation={handleCancelFolderCreation}
+                        editingFolderId={editingFolderId}
+                        folderContextMenu={folderContextMenu}
+                        onFolderToggle={onFolderToggle}
+                        onFolderContextMenu={handleFolderContextMenu}
+                        onPinFolder={handlePinFolder}
+                        onSaveFolderRename={handleSaveFolderRename}
+                        onCancelFolderRename={handleCancelFolderRename}
+                        editingItemId={editingItemId}
+                        editingItemFolderId={editingItemFolderId}
+                        contextMenu={contextMenu}
+                        onItemClick={onItemClick}
+                        onItemContextMenu={handleContextMenu}
+                        onSaveRename={handleSaveRename}
+                        onCancelRename={handleCancelRename}
+                      />
                     </div>
                   </div>
                 )}
@@ -466,79 +418,81 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onHelpClick={onHelpClick}
                 onSignOutClick={onSignOutClick}
               />
-
-              {/* Context Menu */}
-              <ContextMenu
-                isOpen={contextMenu.isOpen}
-                onClose={handleCloseContextMenu}
-                items={getContextMenuItems({ isInFolder: !!contextMenu.item?.folderId })}
-                fixedPosition={contextMenu.position}
-                width={160}
-                onItemClick={(menuItem) => {
-                  if (menuItem.id === 'rename' && contextMenu.item) {
-                    handleStartRename(contextMenu.item);
-                  } else if (menuItem.id === 'move' && contextMenu.item) {
-                    handleShowMoveToFolder(contextMenu.item);
-                  } else if (menuItem.id === 'remove-from-folder' && contextMenu.item) {
-                    handleRemoveFromFolder(contextMenu.item);
-                  } else if (menuItem.id === 'delete' && contextMenu.item) {
-                    handleShowDeleteConfirmation(contextMenu.item);
-                  }
-                  handleCloseContextMenu();
-                }}
-              />
-
-              {/* Delete Confirmation Popup (for items) */}
-              <DeleteConfirmationPopup
-                isOpen={deleteConfirmation.isOpen}
-                itemLabel={deleteConfirmation.item?.label || ''}
-                itemType={deleteConfirmation.item?.type || 'chat'}
-                onConfirm={handleConfirmDelete}
-                onCancel={handleCancelDelete}
-              />
-
-              {/* Folder Context Menu */}
-              <ContextMenu
-                isOpen={folderContextMenu.isOpen}
-                onClose={handleCloseFolderContextMenu}
-                items={getFolderContextMenuItems({ isPinned: folderContextMenu.folder?.isPinned })}
-                fixedPosition={folderContextMenu.position}
-                width={128}
-                onItemClick={(menuItem) => {
-                  if (menuItem.id === 'pin' && folderContextMenu.folder) {
-                    handlePinFolder(folderContextMenu.folder);
-                  } else if (menuItem.id === 'rename' && folderContextMenu.folder) {
-                    handleStartFolderRename(folderContextMenu.folder);
-                  } else if (menuItem.id === 'delete' && folderContextMenu.folder) {
-                    handleShowFolderDeleteConfirmation(folderContextMenu.folder);
-                  }
-                  handleCloseFolderContextMenu();
-                }}
-              />
-
-              {/* Delete Confirmation Popup (for folders) */}
-              <DeleteConfirmationPopup
-                isOpen={folderDeleteConfirmation.isOpen}
-                itemLabel={folderDeleteConfirmation.folder?.label || ''}
-                itemType="folder"
-                onConfirm={handleConfirmFolderDelete}
-                onCancel={handleCancelFolderDelete}
-              />
-
-              {/* Move to Folder Modal */}
-              <MoveToFolderModal
-                isOpen={moveToFolderModal.isOpen}
-                itemName={moveToFolderModal.item?.label || ''}
-                itemType="chat"
-                folders={getAvailableFoldersForMove()}
-                currentFolderId={moveToFolderModal.item?.folderId}
-                onConfirm={handleConfirmMoveToFolder}
-                onCancel={handleCancelMoveToFolder}
-              />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Shared overlays — rendered outside collapsed/expanded wrappers so they work in both states */}
+
+      {/* Context Menu (for items) */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        onClose={handleCloseContextMenu}
+        items={getContextMenuItems({ isInFolder: !!contextMenu.item?.folderId })}
+        fixedPosition={contextMenu.position}
+        width={160}
+        onItemClick={(menuItem) => {
+          if (menuItem.id === 'rename' && contextMenu.item) {
+            handleStartRename(contextMenu.item);
+          } else if (menuItem.id === 'move' && contextMenu.item) {
+            handleShowMoveToFolder(contextMenu.item);
+          } else if (menuItem.id === 'remove-from-folder' && contextMenu.item) {
+            handleRemoveFromFolder(contextMenu.item);
+          } else if (menuItem.id === 'delete' && contextMenu.item) {
+            handleShowDeleteConfirmation(contextMenu.item);
+          }
+          handleCloseContextMenu();
+        }}
+      />
+
+      {/* Delete Confirmation Popup (for items) */}
+      <DeleteConfirmationPopup
+        isOpen={deleteConfirmation.isOpen}
+        itemLabel={deleteConfirmation.item?.label || ''}
+        itemType={deleteConfirmation.item?.type || 'chat'}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
+
+      {/* Folder Context Menu */}
+      <ContextMenu
+        isOpen={folderContextMenu.isOpen}
+        onClose={handleCloseFolderContextMenu}
+        items={getFolderContextMenuItems({ isPinned: folderContextMenu.folder?.isPinned })}
+        fixedPosition={folderContextMenu.position}
+        width={128}
+        onItemClick={(menuItem) => {
+          if (menuItem.id === 'pin' && folderContextMenu.folder) {
+            handlePinFolder(folderContextMenu.folder);
+          } else if (menuItem.id === 'rename' && folderContextMenu.folder) {
+            handleStartFolderRename(folderContextMenu.folder);
+          } else if (menuItem.id === 'delete' && folderContextMenu.folder) {
+            handleShowFolderDeleteConfirmation(folderContextMenu.folder);
+          }
+          handleCloseFolderContextMenu();
+        }}
+      />
+
+      {/* Delete Confirmation Popup (for folders) */}
+      <DeleteConfirmationPopup
+        isOpen={folderDeleteConfirmation.isOpen}
+        itemLabel={folderDeleteConfirmation.folder?.label || ''}
+        itemType="folder"
+        onConfirm={handleConfirmFolderDelete}
+        onCancel={handleCancelFolderDelete}
+      />
+
+      {/* Move to Folder Modal */}
+      <MoveToFolderModal
+        isOpen={moveToFolderModal.isOpen}
+        itemName={moveToFolderModal.item?.label || ''}
+        itemType="chat"
+        folders={getAvailableFoldersForMove()}
+        currentFolderId={moveToFolderModal.item?.folderId}
+        onConfirm={handleConfirmMoveToFolder}
+        onCancel={handleCancelMoveToFolder}
+      />
     </div>
   );
 };
