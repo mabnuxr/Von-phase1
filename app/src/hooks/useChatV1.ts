@@ -5,7 +5,7 @@
  * the ChatV1Container needs to render. Business logic only — no JSX.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AgentMode,
   SendMessageOptions,
@@ -133,6 +133,21 @@ export function useChatV1(props: UseChatV1Props) {
   // Auto-populate input on error
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
   const lastUserMessageRef = useRef("");
+
+  // Re-populate input when the last assistant message fails
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const messages = useChatStore.getState().messages[conversationId] || [];
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage?.status === "failed" && lastMessage?.errorMessage) {
+      const userMessage = lastUserMessageRef.current;
+      if (userMessage) {
+        setAutoPopulatedInput(userMessage);
+      }
+    }
+  }, [conversationId, conversationMessages]);
 
   // Stream timeout guard
   const getMessages = useCallback(

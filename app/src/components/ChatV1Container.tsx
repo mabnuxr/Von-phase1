@@ -14,6 +14,7 @@ import type { AgentMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming } from "../types/conversation";
 import type { User } from "../services";
+import { config } from "../config";
 import { useChatV1 } from "../hooks/useChatV1";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ArtifactPaneContainer } from "./ArtifactPaneContainer";
@@ -116,7 +117,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         userId={user?.id}
         userName={user?.firstName || user?.name?.split(" ")[0]}
         userEmail={user?.email}
-        apiBaseUrl=""
+        apiBaseUrl={config.apiBaseUrl}
         pusherConfig={chatPusherConfig}
         conversationId={conversationId}
         enableRealtime={

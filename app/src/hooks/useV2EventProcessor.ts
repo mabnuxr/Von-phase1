@@ -28,6 +28,7 @@ import {
   getElapsedTimeFromEvents,
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
+import { conversationsService } from "../services/conversationsService";
 
 const AGUI_EVENTS = [
   "agent.run_started",
@@ -108,6 +109,7 @@ export function useV2EventProcessor(
   const finishedRunsRef = useRef<Set<string>>(new Set());
   const stoppedRef = useRef<boolean>(false);
   const lastEventTimeRef = useRef<number>(0);
+  const gapFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startElapsedTimer = useCallback(() => {
     if (elapsedTimerRef.current) {
@@ -234,18 +236,29 @@ export function useV2EventProcessor(
           runEvents = [];
           eventsRef.current.set(run_id, runEvents);
 
-          // New run started — reset stopped state and clear old state
-          stoppedRef.current = false;
-          flushSync(() => {
-            setTimelineSteps([]);
-            setFinalResponse("");
-            setIsFinalResponseStreaming(false);
-            setIsAwaitingApproval(false);
+          // Only reset state for genuinely new runs (sequence 0).
+          // If the first Pusher event has sequence > 0, this is a page-refresh
+          // mid-stream — backend seeding will merge the earlier events shortly.
+          if (sequence === 0) {
+            stoppedRef.current = false;
+            flushSync(() => {
+              setTimelineSteps([]);
+              setFinalResponse("");
+              setIsFinalResponseStreaming(false);
+              setIsAwaitingApproval(false);
+              setCurrentRunId(run_id);
+              setElapsedTime(0);
+              setRunErrorMessage("");
+            });
+            startElapsedTimer();
+          } else {
+            // Mid-stream reconnect: set run ID but preserve existing state,
+            // seeding will fill in the gaps and re-transform
             setCurrentRunId(run_id);
-            setElapsedTime(0);
-            setRunErrorMessage("");
-          });
-          startElapsedTimer();
+            if (!elapsedTimerRef.current) {
+              startElapsedTimer();
+            }
+          }
         }
 
         // Deduplicate by sequence
@@ -324,38 +337,69 @@ export function useV2EventProcessor(
     [conversationId, startElapsedTimer, stopElapsedTimer],
   );
 
-  // Seed from initialRunEvents on mount (page refresh during active run)
+  // Seed from initialRunEvents on mount (page refresh during active run).
+  // If Pusher events already arrived before the backend fetch completed,
+  // merge backend events into the existing set so no content is lost.
   useEffect(() => {
+    // Clear any pending gap-fill timer from a previous effect run
+    if (gapFillTimerRef.current) {
+      clearTimeout(gapFillTimerRef.current);
+      gapFillTimerRef.current = null;
+    }
+
     if (!initialRunEvents || initialRunEvents.length === 0) return;
 
     const runId = initialRunEvents[0]?.run_id;
     if (!runId) return;
 
-    // Don't overwrite if Pusher events already populated this run
-    if (eventsRef.current.has(runId)) return;
+    // Don't re-seed for finished runs
+    if (finishedRunsRef.current.has(runId)) return;
 
-    const seededEvents = [...initialRunEvents].sort(
+    const backendEvents = [...initialRunEvents].sort(
       (a, b) => a.sequence - b.sequence,
     );
-    const result = transformAguiToTimelineSteps(seededEvents);
+
+    // Merge: backend events fill gaps, Pusher events win on same sequence
+    const existingPusherEvents = eventsRef.current.get(runId);
+    let mergedEvents: AguiEventWrapper[];
+
+    if (existingPusherEvents && existingPusherEvents.length > 0) {
+      const mergedMap = new Map<number, AguiEventWrapper>();
+      for (const evt of backendEvents) {
+        mergedMap.set(evt.sequence, evt);
+      }
+      // Pusher events overwrite backend for same sequence (fresher)
+      for (const evt of existingPusherEvents) {
+        mergedMap.set(evt.sequence, evt);
+      }
+      mergedEvents = Array.from(mergedMap.values()).sort(
+        (a, b) => a.sequence - b.sequence,
+      );
+    } else {
+      mergedEvents = backendEvents;
+    }
+
+    const result = transformAguiToTimelineSteps(mergedEvents);
 
     // Only seed for active runs (streaming or awaiting approval)
     if (!result.isThinking && !result.isAwaitingApproval) return;
 
-    eventsRef.current.set(runId, seededEvents);
+    eventsRef.current.set(runId, mergedEvents);
 
-    setTimelineSteps(result.steps);
-    setIsThinking(result.isThinking);
-    setCurrentRunId(runId);
-    setFinalResponse(result.finalResponse);
-    setIsFinalResponseStreaming(result.isFinalResponseStreaming);
-    setIsAwaitingApproval(result.isAwaitingApproval);
-    setResearchResults(result.researchResults);
-    setIsDeepResearchRunning(result.isDeepResearchRunning);
-    setStoppedByUser(result.stoppedByUser);
-    setRunErrorMessage(result.runErrorMessage);
+    flushSync(() => {
+      setTimelineSteps(result.steps);
+      setIsThinking(result.isThinking);
+      setCurrentRunId(runId);
+      setFinalResponse(result.finalResponse);
+      setIsFinalResponseStreaming(result.isFinalResponseStreaming);
+      setIsAwaitingApproval(result.isAwaitingApproval);
+      setResearchResults(result.researchResults);
+      setIsDeepResearchRunning(result.isDeepResearchRunning);
+      setStoppedByUser(result.stoppedByUser);
+      setRunErrorMessage(result.runErrorMessage);
+    });
 
-    const elapsed = getElapsedTimeFromEvents(seededEvents);
+    const elapsed = getElapsedTimeFromEvents(mergedEvents);
     if (elapsed > 0) {
       setElapsedTime(elapsed);
     }
@@ -375,10 +419,117 @@ export function useV2EventProcessor(
         "[useV2EventProcessor] Seeded events for run:",
         runId,
         "count:",
-        seededEvents.length,
+        mergedEvents.length,
+        existingPusherEvents
+          ? `(merged ${backendEvents.length} backend + ${existingPusherEvents.length} Pusher)`
+          : "(backend only)",
         "isThinking:",
         result.isThinking,
       );
+    }
+
+    // Detect sequence gaps between backend and Pusher events.
+    // On page refresh, there's a window of events the backend hadn't persisted
+    // when queried but Pusher also missed (client was disconnected).
+    // Schedule a delayed re-fetch so the backend has time to persist them.
+    if (existingPusherEvents && existingPusherEvents.length > 0) {
+      const lastBackendSeq =
+        backendEvents.length > 0
+          ? backendEvents[backendEvents.length - 1].sequence
+          : -1;
+      const firstPusherSeq = Math.min(
+        ...existingPusherEvents.map((e) => e.sequence),
+      );
+
+      if (firstPusherSeq > lastBackendSeq + 1) {
+        if (import.meta.env.DEV) {
+          console.log(
+            "[useV2EventProcessor] Sequence gap detected:",
+            `backend max=${lastBackendSeq}, pusher min=${firstPusherSeq},`,
+            `gap=${firstPusherSeq - lastBackendSeq - 1} events — scheduling gap-fill`,
+          );
+        }
+
+        const capturedRunId = runId;
+        const capturedConversationId = conversationId;
+
+        gapFillTimerRef.current = setTimeout(async () => {
+          gapFillTimerRef.current = null;
+          if (!capturedConversationId) return;
+          if (finishedRunsRef.current.has(capturedRunId)) return;
+
+          try {
+            const response = await conversationsService.getConversationMessages(
+              capturedConversationId,
+              1,
+              5,
+            );
+
+            // Find the most recent assistant message with events
+            let latestMsg;
+            for (let i = response.data.length - 1; i >= 0; i--) {
+              const m = response.data[i];
+              if (m.role === "assistant" && m.events && m.events.length > 0) {
+                latestMsg = m;
+                break;
+              }
+            }
+
+            if (!latestMsg?.events?.length) return;
+
+            const apiEvents = latestMsg.events;
+            const apiRunId = apiEvents[0]?.run_id;
+            if (apiRunId !== capturedRunId) return;
+
+            // Merge API events into current accumulated events
+            // Existing events win on conflict (fresher from Pusher)
+            const currentEvents = eventsRef.current.get(capturedRunId) || [];
+            const mergeMap = new Map<number, AguiEventWrapper>();
+            for (const evt of apiEvents) {
+              mergeMap.set(evt.sequence, evt);
+            }
+            for (const evt of currentEvents) {
+              mergeMap.set(evt.sequence, evt);
+            }
+
+            const filledEvents = Array.from(mergeMap.values()).sort(
+              (a, b) => a.sequence - b.sequence,
+            );
+
+            // Only update if we actually added new events
+            if (filledEvents.length <= currentEvents.length) return;
+
+            eventsRef.current.set(capturedRunId, filledEvents);
+
+            const gapResult = transformAguiToTimelineSteps(filledEvents);
+
+            flushSync(() => {
+              setTimelineSteps(gapResult.steps);
+              setIsThinking(gapResult.isThinking);
+              setFinalResponse(gapResult.finalResponse);
+              setIsFinalResponseStreaming(gapResult.isFinalResponseStreaming);
+              setIsAwaitingApproval(gapResult.isAwaitingApproval);
+              setResearchResults(gapResult.researchResults);
+              setIsDeepResearchRunning(gapResult.isDeepResearchRunning);
+              setStoppedByUser(gapResult.stoppedByUser);
+              setRunErrorMessage(gapResult.runErrorMessage);
+            });
+
+            if (import.meta.env.DEV) {
+              console.log(
+                "[useV2EventProcessor] Gap-fill complete:",
+                `before=${currentEvents.length}, after=${filledEvents.length}`,
+                `(+${filledEvents.length - currentEvents.length} events)`,
+              );
+            }
+          } catch (err) {
+            console.error(
+              "[useV2EventProcessor] Gap-fill re-fetch failed:",
+              err,
+            );
+          }
+        }, 1500);
+      }
     }
   }, [initialRunEvents]);
 
@@ -403,9 +554,14 @@ export function useV2EventProcessor(
     };
   }, [channel, handleAguiEvent]);
 
-  // Cleanup timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
-    return () => stopElapsedTimer();
+    return () => {
+      stopElapsedTimer();
+      if (gapFillTimerRef.current) {
+        clearTimeout(gapFillTimerRef.current);
+      }
+    };
   }, [stopElapsedTimer]);
 
   return {
