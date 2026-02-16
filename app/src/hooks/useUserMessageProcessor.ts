@@ -52,11 +52,11 @@ export function useUserMessageProcessor(
       const parsed = typeof data === "string" ? JSON.parse(data) : data;
       const convId = conversationIdRef.current;
 
-      if (parsed.conversationId !== convId) return;
+      if (!convId || parsed.conversationId !== convId) return;
 
       // Skip if this message ID already exists in the store (Pusher retry / duplicate event)
       const existing = useChatStore.getState().messages[convId] || [];
-      if (existing.some((m) => m.id === parsed.id)) return;
+      if (existing.some((m: MessageWithStreaming) => m.id === parsed.id)) return;
 
       const userMessage: MessageWithStreaming = {
         id: parsed.id,
@@ -121,7 +121,7 @@ export function useUserMessageProcessor(
         // Skip if this message ID already exists in the store (Pusher retry / duplicate event)
         const existing =
           useChatStore.getState().messages[entry.metadata.conversationId] || [];
-        if (existing.some((m) => m.id === parsed.id)) {
+        if (existing.some((m: MessageWithStreaming) => m.id === parsed.id)) {
           userMessageChunksRef.current.delete(parsed.id);
           return;
         }
