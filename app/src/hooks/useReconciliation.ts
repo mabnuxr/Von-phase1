@@ -63,7 +63,6 @@ function getStallThreshold(chatType: ConversationMode): number {
 
 export function useReconciliation(config: UseReconciliationConfig): void {
   const isReconcilingRef = useRef<boolean>(false);
-  const runCompleteRef = useRef<boolean>(false);
 
   // Stable refs for callbacks
   const onStateUpdateRef = useRef(config.onStateUpdate);
@@ -75,7 +74,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
 
   const reconcile = useCallback(async () => {
     if (!config.conversationId || isReconcilingRef.current) return;
-    if (config.stoppedRef.current || runCompleteRef.current) return;
+    if (config.stoppedRef.current) return;
 
     isReconcilingRef.current = true;
 
@@ -147,7 +146,6 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       ) {
         config.finishedRunsRef.current.add(runId);
         config.stoppedRef.current = false;
-        runCompleteRef.current = true;
 
         const actualElapsed = getElapsedTimeFromEvents(mergedEvents);
         onRunFinishedRef.current?.(runId, actualElapsed);
@@ -187,11 +185,6 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     config.lastEventTimeRef,
     config.stoppedRef,
   ]);
-
-  // Reset runComplete flag when conversation changes (new conversation)
-  useEffect(() => {
-    runCompleteRef.current = false;
-  }, [config.conversationId]);
 
   // Health check interval
   useEffect(() => {

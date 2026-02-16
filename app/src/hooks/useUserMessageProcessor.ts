@@ -54,6 +54,10 @@ export function useUserMessageProcessor(
 
       if (parsed.conversationId !== convId) return;
 
+      // Skip if this message ID already exists in the store (Pusher retry / duplicate event)
+      const existing = useChatStore.getState().messages[convId] || [];
+      if (existing.some((m) => m.id === parsed.id)) return;
+
       const userMessage: MessageWithStreaming = {
         id: parsed.id,
         runId: parsed.id,
@@ -114,6 +118,14 @@ export function useUserMessageProcessor(
       const entry = userMessageChunksRef.current.get(parsed.id);
 
       if (entry) {
+        // Skip if this message ID already exists in the store (Pusher retry / duplicate event)
+        const existing =
+          useChatStore.getState().messages[entry.metadata.conversationId] || [];
+        if (existing.some((m) => m.id === parsed.id)) {
+          userMessageChunksRef.current.delete(parsed.id);
+          return;
+        }
+
         const sortedChunks = entry.chunks.sort(
           (a, b) => a.sequence - b.sequence,
         );
