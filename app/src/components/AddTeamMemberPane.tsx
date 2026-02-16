@@ -25,6 +25,17 @@ export function AddTeamMemberPane() {
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  // Prepare role options for dropdown (members can only see "Member" role)
+  const isAdmin = user?.roles?.includes("Admin") ?? false;
+
+  const roleOptions =
+    roles
+      ?.filter((role) => isAdmin || role.name !== "Admin")
+      .map((role) => ({
+        value: role.name,
+        label: role.displayName,
+      })) || [];
+
   // Reset form when panel opens
   useEffect(() => {
     if (addingTeamMember) {
@@ -32,11 +43,11 @@ export function AddTeamMemberPane() {
         firstName: "",
         lastName: "",
         email: "",
-        role: roles && roles.length > 0 ? roles[0].name : "",
+        role: roleOptions.length > 0 ? roleOptions[0].value : "",
       });
       setValidationErrors([]);
     }
-  }, [addingTeamMember, roles]);
+  }, [addingTeamMember, roles, user?.roles]);
 
   const handleClose = () => {
     setAddingTeamMember(false);
@@ -113,10 +124,11 @@ export function AddTeamMemberPane() {
           return;
         }
 
-        // Handle 403 Forbidden (not an admin)
+        // Handle 403 Forbidden (insufficient permissions for role assignment)
         if (response?.status === 403) {
+          const detail = response.data?.detail || response.data?.message;
           setValidationErrors([
-            "You do not have permission to add team members. Only admins can add team members.",
+            detail || "You don't have permission to assign this role.",
           ]);
           return;
         }
@@ -137,13 +149,6 @@ export function AddTeamMemberPane() {
       [fieldName]: value,
     }));
   };
-
-  // Prepare role options for dropdown
-  const roleOptions =
-    roles?.map((role) => ({
-      value: role.name,
-      label: role.displayName,
-    })) || [];
 
   // Check if roles are empty (not initialized)
   const rolesNotInitialized = !rolesLoading && roles && roles.length === 0;
