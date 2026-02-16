@@ -165,12 +165,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         result.isThinking,
       );
 
-      // Only trigger refetchMessages if the run is still in progress.
-      // When complete, applyTransformResult already updated state — refetching
-      // causes v2InitialRunEvents to recompute, bouncing isThinking and looping.
-      if (result.isThinking) {
-        onReconcileRef.current?.();
-      }
+      onReconcileRef.current?.();
     } catch (err) {
       console.error("[useReconciliation] Reconciliation failed:", err);
       config.lastEventTimeRef.current = Date.now();
