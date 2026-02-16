@@ -70,6 +70,9 @@ export interface UseV2EventProcessorReturn {
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
   ) => void;
+  // Allow reconciliation to stop timer on run completion
+  stopElapsedTimer: () => void;
+  setElapsedTime: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const INITIAL_RESEARCH_RESULTS: ResearchResultsState = {
@@ -423,5 +426,7 @@ export function useV2EventProcessor(
     lastEventTimeRef,
     stoppedRef,
     applyTransformResult,
+    stopElapsedTimer,
+    setElapsedTime,
   };
 }

@@ -120,6 +120,10 @@ export function useChatV2(props: UseChatV2Props) {
     lastEventTimeRef: v2Processor.lastEventTimeRef,
     stoppedRef: v2Processor.stoppedRef,
     onStateUpdate: v2Processor.applyTransformResult,
+    onRunFinished: (_runId, elapsed) => {
+      v2Processor.stopElapsedTimer();
+      v2Processor.setElapsedTime(elapsed);
+    },
     onReconcile: refetchMessages as () => void,
   });
 

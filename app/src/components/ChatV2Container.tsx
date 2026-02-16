@@ -133,7 +133,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
           userId={user?.id}
           userName={user?.firstName || user?.name?.split(" ")[0]}
           userEmail={user?.email}
-          apiBaseUrl=""
+          apiBaseUrl={config.apiBaseUrl}
           pusherConfig={pusherConfig}
           conversationId={conversationId}
           enableRealtime={

@@ -86,8 +86,9 @@ export function useStreamGuard(
         // Already timed out
         onForceCompleteRef.current?.(msgId);
         onTimeoutRef.current(msgId);
+        timers.delete(msgId);
         trackedIds.delete(msgId);
-        return;
+        continue;
       }
 
       const remainingTime = timeoutMs - timeSinceUpdate;
