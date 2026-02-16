@@ -172,7 +172,9 @@ export function useSendMessage() {
 
         // Clean up pending optimistic IDs now that real IDs are assigned
         useChatStore.getState().removePendingOptimisticId(context.optimisticId);
-        useChatStore.getState().removePendingOptimisticId(context.optimisticAssistantId);
+        useChatStore
+          .getState()
+          .removePendingOptimisticId(context.optimisticAssistantId);
 
         if (import.meta.env.DEV) {
           console.log(
@@ -206,7 +208,9 @@ export function useSendMessage() {
 
         // Clean up pending optimistic IDs
         useChatStore.getState().removePendingOptimisticId(context.optimisticId);
-        useChatStore.getState().removePendingOptimisticId(context.optimisticAssistantId);
+        useChatStore
+          .getState()
+          .removePendingOptimisticId(context.optimisticAssistantId);
 
         if (import.meta.env.DEV) {
           console.log(

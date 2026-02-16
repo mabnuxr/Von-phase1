@@ -17,11 +17,7 @@
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  TopBar,
-  ChatSkeleton,
-  Banner,
-} from "@vonlabs/design-components";
+import { TopBar, ChatSkeleton, Banner } from "@vonlabs/design-components";
 import type { AgentMode } from "@vonlabs/design-components";
 
 import { authService, conversationsService } from "../services";

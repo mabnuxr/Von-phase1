@@ -66,68 +66,62 @@ export function useV1EventProcessor(
   >(new Map());
 
   // AGUI event handler
-  const handleAguiEvent = useCallback(
-    (data: string | AguiEventWrapper) => {
-      try {
-        const wrapper: AguiEventWrapper =
-          typeof data === "string" ? JSON.parse(data) : data;
-        const { run_id, sequence } = wrapper;
-        const convId = conversationIdRef.current;
+  const handleAguiEvent = useCallback((data: string | AguiEventWrapper) => {
+    try {
+      const wrapper: AguiEventWrapper =
+        typeof data === "string" ? JSON.parse(data) : data;
+      const { run_id, sequence } = wrapper;
+      const convId = conversationIdRef.current;
 
-        if (!convId || !run_id) return;
+      if (!convId || !run_id) return;
 
-        const messages = useChatStore.getState().messages[convId] || [];
-        const existingMessage = messages.find((m) => m.runId === run_id);
+      const messages = useChatStore.getState().messages[convId] || [];
+      const existingMessage = messages.find((m) => m.runId === run_id);
 
-        // Deduplicate by run_id + sequence
-        const currentEvents = existingMessage?.events || [];
-        const eventExists = currentEvents.some(
-          (e) => e.run_id === run_id && e.sequence === sequence,
-        );
-        if (eventExists) return;
+      // Deduplicate by run_id + sequence
+      const currentEvents = existingMessage?.events || [];
+      const eventExists = currentEvents.some(
+        (e) => e.run_id === run_id && e.sequence === sequence,
+      );
+      if (eventExists) return;
 
-        const updatedEvents = [...currentEvents, wrapper].sort(
-          (a, b) => a.sequence - b.sequence,
-        );
+      const updatedEvents = [...currentEvents, wrapper].sort(
+        (a, b) => a.sequence - b.sequence,
+      );
 
-        const replayed = replayAguiEvents(updatedEvents);
+      const replayed = replayAguiEvents(updatedEvents);
 
-        const isStreaming = wrapper.event?.type !== "RUN_FINISHED";
-        const status = isStreaming ? "streaming" : "completed";
+      const isStreaming = wrapper.event?.type !== "RUN_FINISHED";
+      const status = isStreaming ? "streaming" : "completed";
 
-        const messageUpdate: MessageWithStreaming = {
-          ...existingMessage,
-          id: run_id,
-          runId: run_id,
-          conversationId: convId,
-          messageType: existingMessage?.messageType || "text",
-          role: existingMessage?.role || "assistant",
-          createdAt: existingMessage?.createdAt || new Date().toISOString(),
-          createdBy: existingMessage?.createdBy || "assistant",
-          messageContent: replayed.content,
-          stepMessages: replayed.stepMessages,
-          toolCalls: replayed.toolCalls,
-          events: updatedEvents,
-          isStreaming,
-          isReasoningStreaming:
-            existingMessage?.reasoningContent && isStreaming ? true : undefined,
-          status,
-          stoppedByUser: replayed.stoppedByUser,
-          lastStreamedAt: new Date().toISOString(),
-        };
+      const messageUpdate: MessageWithStreaming = {
+        ...existingMessage,
+        id: run_id,
+        runId: run_id,
+        conversationId: convId,
+        messageType: existingMessage?.messageType || "text",
+        role: existingMessage?.role || "assistant",
+        createdAt: existingMessage?.createdAt || new Date().toISOString(),
+        createdBy: existingMessage?.createdBy || "assistant",
+        messageContent: replayed.content,
+        stepMessages: replayed.stepMessages,
+        toolCalls: replayed.toolCalls,
+        events: updatedEvents,
+        isStreaming,
+        isReasoningStreaming:
+          existingMessage?.reasoningContent && isStreaming ? true : undefined,
+        status,
+        stoppedByUser: replayed.stoppedByUser,
+        lastStreamedAt: new Date().toISOString(),
+      };
 
-        flushSync(() => {
-          useChatStore.getState().upsertMessage(convId, messageUpdate);
-        });
-      } catch (error) {
-        console.error(
-          "[useV1EventProcessor] Error handling AGUI event:",
-          error,
-        );
-      }
-    },
-    [],
-  );
+      flushSync(() => {
+        useChatStore.getState().upsertMessage(convId, messageUpdate);
+      });
+    } catch (error) {
+      console.error("[useV1EventProcessor] Error handling AGUI event:", error);
+    }
+  }, []);
 
   // User message handler (legacy non-chunked)
   const handleUserMessage = useCallback(
@@ -254,10 +248,7 @@ export function useV1EventProcessor(
 
         useChatStore.getState().upsertMessage(convId, messageUpdate);
       } catch (error) {
-        console.error(
-          "[useV1EventProcessor] Error handling run_error:",
-          error,
-        );
+        console.error("[useV1EventProcessor] Error handling run_error:", error);
       }
     },
     [],

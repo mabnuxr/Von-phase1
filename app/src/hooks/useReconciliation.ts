@@ -100,9 +100,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         !latestAssistantMsg?.events ||
         latestAssistantMsg.events.length === 0
       ) {
-        console.log(
-          "[useReconciliation] No events found in backend response",
-        );
+        console.log("[useReconciliation] No events found in backend response");
         return;
       }
 
@@ -181,7 +179,14 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     } finally {
       isReconcilingRef.current = false;
     }
-  }, [config.conversationId, config.pusherRef, config.eventsRef, config.finishedRunsRef, config.lastEventTimeRef, config.stoppedRef]);
+  }, [
+    config.conversationId,
+    config.pusherRef,
+    config.eventsRef,
+    config.finishedRunsRef,
+    config.lastEventTimeRef,
+    config.stoppedRef,
+  ]);
 
   // Reset runComplete flag when conversation changes (new conversation)
   useEffect(() => {
@@ -206,8 +211,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       // Skip if no events received yet
       if (config.lastEventTimeRef.current === 0) return;
 
-      const timeSinceLastEvent =
-        Date.now() - config.lastEventTimeRef.current;
+      const timeSinceLastEvent = Date.now() - config.lastEventTimeRef.current;
       if (timeSinceLastEvent >= stallThreshold) {
         console.log(
           "[useReconciliation] No events for",
@@ -219,5 +223,12 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     }, RECONCILIATION_CHECK_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [config.isThinking, config.conversationId, config.chatType, config.stoppedRef, config.lastEventTimeRef, reconcile]);
+  }, [
+    config.isThinking,
+    config.conversationId,
+    config.chatType,
+    config.stoppedRef,
+    config.lastEventTimeRef,
+    reconcile,
+  ]);
 }

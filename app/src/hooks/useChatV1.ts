@@ -6,7 +6,12 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { AgentMode, SendMessageOptions, FileAttachment, MessageFileAttachment } from "@vonlabs/design-components";
+import type {
+  AgentMode,
+  SendMessageOptions,
+  FileAttachment,
+  MessageFileAttachment,
+} from "@vonlabs/design-components";
 
 import type { MessageWithStreaming } from "../types/conversation";
 import type { User } from "../services";
@@ -163,8 +168,8 @@ export function useChatV1(props: UseChatV1Props) {
   );
 
   // Message filtering state
-  const showMessagesFromIndex = useChatStore((state) =>
-    state.showMessagesFromIndex[conversationId] ?? 0,
+  const showMessagesFromIndex = useChatStore(
+    (state) => state.showMessagesFromIndex[conversationId] ?? 0,
   );
 
   // Send message handler

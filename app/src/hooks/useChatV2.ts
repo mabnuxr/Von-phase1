@@ -282,8 +282,8 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   // Message filtering state
-  const showMessagesFromIndex = useChatStore((state) =>
-    state.showMessagesFromIndex[conversationId] ?? 0,
+  const showMessagesFromIndex = useChatStore(
+    (state) => state.showMessagesFromIndex[conversationId] ?? 0,
   );
 
   // Tool approval/rejection
