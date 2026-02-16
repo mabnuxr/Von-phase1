@@ -11,10 +11,9 @@ import { useFeatureFlag } from "./useFeatureFlag";
  * Initialize conversation on Dashboard mount
  *
  * Flow:
- * 1. Fetch user's conversations from backend
- * 2. If URL has conversationId → Validate and use it
- * 3. If no URL param or invalid → Redirect to first conversation
- * 4. If no conversations exist → Create "New Chat 1" and redirect to it
+ * 1. If URL has conversationId → Trust and use it directly
+ * 2. If no URL param → Fetch conversations, redirect to most recent
+ * 3. If no conversations exist → Create "New Chat 1" and redirect to it
  *
  * @param urlConversationId - Optional conversation ID from URL params
  * @returns Current conversation ID and initialization state
@@ -56,30 +55,19 @@ export function useConversationInit(urlConversationId?: string) {
       (page) => page.data,
     );
 
-    // CASE 1: URL has conversationId - validate it
+    // CASE 1: URL has conversationId - trust it directly
+    // We don't validate against loaded pages because older conversations
+    // may not be on the first page of paginated data yet.
+    // useMessages will handle fetching messages for any valid conversation.
     if (urlConversationId) {
-      const exists = conversations.some(
-        (conv) => conv.conversationId === urlConversationId,
-      );
+      setCurrentConversationId(urlConversationId);
 
-      if (exists) {
-        // Valid conversation - set as current and we're done
-        setCurrentConversationId(urlConversationId);
-
-        if (import.meta.env.DEV) {
-          console.log(
-            `[useConversationInit] Loaded conversation from URL: ${urlConversationId}`,
-          );
-        }
-        return;
-      }
-
-      // Invalid conversation ID in URL - fall through to CASE 2
       if (import.meta.env.DEV) {
-        console.warn(
-          `[useConversationInit] Invalid conversation ID in URL: ${urlConversationId}`,
+        console.log(
+          `[useConversationInit] Loaded conversation from URL: ${urlConversationId}`,
         );
       }
+      return;
     }
 
     // CASE 2: No URL param OR invalid conversation - redirect to first conversation
