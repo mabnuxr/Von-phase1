@@ -20,6 +20,7 @@ import {
  */
 export function useInfiniteConversations(
   limit: number = CONVERSATIONS_PAGE_LIMIT,
+  enabled: boolean = true,
 ) {
   return useInfiniteQuery({
     queryKey: conversationKeys.lists(),
@@ -31,5 +32,6 @@ export function useInfiniteConversations(
     },
     initialPageParam: 1,
     staleTime: CONVERSATIONS_STALE_TIME,
+    enabled,
   });
 }
