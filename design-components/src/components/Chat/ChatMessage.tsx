@@ -398,28 +398,25 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   ) : !isUser ? (
                     <div>
                       {/* V2 Thinking Process - always render if we have steps (even on error) */}
-                      {thinkingProcessVersion === 'v2' &&
-                        ((timelineSteps && timelineSteps.length > 0) || isStreaming) && (
-                          <div className="mb-4">
-                            <TimelineThinkingProcess
-                              steps={timelineSteps || []}
-                              isThinking={isStreaming}
-                              isStreaming={isStreaming}
-                              autoCollapse={
-                                !!v2FinalResponse ||
-                                status === 'timeout' ||
-                                (status === 'failed' && !!errorMessage)
-                              }
-                              elapsedTime={thinkingElapsedTime}
-                              onApprove={
-                                onApprove ? (stepId) => onApprove(stepId, runId) : undefined
-                              }
-                              onReject={onReject ? (stepId) => onReject(stepId, runId) : undefined}
-                              onArtifactClick={handleArtifactClick}
-                              salesforceInstanceUrl={salesforceInstanceUrl}
-                            />
-                          </div>
-                        )}
+                      {thinkingProcessVersion === 'v2' && (
+                        <div className="mb-4">
+                          <TimelineThinkingProcess
+                            steps={timelineSteps || []}
+                            isThinking={isStreaming}
+                            isStreaming={isStreaming}
+                            autoCollapse={
+                              !!v2FinalResponse ||
+                              status === 'timeout' ||
+                              (status === 'failed' && !!errorMessage)
+                            }
+                            elapsedTime={thinkingElapsedTime}
+                            onApprove={onApprove ? (stepId) => onApprove(stepId, runId) : undefined}
+                            onReject={onReject ? (stepId) => onReject(stepId, runId) : undefined}
+                            onArtifactClick={handleArtifactClick}
+                            salesforceInstanceUrl={salesforceInstanceUrl}
+                          />
+                        </div>
+                      )}
 
                       {/* V2 Error - shown below thinking process (failed only; timeout has its own indicator) */}
                       {thinkingProcessVersion === 'v2' && status === 'failed' && errorMessage && (

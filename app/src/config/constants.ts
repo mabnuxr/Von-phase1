@@ -136,8 +136,21 @@ export const PUSHER_PONG_TIMEOUT_S = 10 as const;
  * Stall threshold in milliseconds.
  * If no AGUI events are received for this duration during active streaming,
  * the connection is considered stalled and reconciliation is triggered.
+ * @deprecated Use chat-type-aware thresholds below instead.
  */
 export const RECONCILIATION_STALL_THRESHOLD_MS = 45000 as const; // 45 seconds
+
+/**
+ * Stall threshold for "auto" chat type (regular agent conversations).
+ * Shorter threshold since auto responses are expected to stream continuously.
+ */
+export const RECONCILIATION_STALL_THRESHOLD_AUTO_MS = 10000 as const; // 10 seconds
+
+/**
+ * Stall threshold for "deep_research" chat type.
+ * Longer threshold since deep research has natural pauses (external data fetching).
+ */
+export const RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS = 30000 as const; // 30 seconds
 
 /**
  * Health check interval in milliseconds.
@@ -251,6 +264,8 @@ export const QUERY_CONSTANTS = {
   PUSHER_ACTIVITY_TIMEOUT_S,
   PUSHER_PONG_TIMEOUT_S,
   RECONCILIATION_STALL_THRESHOLD_MS,
+  RECONCILIATION_STALL_THRESHOLD_AUTO_MS,
+  RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
   PERMISSIONS_STALE_TIME,
   PERMISSIONS_GC_TIME,

@@ -1,71 +1,49 @@
-import { authService, conversationsService } from "../services";
-import { fileUploadService } from "../services/fileUploadService";
-import { config } from "../config";
+/**
+ * Dashboard - Thin router that determines V1/V2 agent version
+ * and renders the appropriate container component.
+ *
+ * Responsibilities:
+ * - URL routing and auth
+ * - Conversation init, lookup, switching
+ * - Feature flags, Salesforce connection
+ * - Sidebar rendering
+ * - Delegates all chat logic to ChatV1Container or ChatV2Container
+ *
+ * Key fix: `key={currentConversationId}` on containers forces clean
+ * remount on conversation switch — all hooks cleanup, all refs reset,
+ * all timers clear. No stale state, no race conditions.
+ */
+
+import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { TopBar, ChatSkeleton, Banner } from "@vonlabs/design-components";
+import type { AgentMode } from "@vonlabs/design-components";
+
+import { authService, conversationsService } from "../services";
 import useChatStore from "../store/chatStore";
 import { useUser } from "../hooks/useUser";
-import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
-import { ChatSidebarV2Container } from "../components/ChatSidebarV2Container";
-import { useMessages } from "../hooks/useMessages";
 import { useAuthCheck } from "../hooks/useAuthCheck";
-import { useSendMessage } from "../hooks/useSendMessage";
-import { useFileUploadPipeline } from "../hooks/useFileUploadPipeline";
-import { useStopStreaming } from "../hooks/useStopStreaming";
-import { useStreamTimeout } from "../hooks/useStreamTimeout";
-import { useSidebarState } from "../hooks/useSidebarState";
-import { useNewChat } from "../hooks/useNewChat";
+import { useMessages } from "../hooks/useMessages";
+import { useConversationInit } from "../hooks/useConversationInit";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { startProviderLogout } from "../lib/authFlow";
-import {
-  useEffect,
-  useState,
-  useRef,
-  useMemo,
-  useCallback,
-  Profiler,
-} from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
-import { useConversationInit } from "../hooks/useConversationInit";
+import { useSidebarState } from "../hooks/useSidebarState";
+import { useNewChat } from "../hooks/useNewChat";
+import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
+import { ChatSidebarV2Container } from "../components/ChatSidebarV2Container";
+import { ChatV1Container } from "../components/ChatV1Container";
+import { ChatV2Container } from "../components/ChatV2Container";
+import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
+import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
-import {
-  handleToolApproval,
-  handleToolRejection,
-  transformConversationMessages,
-} from "../lib/dashboardUtils";
 import {
   agentModeToConversationMode,
   conversationModeToAgentMode,
   DEFAULT_AGENT_MODE,
 } from "../lib/conversationModeUtils";
-import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
-import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
-import { useConversationPusherChannel } from "../hooks/useConversationPusherChannel";
-import { useConversationPusherChannelV2 } from "../hooks/useConversationPusherChannelV2";
-import type { MessageWithStreaming } from "../types/conversation";
-import { useLazyTransparencyArtifacts } from "../hooks/useMessageArtifacts";
-import { LazyTransparencyDrawer } from "../components/LazyTransparencyDrawer";
-import { DeepResearchConversation } from "../components/DeepResearchConversation";
-import { ArtifactPaneContainer } from "../components/ArtifactPaneContainer";
-import { SingleArtifactDrawerContainer } from "../components/SingleArtifactDrawerContainer";
-import { useArtifactState } from "../hooks/useArtifactState";
-import {
-  TopBar,
-  Chat,
-  ChatSkeleton,
-  Banner,
-  DashboardCanvas,
-  FilePreviewModal,
-} from "@vonlabs/design-components";
-import type {
-  AgentMode,
-  SendMessageOptions,
-  FileAttachment,
-  MessageFileAttachment,
-} from "@vonlabs/design-components";
-import { motion } from "framer-motion";
-import { MESSAGES_PAGE_LIMIT, STREAM_TIMEOUT_MS } from "../config/constants";
+import { startProviderLogout } from "../lib/authFlow";
+import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
 const Dashboard = () => {
@@ -76,7 +54,7 @@ const Dashboard = () => {
   useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
 
-  // Chat state management
+  // --- Chat Store ---
   const { currentConversationId, setCurrentConversationId, messages } =
     useChatStore();
   const conversationMessages = useMemo(
@@ -84,7 +62,7 @@ const Dashboard = () => {
     [currentConversationId, messages],
   );
 
-  // Initialize conversation (load latest or create new)
+  // --- Conversation Init ---
   const { isInitializing, error: initError } =
     useConversationInit(urlConversationId);
 
@@ -93,7 +71,7 @@ const Dashboard = () => {
     currentConversationId,
   );
 
-  // Fetch messages for current conversation with infinite scroll
+  // --- Messages ---
   const {
     fetchNextPage: fetchNextMessagePage,
     hasNextPage: hasNextMessagePage,
@@ -102,137 +80,46 @@ const Dashboard = () => {
     refetch: refetchMessages,
   } = useMessages(currentConversationId, MESSAGES_PAGE_LIMIT);
 
-  // Infinite scroll hook for loading older messages
-  const loadMoreMessagesRef = useInfiniteScroll({
-    onLoadMore: fetchNextMessagePage,
-    hasMore: !!hasNextMessagePage,
-    isLoading: isFetchingNextMessagePage,
-  });
-
-  // Send message mutation
-  const { mutate: sendMessage } = useSendMessage();
-
-  // File error toast state
-  const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
-  const fileErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleFileError = useCallback((_error: string, message: string) => {
-    setFileErrorMessage(message);
-    if (fileErrorTimerRef.current) clearTimeout(fileErrorTimerRef.current);
-    fileErrorTimerRef.current = setTimeout(
-      () => setFileErrorMessage(null),
-      4000,
-    );
-  }, []);
-
-  // Eager file upload — uploads start immediately when files are attached
-  const {
-    attachments: fileAttachmentState,
-    addFiles: handleFilesSelected,
-    removeFile: handleRemoveAttachment,
-    uploadPendingFiles,
-    clearFiles: clearFileAttachments,
-    hasAttachments: hasFileAttachments,
-    allUploaded,
-  } = useFileUploadPipeline(currentConversationId, {
-    onError: handleFileError,
-  });
-
-  // File preview modal state
-  const [filePreviewAttachment, setFilePreviewAttachment] =
-    useState<MessageFileAttachment | null>(null);
-  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
-  const [isFilePreviewLoading, setIsFilePreviewLoading] = useState(false);
-
-  // Stop streaming mutation
-  const { mutate: stopStreaming } = useStopStreaming();
-
-  // Get query client for cache invalidation
-  const queryClient = useQueryClient();
-
-  // Check Salesforce connection status
-  const {
-    isConnected: isSalesforceConnected,
-    isAuthenticated: isSalesforceAuthenticated,
-    integration: salesforceIntegration,
-  } = useSalesforceConnection();
-
-  // Feature flags
+  // --- Feature Flags ---
   const {
     isSlashCommandsEnabled,
     isActionsEnabled,
     isDeepLinksEnabled,
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
-    //isDeepResearchEnabled,
     isSourcesEnabled,
     isTenantDisabled,
     isFileUploadEnabled,
   } = useFeatureFlag();
 
-  // Build Salesforce instance URL from integration config for deep links in approval cards
-  // Only provide URL when deep links feature flag is enabled
+  // --- Salesforce ---
+  const {
+    isConnected: isSalesforceConnected,
+    isAuthenticated: isSalesforceAuthenticated,
+    integration: salesforceIntegration,
+  } = useSalesforceConnection();
+
   const salesforceInstanceUrl =
     isDeepLinksEnabled && salesforceIntegration?.config?.domain
       ? `https://${salesforceIntegration.config.domain}`
       : undefined;
 
-  // UI state
-  const [showConnectionBanner, setShowConnectionBanner] = useState(false);
-  const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
-  const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
-    useState(false);
+  const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
+  const canSubmit = isSalesforceReady && !isTenantDisabled;
 
-  // Dashboard canvas state
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-  const [dashboardMessageId, setDashboardMessageId] = useState<string | null>(
-    null,
-  );
-  const [dashboardMessageContent, setDashboardMessageContent] = useState<
-    string | null
-  >(null);
-
-  // Transparency drawer state
-  const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
-  const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
-    null,
-  );
-
-  // Unified artifact state - works for both V1 (ArtifactPane) and V2 (SingleArtifactDrawer)
-  const { artifactState, handleArtifactClick, closeArtifact } =
-    useArtifactState();
-
-  // Sidebar collapse state
+  // --- Sidebar ---
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
     useSidebarState();
-
-  // New chat creation (version-aware sidebar refetch)
   const { handleNewChatClick, isCreatingChat, pendingConversationId } =
     useNewChat({
       currentConversationId,
       isSidebarV2,
-      isAgentV2Flag: isAgentV2Flag,
+      isAgentV2Flag,
     });
 
-  // Message filtering state for ChatGPT-style visual clearing
-  const showMessagesFromIndex = useChatStore((state) =>
-    currentConversationId
-      ? (state.showMessagesFromIndex[currentConversationId] ?? 0)
-      : 0,
-  );
-  const resetShowMessagesFromIndex = useChatStore(
-    (state) => state.resetShowMessagesFromIndex,
-  );
+  // --- Agent Version & Mode ---
+  const isAgentV2 = currentConversation?.agentVersion === "v2";
 
-  // Auto-populate input when error occurs
-  const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
-
-  // Track last user message for reliable error recovery
-  const lastUserMessageRef = useRef<string>("");
-
-  // Agent is locked if conversation has any messages
-  const isAgentLocked = conversationMessages.length > 0;
-
-  // Get locked agent mode from backend (used when agent is locked)
   const lockedAgentMode = useMemo(() => {
     if (currentConversation?.mode) {
       return conversationModeToAgentMode(currentConversation.mode);
@@ -240,15 +127,10 @@ const Dashboard = () => {
     return DEFAULT_AGENT_MODE;
   }, [currentConversation]);
 
-  // Determine agent version strictly from conversation metadata
-  // No fallback - only use stored agentVersion from the conversation
-  const isAgentV2 = currentConversation?.agentVersion === "v2";
+  const isAgentLocked = conversationMessages.length > 0;
 
-  // Check if we're in deep research mode (V2 only)
-  const isDeepResearchMode =
-    isAgentV2 && lockedAgentMode === "deep-research" && isAgentLocked;
-
-  // Sync agent mode to backend when first message is sent
+  // --- Sync Agent Mode to Backend ---
+  const queryClient = useQueryClient();
   const syncAgentModeToBackend = useCallback(
     async (agentMode: AgentMode) => {
       if (!currentConversationId) return;
@@ -260,7 +142,6 @@ const Dashboard = () => {
             currentConversationId,
             backendMode,
           );
-          // Invalidate conversations cache so lockedAgentMode picks up the new value
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
           if (import.meta.env.DEV) {
             console.log(
@@ -276,78 +157,24 @@ const Dashboard = () => {
     [currentConversationId, queryClient],
   );
 
-  // Simplified loading state - deterministic, no timers
+  // --- UI State ---
+  const [showConnectionBanner, setShowConnectionBanner] = useState(false);
+  const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
+  const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
+    useState(false);
+
+  // --- Loading ---
   const isLoading =
     isCreatingChat ||
     pendingConversationId !== null ||
     isInitializing ||
     (isLoadingMessages && conversationMessages.length === 0);
 
-  // Show/hide connection banner based on connection error state
-  useEffect(() => {
-    if (isConnectionError) {
-      setShowConnectionBanner(true);
-    }
-  }, [isConnectionError]);
+  // --- Conversation Switching (URL → Store sync) ---
+  const resetShowMessagesFromIndex = useChatStore(
+    (state) => state.resetShowMessagesFromIndex,
+  );
 
-  // Handle retry connection
-  const handleRetry = async () => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Retrying connection...");
-    }
-    await refetch();
-  };
-
-  // Handle Settings click
-  const handleSettingsClick = () => {
-    navigate("/settings");
-  };
-
-  // Handle Logout click
-  const handleLogoutClick = async () => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Logout clicked");
-    }
-
-    try {
-      // Call backend logout to invalidate token and get redirect URL
-      const response = await authService.logout();
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Backend logout successful, redirect URL:",
-          response.redirectUrl,
-        );
-      }
-
-      // Clear all local auth tokens
-      const { clearAllAuth } = await import("../lib/auth");
-      clearAllAuth();
-
-      // Redirect to the URL provided by backend
-      if (response.redirectUrl) {
-        window.location.href = response.redirectUrl;
-      } else {
-        // Fallback to default logout flow if no redirect URL provided
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Dashboard] No redirect URL provided, using default logout flow",
-          );
-        }
-        startProviderLogout();
-      }
-    } catch (error) {
-      // Log error but continue with logout flow
-      if (import.meta.env.DEV) {
-        console.error("[Dashboard] Backend logout failed:", error);
-      }
-      // Still clear local tokens and redirect, even if backend call fails
-      startProviderLogout();
-    }
-  };
-
-  // FIX: Consolidated conversation switching logic
-  // Single source of truth: URL param → Store update → Message reset
-  // This prevents race conditions and ensures clean transitions
   useEffect(() => {
     if (urlConversationId && urlConversationId !== currentConversationId) {
       if (import.meta.env.DEV) {
@@ -358,15 +185,7 @@ const Dashboard = () => {
           urlConversationId,
         );
       }
-
-      // Step 1: Reset UI state for clean transition
       resetShowMessagesFromIndex(urlConversationId);
-
-      // Step 2: Update current conversation ID
-      // Note: We no longer clear other conversations' messages here
-      // because it causes issues when switching back to a streaming chat
-      // The showMessagesFromIndex mechanism handles visual state instead
-      // This triggers useMessages to fetch messages for new conversation
       setCurrentConversationId(urlConversationId);
     }
   }, [
@@ -376,340 +195,60 @@ const Dashboard = () => {
     resetShowMessagesFromIndex,
   ]);
 
-  const handleSendMessage = async (
-    content: string,
-    _attachments?: FileAttachment[],
-    options?: SendMessageOptions,
-  ) => {
-    // Track last user message for error recovery
-    lastUserMessageRef.current = content;
-
-    // Sync agent mode to backend if this is the first message
-    if (currentConversationId) {
-      const currentMessages = messages[currentConversationId] || [];
-      if (currentMessages.length === 0 && options?.agentMode) {
-        await syncAgentModeToBackend(options.agentMode);
-      }
+  // --- Connection Error ---
+  useEffect(() => {
+    if (isConnectionError) {
+      setShowConnectionBanner(true);
     }
+  }, [isConnectionError]);
 
-    // Collect file metadata from eager uploads
-    let fileAttachments;
-    if (hasFileAttachments && currentConversationId) {
-      try {
-        // uploadPendingFiles handles both already-uploaded and still-pending files
-        fileAttachments = await uploadPendingFiles(currentConversationId);
-      } catch (error) {
-        console.error("[Dashboard] File upload failed:", error);
-        return; // Don't send message if uploads fail
-      }
+  // --- Handlers ---
+  const handleRetry = async () => {
+    if (import.meta.env.DEV) {
+      console.log("[Dashboard] Retrying connection...");
     }
-
-    sendMessage({ content, fileAttachments });
-    clearFileAttachments();
+    await refetch();
   };
 
-  // Auto-populate input when error occurs (handled by chatStore updates from hook)
-  // Monitor store changes to detect error state and auto-populate input
-  const storeMessages = useChatStore.getState().messages;
-  useEffect(() => {
-    if (!currentConversationId) return;
+  const handleSettingsClick = () => {
+    navigate("/settings");
+  };
 
-    const messages = storeMessages[currentConversationId] || [];
-    const lastMessage = messages[messages.length - 1];
-
-    if (lastMessage?.status === "failed" && lastMessage?.errorMessage) {
-      const userMessage = lastUserMessageRef.current;
-
-      if (userMessage) {
-        // Delay for subtle, intentional feel
-        setTimeout(() => {
-          setAutoPopulatedInput(userMessage);
-        }, 250);
-      }
+  const handleLogoutClick = async () => {
+    if (import.meta.env.DEV) {
+      console.log("[Dashboard] Logout clicked");
     }
-  }, [currentConversationId, storeMessages]);
 
-  // Handle stream timeout - force clear state and refetch messages from backend
-  // Wrapped in useCallback to prevent timer resets in useStreamTimeout
-  const handleStreamTimeout = useCallback(
-    async (messageId: string) => {
-      if (!currentConversationId) return;
-
-      // FIX: Force clear streaming state immediately (re-enables input)
-      // This ensures the UI is responsive even if backend is down
-      useChatStore
-        .getState()
-        .markMessageTimeout(currentConversationId, messageId);
-
-      // THEN refetch messages to get the latest status from backend
-      // Backend will have marked this message as TIMEOUT or soft-deleted it
-      if (refetchMessages) {
-        await refetchMessages();
+    try {
+      const response = await authService.logout();
+      if (import.meta.env.DEV) {
+        console.log(
+          "[Dashboard] Backend logout successful, redirect URL:",
+          response.redirectUrl,
+        );
       }
-    },
-    [currentConversationId, refetchMessages],
-  );
 
-  // V2 Pusher channel config - must be memoized to prevent constant effect re-runs
-  const v2ChannelConfig = useMemo(
-    () => ({
-      conversationId: isAgentV2 ? currentConversationId : null,
-      tenantId: user?.tenantId,
-      userId: user?.id,
-    }),
-    [isAgentV2, currentConversationId, user?.tenantId, user?.id],
-  );
+      const { clearAllAuth } = await import("../lib/auth");
+      clearAllAuth();
 
-  const v2InitialRunEvents = useMemo(() => {
-    if (!isAgentV2 || !conversationMessages.length) return undefined;
-    for (let i = conversationMessages.length - 1; i >= 0; i--) {
-      const msg = conversationMessages[i];
-      if (msg.role === "assistant" && msg.events && msg.events.length > 0) {
-        return msg.events;
-      }
-    }
-    return undefined;
-  }, [isAgentV2, conversationMessages]);
-
-  // V2 Pusher channel for TimelineThinkingProcess (only active when flag enabled)
-  const {
-    timelineSteps: v2TimelineSteps,
-    isThinking: v2IsThinking,
-    elapsedTime: v2ElapsedTime,
-    finalResponse: v2FinalResponse,
-    isFinalResponseStreaming: v2IsFinalResponseStreaming,
-    researchResults: v2ResearchResults,
-    isDeepResearchRunning: v2IsDeepResearchRunning,
-    stoppedByUser: v2StoppedByUser,
-    runErrorMessage: v2RunErrorMessage,
-    currentRunId: v2CurrentRunId,
-    markStopped: v2MarkStopped,
-  } = useConversationPusherChannelV2(
-    v2ChannelConfig,
-    v2InitialRunEvents,
-    refetchMessages,
-  );
-
-  // Transform backend messages to Chat component format
-  // Handles both V1 (simple) and V2 (timeline steps, research results) agents
-  const {
-    messages: transformedMessages,
-    researchResults: effectiveResearchResults,
-  } = useMemo(
-    () =>
-      transformConversationMessages(conversationMessages, isAgentV2, {
-        timelineSteps: v2TimelineSteps,
-        isThinking: v2IsThinking,
-        elapsedTime: v2ElapsedTime,
-        finalResponse: v2FinalResponse,
-        isFinalResponseStreaming: v2IsFinalResponseStreaming,
-        researchResults: v2ResearchResults,
-        stoppedByUser: v2StoppedByUser,
-        runErrorMessage: v2RunErrorMessage,
-        currentRunId: v2CurrentRunId,
-      }),
-    [
-      conversationMessages,
-      isAgentV2,
-      v2TimelineSteps,
-      v2ElapsedTime,
-      v2FinalResponse,
-      v2IsFinalResponseStreaming,
-      v2IsThinking,
-      v2ResearchResults,
-      v2StoppedByUser,
-      v2RunErrorMessage,
-      v2CurrentRunId,
-    ],
-  );
-
-  // Force complete message handler for timeout
-  // Wrapped in useCallback to prevent timer resets in useStreamTimeout
-  const handleForceComplete = useCallback(
-    (messageId: string) => {
-      if (currentConversationId) {
-        useChatStore
-          .getState()
-          .forceCompleteMessage(currentConversationId, messageId);
-      }
-    },
-    [currentConversationId],
-  );
-
-  // Client-side timeout detection (5 minutes)
-  // This triggers a refetch to get the latest status from backend
-  // Use conversationMessages (MessageWithStreaming[]) instead of transformedMessages (Message[])
-  useStreamTimeout(
-    conversationMessages as MessageWithStreaming[],
-    currentConversationId,
-    {
-      timeoutMs: STREAM_TIMEOUT_MS,
-      onTimeout: handleStreamTimeout,
-      onForceComplete: handleForceComplete,
-    },
-  );
-
-  // Handle convert to dashboard action
-  const handleConvertToDashboard = useCallback(
-    (messageId: string) => {
-      // Find the message content from transformedMessages
-      const message = transformedMessages.find((m) => m.id === messageId);
-      if (message && message.content) {
-        setDashboardMessageId(messageId);
-        setDashboardMessageContent(message.content);
-        setIsDashboardOpen(true);
-
+      if (response.redirectUrl) {
+        window.location.href = response.redirectUrl;
+      } else {
         if (import.meta.env.DEV) {
-          console.log(
-            "[Dashboard] Converting message to dashboard:",
-            messageId,
+          console.warn(
+            "[Dashboard] No redirect URL provided, using default logout flow",
           );
         }
+        startProviderLogout();
       }
-    },
-    [transformedMessages],
-  );
-
-  // Handle closing the dashboard canvas
-  const handleCloseDashboard = useCallback(() => {
-    setIsDashboardOpen(false);
-    setDashboardMessageId(null);
-    setDashboardMessageContent(null);
-  }, []);
-
-  // Fetch transparency artifact summaries when drawer is open (lazy loading)
-  const {
-    artifactSummaries: transparencyArtifactSummaries,
-    isLoading: isTransparencyLoading,
-  } = useLazyTransparencyArtifacts(
-    isTransparencyOpen ? currentConversationId : null,
-    isTransparencyOpen ? transparencyRunId : null,
-  );
-
-  // Handle transparency button click
-  const handleTransparencyClick = useCallback(
-    (messageId: string) => {
-      // Find the message to get its runId
-      const message = transformedMessages.find((m) => m.id === messageId);
-      if (message?.runId) {
-        setTransparencyRunId(message.runId);
-        setIsTransparencyOpen(true);
-
-        if (import.meta.env.DEV) {
-          console.log(
-            "[Dashboard] Opening transparency drawer for message:",
-            messageId,
-            "runId:",
-            message.runId,
-          );
-        }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("[Dashboard] Backend logout failed:", error);
       }
-    },
-    [transformedMessages],
-  );
-
-  // Handle closing the transparency drawer
-  const handleCloseTransparency = useCallback(() => {
-    setIsTransparencyOpen(false);
-    setTransparencyRunId(null);
-  }, []);
-
-  // Get conversation title for dashboard header
-  const currentConversationTitle = useMemo(
-    () => currentConversation?.title || "Dashboard",
-    [currentConversation],
-  );
-
-  // Conversation-level Pusher channel (for AGUI events)
-  // Memoize config to prevent unnecessary reconnections
-  const conversationChannelConfig = useMemo(
-    () => ({
-      conversationId: currentConversationId,
-      tenantId: user?.tenantId,
-      userId: user?.id,
-    }),
-    [currentConversationId, user?.tenantId, user?.id],
-  );
-
-  const { error: conversationChannelError } = useConversationPusherChannel(
-    conversationChannelConfig,
-  );
-
-  // Stop streaming handler - marks V1 and V2 as stopped to batch remaining events
-  const handleStopStreaming = useCallback(
-    (conversationId: string) => {
-      // Mark both V1 and V2 streaming as stopped - events will be batched until completion
-      v2MarkStopped();
-
-      stopStreaming(conversationId, {
-        onSuccess: () => {
-          if (import.meta.env.DEV) {
-            console.log("[Dashboard] Stop signal sent successfully");
-          }
-        },
-        onError: (error) => {
-          console.error("[Dashboard] Failed to stop streaming:", error);
-        },
-      });
-    },
-    [stopStreaming, v2MarkStopped],
-  );
-
-  // File preview — fetch presigned download URL when user clicks a file pill
-  const handleFileClick = useCallback(
-    async (attachment: MessageFileAttachment) => {
-      setFilePreviewAttachment(attachment);
-      setFilePreviewUrl(null);
-      setIsFilePreviewLoading(true);
-      try {
-        if (currentConversationId) {
-          const { downloadUrl } = await fileUploadService.getDownloadUrl(
-            currentConversationId,
-            attachment.id,
-          );
-          setFilePreviewUrl(downloadUrl);
-        }
-      } catch (err) {
-        console.error("[Dashboard] Failed to get download URL:", err);
-      } finally {
-        setIsFilePreviewLoading(false);
-      }
-    },
-    [currentConversationId],
-  );
-
-  // Separate pusherConfig for Chat component
-  const pusherConfig = useMemo(
-    () => ({
-      key: import.meta.env.VITE_PUSHER_KEY || "",
-      cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-      authEndpoint: `${config.apiBaseUrl}/api/v1/pusher/auth`,
-      tenantId: user?.tenantId,
-      userId: user?.id,
-    }),
-    [user?.tenantId, user?.id],
-  );
-
-  // Handle conversation channel errors
-  useEffect(() => {
-    if (conversationChannelError) {
-      console.error(
-        "[Dashboard] Conversation channel error:",
-        conversationChannelError,
-      );
+      startProviderLogout();
     }
-  }, [conversationChannelError]);
+  };
 
-  // Determine if Salesforce is properly connected
-  const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
-
-  // Combined submit check: Salesforce ready, tenant active, and files fully uploaded
-  const canSubmit =
-    isSalesforceReady &&
-    !isTenantDisabled &&
-    (!hasFileAttachments || allUploaded);
-
-  // Handler for when user interacts with disabled input - shakes the appropriate banner
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {
       setShouldShakeSubscriptionBanner(true);
@@ -718,45 +257,7 @@ const Dashboard = () => {
     }
   }, [isTenantDisabled]);
 
-  // Tool approval handler
-  const handleApproval = useCallback(
-    async (toolCallId: string, runId: string) => {
-      if (import.meta.env.DEV) {
-        console.log("[Dashboard] handleApproval called:", {
-          toolCallId,
-          runId,
-          currentConversationId,
-        });
-      }
-      if (!currentConversationId) {
-        console.warn("[Dashboard] handleApproval: No currentConversationId");
-        return;
-      }
-      await handleToolApproval(toolCallId, runId, currentConversationId);
-    },
-    [currentConversationId],
-  );
-
-  // Tool rejection handler
-  const handleRejection = useCallback(
-    async (toolCallId: string, runId: string) => {
-      if (import.meta.env.DEV) {
-        console.log("[Dashboard] handleRejection called:", {
-          toolCallId,
-          runId,
-          currentConversationId,
-        });
-      }
-      if (!currentConversationId) {
-        console.warn("[Dashboard] handleRejection: No currentConversationId");
-        return;
-      }
-      await handleToolRejection(toolCallId, runId, currentConversationId);
-    },
-    [currentConversationId],
-  );
-
-  // Create chat banner - subscription inactive takes priority over Salesforce
+  // --- Banner ---
   const chatBanner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
       isTenantDisabled={isTenantDisabled}
@@ -770,6 +271,29 @@ const Dashboard = () => {
       onShakeComplete={() => setShouldShakeBanner(false)}
     />
   );
+
+  // --- Shared container props ---
+  const sharedContainerProps = {
+    user,
+    conversationMessages,
+    isLoadingMessages,
+    fetchNextMessagePage,
+    hasNextMessagePage: !!hasNextMessagePage,
+    isFetchingNextMessagePage,
+    refetchMessages: refetchMessages as () => Promise<unknown>,
+    lockedAgentMode,
+    isAgentLocked,
+    canSubmit,
+    onDisabledInteraction: handleDisabledInteraction,
+    salesforceInstanceUrl,
+    isSlashCommandsEnabled,
+    isActionsEnabled,
+    isDeepLinksEnabled,
+    isSourcesEnabled,
+    isFileUploadEnabled,
+    syncAgentModeToBackend,
+    banner: chatBanner,
+  };
 
   return (
     <Profiler id="dashboard" onRender={reportRenderTiming}>
@@ -797,7 +321,7 @@ const Dashboard = () => {
 
         {/* Full-width container */}
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* TopBar in White Rounded Container (V1 sidebar only — V2 has its own header) */}
+          {/* TopBar (V1 sidebar only — V2 has its own header) */}
           {!isSidebarV2 && (
             <div className="bg-transparent">
               <TopBar
@@ -808,11 +332,11 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Two-Pane Layout with Rounded Corners */}
+          {/* Two-Pane Layout */}
           <div
             className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
           >
-            {/* Left Pane - ChatSidebar with rounded corners and infinite scroll */}
+            {/* Left Pane - Sidebar */}
             <div
               className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
               style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
@@ -839,152 +363,26 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Dashboard Canvas - appears when converting message to dashboard */}
-            {isDashboardOpen &&
-              dashboardMessageId &&
-              dashboardMessageContent && (
-                <DashboardCanvas
-                  title={currentConversationTitle}
-                  messageContent={dashboardMessageContent}
-                  messageId={dashboardMessageId}
-                  isOpen={isDashboardOpen}
-                  onClose={handleCloseDashboard}
-                  thesysApiKey={import.meta.env.VITE_THESYS_API_KEY || ""}
-                />
-              )}
-
-            {/* Right Pane - Chat with rounded corners (shrinks when dashboard is open) */}
-            <motion.div
-              className="flex min-w-0"
-              initial={false}
-              animate={{
-                flex: isDashboardOpen ? "0 0 35%" : "1 1 auto",
-              }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
+            {/* Right Pane - Chat Container (keyed by conversationId for clean remount) */}
+            <div className="flex flex-1 min-w-0">
               {isLoading ? (
                 <ChatSkeleton messageCount={4} />
-              ) : isDeepResearchMode && transformedMessages.length > 0 ? (
-                /* Deep Research Mode - dedicated component */
-                <>
-                  {chatBanner}
-                  <DeepResearchConversation
-                    messages={transformedMessages}
-                    userName={user?.firstName || user?.name?.split(" ")[0]}
-                    userEmail={user?.email}
-                    conversationId={currentConversationId}
-                    researchResults={effectiveResearchResults ?? undefined}
-                    isDeepResearchRunning={v2IsDeepResearchRunning}
-                    onSendMessage={handleSendMessage}
-                    onStopStreaming={handleStopStreaming}
-                    onArtifactClick={handleArtifactClick}
-                    onApprove={handleApproval}
-                    onReject={handleRejection}
-                    placeholder="Ask von anything"
-                    disableSubmit={!canSubmit}
-                    onInputWhileDisabled={handleDisabledInteraction}
-                    enableCommands={isSlashCommandsEnabled}
-                    showPlusMenu={isFileUploadEnabled}
-                  />
-                </>
-              ) : (
-                /* Regular Mode - standard Chat component */
-                <Chat
-                  title="von AI"
-                  userId={user?.id}
-                  userName={user?.firstName || user?.name?.split(" ")[0]}
-                  userEmail={user?.email}
-                  apiBaseUrl={config.apiBaseUrl}
-                  pusherConfig={pusherConfig}
-                  conversationId={currentConversationId || undefined}
-                  enableRealtime={
-                    !!currentConversationId &&
-                    !!import.meta.env.VITE_PUSHER_KEY &&
-                    !!import.meta.env.VITE_PUSHER_CLUSTER
-                  }
-                  messages={transformedMessages}
-                  onSendMessage={handleSendMessage}
-                  onStopStreaming={handleStopStreaming}
-                  inputValue={autoPopulatedInput}
-                  onInputValueChange={setAutoPopulatedInput}
-                  isLoading={false}
-                  loadMoreRef={loadMoreMessagesRef}
-                  isFetchingMore={isFetchingNextMessagePage}
-                  placeholder="Ask von anything"
-                  variant="floating"
-                  height="100%"
-                  width="100%"
-                  showMessagesFromIndex={showMessagesFromIndex}
-                  onArtifactClick={handleArtifactClick}
-                  banner={chatBanner}
-                  disableSubmit={!canSubmit}
-                  examplePromptsDisabled={!canSubmit}
-                  onExamplePromptDisabledClick={handleDisabledInteraction}
-                  onInputWhileDisabled={handleDisabledInteraction}
-                  enableCommands={isSlashCommandsEnabled}
-                  enableActions={isActionsEnabled}
-                  onApprove={handleApproval}
-                  onReject={handleRejection}
-                  onConvertToDashboard={handleConvertToDashboard}
-                  showTransparency={isAgentV2 && isSourcesEnabled}
-                  onTransparencyClick={handleTransparencyClick}
-                  salesforceInstanceUrl={salesforceInstanceUrl}
-                  enableDeepLinks={isDeepLinksEnabled}
-                  thinkingProcessVersion={isAgentV2 ? "v2" : "v1"}
-                  useStandardInput={isAgentV2}
-                  isAgentLocked={isAgentLocked}
-                  lockedAgentMode={lockedAgentMode}
-                  showPlusMenu={isFileUploadEnabled}
-                  controlledAttachments={fileAttachmentState}
-                  onRemoveAttachment={handleRemoveAttachment}
-                  onFilesSelected={handleFilesSelected}
-                  onFileClick={handleFileClick}
-                  onFileError={handleFileError}
-                  fileErrorMessage={fileErrorMessage}
-                  onDismissFileError={() => setFileErrorMessage(null)}
+              ) : currentConversationId && isAgentV2 && currentConversation ? (
+                <ChatV2Container
+                  key={currentConversationId}
+                  conversationId={currentConversationId}
+                  currentConversation={currentConversation}
+                  {...sharedContainerProps}
                 />
-              )}
-            </motion.div>
+              ) : currentConversationId ? (
+                <ChatV1Container
+                  key={currentConversationId}
+                  conversationId={currentConversationId}
+                  {...sharedContainerProps}
+                />
+              ) : null}
+            </div>
           </div>
-
-          {/* Transparency Drawer - shows data sources for a message (lazy loading) */}
-          <LazyTransparencyDrawer
-            isOpen={isTransparencyOpen}
-            onClose={handleCloseTransparency}
-            conversationId={currentConversationId}
-            runId={transparencyRunId}
-            artifactSummaries={transparencyArtifactSummaries}
-            isListLoading={isTransparencyLoading}
-            title="Data Sources"
-          />
-
-          {/* Artifact Viewer - renders V1 Pane or V2 Drawer based on thinking process version */}
-          {isAgentV2 ? (
-            <SingleArtifactDrawerContainer
-              conversationId={currentConversationId}
-              drawerState={artifactState}
-              onClose={closeArtifact}
-            />
-          ) : (
-            <ArtifactPaneContainer
-              conversationId={currentConversationId}
-              paneState={artifactState}
-              onClose={closeArtifact}
-            />
-          )}
-
-          {/* File Preview Modal — triggered by clicking file pills in messages */}
-          {filePreviewAttachment && (
-            <FilePreviewModal
-              attachment={filePreviewAttachment}
-              downloadUrl={filePreviewUrl}
-              isLoading={isFilePreviewLoading}
-              onClose={() => {
-                setFilePreviewAttachment(null);
-                setFilePreviewUrl(null);
-              }}
-            />
-          )}
         </div>
       </div>
     </Profiler>

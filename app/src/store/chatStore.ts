@@ -33,6 +33,11 @@ interface ChatState {
     newId: string,
   ) => void;
 
+  // Track pending optimistic IDs for dedup (Bug 5 fix)
+  pendingOptimisticIds: Set<string>;
+  addPendingOptimisticId: (id: string) => void;
+  removePendingOptimisticId: (id: string) => void;
+
   // Message loading state
   isLoadingMessages: boolean;
   setIsLoadingMessages: (loading: boolean) => void;
@@ -66,6 +71,21 @@ const useChatStoreBase = create<ChatState>((set) => ({
   // UI state
   sidebarExpanded: true,
   setSidebarExpanded: (expand: boolean) => set({ sidebarExpanded: expand }),
+
+  // Pending optimistic IDs for dedup (Bug 5 fix)
+  pendingOptimisticIds: new Set<string>(),
+  addPendingOptimisticId: (id) =>
+    set((state) => {
+      const next = new Set(state.pendingOptimisticIds);
+      next.add(id);
+      return { pendingOptimisticIds: next };
+    }),
+  removePendingOptimisticId: (id) =>
+    set((state) => {
+      const next = new Set(state.pendingOptimisticIds);
+      next.delete(id);
+      return { pendingOptimisticIds: next };
+    }),
 
   // Messages state
   messages: {},
@@ -127,13 +147,20 @@ const useChatStoreBase = create<ChatState>((set) => ({
 
       // Fallback: For assistant messages, check for optimistic streaming assistant message
       // This reconciles the optimistic "thinking" message with the real assistant response
+      // Bug 5 fix: Use findLastIndex to always merge into the LATEST optimistic assistant,
+      // preventing duplicate assistant messages when Pusher event arrives before updateMessageId
       if (existingIndex < 0 && message.role === "assistant") {
-        existingIndex = existingMessages.findIndex(
-          (m) =>
+        for (let i = existingMessages.length - 1; i >= 0; i--) {
+          const m = existingMessages[i];
+          if (
             m.id.startsWith("optimistic-") &&
             m.role === "assistant" &&
-            m.isStreaming === true,
-        );
+            m.isStreaming === true
+          ) {
+            existingIndex = i;
+            break;
+          }
+        }
       }
 
       let updatedConversationMessages: MessageWithStreaming[];
