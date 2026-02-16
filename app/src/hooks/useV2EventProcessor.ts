@@ -90,10 +90,12 @@ export function useV2EventProcessor(
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [finalResponse, setFinalResponse] = useState("");
-  const [isFinalResponseStreaming, setIsFinalResponseStreaming] = useState(false);
+  const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
+    useState(false);
   const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
-  const [researchResults, setResearchResults] =
-    useState<ResearchResultsState>(INITIAL_RESEARCH_RESULTS);
+  const [researchResults, setResearchResults] = useState<ResearchResultsState>(
+    INITIAL_RESEARCH_RESULTS,
+  );
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
@@ -295,7 +297,9 @@ export function useV2EventProcessor(
 
         // Handle run completion
         const isTransitionalFinish =
-          result.hadApprovalPause && !result.finalResponse && !result.stoppedByUser;
+          result.hadApprovalPause &&
+          !result.finalResponse &&
+          !result.stoppedByUser;
         if (
           !result.isThinking &&
           !isTransitionalFinish &&

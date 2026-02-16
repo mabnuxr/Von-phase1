@@ -12,10 +12,7 @@
  */
 
 import { Profiler } from "react";
-import {
-  Chat,
-  FilePreviewModal,
-} from "@vonlabs/design-components";
+import { Chat, FilePreviewModal } from "@vonlabs/design-components";
 import type { AgentMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming, Conversation } from "../types/conversation";
@@ -139,7 +136,10 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
           apiBaseUrl=""
           pusherConfig={pusherConfig}
           conversationId={conversationId}
-          enableRealtime={!!import.meta.env.VITE_PUSHER_KEY && !!import.meta.env.VITE_PUSHER_CLUSTER}
+          enableRealtime={
+            !!import.meta.env.VITE_PUSHER_KEY &&
+            !!import.meta.env.VITE_PUSHER_CLUSTER
+          }
           messages={chatV2.transformedMessages}
           onSendMessage={chatV2.handleSendMessage}
           onStopStreaming={chatV2.handleStopStreaming}
