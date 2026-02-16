@@ -91,7 +91,7 @@ export function useMessages(
     // Result: [msg 1, 2, ..., 50, 51, ..., 100] ✅
 
     const pages = infiniteMessagesData.pages;
-    const allMessages =
+    const allMessagesRaw =
       pages.length === 1
         ? pages[0].data // Single page: use as-is
         : [
@@ -101,6 +101,14 @@ export function useMessages(
               .reverse()
               .flatMap((page) => page.data),
           ];
+
+    // Dedup by message ID — page boundary shifts between fetches can cause overlap
+    const seenIds = new Set<string>();
+    const allMessages = allMessagesRaw.filter((msg) => {
+      if (seenIds.has(msg.id)) return false;
+      seenIds.add(msg.id);
+      return true;
+    });
 
     // Replay events for streaming messages to reconstruct partial content
     const messagesWithReplayedContent = allMessages.map((msg) => {

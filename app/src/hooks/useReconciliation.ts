@@ -10,11 +10,10 @@
  * - default fallback: 45s (original behavior)
  *
  * On stall detection:
- * 1. Forces Pusher reconnect (recovers zombie connections)
- * 2. Fetches latest events from MongoDB (authoritative source)
- * 3. Merges local + API events (deduped, API wins on conflict)
- * 4. Re-transforms and updates state via onStateUpdate callback
- * 5. Notifies caller via onReconcile (triggers refetchMessages)
+ * 1. Fetches latest events from MongoDB (authoritative source)
+ * 2. Merges local + API events (deduped, API wins on conflict)
+ * 3. Re-transforms and updates state via onStateUpdate callback
+ * 4. Notifies caller via onReconcile (triggers refetchMessages)
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -84,14 +83,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     );
 
     try {
-      // Step 1: Force Pusher reconnect
-      if (config.pusherRef.current) {
-        console.log("[useReconciliation] Forcing Pusher reconnect");
-        config.pusherRef.current.disconnect();
-        config.pusherRef.current.connect();
-      }
-
-      // Step 2: Fetch latest messages from backend
+      // Step 1: Fetch latest messages from backend
       const response = await conversationsService.getConversationMessages(
         config.conversationId,
         1,
@@ -173,7 +165,12 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         result.isThinking,
       );
 
-      onReconcileRef.current?.();
+      // Only trigger refetchMessages if the run is still in progress.
+      // When complete, applyTransformResult already updated state — refetching
+      // causes v2InitialRunEvents to recompute, bouncing isThinking and looping.
+      if (result.isThinking) {
+        onReconcileRef.current?.();
+      }
     } catch (err) {
       console.error("[useReconciliation] Reconciliation failed:", err);
       config.lastEventTimeRef.current = Date.now();

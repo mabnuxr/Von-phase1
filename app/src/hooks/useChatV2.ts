@@ -99,11 +99,24 @@ export function useChatV2(props: UseChatV2Props) {
     return undefined;
   }, [conversationMessages]);
 
+  // Force-complete store messages when V2 processor marks a run done,
+  // so useStreamGuard stops tracking them and won't fire false timeouts.
+  const forceCompleteStreamingMessages = useCallback(() => {
+    const messages =
+      useChatStore.getState().messages[conversationId] || [];
+    for (const msg of messages) {
+      if (msg.role === "assistant" && msg.isStreaming) {
+        useChatStore.getState().forceCompleteMessage(conversationId, msg.id);
+      }
+    }
+  }, [conversationId]);
+
   // V2 event processing (AGUI events → timeline steps)
   const v2Processor = useV2EventProcessor(
     channel,
     conversationId,
     v2InitialRunEvents,
+    forceCompleteStreamingMessages,
   );
 
   // User message + error processing (writes to chatStore)

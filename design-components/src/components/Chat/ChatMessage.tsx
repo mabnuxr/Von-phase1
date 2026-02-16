@@ -398,8 +398,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   ) : !isUser ? (
                     <div>
                       {/* V2 Thinking Process - always render if we have steps (even on error) */}
-                      {thinkingProcessVersion === 'v2' &&
-                        ((timelineSteps && timelineSteps.length > 0) || isStreaming) && (
+                      {thinkingProcessVersion === 'v2' && (
                           <div className="mb-4">
                             <TimelineThinkingProcess
                               steps={timelineSteps || []}

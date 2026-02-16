@@ -88,6 +88,7 @@ export function useV2EventProcessor(
   channel: Channel | null,
   conversationId: string | null,
   initialRunEvents?: AguiEventWrapper[],
+  onRunComplete?: () => void,
 ): UseV2EventProcessorReturn {
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -203,7 +204,8 @@ export function useV2EventProcessor(
     }
 
     stopElapsedTimer();
-  }, [stopElapsedTimer]);
+    onRunComplete?.();
+  }, [stopElapsedTimer, onRunComplete]);
 
   // AGUI event handler
   const handleAguiEvent = useCallback(
@@ -329,12 +331,14 @@ export function useV2EventProcessor(
           if (actualElapsed > 0) {
             setElapsedTime(actualElapsed);
           }
+
+          onRunComplete?.();
         }
       } catch (error) {
         console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
-    [conversationId, startElapsedTimer, stopElapsedTimer],
+    [conversationId, startElapsedTimer, stopElapsedTimer, onRunComplete],
   );
 
   // Seed from initialRunEvents on mount (page refresh during active run).
