@@ -56,7 +56,8 @@ export function useUserMessageProcessor(
 
       // Skip if this message ID already exists in the store (Pusher retry / duplicate event)
       const existing = useChatStore.getState().messages[convId] || [];
-      if (existing.some((m: MessageWithStreaming) => m.id === parsed.id)) return;
+      if (existing.some((m: MessageWithStreaming) => m.id === parsed.id))
+        return;
 
       const userMessage: MessageWithStreaming = {
         id: parsed.id,
