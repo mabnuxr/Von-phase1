@@ -91,12 +91,20 @@ const useChatStoreBase = create<ChatState>((set) => ({
   messages: {},
 
   setMessages: (conversationId, messages) =>
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [conversationId]: messages,
-      },
-    })),
+    set((state) => {
+      const seen = new Set<string>();
+      const deduped = messages.filter((m) => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: deduped,
+        },
+      };
+    }),
 
   addMessage: (conversationId, message) =>
     set((state) => {

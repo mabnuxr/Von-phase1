@@ -7,7 +7,7 @@
  * Handles both regular V2 chat and deep research mode.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AgentMode,
   SendMessageOptions,
@@ -225,6 +225,30 @@ export function useChatV2(props: UseChatV2Props) {
     onTimeout: handleStreamTimeout,
     onForceComplete: handleForceComplete,
   });
+
+  // When V2 processor marks run complete (isThinking: true → false),
+  // force-complete store messages so useStreamGuard stops tracking them.
+  // Uses wasThinkingRef to only fire on actual true→false transitions,
+  // not during initialization or intermediate state flushes.
+  const wasThinkingRef = useRef(false);
+  useEffect(() => {
+    if (v2Processor.isThinking) {
+      wasThinkingRef.current = true;
+      return;
+    }
+    if (!wasThinkingRef.current) return;
+    if (!v2Processor.currentRunId) return;
+
+    wasThinkingRef.current = false;
+
+    const messages =
+      useChatStore.getState().messages[conversationId] || [];
+    for (const msg of messages) {
+      if (msg.role === "assistant" && msg.isStreaming) {
+        useChatStore.getState().forceCompleteMessage(conversationId, msg.id);
+      }
+    }
+  }, [v2Processor.isThinking, v2Processor.currentRunId, conversationId]);
 
   // Transform messages to Chat component format (V2 path with live data overlay)
   const {

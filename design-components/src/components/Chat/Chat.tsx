@@ -142,23 +142,24 @@ export const Chat: React.FC<ChatProps> = ({
 
     const isStreaming = messages.some((m) => m.isStreaming);
     const isInitialLoad = prevMessageCountRef.current === 0 && messages.length > 0;
+    const isNewMessage = messages.length > prevMessageCountRef.current;
     prevMessageCountRef.current = messages.length;
 
     // Always scroll to bottom when new messages are added or streaming, unless user has scrolled up
     if (shouldAutoScrollRef.current) {
-      // Use requestAnimationFrame to ensure DOM is fully laid out before scrolling
-      // This fixes the issue where scroll stops midway on initial conversation load
-      requestAnimationFrame(() => {
-        scrollToBottom(isStreaming ? 'smooth' : 'smooth');
-
-        // For initial load, scroll again after a short delay to account for
-        // lazy-loaded content (markdown rendering, images, etc.)
+      if (isInitialLoad || scrollOnNewUserMessage.current) {
+        // Instant scroll for initial load and new message sends — no animation lag
+        scrollToBottom('auto');
         if (isInitialLoad) {
-          setTimeout(() => {
-            scrollToBottom('auto');
-          }, 100);
+          // Scroll again after lazy content loads (markdown, images)
+          setTimeout(() => scrollToBottom('auto'), 100);
         }
-      });
+      } else if (isStreaming || isNewMessage) {
+        // Smooth scroll for streaming updates
+        requestAnimationFrame(() => {
+          scrollToBottom('smooth');
+        });
+      }
     }
   }, [messages, scrollToBottom]);
 
