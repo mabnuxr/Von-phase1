@@ -262,6 +262,71 @@ export function useV2EventProcessor(
     [stopElapsedTimer],
   );
 
+  // Shared gap-fill: fetch events from the backend API and merge into the
+  // current event stream, filling any sequence gaps.
+  const scheduleGapFill = useCallback(
+    (runId: string, delayMs: number, label: string) => {
+      if (gapFillTimerRef.current) return;
+
+      const capturedConversationId = conversationId;
+
+      gapFillTimerRef.current = setTimeout(async () => {
+        gapFillTimerRef.current = null;
+        if (!capturedConversationId) return;
+        if (finishedRunsRef.current.has(runId)) return;
+
+        // Re-check if gaps still exist (may have been filled by later events)
+        const currentEvents = eventsRef.current.get(runId) || [];
+        if (!hasSequenceGaps(currentEvents)) return;
+
+        try {
+          const response =
+            await conversationsService.getConversationMessages(
+              capturedConversationId,
+              1,
+              5,
+            );
+
+          let latestMsg;
+          for (let i = response.data.length - 1; i >= 0; i--) {
+            const m = response.data[i];
+            if (
+              m.role === "assistant" &&
+              m.events &&
+              m.events.length > 0
+            ) {
+              latestMsg = m;
+              break;
+            }
+          }
+
+          if (!latestMsg?.events?.length) return;
+
+          const apiEvents = latestMsg.events;
+          const apiRunId = apiEvents[0]?.run_id;
+          if (apiRunId !== runId) return;
+
+          const filledEvents = mergeAndDedup(apiEvents, currentEvents);
+          if (filledEvents.length <= currentEvents.length) return;
+
+          eventsRef.current.set(runId, filledEvents);
+          const gapResult = transformAguiToTimelineSteps(filledEvents);
+          applyTransformResult(gapResult, runId);
+
+          if (import.meta.env.DEV) {
+            console.log(
+              `[useV2EventProcessor] ${label} complete:`,
+              `before=${currentEvents.length}, after=${filledEvents.length}`,
+            );
+          }
+        } catch (err) {
+          console.error(`[useV2EventProcessor] ${label} failed:`, err);
+        }
+      }, delayMs);
+    },
+    [conversationId, applyTransformResult],
+  );
+
   // AGUI event handler
   const handleAguiEvent = useCallback(
     () => (data: string | AguiEventWrapper) => {
@@ -359,6 +424,22 @@ export function useV2EventProcessor(
           stopElapsedTimer();
         }
 
+        // Mid-stream gap detection: if the range of sequences exceeds the event
+        // count, some events were lost. Schedule a delayed backend fetch to fill gaps.
+        // O(1) check — avoids iterating the full array on every event.
+        if (
+          runEvents.length > 1 &&
+          runEvents[runEvents.length - 1].sequence - runEvents[0].sequence + 1 >
+            runEvents.length
+        ) {
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useV2EventProcessor] Mid-stream gap detected, scheduling gap-fill",
+            );
+          }
+          scheduleGapFill(run_id, 2000, "Mid-stream gap-fill");
+        }
+
         // Handle run completion
         const isTransitionalFinish =
           result.hadApprovalPause &&
@@ -383,7 +464,7 @@ export function useV2EventProcessor(
         console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
-    [conversationId, startElapsedTimer, stopElapsedTimer, onRunComplete],
+    [conversationId, startElapsedTimer, stopElapsedTimer, onRunComplete, scheduleGapFill],
   );
 
   // Seed/reconcile from initialRunEvents on mount or when backend events arrive.
@@ -448,9 +529,7 @@ export function useV2EventProcessor(
 
     // Check if mergedEvents has any sequence gaps or doesn't start at 0/1.
     // If so, schedule a delayed re-fetch to fill missing events.
-    const hasGaps = hasSequenceGaps(mergedEvents);
-
-    if (hasGaps) {
+    if (hasSequenceGaps(mergedEvents)) {
       if (import.meta.env.DEV) {
         const sequences = mergedEvents.map((e) => e.sequence);
         console.log(
@@ -459,64 +538,7 @@ export function useV2EventProcessor(
           `count=${mergedEvents.length} — scheduling reconciliation`,
         );
       }
-
-      const capturedRunId = runId;
-      const capturedConversationId = conversationId;
-
-      gapFillTimerRef.current = setTimeout(async () => {
-        gapFillTimerRef.current = null;
-        if (!capturedConversationId) return;
-        if (finishedRunsRef.current.has(capturedRunId)) return;
-
-        try {
-          const response = await conversationsService.getConversationMessages(
-            capturedConversationId,
-            1,
-            5,
-          );
-
-          // Find the most recent assistant message with events
-          let latestMsg;
-          for (let i = response.data.length - 1; i >= 0; i--) {
-            const m = response.data[i];
-            if (m.role === "assistant" && m.events && m.events.length > 0) {
-              latestMsg = m;
-              break;
-            }
-          }
-
-          if (!latestMsg?.events?.length) return;
-
-          const apiEvents = latestMsg.events;
-          const apiRunId = apiEvents[0]?.run_id;
-          if (apiRunId !== capturedRunId) return;
-
-          // Merge API events into current accumulated events, dedup by sequence
-          const currentEvents = eventsRef.current.get(capturedRunId) || [];
-          const filledEvents = mergeAndDedup(apiEvents, currentEvents);
-
-          // Only update if we actually added new events
-          if (filledEvents.length <= currentEvents.length) return;
-
-          eventsRef.current.set(capturedRunId, filledEvents);
-
-          const gapResult = transformAguiToTimelineSteps(filledEvents);
-          applyTransformResult(gapResult, capturedRunId);
-
-          if (import.meta.env.DEV) {
-            console.log(
-              "[useV2EventProcessor] Reconciliation complete:",
-              `before=${currentEvents.length}, after=${filledEvents.length}`,
-              `(+${filledEvents.length - currentEvents.length} events)`,
-            );
-          }
-        } catch (err) {
-          console.error(
-            "[useV2EventProcessor] Reconciliation re-fetch failed:",
-            err,
-          );
-        }
-      }, 1500);
+      scheduleGapFill(runId, 1500, "Reconciliation");
     }
   }, [initialRunEvents]);
 

@@ -83,7 +83,7 @@ export function useChatV2(props: UseChatV2Props) {
     [conversationId, user?.tenantId, user?.id],
   );
 
-  const { channel, pusherRef } = usePusherChannel(pusherConfig);
+  const { channel, isConnected, pusherRef } = usePusherChannel(pusherConfig);
 
   // Compute initial run events from conversation messages (for page refresh seeding)
   const v2InitialRunEvents = useMemo(() => {
@@ -153,6 +153,8 @@ export function useChatV2(props: UseChatV2Props) {
     conversationId,
     chatType,
     isThinking: v2Processor.isThinking,
+    isFinalResponseStreaming: v2Processor.isFinalResponseStreaming,
+    isConnected,
     pusherRef,
     eventsRef: v2Processor.eventsRef,
     finishedRunsRef: v2Processor.finishedRunsRef,

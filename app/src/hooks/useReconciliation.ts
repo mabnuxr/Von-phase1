@@ -38,6 +38,8 @@ export interface UseReconciliationConfig {
   conversationId: string | null;
   chatType: ConversationMode;
   isThinking: boolean;
+  isFinalResponseStreaming: boolean;
+  isConnected: boolean;
   pusherRef: React.MutableRefObject<Pusher | null>;
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -180,9 +182,12 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     config.onReconcile,
   ]);
 
-  // Health check interval
+  // Health check interval — active when thinking OR streaming final response
+  const isActivelyStreaming =
+    config.isThinking || config.isFinalResponseStreaming;
+
   useEffect(() => {
-    if (!config.isThinking || !config.conversationId) return;
+    if (!isActivelyStreaming || !config.conversationId) return;
 
     const stallThreshold = getStallThreshold(config.chatType);
 
@@ -224,10 +229,29 @@ export function useReconciliation(config: UseReconciliationConfig): void {
 
     return () => clearInterval(intervalId);
   }, [
-    config.isThinking,
+    isActivelyStreaming,
     config.conversationId,
     config.chatType,
     config.lastEventTimeRef,
     reconcile,
   ]);
+
+  // Disconnect recovery: trigger immediate reconciliation when Pusher disconnects
+  // during active streaming (thinking or final response streaming)
+  const prevConnectedRef = useRef(config.isConnected);
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+    prevConnectedRef.current = config.isConnected;
+
+    if (wasConnected && !config.isConnected && isActivelyStreaming) {
+      console.log(
+        "[useReconciliation] Pusher disconnected during active streaming — triggering reconciliation",
+      );
+      // Delay slightly to allow Pusher's auto-reconnect a chance
+      const timerId = setTimeout(() => {
+        reconcile();
+      }, 2000);
+      return () => clearTimeout(timerId);
+    }
+  }, [config.isConnected, isActivelyStreaming, reconcile]);
 }
