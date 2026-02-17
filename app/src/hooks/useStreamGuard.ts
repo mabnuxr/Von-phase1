@@ -103,7 +103,7 @@ export function useStreamGuard(
     }
   }, [conversationId, timeoutMs]);
 
-  // Poll for streaming status changes every 5 seconds
+  // Poll for streaming status changes every 2 seconds
   // This avoids depending on the messages array directly
   useEffect(() => {
     if (!conversationId) return;
@@ -111,7 +111,7 @@ export function useStreamGuard(
     // Initial sync
     syncTimers();
 
-    const intervalId = setInterval(syncTimers, 5000);
+    const intervalId = setInterval(syncTimers, 2000);
 
     const timers = timersRef.current;
     const tracked = trackedIdsRef.current;

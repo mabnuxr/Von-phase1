@@ -40,14 +40,6 @@ export function useUserPusherChannel(
       return;
     }
 
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      if (import.meta.env.DEV) {
-        console.log("[useUserPusherChannel] No access token");
-      }
-      return;
-    }
-
     const pusherKey = import.meta.env.VITE_PUSHER_KEY;
     const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER;
 
@@ -62,16 +54,46 @@ export function useUserPusherChannel(
     const channelName = `private-vonlabs-user-${config.tenantId}-${config.userId}`;
 
     try {
-      // Initialize Pusher
+      // Initialize Pusher with dynamic authorizer (reads fresh token on each
+      // auth request, fixing stale-token issues after token refresh)
       const pusher = new Pusher(pusherKey, {
         cluster: pusherCluster,
-        authEndpoint: `${appConfig.apiBaseUrl}/api/v1/pusher/auth`,
         forceTLS: true,
-        auth: {
-          headers: {
-            Authorization: `Bearer ${accessToken.trim()}`,
+        authorizer: (channel) => ({
+          authorize: (socketId, callback) => {
+            const token = getAccessToken();
+            if (!token || token.trim() === "") {
+              callback(new Error("No access token available"), null);
+              return;
+            }
+
+            fetch(`${appConfig.apiBaseUrl}/api/v1/pusher/auth`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                Authorization: `Bearer ${token.trim()}`,
+              },
+              body: new URLSearchParams({
+                socket_id: socketId,
+                channel_name: channel.name,
+              }),
+            })
+              .then((res) => {
+                if (!res.ok) {
+                  throw new Error(
+                    `Pusher auth failed: ${res.status} ${res.statusText}`,
+                  );
+                }
+                return res.json();
+              })
+              .then((data) => {
+                callback(null, data);
+              })
+              .catch((err) => {
+                callback(err, null);
+              });
           },
-        },
+        }),
       });
 
       pusherRef.current = pusher;
