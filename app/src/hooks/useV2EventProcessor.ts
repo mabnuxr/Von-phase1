@@ -136,6 +136,10 @@ export function useV2EventProcessor(
   const finishedRunsRef = useRef<Set<string>>(new Set());
   const lastEventTimeRef = useRef<number>(0);
   const gapFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against events arriving after Stop is clicked but before any run_id
+  // was known. When true, the first event's run_id is added to finishedRunsRef
+  // and the event is swallowed.
+  const pendingStopRef = useRef(false);
 
   const startElapsedTimer = useCallback(() => {
     if (elapsedTimerRef.current) {
@@ -242,6 +246,7 @@ export function useV2EventProcessor(
     if (import.meta.env.DEV) {
       console.log("[useV2EventProcessor] Streaming marked as stopped");
     }
+    pendingStopRef.current = true;
     terminateRun({ stoppedByUser: true });
   }, [terminateRun]);
 
@@ -337,6 +342,19 @@ export function useV2EventProcessor(
         const eventType = wrapper.event?.type;
 
         if (!conversationId || !run_id) return;
+
+        // Stop was requested before any events arrived — swallow this run's events
+        if (pendingStopRef.current && !finishedRunsRef.current.has(run_id)) {
+          pendingStopRef.current = false;
+          finishedRunsRef.current.add(run_id);
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useV2EventProcessor] Swallowed late event for pre-emptively stopped run:",
+              run_id,
+            );
+          }
+          return;
+        }
 
         // For finished runs: still accumulate events (for persistence) but don't re-transform
         if (finishedRunsRef.current.has(run_id)) {
