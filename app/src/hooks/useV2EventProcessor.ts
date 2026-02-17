@@ -398,7 +398,7 @@ export function useV2EventProcessor(
       setElapsedTime(elapsed);
     }
 
-    // Start timer if run is still active
+    // Start or stop timer based on run state
     if (result.isThinking) {
       if (elapsedTimerRef.current) {
         clearInterval(elapsedTimerRef.current);
@@ -406,6 +406,8 @@ export function useV2EventProcessor(
       elapsedTimerRef.current = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
       }, 1000);
+    } else {
+      stopElapsedTimer();
     }
 
     if (import.meta.env.DEV) {
