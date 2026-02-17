@@ -40,22 +40,22 @@ function hasSequenceGaps(events: AguiEventWrapper[]): boolean {
   return false;
 }
 
-/** Merge multiple event arrays, dedup by sequence number, return sorted. */
+/** Merge multiple event arrays, dedup by sequence number, return sorted.
+ *  Later arrays overwrite earlier ones for the same sequence, so pass
+ *  backend (stale) arrays first and Pusher (live) arrays last. */
 function mergeAndDedup(
   ...eventArrays: (AguiEventWrapper[] | undefined)[]
 ): AguiEventWrapper[] {
-  const seen = new Set<number>();
-  const merged: AguiEventWrapper[] = [];
+  const mergedMap = new Map<number, AguiEventWrapper>();
+
   for (const arr of eventArrays) {
     if (!arr) continue;
     for (const evt of arr) {
-      if (!seen.has(evt.sequence)) {
-        seen.add(evt.sequence);
-        merged.push(evt);
-      }
+      mergedMap.set(evt.sequence, evt);
     }
   }
-  return merged.sort((a, b) => a.sequence - b.sequence);
+
+  return Array.from(mergedMap.values()).sort((a, b) => a.sequence - b.sequence);
 }
 
 const AGUI_EVENTS = [
