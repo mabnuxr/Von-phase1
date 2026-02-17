@@ -7,8 +7,18 @@ import {
   type ThinkingStep,
   type DashboardPlan,
   type DashboardArtifact,
+  type DocumentArtifact,
+  type SlidesArtifact,
+  type SpreadsheetArtifact,
+  type Artifact,
 } from './ChatViewV2';
-import { StandardChatInput, type ReferenceContext } from '../Chat/StandardChatInput';
+import {
+  StandardChatInput,
+  StandardChatInputWithCommands,
+  type ReferenceContext,
+} from '../Chat/StandardChatInput';
+import type { Command } from '../Commands/types';
+import type { FileAttachment } from '../Chat/FileAttachment/types';
 
 // ============================================================================
 // Types
@@ -20,7 +30,7 @@ export interface ChatPaneV2Props {
   isThinking?: boolean;
   thinkingSteps?: ThinkingStep[];
   elapsedTime?: number;
-  onSendMessage?: (message: string) => void;
+  onSendMessage?: (message: string, command?: Command) => void;
   onBuildDashboard?: () => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -35,10 +45,26 @@ export interface ChatPaneV2Props {
   onSourcesClick?: () => void;
   /** Callback when an artifact card is clicked (e.g., to open report modal) */
   onArtifactClick?: (artifactId: string) => void;
+  /** Callback when artifact download is requested */
+  onArtifactDownload?: (artifact: Artifact) => void;
+  /** Use command-enabled input (slash commands) */
+  useCommandsInput?: boolean;
+  /** Show the + button in the chat input for file uploads etc. */
+  showPlusMenu?: boolean;
 }
 
 // Re-export types for convenience
-export type { ChatMessage, ThinkingStep, DashboardPlan, DashboardArtifact, ReferenceContext };
+export type {
+  ChatMessage,
+  ThinkingStep,
+  DashboardPlan,
+  DashboardArtifact,
+  DocumentArtifact,
+  SlidesArtifact,
+  SpreadsheetArtifact,
+  Artifact,
+  ReferenceContext,
+};
 
 // ============================================================================
 // Header Component
@@ -89,6 +115,9 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
   onRemoveReference,
   onSourcesClick,
   onArtifactClick,
+  onArtifactDownload,
+  useCommandsInput = false,
+  showPlusMenu = false,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -160,6 +189,8 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
             onBuildDashboard={onBuildDashboard}
             onSourcesClick={onSourcesClick}
             onArtifactClick={onArtifactClick}
+            onArtifactDownload={onArtifactDownload}
+            compact
           />
         )}
         <div ref={messagesEndRef} />
@@ -167,15 +198,31 @@ export const ChatPaneV2: React.FC<ChatPaneV2Props> = ({
 
       {/* Chat input */}
       <div className="mt-3 px-1">
-        <StandardChatInput
-          placeholder={placeholder}
-          onSend={onSendMessage}
-          onStop={onStop}
-          isStreaming={isStreaming}
-          mode="build"
-          referenceContext={referenceContext}
-          onRemoveReference={onRemoveReference}
-        />
+        {useCommandsInput ? (
+          <StandardChatInputWithCommands
+            placeholder={placeholder}
+            onSend={(message: string, _attachments?: FileAttachment[], command?: Command) =>
+              onSendMessage?.(message, command)
+            }
+            onStop={onStop}
+            isStreaming={isStreaming}
+            mode="build"
+            referenceContext={referenceContext}
+            onRemoveReference={onRemoveReference}
+            showPlusMenu={showPlusMenu}
+          />
+        ) : (
+          <StandardChatInput
+            placeholder={placeholder}
+            onSend={onSendMessage ? (message: string) => onSendMessage(message) : undefined}
+            onStop={onStop}
+            isStreaming={isStreaming}
+            mode="build"
+            referenceContext={referenceContext}
+            onRemoveReference={onRemoveReference}
+            showPlusMenu={showPlusMenu}
+          />
+        )}
       </div>
     </div>
   );
