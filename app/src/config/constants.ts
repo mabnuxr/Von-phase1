@@ -136,7 +136,6 @@ export const PUSHER_PONG_TIMEOUT_S = 10 as const;
  * Stall threshold in milliseconds.
  * If no AGUI events are received for this duration during active streaming,
  * the connection is considered stalled and reconciliation is triggered.
- * @deprecated Use chat-type-aware thresholds below instead.
  */
 export const RECONCILIATION_STALL_THRESHOLD_MS = 45000 as const; // 45 seconds
 

@@ -289,12 +289,15 @@ export function useTimelineState({
     }
   }, [autoCollapse]);
 
-  // Clear focused step when thinking state changes
+  // When thinking starts (including follow-up runs), expand the thinking process
+  // and clear any focused step from the previous run.
+  // Guard with !autoCollapse so this doesn't override the auto-collapse during final response.
   useEffect(() => {
-    if (isThinking) {
+    if (isThinking && !autoCollapse) {
+      setInternalCollapsed(false);
       setFocusedStepId(null);
     }
-  }, [isThinking]);
+  }, [isThinking, autoCollapse]);
 
   return {
     // State

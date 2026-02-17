@@ -402,12 +402,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <div className="mb-4">
                           <TimelineThinkingProcess
                             steps={timelineSteps || []}
-                            isThinking={isStreaming}
-                            isStreaming={isStreaming}
+                            isThinking={isStreaming && !stoppedByUser}
+                            isStreaming={isStreaming && !stoppedByUser}
                             autoCollapse={
                               !!v2FinalResponse ||
                               status === 'timeout' ||
-                              (status === 'failed' && !!errorMessage)
+                              (status === 'failed' && !!errorMessage) ||
+                              !!stoppedByUser
                             }
                             elapsedTime={thinkingElapsedTime}
                             onApprove={onApprove ? (stepId) => onApprove(stepId, runId) : undefined}

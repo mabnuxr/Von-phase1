@@ -10,6 +10,7 @@ import type {
  * Payload for sending a message
  */
 export interface SendMessagePayload {
+  conversationId: string;
   content: string;
   fileAttachments?: MessageFileAttachment[];
 }
@@ -50,14 +51,8 @@ interface MutationContext {
  * ```
  */
 export function useSendMessage() {
-  const { currentConversationId } = useChatStore();
-
   return useMutation({
     mutationFn: async (payload: SendMessagePayload) => {
-      if (!currentConversationId) {
-        throw new Error("No active conversation");
-      }
-
       if (import.meta.env.DEV) {
         console.log("[useSendMessage] Sending message:", payload.content);
       }
@@ -65,7 +60,7 @@ export function useSendMessage() {
       // Send to backend
       // Backend will emit Pusher events that add the real message
       return conversationsService.sendMessage(
-        currentConversationId,
+        payload.conversationId,
         payload.content,
         "text",
         payload.fileAttachments,
@@ -76,10 +71,7 @@ export function useSendMessage() {
     onMutate: async (
       payload: SendMessagePayload,
     ): Promise<MutationContext | undefined> => {
-      const conversationId = useChatStore.getState().currentConversationId;
-      if (!conversationId) {
-        return undefined;
-      }
+      const conversationId = payload.conversationId;
 
       // FIX: Set showMessagesFromIndex BEFORE adding optimistic messages
       // This ensures the index update and message addition happen synchronously,

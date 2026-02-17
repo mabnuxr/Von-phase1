@@ -30,6 +30,7 @@ import {
   RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS,
   RECONCILIATION_STALL_THRESHOLD_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
+  STREAM_TIMEOUT_MS,
 } from "../config/constants";
 import type { ConversationMode } from "../types/conversation";
 
@@ -37,17 +38,19 @@ export interface UseReconciliationConfig {
   conversationId: string | null;
   chatType: ConversationMode;
   isThinking: boolean;
+  isFinalResponseStreaming: boolean;
+  isConnected: boolean;
   pusherRef: React.MutableRefObject<Pusher | null>;
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
   lastEventTimeRef: React.MutableRefObject<number>;
-  stoppedRef: React.MutableRefObject<boolean>;
   onStateUpdate: (
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
   onReconcile?: () => void;
+  onTimeout?: () => void;
 }
 
 function getStallThreshold(chatType: ConversationMode): number {
@@ -64,17 +67,8 @@ function getStallThreshold(chatType: ConversationMode): number {
 export function useReconciliation(config: UseReconciliationConfig): void {
   const isReconcilingRef = useRef<boolean>(false);
 
-  // Stable refs for callbacks
-  const onStateUpdateRef = useRef(config.onStateUpdate);
-  onStateUpdateRef.current = config.onStateUpdate;
-  const onReconcileRef = useRef(config.onReconcile);
-  onReconcileRef.current = config.onReconcile;
-  const onRunFinishedRef = useRef(config.onRunFinished);
-  onRunFinishedRef.current = config.onRunFinished;
-
   const reconcile = useCallback(async () => {
     if (!config.conversationId || isReconcilingRef.current) return;
-    if (config.stoppedRef.current) return;
 
     isReconcilingRef.current = true;
 
@@ -90,10 +84,15 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         5,
       );
 
-      // Step 3: Find latest assistant message with events
-      const latestAssistantMsg = response.data.find(
-        (m) => m.role === "assistant" && m.events && m.events.length > 0,
-      );
+      // Step 3: Find latest assistant message with events (search from end)
+      let latestAssistantMsg;
+      for (let i = response.data.length - 1; i >= 0; i--) {
+        const m = response.data[i];
+        if (m.role === "assistant" && m.events && m.events.length > 0) {
+          latestAssistantMsg = m;
+          break;
+        }
+      }
 
       if (
         !latestAssistantMsg?.events ||
@@ -132,7 +131,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       const result = transformAguiToTimelineSteps(mergedEvents);
 
       // Step 6: Update state
-      onStateUpdateRef.current(result, runId);
+      config.onStateUpdate(result, runId);
 
       // Step 7: Handle run completion
       const isTransitionalFinish =
@@ -145,14 +144,15 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         !config.finishedRunsRef.current.has(runId)
       ) {
         config.finishedRunsRef.current.add(runId);
-        config.stoppedRef.current = false;
 
         const actualElapsed = getElapsedTimeFromEvents(mergedEvents);
-        onRunFinishedRef.current?.(runId, actualElapsed);
+        config.onRunFinished?.(runId, actualElapsed);
       }
 
-      // Reset stall timer
-      config.lastEventTimeRef.current = Date.now();
+      // Only reset stall timer if we got genuinely new events
+      if (mergedEvents.length > localEvents.length) {
+        config.lastEventTimeRef.current = Date.now();
+      }
 
       console.log(
         "[useReconciliation] Reconciliation complete — local:",
@@ -165,10 +165,9 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         result.isThinking,
       );
 
-      onReconcileRef.current?.();
+      config.onReconcile?.();
     } catch (err) {
       console.error("[useReconciliation] Reconciliation failed:", err);
-      config.lastEventTimeRef.current = Date.now();
     } finally {
       isReconcilingRef.current = false;
     }
@@ -178,12 +177,17 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     config.eventsRef,
     config.finishedRunsRef,
     config.lastEventTimeRef,
-    config.stoppedRef,
+    config.onStateUpdate,
+    config.onRunFinished,
+    config.onReconcile,
   ]);
 
-  // Health check interval
+  // Health check interval — active when thinking OR streaming final response
+  const isActivelyStreaming =
+    config.isThinking || config.isFinalResponseStreaming;
+
   useEffect(() => {
-    if (!config.isThinking || !config.conversationId) return;
+    if (!isActivelyStreaming || !config.conversationId) return;
 
     const stallThreshold = getStallThreshold(config.chatType);
 
@@ -194,12 +198,25 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     }
 
     const intervalId = setInterval(() => {
-      if (config.stoppedRef.current || isReconcilingRef.current) return;
+      if (isReconcilingRef.current) return;
 
       // Skip if no events received yet
       if (config.lastEventTimeRef.current === 0) return;
 
       const timeSinceLastEvent = Date.now() - config.lastEventTimeRef.current;
+
+      // Hard timeout — no genuinely new events for too long, give up
+      if (timeSinceLastEvent >= STREAM_TIMEOUT_MS) {
+        console.log(
+          "[useReconciliation] Hard timeout — no new events for",
+          Math.round(timeSinceLastEvent / 1000),
+          "seconds",
+        );
+        clearInterval(intervalId);
+        config.onTimeout?.();
+        return;
+      }
+
       if (timeSinceLastEvent >= stallThreshold) {
         console.log(
           "[useReconciliation] No events for",
@@ -212,11 +229,29 @@ export function useReconciliation(config: UseReconciliationConfig): void {
 
     return () => clearInterval(intervalId);
   }, [
-    config.isThinking,
+    isActivelyStreaming,
     config.conversationId,
     config.chatType,
-    config.stoppedRef,
     config.lastEventTimeRef,
     reconcile,
   ]);
+
+  // Disconnect recovery: trigger immediate reconciliation when Pusher disconnects
+  // during active streaming (thinking or final response streaming)
+  const prevConnectedRef = useRef(config.isConnected);
+  useEffect(() => {
+    const wasConnected = prevConnectedRef.current;
+    prevConnectedRef.current = config.isConnected;
+
+    if (wasConnected && !config.isConnected && isActivelyStreaming) {
+      console.log(
+        "[useReconciliation] Pusher disconnected during active streaming — triggering reconciliation",
+      );
+      // Delay slightly to allow Pusher's auto-reconnect a chance
+      const timerId = setTimeout(() => {
+        reconcile();
+      }, 2000);
+      return () => clearTimeout(timerId);
+    }
+  }, [config.isConnected, isActivelyStreaming, reconcile]);
 }

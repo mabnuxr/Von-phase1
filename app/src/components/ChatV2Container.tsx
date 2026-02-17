@@ -93,14 +93,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isLoading: isFetchingNextMessagePage,
   });
 
-  const pusherConfig = {
-    key: import.meta.env.VITE_PUSHER_KEY || "",
-    cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-    authEndpoint: `${config.apiBaseUrl}/api/v1/pusher/auth`,
-    tenantId: user?.tenantId,
-    userId: user?.id,
-  };
-
   return (
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
@@ -134,12 +126,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
           userName={user?.firstName || user?.name?.split(" ")[0]}
           userEmail={user?.email}
           apiBaseUrl={config.apiBaseUrl}
-          pusherConfig={pusherConfig}
           conversationId={conversationId}
-          enableRealtime={
-            !!import.meta.env.VITE_PUSHER_KEY &&
-            !!import.meta.env.VITE_PUSHER_CLUSTER
-          }
           messages={chatV2.transformedMessages}
           onSendMessage={chatV2.handleSendMessage}
           onStopStreaming={chatV2.handleStopStreaming}

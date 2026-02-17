@@ -206,14 +206,6 @@ export interface DashboardArtifact {
   createdAt: Date;
 }
 
-export interface PusherConfig {
-  key: string;
-  cluster: string;
-  authEndpoint?: string;
-  tenantId?: string;
-  userId?: string;
-}
-
 export interface ApiEndpoints {
   conversations: string;
   messages: string;
@@ -952,11 +944,6 @@ export interface ChatProps {
   apiBaseUrl?: string;
 
   /**
-   * Pusher configuration for real-time messaging
-   */
-  pusherConfig?: PusherConfig;
-
-  /**
    * Messages to display in the chat (for controlled component)
    * @default []
    */
@@ -1073,12 +1060,6 @@ export interface ChatProps {
    * @default { bottom: '24px', right: '24px' }
    */
   fixedPosition?: FixedPosition;
-
-  /**
-   * Whether to enable real-time Pusher integration
-   * @default false
-   */
-  enableRealtime?: boolean;
 
   /**
    * Active conversation ID (for multi-conversation support)

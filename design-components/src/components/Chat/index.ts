@@ -11,7 +11,6 @@ export type {
   SourceReference,
   DashboardComponent,
   DashboardArtifact,
-  PusherConfig,
   ApiEndpoints,
 } from './types';
 

@@ -11,7 +11,7 @@
  * - Exposes pusherRef for reconciliation reconnect.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Pusher from "pusher-js";
 import type { Channel } from "pusher-js";
 
@@ -44,19 +44,28 @@ export function usePusherChannel(
   const channelRef = useRef<Channel | null>(null);
   const connectionEventsBound = useRef(false);
 
+  /** Unsubscribe from the current channel (if any). */
+  const cleanupChannel = useCallback(() => {
+    if (channelRef.current && pusherRef.current) {
+      channelRef.current.unbind_all();
+      pusherRef.current.unsubscribe(channelRef.current.name);
+      channelRef.current = null;
+    }
+  }, []);
+
+  /** Disconnect Pusher entirely (also cleans up channel first). */
+  const cleanupPusher = useCallback(() => {
+    cleanupChannel();
+    if (pusherRef.current) {
+      pusherRef.current.disconnect();
+      pusherRef.current = null;
+      connectionEventsBound.current = false;
+    }
+  }, [cleanupChannel]);
+
   useEffect(() => {
     if (!config.conversationId || !config.tenantId || !config.userId) {
-      // Clean up existing connection
-      if (channelRef.current && pusherRef.current) {
-        channelRef.current.unbind_all();
-        pusherRef.current.unsubscribe(channelRef.current.name);
-        channelRef.current = null;
-      }
-      if (pusherRef.current) {
-        pusherRef.current.disconnect();
-        pusherRef.current = null;
-        connectionEventsBound.current = false;
-      }
+      cleanupPusher();
       setIsConnected(false);
       return;
     }
@@ -155,9 +164,7 @@ export function usePusherChannel(
 
       // Unsubscribe from old channel if switching conversations
       if (channelRef.current && channelRef.current.name !== channelName) {
-        channelRef.current.unbind_all();
-        pusher.unsubscribe(channelRef.current.name);
-        channelRef.current = null;
+        cleanupChannel();
       }
 
       // Subscribe to new channel
@@ -184,32 +191,26 @@ export function usePusherChannel(
       setError(
         err instanceof Error ? err : new Error("Failed to initialize Pusher"),
       );
+      setIsConnected(false);
     }
 
     return () => {
-      if (channelRef.current && pusherRef.current) {
-        channelRef.current.unbind_all();
-        pusherRef.current.unsubscribe(channelRef.current.name);
-        channelRef.current = null;
-      }
+      cleanupChannel();
     };
-  }, [config.conversationId, config.tenantId, config.userId]);
+  }, [
+    config.conversationId,
+    config.tenantId,
+    config.userId,
+    cleanupChannel,
+    cleanupPusher,
+  ]);
 
   // Full cleanup on unmount (container unmounts on conversation switch)
   useEffect(() => {
     return () => {
-      if (pusherRef.current) {
-        if (channelRef.current) {
-          channelRef.current.unbind_all();
-          pusherRef.current.unsubscribe(channelRef.current.name);
-          channelRef.current = null;
-        }
-        pusherRef.current.disconnect();
-        pusherRef.current = null;
-        connectionEventsBound.current = false;
-      }
+      cleanupPusher();
     };
-  }, []);
+  }, [cleanupPusher]);
 
   return {
     channel: channelRef.current,

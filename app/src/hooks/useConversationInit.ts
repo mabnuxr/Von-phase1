@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFirstConversationId } from "./useFirstConversationId";
 import { useCreateConversation } from "./useConversations";
-import useChatStore from "../store/chatStore";
 import { generateConversationTitle } from "../lib/conversationUtils";
 import { useFeatureFlag } from "./useFeatureFlag";
 
@@ -16,12 +15,10 @@ import { useFeatureFlag } from "./useFeatureFlag";
  * 3. If no conversations exist → Create "New Chat 1" and redirect to it
  *
  * @param urlConversationId - Optional conversation ID from URL params
- * @returns Current conversation ID and initialization state
+ * @returns Initialization state
  */
 export function useConversationInit(urlConversationId?: string) {
   const navigate = useNavigate();
-  const currentConversationId = useChatStore.use.currentConversationId();
-  const setCurrentConversationId = useChatStore.use.setCurrentConversationId();
 
   // Get feature flag for agent version (used when creating first conversation)
   const { isAgentV2 } = useFeatureFlag();
@@ -50,8 +47,6 @@ export function useConversationInit(urlConversationId?: string) {
     // CASE 1: URL has conversationId — trust it directly.
     // No validation against loaded pages; useMessages handles fetching.
     if (urlConversationId) {
-      setCurrentConversationId(urlConversationId);
-
       if (import.meta.env.DEV) {
         console.log(
           `[useConversationInit] Loaded conversation from URL: ${urlConversationId}`,
@@ -73,7 +68,6 @@ export function useConversationInit(urlConversationId?: string) {
 
       // Navigate with replace to avoid back button issues
       navigate(`/chat/${firstConversationId}`, { replace: true });
-      // Don't set store here — the URL change will trigger Dashboard's useEffect
       return;
     }
 
@@ -102,9 +96,8 @@ export function useConversationInit(urlConversationId?: string) {
           console.log(`[useConversationInit] Created: ${newConversationId}`);
         }
 
-        // Navigate to conversation with UUID
+        // Navigate to conversation — URL is the single source of truth
         navigate(`/chat/${newConversationId}`, { replace: true });
-        setCurrentConversationId(newConversationId);
       } catch (error) {
         // Reset flag on error to allow retry
         hasCreatedInitialConversationRef.current = false;
@@ -118,14 +111,12 @@ export function useConversationInit(urlConversationId?: string) {
     firstConversationId,
     isLoading,
     urlConversationId,
-    setCurrentConversationId,
     navigate,
     createConversation,
     isAgentV2,
   ]);
 
   return {
-    currentConversationId,
     isInitializing: isLoading || isCreating,
     error: fetchError || createError,
   };

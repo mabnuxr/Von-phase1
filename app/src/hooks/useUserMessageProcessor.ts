@@ -59,6 +59,22 @@ export function useUserMessageProcessor(
       if (existing.some((m: MessageWithStreaming) => m.id === parsed.id))
         return;
 
+      // Content+recency dedup: catch duplicate user messages where Pusher ID
+      // differs from optimistic ID (race condition: Pusher arrives before
+      // HTTP response updates the optimistic ID to the real one)
+      const normalizeContent = (c: string | undefined) =>
+        (c || "").trim().replace(/\s+/g, " ");
+      const incomingContent = normalizeContent(parsed.messageContent);
+      if (
+        existing.some(
+          (m: MessageWithStreaming) =>
+            m.role === "user" &&
+            normalizeContent(m.messageContent) === incomingContent &&
+            Date.now() - new Date(m.createdAt).getTime() < 30000,
+        )
+      )
+        return;
+
       const userMessage: MessageWithStreaming = {
         id: parsed.id,
         runId: parsed.id,
@@ -131,6 +147,22 @@ export function useUserMessageProcessor(
           (a, b) => a.sequence - b.sequence,
         );
         const messageContent = sortedChunks.map((c) => c.delta).join("");
+
+        // Content+recency dedup for chunked messages
+        const normalizeContent = (c: string | undefined) =>
+          (c || "").trim().replace(/\s+/g, " ");
+        const incomingContent = normalizeContent(messageContent);
+        if (
+          existing.some(
+            (m: MessageWithStreaming) =>
+              m.role === "user" &&
+              normalizeContent(m.messageContent) === incomingContent &&
+              Date.now() - new Date(m.createdAt).getTime() < 30000,
+          )
+        ) {
+          userMessageChunksRef.current.delete(parsed.id);
+          return;
+        }
 
         const userMessage: MessageWithStreaming = {
           id: parsed.id,

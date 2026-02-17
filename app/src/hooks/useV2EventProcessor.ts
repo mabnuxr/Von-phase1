@@ -29,6 +29,35 @@ import {
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 import { conversationsService } from "../services/conversationsService";
+import useChatStore from "../store/chatStore";
+
+/** Check if a sorted event array has missing sequences (gaps or doesn't start at 0/1). */
+function hasSequenceGaps(events: AguiEventWrapper[]): boolean {
+  if (events.length === 0) return false;
+  if (events[0].sequence > 1) return true;
+  for (let i = 1; i < events.length; i++) {
+    if (events[i].sequence !== events[i - 1].sequence + 1) return true;
+  }
+  return false;
+}
+
+/** Merge multiple event arrays, dedup by sequence number, return sorted.
+ *  Later arrays overwrite earlier ones for the same sequence, so pass
+ *  backend (stale) arrays first and Pusher (live) arrays last. */
+function mergeAndDedup(
+  ...eventArrays: (AguiEventWrapper[] | undefined)[]
+): AguiEventWrapper[] {
+  const mergedMap = new Map<number, AguiEventWrapper>();
+
+  for (const arr of eventArrays) {
+    if (!arr) continue;
+    for (const evt of arr) {
+      mergedMap.set(evt.sequence, evt);
+    }
+  }
+
+  return Array.from(mergedMap.values()).sort((a, b) => a.sequence - b.sequence);
+}
 
 const AGUI_EVENTS = [
   "agent.run_started",
@@ -61,19 +90,18 @@ export interface UseV2EventProcessorReturn {
   stoppedByUser: boolean;
   runErrorMessage: string;
   markStopped: () => void;
+  markTimedOut: () => void;
+  clearPendingStop: () => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
   lastEventTimeRef: React.MutableRefObject<number>;
-  stoppedRef: React.MutableRefObject<boolean>;
   // Allow reconciliation to update state
   applyTransformResult: (
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
   ) => void;
-  // Allow reconciliation to stop timer on run completion
-  stopElapsedTimer: () => void;
-  setElapsedTime: React.Dispatch<React.SetStateAction<number>>;
+  handleRunFinished: (runId: string, elapsedTime: number) => void;
 }
 
 const INITIAL_RESEARCH_RESULTS: ResearchResultsState = {
@@ -108,9 +136,12 @@ export function useV2EventProcessor(
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
-  const stoppedRef = useRef<boolean>(false);
   const lastEventTimeRef = useRef<number>(0);
   const gapFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against events arriving after Stop is clicked but before any run_id
+  // was known. When true, the first event's run_id is added to finishedRunsRef
+  // and the event is swallowed.
+  const pendingStopRef = useRef(false);
 
   const startElapsedTimer = useCallback(() => {
     if (elapsedTimerRef.current) {
@@ -151,61 +182,171 @@ export function useV2EventProcessor(
     [],
   );
 
-  // Mark streaming as stopped — flush current state and stop animations
-  const markStopped = useCallback(() => {
-    stoppedRef.current = true;
+  // Shared logic for terminating the active run (stopped by user, timed out, etc.)
+  const terminateRun = useCallback(
+    (options: { stoppedByUser: boolean; errorMessage?: string }) => {
+      // Find the active (non-finished) run, mark it finished, and flush its events
+      let activeRunEvents: AguiEventWrapper[] | undefined;
+      for (const [runId, events] of eventsRef.current) {
+        if (!finishedRunsRef.current.has(runId)) {
+          finishedRunsRef.current.add(runId);
+          activeRunEvents = events;
+          break;
+        }
+      }
 
+      if (activeRunEvents && activeRunEvents.length > 0) {
+        // Run was found and terminated — clear the flag so the next run isn't swallowed
+        pendingStopRef.current = false;
+        const {
+          steps,
+          finalResponse: response,
+          researchResults: research,
+          isDeepResearchRunning: deepResearchRunning,
+          runErrorMessage: errorMsg,
+        } = transformAguiToTimelineSteps(activeRunEvents);
+
+        // Mark any in-progress/pending steps as complete (run is terminated)
+        for (const step of steps) {
+          if (step.status === "in-progress" || step.status === "pending") {
+            step.status = "complete";
+          }
+        }
+
+        const actualElapsed = getElapsedTimeFromEvents(activeRunEvents);
+
+        flushSync(() => {
+          setTimelineSteps(steps);
+          setIsThinking(false);
+          setIsFinalResponseStreaming(false);
+          setStoppedByUser(options.stoppedByUser);
+          setFinalResponse(response);
+          setResearchResults(research);
+          setIsDeepResearchRunning(deepResearchRunning);
+          setRunErrorMessage(options.errorMessage ?? errorMsg);
+          if (actualElapsed > 0) {
+            setElapsedTime(actualElapsed);
+          }
+        });
+      } else {
+        flushSync(() => {
+          setIsThinking(false);
+          setIsFinalResponseStreaming(false);
+          setStoppedByUser(options.stoppedByUser);
+          setRunErrorMessage(options.errorMessage ?? "");
+          setElapsedTime(0);
+          setTimelineSteps([]);
+        });
+      }
+
+      stopElapsedTimer();
+      lastEventTimeRef.current = 0;
+      onRunComplete?.();
+    },
+    [stopElapsedTimer, onRunComplete],
+  );
+
+  const markStopped = useCallback(() => {
+    if (import.meta.env.DEV) {
+      console.log("[useV2EventProcessor] Streaming marked as stopped");
+    }
+    pendingStopRef.current = true;
+    terminateRun({ stoppedByUser: true });
+  }, [terminateRun]);
+
+  const clearPendingStop = useCallback(() => {
+    pendingStopRef.current = false;
+  }, []);
+
+  const markTimedOut = useCallback(() => {
     if (import.meta.env.DEV) {
       console.log(
-        "[useV2EventProcessor] Streaming marked as stopped - flushing immediately",
+        "[useV2EventProcessor] Run timed out — no new events received",
       );
     }
 
-    // Find the active (non-finished) run's events
-    let activeRunEvents: AguiEventWrapper[] | undefined;
-    for (const [runId, events] of eventsRef.current) {
-      if (!finishedRunsRef.current.has(runId)) {
-        activeRunEvents = events;
+    // Persist timeout status in chatStore so the message shows the error banner
+    // and doesn't resurrect as "streaming" after a page refresh
+    const messages =
+      useChatStore.getState().messages[conversationId ?? ""] || [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "assistant" && m.isStreaming) {
+        useChatStore.getState().markMessageTimeout(conversationId ?? "", m.id);
         break;
       }
     }
 
-    if (activeRunEvents && activeRunEvents.length > 0) {
-      const {
-        steps,
-        finalResponse: response,
-        researchResults: research,
-        isDeepResearchRunning: deepResearchRunning,
-        runErrorMessage: errorMsg,
-      } = transformAguiToTimelineSteps(activeRunEvents);
+    terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
+  }, [conversationId, terminateRun]);
 
-      const actualElapsed = getElapsedTimeFromEvents(activeRunEvents);
+  const handleRunFinished = useCallback(
+    (_runId: string, elapsedTime: number) => {
+      stopElapsedTimer();
+      setElapsedTime(elapsedTime);
+    },
+    [stopElapsedTimer],
+  );
 
-      flushSync(() => {
-        setTimelineSteps(steps);
-        setIsThinking(false);
-        setIsFinalResponseStreaming(false);
-        setStoppedByUser(true);
-        setFinalResponse(response);
-        setResearchResults(research);
-        setIsDeepResearchRunning(deepResearchRunning);
-        setRunErrorMessage(errorMsg);
-        if (actualElapsed > 0) {
-          setElapsedTime(actualElapsed);
+  // Shared gap-fill: fetch events from the backend API and merge into the
+  // current event stream, filling any sequence gaps.
+  const scheduleGapFill = useCallback(
+    (runId: string, delayMs: number, label: string) => {
+      if (gapFillTimerRef.current) return;
+
+      const capturedConversationId = conversationId;
+
+      gapFillTimerRef.current = setTimeout(async () => {
+        gapFillTimerRef.current = null;
+        if (!capturedConversationId) return;
+        if (finishedRunsRef.current.has(runId)) return;
+
+        // Re-check if gaps still exist (may have been filled by later events)
+        const currentEvents = eventsRef.current.get(runId) || [];
+        if (!hasSequenceGaps(currentEvents)) return;
+
+        try {
+          const response = await conversationsService.getConversationMessages(
+            capturedConversationId,
+            1,
+            5,
+          );
+
+          let latestMsg;
+          for (let i = response.data.length - 1; i >= 0; i--) {
+            const m = response.data[i];
+            if (m.role === "assistant" && m.events && m.events.length > 0) {
+              latestMsg = m;
+              break;
+            }
+          }
+
+          if (!latestMsg?.events?.length) return;
+
+          const apiEvents = latestMsg.events;
+          const apiRunId = apiEvents[0]?.run_id;
+          if (apiRunId !== runId) return;
+
+          const filledEvents = mergeAndDedup(apiEvents, currentEvents);
+          if (filledEvents.length <= currentEvents.length) return;
+
+          eventsRef.current.set(runId, filledEvents);
+          const gapResult = transformAguiToTimelineSteps(filledEvents);
+          applyTransformResult(gapResult, runId);
+
+          if (import.meta.env.DEV) {
+            console.log(
+              `[useV2EventProcessor] ${label} complete:`,
+              `before=${currentEvents.length}, after=${filledEvents.length}`,
+            );
+          }
+        } catch (err) {
+          console.error(`[useV2EventProcessor] ${label} failed:`, err);
         }
-      });
-    } else {
-      flushSync(() => {
-        setIsThinking(false);
-        setIsFinalResponseStreaming(false);
-        setStoppedByUser(true);
-        setRunErrorMessage("");
-      });
-    }
-
-    stopElapsedTimer();
-    onRunComplete?.();
-  }, [stopElapsedTimer, onRunComplete]);
+      }, delayMs);
+    },
+    [conversationId, applyTransformResult],
+  );
 
   // AGUI event handler
   const handleAguiEvent = useCallback(
@@ -218,14 +359,34 @@ export function useV2EventProcessor(
 
         if (!conversationId || !run_id) return;
 
-        const isTerminalEvent =
-          eventType === "RUN_FINISHED" || eventType === "RUN_ERROR";
-
-        // Ignore events for finished runs
-        if (finishedRunsRef.current.has(run_id)) {
+        // Stop was requested before any events arrived — swallow this run's events
+        if (pendingStopRef.current && !finishedRunsRef.current.has(run_id)) {
+          pendingStopRef.current = false;
+          finishedRunsRef.current.add(run_id);
           if (import.meta.env.DEV) {
             console.log(
-              "[useV2EventProcessor] Ignoring late event for finished run:",
+              "[useV2EventProcessor] Swallowed late event for pre-emptively stopped run:",
+              run_id,
+            );
+          }
+          return;
+        }
+
+        // For finished runs: still accumulate events (for persistence) but don't re-transform
+        if (finishedRunsRef.current.has(run_id)) {
+          const finishedRunEvents = eventsRef.current.get(run_id);
+          if (finishedRunEvents) {
+            const exists = finishedRunEvents.some(
+              (e) => e.run_id === run_id && e.sequence === sequence,
+            );
+            if (!exists) {
+              finishedRunEvents.push(wrapper);
+              finishedRunEvents.sort((a, b) => a.sequence - b.sequence);
+            }
+          }
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useV2EventProcessor] Accumulated late event for finished run:",
               eventType,
             );
           }
@@ -242,12 +403,12 @@ export function useV2EventProcessor(
           // If the first Pusher event has sequence > 0, this is a page-refresh
           // mid-stream — backend seeding will merge the earlier events shortly.
           if (sequence === 0) {
-            stoppedRef.current = false;
             flushSync(() => {
               setTimelineSteps([]);
               setFinalResponse("");
               setIsFinalResponseStreaming(false);
               setIsAwaitingApproval(false);
+              setStoppedByUser(false);
               setCurrentRunId(run_id);
               setElapsedTime(0);
               setRunErrorMessage("");
@@ -276,22 +437,6 @@ export function useV2EventProcessor(
         // Track last event time for stall detection
         lastEventTimeRef.current = Date.now();
 
-        // If stopped and not a terminal event, just accumulate without UI update
-        if (stoppedRef.current && !isTerminalEvent) {
-          if (import.meta.env.DEV) {
-            console.log(
-              "[useV2EventProcessor] Batching event (stopped):",
-              eventType,
-            );
-          }
-          return;
-        }
-
-        // Reset stopped state on terminal event
-        if (isTerminalEvent && stoppedRef.current) {
-          stoppedRef.current = false;
-        }
-
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
 
@@ -313,6 +458,22 @@ export function useV2EventProcessor(
           stopElapsedTimer();
         }
 
+        // Mid-stream gap detection: if the range of sequences exceeds the event
+        // count, some events were lost. Schedule a delayed backend fetch to fill gaps.
+        // O(1) check — avoids iterating the full array on every event.
+        if (
+          runEvents.length > 1 &&
+          runEvents[runEvents.length - 1].sequence - runEvents[0].sequence + 1 >
+            runEvents.length
+        ) {
+          if (import.meta.env.DEV) {
+            console.log(
+              "[useV2EventProcessor] Mid-stream gap detected, scheduling gap-fill",
+            );
+          }
+          scheduleGapFill(run_id, 2000, "Mid-stream gap-fill");
+        }
+
         // Handle run completion
         const isTransitionalFinish =
           result.hadApprovalPause &&
@@ -325,7 +486,6 @@ export function useV2EventProcessor(
         ) {
           finishedRunsRef.current.add(run_id);
           stopElapsedTimer();
-          stoppedRef.current = false;
 
           const actualElapsed = getElapsedTimeFromEvents(runEvents);
           if (actualElapsed > 0) {
@@ -338,12 +498,18 @@ export function useV2EventProcessor(
         console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
-    [conversationId, startElapsedTimer, stopElapsedTimer, onRunComplete],
+    [
+      conversationId,
+      startElapsedTimer,
+      stopElapsedTimer,
+      onRunComplete,
+      scheduleGapFill,
+    ],
   );
 
-  // Seed from initialRunEvents on mount (page refresh during active run).
-  // If Pusher events already arrived before the backend fetch completed,
-  // merge backend events into the existing set so no content is lost.
+  // Seed/reconcile from initialRunEvents on mount or when backend events arrive.
+  // Merges backend events with any Pusher events already received, deduplicating
+  // by sequence number so no content is lost regardless of run state.
   useEffect(() => {
     // Clear any pending gap-fill timer from a previous effect run
     if (gapFillTimerRef.current) {
@@ -359,56 +525,21 @@ export function useV2EventProcessor(
     // Don't re-seed for finished runs
     if (finishedRunsRef.current.has(runId)) return;
 
-    const backendEvents = [...initialRunEvents].sort(
-      (a, b) => a.sequence - b.sequence,
-    );
-
-    // Merge: backend events fill gaps, Pusher events win on same sequence
+    // Merge backend + Pusher events, dedup by sequence number
     const existingPusherEvents = eventsRef.current.get(runId);
-    let mergedEvents: AguiEventWrapper[];
-
-    if (existingPusherEvents && existingPusherEvents.length > 0) {
-      const mergedMap = new Map<number, AguiEventWrapper>();
-      for (const evt of backendEvents) {
-        mergedMap.set(evt.sequence, evt);
-      }
-      // Pusher events overwrite backend for same sequence (fresher)
-      for (const evt of existingPusherEvents) {
-        mergedMap.set(evt.sequence, evt);
-      }
-      mergedEvents = Array.from(mergedMap.values()).sort(
-        (a, b) => a.sequence - b.sequence,
-      );
-    } else {
-      mergedEvents = backendEvents;
-    }
+    const mergedEvents = mergeAndDedup(initialRunEvents, existingPusherEvents);
 
     const result = transformAguiToTimelineSteps(mergedEvents);
 
-    // Only seed for active runs (streaming or awaiting approval)
-    if (!result.isThinking && !result.isAwaitingApproval) return;
-
     eventsRef.current.set(runId, mergedEvents);
-
-    flushSync(() => {
-      setTimelineSteps(result.steps);
-      setIsThinking(result.isThinking);
-      setCurrentRunId(runId);
-      setFinalResponse(result.finalResponse);
-      setIsFinalResponseStreaming(result.isFinalResponseStreaming);
-      setIsAwaitingApproval(result.isAwaitingApproval);
-      setResearchResults(result.researchResults);
-      setIsDeepResearchRunning(result.isDeepResearchRunning);
-      setStoppedByUser(result.stoppedByUser);
-      setRunErrorMessage(result.runErrorMessage);
-    });
+    applyTransformResult(result, runId);
 
     const elapsed = getElapsedTimeFromEvents(mergedEvents);
     if (elapsed > 0) {
       setElapsedTime(elapsed);
     }
 
-    // Start timer if run is still active
+    // Start or stop timer based on run state
     if (result.isThinking) {
       if (elapsedTimerRef.current) {
         clearInterval(elapsedTimerRef.current);
@@ -416,6 +547,10 @@ export function useV2EventProcessor(
       elapsedTimerRef.current = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
       }, 1000);
+    } else {
+      stopElapsedTimer();
+      // Mark completed/stopped runs as finished so subsequent events don't re-process
+      finishedRunsRef.current.add(runId);
     }
 
     if (import.meta.env.DEV) {
@@ -425,115 +560,25 @@ export function useV2EventProcessor(
         "count:",
         mergedEvents.length,
         existingPusherEvents
-          ? `(merged ${backendEvents.length} backend + ${existingPusherEvents.length} Pusher)`
+          ? `(merged ${initialRunEvents.length} backend + ${existingPusherEvents.length} Pusher)`
           : "(backend only)",
         "isThinking:",
         result.isThinking,
       );
     }
 
-    // Detect sequence gaps between backend and Pusher events.
-    // On page refresh, there's a window of events the backend hadn't persisted
-    // when queried but Pusher also missed (client was disconnected).
-    // Schedule a delayed re-fetch so the backend has time to persist them.
-    if (existingPusherEvents && existingPusherEvents.length > 0) {
-      const lastBackendSeq =
-        backendEvents.length > 0
-          ? backendEvents[backendEvents.length - 1].sequence
-          : -1;
-      const firstPusherSeq = Math.min(
-        ...existingPusherEvents.map((e) => e.sequence),
-      );
-
-      if (firstPusherSeq > lastBackendSeq + 1) {
-        if (import.meta.env.DEV) {
-          console.log(
-            "[useV2EventProcessor] Sequence gap detected:",
-            `backend max=${lastBackendSeq}, pusher min=${firstPusherSeq},`,
-            `gap=${firstPusherSeq - lastBackendSeq - 1} events — scheduling gap-fill`,
-          );
-        }
-
-        const capturedRunId = runId;
-        const capturedConversationId = conversationId;
-
-        gapFillTimerRef.current = setTimeout(async () => {
-          gapFillTimerRef.current = null;
-          if (!capturedConversationId) return;
-          if (finishedRunsRef.current.has(capturedRunId)) return;
-
-          try {
-            const response = await conversationsService.getConversationMessages(
-              capturedConversationId,
-              1,
-              5,
-            );
-
-            // Find the most recent assistant message with events
-            let latestMsg;
-            for (let i = response.data.length - 1; i >= 0; i--) {
-              const m = response.data[i];
-              if (m.role === "assistant" && m.events && m.events.length > 0) {
-                latestMsg = m;
-                break;
-              }
-            }
-
-            if (!latestMsg?.events?.length) return;
-
-            const apiEvents = latestMsg.events;
-            const apiRunId = apiEvents[0]?.run_id;
-            if (apiRunId !== capturedRunId) return;
-
-            // Merge API events into current accumulated events
-            // Existing events win on conflict (fresher from Pusher)
-            const currentEvents = eventsRef.current.get(capturedRunId) || [];
-            const mergeMap = new Map<number, AguiEventWrapper>();
-            for (const evt of apiEvents) {
-              mergeMap.set(evt.sequence, evt);
-            }
-            for (const evt of currentEvents) {
-              mergeMap.set(evt.sequence, evt);
-            }
-
-            const filledEvents = Array.from(mergeMap.values()).sort(
-              (a, b) => a.sequence - b.sequence,
-            );
-
-            // Only update if we actually added new events
-            if (filledEvents.length <= currentEvents.length) return;
-
-            eventsRef.current.set(capturedRunId, filledEvents);
-
-            const gapResult = transformAguiToTimelineSteps(filledEvents);
-
-            flushSync(() => {
-              setTimelineSteps(gapResult.steps);
-              setIsThinking(gapResult.isThinking);
-              setFinalResponse(gapResult.finalResponse);
-              setIsFinalResponseStreaming(gapResult.isFinalResponseStreaming);
-              setIsAwaitingApproval(gapResult.isAwaitingApproval);
-              setResearchResults(gapResult.researchResults);
-              setIsDeepResearchRunning(gapResult.isDeepResearchRunning);
-              setStoppedByUser(gapResult.stoppedByUser);
-              setRunErrorMessage(gapResult.runErrorMessage);
-            });
-
-            if (import.meta.env.DEV) {
-              console.log(
-                "[useV2EventProcessor] Gap-fill complete:",
-                `before=${currentEvents.length}, after=${filledEvents.length}`,
-                `(+${filledEvents.length - currentEvents.length} events)`,
-              );
-            }
-          } catch (err) {
-            console.error(
-              "[useV2EventProcessor] Gap-fill re-fetch failed:",
-              err,
-            );
-          }
-        }, 1500);
+    // Check if mergedEvents has any sequence gaps or doesn't start at 0/1.
+    // If so, schedule a delayed re-fetch to fill missing events.
+    if (hasSequenceGaps(mergedEvents)) {
+      if (import.meta.env.DEV) {
+        const sequences = mergedEvents.map((e) => e.sequence);
+        console.log(
+          "[useV2EventProcessor] Sequence gaps detected in merged events:",
+          `sequences=[${sequences[0]}..${sequences[sequences.length - 1]}],`,
+          `count=${mergedEvents.length} — scheduling reconciliation`,
+        );
       }
+      scheduleGapFill(runId, 1500, "Reconciliation");
     }
   }, [initialRunEvents]);
 
@@ -542,17 +587,13 @@ export function useV2EventProcessor(
     if (!channel) return;
 
     const handler = handleAguiEvent();
-    const handlers = AGUI_EVENTS.map((eventName) => ({
-      eventName,
-      handler,
-    }));
 
-    for (const { eventName, handler } of handlers) {
+    for (const eventName of AGUI_EVENTS) {
       channel.bind(eventName, handler);
     }
 
     return () => {
-      for (const { eventName, handler } of handlers) {
+      for (const eventName of AGUI_EVENTS) {
         channel.unbind(eventName, handler);
       }
     };
@@ -581,12 +622,12 @@ export function useV2EventProcessor(
     stoppedByUser,
     runErrorMessage,
     markStopped,
+    markTimedOut,
+    clearPendingStop,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,
-    stoppedRef,
     applyTransformResult,
-    stopElapsedTimer,
-    setElapsedTime,
+    handleRunFinished,
   };
 }
