@@ -263,7 +263,24 @@ export function useV2EventProcessor(
         "[useV2EventProcessor] Run timed out — no new events received",
       );
     }
+  const markTimedOut = useCallback(() => {
+    if (import.meta.env.DEV) {
+      console.log(
+        "[useV2EventProcessor] Run timed out — no new events received",
+      );
+    }
+
+    // Persist timeout status in chatStore before we tear down the run
+    const messages = useChatStore.getState().messages[conversationId ?? ""] || [];
+    const lastAssistant = messages.findLast((m) => m.role === "assistant" && m.isStreaming);
+    if (lastAssistant) {
+      useChatStore
+        .getState()
+        .markMessageTimeout(conversationId ?? "", lastAssistant.id);
+    }
+
     terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
+  }, [conversationId, terminateRun]);
   }, [terminateRun]);
 
   const handleRunFinished = useCallback(
