@@ -346,6 +346,9 @@ export function useChatV2(props: UseChatV2Props) {
     ) => {
       lastUserMessageRef.current = content;
 
+      // Clear any stale pending-stop flag so the new run's events aren't swallowed
+      v2Processor.clearPendingStop();
+
       // Persist any in-flight V2 state before sending a new message
       forceCompleteStreamingMessages();
 
@@ -370,6 +373,7 @@ export function useChatV2(props: UseChatV2Props) {
     },
     [
       conversationId,
+      v2Processor.clearPendingStop,
       forceCompleteStreamingMessages,
       syncAgentModeToBackend,
       hasFileAttachments,

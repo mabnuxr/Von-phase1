@@ -90,6 +90,7 @@ export interface UseV2EventProcessorReturn {
   runErrorMessage: string;
   markStopped: () => void;
   markTimedOut: () => void;
+  clearPendingStop: () => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -194,6 +195,8 @@ export function useV2EventProcessor(
       }
 
       if (activeRunEvents && activeRunEvents.length > 0) {
+        // Run was found and terminated — clear the flag so the next run isn't swallowed
+        pendingStopRef.current = false;
         const {
           steps,
           finalResponse: response,
@@ -249,6 +252,10 @@ export function useV2EventProcessor(
     pendingStopRef.current = true;
     terminateRun({ stoppedByUser: true });
   }, [terminateRun]);
+
+  const clearPendingStop = useCallback(() => {
+    pendingStopRef.current = false;
+  }, []);
 
   const markTimedOut = useCallback(() => {
     if (import.meta.env.DEV) {
@@ -602,6 +609,7 @@ export function useV2EventProcessor(
     runErrorMessage,
     markStopped,
     markTimedOut,
+    clearPendingStop,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,
