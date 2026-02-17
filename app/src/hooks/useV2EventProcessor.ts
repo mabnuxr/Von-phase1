@@ -289,6 +289,7 @@ export function useV2EventProcessor(
               setFinalResponse("");
               setIsFinalResponseStreaming(false);
               setIsAwaitingApproval(false);
+              setStoppedByUser(false);
               setCurrentRunId(run_id);
               setElapsedTime(0);
               setRunErrorMessage("");
