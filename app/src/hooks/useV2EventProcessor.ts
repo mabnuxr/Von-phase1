@@ -198,6 +198,13 @@ export function useV2EventProcessor(
           runErrorMessage: errorMsg,
         } = transformAguiToTimelineSteps(activeRunEvents);
 
+        // Mark any in-progress/pending steps as complete (run is terminated)
+        for (const step of steps) {
+          if (step.status === "in-progress" || step.status === "pending") {
+            step.status = "complete";
+          }
+        }
+
         const actualElapsed = getElapsedTimeFromEvents(activeRunEvents);
 
         flushSync(() => {
@@ -219,10 +226,13 @@ export function useV2EventProcessor(
           setIsFinalResponseStreaming(false);
           setStoppedByUser(options.stoppedByUser);
           setRunErrorMessage(options.errorMessage ?? "");
+          setElapsedTime(0);
+          setTimelineSteps([]);
         });
       }
 
       stopElapsedTimer();
+      lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
     [stopElapsedTimer, onRunComplete],
@@ -263,11 +273,21 @@ export function useV2EventProcessor(
 
         if (!conversationId || !run_id) return;
 
-        // Ignore events for finished runs (includes stopped runs)
+        // For finished runs: still accumulate events (for persistence) but don't re-transform
         if (finishedRunsRef.current.has(run_id)) {
+          const finishedRunEvents = eventsRef.current.get(run_id);
+          if (finishedRunEvents) {
+            const exists = finishedRunEvents.some(
+              (e) => e.run_id === run_id && e.sequence === sequence,
+            );
+            if (!exists) {
+              finishedRunEvents.push(wrapper);
+              finishedRunEvents.sort((a, b) => a.sequence - b.sequence);
+            }
+          }
           if (import.meta.env.DEV) {
             console.log(
-              "[useV2EventProcessor] Ignoring late event for finished run:",
+              "[useV2EventProcessor] Accumulated late event for finished run:",
               eventType,
             );
           }
@@ -408,6 +428,8 @@ export function useV2EventProcessor(
       }, 1000);
     } else {
       stopElapsedTimer();
+      // Mark completed/stopped runs as finished so subsequent events don't re-process
+      finishedRunsRef.current.add(runId);
     }
 
     if (import.meta.env.DEV) {

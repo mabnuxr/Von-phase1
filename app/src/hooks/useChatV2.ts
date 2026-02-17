@@ -97,14 +97,38 @@ export function useChatV2(props: UseChatV2Props) {
     return undefined;
   }, [conversationMessages]);
 
+  // Ref to access V2 processor state from callbacks (avoids stale closures)
+  const v2ProcessorRef = useRef<ReturnType<typeof useV2EventProcessor> | null>(
+    null,
+  );
+
   // When V2 processor marks a run done: force-complete streaming messages
-  // in chatStore, then refetch from backend to replace optimistic messages
-  // with real ones (real IDs, events, messageContent).
+  // in chatStore with persisted V2 data, then refetch from backend to replace
+  // optimistic messages with real ones (real IDs, events, messageContent).
   const handleV2RunComplete = useCallback(() => {
     const messages = useChatStore.getState().messages[conversationId] || [];
+    const processor = v2ProcessorRef.current;
+
     for (const msg of messages) {
       if (msg.role === "assistant" && msg.isStreaming) {
-        useChatStore.getState().forceCompleteMessage(conversationId, msg.id);
+        // Persist V2 state into the chatStore message so it survives the
+        // transition from live overlay → persisted path
+        const persistedContent = processor?.finalResponse || undefined;
+        const persistedStopped = processor?.stoppedByUser;
+        const currentRunId = processor?.currentRunId;
+        const persistedEvents = currentRunId
+          ? processor?.eventsRef.current.get(currentRunId)
+          : undefined;
+
+        useChatStore
+          .getState()
+          .forceCompleteMessage(
+            conversationId,
+            msg.id,
+            persistedContent,
+            persistedStopped,
+            persistedEvents,
+          );
       }
     }
     refetchMessages();
@@ -117,6 +141,9 @@ export function useChatV2(props: UseChatV2Props) {
     v2InitialRunEvents,
     handleV2RunComplete,
   );
+
+  // Keep ref in sync with latest processor value
+  v2ProcessorRef.current = v2Processor;
 
   // User message + error processing (writes to chatStore)
   useUserMessageProcessor(channel, conversationId);
@@ -280,6 +307,34 @@ export function useChatV2(props: UseChatV2Props) {
     setTransparencyRunId(null);
   }, []);
 
+  // Force-complete any streaming assistant messages before sending a new one
+  // (back-to-back scenario: previous response must be persisted first)
+  const forceCompleteStreamingMessages = useCallback(() => {
+    const messages = useChatStore.getState().messages[conversationId] || [];
+    const processor = v2ProcessorRef.current;
+
+    for (const msg of messages) {
+      if (msg.role === "assistant" && msg.isStreaming) {
+        const persistedContent = processor?.finalResponse || undefined;
+        const persistedStopped = processor?.stoppedByUser;
+        const currentRunId = processor?.currentRunId;
+        const persistedEvents = currentRunId
+          ? processor?.eventsRef.current.get(currentRunId)
+          : undefined;
+
+        useChatStore
+          .getState()
+          .forceCompleteMessage(
+            conversationId,
+            msg.id,
+            persistedContent,
+            persistedStopped,
+            persistedEvents,
+          );
+      }
+    }
+  }, [conversationId]);
+
   // Send message handler
   const handleSendMessage = useCallback(
     async (
@@ -288,6 +343,9 @@ export function useChatV2(props: UseChatV2Props) {
       options?: SendMessageOptions,
     ) => {
       lastUserMessageRef.current = content;
+
+      // Persist any in-flight V2 state before sending a new message
+      forceCompleteStreamingMessages();
 
       const currentMessages =
         useChatStore.getState().messages[conversationId] || [];
@@ -310,6 +368,7 @@ export function useChatV2(props: UseChatV2Props) {
     },
     [
       conversationId,
+      forceCompleteStreamingMessages,
       syncAgentModeToBackend,
       hasFileAttachments,
       uploadPendingFiles,

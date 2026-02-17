@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import createSelectors from "./createSelectors";
-import type { MessageWithStreaming } from "../types/conversation";
+import type { MessageWithStreaming, AguiEventWrapper } from "../types/conversation";
 
 interface ChatState {
   // UI state
@@ -48,8 +48,14 @@ interface ChatState {
   triggerScrollToBottom: (conversationId: string) => void;
   clearScrollTrigger: (conversationId: string) => void;
 
-  // FIX: Force-complete message (timeout recovery)
-  forceCompleteMessage: (conversationId: string, messageId: string) => void;
+  // FIX: Force-complete message (timeout recovery / V2 state persistence)
+  forceCompleteMessage: (
+    conversationId: string,
+    messageId: string,
+    messageContent?: string,
+    stoppedByUser?: boolean,
+    events?: AguiEventWrapper[],
+  ) => void;
   markMessageTimeout: (conversationId: string, messageId: string) => void;
 
   // Message filtering state for ChatGPT-style visual clearing
@@ -280,8 +286,8 @@ const useChatStoreBase = create<ChatState>((set) => ({
       },
     })),
 
-  // FIX: Force-complete message (timeout recovery)
-  forceCompleteMessage: (conversationId, messageId) =>
+  // FIX: Force-complete message (timeout recovery / V2 state persistence)
+  forceCompleteMessage: (conversationId, messageId, messageContent?, stoppedByUser?, events?) =>
     set((state) => {
       const messages = state.messages[conversationId];
       if (!messages) return state;
@@ -291,7 +297,15 @@ const useChatStoreBase = create<ChatState>((set) => ({
           ...state.messages,
           [conversationId]: messages.map((msg) =>
             msg.id === messageId
-              ? { ...msg, isStreaming: false, status: "completed" as const }
+              ? {
+                  ...msg,
+                  isStreaming: false,
+                  status: "completed" as const,
+                  errorMessage: undefined,
+                  ...(messageContent ? { messageContent } : {}),
+                  ...(stoppedByUser !== undefined ? { stoppedByUser } : {}),
+                  ...(events ? { events } : {}),
+                }
               : msg,
           ),
         },

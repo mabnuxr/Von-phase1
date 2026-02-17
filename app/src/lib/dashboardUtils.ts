@@ -242,15 +242,32 @@ function transformMessagesForV2(
     // placeholder) but the V2 hook hasn't started a run yet. Once V2 has processed any
     // run (currentRunId set) or reached a terminal state (steps, response, error, stopped),
     // it should never be treated as stale — even if msg.isStreaming is still true.
+    // Also check that the V2 data belongs to the current message's run (prevents
+    // stale V2 data from a previous run leaking to a new back-to-back message).
+    const msgBelongsToCurrentV2Run =
+      !v2LiveData.currentRunId || msg.runId === v2LiveData.currentRunId;
     const hasV2TerminalData =
       usableV2TimelineSteps.length > 0 ||
       v2LiveData.finalResponse ||
       !!v2LiveData.runErrorMessage ||
       v2LiveData.stoppedByUser ||
       !!v2LiveData.currentRunId;
-    const isStaleV2Data = msg.isStreaming && !isRunActive && !hasV2TerminalData;
+    const isStaleV2Data =
+      msg.isStreaming &&
+      !isRunActive &&
+      (!hasV2TerminalData || !msgBelongsToCurrentV2Run);
 
-    if (isLastAssistant && hasLiveV2Data && !isStaleV2Data) {
+    // Don't overlay V2 live data on already-persisted completed messages
+    // (they have their own events and should use the persisted path below)
+    const shouldUsePersistedData =
+      !msg.isStreaming && !isRunActive && msg.events && msg.events.length > 0;
+
+    if (
+      isLastAssistant &&
+      hasLiveV2Data &&
+      !isStaleV2Data &&
+      !shouldUsePersistedData
+    ) {
       return {
         ...msg,
         isStreaming: v2LiveData.isThinking,
@@ -321,6 +338,16 @@ function transformMessagesForV2(
               errorMessage: persistedRunErrorMessage,
             }
           : {}),
+      };
+    }
+
+    // Fallback for completed messages with content but no events
+    // (e.g., after force-complete persisted messageContent before events arrived)
+    if (!msg.isStreaming && msg.content) {
+      return {
+        ...msg,
+        v2FinalResponse: msg.content,
+        v2FinalResponseStreaming: false,
       };
     }
 

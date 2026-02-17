@@ -82,10 +82,15 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         5,
       );
 
-      // Step 3: Find latest assistant message with events
-      const latestAssistantMsg = response.data.find(
-        (m) => m.role === "assistant" && m.events && m.events.length > 0,
-      );
+      // Step 3: Find latest assistant message with events (search from end)
+      let latestAssistantMsg;
+      for (let i = response.data.length - 1; i >= 0; i--) {
+        const m = response.data[i];
+        if (m.role === "assistant" && m.events && m.events.length > 0) {
+          latestAssistantMsg = m;
+          break;
+        }
+      }
 
       if (
         !latestAssistantMsg?.events ||
