@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import createSelectors from "./createSelectors";
-import type { MessageWithStreaming, AguiEventWrapper } from "../types/conversation";
+import type {
+  MessageWithStreaming,
+  AguiEventWrapper,
+} from "../types/conversation";
 
 interface ChatState {
   // UI state
@@ -287,7 +290,13 @@ const useChatStoreBase = create<ChatState>((set) => ({
     })),
 
   // FIX: Force-complete message (timeout recovery / V2 state persistence)
-  forceCompleteMessage: (conversationId, messageId, messageContent?, stoppedByUser?, events?) =>
+  forceCompleteMessage: (
+    conversationId,
+    messageId,
+    messageContent?,
+    stoppedByUser?,
+    events?,
+  ) =>
     set((state) => {
       const messages = state.messages[conversationId];
       if (!messages) return state;

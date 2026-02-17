@@ -285,21 +285,16 @@ export function useV2EventProcessor(
         if (!hasSequenceGaps(currentEvents)) return;
 
         try {
-          const response =
-            await conversationsService.getConversationMessages(
-              capturedConversationId,
-              1,
-              5,
-            );
+          const response = await conversationsService.getConversationMessages(
+            capturedConversationId,
+            1,
+            5,
+          );
 
           let latestMsg;
           for (let i = response.data.length - 1; i >= 0; i--) {
             const m = response.data[i];
-            if (
-              m.role === "assistant" &&
-              m.events &&
-              m.events.length > 0
-            ) {
+            if (m.role === "assistant" && m.events && m.events.length > 0) {
               latestMsg = m;
               break;
             }
@@ -482,7 +477,13 @@ export function useV2EventProcessor(
         console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
-    [conversationId, startElapsedTimer, stopElapsedTimer, onRunComplete, scheduleGapFill],
+    [
+      conversationId,
+      startElapsedTimer,
+      stopElapsedTimer,
+      onRunComplete,
+      scheduleGapFill,
+    ],
   );
 
   // Seed/reconcile from initialRunEvents on mount or when backend events arrive.
