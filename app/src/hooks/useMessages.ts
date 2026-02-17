@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { conversationKeys } from "./useConversations";
@@ -32,9 +32,16 @@ export function useMessages(
 ) {
   const { setMessages, setIsLoadingMessages } = useChatStore();
 
+  // Track the last dataUpdatedAt we synced per conversation.
+  // Prevents overwriting chatStore with stale React Query cache on conversation switch,
+  // which causes a flash of old content before the background refetch completes.
+  const syncedAtRef = useRef<Record<string, number>>({});
+
   // Fetch messages with infinite scroll pagination
+
   const {
     data: infiniteMessagesData,
+    dataUpdatedAt,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -65,6 +72,26 @@ export function useMessages(
   // Sync messages to Zustand store when data changes
   useEffect(() => {
     if (!conversationId || !infiniteMessagesData) return;
+
+    // Skip syncing stale React Query cache when chatStore already has messages.
+    // On conversation switch, RQ serves cached data while a background refetch runs.
+    // Without this guard, setMessages overwrites chatStore (which may have newer data
+    // from optimistic updates or Pusher events) with stale cache, causing a flash
+    // of old content. The sync will happen when the background refetch completes
+    // (dataUpdatedAt will be newer than what we last synced).
+    const lastSynced = syncedAtRef.current[conversationId] ?? 0;
+    if (dataUpdatedAt <= lastSynced) {
+      const existingMessages = useChatStore.getState().messages[conversationId];
+      if (existingMessages && existingMessages.length > 0) {
+        if (import.meta.env.DEV) {
+          console.log(
+            `[useMessages] Skipping stale cache sync for ${conversationId} (dataUpdatedAt=${dataUpdatedAt}, lastSynced=${lastSynced})`,
+          );
+        }
+        return;
+      }
+    }
+    syncedAtRef.current[conversationId] = dataUpdatedAt;
 
     // Messages are keyed by conversationId in the store,
     // so writing data for a previous conversation is harmless (goes to its own slot).
@@ -133,7 +160,7 @@ export function useMessages(
         `[useMessages] Synced ${allMessages.length} messages from ${pages.length} page(s) for conversation ${conversationId}`,
       );
     }
-  }, [infiniteMessagesData, conversationId, setMessages]);
+  }, [infiniteMessagesData, conversationId, setMessages, dataUpdatedAt]);
 
   // Sync loading state to Zustand
   useEffect(() => {
