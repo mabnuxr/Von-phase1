@@ -1048,8 +1048,14 @@ export function transformAguiToTimelineSteps(
               if (parsed.query) {
                 step.code = parsed.query;
               }
-            } catch {
-              // Args not complete JSON yet, ignore
+            } catch (e) {
+              // Args not complete JSON yet — expected during streaming
+              if (import.meta.env.DEV && !(e instanceof SyntaxError)) {
+                console.error(
+                  "[transformAguiToTimelineSteps] Unexpected error parsing tool args:",
+                  e,
+                );
+              }
             }
           }
         }
@@ -1103,8 +1109,13 @@ export function transformAguiToTimelineSteps(
                   step.approval = approvalData;
                 }
               }
-            } catch {
-              // Ignore parse errors
+            } catch (e) {
+              if (import.meta.env.DEV) {
+                console.warn(
+                  "[transformAguiToTimelineSteps] Failed to parse tool args at TOOL_CALL_END:",
+                  e,
+                );
+              }
             }
           }
         }
@@ -1200,9 +1211,15 @@ export function transformAguiToTimelineSteps(
                     toolCallResultMap.delete(toolId);
                   }
                 }
-              } catch {
+              } catch (e) {
                 // JSON incomplete, continue accumulating
                 // Don't update step status yet - wait for more chunks
+                if (import.meta.env.DEV && !(e instanceof SyntaxError)) {
+                  console.warn(
+                    "[transformAguiToTimelineSteps] Unexpected error parsing chunked tool result:",
+                    e,
+                  );
+                }
               }
             }
           } else if (event.content) {
@@ -1302,7 +1319,13 @@ export function transformAguiToTimelineSteps(
                 } else {
                   step.status = "complete" as StepStatus;
                 }
-              } catch {
+              } catch (e) {
+                if (import.meta.env.DEV) {
+                  console.warn(
+                    "[transformAguiToTimelineSteps] Failed to parse non-chunked tool result:",
+                    e,
+                  );
+                }
                 step.status = "complete" as StepStatus;
               }
             }

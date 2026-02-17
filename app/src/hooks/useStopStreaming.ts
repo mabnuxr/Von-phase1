@@ -22,7 +22,10 @@ export function useStopStreaming() {
     },
 
     onError: (error: Error) => {
-      console.error("Error sending stop signal:", error);
+      console.error("[useStopStreaming] Error sending stop signal:", error);
     },
+
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
   });
 }
