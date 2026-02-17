@@ -272,9 +272,7 @@ export function useV2EventProcessor(
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i];
       if (m.role === "assistant" && m.isStreaming) {
-        useChatStore
-          .getState()
-          .markMessageTimeout(conversationId ?? "", m.id);
+        useChatStore.getState().markMessageTimeout(conversationId ?? "", m.id);
         break;
       }
     }
