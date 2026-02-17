@@ -29,6 +29,7 @@ import {
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 import { conversationsService } from "../services/conversationsService";
+import useChatStore from "../store/chatStore";
 
 /** Check if a sorted event array has missing sequences (gaps or doesn't start at 0/1). */
 function hasSequenceGaps(events: AguiEventWrapper[]): boolean {
@@ -263,25 +264,23 @@ export function useV2EventProcessor(
         "[useV2EventProcessor] Run timed out — no new events received",
       );
     }
-  const markTimedOut = useCallback(() => {
-    if (import.meta.env.DEV) {
-      console.log(
-        "[useV2EventProcessor] Run timed out — no new events received",
-      );
-    }
 
-    // Persist timeout status in chatStore before we tear down the run
-    const messages = useChatStore.getState().messages[conversationId ?? ""] || [];
-    const lastAssistant = messages.findLast((m) => m.role === "assistant" && m.isStreaming);
-    if (lastAssistant) {
-      useChatStore
-        .getState()
-        .markMessageTimeout(conversationId ?? "", lastAssistant.id);
+    // Persist timeout status in chatStore so the message shows the error banner
+    // and doesn't resurrect as "streaming" after a page refresh
+    const messages =
+      useChatStore.getState().messages[conversationId ?? ""] || [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "assistant" && m.isStreaming) {
+        useChatStore
+          .getState()
+          .markMessageTimeout(conversationId ?? "", m.id);
+        break;
+      }
     }
 
     terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
   }, [conversationId, terminateRun]);
-  }, [terminateRun]);
 
   const handleRunFinished = useCallback(
     (_runId: string, elapsedTime: number) => {
