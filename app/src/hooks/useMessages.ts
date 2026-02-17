@@ -66,17 +66,8 @@ export function useMessages(
   useEffect(() => {
     if (!conversationId || !infiniteMessagesData) return;
 
-    // FIX: Validate conversation still matches current before writing to store
-    // Prevents race condition where old fetch completes after conversation switch
-    const currentConversationId = useChatStore.getState().currentConversationId;
-    if (conversationId !== currentConversationId) {
-      if (import.meta.env.DEV) {
-        console.log(
-          `[useMessages] Skipping stale data write for ${conversationId} (current: ${currentConversationId})`,
-        );
-      }
-      return;
-    }
+    // Messages are keyed by conversationId in the store,
+    // so writing data for a previous conversation is harmless (goes to its own slot).
 
     // Backend now implements reverse pagination:
     // - Page 1: Latest 50 messages in chronological order (oldest→newest)

@@ -83,7 +83,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     artifactState,
     handleArtifactClick,
     closeArtifact,
-    chatPusherConfig,
     canSubmitFinal,
   } = useChatV1({
     conversationId: props.conversationId,
@@ -118,12 +117,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         userName={user?.firstName || user?.name?.split(" ")[0]}
         userEmail={user?.email}
         apiBaseUrl={config.apiBaseUrl}
-        pusherConfig={chatPusherConfig}
         conversationId={conversationId}
-        enableRealtime={
-          !!import.meta.env.VITE_PUSHER_KEY &&
-          !!import.meta.env.VITE_PUSHER_CLUSTER
-        }
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         onStopStreaming={handleStopStreaming}

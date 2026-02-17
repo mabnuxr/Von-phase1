@@ -72,6 +72,5 @@ export function useNewChat({
   return {
     handleNewChatClick,
     isCreatingChat,
-    pendingConversationId,
   };
 }

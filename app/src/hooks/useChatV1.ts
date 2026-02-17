@@ -15,7 +15,6 @@ import type {
 
 import type { MessageWithStreaming } from "../types/conversation";
 import type { User } from "../services";
-import { config } from "../config";
 import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
 import { usePusherChannel } from "./usePusherChannel";
@@ -212,7 +211,7 @@ export function useChatV1(props: UseChatV1Props) {
         }
       }
 
-      sendMessage({ content, fileAttachments });
+      sendMessage({ conversationId, content, fileAttachments });
       clearFileAttachments();
     },
     [
@@ -231,18 +230,6 @@ export function useChatV1(props: UseChatV1Props) {
       stopStreaming(convId);
     },
     [stopStreaming],
-  );
-
-  // Pusher config for Chat component (separate from channel config)
-  const chatPusherConfig = useMemo(
-    () => ({
-      key: import.meta.env.VITE_PUSHER_KEY || "",
-      cluster: import.meta.env.VITE_PUSHER_CLUSTER || "",
-      authEndpoint: `${config.apiBaseUrl}/api/v1/pusher/auth`,
-      tenantId: user?.tenantId,
-      userId: user?.id,
-    }),
-    [user?.tenantId, user?.id],
   );
 
   return {
@@ -278,9 +265,6 @@ export function useChatV1(props: UseChatV1Props) {
     artifactState,
     handleArtifactClick,
     closeArtifact,
-
-    // Config for Chat component
-    chatPusherConfig,
 
     // Submit guard
     canSubmitFinal: canSubmit && (!hasFileAttachments || allUploaded),

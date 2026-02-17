@@ -30,6 +30,8 @@ import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
+import { conversationKeys } from "../hooks/useConversations";
+import { chatSidebarKeys } from "../hooks/useChatSidebar";
 import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
 import { ChatSidebarV2Container } from "../components/ChatSidebarV2Container";
 import { ChatV1Container } from "../components/ChatV1Container";
@@ -54,9 +56,11 @@ const Dashboard = () => {
   useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
 
+  // --- Conversation ID (URL is the single source of truth) ---
+  const currentConversationId = urlConversationId ?? null;
+
   // --- Chat Store ---
-  const { currentConversationId, setCurrentConversationId, messages } =
-    useChatStore();
+  const { messages } = useChatStore();
   const conversationMessages = useMemo(
     () => (currentConversationId ? messages[currentConversationId] || [] : []),
     [currentConversationId, messages],
@@ -110,12 +114,11 @@ const Dashboard = () => {
   // --- Sidebar ---
   const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
     useSidebarState();
-  const { handleNewChatClick, isCreatingChat, pendingConversationId } =
-    useNewChat({
-      currentConversationId,
-      isSidebarV2,
-      isAgentV2Flag,
-    });
+  const { handleNewChatClick, isCreatingChat } = useNewChat({
+    currentConversationId,
+    isSidebarV2,
+    isAgentV2Flag,
+  });
 
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";
@@ -142,7 +145,11 @@ const Dashboard = () => {
             currentConversationId,
             backendMode,
           );
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          queryClient.invalidateQueries({
+            queryKey: isSidebarV2
+              ? chatSidebarKeys.sidebar()
+              : conversationKeys.lists(),
+          });
           if (import.meta.env.DEV) {
             console.log(
               "[Dashboard] Synced agent mode to backend:",
@@ -166,34 +173,19 @@ const Dashboard = () => {
   // --- Loading ---
   const isLoading =
     isCreatingChat ||
-    pendingConversationId !== null ||
     isInitializing ||
     (isLoadingMessages && conversationMessages.length === 0);
 
-  // --- Conversation Switching (URL → Store sync) ---
+  // --- Reset message filter on conversation switch ---
   const resetShowMessagesFromIndex = useChatStore(
     (state) => state.resetShowMessagesFromIndex,
   );
 
   useEffect(() => {
-    if (urlConversationId && urlConversationId !== currentConversationId) {
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Switching conversation:",
-          currentConversationId,
-          "→",
-          urlConversationId,
-        );
-      }
+    if (urlConversationId) {
       resetShowMessagesFromIndex(urlConversationId);
-      setCurrentConversationId(urlConversationId);
     }
-  }, [
-    urlConversationId,
-    currentConversationId,
-    setCurrentConversationId,
-    resetShowMessagesFromIndex,
-  ]);
+  }, [urlConversationId, resetShowMessagesFromIndex]);
 
   // --- Connection Error ---
   useEffect(() => {

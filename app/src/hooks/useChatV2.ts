@@ -27,7 +27,6 @@ import { usePusherChannel } from "./usePusherChannel";
 import { useV2EventProcessor } from "./useV2EventProcessor";
 import { useUserMessageProcessor } from "./useUserMessageProcessor";
 import { useReconciliation } from "./useReconciliation";
-import { useStreamGuard } from "./useStreamGuard";
 import { useSendMessage } from "./useSendMessage";
 import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
@@ -38,7 +37,6 @@ import {
   handleToolApproval,
   handleToolRejection,
 } from "../lib/dashboardUtils";
-import { STREAM_TIMEOUT_MS } from "../config/constants";
 
 export interface UseChatV2Props {
   conversationId: string;
@@ -99,23 +97,25 @@ export function useChatV2(props: UseChatV2Props) {
     return undefined;
   }, [conversationMessages]);
 
-  // Force-complete store messages when V2 processor marks a run done,
-  // so useStreamGuard stops tracking them and won't fire false timeouts.
-  const forceCompleteStreamingMessages = useCallback(() => {
+  // When V2 processor marks a run done: force-complete streaming messages
+  // in chatStore, then refetch from backend to replace optimistic messages
+  // with real ones (real IDs, events, messageContent).
+  const handleV2RunComplete = useCallback(() => {
     const messages = useChatStore.getState().messages[conversationId] || [];
     for (const msg of messages) {
       if (msg.role === "assistant" && msg.isStreaming) {
         useChatStore.getState().forceCompleteMessage(conversationId, msg.id);
       }
     }
-  }, [conversationId]);
+    refetchMessages();
+  }, [conversationId, refetchMessages]);
 
   // V2 event processing (AGUI events → timeline steps)
   const v2Processor = useV2EventProcessor(
     channel,
     conversationId,
     v2InitialRunEvents,
-    forceCompleteStreamingMessages,
+    handleV2RunComplete,
   );
 
   // User message + error processing (writes to chatStore)
@@ -130,13 +130,10 @@ export function useChatV2(props: UseChatV2Props) {
     eventsRef: v2Processor.eventsRef,
     finishedRunsRef: v2Processor.finishedRunsRef,
     lastEventTimeRef: v2Processor.lastEventTimeRef,
-    stoppedRef: v2Processor.stoppedRef,
     onStateUpdate: v2Processor.applyTransformResult,
-    onRunFinished: (_runId, elapsed) => {
-      v2Processor.stopElapsedTimer();
-      v2Processor.setElapsedTime(elapsed);
-    },
+    onRunFinished: v2Processor.handleRunFinished,
     onReconcile: refetchMessages as () => void,
+    onTimeout: v2Processor.markTimedOut,
   });
 
   // Send message
@@ -214,33 +211,6 @@ export function useChatV2(props: UseChatV2Props) {
   // Auto-populate input on error
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
   const lastUserMessageRef = useRef("");
-
-  // Stream timeout guard
-  const getMessages = useCallback(
-    () => conversationMessages,
-    [conversationMessages],
-  );
-
-  const handleForceComplete = useCallback(
-    (messageId: string) => {
-      useChatStore.getState().forceCompleteMessage(conversationId, messageId);
-    },
-    [conversationId],
-  );
-
-  const handleStreamTimeout = useCallback(
-    async (messageId: string) => {
-      useChatStore.getState().markMessageTimeout(conversationId, messageId);
-      await refetchMessages();
-    },
-    [conversationId, refetchMessages],
-  );
-
-  useStreamGuard(conversationId, getMessages, {
-    timeoutMs: STREAM_TIMEOUT_MS,
-    onTimeout: handleStreamTimeout,
-    onForceComplete: handleForceComplete,
-  });
 
   // Transform messages to Chat component format (V2 path with live data overlay)
   const {
@@ -335,7 +305,7 @@ export function useChatV2(props: UseChatV2Props) {
         }
       }
 
-      sendMessage({ content, fileAttachments });
+      sendMessage({ conversationId, content, fileAttachments });
       clearFileAttachments();
     },
     [

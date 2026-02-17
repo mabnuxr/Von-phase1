@@ -17,7 +17,6 @@ export type {
   SourceReference,
   DashboardComponent,
   DashboardArtifact,
-  PusherConfig,
   ApiEndpoints,
   FixedPosition,
   ChatProps,
