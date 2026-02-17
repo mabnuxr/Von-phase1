@@ -7,7 +7,7 @@
  * Handles both regular V2 chat and deep research mode.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
 import type {
@@ -79,8 +79,12 @@ export function useChatV2(props: UseChatV2Props) {
   const { downloadBlob } = useFileDownload();
 
   const chatType: ConversationMode = currentConversation.mode || "auto";
+
+  // Deep research mode is active if:
+  // 1. Agent is locked to deep-research (has messages), OR
+  // 2. Conversation mode is deep-research (backend confirmed)
   const isDeepResearchMode =
-    lockedAgentMode === "deep-research" && isAgentLocked;
+    lockedAgentMode === "deep-research" || chatType === "deep-research";
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -469,6 +473,7 @@ export function useChatV2(props: UseChatV2Props) {
       const currentMessages =
         useChatStore.getState().messages[conversationId] || [];
       if (currentMessages.length === 0 && options?.agentMode) {
+        // Update conversation mode before sending first message
         await syncAgentModeToBackend(options.agentMode);
       }
 
