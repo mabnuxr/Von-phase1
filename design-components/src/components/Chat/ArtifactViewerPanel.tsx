@@ -10,13 +10,13 @@
 
 import React from 'react';
 import {
-  X as XIcon,
-  DownloadSimple as DownloadSimpleIcon,
-  FileDoc as FileDocIcon,
-  PresentationChart as PresentationChartIcon,
-  Table as TableIcon,
-  SpinnerGap as SpinnerGapIcon,
-  WarningCircle as WarningCircleIcon,
+  XIcon,
+  DownloadSimpleIcon,
+  FileDocIcon,
+  PresentationChartIcon,
+  TableIcon,
+  SpinnerGapIcon,
+  WarningCircleIcon,
 } from '@phosphor-icons/react';
 import { useHorizontalResize } from '../ArtifactViewer/hooks/useHorizontalResize';
 import { useArtifactContent } from './hooks/useArtifactContent';
@@ -71,12 +71,12 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
   return (
     <div className="h-full flex-shrink-0 relative" style={{ width: `${width}px` }}>
-      {/* Resize handle on left edge — wide hit area with thin visible line */}
+      {/* Resize handle — sits in the gap between chat and panel */}
       <div
         {...handleProps}
-        className="absolute left-0 top-0 bottom-0 w-3 z-10 cursor-ew-resize group"
+        className="absolute -left-2 top-0 bottom-0 w-4 z-10 cursor-ew-resize group"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-transparent group-hover:bg-gray-300 transition-colors" />
+        <div className="absolute left-[3px] top-2 bottom-2 w-[3px] rounded-full bg-transparent group-hover:bg-gray-300 group-active:bg-blue-400 transition-colors" />
       </div>
 
       {/* Panel */}

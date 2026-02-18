@@ -126,7 +126,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
         </>
       ) : (
         /* Regular V2 Mode */
-        <div className="flex h-full w-full">
+        <div className="flex h-full w-full gap-2">
           <div className="flex-1 min-w-0">
             <Chat
               title="von AI"
