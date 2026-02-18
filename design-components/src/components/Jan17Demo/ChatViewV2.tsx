@@ -1,23 +1,19 @@
-import React, { useRef, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
+  SpinnerGapIcon,
+  CheckCircleIcon,
+  CaretDownIcon,
+  CaretRightIcon,
   FileMagnifyingGlassIcon,
   ThumbsUpIcon,
   ThumbsDownIcon,
   CopyIcon,
   DownloadSimpleIcon,
-  FileDocIcon,
-  PresentationChartIcon,
-  TableIcon,
-  ChartBarIcon,
-  ArrowsOutIcon,
 } from '@phosphor-icons/react';
-import driveLogo from '../../assets/drive-logo.svg';
 import { PrimaryButton } from '../forms/buttons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { TimelineThinkingProcess, type TimelineStep } from '../TimelineThinkingProcess';
-import { CommandChip } from '../Commands';
-import type { Command } from '../Commands/types';
 
 // ============================================================================
 // Types
@@ -43,41 +39,16 @@ export interface DashboardArtifact {
   items?: { label: string; value: string }[];
 }
 
-export interface DocumentArtifact {
-  type: 'document';
-  title: string;
-  description: string;
-  content: string;
-}
-
-export interface SlidesArtifact {
-  type: 'slides';
-  title: string;
-  description: string;
-  slides: Array<{ id: string; title: string; content: string; notes?: string }>;
-}
-
-export interface SpreadsheetArtifact {
-  type: 'spreadsheet';
-  title: string;
-  description: string;
-  columns: Array<{ id: string; label: string }>;
-  rows: Record<string, string | number>[];
-}
-
-export type Artifact = DashboardArtifact | DocumentArtifact | SlidesArtifact | SpreadsheetArtifact;
-
 export interface ChatMessage {
   id: string;
   type: MessageType;
   content: string;
-  command?: Command;
   thinkingSteps?: ThinkingStep[];
   /** Elapsed time in seconds for thinking steps */
   thinkingElapsedTime?: number;
   showBuildButton?: boolean;
   plan?: DashboardPlan;
-  artifact?: Artifact;
+  artifact?: DashboardArtifact;
 }
 
 export interface DashboardPlan {
@@ -99,24 +70,207 @@ export interface ChatViewV2Props {
   onSourcesClick?: () => void;
   /** Callback when an artifact card is clicked (e.g., to open report modal) */
   onArtifactClick?: (artifactId: string) => void;
-  /** Callback when artifact download is requested */
-  onArtifactDownload?: (artifact: Artifact) => void;
-  /** Compact mode — hides avatars/logos so messages use full width. Used in sidebar (Pane 3). */
-  compact?: boolean;
 }
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
-const toTimelineSteps = (steps: ThinkingStep[]): TimelineStep[] =>
-  steps.map((step) => ({
-    id: step.id,
-    text: step.text,
-    status: step.status,
-    type: 'tool_call',
-    description: step.subtitle || step.detail,
-  }));
+const formatElapsedTime = (seconds: number): string => {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+};
+
+// ============================================================================
+// Thinking Step Icon (indigo indicator circle - matches DeepResearch style)
+// ============================================================================
+
+const StepIcon: React.FC<{ icon?: string; status: string }> = ({ status }) => {
+  // Use indigo indicator circles like DeepResearch
+  if (status === 'in-progress') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
+  }
+  if (status === 'complete') {
+    return <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 border-2 border-indigo-200" />;
+  }
+  // pending
+  return <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border-2 border-gray-100" />;
+};
+
+// ============================================================================
+// Status Icon
+// ============================================================================
+
+const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
+  switch (status) {
+    case 'complete':
+      return <CheckCircleIcon size={14} weight="fill" className="text-emerald-600" />;
+    case 'in-progress':
+      return (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        >
+          <SpinnerGapIcon size={14} weight="regular" className="text-indigo-600" />
+        </motion.div>
+      );
+    default:
+      return <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300" />;
+  }
+};
+
+// ============================================================================
+// Thinking Block Component
+// ============================================================================
+
+interface ThinkingBlockProps {
+  steps: ThinkingStep[];
+  isThinking: boolean;
+  elapsedTime: number;
+  defaultCollapsed?: boolean;
+}
+
+const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
+  steps,
+  isThinking,
+  elapsedTime,
+  defaultCollapsed = false,
+}) => {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const prevAllCompleteRef = useRef(false);
+
+  const completedCount = steps.filter((s) => s.status === 'complete').length;
+  const totalCount = steps.length;
+  const allComplete = completedCount === totalCount && totalCount > 0 && !isThinking;
+
+  const visibleSteps = steps.filter((s) => s.status !== 'pending');
+
+  // Auto-collapse when thinking completes (like DeepResearch)
+  useLayoutEffect(() => {
+    if (allComplete && !prevAllCompleteRef.current) {
+      // Delay collapse slightly so user sees the completion state
+      const timeout = setTimeout(() => {
+        setIsCollapsed(true);
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+    prevAllCompleteRef.current = allComplete;
+  }, [allComplete]);
+
+  return (
+    <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
+      {/* Header */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="w-full px-2 py-1.5 flex items-center justify-between cursor-pointer"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {isCollapsed ? (
+            <CaretRightIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
+          ) : (
+            <CaretDownIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
+          )}
+
+          {allComplete ? (
+            <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 flex-shrink-0" />
+          ) : (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              className="flex-shrink-0"
+            >
+              <SpinnerGapIcon size={16} weight="regular" className="text-indigo-600" />
+            </motion.div>
+          )}
+
+          {allComplete ? (
+            <span className="text-sm text-gray-700">
+              Thinking · {formatElapsedTime(elapsedTime)}
+            </span>
+          ) : (
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="text-sm font-medium text-gray-900 flex-shrink-0">Thinking</span>
+              <span className="text-sm text-gray-500">·</span>
+              <span className="text-sm text-gray-700 truncate">
+                {steps.find((s) => s.status === 'in-progress')?.text ||
+                  `${completedCount}/${totalCount} steps`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          {!allComplete && (
+            <span className="text-[11px] text-gray-500 tabular-nums">
+              {formatElapsedTime(elapsedTime)}
+            </span>
+          )}
+        </div>
+      </button>
+
+      {/* Steps - Timeline style */}
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="border border-gray-100 bg-white rounded-lg">
+              <div className="px-3 py-3 space-y-0">
+                {visibleSteps.map((step, idx) => (
+                  <div key={step.id} className="relative flex">
+                    {/* Timeline connector */}
+                    <div className="flex flex-col items-center mr-3 flex-shrink-0">
+                      <div
+                        className={`
+                          w-6 h-6 rounded-full flex items-center justify-center
+                          ${step.status === 'in-progress' ? 'bg-indigo-50' : 'bg-gray-50'}
+                        `}
+                      >
+                        <StepIcon icon={step.icon} status={step.status} />
+                      </div>
+                      {idx < visibleSteps.length - 1 && (
+                        <div className="w-px flex-1 bg-gray-200 min-h-[8px]" />
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className={`flex-1 ${idx < visibleSteps.length - 1 ? 'pb-3' : ''}`}>
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`
+                            text-sm
+                            ${step.status === 'in-progress' ? 'text-gray-900 font-medium' : step.status === 'complete' ? 'text-gray-800' : 'text-gray-700'}
+                          `}
+                        >
+                          {step.text}
+                        </span>
+                        <StatusIcon status={step.status} />
+                      </div>
+                      {/* Subtitle/detail - shown below main text */}
+                      {(step.subtitle || step.detail) && (
+                        <p className="text-[12px] text-gray-500 mt-0.5">
+                          {step.subtitle || step.detail}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 // ============================================================================
 // Plan Card Component
@@ -250,25 +404,15 @@ const UserAvatar: React.FC<{ size?: number; initials?: string }> = ({
 
 interface UserMessageProps {
   content: string;
-  command?: Command;
-  onCommandClick?: (command: Command) => void;
-  compact?: boolean;
 }
 
-const UserMessage: React.FC<UserMessageProps> = ({ content, command, onCommandClick, compact }) => {
+const UserMessage: React.FC<UserMessageProps> = ({ content }) => {
   return (
     <div className="flex items-start gap-2 justify-end">
-      <div
-        className={`${compact ? 'max-w-full' : 'max-w-[80%]'} bg-gray-50 rounded-2xl px-3 py-2 min-w-[180px]`}
-      >
-        {command && (
-          <div className="mb-1.5">
-            <CommandChip command={command} onRemove={() => onCommandClick?.(command)} />
-          </div>
-        )}
-        {content && <p className="text-sm text-gray-900">{content}</p>}
+      <div className="max-w-[80%] bg-gray-50 rounded-2xl px-3 py-2">
+        <p className="text-sm text-gray-900">{content}</p>
       </div>
-      {!compact && <UserAvatar size={24} />}
+      <UserAvatar size={24} />
     </div>
   );
 };
@@ -277,76 +421,27 @@ const UserMessage: React.FC<UserMessageProps> = ({ content, command, onCommandCl
 // Artifact Card Component
 // ============================================================================
 
-const ARTIFACT_CARD_CONFIG: Record<Artifact['type'], { icon: React.ReactNode }> = {
-  dashboard: {
-    icon: <ChartBarIcon size={20} weight="regular" className="text-gray-500" />,
-  },
-  document: {
-    icon: <FileDocIcon size={20} weight="regular" className="text-gray-500" />,
-  },
-  slides: {
-    icon: <PresentationChartIcon size={20} weight="regular" className="text-gray-500" />,
-  },
-  spreadsheet: {
-    icon: <TableIcon size={20} weight="regular" className="text-gray-500" />,
-  },
-};
-
 interface ArtifactCardProps {
-  artifact: Artifact;
+  artifact: DashboardArtifact;
   onClick?: () => void;
-  onDownload?: () => void;
 }
 
-const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onClick, onDownload }) => {
-  const config = ARTIFACT_CARD_CONFIG[artifact.type];
-
+const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onClick }) => {
   return (
-    <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-gray-300 transition-colors">
-      {/* Icon */}
-      <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
-        {config.icon}
-      </div>
-
-      {/* Title + Description */}
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-gray-900 truncate">{artifact.title}</h4>
-        <p className="text-xs text-gray-500 truncate mt-0.5">{artifact.description}</p>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log('Save to Google Drive');
-          }}
-          className="w-8 h-8 rounded-lg border border-gray-100 text-gray-800 hover:bg-gray-50 transition-colors flex items-center justify-center cursor-pointer"
-          title="Save to Google Drive"
-        >
-          <img src={driveLogo} alt="Google Drive" width={16} height={16} />
-        </button>
-        {onDownload && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload();
-            }}
-            className="w-8 h-8 rounded-lg border border-gray-100 text-gray-800 hover:bg-gray-50 transition-colors flex items-center justify-center cursor-pointer"
-            title="Download"
-          >
-            <DownloadSimpleIcon size={16} weight="regular" />
-          </button>
-        )}
-        {onClick && (
-          <button
-            onClick={onClick}
-            className="w-8 h-8 rounded-lg border border-gray-100 text-gray-800 hover:bg-gray-50 transition-colors flex items-center justify-center cursor-pointer"
-            title="Open"
-          >
-            <ArrowsOutIcon size={16} weight="regular" />
-          </button>
-        )}
+    <div
+      className={`bg-white rounded-xl border border-gray-100 overflow-hidden ${onClick ? 'cursor-pointer hover:border-gray-200 transition-colors' : ''}`}
+      onClick={onClick}
+    >
+      {/* Header */}
+      <div className="px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 w-full justify-between">
+            <h3 className="text-sm font-medium text-gray-900">{artifact.title}</h3>
+            <span className="text-[11px] text-indigo-600 hover:text-indigo-700 cursor-pointer">
+              View
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -363,16 +458,13 @@ interface AssistantMessageProps {
   elapsedTime?: number;
   plan?: DashboardPlan;
   onBuildDashboard?: () => void;
-  artifact?: Artifact;
+  artifact?: DashboardArtifact;
   /** Callback when sources button is clicked */
   onSourcesClick?: () => void;
   /** Whether to show the feedback row (thumbs up/down + sources) */
   showFeedbackRow?: boolean;
   /** Callback when artifact is clicked */
   onArtifactClick?: () => void;
-  /** Callback when artifact download is requested */
-  onArtifactDownload?: () => void;
-  compact?: boolean;
 }
 
 const AssistantMessage: React.FC<AssistantMessageProps> = ({
@@ -386,29 +478,21 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
   onSourcesClick,
   showFeedbackRow = false,
   onArtifactClick,
-  onArtifactDownload,
-  compact,
 }) => {
   // Auto-collapse thinking block when all steps are complete
   const allStepsComplete = thinkingSteps?.every((s) => s.status === 'complete') ?? false;
-  const timelineSteps = useMemo(
-    () => (thinkingSteps ? toTimelineSteps(thinkingSteps) : []),
-    [thinkingSteps]
-  );
 
   return (
-    <div className={`flex items-start ${compact ? '' : 'gap-2'}`}>
-      {!compact && <VonLogo size={24} />}
+    <div className="flex items-start gap-2">
+      <VonLogo size={24} />
       <div className="flex-1 space-y-3 min-w-0">
         {/* Thinking Block */}
-        {timelineSteps.length > 0 && (
-          <TimelineThinkingProcess
-            steps={timelineSteps}
+        {thinkingSteps && thinkingSteps.length > 0 && (
+          <ThinkingBlock
+            steps={thinkingSteps}
             isThinking={isThinking}
             elapsedTime={elapsedTime}
-            autoCollapse={allStepsComplete && !isThinking}
-            initiallyCollapsed={allStepsComplete && !isThinking}
-            title="Thinking"
+            defaultCollapsed={allStepsComplete && !isThinking}
           />
         )}
 
@@ -420,13 +504,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
         )}
 
         {/* Artifact Card */}
-        {artifact && (
-          <ArtifactCard
-            artifact={artifact}
-            onClick={onArtifactClick}
-            onDownload={onArtifactDownload}
-          />
-        )}
+        {artifact && <ArtifactCard artifact={artifact} onClick={onArtifactClick} />}
 
         {/* Plan Card with Build Button */}
         {plan && onBuildDashboard && <PlanCard plan={plan} onBuild={onBuildDashboard} />}
@@ -435,25 +513,25 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({
         {showFeedbackRow && (
           <div className="flex items-center gap-1 pt-1">
             <button
-              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
               title="Copy"
             >
               <CopyIcon size={14} weight="regular" />
             </button>
             <button
-              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
               title="Download"
             >
               <DownloadSimpleIcon size={14} weight="regular" />
             </button>
             <button
-              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
               title="Good response"
             >
               <ThumbsUpIcon size={14} weight="regular" />
             </button>
             <button
-              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+              className="p-1.5 text-gray-700 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
               title="Bad response"
             >
               <ThumbsDownIcon size={14} weight="regular" />
@@ -490,12 +568,9 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
   onBuildDashboard,
   onSourcesClick,
   onArtifactClick,
-  onArtifactDownload,
-  compact = false,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeTimelineSteps = useMemo(() => toTimelineSteps(thinkingSteps), [thinkingSteps]);
 
   // Auto-scroll to bottom
   useLayoutEffect(() => {
@@ -514,11 +589,7 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
           return (
             <div key={message.id}>
               {message.type === 'user' ? (
-                <UserMessage
-                  content={message.content}
-                  command={message.command}
-                  compact={compact}
-                />
+                <UserMessage content={message.content} />
               ) : (
                 <AssistantMessage
                   content={message.content}
@@ -535,12 +606,6 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
                       ? () => onArtifactClick(message.id)
                       : undefined
                   }
-                  onArtifactDownload={
-                    message.artifact && onArtifactDownload
-                      ? () => onArtifactDownload(message.artifact!)
-                      : undefined
-                  }
-                  compact={compact}
                 />
               )}
             </div>
@@ -551,11 +616,10 @@ export const ChatViewV2: React.FC<ChatViewV2Props> = ({
         {isThinking &&
           thinkingSteps.length > 0 &&
           !messages.some((m) => m.thinkingSteps?.length) && (
-            <TimelineThinkingProcess
-              steps={activeTimelineSteps}
-              isThinking={true}
+            <ThinkingBlock
+              steps={thinkingSteps}
+              isThinking={isThinking}
               elapsedTime={elapsedTime}
-              title="Thinking"
             />
           )}
 
