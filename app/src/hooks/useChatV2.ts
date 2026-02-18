@@ -273,7 +273,9 @@ export function useChatV2(props: UseChatV2Props) {
           conversationId,
           fileId,
         );
-        setFileArtifactPanel((prev) => ({ ...prev, downloadUrl }));
+        setFileArtifactPanel((prev) =>
+          prev.fileId === fileId ? { ...prev, downloadUrl } : prev,
+        );
       } catch (err) {
         console.error("[useChatV2] Failed to get artifact download URL:", err);
       }
