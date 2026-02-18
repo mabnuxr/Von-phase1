@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import DOMPurify from 'dompurify';
 
 // ============================================================================
 // Types
@@ -77,7 +78,8 @@ function parseSpreadsheet(data: ArrayBuffer | string, isText: boolean): Artifact
       }
     }
 
-    return { name, html: XLSX.utils.sheet_to_html(sheet, { id: '', editable: false }) };
+    const rawHtml = XLSX.utils.sheet_to_html(sheet, { id: '', editable: false });
+    return { name, html: DOMPurify.sanitize(rawHtml, { ALLOWED_URI_REGEXP: /^https?:\/\// }) };
   }).filter((s): s is HtmlSheet => s !== null);
 
   if (sheets.length === 0) {

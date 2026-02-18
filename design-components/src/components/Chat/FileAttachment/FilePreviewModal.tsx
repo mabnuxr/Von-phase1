@@ -144,8 +144,11 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   const IconComponent = getFileIcon(attachment.category as FileCategory, attachment.extension);
   const colors = getCategoryColors(attachment.category as FileCategory, attachment.extension);
 
-  // Show loading spinner when URL is being fetched OR content is being parsed
-  const showLoading = isLoading || (!isImage && content.kind === 'loading');
+  // Show loading only while URL is actively being fetched, or content is parsing
+  // (not when downloadUrl is null after fetch failed — that's a failed state, not loading)
+  const showLoading = isLoading || (!isImage && !!downloadUrl && content.kind === 'loading');
+  // URL fetch failed — no downloadUrl and not loading
+  const urlFetchFailed = !isImage && !isLoading && !downloadUrl;
 
   return (
     <div
@@ -227,8 +230,26 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
             </div>
           )}
 
+          {/* URL fetch failed — show generic file card instead of infinite spinner */}
+          {urlFetchFailed && (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <div
+                className={`w-16 h-16 rounded-2xl ${colors.bg} flex items-center justify-center`}
+              >
+                <IconComponent size={32} weight="duotone" className={colors.text} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-900 m-0">{attachment.name}</p>
+                <p className="text-xs text-gray-500 mt-1 m-0">
+                  {attachment.extension} &middot; {formatFileSize(attachment.size)}
+                </p>
+                <p className="text-xs text-gray-400 mt-2 m-0">Preview unavailable</p>
+              </div>
+            </div>
+          )}
+
           {/* Unsupported — generic file card */}
-          {!isImage && !isLoading && content.kind === 'unsupported' && (
+          {!isImage && !isLoading && !urlFetchFailed && content.kind === 'unsupported' && (
             <div className="flex flex-col items-center gap-3 py-10">
               <div
                 className={`w-16 h-16 rounded-2xl ${colors.bg} flex items-center justify-center`}
