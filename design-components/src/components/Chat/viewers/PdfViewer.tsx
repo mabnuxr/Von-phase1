@@ -14,7 +14,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 // The new URL() pattern is supported by both Vite and webpack 5 (Next.js).
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
+  import.meta.url
 ).toString();
 
 interface PdfViewerProps {
