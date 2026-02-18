@@ -66,5 +66,5 @@ export const DocxViewer: React.FC<DocxViewerProps> = ({ buffer }) => {
     });
   }, [buffer]);
 
-  return <div ref={containerRef} className="flex-1 overflow-auto bg-white" />;
+  return <div ref={containerRef} className="flex-1 overflow-auto bg-white settings-scrollbar" />;
 };

@@ -24,7 +24,7 @@ export const TextViewer: React.FC<TextViewerProps> = ({ text }) => {
   });
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50/80 py-8">
+    <div className="flex-1 overflow-y-auto bg-gray-50/80 py-8 settings-scrollbar">
       <div
         className="mx-auto bg-white rounded-sm shadow-sm border border-gray-200"
         style={{ maxWidth: '816px', minHeight: '400px' }}

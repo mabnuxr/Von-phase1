@@ -255,7 +255,7 @@ export const DeepResearchConversation: React.FC<
       {/* Messages area */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto flex flex-col bg-white chat-messages-wrapper"
+        className="flex-1 overflow-y-auto flex flex-col bg-white settings-scrollbar"
       >
         <DeepResearchChat
           messages={messages}

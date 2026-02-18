@@ -32,7 +32,7 @@ export const HtmlSpreadsheetViewer: React.FC<HtmlSpreadsheetViewerProps> = ({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Scrollable table area */}
       <div
-        className="xlsx-preview flex-1 overflow-auto"
+        className="xlsx-preview flex-1 overflow-auto settings-scrollbar"
         dangerouslySetInnerHTML={{ __html: activeSheet.html }}
       />
 

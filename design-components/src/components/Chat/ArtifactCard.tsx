@@ -7,11 +7,11 @@
 
 import React from 'react';
 import {
-  DownloadSimple as DownloadSimpleIcon,
-  FileDoc as FileDocIcon,
-  PresentationChart as PresentationChartIcon,
-  Table as TableIcon,
-  ArrowsOut as ArrowsOutIcon,
+  DownloadSimpleIcon,
+  FileDocIcon,
+  PresentationChartIcon,
+  TableIcon,
+  ArrowsOutIcon,
 } from '@phosphor-icons/react';
 import { Tooltip } from '../Tooltip';
 import driveLogo from '../../assets/drive-logo.svg';
