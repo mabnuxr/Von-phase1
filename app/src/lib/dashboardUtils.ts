@@ -178,6 +178,11 @@ export interface V2LiveData {
   runErrorMessage: string;
   /** Run ID currently being processed by V2 (null when no run has been received) */
   currentRunId: string | null;
+  /** Agent-generated file artifacts grouped by runId (from useAgentArtifacts) */
+  agentArtifactsByRunId?: Map<
+    string,
+    import("../services/fileUploadService").FileMetadataResponse[]
+  >;
 }
 
 /**
@@ -353,6 +358,28 @@ function transformMessagesForV2(
 
     return msg;
   });
+
+  // Attach agent-generated file artifacts to assistant messages by runId
+  if (v2LiveData.agentArtifactsByRunId) {
+    const artifactMap = v2LiveData.agentArtifactsByRunId;
+    for (let i = 0; i < transformedMessages.length; i++) {
+      const msg = transformedMessages[i];
+      if (msg.type === "assistant" && msg.runId) {
+        const artifacts = artifactMap.get(msg.runId);
+        if (artifacts && artifacts.length > 0) {
+          transformedMessages[i] = {
+            ...msg,
+            artifacts: artifacts.map((a) => ({
+              fileId: a.id,
+              fileName: a.fileName,
+              artifactType: a.artifactType ?? "document",
+              mimeType: a.mimeType,
+            })),
+          };
+        }
+      }
+    }
+  }
 
   // Determine effective research results: live data takes precedence over persisted
   const effectiveResearchResults = hasLiveResearchResults

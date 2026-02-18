@@ -11,6 +11,7 @@ import { TiptapViewer } from '../TiptapEditor';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
+import { ArtifactCard, type FileArtifact } from './ArtifactCard';
 
 /**
  * Get user initials from name or email
@@ -254,6 +255,26 @@ export interface ChatMessageProps {
    * Callback when a file attachment pill is clicked (for preview/download)
    */
   onFileClick?: (attachment: MessageFileAttachment) => void;
+
+  /**
+   * Agent-generated file artifacts associated with this message
+   */
+  artifacts?: FileArtifact[];
+
+  /**
+   * Callback when user clicks on a file artifact card to open the viewer
+   */
+  onFileArtifactClick?: (
+    fileId: string,
+    fileName: string,
+    artifactType: string,
+    mimeType: string
+  ) => void;
+
+  /**
+   * Callback to download an agent-generated file artifact
+   */
+  onArtifactDownload?: (fileId: string) => void;
 }
 
 /**
@@ -289,6 +310,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   thinkingElapsedTime,
   v2FinalResponse,
   onFileClick,
+  // File artifacts
+  artifacts,
+  onFileArtifactClick,
+  onArtifactDownload,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -582,6 +607,34 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           className="markdown-content prose-sm max-w-none text-left"
                         />
                       )}
+                    </div>
+                  )}
+
+                  {/* File artifact cards (agent-generated documents) */}
+                  {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
+                    <div className="mt-3 space-y-2">
+                      {artifacts.map((artifact) => (
+                        <ArtifactCard
+                          key={artifact.fileId}
+                          artifact={artifact}
+                          onOpen={
+                            onFileArtifactClick
+                              ? () =>
+                                  onFileArtifactClick(
+                                    artifact.fileId,
+                                    artifact.fileName,
+                                    artifact.artifactType,
+                                    artifact.mimeType
+                                  )
+                              : undefined
+                          }
+                          onDownload={
+                            onArtifactDownload
+                              ? () => onArtifactDownload(artifact.fileId)
+                              : undefined
+                          }
+                        />
+                      ))}
                     </div>
                   )}
 

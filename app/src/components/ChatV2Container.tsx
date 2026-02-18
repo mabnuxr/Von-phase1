@@ -12,7 +12,11 @@
  */
 
 import { Profiler } from "react";
-import { Chat, FilePreviewModal } from "@vonlabs/design-components";
+import {
+  Chat,
+  FilePreviewModal,
+  ArtifactViewerPanel,
+} from "@vonlabs/design-components";
 import type { AgentMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming, Conversation } from "../types/conversation";
@@ -120,55 +124,83 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
         </>
       ) : (
         /* Regular V2 Mode */
-        <Chat
-          title="von AI"
-          userId={user?.id}
-          userName={user?.firstName || user?.name?.split(" ")[0]}
-          userEmail={user?.email}
-          apiBaseUrl={config.apiBaseUrl}
-          conversationId={conversationId}
-          messages={chatV2.transformedMessages}
-          onSendMessage={chatV2.handleSendMessage}
-          onStopStreaming={chatV2.handleStopStreaming}
-          inputValue={chatV2.autoPopulatedInput}
-          onInputValueChange={chatV2.setAutoPopulatedInput}
-          isLoading={false}
-          loadMoreRef={loadMoreMessagesRef}
-          isFetchingMore={isFetchingNextMessagePage}
-          placeholder="Ask von anything"
-          variant="floating"
-          height="100%"
-          width="100%"
-          showMessagesFromIndex={chatV2.showMessagesFromIndex}
-          onArtifactClick={chatV2.handleArtifactClick}
-          banner={banner}
-          disableSubmit={!chatV2.canSubmitFinal}
-          examplePromptsDisabled={!chatV2.canSubmitFinal}
-          onExamplePromptDisabledClick={onDisabledInteraction}
-          onInputWhileDisabled={onDisabledInteraction}
-          enableCommands={isSlashCommandsEnabled}
-          enableActions={isActionsEnabled}
-          onApprove={chatV2.handleApproval}
-          onReject={chatV2.handleRejection}
-          showTransparency={isSourcesEnabled}
-          onTransparencyClick={chatV2.handleTransparencyClick}
-          salesforceInstanceUrl={salesforceInstanceUrl}
-          enableDeepLinks={isDeepLinksEnabled}
-          thinkingProcessVersion="v2"
-          useStandardInput={true}
-          isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
-          showPlusMenu={isFileUploadEnabled}
-          controlledAttachments={chatV2.fileAttachmentState}
-          onRemoveAttachment={chatV2.handleRemoveAttachment}
-          onFilesSelected={chatV2.handleFilesSelected}
-          onFileClick={chatV2.handleFileClick}
-          onFileError={(_error: string, message: string) => {
-            chatV2.setFileErrorMessage(message);
-          }}
-          fileErrorMessage={chatV2.fileErrorMessage}
-          onDismissFileError={() => chatV2.setFileErrorMessage(null)}
-        />
+        <div className="flex h-full w-full">
+          <div className="flex-1 min-w-0">
+            <Chat
+              title="von AI"
+              userId={user?.id}
+              userName={user?.firstName || user?.name?.split(" ")[0]}
+              userEmail={user?.email}
+              apiBaseUrl={config.apiBaseUrl}
+              conversationId={conversationId}
+              messages={chatV2.transformedMessages}
+              onSendMessage={chatV2.handleSendMessage}
+              onStopStreaming={chatV2.handleStopStreaming}
+              inputValue={chatV2.autoPopulatedInput}
+              onInputValueChange={chatV2.setAutoPopulatedInput}
+              isLoading={false}
+              loadMoreRef={loadMoreMessagesRef}
+              isFetchingMore={isFetchingNextMessagePage}
+              placeholder="Ask von anything"
+              variant="floating"
+              height="100%"
+              width="100%"
+              showMessagesFromIndex={chatV2.showMessagesFromIndex}
+              onArtifactClick={chatV2.handleArtifactClick}
+              banner={banner}
+              disableSubmit={!chatV2.canSubmitFinal}
+              examplePromptsDisabled={!chatV2.canSubmitFinal}
+              onExamplePromptDisabledClick={onDisabledInteraction}
+              onInputWhileDisabled={onDisabledInteraction}
+              enableCommands={isSlashCommandsEnabled}
+              enableActions={isActionsEnabled}
+              onApprove={chatV2.handleApproval}
+              onReject={chatV2.handleRejection}
+              showTransparency={isSourcesEnabled}
+              onTransparencyClick={chatV2.handleTransparencyClick}
+              salesforceInstanceUrl={salesforceInstanceUrl}
+              enableDeepLinks={isDeepLinksEnabled}
+              thinkingProcessVersion="v2"
+              useStandardInput={true}
+              isAgentLocked={isAgentLocked}
+              lockedAgentMode={lockedAgentMode}
+              showPlusMenu={isFileUploadEnabled}
+              controlledAttachments={chatV2.fileAttachmentState}
+              onRemoveAttachment={chatV2.handleRemoveAttachment}
+              onFilesSelected={chatV2.handleFilesSelected}
+              onFileClick={chatV2.handleFileClick}
+              onFileError={(_error: string, message: string) => {
+                chatV2.setFileErrorMessage(message);
+              }}
+              fileErrorMessage={chatV2.fileErrorMessage}
+              onDismissFileError={() => chatV2.setFileErrorMessage(null)}
+              onFileArtifactClick={chatV2.handleFileArtifactClick}
+              onArtifactDownload={chatV2.handleArtifactDownload}
+            />
+          </div>
+
+          {/* File Artifact Viewer Panel (self-manages width + resize) */}
+          {chatV2.fileArtifactPanel.isOpen &&
+            chatV2.fileArtifactPanel.fileName && (
+              <ArtifactViewerPanel
+                fileName={chatV2.fileArtifactPanel.fileName}
+                artifactType={
+                  chatV2.fileArtifactPanel.artifactType ?? "document"
+                }
+                mimeType={chatV2.fileArtifactPanel.mimeType}
+                downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
+                onClose={chatV2.closeFileArtifactPanel}
+                onDownload={
+                  chatV2.fileArtifactPanel.fileId
+                    ? () =>
+                        chatV2.handleArtifactDownload(
+                          chatV2.fileArtifactPanel.fileId!,
+                        )
+                    : undefined
+                }
+              />
+            )}
+        </div>
       )}
 
       {/* Transparency Drawer */}

@@ -32,6 +32,8 @@ import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
+import { useAgentArtifacts } from "./useAgentArtifacts";
+import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import {
   transformConversationMessages,
   handleToolApproval,
@@ -148,6 +150,25 @@ export function useChatV2(props: UseChatV2Props) {
   // User message + error processing (writes to chatStore)
   useUserMessageProcessor(channel, conversationId);
 
+  // Agent-generated file artifacts (React Query + Pusher invalidation)
+  useArtifactCreatedEvent(channel, conversationId);
+
+  // Extract unique runIds from assistant messages for per-run artifact fetching
+  const assistantRunIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const msg of conversationMessages) {
+      if (msg.role === "assistant" && msg.runId) {
+        ids.add(msg.runId);
+      }
+    }
+    return Array.from(ids);
+  }, [conversationMessages]);
+
+  const agentArtifactsByRunId = useAgentArtifacts(
+    conversationId,
+    assistantRunIds,
+  );
+
   // Chat-type-aware reconciliation
   useReconciliation({
     conversationId,
@@ -219,9 +240,69 @@ export function useChatV2(props: UseChatV2Props) {
     [conversationId],
   );
 
-  // Artifacts
+  // Artifacts (transparency)
   const { artifactState, handleArtifactClick, closeArtifact } =
     useArtifactState();
+
+  // File artifact viewer panel state
+  const [fileArtifactPanel, setFileArtifactPanel] = useState<{
+    isOpen: boolean;
+    fileId?: string;
+    fileName?: string;
+    artifactType?: string;
+    mimeType?: string;
+    downloadUrl?: string;
+  }>({ isOpen: false });
+
+  const handleFileArtifactClick = useCallback(
+    async (
+      fileId: string,
+      fileName: string,
+      artifactType: string,
+      mimeType: string,
+    ) => {
+      setFileArtifactPanel({
+        isOpen: true,
+        fileId,
+        fileName,
+        artifactType,
+        mimeType,
+      });
+      try {
+        const { downloadUrl } = await fileUploadService.getDownloadUrl(
+          conversationId,
+          fileId,
+        );
+        setFileArtifactPanel((prev) => ({ ...prev, downloadUrl }));
+      } catch (err) {
+        console.error("[useChatV2] Failed to get artifact download URL:", err);
+      }
+    },
+    [conversationId],
+  );
+
+  const closeFileArtifactPanel = useCallback(() => {
+    setFileArtifactPanel({ isOpen: false });
+  }, []);
+
+  const handleArtifactDownload = useCallback(
+    async (fileId: string) => {
+      try {
+        const { downloadUrl, fileName } =
+          await fileUploadService.getDownloadUrl(conversationId, fileId);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = fileName;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        console.error("[useChatV2] Failed to download artifact:", err);
+      }
+    },
+    [conversationId],
+  );
 
   // Transparency drawer
   const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
@@ -257,6 +338,7 @@ export function useChatV2(props: UseChatV2Props) {
         stoppedByUser: v2Processor.stoppedByUser,
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
+        agentArtifactsByRunId,
       }),
     [
       conversationMessages,
@@ -269,6 +351,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.stoppedByUser,
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
+      agentArtifactsByRunId,
     ],
   );
 
@@ -436,10 +519,16 @@ export function useChatV2(props: UseChatV2Props) {
     setFilePreviewUrl,
     isFilePreviewLoading,
 
-    // Artifacts
+    // Artifacts (transparency)
     artifactState,
     handleArtifactClick,
     closeArtifact,
+
+    // File artifacts (agent-generated documents)
+    fileArtifactPanel,
+    handleFileArtifactClick,
+    closeFileArtifactPanel,
+    handleArtifactDownload,
 
     // Submit guard
     canSubmitFinal: props.canSubmit && (!hasFileAttachments || allUploaded),

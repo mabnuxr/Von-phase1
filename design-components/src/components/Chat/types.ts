@@ -136,6 +136,15 @@ export interface Message {
    */
   conversationId?: string;
   /**
+   * Agent-generated file artifacts associated with this message (matched by runId)
+   */
+  artifacts?: Array<{
+    fileId: string;
+    fileName: string;
+    artifactType: string;
+    mimeType: string;
+  }>;
+  /**
    * Whether the response was stopped by user
    */
   stoppedByUser?: boolean;
@@ -1097,6 +1106,22 @@ export interface ChatProps {
     artifactType: string,
     runId: string
   ) => void;
+
+  /**
+   * Callback when user clicks on a file artifact card (agent-generated documents)
+   * Opens the artifact viewer panel with Google Docs preview
+   */
+  onFileArtifactClick?: (
+    fileId: string,
+    fileName: string,
+    artifactType: string,
+    mimeType: string
+  ) => void;
+
+  /**
+   * Callback to download an agent-generated file artifact via presigned URL
+   */
+  onArtifactDownload?: (fileId: string) => void;
 
   /**
    * Callback when a file attachment pill is clicked (for preview/download)

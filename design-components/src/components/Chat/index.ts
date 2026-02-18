@@ -48,6 +48,12 @@ export type { EngagingMessageProps } from './EngagingMessage';
 
 export { ArtifactPane } from './ArtifactPane';
 
+export { ArtifactCard } from './ArtifactCard';
+export type { ArtifactCardProps, FileArtifact, ArtifactType } from './ArtifactCard';
+
+export { ArtifactViewerPanel } from './ArtifactViewerPanel';
+export type { ArtifactViewerPanelProps } from './ArtifactViewerPanel';
+
 export { ToolCallItem } from './ToolCallItem';
 
 export { ApprovalCard } from './ApprovalCard';
