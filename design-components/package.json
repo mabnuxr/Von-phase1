@@ -84,6 +84,7 @@
     "react-dom": "^19.1.1",
     "react-grid-layout": "^2.2.2",
     "react-markdown": "^10.1.0",
+    "react-pdf": "^10.3.0",
     "serve": "^14.2.5",
     "streamdown": "^1.4.0",
     "tiptap-markdown": "^0.9.0",

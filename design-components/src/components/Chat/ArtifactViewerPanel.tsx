@@ -25,6 +25,7 @@ import { useArtifactContent } from './hooks/useArtifactContent';
 import { TextViewer } from './viewers/TextViewer';
 import { DocxViewer } from './viewers/DocxViewer';
 import { HtmlSpreadsheetViewer } from './viewers/HtmlSpreadsheetViewer';
+import { PdfViewer } from './viewers/PdfViewer';
 
 // ============================================================================
 // Types
@@ -159,13 +160,7 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
             </div>
           )}
 
-          {content.kind === 'pdf' && (
-            <iframe
-              src={content.url}
-              className="w-full h-full border-0 flex-1"
-              title={`Preview: ${fileName}`}
-            />
-          )}
+          {content.kind === 'pdf' && <PdfViewer url={content.url} />}
 
           {content.kind === 'text' && <TextViewer text={content.text} />}
 
