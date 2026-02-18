@@ -18,6 +18,8 @@ import {
   SpinnerGapIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
+import { Tooltip } from '../Tooltip';
+import driveLogo from '../../assets/drive-logo.svg';
 import { useHorizontalResize } from '../ArtifactViewer/hooks/useHorizontalResize';
 import { useArtifactContent } from './hooks/useArtifactContent';
 import { TextViewer } from './viewers/TextViewer';
@@ -41,10 +43,24 @@ export interface ArtifactViewerPanelProps {
 // Helpers
 // ============================================================================
 
-const TYPE_ICONS: Record<string, React.ReactNode> = {
-  document: <FileDocIcon size={18} weight="regular" className="text-gray-500" />,
-  slides: <PresentationChartIcon size={18} weight="regular" className="text-gray-500" />,
-  spreadsheet: <TableIcon size={18} weight="regular" className="text-gray-500" />,
+const TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string }> = {
+  document: {
+    icon: <FileDocIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Document',
+  },
+  slides: {
+    icon: <PresentationChartIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Presentation',
+  },
+  spreadsheet: {
+    icon: <TableIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Spreadsheet',
+  },
+};
+
+const DEFAULT_CONFIG = {
+  icon: <FileDocIcon size={20} weight="regular" className="text-gray-500" />,
+  label: 'File',
 };
 
 // ============================================================================
@@ -59,7 +75,7 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
   onClose,
   onDownload,
 }) => {
-  const icon = TYPE_ICONS[artifactType] ?? TYPE_ICONS.document;
+  const config = TYPE_CONFIG[artifactType] ?? DEFAULT_CONFIG;
   const content = useArtifactContent(downloadUrl, mimeType);
 
   const { width, handleProps } = useHorizontalResize({
@@ -81,26 +97,38 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
       {/* Panel */}
       <div className="h-full w-full flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden">
-        {/* Title bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            {icon}
-            <h2 className="text-sm font-medium text-gray-900 truncate">{fileName}</h2>
+        {/* Title bar — styled to match ArtifactCard */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
+            {config.icon}
           </div>
 
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-medium text-gray-900 truncate">{fileName}</h2>
+            <p className="text-xs text-gray-500 truncate mt-0.5">{config.label}</p>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Tooltip content="Google Drive sync coming soon" placement="top">
+              <button
+                disabled
+                className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center opacity-40 cursor-not-allowed transition-colors"
+              >
+                <img src={driveLogo} alt="Google Drive" width={16} height={16} />
+              </button>
+            </Tooltip>
             {onDownload && (
               <button
                 onClick={onDownload}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-lg border border-gray-100 text-gray-800 hover:bg-gray-50 transition-colors flex items-center justify-center cursor-pointer"
                 title="Download"
               >
-                <DownloadSimpleIcon size={18} weight="regular" />
+                <DownloadSimpleIcon size={16} weight="regular" />
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-lg border border-gray-100 text-gray-800 hover:bg-gray-50 transition-colors flex items-center justify-center cursor-pointer"
               title="Close"
             >
               <XIcon size={16} weight="bold" />
@@ -149,7 +177,7 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
           {content.kind === 'unsupported' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-gray-50 text-gray-500">
-              {icon}
+              {config.icon}
               <p className="text-sm">Preview not available for this file type</p>
               {onDownload && (
                 <button
