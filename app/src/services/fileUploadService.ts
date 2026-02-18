@@ -39,6 +39,8 @@ export interface FileMetadataResponse {
   status: string;
   source: string;
   createdAt: string;
+  artifactType?: string;
+  runId?: string;
 }
 
 /**
@@ -137,9 +139,17 @@ class FileUploadService {
     conversationId: string,
     page: number = 1,
     limit: number = 100,
+    source?: string,
+    runId?: string,
   ): Promise<FileMetadataListResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (source) params.set("source", source);
+    if (runId) params.set("run_id", runId);
     return apiClient.get<FileMetadataListResponse>(
-      `${this.getFilesBase(conversationId)}?page=${page}&limit=${limit}`,
+      `${this.getFilesBase(conversationId)}?${params.toString()}`,
     );
   }
 

@@ -94,6 +94,7 @@ const Dashboard = () => {
     isSourcesEnabled,
     isTenantDisabled,
     isFileUploadEnabled,
+    isArtifactsEnabled,
   } = useFeatureFlag();
 
   // --- Salesforce ---
@@ -283,6 +284,7 @@ const Dashboard = () => {
     isDeepLinksEnabled,
     isSourcesEnabled,
     isFileUploadEnabled,
+    isArtifactsEnabled,
     syncAgentModeToBackend,
     banner: chatBanner,
   };

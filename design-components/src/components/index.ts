@@ -119,6 +119,12 @@ export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
 export { ArtifactPane } from './Chat/ArtifactPane';
 export type { ArtifactPaneProps, ArtifactData } from './Chat/ArtifactPane';
 
+export { ArtifactCard } from './Chat';
+export type { ArtifactCardProps, FileArtifact, ArtifactType } from './Chat';
+
+export { ArtifactViewerPanel } from './Chat';
+export type { ArtifactViewerPanelProps } from './Chat';
+
 // Icon Atoms
 // ----------
 export {
