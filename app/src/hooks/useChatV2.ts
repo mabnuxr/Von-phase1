@@ -303,7 +303,8 @@ export function useChatV2(props: UseChatV2Props) {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
+        // Delay revocation so the browser has time to start reading the blob
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       } catch (err) {
         console.error("[useChatV2] Failed to download artifact:", err);
       }

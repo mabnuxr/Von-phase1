@@ -15,6 +15,11 @@ import {
 } from '@phosphor-icons/react';
 import type { MessageFileAttachment } from '../types';
 import { formatFileSize } from './types';
+import { useArtifactContent } from '../hooks/useArtifactContent';
+import { PdfViewer } from '../viewers/PdfViewer';
+import { TextViewer } from '../viewers/TextViewer';
+import { DocxViewer } from '../viewers/DocxViewer';
+import { HtmlSpreadsheetViewer } from '../viewers/HtmlSpreadsheetViewer';
 
 export interface FilePreviewModalProps {
   /** The file attachment to preview */
@@ -28,6 +33,19 @@ export interface FilePreviewModalProps {
 }
 
 type FileCategory = 'document' | 'spreadsheet' | 'presentation' | 'text' | 'image';
+
+// MIME types that have a rich viewer (must match useArtifactContent)
+const RICH_PREVIEW_MIMES = new Set([
+  'application/pdf',
+  'text/markdown',
+  'text/plain',
+  'text/x-markdown',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'text/csv',
+]);
 
 function getFileIcon(category: FileCategory, extension: string) {
   switch (category) {
@@ -82,7 +100,14 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   onClose,
 }) => {
   const isImage = attachment.type.startsWith('image/');
-  const isPdf = attachment.type === 'application/pdf';
+  // Determine upfront if a rich viewer exists — avoids layout shift when content loads
+  const canRichPreview = !isImage && RICH_PREVIEW_MIMES.has(attachment.type);
+
+  // For non-image files, parse content using the same hook as artifact viewers
+  const content = useArtifactContent(
+    isImage ? undefined : (downloadUrl ?? undefined),
+    isImage ? undefined : attachment.type
+  );
 
   // Escape key to close
   useEffect(() => {
@@ -97,8 +122,21 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     if (e.target === e.currentTarget) onClose();
   };
 
-  const handleDownload = () => {
-    if (downloadUrl) {
+  const handleDownload = async () => {
+    if (!downloadUrl) return;
+    try {
+      const response = await fetch(downloadUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = attachment.name;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch {
       window.open(downloadUrl, '_blank');
     }
   };
@@ -106,19 +144,24 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   const IconComponent = getFileIcon(attachment.category as FileCategory, attachment.extension);
   const colors = getCategoryColors(attachment.category as FileCategory, attachment.extension);
 
+  // Show loading spinner when URL is being fetched OR content is being parsed
+  const showLoading = isLoading || (!isImage && content.kind === 'loading');
+
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 antialiased"
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-white rounded-2xl shadow-modal max-w-[600px] w-full flex flex-col overflow-hidden"
+        className={`bg-white rounded-2xl shadow-modal flex flex-col overflow-hidden ${
+          canRichPreview ? 'max-w-[900px] w-full h-[80vh]' : 'max-w-[600px] w-full'
+        }`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="file-preview-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
           <span
             id="file-preview-title"
             className="text-[13px] font-medium text-gray-500 truncate max-w-[200px]"
@@ -145,22 +188,47 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="flex items-center justify-center min-h-[200px]">
-          {isLoading ? (
-            <div className="flex flex-col items-center gap-2 text-gray-400 py-10">
+        <div
+          className={
+            canRichPreview
+              ? 'flex-1 overflow-hidden flex flex-col'
+              : 'flex items-center justify-center min-h-[200px]'
+          }
+        >
+          {/* Loading */}
+          {showLoading && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-400 py-10">
               <SpinnerIcon size={24} className="animate-spin" />
               <span className="text-sm">Loading preview...</span>
             </div>
-          ) : isImage && downloadUrl ? (
+          )}
+
+          {/* Image preview */}
+          {isImage && !isLoading && downloadUrl && (
             <img
               src={downloadUrl}
               alt={attachment.name}
               className="max-h-[60vh] w-full object-contain"
             />
-          ) : isPdf && downloadUrl ? (
-            <iframe src={downloadUrl} title={attachment.name} className="w-full h-[60vh]" />
-          ) : (
-            /* Generic file info */
+          )}
+
+          {/* Rich viewers */}
+          {!isImage && content.kind === 'pdf' && <PdfViewer url={content.url} />}
+          {!isImage && content.kind === 'text' && <TextViewer text={content.text} />}
+          {!isImage && content.kind === 'docx' && <DocxViewer buffer={content.buffer} />}
+          {!isImage && content.kind === 'spreadsheet' && (
+            <HtmlSpreadsheetViewer sheets={content.sheets} truncated={content.truncated} />
+          )}
+
+          {/* Error */}
+          {!isImage && content.kind === 'error' && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-500 py-10">
+              <p className="text-sm text-center">{content.message}</p>
+            </div>
+          )}
+
+          {/* Unsupported — generic file card */}
+          {!isImage && !isLoading && content.kind === 'unsupported' && (
             <div className="flex flex-col items-center gap-3 py-10">
               <div
                 className={`w-16 h-16 rounded-2xl ${colors.bg} flex items-center justify-center`}
