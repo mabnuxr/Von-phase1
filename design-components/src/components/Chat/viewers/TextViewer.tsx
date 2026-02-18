@@ -42,5 +42,3 @@ export const TextViewer: React.FC<TextViewerProps> = ({ text }) => {
     </div>
   );
 };
-
-export default TextViewer;

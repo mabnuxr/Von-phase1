@@ -1041,3 +1041,43 @@ td[data-streamdown='table-cell'] {
   color: var(--color-text-secondary);
   font-size: 14px;
 }
+
+/**
+ * XLSX Preview (SheetJS sheet_to_html output)
+ * Scoped styles for the spreadsheet preview panel
+ */
+.xlsx-preview table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 13px;
+  font-family: var(--font-family-sans);
+}
+
+.xlsx-preview th,
+.xlsx-preview td {
+  border: 1px solid #e5e7eb;
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+  min-width: 60px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xlsx-preview tr:first-child td,
+.xlsx-preview tr:first-child th,
+.xlsx-preview thead td,
+.xlsx-preview thead th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  font-size: 11px;
+  color: #4b5563;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.xlsx-preview tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.015);
+}

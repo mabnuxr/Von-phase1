@@ -5,21 +5,20 @@
  * - PDF:  native browser iframe (no fetch)
  * - MD/TXT: fetch text → TipTap readonly
  * - DOCX: docx-preview → rendered in DOM
- * - XLSX: ExcelJS → structured sheets
- * - CSV:  text split → structured sheet
+ * - XLSX/CSV: SheetJS → HTML tables per sheet
  * - PPTX/other: download-only fallback
  */
 
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface ParsedSheet {
+export interface HtmlSheet {
   name: string;
-  columns: Array<{ id: string; label: string }>;
-  rows: Record<string, string | number>[];
+  html: string;
 }
 
 export type ArtifactContent =
@@ -28,11 +27,11 @@ export type ArtifactContent =
   | { kind: 'pdf'; url: string }
   | { kind: 'text'; text: string }
   | { kind: 'docx'; buffer: ArrayBuffer }
-  | { kind: 'spreadsheet'; sheets: ParsedSheet[] }
+  | { kind: 'spreadsheet'; sheets: HtmlSheet[]; truncated: boolean }
   | { kind: 'unsupported' };
 
 // ============================================================================
-// MIME type classification
+// MIME helpers
 // ============================================================================
 
 const PDF_MIMES = new Set(['application/pdf']);
@@ -44,134 +43,64 @@ const DOCX_MIMES = new Set([
   'application/msword',
 ]);
 
-const XLSX_MIMES = new Set([
+const SPREADSHEET_MIMES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-excel',
+  'text/csv',
 ]);
 
-const CSV_MIMES = new Set(['text/csv']);
-
 // ============================================================================
-// Parsers (lazy-imported to avoid bloating the main bundle)
+// Parsers
 // ============================================================================
 
-async function parseXlsx(buffer: ArrayBuffer): Promise<ArtifactContent> {
-  const ExcelJS = await import('exceljs');
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(buffer);
+/** Max rows per sheet before truncation to prevent browser hangs on large files */
+const MAX_PREVIEW_ROWS = 5000;
 
-  const sheets: ParsedSheet[] = [];
-  workbook.eachSheet((worksheet) => {
-    const columns: Array<{ id: string; label: string }> = [];
-    const rows: Record<string, string | number>[] = [];
+function parseSpreadsheet(data: ArrayBuffer | string, isText: boolean): ArtifactContent {
+  const workbook = isText
+    ? XLSX.read(data as string, { type: 'string' })
+    : XLSX.read(new Uint8Array(data as ArrayBuffer), { type: 'array' });
 
-    // First row → column headers
-    const headerRow = worksheet.getRow(1);
-    headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-      const id = `col_${colNumber - 1}`;
-      const label = String(cell.value ?? `Column ${colNumber}`);
-      columns.push({ id, label });
-    });
+  let truncated = false;
 
-    // If no columns found, skip this sheet
-    if (columns.length === 0) return;
+  const sheets: HtmlSheet[] = workbook.SheetNames.map((name) => {
+    const sheet = workbook.Sheets[name];
+    if (!sheet) return null;
 
-    // Remaining rows → data
-    for (let rowIdx = 2; rowIdx <= worksheet.rowCount; rowIdx++) {
-      const row = worksheet.getRow(rowIdx);
-      const record: Record<string, string | number> = {};
-      let hasValue = false;
-
-      columns.forEach((col, colIdx) => {
-        const cell = row.getCell(colIdx + 1);
-        const value = cell.value;
-        if (value !== null && value !== undefined && value !== '') {
-          hasValue = true;
-        }
-        // Handle ExcelJS cell value types
-        if (value && typeof value === 'object' && 'result' in value) {
-          record[col.id] = String((value as { result: unknown }).result ?? '');
-        } else {
-          record[col.id] =
-            value !== null && value !== undefined
-              ? typeof value === 'number'
-                ? value
-                : String(value)
-              : '';
-        }
-      });
-
-      // Skip completely empty rows
-      if (hasValue) {
-        rows.push(record);
+    const ref = sheet['!ref'];
+    if (ref) {
+      const range = XLSX.utils.decode_range(ref);
+      if (range.e.r >= MAX_PREVIEW_ROWS) {
+        range.e.r = MAX_PREVIEW_ROWS - 1;
+        sheet['!ref'] = XLSX.utils.encode_range(range);
+        truncated = true;
       }
     }
 
-    sheets.push({ name: worksheet.name, columns, rows });
-  });
+    return { name, html: XLSX.utils.sheet_to_html(sheet, { id: '', editable: false }) };
+  }).filter((s): s is HtmlSheet => s !== null);
 
   if (sheets.length === 0) {
     return { kind: 'error', message: 'No readable sheets found in this file' };
   }
 
-  return { kind: 'spreadsheet', sheets };
-}
-
-function parseCsv(text: string): ArtifactContent {
-  const lines = text.split('\n').filter((line) => line.trim() !== '');
-  if (lines.length === 0) {
-    return { kind: 'error', message: 'Empty CSV file' };
-  }
-
-  // Simple CSV parser (handles quoted fields)
-  function splitCsvLine(line: string): string[] {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  }
-
-  const headerFields = splitCsvLine(lines[0]);
-  const columns = headerFields.map((label, i) => ({
-    id: `col_${i}`,
-    label: label || `Column ${i + 1}`,
-  }));
-
-  const rows: Record<string, string | number>[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const fields = splitCsvLine(lines[i]);
-    const record: Record<string, string | number> = {};
-    columns.forEach((col, colIdx) => {
-      const raw = fields[colIdx] ?? '';
-      const num = Number(raw);
-      record[col.id] = raw !== '' && !isNaN(num) ? num : raw;
-    });
-    rows.push(record);
-  }
-
-  return { kind: 'spreadsheet', sheets: [{ name: 'Sheet 1', columns, rows }] };
+  return { kind: 'spreadsheet', sheets, truncated };
 }
 
 // ============================================================================
-// Main parse dispatcher
+// Fetch helper
+// ============================================================================
+
+async function fetchOrThrow(url: string): Promise<Response> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file (${response.status})`);
+  }
+  return response;
+}
+
+// ============================================================================
+// Main dispatcher
 // ============================================================================
 
 async function parseArtifact(downloadUrl: string, mimeType?: string): Promise<ArtifactContent> {
@@ -182,27 +111,20 @@ async function parseArtifact(downloadUrl: string, mimeType?: string): Promise<Ar
   }
 
   if (TEXT_MIMES.has(mimeType)) {
-    const response = await fetch(downloadUrl);
-    const text = await response.text();
-    return { kind: 'text', text };
-  }
-
-  if (CSV_MIMES.has(mimeType)) {
-    const response = await fetch(downloadUrl);
-    const text = await response.text();
-    return parseCsv(text);
+    const response = await fetchOrThrow(downloadUrl);
+    return { kind: 'text', text: await response.text() };
   }
 
   if (DOCX_MIMES.has(mimeType)) {
-    const response = await fetch(downloadUrl);
-    const buffer = await response.arrayBuffer();
-    return { kind: 'docx', buffer };
+    const response = await fetchOrThrow(downloadUrl);
+    return { kind: 'docx', buffer: await response.arrayBuffer() };
   }
 
-  if (XLSX_MIMES.has(mimeType)) {
-    const response = await fetch(downloadUrl);
-    const buffer = await response.arrayBuffer();
-    return parseXlsx(buffer);
+  if (SPREADSHEET_MIMES.has(mimeType)) {
+    const response = await fetchOrThrow(downloadUrl);
+    const isCsv = mimeType === 'text/csv';
+    const data = isCsv ? await response.text() : await response.arrayBuffer();
+    return parseSpreadsheet(data, isCsv);
   }
 
   return { kind: 'unsupported' };
@@ -222,7 +144,6 @@ export function useArtifactContent(downloadUrl?: string, mimeType?: string): Art
     }
 
     let cancelled = false;
-
     setContent({ kind: 'loading' });
 
     parseArtifact(downloadUrl, mimeType)

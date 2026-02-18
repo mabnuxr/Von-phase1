@@ -5,8 +5,7 @@
  * - PDF: native browser iframe
  * - MD/TXT: TipTap readonly editor
  * - DOCX: docx-preview → rendered in DOM
- * - XLSX: ExcelJS → readonly spreadsheet table
- * - CSV: text parser → readonly spreadsheet table
+ * - XLSX/CSV: SheetJS → HTML table preview
  */
 
 import React from 'react';
@@ -23,7 +22,7 @@ import { useHorizontalResize } from '../ArtifactViewer/hooks/useHorizontalResize
 import { useArtifactContent } from './hooks/useArtifactContent';
 import { TextViewer } from './viewers/TextViewer';
 import { DocxViewer } from './viewers/DocxViewer';
-import { ReadonlySpreadsheetViewer } from './viewers/ReadonlySpreadsheetViewer';
+import { HtmlSpreadsheetViewer } from './viewers/HtmlSpreadsheetViewer';
 
 // ============================================================================
 // Types
@@ -144,7 +143,9 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
           {content.kind === 'docx' && <DocxViewer buffer={content.buffer} />}
 
-          {content.kind === 'spreadsheet' && <ReadonlySpreadsheetViewer sheets={content.sheets} />}
+          {content.kind === 'spreadsheet' && (
+            <HtmlSpreadsheetViewer sheets={content.sheets} truncated={content.truncated} />
+          )}
 
           {content.kind === 'unsupported' && (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-gray-50 text-gray-500">
@@ -165,5 +166,3 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
     </div>
   );
 };
-
-export default ArtifactViewerPanel;

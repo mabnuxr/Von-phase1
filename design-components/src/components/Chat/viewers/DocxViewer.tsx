@@ -68,5 +68,3 @@ export const DocxViewer: React.FC<DocxViewerProps> = ({ buffer }) => {
 
   return <div ref={containerRef} className="flex-1 overflow-auto bg-white" />;
 };
-
-export default DocxViewer;
