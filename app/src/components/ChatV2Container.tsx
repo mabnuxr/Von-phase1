@@ -49,6 +49,7 @@ export interface ChatV2ContainerProps {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
+  isArtifactsEnabled: boolean;
   syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
   banner: React.ReactNode;
 }
@@ -69,6 +70,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isDeepLinksEnabled,
     isSourcesEnabled,
     isFileUploadEnabled,
+    isArtifactsEnabled,
     banner,
   } = props;
 
@@ -174,13 +176,15 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               }}
               fileErrorMessage={chatV2.fileErrorMessage}
               onDismissFileError={() => chatV2.setFileErrorMessage(null)}
+              showArtifacts={isArtifactsEnabled}
               onFileArtifactClick={chatV2.handleFileArtifactClick}
               onArtifactDownload={chatV2.handleArtifactDownload}
             />
           </div>
 
           {/* File Artifact Viewer Panel (self-manages width + resize) */}
-          {chatV2.fileArtifactPanel.isOpen &&
+          {isArtifactsEnabled &&
+            chatV2.fileArtifactPanel.isOpen &&
             chatV2.fileArtifactPanel.fileName && (
               <ArtifactViewerPanel
                 fileName={chatV2.fileArtifactPanel.fileName}

@@ -1108,8 +1108,14 @@ export interface ChatProps {
   ) => void;
 
   /**
+   * Whether to show agent-generated artifact cards on messages.
+   * Gated by feature flag — defaults to false.
+   */
+  showArtifacts?: boolean;
+
+  /**
    * Callback when user clicks on a file artifact card (agent-generated documents)
-   * Opens the artifact viewer panel with Google Docs preview
+   * Opens the artifact viewer panel
    */
   onFileArtifactClick?: (
     fileId: string,

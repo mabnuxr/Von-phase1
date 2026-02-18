@@ -45,6 +45,7 @@ export const Chat: React.FC<ChatProps> = ({
   isFetchingMore = false,
   showMessagesFromIndex = 0,
   onArtifactClick,
+  showArtifacts = false,
   onFileArtifactClick,
   onArtifactDownload,
   onFileClick,
@@ -342,10 +343,10 @@ export const Chat: React.FC<ChatProps> = ({
                   v2FinalResponse={message.v2FinalResponse}
                   attachments={message.attachments}
                   onFileClick={onFileClick}
-                  // File artifacts
-                  artifacts={message.artifacts}
-                  onFileArtifactClick={onFileArtifactClick}
-                  onArtifactDownload={onArtifactDownload}
+                  // File artifacts (gated by showArtifacts flag)
+                  artifacts={showArtifacts ? message.artifacts : undefined}
+                  onFileArtifactClick={showArtifacts ? onFileArtifactClick : undefined}
+                  onArtifactDownload={showArtifacts ? onArtifactDownload : undefined}
                 />
               </div>
             ))}

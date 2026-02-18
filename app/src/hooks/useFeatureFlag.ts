@@ -16,6 +16,7 @@ export const FEATURE_FLAGS = {
   AGENT_V2_SOURCES: "agentSources",
   DISABLED_TENANTS: "disabledTenants",
   FILE_UPLOAD: "enableFileUpload",
+  ARTIFACTS: "enableArtifacts",
 } as const;
 
 /**
@@ -102,6 +103,11 @@ export function useFeatureFlag() {
      * Controls whether file upload (plus menu) is enabled in chat
      */
     isFileUploadEnabled: flags[FEATURE_FLAGS.FILE_UPLOAD] === true,
+
+    /**
+     * Controls whether agent-generated artifact cards and preview panel are shown
+     */
+    isArtifactsEnabled: flags[FEATURE_FLAGS.ARTIFACTS] === true,
 
     /**
      * Raw flags object for advanced usage
