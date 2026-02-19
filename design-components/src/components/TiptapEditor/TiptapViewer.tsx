@@ -67,7 +67,23 @@ export const TiptapViewer: React.FC<TiptapViewerProps> = ({ content, className =
     // Run through marked to convert markdown to HTML, then sanitize to prevent XSS.
     // DOMPurify strips scripts, event handlers, form elements, and other dangerous tags
     // while preserving safe markdown-rendered HTML (headings, links, code, tables, etc.).
-    const forbidTags = ['script', 'style', 'iframe', 'frame', 'frameset', 'form', 'input', 'button', 'select', 'textarea', 'object', 'embed', 'base', 'link', 'meta'];
+    const forbidTags = [
+      'script',
+      'style',
+      'iframe',
+      'frame',
+      'frameset',
+      'form',
+      'input',
+      'button',
+      'select',
+      'textarea',
+      'object',
+      'embed',
+      'base',
+      'link',
+      'meta',
+    ];
     try {
       const raw = markedInstance.parse(normalizedContent) as string;
       return DOMPurify.sanitize(raw, { FORBID_TAGS: forbidTags }) as string;
