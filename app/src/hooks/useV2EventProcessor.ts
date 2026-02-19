@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRunTimer } from "./useRunTimer";
 import { flushSync } from "react-dom";
 import type { Channel } from "pusher-js";
 import type {
@@ -118,9 +119,10 @@ export function useV2EventProcessor(
   initialRunEvents?: AguiEventWrapper[],
   onRunComplete?: () => void,
 ): UseV2EventProcessorReturn {
+  const timer = useRunTimer();
+
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [finalResponse, setFinalResponse] = useState("");
   const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
@@ -133,7 +135,6 @@ export function useV2EventProcessor(
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
 
-  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
   const lastEventTimeRef = useRef<number>(0);
@@ -142,23 +143,6 @@ export function useV2EventProcessor(
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
   const pendingStopRef = useRef(false);
-
-  const startElapsedTimer = useCallback(() => {
-    if (elapsedTimerRef.current) {
-      clearInterval(elapsedTimerRef.current);
-    }
-    setElapsedTime(0);
-    elapsedTimerRef.current = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-  }, []);
-
-  const stopElapsedTimer = useCallback(() => {
-    if (elapsedTimerRef.current) {
-      clearInterval(elapsedTimerRef.current);
-      elapsedTimerRef.current = null;
-    }
-  }, []);
 
   // Apply a transform result to state (used by both event handler and reconciliation)
   const applyTransformResult = useCallback(
@@ -224,26 +208,26 @@ export function useV2EventProcessor(
           setResearchResults(research);
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
-          if (actualElapsed > 0) {
-            setElapsedTime(actualElapsed);
-          }
         });
+        if (actualElapsed > 0) {
+          timer.set(actualElapsed);
+        }
       } else {
         flushSync(() => {
           setIsThinking(false);
           setIsFinalResponseStreaming(false);
           setStoppedByUser(options.stoppedByUser);
           setRunErrorMessage(options.errorMessage ?? "");
-          setElapsedTime(0);
           setTimelineSteps([]);
         });
+        timer.set(0);
       }
 
-      stopElapsedTimer();
+      timer.stop();
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [stopElapsedTimer, onRunComplete],
+    [timer.stop, timer.set, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
@@ -281,11 +265,11 @@ export function useV2EventProcessor(
   }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
-    (_runId: string, elapsedTime: number) => {
-      stopElapsedTimer();
-      setElapsedTime(elapsedTime);
+    (_runId: string, elapsed: number) => {
+      timer.stop();
+      timer.set(elapsed);
     },
-    [stopElapsedTimer],
+    [timer.stop, timer.set],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -410,17 +394,14 @@ export function useV2EventProcessor(
               setIsAwaitingApproval(false);
               setStoppedByUser(false);
               setCurrentRunId(run_id);
-              setElapsedTime(0);
               setRunErrorMessage("");
             });
-            startElapsedTimer();
+            timer.start();
           } else {
             // Mid-stream reconnect: set run ID but preserve existing state,
             // seeding will fill in the gaps and re-transform
             setCurrentRunId(run_id);
-            if (!elapsedTimerRef.current) {
-              startElapsedTimer();
-            }
+            timer.play();
           }
         }
 
@@ -453,9 +434,13 @@ export function useV2EventProcessor(
           setRunErrorMessage(result.runErrorMessage);
         });
 
-        // Stop timer when final response starts streaming
-        if (result.isFinalResponseStreaming && elapsedTimerRef.current) {
-          stopElapsedTimer();
+        // Pause timer when awaiting approval; resume when approval is acted on
+        if (result.isAwaitingApproval) {
+          timer.pause();
+        } else if (result.isThinking && !result.isFinalResponseStreaming) {
+          timer.play();
+        } else if (result.isFinalResponseStreaming) {
+          timer.stop();
         }
 
         // Mid-stream gap detection: if the range of sequences exceeds the event
@@ -485,11 +470,11 @@ export function useV2EventProcessor(
           !finishedRunsRef.current.has(run_id)
         ) {
           finishedRunsRef.current.add(run_id);
-          stopElapsedTimer();
+          timer.stop();
 
           const actualElapsed = getElapsedTimeFromEvents(runEvents);
           if (actualElapsed > 0) {
-            setElapsedTime(actualElapsed);
+            timer.set(actualElapsed);
           }
 
           onRunComplete?.();
@@ -500,8 +485,11 @@ export function useV2EventProcessor(
     },
     [
       conversationId,
-      startElapsedTimer,
-      stopElapsedTimer,
+      timer.start,
+      timer.stop,
+      timer.pause,
+      timer.play,
+      timer.set,
       onRunComplete,
       scheduleGapFill,
     ],
@@ -536,21 +524,20 @@ export function useV2EventProcessor(
 
     const elapsed = getElapsedTimeFromEvents(mergedEvents);
     if (elapsed > 0) {
-      setElapsedTime(elapsed);
+      timer.set(elapsed);
     }
 
     // Start or stop timer based on run state
-    if (result.isThinking) {
-      if (elapsedTimerRef.current) {
-        clearInterval(elapsedTimerRef.current);
-      }
-      elapsedTimerRef.current = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
-    } else {
-      stopElapsedTimer();
+    if (result.isThinking && !result.isAwaitingApproval) {
+      timer.stop();
+      timer.play();
+    } else if (!result.isThinking) {
+      timer.stop();
       // Mark completed/stopped runs as finished so subsequent events don't re-process
       finishedRunsRef.current.add(runId);
+    } else {
+      // isThinking && isAwaitingApproval — pause timer
+      timer.pause();
     }
 
     if (import.meta.env.DEV) {
@@ -602,17 +589,16 @@ export function useV2EventProcessor(
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      stopElapsedTimer();
       if (gapFillTimerRef.current) {
         clearTimeout(gapFillTimerRef.current);
       }
     };
-  }, [stopElapsedTimer]);
+  }, []);
 
   return {
     timelineSteps,
     isThinking,
-    elapsedTime,
+    elapsedTime: timer.elapsedTime,
     currentRunId,
     finalResponse,
     isFinalResponseStreaming,
