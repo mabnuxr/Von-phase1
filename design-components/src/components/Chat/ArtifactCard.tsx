@@ -81,7 +81,22 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
   }
 
   return (
-    <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-gray-300 transition-colors">
+    <div
+      className={`border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-gray-300 transition-colors ${onOpen ? 'cursor-pointer' : ''}`}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={
+        onOpen
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpen();
+              }
+            }
+          : undefined
+      }
+    >
       {/* Icon */}
       <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
         {config.icon}
@@ -98,6 +113,7 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
         <Tooltip content="Open in Drive (Coming soon)" placement="top">
           <button
             disabled
+            onClick={(e) => e.stopPropagation()}
             className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center opacity-40 cursor-not-allowed transition-colors"
           >
             <img src={driveLogo} alt="Google Drive" width={16} height={16} />
