@@ -217,14 +217,22 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               ) : (
                 <CaretRightIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
               )}
-              {isApproved ? (
+              {/* IMPORTANT: Always check isRejected first, not isApproved.
+                 During a rejection flow, both isApproved and isRejected can briefly
+                 be true at the same time due to a Pusher event race condition — the
+                 backend reuses sequence numbers and tool_call_id when the run resumes
+                 after rejection, so the "awaiting-approval" → "complete" transition
+                 (which makes isApproved true) can land before the TOOL_CALL_RESULT
+                 with rejectionReason arrives. Checking isRejected first ensures
+                 rejection always takes visual priority during this window. */}
+              {isRejected ? (
+                <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
+              ) : (
                 <CheckCircleIcon
                   size={14}
                   weight="fill"
                   className="text-emerald-600 flex-shrink-0"
                 />
-              ) : (
-                <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
               )}
               {approval.recordUrl ? (
                 <a
@@ -241,9 +249,9 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               )}
             </div>
             <span
-              className={`text-xs flex-shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
+              className={`text-xs flex-shrink-0 ml-2 ${isRejected ? 'text-red-600' : 'text-emerald-700'}`}
             >
-              {isApproved ? 'Approved' : 'Rejected'}
+              {isRejected ? 'Rejected' : 'Approved'}
             </span>
           </button>
 
