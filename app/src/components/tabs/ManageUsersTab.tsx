@@ -326,13 +326,13 @@ export function ManageUsersTab() {
                           content={
                             <div className="flex flex-col gap-1">
                               <span>
-                                Last 7 d:{" "}
+                                Last 7d:{" "}
                                 <span className="font-medium">
                                   {member.usage.last_week}
                                 </span>
                               </span>
                               <span>
-                                Last 30 d:{" "}
+                                Last 30d:{" "}
                                 <span className="font-medium">
                                   {member.usage.last_month}
                                 </span>
