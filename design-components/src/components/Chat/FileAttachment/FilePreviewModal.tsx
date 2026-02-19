@@ -126,6 +126,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     if (!downloadUrl) return;
     try {
       const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error(`Download failed (${response.status})`);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
