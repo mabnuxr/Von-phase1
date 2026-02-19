@@ -40,7 +40,7 @@ export function useArtifactCreatedEvent(
         // Seed cache with placeholders so skeletons render immediately
         const placeholders: FileMetadataResponse[] = parsed.artifacts.map(
           (a) => ({
-            id: "",
+            id: a.file_name,
             fileName: a.file_name,
             mimeType: "",
             sizeBytes: 0,
@@ -54,7 +54,20 @@ export function useArtifactCreatedEvent(
         );
         queryClient.setQueryData(queryKey, placeholders);
       } else {
-        // status="completed" or absent — invalidate to refetch real data
+        // Immediately replace placeholders with event data (removes isPending)
+        const freshData: FileMetadataResponse[] = parsed.artifacts.map((a) => ({
+          id: a.id ?? a.file_name,
+          fileName: a.file_name,
+          mimeType: "",
+          sizeBytes: 0,
+          status: "completed",
+          source: "agent_generated",
+          createdAt: parsed.updatedAt,
+          artifactType: a.artifact_type ?? "document",
+          runId: parsed.runId,
+        }));
+        queryClient.setQueryData(queryKey, freshData);
+        // Background refetch fills in full metadata (mimeType, sizeBytes, etc.)
         queryClient.invalidateQueries({ queryKey });
       }
     },
