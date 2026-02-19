@@ -41,6 +41,7 @@ export interface FileMetadataResponse {
   createdAt: string;
   artifactType?: string;
   runId?: string;
+  isPending?: boolean;
 }
 
 /**

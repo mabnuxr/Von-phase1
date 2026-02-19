@@ -143,6 +143,7 @@ export interface Message {
     fileName: string;
     artifactType: string;
     mimeType: string;
+    isPending?: boolean;
   }>;
   /**
    * Whether the response was stopped by user

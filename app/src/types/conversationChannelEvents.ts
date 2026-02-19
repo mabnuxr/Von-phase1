@@ -13,17 +13,19 @@ export type ConversationChannelEventName =
   (typeof ConversationChannelEvents)[keyof typeof ConversationChannelEvents];
 
 /**
- * Sent when the backend finishes uploading agent-generated artifacts to S3.
- * Emitted by UploadArtifactsFromSandboxUnit after FileMetadata records are created.
+ * Sent in two phases:
+ * 1. status="processing" — emitted before RUN_FINISHED with file names only (seeds skeletons)
+ * 2. status="completed"  — emitted after S3 upload + FileMetadata insert (real metadata)
  */
 export interface ArtifactCreatedEventPayload {
   type: "artifact_created";
+  status?: "processing" | "completed";
   runId: string;
   conversationId: string;
   artifacts: Array<{
-    id: string;
+    id?: string;
     file_name: string;
-    artifact_type: string;
+    artifact_type?: string;
   }>;
   updatedAt: string;
 }
