@@ -53,6 +53,9 @@ export function useArtifactCreatedEvent(
           }),
         );
         queryClient.setQueryData(queryKey, placeholders);
+        // Mark stale so remount refetches if completed event is missed,
+        // but don't trigger an immediate refetch while upload is still running
+        queryClient.invalidateQueries({ queryKey, refetchType: "inactive" });
       } else {
         // Immediately replace placeholders with event data (removes isPending)
         const freshData: FileMetadataResponse[] = parsed.artifacts.map((a) => ({
