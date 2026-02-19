@@ -148,7 +148,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
   // (not when downloadUrl is null after fetch failed — that's a failed state, not loading)
   const showLoading = isLoading || (!isImage && !!downloadUrl && content.kind === 'loading');
   // URL fetch failed — no downloadUrl and not loading
-  const urlFetchFailed = !isImage && !isLoading && !downloadUrl;
+  const urlFetchFailed = !isLoading && !downloadUrl;
 
   return (
     <div
