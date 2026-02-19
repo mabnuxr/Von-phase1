@@ -982,27 +982,37 @@ export function transformAguiToTimelineSteps(
 
         // Early approval detection by tool name (like V1's isApprovalTool)
         // This allows the UI to show the approval state immediately
+        // Skip if this step was already resolved (e.g., rejected) — the backend
+        // may re-send TOOL_CALL_START for the same tool_call_id after rejection
+        // with overlapping sequence numbers, so we must not overwrite the result.
         if (isAnyApprovalTool(toolName)) {
-          step.type = "approval" as StepType;
-          step.status = "awaiting-approval" as StepStatus;
-          // Initialize approval data with tool call info (will be populated with args later)
-          const approvalType = getApprovalType(toolName);
-          const label =
-            approvalType === "calendar"
-              ? "Calendar Event"
-              : approvalType === "deep_research"
-                ? "Deep Research"
-                : "Salesforce Record";
-          step.approval = {
-            toolCallId: toolId || "",
-            summary:
-              approvalType === "deep_research"
-                ? "Awaiting approval to proceed with full research..."
-                : "Requesting approval...",
-            label,
-            operation: approvalType === "deep_research" ? "create" : "update",
-            approvalType,
-          };
+          const alreadyResolved =
+            step.status === ("rejected" as StepStatus) ||
+            step.status === ("error" as StepStatus) ||
+            (step.status === ("complete" as StepStatus) &&
+              step.type === ("approval" as StepType));
+          if (!alreadyResolved) {
+            step.type = "approval" as StepType;
+            step.status = "awaiting-approval" as StepStatus;
+            // Initialize approval data with tool call info (will be populated with args later)
+            const approvalType = getApprovalType(toolName);
+            const label =
+              approvalType === "calendar"
+                ? "Calendar Event"
+                : approvalType === "deep_research"
+                  ? "Deep Research"
+                  : "Salesforce Record";
+            step.approval = {
+              toolCallId: toolId || "",
+              summary:
+                approvalType === "deep_research"
+                  ? "Awaiting approval to proceed with full research..."
+                  : "Requesting approval...",
+              label,
+              operation: approvalType === "deep_research" ? "create" : "update",
+              approvalType,
+            };
+          }
         } else {
           step.type = "tool_call" as StepType;
         }
