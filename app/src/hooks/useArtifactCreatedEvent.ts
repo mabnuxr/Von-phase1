@@ -1,12 +1,12 @@
 /**
  * useArtifactCreatedEvent - Pusher event handler for artifact_created
  *
- * Listens for the artifact_created event on the conversation Pusher channel.
- * When received, invalidates the specific run's React Query cache to trigger
- * a refetch, which causes ArtifactCards to appear in the chat UI.
- *
- * The event is emitted by UploadArtifactsFromSandboxUnit after the agent run
- * completes and artifacts are uploaded to S3.
+ * Handles two phases:
+ * 1. status="processing" — seeds React Query cache with placeholder records
+ *    (isPending: true) so skeleton ArtifactCards render immediately when
+ *    isStreaming flips false.
+ * 2. status="completed" — invalidates cache to trigger a refetch that replaces
+ *    skeletons with real artifact data.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -16,6 +16,7 @@ import type { Channel } from "pusher-js";
 import { ConversationChannelEvents } from "../types/conversationChannelEvents";
 import type { ArtifactCreatedEventPayload } from "../types/conversationChannelEvents";
 import { agentArtifactKeys } from "./useAgentArtifacts";
+import type { FileMetadataResponse } from "../services/fileUploadService";
 
 export function useArtifactCreatedEvent(
   channel: Channel | null,
@@ -33,10 +34,29 @@ export function useArtifactCreatedEvent(
       const convId = conversationIdRef.current;
       if (!convId || parsed.conversationId !== convId) return;
 
-      // Invalidate the specific run's cache to trigger a refetch
-      queryClient.invalidateQueries({
-        queryKey: agentArtifactKeys.run(convId, parsed.runId),
-      });
+      const queryKey = agentArtifactKeys.run(convId, parsed.runId);
+
+      if (parsed.status === "processing") {
+        // Seed cache with placeholders so skeletons render immediately
+        const placeholders: FileMetadataResponse[] = parsed.artifacts.map(
+          (a) => ({
+            id: "",
+            fileName: a.file_name,
+            mimeType: "",
+            sizeBytes: 0,
+            status: "processing",
+            source: "agent_generated",
+            createdAt: parsed.updatedAt,
+            artifactType: a.artifact_type,
+            runId: parsed.runId,
+            isPending: true,
+          }),
+        );
+        queryClient.setQueryData(queryKey, placeholders);
+      } else {
+        // status="completed" or absent — invalidate to refetch real data
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
     [queryClient],
   );

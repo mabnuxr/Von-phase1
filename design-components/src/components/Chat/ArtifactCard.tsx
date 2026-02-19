@@ -27,6 +27,7 @@ export interface FileArtifact {
   fileName: string;
   artifactType: string;
   mimeType: string;
+  isPending?: boolean;
 }
 
 export interface ArtifactCardProps {
@@ -66,6 +67,18 @@ const DEFAULT_CONFIG = {
 
 export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, onDownload }) => {
   const config = ARTIFACT_ICON_CONFIG[artifact.artifactType] ?? DEFAULT_CONFIG;
+
+  if (artifact.isPending) {
+    return (
+      <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
+        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="h-3.5 bg-gray-100 rounded w-3/4" />
+          <div className="h-3 bg-gray-100 rounded w-1/3" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-gray-300 transition-colors">

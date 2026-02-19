@@ -374,6 +374,7 @@ function transformMessagesForV2(
               fileName: a.fileName,
               artifactType: a.artifactType ?? "document",
               mimeType: a.mimeType,
+              isPending: a.isPending,
             })),
           };
         }
