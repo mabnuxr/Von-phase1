@@ -10,8 +10,17 @@
  */
 
 import { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+import type XLSX_NS from 'xlsx';
 import DOMPurify from 'dompurify';
+
+// Lazy-load SheetJS (~700 KB) only when a spreadsheet is actually opened
+let _xlsx: typeof XLSX_NS | null = null;
+async function loadXlsx(): Promise<typeof XLSX_NS> {
+  if (!_xlsx) {
+    _xlsx = await import('xlsx');
+  }
+  return _xlsx;
+}
 
 // ============================================================================
 // Types
@@ -57,30 +66,34 @@ const SPREADSHEET_MIMES = new Set([
 /** Max rows per sheet before truncation to prevent browser hangs on large files */
 const MAX_PREVIEW_ROWS = 5000;
 
-function parseSpreadsheet(data: ArrayBuffer | string, isText: boolean): ArtifactContent {
+async function parseSpreadsheet(
+  data: ArrayBuffer | string,
+  isText: boolean
+): Promise<ArtifactContent> {
+  const xlsx = await loadXlsx();
   const workbook = isText
-    ? XLSX.read(data as string, { type: 'string' })
-    : XLSX.read(new Uint8Array(data as ArrayBuffer), { type: 'array' });
+    ? xlsx.read(data as string, { type: 'string' })
+    : xlsx.read(new Uint8Array(data as ArrayBuffer), { type: 'array' });
 
   let truncated = false;
 
-  const sheets: HtmlSheet[] = workbook.SheetNames.map((name) => {
+  const sheets: HtmlSheet[] = workbook.SheetNames.map((name: string) => {
     const sheet = workbook.Sheets[name];
     if (!sheet) return null;
 
     const ref = sheet['!ref'];
     if (ref) {
-      const range = XLSX.utils.decode_range(ref);
+      const range = xlsx.utils.decode_range(ref);
       if (range.e.r >= MAX_PREVIEW_ROWS) {
         range.e.r = MAX_PREVIEW_ROWS - 1;
-        sheet['!ref'] = XLSX.utils.encode_range(range);
+        sheet['!ref'] = xlsx.utils.encode_range(range);
         truncated = true;
       }
     }
 
-    const rawHtml = XLSX.utils.sheet_to_html(sheet, { id: '', editable: false });
+    const rawHtml = xlsx.utils.sheet_to_html(sheet, { id: '', editable: false });
     return { name, html: DOMPurify.sanitize(rawHtml, { ALLOWED_URI_REGEXP: /^https?:\/\// }) };
-  }).filter((s): s is HtmlSheet => s !== null);
+  }).filter((s: HtmlSheet | null): s is HtmlSheet => s !== null);
 
   if (sheets.length === 0) {
     return { kind: 'error', message: 'No readable sheets found in this file' };
