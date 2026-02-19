@@ -95,7 +95,7 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <Tooltip content="Google Drive sync coming soon" placement="top">
+        <Tooltip content="Open in Drive (Coming soon)" placement="top">
           <button
             disabled
             className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center opacity-40 cursor-not-allowed transition-colors"
