@@ -81,7 +81,10 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
   }
 
   return (
-    <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-gray-300 transition-colors">
+    <div
+      className={`border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-gray-300 transition-colors ${onOpen ? 'cursor-pointer' : ''}`}
+      onClick={onOpen}
+    >
       {/* Icon */}
       <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
         {config.icon}
