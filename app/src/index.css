@@ -185,10 +185,9 @@ body {
 /**
  * Scrollbar Utilities
  * ==================
- * Three approaches to scrollbars in the app:
- * 1. .scrollbar-hide - Completely hides scrollbar (used in ChatSidebar)
- * 2. .chat-messages-wrapper - Shows styled minimal scrollbar (used in Chat messages)
- * 3. .settings-scrollbar - Subtle light scrollbar (used in Settings panels)
+ * Two scrollbar utilities:
+ * 1. .scrollbar-hide - Completely hides scrollbar (used in ChatSidebar v1)
+ * 2. .settings-scrollbar - Subtle light scrollbar (used everywhere else)
  */
 
 /* Hide scrollbar completely while maintaining scroll functionality */
@@ -201,30 +200,7 @@ body {
   display: none; /* Chrome, Safari, Opera */
 }
 
-/* Custom styled scrollbar for chat messages container */
-.chat-messages-wrapper::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-messages-wrapper::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-messages-wrapper::-webkit-scrollbar-thumb {
-  background: #1b1b1f;
-  border-radius: 3px;
-}
-
-.chat-messages-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #2c2c30;
-}
-
-.chat-messages-wrapper {
-  scrollbar-width: thin;
-  scrollbar-color: #1b1b1f transparent;
-}
-
-/* Custom styled scrollbar for settings panels */
+/* Subtle light scrollbar — consistent across chat, artifact viewers, sidebars */
 .settings-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

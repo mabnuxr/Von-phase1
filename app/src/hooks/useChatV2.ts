@@ -292,13 +292,21 @@ export function useChatV2(props: UseChatV2Props) {
       try {
         const { downloadUrl, fileName } =
           await fileUploadService.getDownloadUrl(conversationId, fileId);
+        // Fetch as blob — cross-origin S3 URLs ignore the <a download> attribute
+        const response = await fetch(downloadUrl);
+        if (!response.ok)
+          throw new Error(`Download failed (${response.status})`);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = downloadUrl;
+        a.href = blobUrl;
         a.download = fileName;
         a.style.display = "none";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        // Delay revocation so the browser has time to start reading the blob
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       } catch (err) {
         console.error("[useChatV2] Failed to download artifact:", err);
       }

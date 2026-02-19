@@ -7,12 +7,13 @@
 
 import React from 'react';
 import {
-  DownloadSimple as DownloadSimpleIcon,
-  FileDoc as FileDocIcon,
-  PresentationChart as PresentationChartIcon,
-  Table as TableIcon,
-  ArrowsOut as ArrowsOutIcon,
+  DownloadSimpleIcon,
+  FileDocIcon,
+  PresentationChartIcon,
+  TableIcon,
+  ArrowsOutIcon,
 } from '@phosphor-icons/react';
+import { Tooltip } from '../Tooltip';
 import driveLogo from '../../assets/drive-logo.svg';
 
 // ============================================================================
@@ -81,13 +82,14 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <button
-          disabled
-          className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center opacity-40 cursor-not-allowed transition-colors"
-          title="Google Drive sync coming soon"
-        >
-          <img src={driveLogo} alt="Google Drive" width={16} height={16} />
-        </button>
+        <Tooltip content="Google Drive sync coming soon" placement="top">
+          <button
+            disabled
+            className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center opacity-40 cursor-not-allowed transition-colors"
+          >
+            <img src={driveLogo} alt="Google Drive" width={16} height={16} />
+          </button>
+        </Tooltip>
         {onDownload && (
           <button
             onClick={(e) => {
