@@ -132,7 +132,10 @@ async function withRetry<T>(
       lastError = error;
       const isRetryable =
         error instanceof TypeError || // Network error (fetch failed)
-        (error && typeof error === "object" && "status" in error && (error as { status: number }).status >= 500);
+        (error &&
+          typeof error === "object" &&
+          "status" in error &&
+          (error as { status: number }).status >= 500);
       if (!isRetryable || attempt === maxRetries) break;
       await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** attempt));
     }
