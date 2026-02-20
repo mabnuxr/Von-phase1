@@ -328,7 +328,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
       {/* Banner (if provided) */}
       {banner && (
         <motion.div
-          className="w-full max-w-3xl px-5"
+          className="w-full max-w-3xl mb-2"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.4 }}

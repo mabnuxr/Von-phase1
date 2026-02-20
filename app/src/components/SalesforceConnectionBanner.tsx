@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 
 interface SalesforceConnectionBannerProps {
   isSalesforceReady: boolean;
@@ -21,7 +21,7 @@ export function SalesforceConnectionBanner({
 
   return (
     <motion.div
-      className="px-6 max-w-4xl mx-auto w-full"
+      className="w-full"
       animate={
         shouldShakeBanner
           ? {
@@ -33,9 +33,7 @@ export function SalesforceConnectionBanner({
       onAnimationComplete={onShakeComplete}
     >
       <div className="p-2 mt-2 flex flex-row justify-between bg-amber-50 border border-amber-200 rounded-xl">
-        <p className="pl-2 text-sm text-amber-800">
-          Salesforce integration not connected.
-        </p>
+        <p className="pl-2 text-sm text-amber-800">Salesforce integration not connected.</p>
         <a
           href="/settings?tab=integrations"
           className="pr-2 text-sm text-von-purple hover:text-von-purple-600 font-medium hover:scale-105"

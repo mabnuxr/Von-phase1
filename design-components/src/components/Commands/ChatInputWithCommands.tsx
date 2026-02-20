@@ -85,8 +85,8 @@ export const ChatInputWithCommands: React.FC<ChatInputWithCommandsProps> = ({
 
       {/* Command Chip + Input Area */}
       {selectedCommand ? (
-        <div className="ml-2 p-3 bg-white antialiased ">
-          <div className="px-6 max-w-4xl mx-auto w-full flex flex-col gap-1.5">
+        <div className="bg-white antialiased ">
+          <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5">
             <div
               className="p-[1px] rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md"
               style={{

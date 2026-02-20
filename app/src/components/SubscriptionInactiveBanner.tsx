@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 
 interface SubscriptionInactiveBannerProps {
   isTenantDisabled: boolean;
@@ -21,7 +21,7 @@ export function SubscriptionInactiveBanner({
 
   return (
     <motion.div
-      className="px-6 max-w-4xl mx-auto w-full"
+      className="w-full"
       animate={
         shouldShakeBanner
           ? {
@@ -34,8 +34,8 @@ export function SubscriptionInactiveBanner({
     >
       <div className="p-2 mt-2 flex flex-row items-center bg-red-50 border border-red-200 rounded-xl">
         <p className="pl-2 text-sm text-red-800">
-          Your organization's access is currently inactive. To continue using
-          the platform, please contact us.
+          Your organization's access is currently inactive. To continue using the platform, please
+          contact us.
         </p>
       </div>
     </motion.div>
