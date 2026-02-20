@@ -367,7 +367,9 @@ export const Chat: React.FC<ChatProps> = ({
       </div>
 
       {/* Banner above input (if provided) - only show when there are messages */}
-      {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
+      {messages.length > 0 && banner && (
+        <div className="w-full max-w-4xl mx-auto mb-2">{banner}</div>
+      )}
 
       {/* Only show bottom input when there are messages (not in empty state) */}
       {messages.length > 0 && (

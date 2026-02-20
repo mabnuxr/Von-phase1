@@ -21,7 +21,7 @@ export function SubscriptionInactiveBanner({
 
   return (
     <motion.div
-      className="px-6 max-w-4xl mx-auto w-full"
+      className="w-full"
       animate={
         shouldShakeBanner
           ? {
