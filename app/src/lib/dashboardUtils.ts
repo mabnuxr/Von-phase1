@@ -116,8 +116,33 @@ export function transformConversationsToChatItems(
 }
 
 /**
+ * Retry an async operation with exponential backoff.
+ * Retries on network errors (TypeError from fetch) and 5xx server errors.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 2,
+  baseDelayMs: number = 1000,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const isRetryable =
+        error instanceof TypeError || // Network error (fetch failed)
+        (error && typeof error === "object" && "status" in error && (error as { status: number }).status >= 500);
+      if (!isRetryable || attempt === maxRetries) break;
+      await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
+/**
  * Handle approval of a tool call request
- * Calls resumeConversation API - state updates come from Pusher events
+ * Calls resumeConversation API with retry - state updates come from Pusher events
  */
 export async function handleToolApproval(
   toolCallId: string,
@@ -125,7 +150,9 @@ export async function handleToolApproval(
   conversationId: string,
 ): Promise<void> {
   try {
-    await conversationsService.resumeConversation(conversationId, true, runId);
+    await withRetry(() =>
+      conversationsService.resumeConversation(conversationId, true, runId),
+    );
     if (import.meta.env.DEV) {
       console.log(
         "[Dashboard] Approval sent for tool:",
@@ -135,13 +162,13 @@ export async function handleToolApproval(
       );
     }
   } catch (error) {
-    console.error("[Dashboard] Failed to send approval:", error);
+    console.error("[Dashboard] Failed to send approval after retries:", error);
   }
 }
 
 /**
  * Handle rejection of a tool call request
- * Calls resumeConversation API - state updates come from Pusher events
+ * Calls resumeConversation API with retry - state updates come from Pusher events
  */
 export async function handleToolRejection(
   toolCallId: string,
@@ -149,7 +176,9 @@ export async function handleToolRejection(
   conversationId: string,
 ): Promise<void> {
   try {
-    await conversationsService.resumeConversation(conversationId, false, runId);
+    await withRetry(() =>
+      conversationsService.resumeConversation(conversationId, false, runId),
+    );
     if (import.meta.env.DEV) {
       console.log(
         "[Dashboard] Rejection sent for tool:",
@@ -159,7 +188,7 @@ export async function handleToolRejection(
       );
     }
   } catch (error) {
-    console.error("[Dashboard] Failed to send rejection:", error);
+    console.error("[Dashboard] Failed to send rejection after retries:", error);
   }
 }
 

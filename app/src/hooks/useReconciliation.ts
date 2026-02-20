@@ -236,21 +236,41 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     reconcile,
   ]);
 
-  // Disconnect recovery: trigger immediate reconciliation when Pusher disconnects
-  // during active streaming (thinking or final response streaming)
+  // Connection recovery: trigger reconciliation on both disconnect and reconnect
+  // during active streaming (thinking or final response streaming).
+  //
+  // Disconnect (true→false): attempt reconciliation after 2s delay. This may
+  // fail if the network is still down, which is fine — the reconnect handler
+  // will cover that case.
+  //
+  // Reconnect (false→true): reconcile immediately to catch up on any events
+  // missed during the outage. Pusher does NOT replay missed events after
+  // reconnecting, so a backend fetch is the only recovery path.
   const prevConnectedRef = useRef(config.isConnected);
   useEffect(() => {
     const wasConnected = prevConnectedRef.current;
     prevConnectedRef.current = config.isConnected;
 
-    if (wasConnected && !config.isConnected && isActivelyStreaming) {
+    if (!isActivelyStreaming) return;
+
+    if (wasConnected && !config.isConnected) {
       console.log(
-        "[useReconciliation] Pusher disconnected during active streaming — triggering reconciliation",
+        "[useReconciliation] Pusher disconnected during active streaming — scheduling reconciliation",
       );
-      // Delay slightly to allow Pusher's auto-reconnect a chance
       const timerId = setTimeout(() => {
         reconcile();
       }, 2000);
+      return () => clearTimeout(timerId);
+    }
+
+    if (!wasConnected && config.isConnected) {
+      console.log(
+        "[useReconciliation] Pusher reconnected during active streaming — reconciling missed events",
+      );
+      // Small delay to let Pusher's resubscription settle before fetching
+      const timerId = setTimeout(() => {
+        reconcile();
+      }, 500);
       return () => clearTimeout(timerId);
     }
   }, [config.isConnected, isActivelyStreaming, reconcile]);
