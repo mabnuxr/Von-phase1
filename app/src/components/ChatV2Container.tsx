@@ -193,6 +193,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
                 }
                 mimeType={chatV2.fileArtifactPanel.mimeType}
                 downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
+                pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
                 onClose={chatV2.closeFileArtifactPanel}
                 onDownload={
                   chatV2.fileArtifactPanel.fileId

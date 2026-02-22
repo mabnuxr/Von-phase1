@@ -268,7 +268,8 @@ export interface ChatMessageProps {
     fileId: string,
     fileName: string,
     artifactType: string,
-    mimeType: string
+    mimeType: string,
+    pdfPreviewFileId?: string
   ) => void;
 
   /**
@@ -348,7 +349,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div
         className={`
           w-full transition-all duration-300
-          ${isUser ? 'pt-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-[450px]' : ''} bg-white`}
+          ${isUser ? 'pt-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-112.5' : ''} bg-white`}
         `}
       >
         {/* Centered container */}
@@ -361,14 +362,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 className={`flex gap-3 ${isUser ? `flex-row-reverse ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
               >
                 {/* Avatar and Status Badge */}
-                <div className="flex items-start gap-2 flex-shrink-0">
+                <div className="flex items-start gap-2 shrink-0">
                   {isUser ? (
                     <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                       {userInitials}
                     </div>
                   ) : (
                     <>
-                      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full overflow-hidden shrink-0">
                         <svg
                           width="28"
                           height="28"
@@ -594,7 +595,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     // User messages - with file attachments and text
                     <div
                       ref={userMessageRef}
-                      className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2 overflow-hidden break-words"
+                      className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2 overflow-hidden wrap-break-words"
                     >
                       {/* File attachments shown above text */}
                       {attachments && attachments.length > 0 && (
@@ -624,7 +625,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                                     artifact.fileId,
                                     artifact.fileName,
                                     artifact.artifactType,
-                                    artifact.mimeType
+                                    artifact.mimeType,
+                                    artifact.pdfPreview?.id
                                   )
                               : undefined
                           }
@@ -641,7 +643,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (
                     <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-                      <div className="flex-shrink-0 mt-0.5">
+                      <div className="shrink-0 mt-0.5">
                         <InfoIcon size={20} className="text-indigo-600" />
                       </div>
                       <span className="text-sm text-gray-800 leading-relaxed flex-1">
@@ -653,7 +655,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* Show timeout indicator for assistant messages */}
                   {!isUser && status === 'timeout' && (
                     <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-                      <div className="flex-shrink-0 mt-0.5">
+                      <div className="shrink-0 mt-0.5">
                         <InfoIcon size={20} className="text-indigo-600" />
                       </div>
                       <span className="text-sm text-gray-800 leading-relaxed flex-1">

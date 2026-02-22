@@ -252,6 +252,7 @@ export function useChatV2(props: UseChatV2Props) {
     artifactType?: string;
     mimeType?: string;
     downloadUrl?: string;
+    pdfDownloadUrl?: string;
   }>({ isOpen: false });
 
   const handleFileArtifactClick = useCallback(
@@ -260,6 +261,7 @@ export function useChatV2(props: UseChatV2Props) {
       fileName: string,
       artifactType: string,
       mimeType: string,
+      pdfPreviewFileId?: string,
     ) => {
       setFileArtifactPanel({
         isOpen: true,
@@ -268,17 +270,38 @@ export function useChatV2(props: UseChatV2Props) {
         artifactType,
         mimeType,
       });
-      try {
-        const { downloadUrl } = await fileUploadService.getDownloadUrl(
-          conversationId,
-          fileId,
+      // Fetch PPTX download URL and PDF preview URL in parallel
+      const [pptxResult, pdfResult] = await Promise.allSettled([
+        fileUploadService.getDownloadUrl(conversationId, fileId),
+        pdfPreviewFileId
+          ? fileUploadService.getDownloadUrl(conversationId, pdfPreviewFileId)
+          : Promise.resolve(null),
+      ]);
+      if (pptxResult.status === "rejected") {
+        console.error(
+          "[useChatV2] Failed to get artifact download URL:",
+          pptxResult.reason,
         );
-        setFileArtifactPanel((prev) =>
-          prev.fileId === fileId ? { ...prev, downloadUrl } : prev,
-        );
-      } catch (err) {
-        console.error("[useChatV2] Failed to get artifact download URL:", err);
       }
+      if (pdfResult.status === "rejected") {
+        console.error(
+          "[useChatV2] Failed to get PDF preview URL:",
+          pdfResult.reason,
+        );
+      }
+      const downloadUrl =
+        pptxResult.status === "fulfilled"
+          ? pptxResult.value.downloadUrl
+          : undefined;
+      const pdfDownloadUrl =
+        pdfResult.status === "fulfilled" && pdfResult.value
+          ? pdfResult.value.downloadUrl
+          : undefined;
+      setFileArtifactPanel((prev) =>
+        prev.fileId === fileId
+          ? { ...prev, downloadUrl, pdfDownloadUrl }
+          : prev,
+      );
     },
     [conversationId],
   );

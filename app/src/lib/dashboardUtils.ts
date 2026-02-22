@@ -399,15 +399,30 @@ function transformMessagesForV2(
       if (msg.type === "assistant" && msg.runId) {
         const artifacts = artifactMap.get(msg.runId);
         if (artifacts && artifacts.length > 0) {
+          const previewPdfs = artifacts.filter(
+            (a) => a.artifactType === "slide_preview_pdf",
+          );
+          const displayArtifacts = artifacts.filter(
+            (a) => a.artifactType !== "slide_preview_pdf",
+          );
           transformedMessages[i] = {
             ...msg,
-            artifacts: artifacts.map((a) => ({
-              fileId: a.id,
-              fileName: a.fileName,
-              artifactType: a.artifactType ?? "document",
-              mimeType: a.mimeType,
-              isPending: a.isPending,
-            })),
+            artifacts: displayArtifacts.map((a) => {
+              const stem = a.fileName.replace(/\.pptx$/i, "");
+              const pdfPreview = previewPdfs.find(
+                (p) => p.fileName === `${stem}.pdf`,
+              );
+              return {
+                fileId: a.id,
+                fileName: a.fileName,
+                artifactType: a.artifactType ?? "document",
+                mimeType: a.mimeType,
+                isPending: a.isPending,
+                pdfPreview: pdfPreview
+                  ? { id: pdfPreview.id, fileName: pdfPreview.fileName }
+                  : undefined,
+              };
+            }),
           };
         }
       }
