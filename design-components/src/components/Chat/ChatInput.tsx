@@ -289,7 +289,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
 
   return (
-    <div className="bg-white antialiased ">
+    <div className="bg-white antialiased px-2">
       <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5">
         {contextTag && (
           <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600  mb-1">

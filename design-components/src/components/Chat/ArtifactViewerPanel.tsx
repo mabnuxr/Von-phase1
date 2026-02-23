@@ -106,7 +106,6 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
           <div className="flex-1 min-w-0">
             <h2 className="text-sm font-medium text-gray-900 truncate">{fileName}</h2>
-            <p className="text-xs text-gray-500 truncate mt-0.5">{config.label}</p>
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
