@@ -342,7 +342,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     onArtifactClick?.(artifactId, toolName, artifactType, runId);
   };
 
-  const isStoppedImmidiately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
+  const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
 
   return (
     <div className="w-full group ">
@@ -425,7 +425,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   ) : !isUser ? (
                     <div>
                       {/* V2 Thinking Process - skip entirely when stopped before any events arrived */}
-                      {thinkingProcessVersion === 'v2' && !isStoppedImmidiately && (
+                      {thinkingProcessVersion === 'v2' && !isStoppedImmediately && (
                         <div className="mb-4">
                           <TimelineThinkingProcess
                             steps={timelineSteps || []}
