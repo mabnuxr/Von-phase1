@@ -342,6 +342,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     onArtifactClick?.(artifactId, toolName, artifactType, runId);
   };
 
+  const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
+
   return (
     <div className="w-full group ">
       {/* Full-width section with alternating backgrounds */}
@@ -422,8 +424,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     <MessageAreaError message={errorMessage} />
                   ) : !isUser ? (
                     <div>
-                      {/* V2 Thinking Process - always render if we have steps (even on error) */}
-                      {thinkingProcessVersion === 'v2' && (
+                      {/* V2 Thinking Process - skip entirely when stopped before any events arrived */}
+                      {thinkingProcessVersion === 'v2' && !isStoppedImmediately && (
                         <div className="mb-4">
                           <TimelineThinkingProcess
                             steps={timelineSteps || []}
