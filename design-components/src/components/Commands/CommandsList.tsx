@@ -1,158 +1,204 @@
 /**
  * CommandsList component
- * Displays quick action commands in a dropdown when user types '/'
- * Compact design with improved positioning
+ * Displays all commands in a flat dropdown when user types '/'
+ * Features: favorites pinned at top, expand-to-edit
+ * No category grouping — clean flat list with favorites pinned on top
+ *
+ * Filtering and ordering are handled by the parent (CommandsOverlay / ServerCommandsList).
+ * This component is purely presentational: it renders whatever `commands` it receives.
  */
 
-import React, { useState, useRef, useCallback } from 'react';
-import { Plus, X } from '@phosphor-icons/react';
-import type { Command, CommandCategory } from './types';
-import { CATEGORY_OPTIONS } from './types';
+import React from 'react';
+import { X, ArrowsOut, BookmarkSimple } from '@phosphor-icons/react';
+import type { Command } from './types';
+import { TertiaryIconButton, IconButton } from '../forms/buttons';
 
-interface CommandsListProps {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Strip HTML tags and truncate for prompt preview */
+function getPromptPreview(prompt: string, maxLen = 60): string {
+  let text = prompt;
+  if (text.includes('<') && text.includes('>')) {
+    text = text.replace(/<[^>]*>/g, '');
+  }
+  text = text.replace(/\s+/g, ' ').trim();
+  return text.length > maxLen ? text.slice(0, maxLen) + '…' : text;
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+interface CommandsListHeaderProps {
+  onNewCommand: () => void;
+  onManageCommands: () => void;
+  onClose?: () => void;
+}
+
+const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({
+  onNewCommand,
+  onManageCommands,
+  onClose,
+}) => (
+  <div className="px-3 py-2.5 border-b border-gray-100 bg-white">
+    <div className="flex items-center justify-between">
+      <h3 className="text-sm font-medium text-gray-900">Quick Commands</h3>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onManageCommands}
+          className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          Manage
+        </button>
+        <button
+          type="button"
+          onClick={onNewCommand}
+          className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          Create New
+        </button>
+        <TertiaryIconButton icon={<X size={14} />} title="Close" size="small" onClick={onClose} />
+      </div>
+    </div>
+  </div>
+);
+
+interface CommandItemProps {
+  command: Command;
+  onSelect: (command: Command) => void;
+  onExpand?: (command: Command) => void;
+  onToggleFavorite?: (command: Command) => void;
+}
+
+const CommandItem: React.FC<CommandItemProps> = ({
+  command,
+  onSelect,
+  onExpand,
+  onToggleFavorite,
+}) => (
+  <div
+    className="group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-gray-50"
+    onClick={() => onSelect(command)}
+  >
+    <div className="flex-1 min-w-0">
+      <div className="text-sm font-medium text-gray-900">{command.name}</div>
+      <div className="text-xs text-gray-800/80 line-clamp-1">
+        {getPromptPreview(command.prompt)}
+      </div>
+    </div>
+
+    <div className="flex items-center gap-0.5 ml-3 shrink-0">
+      <IconButton
+        icon={<ArrowsOut size={14} />}
+        onClick={(e) => {
+          e.stopPropagation();
+          onExpand?.(command);
+        }}
+        title={command.createdBy === 'me' ? 'Expand & edit' : 'View'}
+        size="small"
+      />
+      <IconButton
+        icon={
+          <BookmarkSimple
+            size={14}
+            weight={command.isFavorite ? 'fill' : 'regular'}
+            className={command.isFavorite ? 'text-black-500' : ''}
+          />
+        }
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleFavorite?.(command);
+        }}
+        title={command.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        size="small"
+      />
+    </div>
+  </div>
+);
+
+const EmptyState: React.FC = () => (
+  <div className="px-4 py-8 text-sm text-gray-500 text-center">No commands found.</div>
+);
+
+interface CommandsListFooterProps {
+  count: number;
+}
+
+const CommandsListFooter: React.FC<CommandsListFooterProps> = ({ count }) => (
+  <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-between">
+    <span className="text-xs text-gray-500">
+      {count} command{count !== 1 ? 's' : ''}
+    </span>
+    <span className="text-[10px] text-gray-400">Type to filter</span>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export interface CommandsListProps {
   commands: Command[];
+  isLoading: boolean;
   onSelectCommand: (command: Command) => void;
   onNewCommand: () => void;
   onManageCommands: () => void;
-  onClose: () => void;
-  searchQuery?: string;
-  /** Position relative to input - defaults to 'above' */
-  position?: 'above' | 'below';
+  onClose?: () => void;
+  onExpandCommand?: (command: Command) => void;
+  onToggleFavorite?: (command: Command) => void;
+  /** Max height in px for the scrollable list — computed dynamically by CommandsOverlay */
+  maxHeight?: number;
 }
 
 export const CommandsList: React.FC<CommandsListProps> = ({
   commands,
+  isLoading,
   onSelectCommand,
   onNewCommand,
   onManageCommands,
   onClose,
-  searchQuery = '',
-  position = 'above',
+  onExpandCommand,
+  onToggleFavorite,
+  maxHeight = 300,
 }) => {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Filter commands based on search query (after the '/')
-  const filteredCommands = searchQuery
-    ? commands.filter(
-        (cmd) =>
-          cmd.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          cmd.description.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : commands;
-
-  // Group commands by category
-  const groupedCommands = filteredCommands.reduce(
-    (acc, cmd) => {
-      if (!acc[cmd.category]) {
-        acc[cmd.category] = [];
-      }
-      acc[cmd.category].push(cmd);
-      return acc;
-    },
-    {} as Record<CommandCategory, Command[]>
-  );
-
-  // Sort categories in preferred order
-  const sortedCategories = CATEGORY_OPTIONS.filter((cat) => groupedCommands[cat]?.length > 0);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
-  // Position classes based on prop
-  const positionClasses = position === 'above' ? 'bottom-full mb-1' : 'top-full mt-1';
+  if (isLoading && commands.length === 0) {
+    return (
+      <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
+        Loading commands…
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={containerRef}
-      className={`absolute ${positionClasses} left-0 w-[360px] max-h-[320px] bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden z-50`}
-      onKeyDown={handleKeyDown}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-        <span className="text-xs font-semibold text-gray-900">Quick Commands</span>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-0.5"
-          aria-label="Close"
-        >
-          <X size={14} />
-        </button>
-      </div>
+    <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
+      <CommandsListHeader
+        onNewCommand={onNewCommand}
+        onManageCommands={onManageCommands}
+        onClose={onClose}
+      />
 
-      {/* Commands List */}
-      <div className="overflow-y-auto max-h-[220px]">
-        {sortedCategories.length === 0 ? (
-          <div className="px-3 py-4 text-center text-xs text-gray-500">
-            No commands found{searchQuery ? ` for "${searchQuery}"` : ''}
-          </div>
+      <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
+        {commands.length === 0 ? (
+          <EmptyState />
         ) : (
-          sortedCategories.map((category) => (
-            <div key={category}>
-              {/* Category Header */}
-              <div className="px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
-                {category}
-              </div>
-
-              {/* Category Commands */}
-              {groupedCommands[category].map((command) => (
-                <button
-                  key={command.id}
-                  onClick={() => onSelectCommand(command)}
-                  onMouseEnter={() => setHoveredId(command.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className={`w-full px-3 py-2 text-left transition-colors cursor-pointer ${
-                    hoveredId === command.id ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  <div
-                    className={`text-sm font-medium ${
-                      hoveredId === command.id ? 'text-gray-900' : 'text-gray-900'
-                    }`}
-                  >
-                    {command.name}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                    {command.description}
-                  </div>
-                </button>
-              ))}
-            </div>
+          commands.map((command) => (
+            <CommandItem
+              key={command.id}
+              command={command}
+              onSelect={onSelectCommand}
+              onExpand={onExpandCommand}
+              onToggleFavorite={onToggleFavorite}
+            />
           ))
         )}
       </div>
 
-      {/* Footer Actions */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 bg-gray-50">
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={onNewCommand}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <Plus size={12} weight="bold" />
-            <span>New</span>
-          </button>
-          <button
-            onClick={onManageCommands}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-          >
-            <span>Manage</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-1 text-[10px] text-gray-400">
-          <span>Press</span>
-          <kbd className="px-1 py-0.5 bg-white border border-gray-200 rounded text-gray-500 font-mono text-[10px]">
-            /
-          </kbd>
-          <span>to open</span>
-        </div>
-      </div>
+      <CommandsListFooter count={commands.length} />
     </div>
   );
 };
+
+export default CommandsList;

@@ -38,21 +38,60 @@ export interface FillDocConfig {
   templateName?: string;
 }
 
+export interface CommandDataSources {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  extension: string;
+  category: string;
+  s3Key: string;
+}
+
+/** UI-friendly attachment shape (populated by API mapping) */
+export interface CommandAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  extension: string;
+  category: string;
+  previewUrl?: string;
+  s3Key?: string;
+  /** Tracks eager-upload state for newly added files */
+  uploadStatus?: 'uploading' | 'uploaded' | 'error';
+}
+
+/**
+ * Generate a MongoDB-compatible 24-char hex ObjectId on the client.
+ * Safe to use as a pre-generated command ID when creating a new command.
+ */
+export function generateCommandId(): string {
+  const timestamp = Math.floor(Date.now() / 1000)
+    .toString(16)
+    .padStart(8, '0');
+  const random = Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return timestamp + random;
+}
+
 export interface Command {
   id: string;
   name: string;
-  description: string;
-  category: CommandCategory;
-  dataSources: DataSource[];
-  dataSourceConfigs?: Record<DataSource, DataSourceConfig>;
-  actionType: ActionType;
-  // Action-specific configurations
-  salesforceFields?: SalesforceFieldConfig[];
-  fillDocConfig?: FillDocConfig;
   prompt: string;
-  isPublic: boolean;
+  prefillText?: string;
+  dataSources?: CommandAttachment[];
   createdAt: string;
   updatedAt: string;
+  // Fields populated when mapped from the API response
+  description?: string;
+  sharingScope?: 'private' | 'org';
+  isFavorite?: boolean;
+  usageCount?: number;
+  lastUsedAt?: string;
+  createdBy?: 'me' | 'team';
+  actionType?: string;
 }
 
 export interface CommandsState {
@@ -81,6 +120,21 @@ export const FILL_DOC_TYPE_LABELS: Record<FillDocType, { label: string; descript
 
 export const CATEGORY_OPTIONS: CommandCategory[] = ['Sales', 'Research', 'Analysis', 'Custom'];
 
+export type CommandSortOption = 'recently_used' | 'most_used' | 'created_by_me';
+
+export const SORT_OPTIONS: { value: CommandSortOption; label: string }[] = [
+  { value: 'recently_used', label: 'Recently used' },
+  { value: 'most_used', label: 'Most used' },
+  { value: 'created_by_me', label: 'Created by me' },
+];
+
+export type SharingScope = 'private' | 'org';
+
+export const SHARING_SCOPE_LABELS: Record<SharingScope, string> = {
+  private: 'Private',
+  org: 'Org-wide',
+};
+
 /**
  * Internal docs folder options
  */
@@ -96,26 +150,18 @@ export const DEFAULT_COMMANDS: Command[] = [
   {
     id: 'default-follow-up-email',
     name: 'Follow-up email',
-    description: 'Write a professional follow-up email for your contact',
-    category: 'Sales',
-    dataSources: ['emails', 'sfdc'],
-    actionType: 'gmail_draft',
     prompt:
       'Write a professional follow-up email based on the recent communication history and deal context.',
-    isPublic: true,
+    sharingScope: 'org',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: 'default-deal-summary',
     name: 'Deal summary',
-    description: 'Comprehensive summary of a deal with status and next steps',
-    category: 'Sales',
-    dataSources: ['emails', 'calls', 'sfdc'],
-    actionType: 'text_output',
     prompt:
       'Provide a comprehensive summary of this deal including current status, key stakeholders, recent activities, and recommended next steps.',
-    isPublic: true,
+    sharingScope: 'org',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },

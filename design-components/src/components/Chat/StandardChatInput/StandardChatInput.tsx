@@ -143,6 +143,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // File error props
       fileErrorMessage,
       onDismissFileError,
+      // Command chip
+      commandChip,
     },
     ref
   ) => {
@@ -386,6 +388,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
               message={fileErrorMessage || ''}
               onDismiss={onDismissFileError || (() => {})}
             />
+
+            {/* Command chip - shown above the input when a command is selected */}
+            {commandChip && !activePopover && (
+              <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+                {commandChip}
+              </div>
+            )}
 
             {/* Main input container with gradient border */}
             <div

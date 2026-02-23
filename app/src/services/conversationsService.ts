@@ -7,6 +7,7 @@ import type {
   PaginatedMessagesResponse,
   CreateConversationResponse,
   CreateMessageResponse,
+  MessageCommand,
 } from "../types/conversation";
 import type {
   ChatSidebarResponse,
@@ -149,10 +150,14 @@ class ConversationsService {
     content: string,
     messageType: "text" | "json" | "markdown" = "text",
     fileAttachments?: MessageFileAttachment[],
+    command?: MessageCommand,
   ): Promise<CreateMessageResponse> {
     const body: Record<string, unknown> = { content, messageType };
     if (fileAttachments?.length) {
       body.fileAttachments = fileAttachments;
+    }
+    if (command) {
+      body.command = command;
     }
     return apiClient.post<CreateMessageResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages`,

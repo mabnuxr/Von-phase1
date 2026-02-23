@@ -173,6 +173,11 @@ export interface Message {
    * Whether the v2 final response is still streaming
    */
   v2FinalResponseStreaming?: boolean;
+  /**
+   * The slash command that was active when this message was sent.
+   * Populated for user messages when the user selected a command before sending.
+   */
+  command?: Command;
 }
 
 export interface ChatSession {
@@ -1187,10 +1192,46 @@ export interface ChatProps {
   /**
    * Enable slash commands feature
    * When enabled, typing '/' in the input will show a commands popover
-   * Commands are stored in localStorage and can be managed through UI
    * @default false
    */
   enableCommands?: boolean;
+
+  /**
+   * Prefetched commands list — fetch these when the chat input mounts so
+   * the "/" dropdown appears instantly without a loading state.
+   */
+  commands?: Command[];
+
+  /** True while the initial commands fetch is in-flight */
+  isLoadingCommands?: boolean;
+
+  /**
+   * Called for both create and edit.
+   * `editingId`  — set when updating; omit to create.
+   * `dataSources` — already-uploaded attachments.
+   * `commandId`  — pre-generated ObjectId used for presigning; pass as `id` on create.
+   */
+  onSaveCommand?: (
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    editingId?: string,
+    dataSources?: import('../Commands/types').CommandAttachment[],
+    commandId?: string
+  ) => void;
+
+  /** Called when a command is deleted from the manage drawer */
+  onDeleteCommand?: (id: string) => void;
+
+  /** True while a save/delete mutation is in-flight */
+  isSavingCommand?: boolean;
+
+  /** Called when the bookmark/favorite icon is toggled on a command */
+  onToggleFavorite?: (command: Command) => void;
+
+  /** Fetches a presigned download URL for a command's already-uploaded data source file */
+  onRequestFilePreviewUrl?: (commandId: string, fileId: string) => Promise<string>;
+
+  /** Eagerly uploads a file when the user picks it in the command drawer */
+  onUploadFile?: (commandId: string, file: File, attachment: import('../Commands/types').CommandAttachment) => Promise<{ fileId: string; s3Key: string }>;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)

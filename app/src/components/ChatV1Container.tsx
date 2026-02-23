@@ -19,6 +19,7 @@ import { useChatV1 } from "../hooks/useChatV1";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ArtifactPaneContainer } from "./ArtifactPaneContainer";
 import { reportRenderTiming } from "../lib/datadog";
+import { useCommandsPanel } from "../hooks/useCommandsPanel";
 
 export interface ChatV1ContainerProps {
   conversationId: string;
@@ -109,6 +110,17 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isLoading: isFetchingNextMessagePage,
   });
 
+  const {
+    commands,
+    isLoadingCommands,
+    isSavingCommand,
+    handleSaveCommand,
+    handleUploadFile,
+    handleRequestFilePreviewUrl,
+    handleDeleteCommand,
+    handleToggleFavorite,
+  } = useCommandsPanel(user?.id);
+
   return (
     <Profiler id="ChatV1Container" onRender={reportRenderTiming}>
       <Chat
@@ -138,6 +150,14 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onExamplePromptDisabledClick={onDisabledInteraction}
         onInputWhileDisabled={onDisabledInteraction}
         enableCommands={isSlashCommandsEnabled}
+        commands={commands}
+        isLoadingCommands={isLoadingCommands}
+        onSaveCommand={handleSaveCommand}
+        onDeleteCommand={handleDeleteCommand}
+        isSavingCommand={isSavingCommand}
+        onToggleFavorite={handleToggleFavorite}
+        onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
+        onUploadFile={handleUploadFile}
         enableActions={isActionsEnabled}
         salesforceInstanceUrl={salesforceInstanceUrl}
         enableDeepLinks={isDeepLinksEnabled}
