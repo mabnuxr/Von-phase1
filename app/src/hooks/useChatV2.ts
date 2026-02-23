@@ -81,10 +81,10 @@ export function useChatV2(props: UseChatV2Props) {
   const chatType: ConversationMode = currentConversation.mode || "auto";
 
   // Deep research mode is active if:
-  // 1. Agent is locked to deep-research (has messages), OR
-  // 2. Conversation mode is deep-research (backend confirmed)
+  // 1. Agent is locked to dashboard-builder (has messages), OR
+  // 2. Conversation mode is dashboard-builder (backend confirmed)
   const isDeepResearchMode =
-    lockedAgentMode === "deep-research" || chatType === "deep-research";
+    lockedAgentMode === "dashboard-builder" || chatType === "dashboard-builder";
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(

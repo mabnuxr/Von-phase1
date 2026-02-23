@@ -310,7 +310,7 @@ export const DeepResearchConversation: React.FC<
           disableSubmit={disableSubmit}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
-          lockedAgentMode="deep-research"
+          lockedAgentMode="dashboard-builder"
           showPlusMenu={showPlusMenu}
         />
       )}

@@ -1285,7 +1285,7 @@ export interface ChatProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+  lockedAgentMode?: AgentMode;
 
   /**
    * Whether to show the plus menu button (with agents and upload options)

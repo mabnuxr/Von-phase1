@@ -44,8 +44,9 @@ export interface ActivePopover {
 
 /**
  * Agent mode type for agent selection
+ * Unified naming to match backend ConversationMode
  */
-export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
+export type AgentMode = 'auto' | 'dashboard-builder';
 
 /**
  * Ref handle for StandardChatInput, exposing imperative methods

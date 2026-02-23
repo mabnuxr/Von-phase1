@@ -6,7 +6,7 @@
  *
  * Chat-type-aware thresholds:
  * - "auto" (regular agent): 10s stall threshold
- * - "deep_research": 30s stall threshold
+ * - "dashboard-builder": 30s stall threshold
  * - default fallback: 45s (original behavior)
  *
  * On stall detection:
@@ -27,7 +27,7 @@ import {
 } from "../utils/transformAguiToTimelineSteps";
 import {
   RECONCILIATION_STALL_THRESHOLD_AUTO_MS,
-  RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS,
+  RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS,
   RECONCILIATION_STALL_THRESHOLD_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
   STREAM_TIMEOUT_MS,
@@ -57,8 +57,8 @@ function getStallThreshold(chatType: ConversationMode): number {
   switch (chatType) {
     case "auto":
       return RECONCILIATION_STALL_THRESHOLD_AUTO_MS;
-    case "deep_research":
-      return RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS;
+    case "dashboard-builder":
+      return RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS;
     default:
       return RECONCILIATION_STALL_THRESHOLD_MS;
   }

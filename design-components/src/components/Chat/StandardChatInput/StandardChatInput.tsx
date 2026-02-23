@@ -221,18 +221,18 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                           Auto
                         </TransparentButton>
 
-                        {/* Deep Research */}
+                        {/* Dashboard Builder */}
                         <TransparentButton
                           icon={<AtomIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect('deep-research')}
-                          active={selectedAgentMode === 'deep-research'}
+                          onClick={() => handleAgentSelect('dashboard-builder')}
+                          active={selectedAgentMode === 'dashboard-builder'}
                           rightContent={
-                            selectedAgentMode === 'deep-research' ? (
+                            selectedAgentMode === 'dashboard-builder' ? (
                               <CheckIcon size={14} weight="bold" className="text-green-600" />
                             ) : undefined
                           }
                         >
-                          Deep Research
+                          Dashboard Builder
                         </TransparentButton>
                       </div>
                     </motion.div>
@@ -495,10 +495,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       switch (mode) {
         case 'auto':
           return { label: 'Auto', icon: RobotIcon };
-        case 'build-dashboard':
-          return { label: 'Build Dashboard', icon: ChartBarIcon };
-        case 'deep-research':
-          return { label: 'Deep Research', icon: null }; // Uses green dot instead of icon
+        case 'dashboard-builder':
+          return { label: 'Dashboard Builder', icon: null }; // Uses green dot instead of icon
       }
     };
 
@@ -637,7 +635,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             exit={{ opacity: 0, scale: 0.9 }}
                             transition={{ duration: 0.15 }}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                              selectedAgentMode === 'deep-research'
+                              selectedAgentMode === 'dashboard-builder'
                                 ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
                                 : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
                             }`}
@@ -656,13 +654,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 size={14}
                                 weight="bold"
                                 className={
-                                  selectedAgentMode === 'deep-research'
+                                  selectedAgentMode === 'dashboard-builder'
                                     ? 'text-green-600'
                                     : 'text-gray-800'
                                 }
                               />
-                            ) : selectedAgentMode === 'deep-research' ? (
-                              // Green dot indicator for Deep Research
+                            ) : selectedAgentMode === 'dashboard-builder' ? (
+                              // Green dot indicator for Dashboard Builder
                               <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                             ) : (
                               (() => {

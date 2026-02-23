@@ -1,11 +1,10 @@
 /**
  * Conversation mode values supported by the backend API
- * Maps to frontend AgentMode:
- *   - "auto" -> "auto"
- *   - "deep_research" -> "deep-research"
- *   - "dashboard_builder" -> "build-dashboard"
+ * Uses the same values as frontend AgentMode for consistency:
+ *   - "auto" -> auto mode
+ *   - "dashboard-builder" -> dashboard builder mode (triggers research workflows)
  */
-export type ConversationMode = "auto" | "deep_research" | "dashboard_builder";
+export type ConversationMode = "auto" | "dashboard-builder";
 
 /**
  * Conversation entity from backend
