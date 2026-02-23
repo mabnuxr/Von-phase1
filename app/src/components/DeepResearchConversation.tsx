@@ -11,7 +11,7 @@
  * This component is rendered instead of Chat when in deep research mode.
  */
 
-import React, { useCallback, useMemo, useState, useRef } from "react";
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import {
   DeepResearchChat,
   DeepResearchNotificationBar,
@@ -162,6 +162,14 @@ export const DeepResearchConversation: React.FC<
   // Can open drawers when either sample run or full analysis is complete
   const canOpenDrawers = isSampleRunComplete || isFullAnalysisComplete;
 
+  // Reset hasSkipped when a new plan is generated
+  // This ensures approval buttons show for the new plan after user rejects previous plan
+  useEffect(() => {
+    if (isSampleRunComplete && lastAssistantRunId) {
+      setHasSkipped(false);
+    }
+  }, [lastAssistantRunId, isSampleRunComplete]);
+
   // Fetch artifact summaries for both drawers when either sample run or full analysis completes
   const {
     dataTablesInfo: vonIqDataTablesInfo,
@@ -185,11 +193,10 @@ export const DeepResearchConversation: React.FC<
     enabled: canOpenDrawers,
   });
 
-  // Handle DataTablesCard click - opens DataTables drawer (during approval flow)
+  // Handle DataTablesCard click - opens Transparency drawer to show all artifacts
   const handleDataTablesClick = useCallback(() => {
     if (lastAssistantRunId && isSampleRunComplete) {
-      setDataTablesRunId(lastAssistantRunId);
-      setIsDataTablesOpen(true);
+      setIsTransparencyDrawerOpen(true);
     }
   }, [lastAssistantRunId, isSampleRunComplete]);
 

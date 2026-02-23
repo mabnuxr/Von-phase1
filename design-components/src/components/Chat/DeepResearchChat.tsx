@@ -248,7 +248,14 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         !hasSkipped
                           ? {
                               label: 'Skip',
-                              onClick: () => onSkip?.(),
+                              onClick: () => {
+                                // Call onReject to update backend phase to "plan-rejected"
+                                if (approvalMessage?.messageId && approvalMessage?.runId) {
+                                  onReject?.(approvalMessage.messageId, approvalMessage.runId);
+                                }
+                                // Also call onSkip to hide buttons and focus input
+                                onSkip?.();
+                              },
                               disabled: isDeepResearchRunning,
                             }
                           : undefined

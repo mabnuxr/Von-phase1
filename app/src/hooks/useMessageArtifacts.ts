@@ -301,19 +301,25 @@ export function useDeepResearchArtifacts(
     [listQuery.data?.artifacts],
   );
 
-  // Calculate total records from VonIQ artifacts - memoized to prevent new object reference
-  const dataTablesInfo = useMemo(
-    () =>
-      vonIqArtifacts.length > 0
-        ? {
-            tableCount: vonIqArtifacts.length,
-            // processedRecords and totalRecords will be populated when we fetch full content
-            processedRecords: undefined as number | undefined,
-            totalRecords: undefined as number | undefined,
-          }
-        : null,
-    [vonIqArtifacts.length],
-  );
+  // Calculate artifact count from artifacts that will be shown in drawer
+  // Excludes: e2b (code execution), rag (calls/emails), memory
+  const dataTablesInfo = useMemo(() => {
+    const allArtifacts = listQuery.data?.artifacts ?? [];
+    const displayableArtifacts = allArtifacts.filter(
+      (s) =>
+        s.category !== "e2b" &&
+        s.category !== "rag" &&
+        s.category !== "memory"
+    );
+    return displayableArtifacts.length > 0
+      ? {
+          tableCount: displayableArtifacts.length,
+          // processedRecords and totalRecords will be populated when we fetch full content
+          processedRecords: undefined as number | undefined,
+          totalRecords: undefined as number | undefined,
+        }
+      : null;
+  }, [listQuery.data?.artifacts]);
 
   // Memoize allArtifacts to prevent new array reference
   const allArtifacts = useMemo(

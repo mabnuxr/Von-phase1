@@ -96,11 +96,8 @@ function transformArtifactsToQueries(
     if (loadedArtifact) {
       const result = transformSingleArtifact(loadedArtifact);
       if (result) {
-        // Successfully transformed — only show if it has rows
-        if (result.rows.length > 0) {
-          results.push(result);
-        }
-        // Zero rows: skip tab entirely (no data to show)
+        // Successfully transformed — show even if 0 rows to match artifact count
+        results.push(result);
         continue;
       }
       // result is null (unexpected schema, missing columns) — fall through to placeholder
@@ -192,8 +189,7 @@ export function useTransparencyDrawer({
           s.category !== "rag" &&
           s.category !== "memory" &&
           s.category?.toLowerCase() !== "iq" &&
-          !MEMORY_TOOL_NAMES.has(s.tool_name) &&
-          (s.row_count ?? 0) > 0,
+          !MEMORY_TOOL_NAMES.has(s.tool_name),
       ),
     [artifactSummaries],
   );
