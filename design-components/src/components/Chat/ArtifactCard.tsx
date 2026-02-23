@@ -28,6 +28,7 @@ export interface FileArtifact {
   artifactType: string;
   mimeType: string;
   isPending?: boolean;
+  pdfPreview?: { id: string; fileName: string };
 }
 
 export interface ArtifactCardProps {
@@ -71,7 +72,7 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
   if (artifact.isPending) {
     return (
       <div className="border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
-        <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-100" />
+        <div className="shrink-0 w-9 h-9 rounded-lg bg-gray-100" />
         <div className="flex-1 min-w-0 space-y-2">
           <div className="h-3.5 bg-gray-100 rounded w-3/4" />
           <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -98,7 +99,7 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
       }
     >
       {/* Icon */}
-      <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
+      <div className="shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
         {config.icon}
       </div>
 
@@ -109,7 +110,7 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({ artifact, onOpen, on
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <Tooltip content="Open in Drive (Coming soon)" placement="top">
           <button
             disabled

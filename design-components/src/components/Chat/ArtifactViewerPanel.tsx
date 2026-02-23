@@ -36,6 +36,7 @@ export interface ArtifactViewerPanelProps {
   artifactType: string;
   mimeType?: string;
   downloadUrl?: string;
+  pdfDownloadUrl?: string;
   onClose: () => void;
   onDownload?: () => void;
 }
@@ -73,11 +74,12 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
   artifactType,
   mimeType,
   downloadUrl,
+  pdfDownloadUrl,
   onClose,
   onDownload,
 }) => {
   const config = TYPE_CONFIG[artifactType] ?? DEFAULT_CONFIG;
-  const content = useArtifactContent(downloadUrl, mimeType);
+  const content = useArtifactContent(downloadUrl, mimeType, pdfDownloadUrl);
 
   const { width, handleProps } = useHorizontalResize({
     initialWidth: 480,
@@ -87,20 +89,20 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
   });
 
   return (
-    <div className="h-full flex-shrink-0 relative" style={{ width: `${width}px` }}>
+    <div className="h-full shrink-0 relative" style={{ width: `${width}px` }}>
       {/* Resize handle — sits in the gap between chat and panel */}
       <div
         {...handleProps}
         className="absolute -left-2 top-0 bottom-0 w-4 z-10 cursor-ew-resize group"
       >
-        <div className="absolute left-[3px] top-2 bottom-2 w-[3px] rounded-full bg-transparent group-hover:bg-gray-300 group-active:bg-blue-400 transition-colors" />
+        <div className="absolute left-0.75 top-2 bottom-2 w-0.75 rounded-full bg-transparent group-hover:bg-gray-300 group-active:bg-blue-400 transition-colors" />
       </div>
 
       {/* Panel */}
       <div className="h-full w-full flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden">
         {/* Title bar — styled to match ArtifactCard */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 flex-shrink-0">
-          <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 shrink-0">
+          <div className="shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
             {config.icon}
           </div>
 
@@ -108,7 +110,7 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
             <h2 className="text-sm font-medium text-gray-900 truncate">{fileName}</h2>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <Tooltip content="Open in Drive (Coming soon)" placement="top">
               <button
                 disabled
