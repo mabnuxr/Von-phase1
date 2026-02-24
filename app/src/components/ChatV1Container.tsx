@@ -41,6 +41,7 @@ export interface ChatV1ContainerProps {
   isFileUploadEnabled: boolean;
   syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
   banner: React.ReactNode;
+  onCollapseSidebar: () => void;
 }
 
 export function ChatV1Container(props: ChatV1ContainerProps) {

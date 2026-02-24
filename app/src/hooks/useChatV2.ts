@@ -59,6 +59,7 @@ export interface UseChatV2Props {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  onCollapseSidebar: () => void;
 }
 
 export function useChatV2(props: UseChatV2Props) {
@@ -71,6 +72,7 @@ export function useChatV2(props: UseChatV2Props) {
     lockedAgentMode,
     isAgentLocked,
     syncAgentModeToBackend,
+    onCollapseSidebar,
   } = props;
 
   const { showToast } = useToast();
@@ -268,6 +270,7 @@ export function useChatV2(props: UseChatV2Props) {
       mimeType: string,
       pdfPreviewFileId?: string,
     ) => {
+      onCollapseSidebar();
       setFileArtifactPanel({
         isOpen: true,
         fileId,
@@ -308,7 +311,7 @@ export function useChatV2(props: UseChatV2Props) {
           : prev,
       );
     },
-    [conversationId],
+    [conversationId, onCollapseSidebar],
   );
 
   const closeFileArtifactPanel = useCallback(() => {
