@@ -203,7 +203,13 @@ export function useBookmarkQuickCommand() {
         : quickCommandsService.unbookmark(id),
     onMutate: async ({ id, bookmark }) => {
       await queryClient.cancelQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
-      const previous = queryClient.getQueryData(QUICK_COMMANDS_QUERY_KEY);
+
+      // Snapshot every cache entry whose key starts with QUICK_COMMANDS_QUERY_KEY
+      // (e.g. ["quick-commands", undefined], ["quick-commands", "infinite", ...])
+      const previousEntries = queryClient.getQueriesData<{ data: Command[] }>({
+        queryKey: QUICK_COMMANDS_QUERY_KEY,
+      });
+
       queryClient.setQueriesData<{ data: Command[] }>(
         { queryKey: QUICK_COMMANDS_QUERY_KEY },
         (old) => {
@@ -216,12 +222,14 @@ export function useBookmarkQuickCommand() {
           };
         },
       );
-      return { previous };
+
+      return { previousEntries };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(QUICK_COMMANDS_QUERY_KEY, context.previous);
-      }
+      // Restore each cache entry to its pre-mutation snapshot
+      context?.previousEntries?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });

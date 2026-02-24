@@ -6,7 +6,7 @@
  * Reuses the same viewers as ArtifactViewerPanel (PDF, DOCX, XLSX, text).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -169,6 +169,14 @@ export const CommandFilesPreviewPanel: React.FC<CommandFilesPreviewPanelProps> =
   const [activeIndex, setActiveIndex] = useState(() =>
     Math.min(initialIndex, Math.max(0, files.length - 1))
   );
+
+  // Sync to the newly clicked file chip whenever initialIndex changes from the parent.
+  // Using initialIndex (not files.length) as the sole dependency intentionally:
+  // the user's own tab selections update activeIndex via setActiveIndex and must
+  // not be overridden by an unrelated files.length change.
+  useEffect(() => {
+    setActiveIndex(Math.min(initialIndex, Math.max(0, files.length - 1)));
+  }, [initialIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeEntry = files[activeIndex];
 

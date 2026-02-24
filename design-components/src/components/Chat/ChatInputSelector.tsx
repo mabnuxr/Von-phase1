@@ -233,15 +233,26 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onChange: handleChange,
     };
 
-    // For ChatInput, onSend doesn't use a third param
-    const baseOnSend = onSend as
-      | ((message: string, attachments?: FileAttachment[]) => void)
-      | undefined;
+    // Wrap onSend for ChatInput so that a selected command is forwarded via options,
+    // even though ChatInput itself only accepts (message, attachments).
+    const chatInputOnSend: ((message: string, attachments?: FileAttachment[]) => void) | undefined =
+      onSend
+        ? (message: string, attachments?: FileAttachment[]) => {
+            if (enableCommands && selectedCommand) {
+              const plainMessage = getPlainText(message).trim();
+              onSend(plainMessage, attachments, { command: selectedCommand });
+              onChange?.('');
+              return;
+            }
+            onSend(message, attachments);
+            if (enableCommands) setShowCommandsList(false);
+          }
+        : undefined;
 
     let chatInput = (
       <ChatInput
         {...baseCommonProps}
-        onSend={baseOnSend}
+        onSend={chatInputOnSend}
         onDisabledInput={onDisabledInput}
         hideDisclaimer={hideDisclaimer}
         enableFileUpload={enableFileUpload}
@@ -252,6 +263,11 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         mode={mode}
         onModeChange={onModeChange}
         autoFocus={autoFocus}
+        commandChip={
+          enableCommands && selectedCommand ? (
+            <CommandChip command={selectedCommand} onRemove={() => setSelectedCommand(null)} />
+          ) : undefined
+        }
       />
     );
 
