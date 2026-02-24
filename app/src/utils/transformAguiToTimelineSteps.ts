@@ -273,6 +273,86 @@ function stringifyAnalyticsValue(value: unknown): string {
 }
 
 /**
+ * Normalizes Tooling API fields for display.
+ * Tooling API SObject operations send { FullName, Metadata: {...} } where Metadata
+ * is a nested object. This flattens Metadata into readable key-value pairs and
+ * drops FullName (redundant with record_name shown in the card header).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeToolingFields(
+  fields: Record<string, any> | undefined,
+): Record<string, string | number | boolean | null> | undefined {
+  if (
+    !fields ||
+    typeof fields.Metadata !== "object" ||
+    fields.Metadata === null
+  ) {
+    return fields as
+      | Record<string, string | number | boolean | null>
+      | undefined;
+  }
+
+  const metadata = fields.Metadata as Record<string, unknown>;
+  const result: Record<string, string | number | boolean | null> = {};
+
+  // Known Metadata keys → human-readable labels
+  const METADATA_LABELS: Record<string, string> = {
+    type: "Field Type",
+    label: "Label",
+    description: "Description",
+    length: "Length",
+    precision: "Precision",
+    scale: "Scale",
+    required: "Required",
+    unique: "Unique",
+    externalId: "External ID",
+    defaultValue: "Default Value",
+    inlineHelpText: "Help Text",
+    formula: "Formula",
+    errorMessage: "Error Message",
+    errorConditionFormula: "Error Condition",
+    active: "Active",
+  };
+
+  for (const [key, label] of Object.entries(METADATA_LABELS)) {
+    if (metadata[key] != null) {
+      result[label] =
+        typeof metadata[key] === "boolean"
+          ? metadata[key]
+          : String(metadata[key]);
+    }
+  }
+
+  // Flatten picklist valueSet into a readable summary
+  if (metadata.valueSet && typeof metadata.valueSet === "object") {
+    const valueSet = metadata.valueSet as Record<string, unknown>;
+    const def = valueSet.valueSetDefinition as
+      | Record<string, unknown>
+      | undefined;
+    if (def?.value && Array.isArray(def.value)) {
+      const values = def.value.map(
+        (v: { label?: string; fullName?: string; default?: boolean }) => {
+          const name = v.label || v.fullName || "?";
+          return v.default ? `${name} (default)` : name;
+        },
+      );
+      result["Picklist Values"] = values.join(", ");
+    }
+  }
+
+  // Include non-Metadata fields except FullName (redundant with record_name)
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === "Metadata" || key === "FullName") continue;
+    result[key] =
+      typeof value === "object" && value !== null
+        ? JSON.stringify(value)
+        : (value as string | number | boolean | null);
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
  * Normalizes analytics operations into the standard approval card shape.
  * Deterministically builds display data (fields/changes) from the known
  * flat param structure — operation shapes are fixed, no agent formatting needed.
@@ -567,7 +647,7 @@ function detectApprovalFromArgs(
             sobject_type: op.sobject_type || "Record",
             record_name: op.record_name || "Unknown",
             record_id: op.record_id,
-            fields: op.fields,
+            fields: normalizeToolingFields(op.fields),
             changes: normalizeChanges(op.changes),
           }),
         )
@@ -590,8 +670,8 @@ function detectApprovalFromArgs(
             const changes =
               opChanges && opChanges.length > 0
                 ? opChanges
-                : op.fields
-                  ? Object.entries(op.fields).map(([field, value]) => ({
+                : normalizeToolingFields(op.fields)
+                  ? Object.entries(normalizeToolingFields(op.fields)!).map(([field, value]) => ({
                       field,
                       after: value,
                     }))
@@ -626,7 +706,7 @@ function detectApprovalFromArgs(
             ),
           )
         : normalizeChanges(firstOp?.changes),
-      fields: !isBulk ? firstOp?.fields : undefined,
+      fields: !isBulk ? normalizeToolingFields(firstOp?.fields) : undefined,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
       bulkRecords: sfBulkRecords,

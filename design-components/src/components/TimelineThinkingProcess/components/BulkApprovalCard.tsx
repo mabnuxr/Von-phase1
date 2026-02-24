@@ -25,19 +25,19 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({ records, approval
       >
         <div className="flex items-center gap-2 min-w-0">
           {isExpanded ? (
-            <CaretDownIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+            <CaretDownIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
           ) : (
-            <CaretRightIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+            <CaretRightIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
           )}
           {isApproved ? (
-            <CheckCircleIcon size={14} weight="fill" className="text-emerald-600 flex-shrink-0" />
+            <CheckCircleIcon size={14} weight="fill" className="text-emerald-600 shrink-0" />
           ) : (
-            <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
+            <XCircleIcon size={14} weight="fill" className="text-red-500 shrink-0" />
           )}
           <span className="text-sm text-gray-900 truncate">{approval.label}</span>
         </div>
         <span
-          className={`text-xs flex-shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
+          className={`text-xs shrink-0 ml-2 ${isApproved ? 'text-emerald-700' : 'text-red-600'}`}
         >
           {isApproved ? 'Approved' : 'Rejected'}
         </span>
@@ -45,7 +45,7 @@ const CompletedBulkCard: React.FC<CompletedBulkCardProps> = ({ records, approval
 
       {/* Expanded content - Show all records */}
       {isExpanded && records.length > 0 && (
-        <div className="border-t border-gray-100 max-h-[400px] overflow-y-auto px-3 py-2 space-y-2">
+        <div className="border-t border-gray-100 max-h-100 overflow-y-auto px-3 py-2 space-y-2">
           {records.map((record) => {
             const recordApproval: ApprovalData = {
               toolCallId: record.recordId,
@@ -153,7 +153,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
         </div>
 
         {/* Scrollable stacked cards - reusing CompactApprovalCard */}
-        <div className="max-h-[400px] overflow-y-auto space-y-2">
+        <div className="max-h-100 overflow-y-auto space-y-2">
           {records.map((record, idx) => {
             const isApproved = approvedRecordIds.has(record.recordId);
             const isRejected = rejectedRecordIds.has(record.recordId);
