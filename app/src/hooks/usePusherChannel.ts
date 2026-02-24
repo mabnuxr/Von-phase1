@@ -80,23 +80,16 @@ export function usePusherChannel(
           forceTLS: true,
           activityTimeout: PUSHER_ACTIVITY_TIMEOUT_S * 1000,
           pongTimeout: PUSHER_PONG_TIMEOUT_S * 1000,
-          // Dynamic authorizer: reads fresh token on EACH auth request.
-          // This fixes "session timed out" when the token refreshes after
-          // the Pusher instance was created.
+          // Dynamic authorizer: uses HttpOnly cookies for auth.
+          // Backend middleware reads access_token from cookie automatically.
           authorizer: (channel) => ({
             authorize: (socketId, callback) => {
-              const token = localStorage.getItem("access_token");
-              if (!token || token.trim() === "") {
-                callback(new Error("No access token available"), null);
-                return;
-              }
-
               fetch(appConfig.pusherAuthEndpoint, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded",
-                  Authorization: `Bearer ${token.trim()}`,
                 },
+                credentials: "include", // Send HttpOnly cookies
                 body: new URLSearchParams({
                   socket_id: socketId,
                   channel_name: channel.name,
