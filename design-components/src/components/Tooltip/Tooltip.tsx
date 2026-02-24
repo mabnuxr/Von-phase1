@@ -63,8 +63,6 @@ export const Tooltip: React.FC<TooltipProps> = ({
     if (visible) updatePosition();
   }, [visible, updatePosition]);
 
-  if (!enabled) return <>{children}</>;
-
   return (
     <>
       <div
@@ -77,7 +75,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
       >
         {children}
       </div>
-      {visible &&
+      {enabled &&
+        visible &&
         createPortal(
           <div
             ref={tooltipRef}
