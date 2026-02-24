@@ -12,7 +12,7 @@ import {
 import type { BuildMode } from '../DashboardBuilder';
 import type { AgentMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
-import type { Command } from '../Commands';
+import type { Command, CommandAttachment } from '../Commands';
 
 export interface ChatEmptyStateProps {
   /**
@@ -129,7 +129,7 @@ export interface ChatEmptyStateProps {
   /** Called for both create and edit */
   onSaveCommand?: (
     data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
-    editingId?: string,
+    editingId?: string
   ) => void;
   /** Called when a command is deleted */
   onDeleteCommand?: (id: string) => void;
@@ -140,7 +140,11 @@ export interface ChatEmptyStateProps {
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
   onRequestFilePreviewUrl?: (commandId: string, fileId: string) => Promise<string>;
   /** Eagerly uploads a file when the user picks it in the command drawer */
-  onUploadFile?: (commandId: string, file: File, attachment: import('../Commands/types').CommandAttachment) => Promise<{ fileId: string; s3Key: string }>;
+  onUploadFile?: (
+    commandId: string,
+    file: File,
+    attachment: CommandAttachment
+  ) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
 }

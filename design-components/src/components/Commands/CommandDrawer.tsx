@@ -11,10 +11,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CaretRight, PaperclipIcon, SpinnerGap, Warning } from '@phosphor-icons/react';
+import { X, CaretRight, PaperclipIcon, SpinnerGap } from '@phosphor-icons/react';
 import type { Command, CommandAttachment } from './types';
 import { generateCommandId } from './types';
-import { CommandFilesPreviewPanel } from './CommandFilesPreviewPanel';
+import { FilesPreviewPanel } from '../FilesPreview';
 
 // ---------------------------------------------------------------------------
 // Public interface
@@ -55,7 +55,7 @@ export interface CommandDrawerProps {
    * Called when the user clicks a file chip for an already-uploaded file that
    * has no local blob URL. Should return a presigned download URL for the file.
    */
-  onRequestFilePreviewUrl?: (fileId: string) => Promise<string>;
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,36 +155,36 @@ interface FileChipProps {
 
 const FileChip: React.FC<FileChipProps> = ({ attachment, onRemove, onClick }) => {
   const isUploading = attachment.uploadStatus === 'uploading';
-  const isError = attachment.uploadStatus === 'error';
 
   return (
     <div
       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs max-w-[160px] transition-colors ${
-        isError
-          ? 'bg-red-50 text-red-600 border border-red-200'
-          : isUploading
-          ? 'bg-gray-100 text-gray-400 cursor-default'
+        isUploading
+          ? 'bg-gray-100 text-gray-400 cursor-default opacity-60'
           : 'bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer'
       }`}
       onClick={() => !isUploading && onClick(attachment.id)}
-      title={isError ? 'Upload failed — remove and try again' : attachment.name}
+      title={isUploading ? 'Uploading…' : attachment.name}
     >
       {isUploading ? (
         <SpinnerGap size={12} className="animate-spin shrink-0" />
-      ) : isError ? (
-        <Warning size={12} className="shrink-0" />
       ) : (
         <span>{getFileIcon(attachment)}</span>
       )}
       <span className="truncate">{attachment.name}</span>
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onRemove(attachment.id); }}
-        className="ml-0.5 text-gray-400 hover:text-gray-700 shrink-0"
-        aria-label={`Remove ${attachment.name}`}
-      >
-        <X size={10} />
-      </button>
+      {!isUploading && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(attachment.id);
+          }}
+          className="ml-0.5 text-gray-400 hover:text-gray-700 shrink-0"
+          aria-label={`Remove ${attachment.name}`}
+        >
+          <X size={10} />
+        </button>
+      )}
     </div>
   );
 };
@@ -210,25 +210,19 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Pre-generated (or editing) command ID used for presigning
   const [commandId, setCommandId] = useState(() => generateCommandId());
-  // Blob URLs for local file previews; keyed by attachment id
-  const [blobUrls, setBlobUrls] = useState<Record<string, string>>({});
-  // Presigned download URLs fetched on-demand for already-uploaded files
-  const [fetchedPreviewUrls, setFetchedPreviewUrls] = useState<Record<string, string>>({});
+  // Presigned download URLs fetched on-demand for preview; keyed by attachment id.
+  // null means the fetch was attempted and failed (show "Preview not available").
+  const [fetchedPreviewUrls, setFetchedPreviewUrls] = useState<Record<string, string | null>>({});
   // Preview panel state
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
 
   // Reset form whenever the drawer opens
   useEffect(() => {
     if (isOpen) {
-      setBlobUrls((prev) => {
-        Object.values(prev).forEach((url) => URL.revokeObjectURL(url));
-        return {};
-      });
       setFetchedPreviewUrls({});
       setPreviewFileId(null);
       setForm(editingCommand ? commandToForm(editingCommand) : emptyForm);
       setDataSources(editingCommand?.dataSources ?? []);
-      // For editing, use the existing command's ID; for new commands, generate a fresh one
       setCommandId(editingCommand ? editingCommand.id : generateCommandId());
     }
   }, [isOpen, editingCommand]);
@@ -239,103 +233,101 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       setForm((v) => ({ ...v, [key]: e.target.value }));
 
   const handleRemoveDataSource = useCallback((id: string) => {
-    setBlobUrls((prev) => {
-      if (prev[id]) URL.revokeObjectURL(prev[id]);
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
     setPreviewFileId((current) => (current === id ? null : current));
     setDataSources((prev) => prev.filter((ds) => ds.id !== id));
   }, []);
 
-  const handleFileChipClick = useCallback(async (fileId: string) => {
-    setPreviewFileId(fileId);
-    if (blobUrls[fileId] || fetchedPreviewUrls[fileId]) return;
-    if (onRequestFilePreviewUrl) {
+  // Fetches a presigned URL for a single file and stores the result.
+  // Sets null on failure so the panel can distinguish "not yet fetched" from "failed".
+  const requestPreviewUrl = useCallback(
+    async (fileId: string) => {
+      if (fileId in fetchedPreviewUrls) return;
+      if (!onRequestFilePreviewUrl) return;
+      const s3Key = dataSources.find((ds) => ds.id === fileId)?.s3Key;
+      if (!s3Key) return;
       try {
-        const url = await onRequestFilePreviewUrl(fileId);
+        const url = await onRequestFilePreviewUrl(s3Key);
         setFetchedPreviewUrls((prev) => ({ ...prev, [fileId]: url }));
       } catch {
-        // Preview will show "not available" — silently ignore
+        setFetchedPreviewUrls((prev) => ({ ...prev, [fileId]: null }));
       }
-    }
-  }, [blobUrls, fetchedPreviewUrls, onRequestFilePreviewUrl]);
+    },
+    [dataSources, fetchedPreviewUrls, onRequestFilePreviewUrl]
+  );
+
+  const handleFileChipClick = useCallback((fileId: string) => {
+    setPreviewFileId(fileId);
+    // URL fetch is delegated to the panel via onRequestPreviewUrl so that
+    // tab switches inside the panel also trigger fetches, not just chip clicks.
+  }, []);
 
   /**
    * Called when the user picks files from the file input.
    * Creates attachment placeholders immediately, then kicks off eager uploads.
    */
-  const handleFilesSelected = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
+  const handleFilesSelected = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
 
-    const newAttachments: CommandAttachment[] = files.map((file) => {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      let category: CommandAttachment['category'] = 'document';
-      if (file.type.startsWith('image/')) category = 'image';
-      else if (file.type.includes('spreadsheet') || file.type.includes('excel') || ['xlsx', 'xls', 'csv'].includes(ext))
-        category = 'spreadsheet';
-      else if (file.type.includes('presentation') || file.type.includes('powerpoint') || ['pptx', 'ppt'].includes(ext))
-        category = 'presentation';
-      else if (['txt', 'md', 'json'].includes(ext)) category = 'text';
+      const newAttachments: CommandAttachment[] = files.map((file) => {
+        console.log(file);
+        const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+        let category: CommandAttachment['category'] = 'document';
+        if (file.type.startsWith('image/')) category = 'image';
+        else if (
+          file.type.includes('spreadsheet') ||
+          file.type.includes('excel') ||
+          ['xlsx', 'xls', 'csv'].includes(ext)
+        )
+          category = 'spreadsheet';
+        else if (
+          file.type.includes('presentation') ||
+          file.type.includes('powerpoint') ||
+          ['pptx', 'ppt'].includes(ext)
+        )
+          category = 'presentation';
+        else if (['txt', 'md', 'json'].includes(ext)) category = 'text';
 
-      return {
-        id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
-        name: file.name,
-        size: file.size,
-        type: file.type || 'application/octet-stream',
-        extension: ext,
-        category,
-        uploadStatus: 'uploading' as const,
-      };
-    });
+        return {
+          id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`,
+          name: file.name,
+          size: file.size,
+          type: file.type || 'application/octet-stream',
+          extension: ext,
+          category,
+          uploadStatus: 'uploading' as const,
+        };
+      });
 
-    // Create blob URLs for immediate local preview
-    const newBlobUrls: Record<string, string> = {};
-    files.forEach((file, idx) => {
-      newBlobUrls[newAttachments[idx].id] = URL.createObjectURL(file);
-    });
-    setBlobUrls((prev) => ({ ...prev, ...newBlobUrls }));
-    setDataSources((prev) => [...prev, ...newAttachments]);
+      // Show all files immediately as loading chips
+      setDataSources((prev) => [...prev, ...newAttachments]);
 
-    // Upload each file eagerly
-    if (onUploadFile) {
-      await Promise.all(
-        newAttachments.map(async (attachment, idx) => {
-          const file = files[idx];
-          try {
-            const { fileId, s3Key } = await onUploadFile(commandId, file, attachment);
+      if (onUploadFile) {
+        await Promise.all(
+          newAttachments.map(async (attachment, idx) => {
+            const file = files[idx];
             const tempId = attachment.id;
-            // Replace temp id with the real backend fileId
-            setDataSources((prev) =>
-              prev.map((ds) =>
-                ds.id === tempId
-                  ? { ...ds, id: fileId, s3Key, uploadStatus: 'uploaded' as const }
-                  : ds
-              )
-            );
-            // Re-key blob URL to the real fileId
-            setBlobUrls((prev) => {
-              const url = prev[tempId];
-              if (!url) return prev;
-              const next = { ...prev };
-              delete next[tempId];
-              next[fileId] = url;
-              return next;
-            });
-          } catch {
-            setDataSources((prev) =>
-              prev.map((ds) =>
-                ds.id === attachment.id
-                  ? { ...ds, uploadStatus: 'error' as const }
-                  : ds
-              )
-            );
-          }
-        })
-      );
-    }
-  }, [commandId, onUploadFile]);
+            try {
+              const { fileId, s3Key } = await onUploadFile(commandId, file, attachment);
+              // Replace temp id with the real backend fileId; preview URL fetched on-demand
+              setDataSources((prev) =>
+                prev.map((ds) =>
+                  ds.id === tempId
+                    ? { ...ds, id: fileId, s3Key, uploadStatus: 'uploaded' as const }
+                    : ds
+                )
+              );
+            } catch {
+              // Remove silently — no error state left in the UI
+              setDataSources((prev) => prev.filter((ds) => ds.id !== tempId));
+              setPreviewFileId((current) => (current === tempId ? null : current));
+            }
+          })
+        );
+      }
+    },
+    [commandId, onUploadFile]
+  );
 
   const handleSave = () => {
     onSave(
@@ -353,9 +345,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
 
   const isAnyFileUploading = dataSources.some((ds) => ds.uploadStatus === 'uploading');
   const canSave =
-    form.name.trim().length > 0 &&
-    form.prompt.trim().length > 0 &&
-    !isAnyFileUploading;
+    form.name.trim().length > 0 && form.prompt.trim().length > 0 && !isAnyFileUploading;
   const sharingLabel = form.sharingScope === 'org' ? 'Org-wide' : 'Private';
 
   const drawerPortal = ReactDOM.createPortal(
@@ -385,7 +375,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                 <h2 className="text-sm font-medium text-gray-900">
-                  {readOnly ? 'View Quick Command' : isEditing ? 'Edit Quick Command' : 'New Quick Command'}
+                  {readOnly ? 'View Command' : isEditing ? 'Edit Command' : 'New Command'}
                 </h2>
                 <button
                   onClick={onClose}
@@ -438,8 +428,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   />
                   {!readOnly && (
                     <p className="mt-1.5 text-xs text-gray-500">
-                      Quick Commands can generate documents, slides, and sheets based on your prompt
-                      and data sources.
+                      Commands can generate documents, slides, and sheets based on your prompt and
+                      data sources.
                     </p>
                   )}
                 </div>
@@ -499,9 +489,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                       )}
                     </div>
                   ) : (
-                    readOnly && (
-                      <p className="text-xs text-gray-400 mb-2">No files attached.</p>
-                    )
+                    readOnly && <p className="text-xs text-gray-400 mb-2">No files attached.</p>
                   )}
                   {!readOnly && (
                     <>
@@ -531,20 +519,24 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 {/* Sharing — collapsible */}
                 <AccordionSection title="Sharing" summary={sharingLabel} defaultOpen>
                   <div className="flex items-center gap-1.5">
-                    {(['private', 'org'] as const).filter((scope) => scope === 'private' || isAdmin).map((scope) => (
-                      <button
-                        key={scope}
-                        type="button"
-                        onClick={() => !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))}
-                        className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
-                          form.sharingScope === scope
-                            ? 'border-gray-300 bg-gray-50 text-gray-900'
-                            : 'border-gray-100 text-gray-500'
-                        } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
-                      >
-                        {scope === 'private' ? 'Private' : 'Org-wide'}
-                      </button>
-                    ))}
+                    {(['private', 'org'] as const)
+                      .filter((scope) => scope === 'private' || isAdmin)
+                      .map((scope) => (
+                        <button
+                          key={scope}
+                          type="button"
+                          onClick={() =>
+                            !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))
+                          }
+                          className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
+                            form.sharingScope === scope
+                              ? 'border-gray-300 bg-gray-50 text-gray-900'
+                              : 'border-gray-100 text-gray-500'
+                          } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
+                        >
+                          {scope === 'private' ? 'Private' : 'Org-wide'}
+                        </button>
+                      ))}
                   </div>
                 </AccordionSection>
               </div>
@@ -567,7 +559,13 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                   >
-                    {isSaving ? 'Saving…' : isAnyFileUploading ? 'Uploading…' : isEditing ? 'Save Changes' : 'Create'}
+                    {isSaving
+                      ? 'Saving…'
+                      : isAnyFileUploading
+                        ? 'Uploading…'
+                        : isEditing
+                          ? 'Save Changes'
+                          : 'Create'}
                   </button>
                 )}
               </div>
@@ -579,22 +577,23 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     document.body
   );
 
-  const previewIndex = previewFileId
-    ? dataSources.findIndex((ds) => ds.id === previewFileId)
-    : -1;
+  const previewIndex = previewFileId ? dataSources.findIndex((ds) => ds.id === previewFileId) : -1;
 
   return (
     <>
       {drawerPortal}
-      <CommandFilesPreviewPanel
-        commandName={form.name || 'Quick Command'}
+      <FilesPreviewPanel
+        contextName={form.name || 'Command'}
         files={dataSources.map((ds) => ({
-          attachment: ds,
-          previewUrl: blobUrls[ds.id] ?? fetchedPreviewUrls[ds.id] ?? ds.previewUrl,
+          file: ds,
+          // Prefer fetched presigned URL; fall back to local blob URL (pending files).
+          // Explicit `in` check so a null sentinel (failed fetch) is preserved.
+          previewUrl: ds.id in fetchedPreviewUrls ? fetchedPreviewUrls[ds.id] : ds.previewUrl,
         }))}
         initialIndex={previewIndex >= 0 ? previewIndex : 0}
         isOpen={!!previewFileId && dataSources.length > 0}
         onClose={() => setPreviewFileId(null)}
+        onRequestPreviewUrl={requestPreviewUrl}
       />
     </>
   );

@@ -172,7 +172,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               onSaveCommand={handleSaveCommand}
               onDeleteCommand={handleDeleteCommand}
               isSavingCommand={isSavingCommand}
-              isAdmin={user?.roles?.includes('admin')}
+              isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
               onToggleFavorite={handleToggleFavorite}
               onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
               onUploadFile={handleUploadFile}

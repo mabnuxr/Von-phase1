@@ -282,4 +282,10 @@ export interface StandardChatInputProps {
    * When provided, sending is allowed even with an empty message
    */
   commandChip?: ReactNode;
+
+  /**
+   * When true, shows a "/" button in the toolbar that opens the commands overlay
+   * @default false
+   */
+  enableCommands?: boolean;
 }

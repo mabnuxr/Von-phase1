@@ -16,8 +16,6 @@ export { CommandsOverlay } from './CommandsOverlay';
 export type { CommandsOverlayProps } from './CommandsOverlay';
 export { CommandPreview } from './CommandPreview';
 export type { CommandPreviewProps } from './CommandPreview';
-export { CommandFilesPreviewPanel } from './CommandFilesPreviewPanel';
-export type { CommandFilesPreviewPanelProps, CommandFileEntry } from './CommandFilesPreviewPanel';
 
 // Hooks
 export { useCommands } from './useCommands';

@@ -8,6 +8,7 @@ import {
   useBookmarkQuickCommand,
 } from "./useQuickCommands";
 import { quickCommandsService } from "../services/quickCommandsService";
+import { useToast } from "./useToast";
 
 /**
  * Encapsulates all quick-command panel logic shared between ChatV1Container
@@ -19,6 +20,8 @@ import { quickCommandsService } from "../services/quickCommandsService";
  *  - delete and bookmark mutations
  */
 export function useCommandsPanel(userId?: string) {
+  const { showToast } = useToast();
+
   const { data: commandsData, isLoading: isLoadingCommands } =
     useQuickCommandsList(undefined, userId);
 
@@ -42,7 +45,6 @@ export function useCommandsPanel(userId?: string) {
         | "tenant"
         | "user";
 
-      // All files are already uploaded eagerly — just map to the API shape
       const apiDataSources = (dataSources ?? [])
         .filter((ds) => ds.s3Key)
         .map((ds) => ({
@@ -60,64 +62,97 @@ export function useCommandsPanel(userId?: string) {
           s3Key: ds.s3Key!,
         }));
 
-      if (editingId) {
-        await updateCommand({
-          id: editingId,
-          data: {
+      try {
+        if (editingId) {
+          await updateCommand({
+            id: editingId,
+            data: {
+              name: data.name,
+              prompt: data.prompt,
+              prefillText: data.prefillText || undefined,
+              accessLevel,
+              dataSources: apiDataSources,
+            },
+          });
+          showToast({ message: "Command updated", variant: "success" });
+        } else {
+          await createCommand({
+            id: commandId,
             name: data.name,
             prompt: data.prompt,
             prefillText: data.prefillText || undefined,
             accessLevel,
-            dataSources: apiDataSources,
-          },
+            dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
+          });
+          showToast({ message: "Command created", variant: "success" });
+        }
+      } catch (err) {
+        showToast({
+          message: editingId
+            ? "Failed to update command. Please try again."
+            : "Failed to create command. Please try again.",
+          variant: "error",
         });
-      } else {
-        // Pre-generated commandId enables a single create call with dataSources included
-        await createCommand({
-          id: commandId,
-          name: data.name,
-          prompt: data.prompt,
-          prefillText: data.prefillText || undefined,
-          accessLevel,
-          dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
-        });
+        throw err;
       }
     },
-    [createCommand, updateCommand],
+    [createCommand, updateCommand, showToast],
   );
 
   const handleUploadFile = useCallback(
     async (cmdId: string, file: File): Promise<{ fileId: string; s3Key: string }> => {
-      const presign = await quickCommandsService.presignFile(cmdId, {
-        fileName: file.name,
-        fileType: file.type || "application/octet-stream",
-        fileSize: file.size,
-      });
-      await quickCommandsService.uploadToS3(presign.uploadUrl, file);
-      return { fileId: presign.uploadId, s3Key: presign.s3Key };
+      try {
+        const presign = await quickCommandsService.presignFile(cmdId, {
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          fileSize: file.size,
+        });
+        await quickCommandsService.uploadToS3(presign.uploadUrl, file);
+        return { fileId: presign.uploadId, s3Key: presign.s3Key };
+      } catch (err) {
+        showToast({
+          message: `Failed to upload "${file.name}". Please try again.`,
+          variant: "error",
+        });
+        throw err;
+      }
     },
-    [],
+    [showToast],
   );
 
   const handleRequestFilePreviewUrl = useCallback(
-    async (commandId: string, fileId: string): Promise<string> => {
-      const { downloadUrl } = await quickCommandsService.getFileDownloadUrl(
-        commandId,
-        fileId,
-      );
-      return downloadUrl;
+    async (s3Key: string): Promise<string> => {
+      try {
+        const { downloadUrl } = await quickCommandsService.getFileDownloadUrl(s3Key);
+        return downloadUrl;
+      } catch (err) {
+        showToast({ message: "Could not load file preview.", variant: "error" });
+        throw err;
+      }
     },
-    [],
+    [showToast],
   );
 
   const handleDeleteCommand = useCallback(
-    (id: string) => deleteCommand(id),
-    [deleteCommand],
+    (id: string) =>
+      deleteCommand(id, {
+        onSuccess: () => showToast({ message: "Command deleted", variant: "success" }),
+        onError: () =>
+          showToast({ message: "Failed to delete command. Please try again.", variant: "error" }),
+      }),
+    [deleteCommand, showToast],
   );
 
   const handleToggleFavorite = useCallback(
-    (cmd: Command) => toggleBookmark({ id: cmd.id, bookmark: !cmd.isFavorite }),
-    [toggleBookmark],
+    (cmd: Command) =>
+      toggleBookmark(
+        { id: cmd.id, bookmark: !cmd.isFavorite },
+        {
+          onError: () =>
+            showToast({ message: "Failed to update bookmark. Please try again.", variant: "error" }),
+        },
+      ),
+    [toggleBookmark, showToast],
   );
 
   return {

@@ -44,7 +44,7 @@ const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({
 }) => (
   <div className="px-3 py-2.5 border-b border-gray-100 bg-white">
     <div className="flex items-center justify-between">
-      <h3 className="text-sm font-medium text-gray-900">Quick Commands</h3>
+      <h3 className="text-sm font-medium text-gray-900">Commands</h3>
       <div className="flex items-center gap-1.5">
         <button
           type="button"

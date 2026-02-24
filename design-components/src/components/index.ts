@@ -261,6 +261,12 @@ export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
 
 // ============================================================================
+// FILES PREVIEW (Generic slide-in panel for previewing one or more files)
+// ============================================================================
+export { FilesPreviewPanel } from './FilesPreview';
+export type { FilesPreviewPanelProps, FilePreviewEntry, PreviewableFile } from './FilesPreview';
+
+// ============================================================================
 // COMMANDS (Self-contained slash commands feature)
 // ============================================================================
 export {

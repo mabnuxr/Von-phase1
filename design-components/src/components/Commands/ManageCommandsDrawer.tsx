@@ -131,7 +131,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
               {/* Header */}
               <div className="px-3 py-2.5 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-medium text-gray-900">Quick Commands</h2>
+                  <h2 className="text-sm font-medium text-gray-900">Commands</h2>
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={onNewCommand}

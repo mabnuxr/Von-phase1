@@ -63,7 +63,7 @@ export interface CommandsOverlayProps {
    * Fetches a presigned download URL for an already-uploaded command data source file.
    * Used by the file-preview panel inside CommandDrawer.
    */
-  onRequestFilePreviewUrl?: (commandId: string, fileId: string) => Promise<string>;
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /**
    * Called immediately when a file is picked in CommandDrawer.
    * Should presign + upload the file and return the backend fileId and s3Key.
@@ -166,13 +166,6 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
     [editingCommand, onSaveCommand]
   );
 
-  const handleRequestFilePreviewUrl = useCallback(
-    async (fileId: string): Promise<string> => {
-      if (!editingCommand?.id || !onRequestFilePreviewUrl) return '';
-      return onRequestFilePreviewUrl(editingCommand.id, fileId);
-    },
-    [editingCommand, onRequestFilePreviewUrl]
-  );
 
   const filteredCommands = commandSearch
     ? commands.filter((c) => c.name.toLowerCase().includes(commandSearch.toLowerCase().trim()))
@@ -227,9 +220,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         isSaving={isSaving}
         readOnly={isReadOnly}
         isAdmin={isAdmin}
-        onRequestFilePreviewUrl={
-          onRequestFilePreviewUrl ? handleRequestFilePreviewUrl : undefined
-        }
+        onRequestFilePreviewUrl={onRequestFilePreviewUrl}
         onUploadFile={onUploadFile}
       />
 

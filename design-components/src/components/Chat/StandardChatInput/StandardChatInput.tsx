@@ -145,6 +145,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDismissFileError,
       // Command chip
       commandChip,
+      // Commands
+      enableCommands = false,
     },
     ref
   ) => {
@@ -483,6 +485,20 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           title="Upload file"
                           className="w-8.5 h-8.5 rounded-xl"
                         />
+
+                        {/* Slash commands button */}
+                        {enableCommands && (
+                          <SecondaryIconButton
+                            icon={<span className="text-[13px] font-semibold text-gray-800 leading-none">/</span>}
+                            onClick={() => {
+                              onChange?.('/');
+                              editorRef.current?.commands.focus('end');
+                            }}
+                            disabled={disabled && !isStreaming}
+                            title="Open commands"
+                            className="w-8.5 h-8.5 rounded-xl"
+                          />
+                        )}
 
                         {/* TODO: Uncomment when agent mode is reimplemented */}
                         {/* <AnimatePresence>

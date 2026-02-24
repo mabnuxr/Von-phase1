@@ -7,7 +7,7 @@ import type { FileAttachment } from './FileAttachment/types';
 import type { AgentMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
 import { CommandsOverlay, CommandChip } from '../Commands';
-import type { Command } from '../Commands';
+import type { Command, CommandAttachment } from '../Commands';
 
 // Re-export SendMessageOptions for consumers who import from this file
 export type { SendMessageOptions } from './types';
@@ -119,9 +119,13 @@ export interface ChatInputSelectorProps {
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
-  onRequestFilePreviewUrl?: (commandId: string, fileId: string) => Promise<string>;
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
-  onUploadFile?: (commandId: string, file: File, attachment: import('../Commands/types').CommandAttachment) => Promise<{ fileId: string; s3Key: string }>;
+  onUploadFile?: (
+    commandId: string,
+    file: File,
+    attachment: CommandAttachment
+  ) => Promise<{ fileId: string; s3Key: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +316,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           ref={ref}
           {...sharedStandardProps}
           onSend={standardOnSend}
+          enableCommands={enableCommands}
           commandChip={
             selectedCommand ? (
               <CommandChip command={selectedCommand} onRemove={() => setSelectedCommand(null)} />

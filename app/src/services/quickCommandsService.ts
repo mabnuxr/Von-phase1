@@ -130,13 +130,12 @@ export const quickCommandsService = {
 
   /**
    * Get a presigned download URL for a command data source file.
+   * Uses the s3Key returned from the presign response — works for both
+   * pre-creation and post-creation files.
    */
-  getFileDownloadUrl(
-    commandId: string,
-    fileId: string,
-  ): Promise<{ downloadUrl: string; fileName: string }> {
+  getFileDownloadUrl(s3Key: string): Promise<{ downloadUrl: string; fileName: string }> {
     return apiClient.get<{ downloadUrl: string; fileName: string }>(
-      `/api/v1/quick-commands/${commandId}/files/${fileId}/download`,
+      `/api/v1/quick-commands/files/download?s3Key=${encodeURIComponent(s3Key)}`,
     );
   },
 
