@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const SIDEBAR_STATE_KEY = "von-ai-sidebar-collapsed";
 
@@ -18,12 +18,17 @@ export function useSidebarState() {
     localStorage.setItem(SIDEBAR_STATE_KEY, String(isCollapsed));
   }, [isCollapsed]);
 
-  const toggleCollapse = () => {
+  const toggleCollapse = useCallback(() => {
     setIsCollapsed((prev) => !prev);
-  };
+  }, []);
+
+  const collapseSidebar = useCallback(() => {
+    setIsCollapsed(true);
+  }, []);
 
   return {
     isCollapsed,
     toggleCollapse,
+    collapseSidebar,
   };
 }

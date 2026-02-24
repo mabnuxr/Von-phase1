@@ -6,6 +6,7 @@ import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
+import { useEscapeToStopStreaming } from './hooks/useEscapeToStopStreaming';
 import type { ChatProps, SendMessageOptions } from './types';
 import type { FileAttachment } from './FileAttachment/types';
 
@@ -92,6 +93,7 @@ export const Chat: React.FC<ChatProps> = ({
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -147,11 +149,14 @@ export const Chat: React.FC<ChatProps> = ({
   // Track previous message count to detect initial load vs incremental updates
   const prevMessageCountRef = useRef(0);
 
+  const isStreaming = useMemo(
+    () => messages.some((m) => m.type === 'assistant' && m.isStreaming),
+    [messages]
+  );
   // Auto-scroll to bottom when new messages arrive or content updates
   useEffect(() => {
     if (messages.length === 0) return;
 
-    const isStreaming = messages.some((m) => m.isStreaming);
     const isInitialLoad = prevMessageCountRef.current === 0 && messages.length > 0;
     const isNewMessage = messages.length > prevMessageCountRef.current;
     prevMessageCountRef.current = messages.length;
@@ -172,7 +177,7 @@ export const Chat: React.FC<ChatProps> = ({
         });
       }
     }
-  }, [messages, scrollToBottom]);
+  }, [messages, scrollToBottom, isStreaming]);
 
   // Determine effective showFromIndex (use prop)
   const effectiveShowFromIndex = showMessagesFromIndex || 0;
@@ -218,6 +223,9 @@ export const Chat: React.FC<ChatProps> = ({
     }
   }, [messages, onStopStreaming]);
 
+  // Esc key stops streaming (listener scoped to this container)
+  useEscapeToStopStreaming({ containerRef: wrapperRef, isStreaming, onStop: handleStop });
+
   // Handle sending a message
   const handleSendMessage = useCallback(
     async (content: string, attachments?: FileAttachment[], options?: SendMessageOptions) => {
@@ -260,7 +268,12 @@ export const Chat: React.FC<ChatProps> = ({
   };
 
   return (
-    <div className={containerClassName} style={containerStyles}>
+    <div
+      className={containerClassName}
+      style={{ ...containerStyles, outline: 'none' }}
+      tabIndex={-1}
+      ref={wrapperRef}
+    >
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-white settings-scrollbar"
@@ -387,7 +400,9 @@ export const Chat: React.FC<ChatProps> = ({
       </div>
 
       {/* Banner above input (if provided) - only show when there are messages */}
-      {messages.length > 0 && banner && <div className="px-3">{banner}</div>}
+      {messages.length > 0 && banner && (
+        <div className="w-full max-w-4xl mx-auto mb-2 px-2">{banner}</div>
+      )}
 
       {/* Only show bottom input when there are messages (not in empty state) */}
       {messages.length > 0 && (
@@ -406,10 +421,8 @@ export const Chat: React.FC<ChatProps> = ({
           placeholder={placeholder}
           onSend={handleSendMessage}
           onStop={handleStop}
-          disabled={
-            isLoading || messages.some((m) => m.type === 'assistant' && m.isStreaming === true)
-          }
-          isStreaming={messages.some((m) => m.type === 'assistant' && m.isStreaming === true)}
+          disabled={isLoading || isStreaming}
+          isStreaming={isStreaming}
           disableSubmit={disableSubmit}
           value={inputValue}
           onChange={setInputValue}

@@ -8,6 +8,8 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useToast } from "./useToast";
+import { useFileDownload } from "./useFileDownload";
 import type {
   AgentMode,
   SendMessageOptions,
@@ -57,6 +59,7 @@ export interface UseChatV2Props {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  onCollapseSidebar: () => void;
 }
 
 export function useChatV2(props: UseChatV2Props) {
@@ -69,7 +72,11 @@ export function useChatV2(props: UseChatV2Props) {
     lockedAgentMode,
     isAgentLocked,
     syncAgentModeToBackend,
+    onCollapseSidebar,
   } = props;
+
+  const { showToast } = useToast();
+  const { downloadBlob } = useFileDownload();
 
   const chatType: ConversationMode = currentConversation.mode || "auto";
   const isDeepResearchMode =
@@ -252,6 +259,7 @@ export function useChatV2(props: UseChatV2Props) {
     artifactType?: string;
     mimeType?: string;
     downloadUrl?: string;
+    pdfDownloadUrl?: string;
   }>({ isOpen: false });
 
   const handleFileArtifactClick = useCallback(
@@ -260,7 +268,9 @@ export function useChatV2(props: UseChatV2Props) {
       fileName: string,
       artifactType: string,
       mimeType: string,
+      pdfPreviewFileId?: string,
     ) => {
+      onCollapseSidebar();
       setFileArtifactPanel({
         isOpen: true,
         fileId,
@@ -268,19 +278,40 @@ export function useChatV2(props: UseChatV2Props) {
         artifactType,
         mimeType,
       });
-      try {
-        const { downloadUrl } = await fileUploadService.getDownloadUrl(
-          conversationId,
-          fileId,
+      // Fetch PPTX download URL and PDF preview URL in parallel
+      const [pptxResult, pdfResult] = await Promise.allSettled([
+        fileUploadService.getDownloadUrl(conversationId, fileId),
+        pdfPreviewFileId
+          ? fileUploadService.getDownloadUrl(conversationId, pdfPreviewFileId)
+          : Promise.resolve(null),
+      ]);
+      if (pptxResult.status === "rejected") {
+        console.error(
+          "[useChatV2] Failed to get artifact download URL:",
+          pptxResult.reason,
         );
-        setFileArtifactPanel((prev) =>
-          prev.fileId === fileId ? { ...prev, downloadUrl } : prev,
-        );
-      } catch (err) {
-        console.error("[useChatV2] Failed to get artifact download URL:", err);
       }
+      if (pdfResult.status === "rejected") {
+        console.error(
+          "[useChatV2] Failed to get PDF preview URL:",
+          pdfResult.reason,
+        );
+      }
+      const downloadUrl =
+        pptxResult.status === "fulfilled"
+          ? pptxResult.value.downloadUrl
+          : undefined;
+      const pdfDownloadUrl =
+        pdfResult.status === "fulfilled" && pdfResult.value
+          ? pdfResult.value.downloadUrl
+          : undefined;
+      setFileArtifactPanel((prev) =>
+        prev.fileId === fileId
+          ? { ...prev, downloadUrl, pdfDownloadUrl }
+          : prev,
+      );
     },
-    [conversationId],
+    [conversationId, onCollapseSidebar],
   );
 
   const closeFileArtifactPanel = useCallback(() => {
@@ -292,26 +323,14 @@ export function useChatV2(props: UseChatV2Props) {
       try {
         const { downloadUrl, fileName } =
           await fileUploadService.getDownloadUrl(conversationId, fileId);
-        // Fetch as blob — cross-origin S3 URLs ignore the <a download> attribute
-        const response = await fetch(downloadUrl);
-        if (!response.ok)
-          throw new Error(`Download failed (${response.status})`);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = fileName;
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        // Delay revocation so the browser has time to start reading the blob
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        await downloadBlob(downloadUrl, fileName);
+        showToast({ message: "Download started", variant: "success" });
       } catch (err) {
         console.error("[useChatV2] Failed to download artifact:", err);
+        showToast({ message: "Failed to download file", variant: "error" });
       }
     },
-    [conversationId],
+    [conversationId, showToast, downloadBlob],
   );
 
   // Transparency drawer

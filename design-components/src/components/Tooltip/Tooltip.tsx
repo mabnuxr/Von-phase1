@@ -61,9 +61,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   // Recalculate position once the tooltip is in the DOM
   useLayoutEffect(() => {
     if (visible) updatePosition();
-  }, [visible, updatePosition]);
-
-  if (!enabled) return <>{children}</>;
+  }, [visible, updatePosition, enabled]);
 
   return (
     <>
@@ -77,7 +75,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
       >
         {children}
       </div>
-      {visible &&
+      {enabled &&
+        visible &&
         createPortal(
           <div
             ref={tooltipRef}

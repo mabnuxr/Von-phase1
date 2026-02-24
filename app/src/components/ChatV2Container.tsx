@@ -53,6 +53,7 @@ export interface ChatV2ContainerProps {
   isArtifactsEnabled: boolean;
   syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
   banner: React.ReactNode;
+  onCollapseSidebar: () => void;
 }
 
 export function ChatV2Container(props: ChatV2ContainerProps) {
@@ -92,6 +93,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
     syncAgentModeToBackend: props.syncAgentModeToBackend,
+    onCollapseSidebar: props.onCollapseSidebar,
   });
 
   const loadMoreMessagesRef = useInfiniteScroll({
@@ -214,6 +216,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
                 }
                 mimeType={chatV2.fileArtifactPanel.mimeType}
                 downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
+                pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
                 onClose={chatV2.closeFileArtifactPanel}
                 onDownload={
                   chatV2.fileArtifactPanel.fileId

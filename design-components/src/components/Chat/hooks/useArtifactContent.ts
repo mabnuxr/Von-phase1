@@ -60,6 +60,11 @@ const SPREADSHEET_MIMES = new Set([
   'text/csv',
 ]);
 
+const PPTX_MIMES = new Set([
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-powerpoint',
+]);
+
 // ============================================================================
 // Parsers
 // ============================================================================
@@ -119,7 +124,11 @@ async function fetchOrThrow(url: string): Promise<Response> {
 // Main dispatcher
 // ============================================================================
 
-async function parseArtifact(downloadUrl: string, mimeType?: string): Promise<ArtifactContent> {
+async function parseArtifact(
+  downloadUrl: string,
+  mimeType?: string,
+  pdfDownloadUrl?: string
+): Promise<ArtifactContent> {
   if (!mimeType) return { kind: 'unsupported' };
 
   if (mimeType.startsWith('image/')) {
@@ -128,6 +137,10 @@ async function parseArtifact(downloadUrl: string, mimeType?: string): Promise<Ar
 
   if (PDF_MIMES.has(mimeType)) {
     return { kind: 'pdf', url: downloadUrl };
+  }
+
+  if (PPTX_MIMES.has(mimeType)) {
+    return pdfDownloadUrl ? { kind: 'pdf', url: pdfDownloadUrl } : { kind: 'unsupported' };
   }
 
   if (TEXT_MIMES.has(mimeType)) {
@@ -154,11 +167,15 @@ async function parseArtifact(downloadUrl: string, mimeType?: string): Promise<Ar
 // Hook
 // ============================================================================
 
-export function useArtifactContent(downloadUrl?: string, mimeType?: string): ArtifactContent {
+export function useArtifactContent(
+  downloadUrl?: string,
+  mimeType?: string,
+  pdfDownloadUrl?: string
+): ArtifactContent {
   const [content, setContent] = useState<ArtifactContent>({ kind: 'loading' });
 
   useEffect(() => {
-    if (!downloadUrl) {
+    if (!downloadUrl && !pdfDownloadUrl) {
       setContent({ kind: 'loading' });
       return;
     }
@@ -166,7 +183,7 @@ export function useArtifactContent(downloadUrl?: string, mimeType?: string): Art
     let cancelled = false;
     setContent({ kind: 'loading' });
 
-    parseArtifact(downloadUrl, mimeType)
+    parseArtifact(downloadUrl ?? '', mimeType, pdfDownloadUrl)
       .then((result) => {
         if (!cancelled) setContent(result);
       })
@@ -179,7 +196,7 @@ export function useArtifactContent(downloadUrl?: string, mimeType?: string): Art
     return () => {
       cancelled = true;
     };
-  }, [downloadUrl, mimeType]);
+  }, [downloadUrl, mimeType, pdfDownloadUrl]);
 
   return content;
 }

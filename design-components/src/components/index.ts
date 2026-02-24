@@ -462,4 +462,4 @@ export { useIsTruncated } from '../hooks';
 export type { UseIsTruncatedReturn } from '../hooks';
 
 export { useVisibilityToggle } from '../hooks';
-export type { UseVisibilityToggleOptions, UseVisibilityToggleReturn } from '../hooks';
+export type { UseVisibilityToggleReturn } from '../hooks';

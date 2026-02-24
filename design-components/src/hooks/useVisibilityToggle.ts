@@ -1,41 +1,18 @@
 import { useState, useCallback } from 'react';
 
-export interface UseVisibilityToggleOptions {
-  /** Initial visibility state. Defaults to false. */
-  defaultVisible?: boolean;
-}
-
 export interface UseVisibilityToggleReturn {
   isVisible: boolean;
-  toggle: () => void;
   show: () => void;
   hide: () => void;
+  toggleVisibility: () => void;
 }
 
-/**
- * useVisibilityToggle — manages a boolean visible/hidden state.
- *
- * @example
- * ```tsx
- * const { isVisible, toggle } = useVisibilityToggle();
- *
- * return (
- *   <>
- *     <button onClick={toggle}>{isVisible ? 'Collapse' : 'Expand'}</button>
- *     {isVisible && <Details />}
- *   </>
- * );
- * ```
- */
-export function useVisibilityToggle(
-  options: UseVisibilityToggleOptions = {}
-): UseVisibilityToggleReturn {
-  const { defaultVisible = false } = options;
+export function useVisibilityToggle(defaultVisible = false): UseVisibilityToggleReturn {
   const [isVisible, setIsVisible] = useState(defaultVisible);
 
-  const toggle = useCallback(() => setIsVisible((v) => !v), []);
   const show = useCallback(() => setIsVisible(true), []);
   const hide = useCallback(() => setIsVisible(false), []);
+  const toggleVisibility = useCallback(() => setIsVisible((v) => !v), []);
 
-  return { isVisible, toggle, show, hide };
+  return { isVisible, show, hide, toggleVisibility };
 }

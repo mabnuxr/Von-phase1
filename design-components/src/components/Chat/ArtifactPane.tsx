@@ -109,7 +109,7 @@ function ErrorDisplay({ error, details, source }: ErrorDisplayProps) {
     <div className="p-6">
       {/* Error icon and heading */}
       <div className="flex items-start gap-3 mb-4">
-        <XCircleIcon className="text-red-500 flex-shrink-0" size={24} />
+        <XCircleIcon className="text-red-500 shrink-0" size={24} />
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Query Execution Failed</h3>
           {source && <p className="text-xs text-gray-500 mt-1">Source: {source}</p>}
@@ -535,7 +535,7 @@ export function ArtifactPane({
                       )}
                       {/* Query statement */}
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap break-words">
+                        <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap wrap-break-word">
                           {query.statement}
                         </pre>
                       </div>
@@ -617,7 +617,7 @@ export function ArtifactPane({
                       )}
                       {/* Query statement */}
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap break-words">
+                        <pre className="text-xs font-mono text-gray-800 whitespace-pre-wrap wrap-break-word">
                           {query.statement}
                         </pre>
                       </div>

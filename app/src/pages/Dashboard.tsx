@@ -113,8 +113,11 @@ const Dashboard = () => {
   const canSubmit = isSalesforceReady && !isTenantDisabled;
 
   // --- Sidebar ---
-  const { isCollapsed: isSidebarCollapsed, toggleCollapse: toggleSidebar } =
-    useSidebarState();
+  const {
+    isCollapsed: isSidebarCollapsed,
+    toggleCollapse: toggleSidebar,
+    collapseSidebar,
+  } = useSidebarState();
   const { handleNewChatClick, isCreatingChat } = useNewChat({
     currentConversationId,
     isSidebarV2,
@@ -287,6 +290,7 @@ const Dashboard = () => {
     isArtifactsEnabled,
     syncAgentModeToBackend,
     banner: chatBanner,
+    onCollapseSidebar: collapseSidebar,
   };
 
   return (

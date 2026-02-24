@@ -144,6 +144,7 @@ export interface Message {
     artifactType: string;
     mimeType: string;
     isPending?: boolean;
+    pdfPreview?: { id: string; fileName: string };
   }>;
   /**
    * Whether the response was stopped by user
@@ -1127,7 +1128,8 @@ export interface ChatProps {
     fileId: string,
     fileName: string,
     artifactType: string,
-    mimeType: string
+    mimeType: string,
+    pdfPreviewFileId?: string
   ) => void;
 
   /**

@@ -5,8 +5,43 @@
  * Styles are scoped via the .xlsx-preview class to avoid leaking into the app.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { HtmlSheet } from '../hooks/useArtifactContent';
+import { Tooltip } from '../../Tooltip';
+
+interface SheetTabProps {
+  name: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const SheetTab: React.FC<SheetTabProps> = ({ name, isActive, onClick }) => {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const checkTruncation = useCallback(() => {
+    const el = ref.current;
+    if (el) setIsTruncated(el.scrollWidth > el.clientWidth);
+  }, []);
+
+  return (
+    <Tooltip content={name} placement="top" enabled={isTruncated}>
+      <button
+        ref={ref}
+        onClick={onClick}
+        onMouseEnter={checkTruncation}
+        onFocus={checkTruncation}
+        className={`px-3 py-1 text-xs font-medium rounded-md cursor-pointer transition-colors shrink-0 max-w-[150px] truncate ${
+          isActive
+            ? 'bg-white text-gray-900 border border-gray-200 shadow-xs'
+            : 'text-gray-600 hover:bg-white/60 border border-transparent'
+        }`}
+      >
+        {name}
+      </button>
+    </Tooltip>
+  );
+};
 
 interface HtmlSpreadsheetViewerProps {
   sheets: HtmlSheet[];
@@ -36,30 +71,27 @@ export const HtmlSpreadsheetViewer: React.FC<HtmlSpreadsheetViewerProps> = ({
         dangerouslySetInnerHTML={{ __html: activeSheet.html }}
       />
 
-      {/* Footer: truncation notice + sheet tabs */}
+      {/* Footer: sheet tabs + truncation notice */}
       {(truncated || sheets.length > 1) && (
-        <div className="flex items-center gap-2 px-3 py-1.5 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="border-t border-gray-200 bg-gray-50 flex-shrink-0">
           {sheets.length > 1 && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 px-3 py-1.5 overflow-x-auto settings-scrollbar">
               {sheets.map((sheet, idx) => (
-                <button
+                <SheetTab
                   key={idx}
+                  name={sheet.name}
+                  isActive={idx === activeSheetIdx}
                   onClick={() => setActiveSheetIdx(idx)}
-                  className={`px-3 py-1 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                    idx === activeSheetIdx
-                      ? 'bg-white text-gray-900 border border-gray-200 shadow-xs'
-                      : 'text-gray-600 hover:bg-white/60 border border-transparent'
-                  }`}
-                >
-                  {sheet.name}
-                </button>
+                />
               ))}
             </div>
           )}
           {truncated && (
-            <span className="ml-auto text-xs text-gray-400">
-              Showing first 5,000 rows. Download for full data.
-            </span>
+            <div className="px-3 py-1 border-t border-gray-100">
+              <span className="text-xs text-gray-400">
+                Showing first 5,000 rows. Download for full data.
+              </span>
+            </div>
           )}
         </div>
       )}
