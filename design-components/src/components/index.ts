@@ -267,6 +267,12 @@ export { FilesPreviewPanel } from './FilesPreview';
 export type { FilesPreviewPanelProps, FilePreviewEntry, PreviewableFile } from './FilesPreview';
 
 // ============================================================================
+// ANCHORED POPUP (Self-positioning popup anchored to a relative container)
+// ============================================================================
+export { AnchoredPopup } from './AnchoredPopup';
+export type { AnchoredPopupProps, AnchoredPopupRenderProps, PopupPlacement } from './AnchoredPopup';
+
+// ============================================================================
 // COMMANDS (Self-contained slash commands feature)
 // ============================================================================
 export {
@@ -454,3 +460,6 @@ export type { UseAutoScrollConfig, UseAutoScrollReturn } from '../hooks';
 
 export { useIsTruncated } from '../hooks';
 export type { UseIsTruncatedReturn } from '../hooks';
+
+export { useVisibilityToggle } from '../hooks';
+export type { UseVisibilityToggleOptions, UseVisibilityToggleReturn } from '../hooks';

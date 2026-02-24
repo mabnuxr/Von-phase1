@@ -12,7 +12,7 @@ import {
 import type { BuildMode } from '../DashboardBuilder';
 import type { AgentMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
-import type { Command, CommandAttachment } from '../Commands';
+import type { Command } from '../Commands';
 
 export interface ChatEmptyStateProps {
   /**
@@ -138,13 +138,9 @@ export interface ChatEmptyStateProps {
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
-  onRequestFilePreviewUrl?: (commandId: string, fileId: string) => Promise<string>;
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when the user picks it in the command drawer */
-  onUploadFile?: (
-    commandId: string,
-    file: File,
-    attachment: CommandAttachment
-  ) => Promise<{ fileId: string; s3Key: string }>;
+  onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
 }

@@ -14,12 +14,13 @@
  *   onDeleteCommand
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback } from 'react';
 import type { Command } from './types';
 import { CommandDrawer } from './CommandDrawer';
 import { CommandsList } from './CommandsList';
 import { ManageCommandsDrawer } from './ManageCommandsDrawer';
+import { AnchoredPopup } from '../AnchoredPopup';
+import { useVisibilityToggle } from '../../hooks';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,14 +69,13 @@ export interface CommandsOverlayProps {
    * Called immediately when a file is picked in CommandDrawer.
    * Should presign + upload the file and return the backend fileId and s3Key.
    */
-  onUploadFile?: (commandId: string, file: File, attachment: import('./types').CommandAttachment) => Promise<{ fileId: string; s3Key: string }>;
+  onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MARGIN_PX = 8;
 const MIN_LIST_HEIGHT = 150;
 const MAX_LIST_HEIGHT = 300;
 
@@ -98,60 +98,29 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onRequestFilePreviewUrl,
   onUploadFile,
 }) => {
-  const [showFormDrawer, setShowFormDrawer] = useState(false);
-  const [showManageDrawer, setShowManageDrawer] = useState(false);
+  const formDrawer = useVisibilityToggle();
+  const manageDrawer = useVisibilityToggle();
   const [editingCommand, setEditingCommand] = useState<Command | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
 
-  // Sentinel fills the ChatInputSelector's relative container — used to measure
-  // available space above and below the input before the dropdown appears.
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const [popupPosition, setPopupPosition] = useState<'above' | 'below'>('above');
-  const [listMaxHeight, setListMaxHeight] = useState(MAX_LIST_HEIGHT);
-
-  useEffect(() => {
-    if (!showCommandsList || !sentinelRef.current) return;
-
-    const rect = sentinelRef.current.getBoundingClientRect();
-    const spaceAbove = rect.top;
-    const spaceBelow = window.innerHeight - rect.bottom;
-
-    if (spaceAbove >= MIN_LIST_HEIGHT + MARGIN_PX && spaceAbove >= spaceBelow) {
-      setPopupPosition('above');
-      setListMaxHeight(Math.min(spaceAbove - MARGIN_PX, MAX_LIST_HEIGHT));
-    } else if (spaceBelow >= MIN_LIST_HEIGHT + MARGIN_PX) {
-      setPopupPosition('below');
-      setListMaxHeight(Math.min(spaceBelow - MARGIN_PX, MAX_LIST_HEIGHT));
-    } else {
-      // Fall back to whichever side has more room
-      if (spaceAbove >= spaceBelow) {
-        setPopupPosition('above');
-        setListMaxHeight(Math.max(MIN_LIST_HEIGHT, spaceAbove - MARGIN_PX));
-      } else {
-        setPopupPosition('below');
-        setListMaxHeight(Math.max(MIN_LIST_HEIGHT, spaceBelow - MARGIN_PX));
-      }
-    }
-  }, [showCommandsList]);
-
   const openCreateDrawer = useCallback(() => {
     setEditingCommand(null);
-    setShowManageDrawer(false);
-    setShowFormDrawer(true);
+    manageDrawer.hide();
+    formDrawer.show();
     onCloseCommandsList();
-  }, [onCloseCommandsList]);
+  }, [formDrawer, manageDrawer, onCloseCommandsList]);
 
   const openEditDrawer = useCallback((command: Command) => {
     setEditingCommand(command);
     setIsReadOnly(command.createdBy !== 'me');
-    setShowManageDrawer(false);
-    setShowFormDrawer(true);
-  }, []);
+    manageDrawer.hide();
+    formDrawer.show();
+  }, [formDrawer, manageDrawer]);
 
   const openManageDrawer = useCallback(() => {
-    setShowManageDrawer(true);
+    manageDrawer.show();
     onCloseCommandsList();
-  }, [onCloseCommandsList]);
+  }, [manageDrawer, onCloseCommandsList]);
 
   const handleSave = useCallback(
     (
@@ -160,10 +129,10 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
       commandId: string
     ) => {
       onSaveCommand(data, editingCommand?.id, dataSources, commandId);
-      setShowFormDrawer(false);
+      formDrawer.hide();
       setEditingCommand(null);
     },
-    [editingCommand, onSaveCommand]
+    [editingCommand, formDrawer, onSaveCommand]
   );
 
 
@@ -171,47 +140,35 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
     ? commands.filter((c) => c.name.toLowerCase().includes(commandSearch.toLowerCase().trim()))
     : commands;
 
-  const isAbove = popupPosition === 'above';
-  const positionClass = isAbove
-    ? 'absolute bottom-full left-0 right-0 max-w-4xl mx-auto w-full mb-1 z-50'
-    : 'absolute top-full left-0 right-0 max-w-4xl mx-auto w-full mt-1 z-50';
-  const motionY = isAbove ? 8 : -8;
-
   return (
     <>
-      {/* Sentinel — always rendered, fills the relative container, used only for measurement */}
-      <div ref={sentinelRef} className="absolute inset-0 pointer-events-none" />
-
-      {/* "/" dropdown */}
-      <AnimatePresence>
-        {showCommandsList && (
-          <motion.div
-            className={positionClass}
-            initial={{ opacity: 0, y: motionY }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: motionY }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-          >
-            <CommandsList
-              commands={filteredCommands}
-              isLoading={isLoading}
-              onSelectCommand={onSelectCommand}
-              onNewCommand={openCreateDrawer}
-              onManageCommands={openManageDrawer}
-              onClose={onCloseCommandsList}
-              onExpandCommand={openEditDrawer}
-              onToggleFavorite={onToggleFavorite}
-              maxHeight={listMaxHeight}
-            />
-          </motion.div>
+      {/* "/" dropdown — AnchoredPopup owns the sentinel, placement, and animation */}
+      <AnchoredPopup
+        isOpen={showCommandsList}
+        minHeight={MIN_LIST_HEIGHT}
+        maxHeight={MAX_LIST_HEIGHT}
+        className="max-w-4xl mx-auto w-full z-50"
+      >
+        {({ maxHeight }) => (
+          <CommandsList
+            commands={filteredCommands}
+            isLoading={isLoading}
+            onSelectCommand={onSelectCommand}
+            onNewCommand={openCreateDrawer}
+            onManageCommands={openManageDrawer}
+            onClose={onCloseCommandsList}
+            onExpandCommand={openEditDrawer}
+            onToggleFavorite={onToggleFavorite}
+            maxHeight={maxHeight}
+          />
         )}
-      </AnimatePresence>
+      </AnchoredPopup>
 
       {/* Create / Edit drawer */}
       <CommandDrawer
-        isOpen={showFormDrawer}
+        isOpen={formDrawer.isVisible}
         onClose={() => {
-          setShowFormDrawer(false);
+          formDrawer.hide();
           setEditingCommand(null);
           setIsReadOnly(false);
         }}
@@ -226,8 +183,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
 
       {/* Manage drawer */}
       <ManageCommandsDrawer
-        isOpen={showManageDrawer}
-        onClose={() => setShowManageDrawer(false)}
+        isOpen={manageDrawer.isVisible}
+        onClose={manageDrawer.hide}
         commands={commands}
         isLoading={isLoading}
         onNewCommand={openCreateDrawer}

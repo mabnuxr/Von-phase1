@@ -10,20 +10,7 @@ import type { Command } from './types';
 import type { FileAttachment } from '../Chat/FileAttachment/types';
 import type { AgentMode } from '../Chat/StandardChatInput/types';
 
-/**
- * Extract plain text from a value that may be HTML (TipTap) or plain text (legacy textarea).
- * This normalizes the input for slash command detection.
- */
-function getPlainText(value: string): string {
-  // If it looks like HTML (contains tags), extract text content
-  if (value.includes('<') && value.includes('>')) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = value;
-    return tempDiv.textContent || tempDiv.innerText || '';
-  }
-  // Otherwise return as-is (plain text from legacy textarea)
-  return value;
-}
+import { getPlainText } from '../Chat/utils/text';
 
 export interface UseCommandsInputOptions {
   /** Controlled value */

@@ -1,4 +1,4 @@
-import { forwardRef, useState, useCallback } from 'react';
+import { forwardRef } from 'react';
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
@@ -7,7 +7,7 @@ import type { FileAttachment } from './FileAttachment/types';
 import type { AgentMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
 import { CommandsOverlay, CommandChip } from '../Commands';
-import type { Command, CommandAttachment } from '../Commands';
+import type { Command } from '../Commands';
 
 // Re-export SendMessageOptions for consumers who import from this file
 export type { SendMessageOptions } from './types';
@@ -15,19 +15,8 @@ export type { SendMessageOptions } from './types';
 // Re-export StandardChatInputRef as ChatInputSelectorRef for consumers
 export type ChatInputSelectorRef = StandardChatInputRef;
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Extract plain text from a value that may be HTML (TipTap) or plain text. */
-function getPlainText(value: string): string {
-  if (value.includes('<') && value.includes('>')) {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = value;
-    return tempDiv.textContent || tempDiv.innerText || '';
-  }
-  return value;
-}
+import { getPlainText } from './utils/text';
+import { useCommandInputState } from './hooks/useCommandInputState';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -121,11 +110,7 @@ export interface ChatInputSelectorProps {
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
-  onUploadFile?: (
-    commandId: string,
-    file: File,
-    attachment: CommandAttachment
-  ) => Promise<{ fileId: string; s3Key: string }>;
+  onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -183,45 +168,16 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     // -----------------------------------------------------------------------
     // Slash-command state (only active when enableCommands=true)
     // -----------------------------------------------------------------------
-    const [showCommandsList, setShowCommandsList] = useState(false);
-    const [commandSearch, setCommandSearch] = useState('');
-    const [selectedCommand, setSelectedCommand] = useState<Command | null>(null);
-
-    const handleChange = useCallback(
-      (newValue: string) => {
-        onChange?.(newValue);
-
-        if (!enableCommands) return;
-
-        const plainText = getPlainText(newValue);
-        // Only open the list when the field starts with "/" and no command is already selected.
-        // Also handles the empty case so typing "/" then backspacing closes the list.
-        if (!selectedCommand && plainText.startsWith('/')) {
-          setShowCommandsList(true);
-          setCommandSearch(plainText.slice(1).trim());
-        } else {
-          setShowCommandsList(false);
-          setCommandSearch('');
-        }
-      },
-      [onChange, enableCommands, selectedCommand]
-    );
-
-    const handleSelectCommand = useCallback(
-      (command: Command) => {
-        setSelectedCommand(command);
-        onChange?.(command.prefillText || '');
-        setShowCommandsList(false);
-        setCommandSearch('');
-      },
-      [onChange]
-    );
-
-    const handleCloseCommandsList = useCallback(() => {
-      setShowCommandsList(false);
-      setCommandSearch('');
-      onChange?.('');
-    }, [onChange]);
+    const {
+      showCommandsList,
+      commandSearch,
+      selectedCommand,
+      handleChange,
+      handleSelectCommand,
+      handleCloseCommandsList,
+      clearSelectedCommand,
+      dismissCommandsList,
+    } = useCommandInputState({ enableCommands, onChange });
 
     // -----------------------------------------------------------------------
     // Build props shared across all input variants
@@ -249,7 +205,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               return;
             }
             onSend(message, attachments);
-            if (enableCommands) setShowCommandsList(false);
+            if (enableCommands) dismissCommandsList();
           }
         : undefined;
 
@@ -269,7 +225,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         autoFocus={autoFocus}
         commandChip={
           enableCommands && selectedCommand ? (
-            <CommandChip command={selectedCommand} onRemove={() => setSelectedCommand(null)} />
+            <CommandChip command={selectedCommand} onRemove={clearSelectedCommand} />
           ) : undefined
         }
       />
@@ -307,7 +263,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               return;
             }
             onSend(message, attachments, { agentMode });
-            setShowCommandsList(false);
+            dismissCommandsList();
           }
         : undefined;
 
@@ -319,7 +275,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           enableCommands={enableCommands}
           commandChip={
             selectedCommand ? (
-              <CommandChip command={selectedCommand} onRemove={() => setSelectedCommand(null)} />
+              <CommandChip command={selectedCommand} onRemove={clearSelectedCommand} />
             ) : undefined
           }
         />

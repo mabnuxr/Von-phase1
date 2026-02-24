@@ -282,6 +282,12 @@ export interface ChatMessageProps {
    * Quick command used for this user message (shows expandable chip)
    */
   command?: Command;
+
+  /**
+   * Fetches a presigned download URL for a command data-source file.
+   * Forwarded to CommandPreview so its file-preview panel can load content.
+   */
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
 }
 
 /**
@@ -322,6 +328,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onFileArtifactClick,
   onArtifactDownload,
   command,
+  onRequestFilePreviewUrl,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -604,7 +611,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       ref={userMessageRef}
                       className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2 overflow-hidden break-words"
                     >
-                      {command && <CommandPreview command={command} />}
+                      {command && (
+                        <CommandPreview
+                          command={command}
+                          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                        />
+                      )}
                       {attachments && attachments.length > 0 && (
                         <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
                       )}

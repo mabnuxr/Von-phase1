@@ -107,7 +107,9 @@ export function useQuickCommandsList(
   currentUserId?: string,
 ) {
   return useQuery({
-    queryKey: [...QUICK_COMMANDS_QUERY_KEY, params],
+    // currentUserId is part of the key so that cache entries are never shared
+    // across users — apiCommandToUICommand derives createdBy from it.
+    queryKey: [...QUICK_COMMANDS_QUERY_KEY, params, { userId: currentUserId }],
     queryFn: async () => {
       const result = await quickCommandsService.list({
         orderBy: "lastUsed",
@@ -171,7 +173,8 @@ export function useInfiniteQuickCommandsList(
   currentUserId?: string,
 ) {
   return useInfiniteQuery({
-    queryKey: [...QUICK_COMMANDS_QUERY_KEY, "infinite", params],
+    // currentUserId is part of the key for the same reason as useQuickCommandsList.
+    queryKey: [...QUICK_COMMANDS_QUERY_KEY, "infinite", params, { userId: currentUserId }],
     queryFn: async ({ pageParam }: { pageParam: number }) => {
       const result = await quickCommandsService.list({
         page: pageParam,

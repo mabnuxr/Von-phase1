@@ -48,8 +48,7 @@ export interface CommandDrawerProps {
    */
   onUploadFile?: (
     commandId: string,
-    file: File,
-    attachment: CommandAttachment
+    file: File
   ) => Promise<{ fileId: string; s3Key: string }>;
   /**
    * Called when the user clicks a file chip for an already-uploaded file that
@@ -308,7 +307,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             const file = files[idx];
             const tempId = attachment.id;
             try {
-              const { fileId, s3Key } = await onUploadFile(commandId, file, attachment);
+              const { fileId, s3Key } = await onUploadFile(commandId, file);
               // Replace temp id with the real backend fileId; preview URL fetched on-demand
               setDataSources((prev) =>
                 prev.map((ds) =>
