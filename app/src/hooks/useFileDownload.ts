@@ -40,34 +40,31 @@ export function useFileDownload() {
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      // Eagerly clean up on unmount
+      // Schedule cleanup with a delay so in-progress downloads can finish
       const anchors = document.querySelectorAll<HTMLAnchorElement>(
         DOWNLOAD_ANCHOR_SELECTOR,
       );
       anchors.forEach((a) => {
-        URL.revokeObjectURL(a.href);
+        const blobUrl = a.href;
         a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), STALE_THRESHOLD_MS);
       });
     };
   }, []);
 
-  const downloadBlob = useCallback(
-    async (url: string, fileName: string) => {
-      const response = await fetch(url);
-      if (!response.ok)
-        throw new Error(`Download failed (${response.status})`);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = fileName;
-      a.style.display = "none";
-      a.dataset.downloadTimestamp = String(Date.now());
-      document.body.appendChild(a);
-      a.click();
-    },
-    [],
-  );
+  const downloadBlob = useCallback(async (url: string, fileName: string) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Download failed (${response.status})`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = fileName;
+    a.style.display = "none";
+    a.dataset.downloadTimestamp = String(Date.now());
+    document.body.appendChild(a);
+    a.click();
+  }, []);
 
   return { downloadBlob };
 }
