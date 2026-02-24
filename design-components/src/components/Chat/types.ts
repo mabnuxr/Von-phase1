@@ -174,6 +174,14 @@ export interface Message {
    * Whether the v2 final response is still streaming
    */
   v2FinalResponseStreaming?: boolean;
+  /**
+   * Conversation phase from RUN_FINISHED event (assistant messages only)
+   * Controls whether approval buttons are shown
+   * - "plan-proposed": Show approval buttons (Skip/Run Full Analysis)
+   * - "ask": Normal conversation mode (hide approval buttons)
+   * - null/undefined: Normal conversation mode (hide approval buttons)
+   */
+  phase?: 'plan-proposed' | 'ask' | null;
 }
 
 export interface ChatSession {
@@ -380,6 +388,13 @@ export interface RunFinishedEvent {
     stopped_by_user?: boolean;
     error_occurred?: boolean;
     error_message?: string;
+    /**
+     * Conversation phase for approval button control (nested inside result)
+     * - "plan-proposed": Show approval buttons (Skip/Run Full Analysis)
+     * - "ask": Normal conversation mode (hide approval buttons)
+     * - null/undefined: Normal conversation mode (hide approval buttons)
+     */
+    phase?: 'plan-proposed' | 'ask' | null;
   };
 }
 

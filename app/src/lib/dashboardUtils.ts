@@ -215,6 +215,8 @@ export interface V2LiveData {
     string,
     import("../services/fileUploadService").FileMetadataResponse[]
   >;
+  /** Conversation phase for approval button control */
+  phase?: 'plan-proposed' | 'ask' | null;
 }
 
 /**
@@ -313,6 +315,7 @@ function transformMessagesForV2(
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
+        phase: v2LiveData.phase,
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
@@ -350,6 +353,12 @@ function transformMessagesForV2(
         persistedStoppedByUser ||
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
+      // Extract phase from persisted events
+      const runFinishedEvent = msg.events.find((e) => e.event?.type === "RUN_FINISHED");
+      const persistedPhase = runFinishedEvent
+        ? (runFinishedEvent.event as any)?.result?.phase || null
+        : null;
+
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
       if (
@@ -368,6 +377,7 @@ function transformMessagesForV2(
         v2FinalResponse: finalResponse,
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
+        phase: persistedPhase,
         // Propagate persisted error from events
         ...(persistedRunErrorMessage
           ? {
@@ -491,6 +501,7 @@ export function transformConversationMessages(
     stoppedByUser: false,
     runErrorMessage: "",
     currentRunId: null,
+    phase: null,
   };
 
   return transformMessagesForV2(conversationMessages, liveData);

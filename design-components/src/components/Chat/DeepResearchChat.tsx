@@ -144,6 +144,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   };
 
   // Find the last assistant message for approval flow
+  // SOLE CRITERIA: Show approval buttons only when phase === "plan-proposed"
   const approvalMessage = useMemo(() => {
     // Don't show approval if research results are streaming/completed
     if (researchResults?.isCompleted || researchResults?.isStreaming) return null;
@@ -157,6 +158,9 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
 
     // Must have v2FinalResponse (sample analysis completed)
     if (!lastMessage.v2FinalResponse || lastMessage.isStreaming) return null;
+
+    // Only show buttons when phase is "plan-proposed"
+    if (lastMessage.phase !== 'plan-proposed') return null;
 
     return lastMessage;
   }, [messages, researchResults]);

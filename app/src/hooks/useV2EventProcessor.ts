@@ -90,6 +90,7 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
+  phase: 'plan-proposed' | 'ask' | null;
   markStopped: () => void;
   markTimedOut: () => void;
   clearPendingStop: () => void;
@@ -134,6 +135,7 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
+  const [phase, setPhase] = useState<'plan-proposed' | 'ask' | null>(null);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
@@ -421,7 +423,12 @@ export function useV2EventProcessor(
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
 
-        // Update state
+        // Extract phase from RUN_FINISHED event
+        const runFinishedPhase = eventType === "RUN_FINISHED"
+          ? (wrapper.event as any)?.result?.phase || null
+          : undefined;
+
+        // Update state synchronously
         flushSync(() => {
           setTimelineSteps(result.steps);
           setIsThinking(result.isThinking);
@@ -432,6 +439,11 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(result.isDeepResearchRunning);
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
+
+          // Update phase when RUN_FINISHED arrives
+          if (runFinishedPhase !== undefined) {
+            setPhase(runFinishedPhase);
+          }
         });
 
         // Pause timer when awaiting approval; resume when approval is acted on
@@ -519,8 +531,33 @@ export function useV2EventProcessor(
 
     const result = transformAguiToTimelineSteps(mergedEvents);
 
+    // Extract phase from seeded events (for page refresh)
+    const runFinishedEvent = mergedEvents.find(e => e.event?.type === "RUN_FINISHED");
+    const seededPhase = runFinishedEvent
+      ? (runFinishedEvent.event as any)?.result?.phase || null
+      : null;
+
     eventsRef.current.set(runId, mergedEvents);
-    applyTransformResult(result, runId);
+
+    // Apply transform result and set phase in same flushSync batch
+    flushSync(() => {
+      // First apply the transform result
+      setTimelineSteps(result.steps);
+      setIsThinking(result.isThinking);
+      setCurrentRunId(runId);
+      setFinalResponse(result.finalResponse);
+      setIsFinalResponseStreaming(result.isFinalResponseStreaming);
+      setIsAwaitingApproval(result.isAwaitingApproval);
+      setResearchResults(result.researchResults);
+      setIsDeepResearchRunning(result.isDeepResearchRunning);
+      setStoppedByUser(result.stoppedByUser);
+      setRunErrorMessage(result.runErrorMessage);
+
+      // Then set phase in same batch
+      if (seededPhase !== null) {
+        setPhase(seededPhase);
+      }
+    });
 
     const elapsed = getElapsedTimeFromEvents(mergedEvents);
     if (elapsed > 0) {
@@ -607,6 +644,7 @@ export function useV2EventProcessor(
     isDeepResearchRunning,
     stoppedByUser,
     runErrorMessage,
+    phase,
     markStopped,
     markTimedOut,
     clearPendingStop,

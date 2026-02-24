@@ -55,6 +55,14 @@ export interface MessageFileAttachment {
 }
 
 /**
+ * Conversation phase from RUN_FINISHED event
+ * - "plan-proposed": Show approval buttons (Skip/Run Full Analysis)
+ * - "ask": Normal conversation mode (hide approval buttons)
+ * - null/undefined: Normal conversation mode (hide approval buttons)
+ */
+export type ConversationPhase = "plan-proposed" | "ask" | null;
+
+/**
  * Message entity from backend
  */
 export interface Message {
@@ -67,6 +75,11 @@ export interface Message {
   createdAt: string;
   createdBy: string | null;
   fileAttachments?: MessageFileAttachment[];
+  /**
+   * Conversation phase from RUN_FINISHED event (assistant messages only)
+   * Controls whether approval buttons are shown
+   */
+  phase?: ConversationPhase;
 }
 
 /**

@@ -371,7 +371,11 @@ export function useChatV2(props: UseChatV2Props) {
         stoppedByUser: v2Processor.stoppedByUser,
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
+<<<<<<< HEAD
         agentArtifactsByRunId,
+=======
+        phase: v2Processor.phase,
+>>>>>>> 9a41ca9 (agent builder integration)
       }),
     [
       conversationMessages,
@@ -385,6 +389,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
+      v2Processor.phase,
     ],
   );
 
@@ -518,6 +523,7 @@ export function useChatV2(props: UseChatV2Props) {
 
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
+    phase: v2Processor.phase,
 
     // Messages
     transformedMessages,
