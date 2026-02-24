@@ -51,7 +51,7 @@ export interface CommandsOverlayProps {
     editingId?: string,
     dataSources?: import('./types').CommandAttachment[],
     commandId?: string
-  ) => void;
+  ) => Promise<void>;
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand: (id: string) => void;
   /** Disables the save button while a mutation is in-flight */
@@ -123,12 +123,12 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   }, [manageDrawer, onCloseCommandsList]);
 
   const handleSave = useCallback(
-    (
+    async (
       data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
       dataSources: import('./types').CommandAttachment[],
       commandId: string
     ) => {
-      onSaveCommand(data, editingCommand?.id, dataSources, commandId);
+      await onSaveCommand(data, editingCommand?.id, dataSources, commandId);
       formDrawer.hide();
       setEditingCommand(null);
     },

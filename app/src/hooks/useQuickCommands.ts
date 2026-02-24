@@ -4,6 +4,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
 import type { Command } from "@vonlabs/design-components";
 import type { FileCategory } from "@vonlabs/design-components";
 import {
@@ -207,21 +208,43 @@ export function useBookmarkQuickCommand() {
     onMutate: async ({ id, bookmark }) => {
       await queryClient.cancelQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
 
-      // Snapshot every cache entry whose key starts with QUICK_COMMANDS_QUERY_KEY
-      // (e.g. ["quick-commands", undefined], ["quick-commands", "infinite", ...])
-      const previousEntries = queryClient.getQueriesData<{ data: Command[] }>({
+      // Snapshot every cache entry whose key starts with QUICK_COMMANDS_QUERY_KEY.
+      // Two distinct shapes exist under this prefix:
+      //   - regular queries  (useQuickCommandsList):         { data: Command[], ... }
+      //   - infinite queries (useInfiniteQuickCommandsList): InfiniteData<{ data: Command[], ... }>
+      type RegularPage = { data: Command[]; pagination: unknown };
+
+      const previousEntries = queryClient.getQueriesData({
         queryKey: QUICK_COMMANDS_QUERY_KEY,
       });
 
-      queryClient.setQueriesData<{ data: Command[] }>(
-        { queryKey: QUICK_COMMANDS_QUERY_KEY },
+      const updateCmd = (cmd: Command) =>
+        cmd.id === id ? { ...cmd, isFavorite: bookmark } : cmd;
+
+      // Regular queries: key is [...QUICK_COMMANDS_QUERY_KEY, params, { userId }]
+      // Exclude the infinite queries by checking that the second segment is not "infinite".
+      queryClient.setQueriesData<RegularPage>(
+        {
+          queryKey: QUICK_COMMANDS_QUERY_KEY,
+          predicate: (query) => query.queryKey[1] !== "infinite",
+        },
+        (old) => {
+          if (!old) return old;
+          return { ...old, data: old.data.map(updateCmd) };
+        },
+      );
+
+      // Infinite queries: key is [...QUICK_COMMANDS_QUERY_KEY, "infinite", params, { userId }]
+      queryClient.setQueriesData<InfiniteData<RegularPage>>(
+        { queryKey: [...QUICK_COMMANDS_QUERY_KEY, "infinite"] },
         (old) => {
           if (!old) return old;
           return {
             ...old,
-            data: old.data.map((cmd) =>
-              cmd.id === id ? { ...cmd, isFavorite: bookmark } : cmd,
-            ),
+            pages: old.pages.map((page) => ({
+              ...page,
+              data: page.data.map(updateCmd),
+            })),
           };
         },
       );

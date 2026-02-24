@@ -491,7 +491,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           <SecondaryIconButton
                             icon={<span className="text-[13px] font-semibold text-gray-800 leading-none">/</span>}
                             onClick={() => {
-                              onChange?.('/');
+                              editorRef.current?.commands.insertContent('/');
                               editorRef.current?.commands.focus('end');
                             }}
                             disabled={disabled && !isStreaming}

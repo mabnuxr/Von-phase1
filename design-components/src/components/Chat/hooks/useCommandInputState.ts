@@ -15,7 +15,7 @@ export interface UseCommandInputStateReturn {
   handleChange: (newValue: string) => void;
   /** Selects a command from the list, prefills the input, and closes the list */
   handleSelectCommand: (command: Command) => void;
-  /** Closes the commands list and clears the input (e.g. Escape / click outside) */
+  /** Closes the commands list without touching the input value (e.g. Escape / click outside) */
   handleCloseCommandsList: () => void;
   /** Clears the active command chip without touching the input value */
   clearSelectedCommand: () => void;
@@ -64,8 +64,7 @@ export function useCommandInputState({
   const handleCloseCommandsList = useCallback(() => {
     setShowCommandsList(false);
     setCommandSearch('');
-    onChange?.('');
-  }, [onChange]);
+  }, []);
 
   const clearSelectedCommand = useCallback(() => {
     setSelectedCommand(null);

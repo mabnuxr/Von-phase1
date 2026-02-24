@@ -33,7 +33,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
   command,
   onRequestFilePreviewUrl,
 }) => {
-  const { isVisible: isExpanded, toggle: onToggle } = useVisibilityToggle();
+  const { isVisible: isExpanded, toggleVisibility: onToggle } = useVisibilityToggle();
   const filesPanel = useVisibilityToggle();
 
   // Presigned URLs fetched on demand; null = fetch failed.

@@ -98,7 +98,7 @@ export interface ChatInputSelectorProps {
   onSaveCommand?: (
     data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
     editingId?: string
-  ) => void;
+  ) => Promise<void>;
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
@@ -225,7 +225,14 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         autoFocus={autoFocus}
         commandChip={
           enableCommands && selectedCommand ? (
-            <CommandChip command={selectedCommand} onRemove={clearSelectedCommand} />
+            <CommandChip
+              command={selectedCommand}
+              onRemove={
+                selectedCommand.dataSources && selectedCommand.dataSources.length > 0
+                  ? undefined
+                  : clearSelectedCommand
+              }
+            />
           ) : undefined
         }
       />
@@ -258,7 +265,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
               // Keep the command chip active so it applies to consecutive messages.
-              // The user can remove it manually via the chip's X button.
+              // The user can remove it manually via the chip's X button (unless the command
+              // has data sources, in which case the chip is non-removable by design).
               onChange?.('');
               return;
             }
@@ -275,7 +283,14 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           enableCommands={enableCommands}
           commandChip={
             selectedCommand ? (
-              <CommandChip command={selectedCommand} onRemove={clearSelectedCommand} />
+              <CommandChip
+                command={selectedCommand}
+                onRemove={
+                  selectedCommand.dataSources && selectedCommand.dataSources.length > 0
+                    ? undefined
+                    : clearSelectedCommand
+                }
+              />
             ) : undefined
           }
         />
@@ -292,7 +307,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             isLoading={isLoadingCommands}
             onSelectCommand={handleSelectCommand}
             onCloseCommandsList={handleCloseCommandsList}
-            onSaveCommand={onSaveCommand ?? (() => {})}
+            onSaveCommand={onSaveCommand ?? (() => Promise.resolve())}
             onDeleteCommand={onDeleteCommand ?? (() => {})}
             isSaving={isSavingCommand}
             isAdmin={isAdmin}
