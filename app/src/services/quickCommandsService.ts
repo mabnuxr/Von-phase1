@@ -1,5 +1,5 @@
-import type { CommandAttachment } from '@vonlabs/design-components';
-import { apiClient } from './apiClient';
+import type { CommandAttachment } from "@vonlabs/design-components";
+import { apiClient } from "./apiClient";
 
 /** Shape the backend expects when creating/updating a command's data sources */
 export interface CommandDataSource {
@@ -8,7 +8,7 @@ export interface CommandDataSource {
   mimeType: string;
   fileSize: number;
   extension: string;
-  category: 'document' | 'spreadsheet' | 'presentation' | 'text' | 'image';
+  category: "document" | "spreadsheet" | "presentation" | "text" | "image";
   s3Key: string;
 }
 
@@ -30,7 +30,7 @@ export interface QuickCommand {
   slug: string;
   prompt: string;
   prefillText: string;
-  accessLevel: 'tenant' | 'user';
+  accessLevel: "tenant" | "user";
   dataSources: CommandDataSourceResponse[];
   lastUsedAt: string | null;
   usageCount: number;
@@ -57,7 +57,7 @@ export interface CreateQuickCommandInput {
   name: string;
   prompt: string;
   prefillText?: string;
-  accessLevel?: 'tenant' | 'user';
+  accessLevel?: "tenant" | "user";
   dataSources?: CommandDataSource[];
 }
 
@@ -65,7 +65,7 @@ export interface UpdateQuickCommandInput {
   name?: string;
   prompt?: string;
   prefillText?: string;
-  accessLevel?: 'tenant' | 'user';
+  accessLevel?: "tenant" | "user";
   dataSources?: CommandDataSource[];
 }
 
@@ -83,26 +83,27 @@ export interface PresignResponse {
 
 export const quickCommandsService = {
   list(params?: {
-    accessLevel?: 'all' | 'tenant' | 'user';
+    accessLevel?: "all" | "tenant" | "user";
     search?: string;
-    orderBy?: 'lastUsed' | 'mostUsed';
+    orderBy?: "lastUsed" | "mostUsed";
     page?: number;
     limit?: number;
   }): Promise<QuickCommandListResponse> {
     const searchParams = new URLSearchParams();
-    if (params?.accessLevel) searchParams.set('accessLevel', params.accessLevel);
-    if (params?.search) searchParams.set('search', params.search);
-    if (params?.orderBy) searchParams.set('orderBy', params.orderBy);
-    if (params?.page) searchParams.set('page', String(params.page));
-    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.accessLevel)
+      searchParams.set("accessLevel", params.accessLevel);
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.orderBy) searchParams.set("orderBy", params.orderBy);
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
     const query = searchParams.toString();
     return apiClient.get<QuickCommandListResponse>(
-      `/api/v1/quick-commands${query ? `?${query}` : ''}`,
+      `/api/v1/quick-commands${query ? `?${query}` : ""}`,
     );
   },
 
   create(data: CreateQuickCommandInput): Promise<QuickCommand> {
-    return apiClient.post<QuickCommand>('/api/v1/quick-commands', data);
+    return apiClient.post<QuickCommand>("/api/v1/quick-commands", data);
   },
 
   update(id: string, data: UpdateQuickCommandInput): Promise<QuickCommand> {
@@ -121,7 +122,10 @@ export const quickCommandsService = {
     return apiClient.delete<void>(`/api/v1/quick-commands/${id}/bookmark`);
   },
 
-  presignFile(commandId: string, data: PresignRequest): Promise<PresignResponse> {
+  presignFile(
+    commandId: string,
+    data: PresignRequest,
+  ): Promise<PresignResponse> {
     return apiClient.post<PresignResponse>(
       `/api/v1/quick-commands/${commandId}/files/presign`,
       data,
@@ -133,7 +137,9 @@ export const quickCommandsService = {
    * Uses the s3Key returned from the presign response — works for both
    * pre-creation and post-creation files.
    */
-  getFileDownloadUrl(s3Key: string): Promise<{ downloadUrl: string; fileName: string }> {
+  getFileDownloadUrl(
+    s3Key: string,
+  ): Promise<{ downloadUrl: string; fileName: string }> {
     return apiClient.get<{ downloadUrl: string; fileName: string }>(
       `/api/v1/quick-commands/files/download?s3Key=${encodeURIComponent(s3Key)}`,
     );
@@ -151,13 +157,13 @@ export const quickCommandsService = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
-      xhr.upload.addEventListener('progress', (e) => {
+      xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
           onProgress?.(Math.round((e.loaded / e.total) * 100));
         }
       });
 
-      xhr.addEventListener('load', () => {
+      xhr.addEventListener("load", () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve();
         } else {
@@ -165,11 +171,15 @@ export const quickCommandsService = {
         }
       });
 
-      xhr.addEventListener('error', () => reject(new Error('S3 upload failed: network error')));
-      xhr.addEventListener('abort', () => reject(new Error('S3 upload aborted')));
+      xhr.addEventListener("error", () =>
+        reject(new Error("S3 upload failed: network error")),
+      );
+      xhr.addEventListener("abort", () =>
+        reject(new Error("S3 upload aborted")),
+      );
 
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.open("PUT", uploadUrl);
+      xhr.setRequestHeader("Content-Type", file.type);
       xhr.send(file);
     });
   },
@@ -196,7 +206,7 @@ export async function uploadPendingFiles(
 
     const presign = await quickCommandsService.presignFile(commandId, {
       fileName: file.name,
-      fileType: file.type || 'application/octet-stream',
+      fileType: file.type || "application/octet-stream",
       fileSize: file.size,
     });
 
@@ -205,10 +215,10 @@ export async function uploadPendingFiles(
     results.push({
       fileId: presign.uploadId,
       fileName: file.name,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: file.type || "application/octet-stream",
       fileSize: file.size,
       extension: ds.extension,
-      category: ds.category as CommandDataSource['category'],
+      category: ds.category as CommandDataSource["category"],
       s3Key: presign.s3Key,
     });
   }

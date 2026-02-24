@@ -100,7 +100,10 @@ export function useCommandsPanel(userId?: string) {
   );
 
   const handleUploadFile = useCallback(
-    async (cmdId: string, file: File): Promise<{ fileId: string; s3Key: string }> => {
+    async (
+      cmdId: string,
+      file: File,
+    ): Promise<{ fileId: string; s3Key: string }> => {
       try {
         const presign = await quickCommandsService.presignFile(cmdId, {
           fileName: file.name,
@@ -123,10 +126,14 @@ export function useCommandsPanel(userId?: string) {
   const handleRequestFilePreviewUrl = useCallback(
     async (s3Key: string): Promise<string> => {
       try {
-        const { downloadUrl } = await quickCommandsService.getFileDownloadUrl(s3Key);
+        const { downloadUrl } =
+          await quickCommandsService.getFileDownloadUrl(s3Key);
         return downloadUrl;
       } catch (err) {
-        showToast({ message: "Could not load file preview.", variant: "error" });
+        showToast({
+          message: "Could not load file preview.",
+          variant: "error",
+        });
         throw err;
       }
     },
@@ -136,9 +143,13 @@ export function useCommandsPanel(userId?: string) {
   const handleDeleteCommand = useCallback(
     (id: string) =>
       deleteCommand(id, {
-        onSuccess: () => showToast({ message: "Command deleted", variant: "success" }),
+        onSuccess: () =>
+          showToast({ message: "Command deleted", variant: "success" }),
         onError: () =>
-          showToast({ message: "Failed to delete command. Please try again.", variant: "error" }),
+          showToast({
+            message: "Failed to delete command. Please try again.",
+            variant: "error",
+          }),
       }),
     [deleteCommand, showToast],
   );
@@ -149,7 +160,10 @@ export function useCommandsPanel(userId?: string) {
         { id: cmd.id, bookmark: !cmd.isFavorite },
         {
           onError: () =>
-            showToast({ message: "Failed to update bookmark. Please try again.", variant: "error" }),
+            showToast({
+              message: "Failed to update bookmark. Please try again.",
+              variant: "error",
+            }),
         },
       ),
     [toggleBookmark, showToast],

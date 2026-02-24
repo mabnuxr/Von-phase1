@@ -33,7 +33,7 @@ export interface CommandDrawerProps {
     data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
     dataSources: CommandAttachment[],
     commandId: string
-  ) => Promise<void>;
+  ) => void;
   /** Pre-populate the form when editing an existing command */
   editingCommand?: Command | null;
   /** Shows a spinner / disables the save button while the mutation is in-flight */
@@ -46,10 +46,7 @@ export interface CommandDrawerProps {
    * Called immediately when the user picks a file — upload should happen here.
    * Returns the backend fileId and s3Key once the upload completes.
    */
-  onUploadFile?: (
-    commandId: string,
-    file: File
-  ) => Promise<{ fileId: string; s3Key: string }>;
+  onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /**
    * Called when the user clicks a file chip for an already-uploaded file that
    * has no local blob URL. Should return a presigned download URL for the file.
@@ -269,7 +266,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       if (files.length === 0) return;
 
       const newAttachments: CommandAttachment[] = files.map((file) => {
-        console.log(file);
         const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
         let category: CommandAttachment['category'] = 'document';
         if (file.type.startsWith('image/')) category = 'image';

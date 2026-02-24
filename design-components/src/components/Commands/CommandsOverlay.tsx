@@ -51,7 +51,7 @@ export interface CommandsOverlayProps {
     editingId?: string,
     dataSources?: import('./types').CommandAttachment[],
     commandId?: string
-  ) => Promise<void>;
+  ) => void;
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand: (id: string) => void;
   /** Disables the save button while a mutation is in-flight */
@@ -70,6 +70,34 @@ export interface CommandsOverlayProps {
    * Should presign + upload the file and return the backend fileId and s3Key.
    */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+
+  // ---------------------------------------------------------------------------
+  // Legacy props — accepted for backwards compatibility with older consumers
+  // that controlled drawer state externally. The current implementation manages
+  // all drawer state internally and ignores these.
+  // ---------------------------------------------------------------------------
+  /** @deprecated Drawer visibility is now managed internally. */
+  showCommandDrawer?: boolean;
+  /** @deprecated Drawer visibility is now managed internally. */
+  showManageDrawer?: boolean;
+  /** @deprecated Editing state is now managed internally. */
+  editingCommand?: Command | null;
+  /** @deprecated Use onCloseCommandsList instead. */
+  onNewCommand?: () => void;
+  /** @deprecated Use onCloseCommandsList instead. */
+  onManageCommands?: () => void;
+  /** @deprecated Editing state is now managed internally. */
+  onEditCommand?: (command: Command) => void;
+  /** @deprecated Drawer visibility is now managed internally. */
+  onCloseCommandDrawer?: () => void;
+  /** @deprecated Drawer visibility is now managed internally. */
+  onCloseManageDrawer?: () => void;
+  /** @deprecated No longer used. */
+  salesforceFields?: unknown;
+  /** @deprecated No longer used. */
+  isLoadingSalesforceFields?: boolean;
+  /** @deprecated No longer used. */
+  commandsListClassName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,12 +138,15 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
     onCloseCommandsList();
   }, [formDrawer, manageDrawer, onCloseCommandsList]);
 
-  const openEditDrawer = useCallback((command: Command) => {
-    setEditingCommand(command);
-    setIsReadOnly(command.createdBy !== 'me');
-    manageDrawer.hide();
-    formDrawer.show();
-  }, [formDrawer, manageDrawer]);
+  const openEditDrawer = useCallback(
+    (command: Command) => {
+      setEditingCommand(command);
+      setIsReadOnly(command.createdBy !== 'me');
+      manageDrawer.hide();
+      formDrawer.show();
+    },
+    [formDrawer, manageDrawer]
+  );
 
   const openManageDrawer = useCallback(() => {
     manageDrawer.show();
@@ -123,18 +154,17 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   }, [manageDrawer, onCloseCommandsList]);
 
   const handleSave = useCallback(
-    async (
+    (
       data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
       dataSources: import('./types').CommandAttachment[],
       commandId: string
     ) => {
-      await onSaveCommand(data, editingCommand?.id, dataSources, commandId);
+      onSaveCommand(data, editingCommand?.id, dataSources, commandId);
       formDrawer.hide();
       setEditingCommand(null);
     },
     [editingCommand, formDrawer, onSaveCommand]
   );
-
 
   const filteredCommands = commandSearch
     ? commands.filter((c) => c.name.toLowerCase().includes(commandSearch.toLowerCase().trim()))

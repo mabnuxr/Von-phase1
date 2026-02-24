@@ -331,15 +331,17 @@ export const FilesPreviewPanel: React.FC<FilesPreviewPanelProps> = ({
   }, [isOpen]);
 
   // Fire onRequestPreviewUrl whenever the active entry has no URL yet (undefined).
-  // Runs on initial mount, tab switches, and when the parent navigates via initialIndex.
+  // Only runs while the panel is open — avoids unnecessary API calls when the
+  // panel is mounted but hidden (e.g. for every message with a data-sources command).
   const activeEntry = files[activeIndex];
   useEffect(() => {
+    if (!isOpen) return;
     if (!activeEntry || activeEntry.previewUrl !== undefined || !onRequestPreviewUrl) return;
     const id = activeEntry.file.id;
     if (requestedIdsRef.current.has(id)) return;
     requestedIdsRef.current.add(id);
     onRequestPreviewUrl(id);
-  }, [activeEntry?.file.id, activeEntry?.previewUrl, onRequestPreviewUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, activeEntry?.file.id, activeEntry?.previewUrl, onRequestPreviewUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return ReactDOM.createPortal(
     <AnimatePresence>

@@ -19,6 +19,8 @@ export interface CommandChipProps {
   onClick?: () => void;
   /** Whether the chip is in an expanded state (rotates the caret) */
   isExpanded?: boolean;
+  /** When true, renders the command description below the name */
+  showDescription?: boolean;
 }
 
 export const CommandChip: React.FC<CommandChipProps> = ({
@@ -26,6 +28,7 @@ export const CommandChip: React.FC<CommandChipProps> = ({
   onRemove,
   onClick,
   isExpanded = false,
+  showDescription = false,
 }) => {
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -34,21 +37,28 @@ export const CommandChip: React.FC<CommandChipProps> = ({
         onClick={onClick}
         role={onClick ? 'button' : undefined}
       >
-        <span
-          className="text-[13px] font-medium whitespace-nowrap"
-          style={{
-            background: 'linear-gradient(90deg, #F97316, #A855F7)',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            color: 'transparent',
-          }}
-        >
-          {command.name}
-        </span>
+        <div className="flex flex-col min-w-0">
+          <span
+            className="text-[13px] font-medium whitespace-nowrap"
+            style={{
+              background: 'linear-gradient(90deg, #F97316, #A855F7)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            {command.name}
+          </span>
+          {showDescription && command.description && (
+            <span className="text-[11px] text-gray-400 truncate">{command.description}</span>
+          )}
+        </div>
 
         {/* Caret — rotates down when expanded */}
         {onClick && (
-          <span className={`text-gray-400 p-0.5 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+          <span
+            className={`text-gray-400 p-0.5 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+          >
             <CaretRight size={12} weight="bold" />
           </span>
         )}

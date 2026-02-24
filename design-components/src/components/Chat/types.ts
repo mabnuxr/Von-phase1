@@ -1234,6 +1234,12 @@ export interface ChatProps {
 
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /**
+   * The locked command derived from the last user message sent with a
+   * data-sources command. Passed through to the input so the chip is restored
+   * automatically when the conversation is revisited.
+   */
+  lockedCommandFromHistory?: Command | null;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
 

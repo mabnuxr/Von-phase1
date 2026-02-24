@@ -489,7 +489,11 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                         {/* Slash commands button */}
                         {enableCommands && (
                           <SecondaryIconButton
-                            icon={<span className="text-[13px] font-semibold text-gray-800 leading-none">/</span>}
+                            icon={
+                              <span className="text-[13px] font-semibold text-gray-800 leading-none">
+                                /
+                              </span>
+                            }
                             onClick={() => {
                               editorRef.current?.commands.insertContent('/');
                               editorRef.current?.commands.focus('end');

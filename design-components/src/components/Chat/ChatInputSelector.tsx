@@ -98,7 +98,7 @@ export interface ChatInputSelectorProps {
   onSaveCommand?: (
     data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
     editingId?: string
-  ) => Promise<void>;
+  ) => void;
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
@@ -111,6 +111,12 @@ export interface ChatInputSelectorProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /**
+   * The locked command derived from the last user message that was sent with a
+   * data-sources command. When provided the chip is shown as locked (no X)
+   * on mount, and is restored even after navigating away and back.
+   */
+  lockedCommandFromHistory?: Command | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +168,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      lockedCommandFromHistory,
     },
     ref
   ) => {
@@ -172,12 +179,14 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       showCommandsList,
       commandSearch,
       selectedCommand,
+      isCommandLocked,
       handleChange,
       handleSelectCommand,
       handleCloseCommandsList,
       clearSelectedCommand,
       dismissCommandsList,
-    } = useCommandInputState({ enableCommands, onChange });
+      lockCommand,
+    } = useCommandInputState({ enableCommands, onChange, lockedCommandFromHistory });
 
     // -----------------------------------------------------------------------
     // Build props shared across all input variants
@@ -202,6 +211,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { command: selectedCommand });
               onChange?.('');
+              if (selectedCommand.dataSources && selectedCommand.dataSources.length > 0) {
+                lockCommand();
+              }
               return;
             }
             onSend(message, attachments);
@@ -227,11 +239,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           enableCommands && selectedCommand ? (
             <CommandChip
               command={selectedCommand}
-              onRemove={
-                selectedCommand.dataSources && selectedCommand.dataSources.length > 0
-                  ? undefined
-                  : clearSelectedCommand
-              }
+              onRemove={isCommandLocked ? undefined : clearSelectedCommand}
             />
           ) : undefined
         }
@@ -264,10 +272,10 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             if (selectedCommand) {
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
-              // Keep the command chip active so it applies to consecutive messages.
-              // The user can remove it manually via the chip's X button (unless the command
-              // has data sources, in which case the chip is non-removable by design).
               onChange?.('');
+              if (selectedCommand.dataSources && selectedCommand.dataSources.length > 0) {
+                lockCommand();
+              }
               return;
             }
             onSend(message, attachments, { agentMode });
@@ -285,11 +293,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             selectedCommand ? (
               <CommandChip
                 command={selectedCommand}
-                onRemove={
-                  selectedCommand.dataSources && selectedCommand.dataSources.length > 0
-                    ? undefined
-                    : clearSelectedCommand
-                }
+                onRemove={isCommandLocked ? undefined : clearSelectedCommand}
               />
             ) : undefined
           }
@@ -307,7 +311,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             isLoading={isLoadingCommands}
             onSelectCommand={handleSelectCommand}
             onCloseCommandsList={handleCloseCommandsList}
-            onSaveCommand={onSaveCommand ?? (() => Promise.resolve())}
+            onSaveCommand={onSaveCommand ?? (() => {})}
             onDeleteCommand={onDeleteCommand ?? (() => {})}
             isSaving={isSavingCommand}
             isAdmin={isAdmin}

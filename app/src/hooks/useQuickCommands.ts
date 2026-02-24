@@ -175,7 +175,12 @@ export function useInfiniteQuickCommandsList(
 ) {
   return useInfiniteQuery({
     // currentUserId is part of the key for the same reason as useQuickCommandsList.
-    queryKey: [...QUICK_COMMANDS_QUERY_KEY, "infinite", params, { userId: currentUserId }],
+    queryKey: [
+      ...QUICK_COMMANDS_QUERY_KEY,
+      "infinite",
+      params,
+      { userId: currentUserId },
+    ],
     queryFn: async ({ pageParam }: { pageParam: number }) => {
       const result = await quickCommandsService.list({
         page: pageParam,
