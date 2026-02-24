@@ -129,6 +129,24 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       attributes: {
         class: 'tiptap-editor',
       },
+      // Strip <span> tags from pasted HTML that TipTap can't map to its schema.
+      // When copying from Streamdown, the browser inlines computed styles on every
+      // element, so we identify Streamdown spans by their data-streamdown attribute.
+      // Spans with an explicit style but no data-streamdown (e.g. user-pasted
+      // colored text) are preserved for the TextStyle/Color extensions.
+      transformPastedHTML: (html: string) => {
+        try {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          doc.querySelectorAll('span').forEach((span) => {
+            if (span.hasAttribute('data-streamdown') || !span.hasAttribute('style')) {
+              span.replaceWith(...Array.from(span.childNodes));
+            }
+          });
+          return doc.body.innerHTML;
+        } catch {
+          return html;
+        }
+      },
       handlePaste: (_view, event) => {
         const files = Array.from(event.clipboardData?.files || []);
         if (files.length > 0) {
