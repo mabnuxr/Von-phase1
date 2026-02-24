@@ -222,6 +222,128 @@ function normalizeChanges(
 }
 
 /**
+ * Maps analytics operation names to base operation type and entity label.
+ * Analytics ops (create_report, clone_dashboard, etc.) use compound operation
+ * names that don't match the standard 'create' | 'update' | 'delete' union.
+ */
+const ANALYTICS_OPERATIONS: Record<
+  string,
+  { baseOp: "create" | "update" | "delete"; entityType: string }
+> = {
+  create_report: { baseOp: "create", entityType: "Report" },
+  update_report: { baseOp: "update", entityType: "Report" },
+  delete_report: { baseOp: "delete", entityType: "Report" },
+  update_dashboard: { baseOp: "update", entityType: "Dashboard" },
+  clone_dashboard: { baseOp: "create", entityType: "Dashboard" },
+};
+
+// Analytics param keys → human-readable labels for the approval card
+const ANALYTICS_FIELD_LABELS: [string, string][] = [
+  ["report_name", "Report Name"],
+  ["report_type", "Report Type"],
+  ["description", "Description"],
+  ["detail_columns", "Columns"],
+  ["groupings_down", "Row Groupings"],
+  ["groupings_across", "Column Groupings"],
+  ["aggregates", "Aggregates"],
+  ["report_filters", "Filters"],
+  ["filter_logic", "Filter Logic"],
+  ["chart", "Chart"],
+  ["folder_id", "Folder"],
+  ["source_dashboard_id", "Source Dashboard"],
+  ["filters", "Dashboard Filters"],
+];
+
+function stringifyAnalyticsValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.every((v) => typeof v === "string")
+      ? value.join(", ")
+      : `${value.length} item(s)`;
+  }
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, unknown>;
+    // Chart objects — show type and title
+    if ("chartType" in obj) {
+      return [obj.chartType, obj.title].filter(Boolean).join(" — ");
+    }
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+/**
+ * Normalizes analytics operations into the standard approval card shape.
+ * Deterministically builds display data (fields/changes) from the known
+ * flat param structure — operation shapes are fixed, no agent formatting needed.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeAnalyticsOp(op: Record<string, any>): Record<string, any> {
+  const mapping = ANALYTICS_OPERATIONS[op.operation];
+  if (!mapping) return op;
+
+  const record_name =
+    op.record_name ||
+    op.report_name ||
+    (op.report_id ? `Report ${op.report_id}` : null) ||
+    (op.dashboard_id ? `Dashboard ${op.dashboard_id}` : null) ||
+    (op.source_dashboard_id
+      ? `Dashboard (clone of ${op.source_dashboard_id})`
+      : null) ||
+    "Unknown";
+
+  let fields: Record<string, string | number | boolean | null> | undefined;
+  let changes:
+    | Array<{
+        field: string;
+        before?: string | number | boolean | null;
+        after: string | number | boolean | null;
+      }>
+    | undefined;
+
+  if (mapping.baseOp === "create") {
+    // Creates/clones: build fields dict for 2-column display
+    const f: Record<string, string | number | boolean | null> = {};
+    for (const [key, label] of ANALYTICS_FIELD_LABELS) {
+      if (op[key] != null) {
+        f[label] = stringifyAnalyticsValue(op[key]);
+      }
+    }
+    if (Object.keys(f).length > 0) fields = f;
+  } else if (mapping.baseOp === "update") {
+    // Prefer agent-provided changes (has before/after), fall back to building from flat params
+    if (Array.isArray(op.changes) && op.changes.length > 0) {
+      changes = op.changes;
+    } else {
+      const c: Array<{
+        field: string;
+        after: string | number | boolean | null;
+      }> = [];
+      for (const [key, label] of ANALYTICS_FIELD_LABELS) {
+        if (op[key] != null) {
+          c.push({
+            field: label,
+            after: stringifyAnalyticsValue(op[key]),
+          });
+        }
+      }
+      if (c.length > 0) changes = c;
+    }
+  }
+
+  return {
+    ...op,
+    operation: mapping.baseOp,
+    sobject_type: mapping.entityType,
+    record_name,
+    record_id:
+      op.record_id || op.report_id || op.dashboard_id || op.source_dashboard_id,
+    ...(fields && { fields }),
+    ...(changes && { changes }),
+  };
+}
+
+/**
  * Generic approval detection from tool arguments
  * Supports: Salesforce, Google Calendar, Bulk operations, and generic approvals
  *
@@ -236,7 +358,8 @@ function detectApprovalFromArgs(
 ): DetectedApprovalData | null {
   // Pattern 1: Operations array with summary (Salesforce or Google Calendar)
   if (parsed.operations && Array.isArray(parsed.operations) && parsed.summary) {
-    const ops = parsed.operations;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ops = parsed.operations.map((op: any) => normalizeAnalyticsOp(op));
     const isBulk = ops.length > 1;
     const firstOp = ops[0];
 
