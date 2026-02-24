@@ -50,6 +50,7 @@ export default function Callback() {
             code: code || "",
             redirect_uri: config.scalekitRedirectUri,
             code_verifier: codeVerifier,
+            state: storedState,
           }),
         },
       );
