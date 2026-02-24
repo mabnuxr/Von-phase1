@@ -371,11 +371,8 @@ export function useChatV2(props: UseChatV2Props) {
         stoppedByUser: v2Processor.stoppedByUser,
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
-<<<<<<< HEAD
         agentArtifactsByRunId,
-=======
         phase: v2Processor.phase,
->>>>>>> 9a41ca9 (agent builder integration)
       }),
     [
       conversationMessages,

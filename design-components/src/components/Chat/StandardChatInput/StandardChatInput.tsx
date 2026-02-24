@@ -123,7 +123,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
 
   const handleAgentSelect = (mode: AgentMode) => {
     onAgentModeChange(mode);
-    if (mode === 'build-dashboard' && onBuildDashboard) {
+    if (mode === 'dashboard-builder' && onBuildDashboard) {
       onBuildDashboard();
     }
     onClose();
