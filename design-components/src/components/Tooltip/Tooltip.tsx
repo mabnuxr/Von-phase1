@@ -61,7 +61,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   // Recalculate position once the tooltip is in the DOM
   useLayoutEffect(() => {
     if (visible) updatePosition();
-  }, [visible, updatePosition]);
+  }, [visible, updatePosition, enabled]);
 
   return (
     <>

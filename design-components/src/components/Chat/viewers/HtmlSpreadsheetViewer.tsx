@@ -19,7 +19,7 @@ const SheetTab: React.FC<SheetTabProps> = ({ name, isActive, onClick }) => {
   const ref = useRef<HTMLButtonElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
 
-  const handleMouseEnter = useCallback(() => {
+  const checkTruncation = useCallback(() => {
     const el = ref.current;
     if (el) setIsTruncated(el.scrollWidth > el.clientWidth);
   }, []);
@@ -29,7 +29,8 @@ const SheetTab: React.FC<SheetTabProps> = ({ name, isActive, onClick }) => {
       <button
         ref={ref}
         onClick={onClick}
-        onMouseEnter={handleMouseEnter}
+        onMouseEnter={checkTruncation}
+        onFocus={checkTruncation}
         className={`px-3 py-1 text-xs font-medium rounded-md cursor-pointer transition-colors shrink-0 max-w-[150px] truncate ${
           isActive
             ? 'bg-white text-gray-900 border border-gray-200 shadow-xs'
