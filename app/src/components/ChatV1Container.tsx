@@ -155,6 +155,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onSaveCommand={handleSaveCommand}
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
+        isAdmin={user?.roles?.includes('admin')}
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}

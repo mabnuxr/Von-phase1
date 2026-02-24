@@ -1232,6 +1232,8 @@ export interface ChatProps {
 
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File, attachment: import('../Commands/types').CommandAttachment) => Promise<{ fileId: string; s3Key: string }>;
+  /** When true, the "Org-wide" sharing option is available in the command drawer */
+  isAdmin?: boolean;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)

@@ -141,6 +141,8 @@ export interface ChatEmptyStateProps {
   onRequestFilePreviewUrl?: (commandId: string, fileId: string) => Promise<string>;
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File, attachment: import('../Commands/types').CommandAttachment) => Promise<{ fileId: string; s3Key: string }>;
+  /** When true, the "Org-wide" sharing option is available in the command drawer */
+  isAdmin?: boolean;
 }
 
 /**
@@ -193,6 +195,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onSaveCommand,
   onDeleteCommand,
   isSavingCommand,
+  isAdmin = false,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -380,6 +383,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onSaveCommand={onSaveCommand}
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
+          isAdmin={isAdmin}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}

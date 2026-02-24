@@ -55,6 +55,8 @@ export interface CommandsOverlayProps {
   onDeleteCommand: (id: string) => void;
   /** Disables the save button while a mutation is in-flight */
   isSaving?: boolean;
+  /** When true, the "Org-wide" sharing option is available in the command drawer */
+  isAdmin?: boolean;
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /**
@@ -91,6 +93,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onSaveCommand,
   onDeleteCommand,
   isSaving = false,
+  isAdmin = false,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -172,7 +175,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   );
 
   const filteredCommands = commandSearch
-    ? commands.filter((c) => c.name.toLowerCase().includes(commandSearch.toLowerCase()))
+    ? commands.filter((c) => c.name.toLowerCase().includes(commandSearch.toLowerCase().trim()))
     : commands;
 
   const isAbove = popupPosition === 'above';
@@ -223,6 +226,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         editingCommand={editingCommand}
         isSaving={isSaving}
         readOnly={isReadOnly}
+        isAdmin={isAdmin}
         onRequestFilePreviewUrl={
           onRequestFilePreviewUrl ? handleRequestFilePreviewUrl : undefined
         }

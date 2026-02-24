@@ -72,9 +72,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
 
     if (!searchQuery.trim()) return list;
     const query = searchQuery.toLowerCase();
-    return list.filter(
-      (cmd) => cmd.name.toLowerCase().includes(query) || cmd.prompt.toLowerCase().includes(query)
-    );
+    return list.filter((cmd) => cmd.name.toLowerCase().includes(query));
   }, [commands, searchQuery, sortOption]);
 
   const sortedCommands = useMemo(() => {
@@ -225,12 +223,12 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                             {command.name}
                           </span>
                           {command.sharingScope === 'org' ? (
-                            <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
-                              Tenant
+                            <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
+                              Org
                             </span>
                           ) : (
                             <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
-                              User
+                              Private
                             </span>
                           )}
                         </div>
@@ -276,18 +274,23 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                             weight={command.isFavorite ? 'fill' : 'regular'}
                           />
                         </button>
-                        {command.createdBy === 'me' && (
-                          <>
-                            <div className="w-px h-4 bg-gray-200 mx-0.5" />
-                            <button
-                              onClick={() => onDeleteCommand(command.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                              title="Delete"
-                            >
-                              <Trash size={16} />
-                            </button>
-                          </>
-                        )}
+                        <>
+                          <div className="w-px h-4 bg-gray-200 mx-0.5" />
+                          <button
+                            onClick={() =>
+                              command.createdBy === 'me' && onDeleteCommand(command.id)
+                            }
+                            disabled={command.createdBy !== 'me'}
+                            className={`p-1 rounded-md transition-colors ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
+                            title={
+                              command.createdBy === 'me'
+                                ? 'Delete'
+                                : 'Only the creator can delete this command'
+                            }
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </>
                       </div>
                     </div>
                   ))

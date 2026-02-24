@@ -40,6 +40,8 @@ export interface CommandDrawerProps {
   isSaving?: boolean;
   /** When true, all fields are read-only and the save button is hidden */
   readOnly?: boolean;
+  /** When false (default), the "Org-wide" sharing option is hidden — only admins may create org-wide commands */
+  isAdmin?: boolean;
   /**
    * Called immediately when the user picks a file — upload should happen here.
    * Returns the backend fileId and s3Key once the upload completes.
@@ -198,6 +200,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   editingCommand,
   isSaving = false,
   readOnly = false,
+  isAdmin = false,
   onUploadFile,
   onRequestFilePreviewUrl,
 }) => {
@@ -528,7 +531,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 {/* Sharing — collapsible */}
                 <AccordionSection title="Sharing" summary={sharingLabel} defaultOpen>
                   <div className="flex items-center gap-1.5">
-                    {(['private', 'org'] as const).map((scope) => (
+                    {(['private', 'org'] as const).filter((scope) => scope === 'private' || isAdmin).map((scope) => (
                       <button
                         key={scope}
                         type="button"

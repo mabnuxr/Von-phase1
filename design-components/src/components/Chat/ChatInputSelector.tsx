@@ -114,6 +114,8 @@ export interface ChatInputSelectorProps {
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
   isSavingCommand?: boolean;
+  /** When true, the "Org-wide" sharing option is available in the command drawer */
+  isAdmin?: boolean;
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
@@ -167,6 +169,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSaveCommand,
       onDeleteCommand,
       isSavingCommand = false,
+      isAdmin = false,
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
@@ -315,6 +318,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onSaveCommand={onSaveCommand ?? (() => {})}
             onDeleteCommand={onDeleteCommand ?? (() => {})}
             isSaving={isSavingCommand}
+            isAdmin={isAdmin}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
