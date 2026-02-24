@@ -8,6 +8,8 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useToast } from "./useToast";
+import { useFileDownload } from "./useFileDownload";
 import type {
   AgentMode,
   SendMessageOptions,
@@ -70,6 +72,9 @@ export function useChatV2(props: UseChatV2Props) {
     isAgentLocked,
     syncAgentModeToBackend,
   } = props;
+
+  const { showToast } = useToast();
+  const { downloadBlob } = useFileDownload();
 
   const chatType: ConversationMode = currentConversation.mode || "auto";
   const isDeepResearchMode =
@@ -315,26 +320,14 @@ export function useChatV2(props: UseChatV2Props) {
       try {
         const { downloadUrl, fileName } =
           await fileUploadService.getDownloadUrl(conversationId, fileId);
-        // Fetch as blob — cross-origin S3 URLs ignore the <a download> attribute
-        const response = await fetch(downloadUrl);
-        if (!response.ok)
-          throw new Error(`Download failed (${response.status})`);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = fileName;
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        // Delay revocation so the browser has time to start reading the blob
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        await downloadBlob(downloadUrl, fileName);
+        showToast({ message: "Download started", variant: "success" });
       } catch (err) {
         console.error("[useChatV2] Failed to download artifact:", err);
+        showToast({ message: "Failed to download file", variant: "error" });
       }
     },
-    [conversationId],
+    [conversationId, showToast, downloadBlob],
   );
 
   // Transparency drawer
