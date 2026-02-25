@@ -9,7 +9,7 @@ function formatValue(
   format: string,
   prefix?: string,
   suffix?: string,
-  decimals?: number,
+  decimals?: number
 ): string {
   if (typeof value === 'string') return `${prefix ?? ''}${value}${suffix ?? ''}`;
 
@@ -58,7 +58,11 @@ const TrendIcon: React.FC<{ direction: 'up' | 'down' | 'neutral'; className?: st
 
 const DEFAULT_ACCENT = '#8039e9';
 
-const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: string }> = ({ data, type, accentColor }) => {
+const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: string }> = ({
+  data,
+  type,
+  accentColor,
+}) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
 
   useEffect(() => {
@@ -91,13 +95,23 @@ const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: 
       credits: { enabled: false },
       tooltip: { enabled: false },
       plotOptions: {
-        series: { animation: false, enableMouseTracking: false, states: { hover: { enabled: false } } },
+        series: {
+          animation: false,
+          enableMouseTracking: false,
+          states: { hover: { enabled: false } },
+        },
         line: { lineWidth: 1.5, marker: { enabled: false }, color: accentColor ?? DEFAULT_ACCENT },
-        column: { borderWidth: 0, borderRadius: 1, color: accentColor ?? DEFAULT_ACCENT, pointPadding: 0.1, groupPadding: 0 },
+        column: {
+          borderWidth: 0,
+          borderRadius: 1,
+          color: accentColor ?? DEFAULT_ACCENT,
+          pointPadding: 0.1,
+          groupPadding: 0,
+        },
       },
       series: [{ type: type === 'bar' ? 'column' : 'line', data, name: '' }],
     }),
-    [data, type, accentColor],
+    [data, type, accentColor]
   );
 
   return (
@@ -137,7 +151,9 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config }) => {
         </div>
       )}
 
-      {sparkline && <Sparkline data={sparkline.data} type={sparkline.type} accentColor={config.accentColor} />}
+      {sparkline && (
+        <Sparkline data={sparkline.data} type={sparkline.type} accentColor={config.accentColor} />
+      )}
     </div>
   );
 };

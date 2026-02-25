@@ -1,10 +1,10 @@
-import { apiClient } from './apiClient';
-import { getDashboardFixture } from '../fixtures/dashboards';
+import { apiClient } from "./apiClient";
+import { getDashboardFixture } from "../fixtures/dashboards";
 import type {
   DashboardMetadataResponse,
   WidgetDataRequest,
   WidgetDataResponse,
-} from '../types/dashboard';
+} from "../types/dashboard";
 
 /**
  * Service for dashboard API endpoints.
@@ -43,9 +43,7 @@ class DashboardService {
   async getRefreshStatus(
     dashboardId: string,
   ): Promise<{ refreshStatus: string; lastRefreshedAt: string }> {
-    return apiClient.get(
-      `/api/v1/dashboards/${dashboardId}/refresh-status`,
-    );
+    return apiClient.get(`/api/v1/dashboards/${dashboardId}/refresh-status`);
   }
 }
 

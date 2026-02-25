@@ -1,5 +1,5 @@
-import { ArrowClockwise } from '@phosphor-icons/react';
-import type { RefreshInfo } from '../../../types/dashboard';
+import { ArrowClockwise } from "@phosphor-icons/react";
+import type { RefreshInfo } from "../../../types/dashboard";
 
 interface AnalyticsHeaderProps {
   title: string;
@@ -11,7 +11,7 @@ interface AnalyticsHeaderProps {
 function formatRelativeTime(isoString: string): string {
   const diff = Date.now() - new Date(isoString).getTime();
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return 'just now';
+  if (minutes < 1) return "just now";
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
@@ -25,12 +25,14 @@ const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
   refreshInfo,
   onRefresh,
 }) => {
-  const isRefreshing = refreshInfo?.refreshStatus === 'refreshing';
+  const isRefreshing = refreshInfo?.refreshStatus === "refreshing";
 
   return (
     <div className="flex items-center justify-between px-1 py-3">
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold text-gray-900 truncate">{title}</h1>
+        <h1 className="text-lg font-semibold text-gray-900 truncate">
+          {title}
+        </h1>
         {description && (
           <p className="text-sm text-gray-500 mt-0.5 truncate">{description}</p>
         )}
@@ -50,9 +52,9 @@ const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
           <ArrowClockwise
             size={14}
             weight="bold"
-            className={isRefreshing ? 'animate-spin' : ''}
+            className={isRefreshing ? "animate-spin" : ""}
           />
-          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          {isRefreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
     </div>

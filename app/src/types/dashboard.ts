@@ -18,7 +18,7 @@ export interface WidgetDataResponse {
     meta: {
       fetchedAt: string;
       cacheHit: boolean;
-      dataFreshness: 'fresh' | 'stale';
+      dataFreshness: "fresh" | "stale";
     };
   };
   error?: ApiError;
@@ -52,7 +52,7 @@ export interface GridConfig {
   rowHeight: number;
   margin: [number, number];
   containerPadding: [number, number];
-  compactType: 'vertical' | 'horizontal' | null;
+  compactType: "vertical" | "horizontal" | null;
 }
 
 export interface LayoutItem {
@@ -70,28 +70,32 @@ export interface LayoutItem {
 
 // ─── Widgets ─────────────────────────────────────────────────────
 
-export type WidgetType = 'chart' | 'counter' | 'table' | 'text';
+export type WidgetType = "chart" | "counter" | "table" | "text";
 
 export interface WidgetConfig {
   id: string;
   type: WidgetType;
   title: string;
   subtitle?: string;
-  config: ChartWidgetConfig | CounterWidgetConfig | TableWidgetConfig | TextWidgetConfig;
+  config:
+    | ChartWidgetConfig
+    | CounterWidgetConfig
+    | TableWidgetConfig
+    | TextWidgetConfig;
 }
 
 // ─── Chart Widget ────────────────────────────────────────────────
 
 export type ChartType =
-  | 'line'
-  | 'bar'
-  | 'column'
-  | 'line-bar'
-  | 'column-line'
-  | 'line-line'
-  | 'pie'
-  | 'donut'
-  | 'area';
+  | "line"
+  | "bar"
+  | "column"
+  | "line-bar"
+  | "column-line"
+  | "line-line"
+  | "pie"
+  | "donut"
+  | "area";
 
 export interface ChartWidgetConfig {
   chartType: ChartType;
@@ -116,7 +120,7 @@ export interface HighchartsOptions {
   xAxis?: {
     categories?: string[];
     title?: { text: string };
-    type?: 'category' | 'datetime' | 'linear' | 'logarithmic';
+    type?: "category" | "datetime" | "linear" | "logarithmic";
     labels?: {
       rotation?: number;
       style?: Record<string, string>;
@@ -134,9 +138,9 @@ export interface HighchartsOptions {
   series: HighchartsSeries[];
   legend?: {
     enabled: boolean;
-    align?: 'left' | 'center' | 'right';
-    verticalAlign?: 'top' | 'middle' | 'bottom';
-    layout?: 'horizontal' | 'vertical';
+    align?: "left" | "center" | "right";
+    verticalAlign?: "top" | "middle" | "bottom";
+    layout?: "horizontal" | "vertical";
   };
   tooltip?: {
     shared?: boolean;
@@ -185,19 +189,19 @@ export type SeriesDataPoint =
 
 export interface CounterWidgetConfig {
   value: string | number;
-  format: 'number' | 'currency' | 'percentage';
+  format: "number" | "currency" | "percentage";
   prefix?: string;
   suffix?: string;
   decimals?: number;
   trend?: {
     value: number;
-    direction: 'up' | 'down' | 'neutral';
-    sentiment: 'positive' | 'negative' | 'neutral';
+    direction: "up" | "down" | "neutral";
+    sentiment: "positive" | "negative" | "neutral";
     label?: string;
   };
   sparkline?: {
     data: number[];
-    type: 'line' | 'bar';
+    type: "line" | "bar";
   };
   accentColor?: string;
 }
@@ -215,16 +219,16 @@ export interface TableWidgetConfig {
     enabled: boolean;
     defaultSort?: {
       field: string;
-      direction: 'asc' | 'desc';
+      direction: "asc" | "desc";
     };
   };
   rowStyles?: Array<{
     condition: {
       field: string;
-      operator: 'eq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains';
+      operator: "eq" | "gt" | "lt" | "gte" | "lte" | "contains";
       value: unknown;
     };
-    sentiment?: 'positive' | 'negative' | 'neutral';
+    sentiment?: "positive" | "negative" | "neutral";
     style: {
       backgroundColor?: string;
       textColor?: string;
@@ -239,7 +243,13 @@ export interface TableColumn {
   header: string;
   width?: number | string;
   minWidth?: number;
-  dataType: 'string' | 'number' | 'currency' | 'percentage' | 'date' | 'boolean';
+  dataType:
+    | "string"
+    | "number"
+    | "currency"
+    | "percentage"
+    | "date"
+    | "boolean";
   format?: {
     decimals?: number;
     abbreviate?: boolean;
@@ -247,7 +257,7 @@ export interface TableColumn {
     suffix?: string;
     dateFormat?: string;
     colorScale?: {
-      type: 'threshold' | 'gradient';
+      type: "threshold" | "gradient";
       thresholds?: Array<{ value: number; color?: string; label?: string }>;
     };
     progressBar?: {
@@ -255,7 +265,10 @@ export interface TableColumn {
       colorThresholds: Array<{ value: number; color?: string }>;
     };
     badge?: {
-      mapping: Record<string, { color?: string; backgroundColor?: string; label?: string }>;
+      mapping: Record<
+        string,
+        { color?: string; backgroundColor?: string; label?: string }
+      >;
     };
   };
   sortable?: boolean;
@@ -267,8 +280,8 @@ export interface TableColumn {
 
 export interface TextWidgetConfig {
   content: string;
-  variant: 'heading' | 'subheading' | 'body' | 'caption';
-  alignment?: 'left' | 'center' | 'right';
+  variant: "heading" | "subheading" | "body" | "caption";
+  alignment?: "left" | "center" | "right";
 }
 
 // ─── Filters ─────────────────────────────────────────────────────
@@ -277,7 +290,7 @@ export interface DashboardFilter {
   id: string;
   label: string;
   field: string;
-  type: 'select' | 'multi-select' | 'date-range' | 'search' | 'range';
+  type: "select" | "multi-select" | "date-range" | "search" | "range";
   options?: Array<{
     value: string;
     label: string;
@@ -296,14 +309,14 @@ export interface DashboardFilter {
 
 export interface RefreshInfo {
   lastRefreshedAt: string;
-  refreshStatus: 'idle' | 'refreshing' | 'failed';
+  refreshStatus: "idle" | "refreshing" | "failed";
   nextScheduledRefresh?: string;
   refreshIntervalMinutes?: number;
   cacheExpiresAt?: string;
   dataSource: {
     analysisId: string;
     analysisName: string;
-    dataFreshness: 'fresh' | 'stale' | 'expired';
+    dataFreshness: "fresh" | "stale" | "expired";
   };
 }
 
@@ -313,7 +326,7 @@ export interface WidgetDataRequest {
   widgetIds: string[];
   filters?: Record<string, unknown>;
   pagination?: Record<string, { page: number; pageSize: number }>;
-  sorting?: Record<string, { field: string; direction: 'asc' | 'desc' }>;
+  sorting?: Record<string, { field: string; direction: "asc" | "desc" }>;
 }
 
 export interface WidgetData {
@@ -327,8 +340,8 @@ export interface WidgetData {
     value: string | number;
     trend?: {
       value: number;
-      direction: 'up' | 'down' | 'neutral';
-      sentiment: 'positive' | 'negative' | 'neutral';
+      direction: "up" | "down" | "neutral";
+      sentiment: "positive" | "negative" | "neutral";
     };
     sparkline?: { data: number[] };
   };

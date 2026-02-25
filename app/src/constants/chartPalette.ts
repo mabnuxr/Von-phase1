@@ -1,4 +1,8 @@
-import type { WidgetConfig, TableWidgetConfig, TableColumn } from '../types/dashboard';
+import type {
+  WidgetConfig,
+  TableWidgetConfig,
+  TableColumn,
+} from "../types/dashboard";
 
 // ─── Color Constants ────────────────────────────────────────────
 
@@ -8,44 +12,47 @@ import type { WidgetConfig, TableWidgetConfig, TableColumn } from '../types/dash
  * Highcharts uses the `colors` array to auto-assign colors to series and data points.
  */
 export const CHART_PALETTE = [
-  '#8039e9', // purple (primary brand)
-  '#FF9042', // orange
-  '#0071e3', // blue
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#f97316', // deep orange
+  "#8039e9", // purple (primary brand)
+  "#FF9042", // orange
+  "#0071e3", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#8b5cf6", // violet
+  "#14b8a6", // teal
+  "#f97316", // deep orange
 ];
 
 export const SPARKLINE_COLOR = CHART_PALETTE[0];
 
-const CHART_BG = 'transparent';
-const AXIS_LABEL_COLOR = '#6b7280';
+const CHART_BG = "transparent";
+const AXIS_LABEL_COLOR = "#6b7280";
 
 /** Ordered worst → best for threshold-based indicators (colorScale, progressBar). */
-const THRESHOLD_COLORS = ['#ef4444', '#f59e0b', '#10b981']; // red → amber → green
+const THRESHOLD_COLORS = ["#ef4444", "#f59e0b", "#10b981"]; // red → amber → green
 
-const BADGE_TEXT_COLOR = '#fff';
+const BADGE_TEXT_COLOR = "#fff";
 
 const ROW_SENTIMENT_BG: Record<string, string> = {
-  positive: '#f0fdf4',
-  negative: '#fef2f2',
-  neutral: '#f9fafb',
+  positive: "#f0fdf4",
+  negative: "#fef2f2",
+  neutral: "#f9fafb",
 };
 
 // ─── Helpers ────────────────────────────────────────────────────
 
 function hasNamedDataPoints(series: { data?: unknown[] }): boolean {
-  return Array.isArray(series.data) && series.data.some(
-    (d) => typeof d === 'object' && d !== null && 'name' in d,
+  return (
+    Array.isArray(series.data) &&
+    series.data.some((d) => typeof d === "object" && d !== null && "name" in d)
   );
 }
 
 /** Deep-merge axis label color into an axis config object. */
-function injectAxisLabelColor(axis: Record<string, unknown>): Record<string, unknown> {
+function injectAxisLabelColor(
+  axis: Record<string, unknown>,
+): Record<string, unknown> {
   const labels = (axis.labels ?? {}) as Record<string, unknown>;
   const style = (labels.style ?? {}) as Record<string, string>;
   return {
@@ -56,7 +63,9 @@ function injectAxisLabelColor(axis: Record<string, unknown>): Record<string, unk
 
 // ─── Chart Theme ────────────────────────────────────────────────
 
-function applyChartTheme(hcOptions: Record<string, unknown>): Record<string, unknown> {
+function applyChartTheme(
+  hcOptions: Record<string, unknown>,
+): Record<string, unknown> {
   const chart = (hcOptions.chart ?? {}) as Record<string, unknown>;
 
   // Inject axis label colors
@@ -96,7 +105,8 @@ function applyColumnColors(col: TableColumn): TableColumn {
       mapping[key] = {
         ...val,
         color: val.color ?? BADGE_TEXT_COLOR,
-        backgroundColor: val.backgroundColor ?? CHART_PALETTE[idx % CHART_PALETTE.length],
+        backgroundColor:
+          val.backgroundColor ?? CHART_PALETTE[idx % CHART_PALETTE.length],
       };
       idx++;
     }
@@ -135,7 +145,8 @@ function applyTableTheme(config: TableWidgetConfig): TableWidgetConfig {
     ...rs,
     style: {
       ...rs.style,
-      backgroundColor: rs.style.backgroundColor ?? ROW_SENTIMENT_BG[rs.sentiment ?? 'neutral'],
+      backgroundColor:
+        rs.style.backgroundColor ?? ROW_SENTIMENT_BG[rs.sentiment ?? "neutral"],
     },
   }));
 
@@ -156,8 +167,11 @@ export function applyChartPalette(
   const result: Record<string, WidgetConfig> = {};
 
   for (const [key, widget] of Object.entries(widgets)) {
-    if (widget.type === 'chart') {
-      const config = widget.config as { highchartsOptions: Record<string, unknown>; [k: string]: unknown };
+    if (widget.type === "chart") {
+      const config = widget.config as {
+        highchartsOptions: Record<string, unknown>;
+        [k: string]: unknown;
+      };
       result[key] = {
         ...widget,
         config: {
@@ -165,12 +179,12 @@ export function applyChartPalette(
           highchartsOptions: applyChartTheme(config.highchartsOptions),
         },
       };
-    } else if (widget.type === 'counter') {
+    } else if (widget.type === "counter") {
       result[key] = {
         ...widget,
         config: { ...widget.config, accentColor: SPARKLINE_COLOR },
       };
-    } else if (widget.type === 'table') {
+    } else if (widget.type === "table") {
       result[key] = {
         ...widget,
         config: applyTableTheme(widget.config as TableWidgetConfig),

@@ -2,7 +2,12 @@ import { WidgetShell } from '../WidgetShell';
 import { ChartWidget } from '../ChartWidget';
 import { CounterWidget } from '../CounterWidget';
 import { TextWidget } from '../TextWidget';
-import type { WidgetRendererProps, ChartWidgetConfig, CounterWidgetConfig, TextWidgetConfig } from '../types';
+import type {
+  WidgetRendererProps,
+  ChartWidgetConfig,
+  CounterWidgetConfig,
+  TextWidgetConfig,
+} from '../types';
 
 /**
  * Routes a widget config to the correct atomic widget component,

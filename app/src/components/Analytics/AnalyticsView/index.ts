@@ -1,1 +1,1 @@
-export { AnalyticsView } from './AnalyticsView';
+export { AnalyticsView } from "./AnalyticsView";

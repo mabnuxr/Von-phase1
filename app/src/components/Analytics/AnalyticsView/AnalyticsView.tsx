@@ -1,8 +1,12 @@
-import { DashboardGrid } from '@vonlabs/design-components';
-import { AnalyticsHeader } from '../AnalyticsHeader';
-import { AnalyticsFilters } from '../AnalyticsFilters';
-import type { Dashboard, RefreshInfo } from '../../../types/dashboard';
-import type { WidgetConfig, GridConfig, LayoutItem } from '@vonlabs/design-components';
+import { DashboardGrid } from "@vonlabs/design-components";
+import { AnalyticsHeader } from "../AnalyticsHeader";
+import { AnalyticsFilters } from "../AnalyticsFilters";
+import type { Dashboard, RefreshInfo } from "../../../types/dashboard";
+import type {
+  WidgetConfig,
+  GridConfig,
+  LayoutItem,
+} from "@vonlabs/design-components";
 
 interface AnalyticsViewProps {
   dashboard: Dashboard;
@@ -35,7 +39,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           onRefresh={onRefresh}
         />
         {dashboard.filters && dashboard.filters.length > 0 && (
-          <AnalyticsFilters filters={dashboard.filters} activeFilters={activeFilters} />
+          <AnalyticsFilters
+            filters={dashboard.filters}
+            activeFilters={activeFilters}
+          />
         )}
       </div>
 

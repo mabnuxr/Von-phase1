@@ -34,14 +34,8 @@ export default function App() {
             }
           >
             <Route path="/chat" element={<Conversation />} />
-            <Route
-              path="/chat/:conversationId"
-              element={<Conversation />}
-            />
-            <Route
-              path="/dashboard/:dashboardId"
-              element={<Analytics />}
-            />
+            <Route path="/chat/:conversationId" element={<Conversation />} />
+            <Route path="/dashboard/:dashboardId" element={<Analytics />} />
           </Route>
 
           {/* Settings has its own sidebar */}
