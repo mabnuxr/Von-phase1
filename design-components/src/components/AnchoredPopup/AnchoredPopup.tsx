@@ -132,9 +132,9 @@ export const AnchoredPopup: React.FC<AnchoredPopupProps> = ({
     };
 
     // Throttle resize recalculations to one per animation frame
-    let rafId: number;
+    let rafId: number | null = null;
     const handleResize = () => {
-      cancelAnimationFrame(rafId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(updatePlacement);
     };
 
@@ -142,7 +142,7 @@ export const AnchoredPopup: React.FC<AnchoredPopupProps> = ({
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(rafId);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [isOpen, minHeight, maxHeightCap, margin]);
 

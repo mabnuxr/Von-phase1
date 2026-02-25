@@ -222,7 +222,7 @@ export function useChatV1(props: UseChatV1Props) {
               prompt: options.command.prompt,
               dataSources: options.command.dataSources
                 ?.filter((ds) => ds.s3Key)
-                .map((ds) => ({
+                ?.map((ds) => ({
                   fileId: ds.id,
                   fileName: ds.name,
                   fileSize: ds.size,
