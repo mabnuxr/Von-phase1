@@ -508,14 +508,14 @@ export function useChatV2(props: UseChatV2Props) {
       clearFileAttachments();
     },
     [
-      conversationId,
-      v2Processor.clearPendingStop,
+      v2Processor,
       forceCompleteStreamingMessages,
-      syncAgentModeToBackend,
+      conversationId,
       hasFileAttachments,
-      uploadPendingFiles,
       sendMessage,
       clearFileAttachments,
+      syncAgentModeToBackend,
+      uploadPendingFiles,
     ],
   );
 
