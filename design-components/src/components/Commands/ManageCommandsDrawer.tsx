@@ -211,10 +211,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                 {isLoading ? (
                   <div className="space-y-1" aria-busy="true" aria-label="Loading commands">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start px-3 py-2 rounded-xl animate-pulse"
-                      >
+                      <div key={i} className="flex items-start px-3 py-2 rounded-xl animate-pulse">
                         <div className="flex-1 min-w-0 space-y-1.5">
                           <div className="flex items-center gap-1.5">
                             <div className="h-3.5 bg-gray-100 rounded w-32" />
