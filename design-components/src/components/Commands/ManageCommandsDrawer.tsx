@@ -53,6 +53,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
   isOpen,
   onClose,
   commands,
+  isLoading = false,
   onNewCommand,
   onEditCommand,
   onDeleteCommand,
@@ -207,7 +208,31 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
 
               {/* Commands list */}
               <div className="flex-1 overflow-y-auto px-3 py-2">
-                {orderedCommands.length === 0 ? (
+                {isLoading ? (
+                  <div className="space-y-1" aria-busy="true" aria-label="Loading commands">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start px-3 py-2 rounded-xl animate-pulse"
+                      >
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <div className="h-3.5 bg-gray-100 rounded w-32" />
+                            <div className="h-3.5 bg-gray-100 rounded w-10 shrink-0" />
+                          </div>
+                          <div className="h-3 bg-gray-100 rounded w-3/4" />
+                          <div className="h-3 bg-gray-100 rounded w-20" />
+                        </div>
+                        <div className="flex items-center gap-0.5 ml-3 shrink-0">
+                          <div className="h-6 w-6 bg-gray-100 rounded-md" />
+                          <div className="h-6 w-6 bg-gray-100 rounded-md" />
+                          <div className="w-px h-4 bg-gray-100 mx-0.5" />
+                          <div className="h-6 w-6 bg-gray-100 rounded-md" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : orderedCommands.length === 0 ? (
                   <div className="px-4 py-8 text-sm text-gray-500 text-center">
                     No commands found{searchQuery ? ` for "${searchQuery}"` : ''}.
                   </div>

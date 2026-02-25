@@ -122,10 +122,28 @@ export const AnchoredPopup: React.FC<AnchoredPopupProps> = ({
 
   useEffect(() => {
     if (!isOpen || !sentinelRef.current) return;
-    const rect = sentinelRef.current.getBoundingClientRect();
-    const result = computePlacement(rect, minHeight, maxHeightCap, margin);
-    setPlacement(result.placement);
-    setComputedMaxHeight(result.maxHeight);
+
+    const updatePlacement = () => {
+      if (!sentinelRef.current) return;
+      const rect = sentinelRef.current.getBoundingClientRect();
+      const result = computePlacement(rect, minHeight, maxHeightCap, margin);
+      setPlacement(result.placement);
+      setComputedMaxHeight(result.maxHeight);
+    };
+
+    // Throttle resize recalculations to one per animation frame
+    let rafId: number;
+    const handleResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updatePlacement);
+    };
+
+    updatePlacement();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(rafId);
+    };
   }, [isOpen, minHeight, maxHeightCap, margin]);
 
   const isAbove = placement === 'above';
