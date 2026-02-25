@@ -278,8 +278,8 @@ function stringifyAnalyticsValue(value: unknown): string {
  * is a nested object. This flattens Metadata into readable key-value pairs and
  * drops FullName (redundant with record_name shown in the card header).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeToolingFields(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fields: Record<string, any> | undefined,
 ): Record<string, string | number | boolean | null> | undefined {
   if (
@@ -671,10 +671,12 @@ function detectApprovalFromArgs(
               opChanges && opChanges.length > 0
                 ? opChanges
                 : normalizeToolingFields(op.fields)
-                  ? Object.entries(normalizeToolingFields(op.fields)!).map(([field, value]) => ({
-                      field,
-                      after: value,
-                    }))
+                  ? Object.entries(normalizeToolingFields(op.fields)!).map(
+                      ([field, value]) => ({
+                        field,
+                        after: value,
+                      }),
+                    )
                   : [];
             return {
               recordId: op.record_id || `record-${op.record_name || "unknown"}`,

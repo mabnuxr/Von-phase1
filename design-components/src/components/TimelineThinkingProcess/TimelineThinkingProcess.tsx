@@ -166,11 +166,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
             {/* Status indicator and title */}
             {allComplete ? (
               <>
-                <CheckCircleIcon
-                  size={16}
-                  weight="fill"
-                  className="text-emerald-600 shrink-0"
-                />
+                <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 shrink-0" />
                 <span className="text-sm text-gray-800">{title} completed</span>
                 {summary && <span className="text-sm text-gray-600 ml-1">({summary})</span>}
               </>

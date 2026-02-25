@@ -97,8 +97,7 @@ const FieldValue: React.FC<{
   }
 
   // Handle objects (e.g. Tooling API Metadata) — stringify for display
-  const stringValue =
-    typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+  const stringValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
 
   // Render based on field type
   switch (fieldType) {
@@ -268,11 +267,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               {isRejected ? (
                 <XCircleIcon size={14} weight="fill" className="text-red-500 shrink-0" />
               ) : (
-                <CheckCircleIcon
-                  size={14}
-                  weight="fill"
-                  className="text-emerald-600 shrink-0"
-                />
+                <CheckCircleIcon size={14} weight="fill" className="text-emerald-600 shrink-0" />
               )}
               {approval.recordUrl ? (
                 <a
