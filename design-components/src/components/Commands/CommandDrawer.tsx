@@ -211,6 +211,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   // Presigned download URLs fetched on-demand for preview; keyed by attachment id.
   // null means the fetch was attempted and failed (show "Preview not available").
   const [fetchedPreviewUrls, setFetchedPreviewUrls] = useState<Record<string, string | null>>({});
+  // Tracks in-flight preview URL requests to prevent duplicate concurrent fetches.
+  const fetchingPreviewIdsRef = useRef<Set<string>>(new Set());
   // Preview panel state
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
 
@@ -218,6 +220,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   useEffect(() => {
     if (isOpen) {
       setFetchedPreviewUrls({});
+      fetchingPreviewIdsRef.current.clear();
       setPreviewFileId(null);
       setForm(editingCommand ? commandToForm(editingCommand) : emptyForm);
       setDataSources(editingCommand?.dataSources ?? []);
@@ -244,12 +247,18 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
 
   // Fetches a presigned URL for a single file and stores the result.
   // Sets null on failure so the panel can distinguish "not yet fetched" from "failed".
+  // Uses a ref-based in-flight guard so the dedup check is never stale, and
+  // removes fetchedPreviewUrls from the dependency array to avoid recreating
+  // the callback on every URL-map update.
   const requestPreviewUrl = useCallback(
     async (fileId: string) => {
-      if (fileId in fetchedPreviewUrls) return;
       if (!onRequestFilePreviewUrl) return;
+      // Ref check covers both already-fetched (present in state) and in-flight
+      // requests, without capturing fetchedPreviewUrls as a dependency.
+      if (fetchingPreviewIdsRef.current.has(fileId)) return;
       const s3Key = dataSources.find((ds) => ds.id === fileId)?.s3Key;
       if (!s3Key) return;
+      fetchingPreviewIdsRef.current.add(fileId);
       try {
         const url = await onRequestFilePreviewUrl(s3Key);
         setFetchedPreviewUrls((prev) => ({ ...prev, [fileId]: url }));
@@ -257,7 +266,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         setFetchedPreviewUrls((prev) => ({ ...prev, [fileId]: null }));
       }
     },
-    [dataSources, fetchedPreviewUrls, onRequestFilePreviewUrl]
+    [dataSources, onRequestFilePreviewUrl]
   );
 
   const handleFileChipClick = useCallback((fileId: string) => {
