@@ -213,6 +213,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               onChange?.('');
               if (selectedCommand.dataSources && selectedCommand.dataSources.length > 0) {
                 lockCommand();
+              } else {
+                clearSelectedCommand();
               }
               return;
             }
@@ -275,6 +277,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               onChange?.('');
               if (selectedCommand.dataSources && selectedCommand.dataSources.length > 0) {
                 lockCommand();
+              } else {
+                clearSelectedCommand();
               }
               return;
             }

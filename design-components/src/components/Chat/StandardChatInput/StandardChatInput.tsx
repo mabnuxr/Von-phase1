@@ -233,7 +233,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
       // message is now markdown from TiptapEditor
       const hasTextContent = message.trim().length > 0;
-      const hasContent = hasTextContent || hasAttachments;
+      const hasContent = hasTextContent || hasAttachments || Boolean(commandChip);
 
       if (hasContent && onSend) {
         // Send markdown directly
@@ -312,7 +312,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const canSend =
-      (message.trim() || hasAttachments) && !disabled && !disableSubmit && !isStreaming;
+      (message.trim() || hasAttachments || Boolean(commandChip)) &&
+      !disabled &&
+      !disableSubmit &&
+      !isStreaming;
 
     // TODO: Uncomment when agent mode is reimplemented
     // const handleAgentModeChange = useCallback(
