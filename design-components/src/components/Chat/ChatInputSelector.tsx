@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useCallback } from 'react';
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
@@ -188,6 +188,18 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       lockCommand,
     } = useCommandInputState({ enableCommands, onChange, lockedCommandFromHistory });
 
+    // If the currently locked command is deleted, clear it from the chip so
+    // the stale chip doesn't persist in the input.
+    const handleDeleteCommand = useCallback(
+      (id: string) => {
+        if (selectedCommand?.id === id && isCommandLocked) {
+          clearSelectedCommand();
+        }
+        onDeleteCommand?.(id);
+      },
+      [onDeleteCommand, selectedCommand, isCommandLocked, clearSelectedCommand]
+    );
+
     // -----------------------------------------------------------------------
     // Build props shared across all input variants
     // -----------------------------------------------------------------------
@@ -316,7 +328,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onSelectCommand={handleSelectCommand}
             onCloseCommandsList={handleCloseCommandsList}
             onSaveCommand={onSaveCommand ?? (() => {})}
-            onDeleteCommand={onDeleteCommand ?? (() => {})}
+            onDeleteCommand={handleDeleteCommand}
             isSaving={isSavingCommand}
             isAdmin={isAdmin}
             onToggleFavorite={onToggleFavorite}
