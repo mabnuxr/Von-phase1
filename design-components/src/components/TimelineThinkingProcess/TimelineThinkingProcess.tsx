@@ -277,7 +277,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         onArtifactClick={onArtifactClick}
                         isLocallyApproved={isLocallyApproved}
                         isLocallyRejected={isLocallyRejected}
-                        defaultApprovalExpanded={step.status === 'awaiting-approval' || !!isFirstApproval}
+                        defaultApprovalExpanded={
+                          step.status === 'awaiting-approval' || !!isFirstApproval
+                        }
                         onApproveRecord={onApproveRecord}
                         onRejectRecord={onRejectRecord}
                         onApproveAll={onApproveAll}
