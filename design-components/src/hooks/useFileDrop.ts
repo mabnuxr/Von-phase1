@@ -53,8 +53,8 @@ export function useFileDrop({ onDrop, disabled = false }: UseFileDropOptions): U
   const handleDragLeave = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      if (disabled) return;
-      dragCounterRef.current -= 1;
+      if (disabled || !e.dataTransfer.types.includes('Files')) return;
+      dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
       if (dragCounterRef.current === 0) setIsDragOver(false);
     },
     [disabled]
