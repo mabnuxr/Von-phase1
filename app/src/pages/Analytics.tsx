@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { ChatPaneV2 } from "@vonlabs/design-components";
-import { useDashboard } from "../hooks/useDashboard";
+import {
+  useDashboardQuery,
+  useRefreshDashboardMutation,
+} from "../hooks/useDashboardQuery";
 import { useResizablePane } from "../hooks/useResizablePane";
 import { useAppShell } from "../hooks/useAppShell";
 import {
@@ -12,8 +15,12 @@ import {
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
-  const { dashboard, refreshInfo, loading, error, activeFilters, refresh } =
-    useDashboard(dashboardId);
+  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const refreshMutation = useRefreshDashboardMutation(dashboardId);
+
+  const dashboard = data?.dashboard ?? null;
+  const refreshInfo = data?.refreshInfo ?? null;
+  const activeFilters = data?.activeFilters ?? {};
   const { collapseSidebar } = useAppShell();
   const {
     width: chatPaneWidth,
@@ -25,17 +32,21 @@ const Analytics = () => {
 
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
 
+  const handleRefresh = useCallback(async () => {
+    await refreshMutation.mutateAsync();
+  }, [refreshMutation]);
+
   // Collapse left sidebar on mount
   useEffect(() => {
     collapseSidebar();
   }, [collapseSidebar]);
 
-  if (loading) {
+  if (isLoading) {
     return <AnalyticsSkeleton />;
   }
 
   if (error || !dashboard) {
-    return <AnalyticsError error={error} />;
+    return <AnalyticsError error={error?.message ?? null} />;
   }
 
   return (
@@ -46,7 +57,7 @@ const Analytics = () => {
           dashboard={dashboard}
           refreshInfo={refreshInfo}
           activeFilters={activeFilters}
-          onRefresh={refresh}
+          onRefresh={handleRefresh}
         />
       </div>
 
