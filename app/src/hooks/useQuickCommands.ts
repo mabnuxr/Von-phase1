@@ -206,6 +206,7 @@ export function useInfiniteQuickCommandsList(
 export function useBookmarkQuickCommand() {
   const queryClient = useQueryClient();
   return useMutation({
+    scope: { id: "bookmark-quick-command" },
     mutationFn: ({ id, bookmark }: { id: string; bookmark: boolean }) =>
       bookmark
         ? quickCommandsService.bookmark(id)

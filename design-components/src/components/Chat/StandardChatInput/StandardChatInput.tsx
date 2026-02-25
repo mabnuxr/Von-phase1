@@ -259,6 +259,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDisabledInput,
       message,
       hasAttachments,
+      commandChip,
       onSend,
       attachments,
       isControlled,
