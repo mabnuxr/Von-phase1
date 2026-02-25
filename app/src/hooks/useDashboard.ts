@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { dashboardService } from '../services/dashboardService';
+import { applyChartPalette } from '../constants/chartPalette';
 import type { Dashboard, RefreshInfo } from '../types/dashboard';
 
 export interface UseDashboardReturn {
@@ -41,6 +42,8 @@ export function useDashboard(dashboardId: string | undefined): UseDashboardRetur
       }
 
       const { dashboard: dashData, refreshInfo: refInfo } = response.data;
+      // Inject frontend color palette into widget configs
+      dashData.widgets = applyChartPalette(dashData.widgets) as typeof dashData.widgets;
       setDashboard(dashData);
       setRefreshInfo(refInfo);
 

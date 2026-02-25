@@ -1,6 +1,6 @@
 import type { DashboardFilter } from '../../../types/dashboard';
 
-interface DashboardFiltersProps {
+interface AnalyticsFiltersProps {
   filters: DashboardFilter[];
   activeFilters: Record<string, unknown>;
 }
@@ -27,7 +27,7 @@ function getFilterDisplayValue(filter: DashboardFilter, value: unknown): string 
  * View-only filter pills showing the active/default filter values.
  * No interactive controls — filters are agentic-only.
  */
-const DashboardFilters: React.FC<DashboardFiltersProps> = ({ filters, activeFilters }) => {
+const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({ filters, activeFilters }) => {
   const visibleFilters = filters.filter((f) => {
     const value = activeFilters[f.id];
     return value !== undefined && value !== null;
@@ -55,4 +55,4 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({ filters, activeFilt
   );
 };
 
-export { DashboardFilters };
+export { AnalyticsFilters };

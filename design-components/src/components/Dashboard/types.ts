@@ -1,4 +1,4 @@
-// Shared prop types for DashboardRenderer atomic components.
+// Shared prop types for Dashboard display components.
 // These are component-level prop types, not API response types.
 
 export interface GridConfig {
@@ -61,6 +61,7 @@ export interface CounterWidgetConfig {
     data: number[];
     type: 'line' | 'bar';
   };
+  accentColor?: string;
 }
 
 export interface CounterWidgetProps {

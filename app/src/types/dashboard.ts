@@ -107,7 +107,7 @@ export interface ChartWidgetConfig {
 export interface HighchartsOptions {
   chart: {
     type: string;
-    backgroundColor: string;
+    backgroundColor?: string;
     style?: Record<string, string>;
     height?: number | string;
   };
@@ -199,6 +199,7 @@ export interface CounterWidgetConfig {
     data: number[];
     type: 'line' | 'bar';
   };
+  accentColor?: string;
 }
 
 // ─── Table Widget (defined but not rendered yet) ─────────────────
@@ -223,6 +224,7 @@ export interface TableWidgetConfig {
       operator: 'eq' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains';
       value: unknown;
     };
+    sentiment?: 'positive' | 'negative' | 'neutral';
     style: {
       backgroundColor?: string;
       textColor?: string;
@@ -246,14 +248,14 @@ export interface TableColumn {
     dateFormat?: string;
     colorScale?: {
       type: 'threshold' | 'gradient';
-      thresholds?: Array<{ value: number; color: string; label?: string }>;
+      thresholds?: Array<{ value: number; color?: string; label?: string }>;
     };
     progressBar?: {
       maxValue: number;
-      colorThresholds: Array<{ value: number; color: string }>;
+      colorThresholds: Array<{ value: number; color?: string }>;
     };
     badge?: {
-      mapping: Record<string, { color: string; backgroundColor: string; label?: string }>;
+      mapping: Record<string, { color?: string; backgroundColor?: string; label?: string }>;
     };
   };
   sortable?: boolean;

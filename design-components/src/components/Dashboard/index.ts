@@ -1,4 +1,4 @@
-// DashboardRenderer — View-only dashboard rendering components
+// Dashboard — View-only dashboard display components
 
 export { DashboardGrid } from './DashboardGrid';
 export { WidgetShell } from './WidgetShell';

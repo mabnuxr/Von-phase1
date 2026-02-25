@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useDashboard } from "../hooks/useDashboard";
-import { DashboardView } from "../components/Dashboard";
+import { AnalyticsView } from "../components/Analytics";
 
-const Dashboard = () => {
+const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { dashboard, refreshInfo, loading, error, activeFilters, refresh } =
     useDashboard(dashboardId);
@@ -31,7 +31,7 @@ const Dashboard = () => {
   }
 
   return (
-    <DashboardView
+    <AnalyticsView
       dashboard={dashboard}
       refreshInfo={refreshInfo}
       activeFilters={activeFilters}
@@ -40,4 +40,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Analytics;

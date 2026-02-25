@@ -465,28 +465,28 @@ export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
 
 // ============================================================================
-// DASHBOARD RENDERER (View-only dashboard rendering components)
+// DASHBOARD (View-only dashboard display components)
 // ============================================================================
 export {
-  DashboardGrid as DashboardRendererGrid,
+  DashboardGrid,
   WidgetShell,
   WidgetRenderer,
-  ChartWidget as RendererChartWidget,
+  ChartWidget,
   CounterWidget,
   TextWidget,
-} from './DashboardRenderer';
+} from './Dashboard';
 export type {
-  DashboardGridProps as DashboardRendererGridProps,
+  DashboardGridProps,
   WidgetShellProps,
   WidgetRendererProps,
-  ChartWidgetProps as RendererChartWidgetProps,
+  ChartWidgetProps,
   CounterWidgetProps,
   TextWidgetProps,
-  WidgetConfig as RendererWidgetConfig,
-  WidgetType as RendererWidgetType,
-  GridConfig as RendererGridConfig,
-  LayoutItem as RendererLayoutItem,
-  ChartWidgetConfig as RendererChartWidgetConfig,
-  CounterWidgetConfig as RendererCounterWidgetConfig,
-  TextWidgetConfig as RendererTextWidgetConfig,
-} from './DashboardRenderer';
+  WidgetConfig,
+  WidgetType,
+  GridConfig,
+  LayoutItem,
+  ChartWidgetConfig,
+  CounterWidgetConfig,
+  TextWidgetConfig,
+} from './Dashboard';

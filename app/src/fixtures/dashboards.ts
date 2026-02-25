@@ -72,23 +72,21 @@ export const salesExecDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'line',
             highchartsOptions: {
-              chart: { type: 'line', backgroundColor: 'transparent' },
+              chart: { type: 'line' },
               title: { text: null },
               xAxis: {
                 categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
-                labels: { style: { color: '#6b7280', fontSize: '12px' } },
+                labels: { style: { fontSize: '12px' } },
               },
               yAxis: [{ title: { text: 'MRR ($)' }, labels: { format: '${value:,.0f}' }, min: 0 }],
               series: [{
                 name: 'MRR',
                 data: [1180000, 1220000, 1265000, 1310000, 1355000, 1390000, 1420000, 1465000, 1510000, 1540000, 1575000, 1562500],
-                color: '#8039e9',
                 marker: { enabled: true, radius: 4 },
               }],
               tooltip: { shared: true, valuePrefix: '$', headerFormat: '<b>{point.key}</b><br/>' },
               legend: { enabled: false },
               credits: { enabled: false },
-              colors: ['#8039e9'],
             },
           },
         },
@@ -220,21 +218,21 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'column',
             highchartsOptions: {
-              chart: { type: 'column', backgroundColor: 'transparent' },
+              chart: { type: 'column' },
               title: { text: null },
               xAxis: {
                 categories: ['Prospecting', 'Discovery', 'Proposal', 'Negotiation', 'Closing'],
-                labels: { style: { color: '#6b7280', fontSize: '11px' } },
+                labels: { style: { fontSize: '11px' } },
               },
               yAxis: [{ title: { text: 'Pipeline Value ($)' }, labels: { format: '${value:,.0f}' }, min: 0 }],
               series: [{
                 name: 'Pipeline Value',
                 data: [
-                  { name: 'Prospecting', y: 3200000, color: '#8039e9' },
-                  { name: 'Discovery', y: 2850000, color: '#FF9042' },
-                  { name: 'Proposal', y: 2600000, color: '#0071e3' },
-                  { name: 'Negotiation', y: 2150000, color: '#10b981' },
-                  { name: 'Closing', y: 1600000, color: '#f59e0b' },
+                  { name: 'Prospecting', y: 3200000 },
+                  { name: 'Discovery', y: 2850000 },
+                  { name: 'Proposal', y: 2600000 },
+                  { name: 'Negotiation', y: 2150000 },
+                  { name: 'Closing', y: 1600000 },
                 ],
               }],
               tooltip: { valuePrefix: '$', pointFormat: '<b>{point.name}</b>: ${point.y:,.0f}' },
@@ -252,15 +250,15 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'pie',
             highchartsOptions: {
-              chart: { type: 'pie', backgroundColor: 'transparent' },
+              chart: { type: 'pie' },
               title: { text: null },
               series: [{
                 name: 'Revenue',
                 data: [
-                  { name: 'Enterprise', y: 1450000, color: '#8039e9' },
-                  { name: 'Mid-Market', y: 980000, color: '#FF9042' },
-                  { name: 'SMB', y: 520000, color: '#0071e3' },
-                  { name: 'Self-Serve', y: 300000, color: '#10b981' },
+                  { name: 'Enterprise', y: 1450000 },
+                  { name: 'Mid-Market', y: 980000 },
+                  { name: 'SMB', y: 520000 },
+                  { name: 'Self-Serve', y: 300000 },
                 ],
               }],
               tooltip: { pointFormat: '<b>{point.name}</b>: ${point.y:,.0f} ({point.percentage:.1f}%)' },
@@ -291,9 +289,9 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
                 format: {
                   badge: {
                     mapping: {
-                      Enterprise: { color: '#fff', backgroundColor: '#8039e9' },
-                      'Mid-Market': { color: '#fff', backgroundColor: '#FF9042' },
-                      SMB: { color: '#fff', backgroundColor: '#0071e3' },
+                      Enterprise: {},
+                      'Mid-Market': {},
+                      SMB: {},
                     },
                   },
                 },
@@ -306,9 +304,9 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
                   colorScale: {
                     type: 'threshold',
                     thresholds: [
-                      { value: 60, color: '#ef4444', label: 'Below' },
-                      { value: 90, color: '#f59e0b', label: 'Near' },
-                      { value: 200, color: '#10b981', label: 'Above' },
+                      { value: 60, label: 'Below' },
+                      { value: 90, label: 'Near' },
+                      { value: 200, label: 'Above' },
                     ],
                   },
                 },
@@ -321,7 +319,7 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
             pagination: { enabled: true, pageSize: 10, pageSizeOptions: [10, 25, 50] },
             sorting: { enabled: true, defaultSort: { field: 'closedWon', direction: 'desc' } },
             rowStyles: [
-              { condition: { field: 'quotaAttainment', operator: 'gte', value: 100 }, style: { backgroundColor: '#f0fdf4' } },
+              { condition: { field: 'quotaAttainment', operator: 'gte', value: 100 }, sentiment: 'positive', style: {} },
             ],
           },
         },
@@ -446,11 +444,11 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'line',
             highchartsOptions: {
-              chart: { type: 'line', backgroundColor: 'transparent' },
+              chart: { type: 'line' },
               title: { text: null },
-              xAxis: { categories: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'], labels: { style: { color: '#6b7280' } } },
+              xAxis: { categories: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'] },
               yAxis: [{ title: { text: 'MRR ($)' }, labels: { format: '${value:,.0f}' }, min: 0 }],
-              series: [{ name: 'MRR', data: [1680000, 1730000, 1790000, 1840000, 1890000, 1935000, 1980000, 2020000, 2050000, 2080000, 2060000, 2066000], color: '#8039e9', marker: { enabled: true, radius: 3, symbol: 'circle' } }],
+              series: [{ name: 'MRR', data: [1680000, 1730000, 1790000, 1840000, 1890000, 1935000, 1980000, 2020000, 2050000, 2080000, 2060000, 2066000], marker: { enabled: true, radius: 3, symbol: 'circle' } }],
               tooltip: { shared: true, valuePrefix: '$' },
               legend: { enabled: false },
               credits: { enabled: false },
@@ -462,15 +460,15 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'area',
             highchartsOptions: {
-              chart: { type: 'area', backgroundColor: 'transparent' },
+              chart: { type: 'area' },
               title: { text: null },
               xAxis: { categories: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'] },
               yAxis: [{ title: { text: 'Pipeline ($)' }, labels: { format: '${value:,.0f}' }, stackLabels: { enabled: false } }],
               series: [
-                { name: 'Prospecting', data: [2800000, 3100000, 2900000, 3200000, 3400000, 3200000], color: '#8039e9' },
-                { name: 'Discovery', data: [2200000, 2400000, 2600000, 2500000, 2800000, 2850000], color: '#FF9042' },
-                { name: 'Proposal', data: [1800000, 1900000, 2100000, 2300000, 2400000, 2600000], color: '#0071e3' },
-                { name: 'Negotiation', data: [1200000, 1400000, 1500000, 1800000, 2000000, 2150000], color: '#10b981' },
+                { name: 'Prospecting', data: [2800000, 3100000, 2900000, 3200000, 3400000, 3200000] },
+                { name: 'Discovery', data: [2200000, 2400000, 2600000, 2500000, 2800000, 2850000] },
+                { name: 'Proposal', data: [1800000, 1900000, 2100000, 2300000, 2400000, 2600000] },
+                { name: 'Negotiation', data: [1200000, 1400000, 1500000, 1800000, 2000000, 2150000] },
               ],
               plotOptions: { area: { stacking: 'normal', lineWidth: 1, marker: { enabled: false } } },
               tooltip: { shared: true, valuePrefix: '$' },
@@ -484,13 +482,13 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'column',
             highchartsOptions: {
-              chart: { type: 'column', backgroundColor: 'transparent' },
+              chart: { type: 'column' },
               title: { text: null },
               xAxis: { categories: ['Q1', 'Q2', 'Q3', 'Q4'] },
               yAxis: [{ title: { text: 'Bookings ($)' }, labels: { format: '${value:,.0f}' }, min: 0 }],
               series: [
-                { name: 'FY2024', data: [1800000, 2100000, 2400000, 2650000], color: '#c4b5fd' },
-                { name: 'FY2025', data: [2200000, 2700000, 3100000, 3250000], color: '#8039e9' },
+                { name: 'FY2024', data: [1800000, 2100000, 2400000, 2650000] },
+                { name: 'FY2025', data: [2200000, 2700000, 3100000, 3250000] },
               ],
               plotOptions: { column: { borderRadius: 4, groupPadding: 0.15 } },
               tooltip: { shared: true, valuePrefix: '$' },
@@ -504,11 +502,11 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'bar',
             highchartsOptions: {
-              chart: { type: 'bar', backgroundColor: 'transparent' },
+              chart: { type: 'bar' },
               title: { text: null },
               xAxis: { categories: ['S. Chen', 'M. Johnson', 'P. Patel', 'A. Rivera', 'J. Lee', 'T. Williams', 'K. Nakamura'], labels: { style: { fontSize: '12px' } } },
               yAxis: [{ title: { text: 'Closed-Won ($)' }, labels: { format: '${value:,.0f}' }, min: 0 }],
-              series: [{ name: 'Closed-Won', data: [820000, 710000, 485000, 420000, 310000, 285000, 220000], color: '#8039e9' }],
+              series: [{ name: 'Closed-Won', data: [820000, 710000, 485000, 420000, 310000, 285000, 220000] }],
               plotOptions: { bar: { borderRadius: 4, dataLabels: { enabled: true, format: '${y:,.0f}' } } },
               tooltip: { valuePrefix: '$' },
               legend: { enabled: false },
@@ -521,14 +519,14 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'pie',
             highchartsOptions: {
-              chart: { type: 'pie', backgroundColor: 'transparent' },
+              chart: { type: 'pie' },
               title: { text: null },
               series: [{ name: 'Revenue', data: [
-                { name: 'Outbound Sales', y: 1350000, color: '#8039e9' },
-                { name: 'Inbound Marketing', y: 890000, color: '#FF9042' },
-                { name: 'Partner/Channel', y: 620000, color: '#0071e3' },
-                { name: 'Expansion/Upsell', y: 540000, color: '#10b981' },
-                { name: 'Self-Serve', y: 180000, color: '#f59e0b' },
+                { name: 'Outbound Sales', y: 1350000 },
+                { name: 'Inbound Marketing', y: 890000 },
+                { name: 'Partner/Channel', y: 620000 },
+                { name: 'Expansion/Upsell', y: 540000 },
+                { name: 'Self-Serve', y: 180000 },
               ] }],
               plotOptions: { pie: { allowPointSelect: true, cursor: 'pointer', dataLabels: { enabled: true, format: '{point.name}: {point.percentage:.1f}%' } } },
               tooltip: { pointFormat: '{point.name}: <b>${point.y:,.0f}</b> ({point.percentage:.1f}%)' },
@@ -542,14 +540,14 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'donut',
             highchartsOptions: {
-              chart: { type: 'pie', backgroundColor: 'transparent' },
+              chart: { type: 'pie' },
               title: { text: null },
               series: [{ name: 'Deals', innerSize: '60%', data: [
-                { name: 'Prospecting', y: 42, color: '#8039e9' },
-                { name: 'Discovery', y: 28, color: '#FF9042' },
-                { name: 'Proposal', y: 18, color: '#0071e3' },
-                { name: 'Negotiation', y: 12, color: '#10b981' },
-                { name: 'Closing', y: 7, color: '#f59e0b' },
+                { name: 'Prospecting', y: 42 },
+                { name: 'Discovery', y: 28 },
+                { name: 'Proposal', y: 18 },
+                { name: 'Negotiation', y: 12 },
+                { name: 'Closing', y: 7 },
               ] }],
               plotOptions: { pie: { dataLabels: { enabled: true, format: '{point.name}: {point.y}' } } },
               tooltip: { pointFormat: '{point.name}: <b>{point.y} deals</b> ({point.percentage:.1f}%)' },
@@ -563,7 +561,7 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'column-line',
             highchartsOptions: {
-              chart: { type: 'column', backgroundColor: 'transparent' },
+              chart: { type: 'column' },
               title: { text: null },
               xAxis: { categories: ['Q1', 'Q2', 'Q3', 'Q4'] },
               yAxis: [
@@ -571,8 +569,8 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
                 { title: { text: 'Win Rate (%)' }, labels: { format: '{value}%' }, opposite: true, min: 0, max: 50 },
               ],
               series: [
-                { name: 'Bookings', type: 'column', data: [2200000, 2700000, 3100000, 3250000], color: '#8039e9', yAxis: 0 },
-                { name: 'Win Rate', type: 'line', data: [26.1, 28.5, 29.3, 32.4], color: '#FF9042', yAxis: 1, marker: { enabled: true, radius: 5 } },
+                { name: 'Bookings', type: 'column', data: [2200000, 2700000, 3100000, 3250000], yAxis: 0 },
+                { name: 'Win Rate', type: 'line', data: [26.1, 28.5, 29.3, 32.4], yAxis: 1, marker: { enabled: true, radius: 5 } },
               ],
               tooltip: { shared: true },
               legend: { enabled: true, align: 'center', verticalAlign: 'bottom', layout: 'horizontal' },
@@ -585,14 +583,14 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'line-line',
             highchartsOptions: {
-              chart: { type: 'line', backgroundColor: 'transparent' },
+              chart: { type: 'line' },
               title: { text: null },
               xAxis: { categories: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'] },
               yAxis: [{ title: { text: 'Pipeline Created ($)' }, labels: { format: '${value:,.0f}' }, min: 0 }],
               series: [
-                { name: 'Enterprise', data: [1200000, 1350000, 1100000, 1500000, 1400000, 1650000], color: '#8039e9', marker: { symbol: 'circle' } },
-                { name: 'Mid-Market', data: [800000, 920000, 880000, 1050000, 1100000, 1020000], color: '#FF9042', marker: { symbol: 'diamond' } },
-                { name: 'SMB', data: [450000, 520000, 480000, 600000, 580000, 640000], color: '#0071e3', marker: { symbol: 'square' } },
+                { name: 'Enterprise', data: [1200000, 1350000, 1100000, 1500000, 1400000, 1650000], marker: { symbol: 'circle' } },
+                { name: 'Mid-Market', data: [800000, 920000, 880000, 1050000, 1100000, 1020000], marker: { symbol: 'diamond' } },
+                { name: 'SMB', data: [450000, 520000, 480000, 600000, 580000, 640000], marker: { symbol: 'square' } },
               ],
               tooltip: { shared: true, valuePrefix: '$' },
               legend: { enabled: true, align: 'center', verticalAlign: 'bottom', layout: 'horizontal' },
@@ -605,7 +603,7 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           config: {
             chartType: 'line-bar',
             highchartsOptions: {
-              chart: { type: 'bar', backgroundColor: 'transparent' },
+              chart: { type: 'bar' },
               title: { text: null },
               xAxis: { categories: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'] },
               yAxis: [
@@ -613,8 +611,8 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
                 { title: { text: 'Meetings Booked' }, labels: { format: '{value}' }, opposite: true },
               ],
               series: [
-                { name: 'Outbound Emails', type: 'bar', data: [4200, 4800, 5100, 3900, 5500, 5800], color: '#c4b5fd', yAxis: 0 },
-                { name: 'Meetings Booked', type: 'line', data: [68, 82, 91, 64, 105, 112], color: '#8039e9', yAxis: 1, marker: { enabled: true, radius: 5, symbol: 'circle' } },
+                { name: 'Outbound Emails', type: 'bar', data: [4200, 4800, 5100, 3900, 5500, 5800], yAxis: 0 },
+                { name: 'Meetings Booked', type: 'line', data: [68, 82, 91, 64, 105, 112], yAxis: 1, marker: { enabled: true, radius: 5, symbol: 'circle' } },
               ],
               tooltip: { shared: true },
               legend: { enabled: true, align: 'center', verticalAlign: 'bottom', layout: 'horizontal' },
@@ -632,33 +630,33 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
               {
                 id: 'col_stage', field: 'stage', header: 'Stage', dataType: 'string', sortable: true, filterable: true,
                 format: { badge: { mapping: {
-                  Prospecting: { color: '#fff', backgroundColor: '#8039e9' },
-                  Discovery: { color: '#fff', backgroundColor: '#FF9042' },
-                  Proposal: { color: '#fff', backgroundColor: '#0071e3' },
-                  Negotiation: { color: '#fff', backgroundColor: '#10b981' },
-                  Closing: { color: '#fff', backgroundColor: '#f59e0b' },
+                  Prospecting: {},
+                  Discovery: {},
+                  Proposal: {},
+                  Negotiation: {},
+                  Closing: {},
                 } } },
               },
               { id: 'col_amount', field: 'amount', header: 'Amount', dataType: 'currency', format: { abbreviate: true, prefix: '$' }, sortable: true },
               {
                 id: 'col_probability', field: 'probability', header: 'Prob %', dataType: 'percentage', sortable: true,
-                format: { suffix: '%', decimals: 0, progressBar: { maxValue: 100, colorThresholds: [{ value: 30, color: '#ef4444' }, { value: 60, color: '#f59e0b' }, { value: 100, color: '#10b981' }] } },
+                format: { suffix: '%', decimals: 0, progressBar: { maxValue: 100, colorThresholds: [{ value: 30 }, { value: 60 }, { value: 100 }] } },
               },
               { id: 'col_close_date', field: 'expectedCloseDate', header: 'Expected Close', dataType: 'date', format: { dateFormat: 'MMM D, YYYY' }, sortable: true },
               {
                 id: 'col_days_in_stage', field: 'daysInStage', header: 'Days in Stage', dataType: 'number', sortable: true,
-                format: { colorScale: { type: 'threshold', thresholds: [{ value: 14, color: '#10b981', label: 'On Track' }, { value: 30, color: '#f59e0b', label: 'Slow' }, { value: 999, color: '#ef4444', label: 'Stalled' }] } },
+                format: { colorScale: { type: 'threshold', thresholds: [{ value: 14, label: 'On Track' }, { value: 30, label: 'Slow' }, { value: 999, label: 'Stalled' }] } },
               },
               {
                 id: 'col_segment', field: 'segment', header: 'Segment', dataType: 'string', filterable: true,
-                format: { badge: { mapping: { Enterprise: { color: '#fff', backgroundColor: '#6366f1' }, 'Mid-Market': { color: '#fff', backgroundColor: '#0071e3' }, SMB: { color: '#000', backgroundColor: '#e0e7ff' } } } },
+                format: { badge: { mapping: { Enterprise: {}, 'Mid-Market': {}, SMB: {} } } },
               },
             ],
             pagination: { enabled: true, pageSize: 15, pageSizeOptions: [10, 15, 25, 50] },
             sorting: { enabled: true, defaultSort: { field: 'expectedCloseDate', direction: 'asc' } },
             rowStyles: [
-              { condition: { field: 'daysInStage', operator: 'gt', value: 30 }, style: { backgroundColor: '#fef2f2' } },
-              { condition: { field: 'probability', operator: 'gte', value: 80 }, style: { backgroundColor: '#f0fdf4', fontWeight: '600' } },
+              { condition: { field: 'daysInStage', operator: 'gt', value: 30 }, sentiment: 'negative', style: {} },
+              { condition: { field: 'probability', operator: 'gte', value: 80 }, sentiment: 'positive', style: { fontWeight: '600' } },
             ],
           },
         },

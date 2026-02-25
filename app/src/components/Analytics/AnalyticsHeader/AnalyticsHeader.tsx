@@ -1,7 +1,7 @@
 import { ArrowClockwise } from '@phosphor-icons/react';
 import type { RefreshInfo } from '../../../types/dashboard';
 
-interface DashboardHeaderProps {
+interface AnalyticsHeaderProps {
   title: string;
   description?: string;
   refreshInfo: RefreshInfo | null;
@@ -19,7 +19,7 @@ function formatRelativeTime(isoString: string): string {
   return `${days}d ago`;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({
+const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
   title,
   description,
   refreshInfo,
@@ -59,4 +59,4 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   );
 };
 
-export { DashboardHeader };
+export { AnalyticsHeader };
