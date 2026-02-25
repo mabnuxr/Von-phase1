@@ -110,6 +110,7 @@ export function useQuickCommandsList(
   return useQuery({
     // currentUserId is part of the key so that cache entries are never shared
     // across users — apiCommandToUICommand derives createdBy from it.
+    enabled: !!currentUserId,
     queryKey: [...QUICK_COMMANDS_QUERY_KEY, params, { userId: currentUserId }],
     queryFn: async () => {
       const result = await quickCommandsService.list({
