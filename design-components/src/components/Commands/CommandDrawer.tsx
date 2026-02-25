@@ -11,10 +11,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CaretRight, PaperclipIcon, SpinnerGap } from '@phosphor-icons/react';
+import { X, CaretRight, PaperclipIcon, SpinnerGap, UploadSimple } from '@phosphor-icons/react';
 import type { Command, CommandAttachment } from './types';
 import { generateCommandId } from './types';
 import { FilesPreviewPanel } from '../FilesPreview';
+import { useFileDrop } from '../../hooks';
 
 // ---------------------------------------------------------------------------
 // Public interface
@@ -348,6 +349,11 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     [commandId, onUploadFile]
   );
 
+  const { isDragOver, dragHandlers } = useFileDrop({
+    onDrop: handleFilesSelected,
+    disabled: readOnly,
+  });
+
   const handleSave = () => {
     onSave(
       {
@@ -484,55 +490,63 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                       : undefined
                   }
                 >
-                  {dataSources.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {dataSources.map((ds) =>
-                        readOnly ? (
-                          <div
-                            key={ds.id}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-700 max-w-[160px] cursor-pointer transition-colors"
-                            onClick={() => handleFileChipClick(ds.id)}
-                            title={ds.name}
-                          >
-                            <span>{getFileIcon(ds)}</span>
-                            <span className="truncate">{ds.name}</span>
-                          </div>
-                        ) : (
-                          <FileChip
-                            key={ds.id}
-                            attachment={ds}
-                            onRemove={handleRemoveDataSource}
-                            onClick={handleFileChipClick}
-                          />
-                        )
-                      )}
-                    </div>
-                  ) : (
-                    readOnly && <p className="text-xs text-gray-400 mb-2">No files attached.</p>
-                  )}
-                  {!readOnly && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 w-full text-xs text-gray-600 border border-dashed border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
-                      >
-                        <PaperclipIcon size={12} />
-                        Add files
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files ?? []);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                          handleFilesSelected(files);
-                        }}
-                      />
-                    </>
-                  )}
+                  <div className="relative" {...dragHandlers}>
+                    {isDragOver && !readOnly && (
+                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-400 bg-white/90 pointer-events-none">
+                        <UploadSimple size={22} className="text-gray-400" />
+                        <p className="text-xs font-medium text-gray-600">Drop files to attach</p>
+                      </div>
+                    )}
+                    {dataSources.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {dataSources.map((ds) =>
+                          readOnly ? (
+                            <div
+                              key={ds.id}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs text-gray-700 max-w-[160px] cursor-pointer transition-colors"
+                              onClick={() => handleFileChipClick(ds.id)}
+                              title={ds.name}
+                            >
+                              <span>{getFileIcon(ds)}</span>
+                              <span className="truncate">{ds.name}</span>
+                            </div>
+                          ) : (
+                            <FileChip
+                              key={ds.id}
+                              attachment={ds}
+                              onRemove={handleRemoveDataSource}
+                              onClick={handleFileChipClick}
+                            />
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      readOnly && <p className="text-xs text-gray-400 mb-2">No files attached.</p>
+                    )}
+                    {!readOnly && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 w-full text-xs text-gray-600 border border-dashed border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                          <PaperclipIcon size={12} />
+                          Add files or drag and drop here
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files ?? []);
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                            handleFilesSelected(files);
+                          }}
+                        />
+                      </>
+                    )}
+                  </div>
                 </AccordionSection>
 
                 {/* Sharing — collapsible */}
