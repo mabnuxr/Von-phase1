@@ -206,6 +206,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Pre-generated (or editing) command ID used for presigning
   const [commandId, setCommandId] = useState(() => generateCommandId());
+  // Tracks filenames that are currently uploading or already uploaded to prevent duplicates
+  const uploadedFileNamesRef = useRef<Set<string>>(new Set());
   // Presigned download URLs fetched on-demand for preview; keyed by attachment id.
   // null means the fetch was attempted and failed (show "Preview not available").
   const [fetchedPreviewUrls, setFetchedPreviewUrls] = useState<Record<string, string | null>>({});
@@ -220,6 +222,9 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       setForm(editingCommand ? commandToForm(editingCommand) : emptyForm);
       setDataSources(editingCommand?.dataSources ?? []);
       setCommandId(editingCommand ? editingCommand.id : generateCommandId());
+      uploadedFileNamesRef.current = new Set(
+        editingCommand?.dataSources?.map((ds) => ds.name) ?? []
+      );
     }
   }, [isOpen, editingCommand]);
 
@@ -230,7 +235,11 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
 
   const handleRemoveDataSource = useCallback((id: string) => {
     setPreviewFileId((current) => (current === id ? null : current));
-    setDataSources((prev) => prev.filter((ds) => ds.id !== id));
+    setDataSources((prev) => {
+      const removed = prev.find((ds) => ds.id === id);
+      if (removed) uploadedFileNamesRef.current.delete(removed.name);
+      return prev.filter((ds) => ds.id !== id);
+    });
   }, []);
 
   // Fetches a presigned URL for a single file and stores the result.
@@ -260,12 +269,17 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   /**
    * Called when the user picks files from the file input.
    * Creates attachment placeholders immediately, then kicks off eager uploads.
+   * Duplicate filenames (already uploading or uploaded) are silently skipped.
    */
   const handleFilesSelected = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
 
-      const newAttachments: CommandAttachment[] = files.map((file) => {
+      const uniqueFiles = files.filter((f) => !uploadedFileNamesRef.current.has(f.name));
+      if (uniqueFiles.length === 0) return;
+      uniqueFiles.forEach((f) => uploadedFileNamesRef.current.add(f.name));
+
+      const newAttachments: CommandAttachment[] = uniqueFiles.map((file) => {
         const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
         let category: CommandAttachment['category'] = 'document';
         if (file.type.startsWith('image/')) category = 'image';
@@ -300,7 +314,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       if (onUploadFile) {
         await Promise.all(
           newAttachments.map(async (attachment, idx) => {
-            const file = files[idx];
+            const file = uniqueFiles[idx];
             const tempId = attachment.id;
             try {
               const { fileId, s3Key } = await onUploadFile(commandId, file);
@@ -313,7 +327,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 )
               );
             } catch {
-              // Remove silently — no error state left in the UI
+              // Remove silently — allow re-upload by clearing the deduplication entry
+              uploadedFileNamesRef.current.delete(file.name);
               setDataSources((prev) => prev.filter((ds) => ds.id !== tempId));
               setPreviewFileId((current) => (current === tempId ? null : current));
             }
