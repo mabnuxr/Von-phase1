@@ -463,3 +463,30 @@ export type { UseIsTruncatedReturn } from '../hooks';
 
 export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
+
+// ============================================================================
+// DASHBOARD RENDERER (View-only dashboard rendering components)
+// ============================================================================
+export {
+  DashboardGrid as DashboardRendererGrid,
+  WidgetShell,
+  WidgetRenderer,
+  ChartWidget as RendererChartWidget,
+  CounterWidget,
+  TextWidget,
+} from './DashboardRenderer';
+export type {
+  DashboardGridProps as DashboardRendererGridProps,
+  WidgetShellProps,
+  WidgetRendererProps,
+  ChartWidgetProps as RendererChartWidgetProps,
+  CounterWidgetProps,
+  TextWidgetProps,
+  WidgetConfig as RendererWidgetConfig,
+  WidgetType as RendererWidgetType,
+  GridConfig as RendererGridConfig,
+  LayoutItem as RendererLayoutItem,
+  ChartWidgetConfig as RendererChartWidgetConfig,
+  CounterWidgetConfig as RendererCounterWidgetConfig,
+  TextWidgetConfig as RendererTextWidgetConfig,
+} from './DashboardRenderer';
