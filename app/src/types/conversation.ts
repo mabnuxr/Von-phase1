@@ -56,6 +56,31 @@ export interface MessageFileAttachment {
 }
 
 /**
+ * Data source attached to a quick command (matches backend shape)
+ */
+export interface CommandDataSource {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  extension: string;
+  category: string;
+  s3Key: string;
+}
+
+/**
+ * Quick command embedded on a user message (populated by backend when the
+ * message was sent via a slash command)
+ */
+export interface MessageCommand {
+  id: string;
+  name: string;
+  slug?: string;
+  prompt: string;
+  dataSources?: CommandDataSource[];
+}
+
+/**
  * Message entity from backend
  */
 export interface Message {
@@ -68,6 +93,7 @@ export interface Message {
   createdAt: string;
   createdBy: string | null;
   fileAttachments?: MessageFileAttachment[];
+  command?: MessageCommand;
 }
 
 /**

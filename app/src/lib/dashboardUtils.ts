@@ -87,6 +87,25 @@ export function transformMessagesToChatFormat(
           | "text"
           | "image",
       })),
+      // Map the quick command so ChatMessage can render CommandPreview
+      command: streamingMsg.command
+        ? {
+            id: streamingMsg.command.id,
+            name: streamingMsg.command.name,
+            prompt: streamingMsg.command.prompt,
+            createdAt: "",
+            updatedAt: "",
+            dataSources: streamingMsg.command.dataSources?.map((ds) => ({
+              id: ds.fileId,
+              name: ds.fileName,
+              size: ds.fileSize,
+              type: ds.mimeType,
+              extension: ds.extension,
+              category: ds.category,
+              s3Key: ds.s3Key,
+            })),
+          }
+        : undefined,
     } as ChatMessage;
   });
 }

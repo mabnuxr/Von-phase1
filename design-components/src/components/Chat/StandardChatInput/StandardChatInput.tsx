@@ -143,6 +143,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // File error props
       fileErrorMessage,
       onDismissFileError,
+      // Command chip
+      commandChip,
+      // Commands
+      enableCommands = false,
     },
     ref
   ) => {
@@ -229,7 +233,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
       // message is now markdown from TiptapEditor
       const hasTextContent = message.trim().length > 0;
-      const hasContent = hasTextContent || hasAttachments;
+      const hasContent = hasTextContent || hasAttachments || Boolean(commandChip);
 
       if (hasContent && onSend) {
         // Send markdown directly
@@ -255,6 +259,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDisabledInput,
       message,
       hasAttachments,
+      commandChip,
       onSend,
       attachments,
       isControlled,
@@ -308,7 +313,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const canSend =
-      (message.trim() || hasAttachments) && !disabled && !disableSubmit && !isStreaming;
+      (message.trim() || hasAttachments || Boolean(commandChip)) &&
+      !disabled &&
+      !disableSubmit &&
+      !isStreaming;
 
     // TODO: Uncomment when agent mode is reimplemented
     // const handleAgentModeChange = useCallback(
@@ -386,6 +394,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
               message={fileErrorMessage || ''}
               onDismiss={onDismissFileError || (() => {})}
             />
+
+            {/* Command chip - shown above the input when a command is selected */}
+            {commandChip && !activePopover && (
+              <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+                {commandChip}
+              </div>
+            )}
 
             {/* Main input container with gradient border */}
             <div
@@ -474,6 +489,24 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           title="Upload file"
                           className="w-8.5 h-8.5 rounded-xl"
                         />
+
+                        {/* Slash commands button */}
+                        {enableCommands && (
+                          <SecondaryIconButton
+                            icon={
+                              <span className="text-[13px] font-semibold text-gray-800 leading-none">
+                                /
+                              </span>
+                            }
+                            onClick={() => {
+                              editorRef.current?.commands.insertContent('/');
+                              editorRef.current?.commands.focus('end');
+                            }}
+                            disabled={disabled && !isStreaming}
+                            title="Open commands"
+                            className="w-8.5 h-8.5 rounded-xl"
+                          />
+                        )}
 
                         {/* TODO: Uncomment when agent mode is reimplemented */}
                         {/* <AnimatePresence>

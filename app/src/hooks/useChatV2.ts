@@ -482,18 +482,40 @@ export function useChatV2(props: UseChatV2Props) {
         }
       }
 
-      sendMessage({ conversationId, content, fileAttachments });
+      sendMessage({
+        conversationId,
+        content,
+        fileAttachments,
+        command: options?.command
+          ? {
+              id: options.command.id,
+              name: options.command.name,
+              prompt: options.command.prompt,
+              dataSources: options.command.dataSources
+                ?.filter((ds) => ds.s3Key)
+                ?.map((ds) => ({
+                  fileId: ds.id,
+                  fileName: ds.name,
+                  fileSize: ds.size,
+                  mimeType: ds.type,
+                  extension: ds.extension,
+                  category: ds.category,
+                  s3Key: ds.s3Key!,
+                })),
+            }
+          : undefined,
+      });
       clearFileAttachments();
     },
     [
-      conversationId,
-      v2Processor.clearPendingStop,
+      v2Processor,
       forceCompleteStreamingMessages,
-      syncAgentModeToBackend,
+      conversationId,
       hasFileAttachments,
-      uploadPendingFiles,
       sendMessage,
       clearFileAttachments,
+      syncAgentModeToBackend,
+      uploadPendingFiles,
     ],
   );
 

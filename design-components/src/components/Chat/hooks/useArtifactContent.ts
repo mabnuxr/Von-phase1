@@ -34,6 +34,7 @@ export interface HtmlSheet {
 export type ArtifactContent =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
+  | { kind: 'image'; url: string }
   | { kind: 'pdf'; url: string }
   | { kind: 'text'; text: string }
   | { kind: 'docx'; buffer: ArrayBuffer }
@@ -129,6 +130,10 @@ async function parseArtifact(
   pdfDownloadUrl?: string
 ): Promise<ArtifactContent> {
   if (!mimeType) return { kind: 'unsupported' };
+
+  if (mimeType.startsWith('image/')) {
+    return { kind: 'image', url: downloadUrl };
+  }
 
   if (PDF_MIMES.has(mimeType)) {
     return { kind: 'pdf', url: downloadUrl };

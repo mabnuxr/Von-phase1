@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { PlusIcon } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from './icons';
 import { RichTextInput, hasPlaceholders } from './RichTextInput';
@@ -131,6 +132,12 @@ export interface ChatInputProps {
    * @default false
    */
   autoFocus?: boolean;
+
+  /**
+   * Optional node rendered above the input when a slash command is active
+   * (e.g. a CommandChip showing the selected command with a remove button).
+   */
+  commandChip?: ReactNode;
 }
 
 /**
@@ -156,6 +163,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   mode = 'ask',
   onModeChange,
   autoFocus = false,
+  commandChip,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -294,6 +302,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         {contextTag && (
           <div className="inline-block self-start px-2.5 py-1 bg-orange-50 rounded-xl text-xs text-gray-600  mb-1">
             {contextTag}
+          </div>
+        )}
+
+        {/* Command chip - shown above the input when a command is selected */}
+        {commandChip && (
+          <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+            {commandChip}
           </div>
         )}
 

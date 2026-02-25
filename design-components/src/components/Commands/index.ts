@@ -5,14 +5,17 @@
 
 // Components
 export { CommandsList } from './CommandsList';
-export { CommandDrawer } from './CommandDrawer';
-export { ManageCommandsDrawer } from './ManageCommandsDrawer';
-export { ChatInputWithCommands } from './ChatInputWithCommands';
-export type { ChatInputWithCommandsProps } from './ChatInputWithCommands';
+export type { CommandsListProps } from './CommandsList';
 export { CommandChip } from './CommandChip';
 export type { CommandChipProps } from './CommandChip';
+export { CommandDrawer } from './CommandDrawer';
+export type { CommandDrawerProps } from './CommandDrawer';
+export { ManageCommandsDrawer } from './ManageCommandsDrawer';
+export type { ManageCommandsDrawerProps } from './ManageCommandsDrawer';
 export { CommandsOverlay } from './CommandsOverlay';
 export type { CommandsOverlayProps } from './CommandsOverlay';
+export { CommandPreview } from './CommandPreview';
+export type { CommandPreviewProps } from './CommandPreview';
 
 // Hooks
 export { useCommands } from './useCommands';
@@ -22,6 +25,7 @@ export type { UseCommandsInputOptions, UseCommandsInputReturn } from './useComma
 // Types
 export type {
   Command,
+  CommandAttachment,
   CommandCategory,
   DataSource,
   ActionType,
@@ -39,6 +43,7 @@ export {
   DEFAULT_COMMANDS,
   FILL_DOC_TYPE_LABELS,
   INTERNAL_DOC_FOLDERS,
+  generateCommandId,
 } from './types';
 
 // Storage utilities

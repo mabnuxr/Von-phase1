@@ -4,6 +4,7 @@ import useChatStore from "../store/chatStore";
 import type {
   MessageWithStreaming,
   MessageFileAttachment,
+  MessageCommand,
 } from "../types/conversation";
 
 /**
@@ -13,6 +14,7 @@ export interface SendMessagePayload {
   conversationId: string;
   content: string;
   fileAttachments?: MessageFileAttachment[];
+  command?: MessageCommand;
 }
 
 /**
@@ -64,6 +66,7 @@ export function useSendMessage() {
         payload.content,
         "text",
         payload.fileAttachments,
+        payload.command,
       );
     },
 
@@ -104,6 +107,7 @@ export function useSendMessage() {
         isStreaming: false,
         status: "completed",
         fileAttachments: payload.fileAttachments,
+        command: payload.command,
       };
 
       // Create optimistic assistant message with streaming state

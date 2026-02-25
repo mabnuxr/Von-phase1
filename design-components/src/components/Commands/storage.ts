@@ -109,11 +109,7 @@ export function searchCommands(query: string): Command[] {
   const commands = getCommands();
   const lowerQuery = query.toLowerCase();
 
-  return commands.filter(
-    (cmd) =>
-      cmd.name.toLowerCase().includes(lowerQuery) ||
-      cmd.description.toLowerCase().includes(lowerQuery)
-  );
+  return commands.filter((cmd) => cmd.name.toLowerCase().includes(lowerQuery));
 }
 
 /**
@@ -122,7 +118,7 @@ export function searchCommands(query: string): Command[] {
 export function getCommandsByCategory(category: string): Command[] {
   const commands = getCommands();
   if (category === 'All') return commands;
-  return commands.filter((cmd) => cmd.category === category);
+  return commands.filter((cmd) => cmd.dataSources?.some((ds) => ds.category === category));
 }
 
 /**

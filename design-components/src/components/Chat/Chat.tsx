@@ -59,6 +59,16 @@ export const Chat: React.FC<ChatProps> = ({
   onApprove,
   onReject,
   enableCommands = false,
+  commands,
+  isLoadingCommands,
+  lockedCommandFromHistory: lockedCommandFromHistoryProp,
+  onSaveCommand,
+  onDeleteCommand,
+  isSavingCommand,
+  isAdmin = false,
+  onToggleFavorite,
+  onRequestFilePreviewUrl,
+  onUploadFile,
   enableActions = false,
   onConvertToDashboard,
   onTransparencyClick,
@@ -118,6 +128,22 @@ export const Chat: React.FC<ChatProps> = ({
   // Wrap in useMemo to prevent unnecessary re-renders when controlledMessages is undefined
   const messages = useMemo(() => controlledMessages || [], [controlledMessages]);
   const isLoading = controlledIsLoading;
+
+  // Derive the locked command from the last user message that was sent with a
+  // data-sources command. This lets the chip be restored automatically when the
+  // conversation is revisited without any external persistence. Prefer the
+  // explicit prop when provided (e.g. ChatEmptyState callers).
+  const lockedCommandFromHistory = useMemo(() => {
+    if (lockedCommandFromHistoryProp !== undefined) return lockedCommandFromHistoryProp;
+    if (!enableCommands) return null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.type === 'user' && msg.command?.dataSources && msg.command.dataSources.length > 0) {
+        return msg.command;
+      }
+    }
+    return null;
+  }, [lockedCommandFromHistoryProp, enableCommands, messages]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -303,6 +329,15 @@ export const Chat: React.FC<ChatProps> = ({
             disabled={examplePromptsDisabled}
             onDisabledClick={onExamplePromptDisabledClick}
             enableCommands={enableCommands}
+            commands={commands}
+            isLoadingCommands={isLoadingCommands}
+            onSaveCommand={onSaveCommand}
+            onDeleteCommand={onDeleteCommand}
+            isSavingCommand={isSavingCommand}
+            isAdmin={isAdmin}
+            onToggleFavorite={onToggleFavorite}
+            onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+            onUploadFile={onUploadFile}
             banner={banner}
             topBanner={topBanner}
             useStandardInput={useStandardInput}
@@ -323,6 +358,7 @@ export const Chat: React.FC<ChatProps> = ({
                 <ChatMessage
                   type={message.type}
                   content={message.content}
+                  command={message.command}
                   reasoningContent={message.reasoningContent}
                   timestamp={message.timestamp}
                   activeTab={message.activeTab}
@@ -349,6 +385,7 @@ export const Chat: React.FC<ChatProps> = ({
                   showTransparency={showTransparency}
                   salesforceInstanceUrl={salesforceInstanceUrl}
                   enableDeepLinks={enableDeepLinks}
+                  onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   // V2 Thinking Process props
                   thinkingProcessVersion={thinkingProcessVersion}
                   timelineSteps={message.timelineSteps}
@@ -389,6 +426,15 @@ export const Chat: React.FC<ChatProps> = ({
         <ChatInputSelector
           useStandardInput={useStandardInput}
           enableCommands={enableCommands}
+          commands={commands}
+          isLoadingCommands={isLoadingCommands}
+          onSaveCommand={onSaveCommand}
+          onDeleteCommand={onDeleteCommand}
+          isSavingCommand={isSavingCommand}
+          isAdmin={isAdmin}
+          onToggleFavorite={onToggleFavorite}
+          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+          onUploadFile={onUploadFile}
           placeholder={placeholder}
           onSend={handleSendMessage}
           onStop={handleStop}
@@ -406,6 +452,7 @@ export const Chat: React.FC<ChatProps> = ({
           onFilesSelected={onFilesSelected}
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
+          lockedCommandFromHistory={lockedCommandFromHistory}
         />
       )}
     </div>

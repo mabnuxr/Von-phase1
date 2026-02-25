@@ -12,6 +12,8 @@ import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
 import { ArtifactCard, type FileArtifact } from './ArtifactCard';
+import { CommandPreview } from '../Commands/CommandPreview';
+import type { Command } from '../Commands/types';
 
 /**
  * Get user initials from name or email
@@ -276,6 +278,17 @@ export interface ChatMessageProps {
    * Callback to download an agent-generated file artifact
    */
   onArtifactDownload?: (fileId: string) => void;
+
+  /**
+   * Quick command used for this user message (shows expandable chip)
+   */
+  command?: Command;
+
+  /**
+   * Fetches a presigned download URL for a command data-source file.
+   * Forwarded to CommandPreview so its file-preview panel can load content.
+   */
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
 }
 
 /**
@@ -315,6 +328,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   artifacts,
   onFileArtifactClick,
   onArtifactDownload,
+  command,
+  onRequestFilePreviewUrl,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -599,7 +614,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       ref={userMessageRef}
                       className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2 overflow-hidden wrap-break-word"
                     >
-                      {/* File attachments shown above text */}
+                      {command && (
+                        <CommandPreview
+                          command={command}
+                          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                        />
+                      )}
                       {attachments && attachments.length > 0 && (
                         <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
                       )}
