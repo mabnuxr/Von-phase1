@@ -227,7 +227,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                     const isLocallyApproved = localState === 'approved';
                     const isLocallyRejected = localState === 'rejected';
 
-                    // For bulk approval scenarios, only expand the first approval card by default
+                    // Expand approval card by default if it's currently awaiting approval
+                    // (ensures action buttons are always visible) or if it's the first
+                    // approval card (for historical display). Non-first completed approvals
+                    // start collapsed to reduce visual noise.
                     const firstApprovalIdx = visibleSteps.findIndex((s) => s.approval);
                     const isFirstApproval = step.approval && idx === firstApprovalIdx;
 
@@ -274,7 +277,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         onArtifactClick={onArtifactClick}
                         isLocallyApproved={isLocallyApproved}
                         isLocallyRejected={isLocallyRejected}
-                        defaultApprovalExpanded={isFirstApproval}
+                        defaultApprovalExpanded={step.status === 'awaiting-approval' || !!isFirstApproval}
                         onApproveRecord={onApproveRecord}
                         onRejectRecord={onRejectRecord}
                         onApproveAll={onApproveAll}
