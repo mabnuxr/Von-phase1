@@ -26,9 +26,11 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget }) => {
 
     case 'counter':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle}>
-          <CounterWidget config={widget.config as CounterWidgetConfig} />
-        </WidgetShell>
+        <CounterWidget
+          config={widget.config as CounterWidgetConfig}
+          title={widget.title}
+          subtitle={widget.subtitle}
+        />
       );
 
     case 'text':

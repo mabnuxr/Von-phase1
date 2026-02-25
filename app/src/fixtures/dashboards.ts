@@ -40,13 +40,10 @@ export const salesExecDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "vs last quarter",
+              unit: "%",
             },
-            sparkline: {
-              data: [
-                14200000, 15100000, 15800000, 16500000, 17200000, 18750000,
-              ],
-              type: "line",
-            },
+            progress: 78,
+            target: "$24M",
           },
         },
         w_new_bookings: {
@@ -63,11 +60,10 @@ export const salesExecDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "vs Q3",
+              unit: "%",
             },
-            sparkline: {
-              data: [1800000, 2100000, 2650000, 3250000],
-              type: "bar",
-            },
+            progress: 93,
+            target: "$3.5M",
           },
         },
         w_revenue_trend: {
@@ -211,11 +207,10 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "vs last quarter",
+              unit: "%",
             },
-            sparkline: {
-              data: [8200000, 9100000, 10500000, 12400000],
-              type: "bar",
-            },
+            progress: 82,
+            target: "$15M",
           },
         },
         w_win_rate: {
@@ -232,7 +227,10 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "vs Q3",
+              unit: "%",
             },
+            progress: 65,
+            target: "50%",
           },
         },
         w_avg_deal_size: {
@@ -249,7 +247,10 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "vs Q3",
+              unit: "%",
             },
+            progress: 45,
+            target: "$175K",
           },
         },
         w_sales_cycle: {
@@ -266,6 +267,7 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
               direction: "down",
               sentiment: "positive",
               label: "vs Q3 (47 days)",
+              unit: "%",
             },
           },
         },
@@ -570,7 +572,8 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
         { i: "w_column_line_dual", x: 8, y: 13, w: 4, h: 5 },
         { i: "w_line_line_multi", x: 0, y: 18, w: 6, h: 5 },
         { i: "w_line_bar_combo", x: 6, y: 18, w: 6, h: 5 },
-        { i: "w_table_deals", x: 0, y: 23, w: 12, h: 6 },
+        { i: "w_gantt_deal_timeline", x: 0, y: 23, w: 12, h: 5 },
+        { i: "w_table_deals", x: 0, y: 28, w: 12, h: 6 },
       ],
       widgets: {
         w_text_header: {
@@ -597,13 +600,10 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "YoY growth",
+              unit: "%",
             },
-            sparkline: {
-              data: [
-                16800000, 18400000, 20100000, 21500000, 23200000, 24800000,
-              ],
-              type: "line",
-            },
+            progress: 83,
+            target: "$30M",
           },
         },
         w_counter_nrr: {
@@ -620,7 +620,10 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "positive",
               label: "vs last year (114%)",
+              unit: "%",
             },
+            progress: 100,
+            target: "110%",
           },
         },
         w_counter_cac: {
@@ -637,7 +640,10 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
               direction: "down",
               sentiment: "positive",
               label: "vs Q3 ($13,500)",
+              unit: "%",
             },
+            progress: 72,
+            target: "$10K",
           },
         },
         w_counter_churn: {
@@ -654,8 +660,10 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
               direction: "up",
               sentiment: "negative",
               label: "vs Q3 (3.4%)",
+              unit: "%",
             },
-            sparkline: { data: [3.1, 2.8, 3.4, 4.2], type: "bar" },
+            progress: 42,
+            target: "< 3%",
           },
         },
         w_line_mrr: {
@@ -1065,6 +1073,93 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
                 verticalAlign: "bottom",
                 layout: "horizontal",
               },
+              credits: { enabled: false },
+            },
+          },
+        },
+        w_gantt_deal_timeline: {
+          id: "w_gantt_deal_timeline",
+          type: "chart",
+          title: "Deal Timeline",
+          subtitle: "Key deals — expected duration and milestones",
+          config: {
+            chartType: "gantt",
+            highchartsOptions: {
+              chart: { type: "xrange" },
+              title: { text: null },
+              xAxis: {
+                type: "datetime",
+                title: { text: "" },
+              },
+              yAxis: [
+                {
+                  title: { text: "" },
+                  categories: [
+                    "Acme Corp — Enterprise Renewal",
+                    "TechStart Inc — New Logo",
+                    "GlobalFin — Platform Upsell",
+                    "DataWise — Expansion",
+                    "MedTech — Pilot Conversion",
+                    "RetailCo — Multi-Year Deal",
+                  ],
+                },
+              ],
+              series: [
+                {
+                  name: "Deals",
+                  data: [
+                    {
+                      x: Date.UTC(2025, 0, 6),
+                      x2: Date.UTC(2025, 2, 15),
+                      y: 0,
+                      color: "#8039e9",
+                    },
+                    {
+                      x: Date.UTC(2025, 0, 20),
+                      x2: Date.UTC(2025, 3, 10),
+                      y: 1,
+                      color: "#6366f1",
+                    },
+                    {
+                      x: Date.UTC(2025, 1, 1),
+                      x2: Date.UTC(2025, 2, 28),
+                      y: 2,
+                      color: "#10b981",
+                    },
+                    {
+                      x: Date.UTC(2025, 1, 10),
+                      x2: Date.UTC(2025, 4, 15),
+                      y: 3,
+                      color: "#f59e0b",
+                    },
+                    {
+                      x: Date.UTC(2025, 0, 15),
+                      x2: Date.UTC(2025, 1, 28),
+                      y: 4,
+                      color: "#10b981",
+                    },
+                    {
+                      x: Date.UTC(2025, 2, 1),
+                      x2: Date.UTC(2025, 5, 30),
+                      y: 5,
+                      color: "#8039e9",
+                    },
+                  ],
+                },
+              ],
+              plotOptions: {
+                xrange: {
+                  borderRadius: 4,
+                  pointPadding: 0.2,
+                  groupPadding: 0,
+                  dataLabels: { enabled: false },
+                },
+              },
+              tooltip: {
+                headerFormat: "<b>{point.yCategory}</b><br/>",
+                pointFormat: "{point.x:%b %e} — {point.x2:%b %e, %Y}",
+              },
+              legend: { enabled: false },
               credits: { enabled: false },
             },
           },

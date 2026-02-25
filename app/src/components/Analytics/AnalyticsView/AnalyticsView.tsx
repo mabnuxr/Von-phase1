@@ -30,23 +30,21 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const widgets = dashboard.widgets as unknown as Record<string, WidgetConfig>;
 
   return (
-    <div className="flex flex-col flex-1 min-w-0 h-full overflow-auto rounded-lg bg-white shadow-xs border border-gray-200">
-      <div className="px-4 pt-2 shrink-0">
-        <AnalyticsHeader
-          title={dashboard.title}
-          description={dashboard.description}
-          refreshInfo={refreshInfo}
-          onRefresh={onRefresh}
+    <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden rounded-xl bg-white shadow-xs border border-gray-100">
+      <AnalyticsHeader
+        title={dashboard.title}
+        description={dashboard.description}
+        refreshInfo={refreshInfo}
+        onRefresh={onRefresh}
+      />
+      {dashboard.filters && dashboard.filters.length > 0 && (
+        <AnalyticsFilters
+          filters={dashboard.filters}
+          activeFilters={activeFilters}
         />
-        {dashboard.filters && dashboard.filters.length > 0 && (
-          <AnalyticsFilters
-            filters={dashboard.filters}
-            activeFilters={activeFilters}
-          />
-        )}
-      </div>
+      )}
 
-      <div className="flex-1 min-h-0 px-4 pb-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <DashboardGrid
           layout={layout}
           widgets={widgets}

@@ -465,6 +465,19 @@ export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
 
 // ============================================================================
+// CHAT PANE V2 (Collapsible chat pane for three-pane dashboard layout)
+// ============================================================================
+export { ChatPaneV2 } from './Jan17Demo/ChatPaneV2';
+export type {
+  ChatPaneV2Props,
+  ChatMessage as ChatPaneMessage,
+  ThinkingStep as ChatPaneThinkingStep,
+  DashboardPlan as ChatPaneDashboardPlan,
+  DashboardArtifact as ChatPaneDashboardArtifact,
+  ReferenceContext as ChatPaneReferenceContext,
+} from './Jan17Demo/ChatPaneV2';
+
+// ============================================================================
 // DASHBOARD (View-only dashboard display components)
 // ============================================================================
 export {

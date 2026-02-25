@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import Highcharts from 'highcharts';
+import 'highcharts/modules/xrange';
 import HighchartsReact from 'highcharts-react-official';
 import type { ChartWidgetProps } from '../types';
 

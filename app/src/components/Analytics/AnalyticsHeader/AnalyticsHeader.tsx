@@ -28,7 +28,7 @@ const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
   const isRefreshing = refreshInfo?.refreshStatus === "refreshing";
 
   return (
-    <div className="flex items-center justify-between px-1 py-3">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
       <div className="min-w-0">
         <h1 className="text-lg font-semibold text-gray-900 truncate">
           {title}

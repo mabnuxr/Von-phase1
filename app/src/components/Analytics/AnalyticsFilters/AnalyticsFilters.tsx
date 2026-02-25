@@ -44,7 +44,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
   if (visibleFilters.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-1 pb-2 flex-wrap">
+    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 shrink-0 flex-wrap">
       {visibleFilters.map((filter) => {
         const displayValue = getFilterDisplayValue(
           filter,

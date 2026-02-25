@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { TrendUp, TrendDown, Minus } from '@phosphor-icons/react';
+import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 
 function formatValue(
@@ -36,25 +36,12 @@ function formatValue(
   return `${prefix ?? ''}${formatted}${suffix ?? ''}`;
 }
 
-const sentimentColors = {
-  positive: { text: 'text-green-600', bg: 'bg-green-50' },
-  negative: { text: 'text-red-600', bg: 'bg-red-50' },
-  neutral: { text: 'text-gray-500', bg: 'bg-gray-50' },
-};
-
-const TrendIcon: React.FC<{ direction: 'up' | 'down' | 'neutral'; className?: string }> = ({
-  direction,
-  className,
-}) => {
-  switch (direction) {
-    case 'up':
-      return <TrendUp size={14} weight="bold" className={className} />;
-    case 'down':
-      return <TrendDown size={14} weight="bold" className={className} />;
-    default:
-      return <Minus size={14} weight="bold" className={className} />;
-  }
-};
+function getProgressColor(progress: number): string {
+  if (progress >= 100) return 'bg-emerald-500';
+  if (progress >= 75) return 'bg-indigo-500';
+  if (progress >= 50) return 'bg-amber-500';
+  return 'bg-red-400';
+}
 
 const DEFAULT_ACCENT = '#8039e9';
 
@@ -128,31 +115,70 @@ const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: 
 
 /**
  * Counter / KPI metric widget.
- * Displays a formatted value, optional trend indicator, and optional sparkline.
+ * Matches storybook KPICard design: inline title, value, change badge,
+ * optional progress bar with target, and optional sparkline.
  */
-const CounterWidget: React.FC<CounterWidgetProps> = ({ config }) => {
-  const { value, format, prefix, suffix, decimals, trend, sparkline } = config;
+const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }) => {
+  const { value, format, prefix, suffix, decimals, trend, sparkline, progress, target } = config;
   const displayValue = formatValue(value, format, prefix, suffix, decimals);
-  const colors = trend ? sentimentColors[trend.sentiment] : null;
 
   return (
-    <div className="flex flex-col justify-center h-full px-4 py-3 gap-2">
-      <div className="text-2xl font-bold text-gray-900 truncate">{displayValue}</div>
+    <div className="h-full bg-white rounded-xl border border-gray-100 p-4 flex flex-col justify-center">
+      {title && <p className="text-xs text-gray-500 mb-1 truncate">{title}</p>}
+      {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 
-      {trend && colors && (
-        <div className="flex items-center gap-1.5">
+      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
+
+      {trend && (
+        <div className="flex items-center gap-1 mt-1">
+          {trend.direction === 'up' && (
+            <ArrowUp size={12} weight="bold" className="text-emerald-600" />
+          )}
+          {trend.direction === 'down' && (
+            <ArrowDown size={12} weight="bold" className="text-red-600" />
+          )}
+          {trend.direction === 'neutral' && (
+            <Minus size={12} weight="bold" className="text-gray-500" />
+          )}
           <span
-            className={`inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded ${colors.text} ${colors.bg}`}
+            className={`text-xs font-medium ${
+              trend.sentiment === 'positive'
+                ? 'text-emerald-600'
+                : trend.sentiment === 'negative'
+                  ? 'text-red-600'
+                  : 'text-gray-500'
+            }`}
           >
-            <TrendIcon direction={trend.direction} className={colors.text} />
-            {trend.value}%
+            {trend.direction === 'up' ? '+' : ''}
+            {trend.value}
+            {trend.unit ?? ''}
           </span>
-          {trend.label && <span className="text-xs text-gray-400">{trend.label}</span>}
+          {trend.label && <span className="text-xs text-gray-500">{trend.label}</span>}
+        </div>
+      )}
+
+      {progress !== undefined && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-gray-500">Progress</span>
+            {target && <span className="text-[10px] text-gray-500">Target: {target}</span>}
+          </div>
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressColor(progress)}`}
+              style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-end mt-0.5">
+            <span className="text-[10px] font-medium text-gray-600">{Math.round(progress)}%</span>
+          </div>
         </div>
       )}
 
       {sparkline && (
-        <Sparkline data={sparkline.data} type={sparkline.type} accentColor={config.accentColor} />
+        <div className="mt-2">
+          <Sparkline data={sparkline.data} type={sparkline.type} accentColor={config.accentColor} />
+        </div>
       )}
     </div>
   );

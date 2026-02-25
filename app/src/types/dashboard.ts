@@ -95,7 +95,8 @@ export type ChartType =
   | "line-line"
   | "pie"
   | "donut"
-  | "area";
+  | "area"
+  | "gantt";
 
 export interface ChartWidgetConfig {
   chartType: ChartType;
@@ -130,6 +131,7 @@ export interface HighchartsOptions {
   yAxis?: Array<{
     title?: { text: string };
     labels?: { format?: string };
+    categories?: string[];
     opposite?: boolean;
     min?: number;
     max?: number;
@@ -183,7 +185,8 @@ export interface HighchartsSeries {
 export type SeriesDataPoint =
   | number
   | [string, number]
-  | { name: string; y: number; color?: string; drilldown?: string };
+  | { name: string; y: number; color?: string; drilldown?: string }
+  | { x: number; x2: number; y: number; color?: string };
 
 // ─── Counter Widget ──────────────────────────────────────────────
 
@@ -198,11 +201,17 @@ export interface CounterWidgetConfig {
     direction: "up" | "down" | "neutral";
     sentiment: "positive" | "negative" | "neutral";
     label?: string;
+    /** Unit suffix shown after the trend value (e.g. '%', 'pts'). Defaults to no suffix. */
+    unit?: string;
   };
   sparkline?: {
     data: number[];
     type: "line" | "bar";
   };
+  /** Progress value as a percentage (0-100) for horizontal progress bar */
+  progress?: number;
+  /** Target/goal value to display alongside progress */
+  target?: string;
   accentColor?: string;
 }
 

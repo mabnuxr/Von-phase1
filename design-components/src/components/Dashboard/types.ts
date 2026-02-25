@@ -56,16 +56,24 @@ export interface CounterWidgetConfig {
     direction: 'up' | 'down' | 'neutral';
     sentiment: 'positive' | 'negative' | 'neutral';
     label?: string;
+    /** Unit suffix shown after the trend value (e.g. '%', 'pts'). Defaults to no suffix. */
+    unit?: string;
   };
   sparkline?: {
     data: number[];
     type: 'line' | 'bar';
   };
+  /** Progress value as a percentage (0-100) for horizontal progress bar */
+  progress?: number;
+  /** Target/goal value to display alongside progress */
+  target?: string;
   accentColor?: string;
 }
 
 export interface CounterWidgetProps {
   config: CounterWidgetConfig;
+  title?: string;
+  subtitle?: string;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
