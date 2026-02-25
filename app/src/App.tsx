@@ -8,6 +8,7 @@ import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
+import { AppShell } from "./components/AppShell";
 import { LaunchDarklyGate } from "./components/LaunchDarkly";
 import { ConversationSkeleton } from "./components/ConversationSkeleton";
 
@@ -24,34 +25,26 @@ export default function App() {
 
         {/* Authenticated routes - wrapped with LaunchDarkly identification */}
         <Route element={<AuthenticatedLayout />}>
+          {/* Pages with sidebar shell */}
           <Route
-            path="/chat"
             element={
               <LaunchDarklyGate fallback={<ConversationSkeleton />}>
-                <Conversation />
+                <AppShell />
               </LaunchDarklyGate>
             }
-          />
-          <Route
-            path="/chat/:conversationId"
-            element={
-              <LaunchDarklyGate fallback={<ConversationSkeleton />}>
-                <Conversation />
-              </LaunchDarklyGate>
-            }
-          />
-          <Route
-            path="/dashboard/:dashboardId"
-            element={
-              <LaunchDarklyGate
-                fallback={
-                  <div className="h-screen bg-gray-100 animate-pulse" />
-                }
-              >
-                <Dashboard />
-              </LaunchDarklyGate>
-            }
-          />
+          >
+            <Route path="/chat" element={<Conversation />} />
+            <Route
+              path="/chat/:conversationId"
+              element={<Conversation />}
+            />
+            <Route
+              path="/dashboard/:dashboardId"
+              element={<Dashboard />}
+            />
+          </Route>
+
+          {/* Settings has its own sidebar */}
           <Route
             path="/settings"
             element={
