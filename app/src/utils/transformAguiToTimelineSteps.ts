@@ -222,6 +222,208 @@ function normalizeChanges(
 }
 
 /**
+ * Maps analytics operation names to base operation type and entity label.
+ * Analytics ops (create_report, clone_dashboard, etc.) use compound operation
+ * names that don't match the standard 'create' | 'update' | 'delete' union.
+ */
+const ANALYTICS_OPERATIONS: Record<
+  string,
+  { baseOp: "create" | "update" | "delete"; entityType: string }
+> = {
+  create_report: { baseOp: "create", entityType: "Report" },
+  update_report: { baseOp: "update", entityType: "Report" },
+  delete_report: { baseOp: "delete", entityType: "Report" },
+  update_dashboard: { baseOp: "update", entityType: "Dashboard" },
+  clone_dashboard: { baseOp: "create", entityType: "Dashboard" },
+};
+
+// Analytics param keys → human-readable labels for the approval card
+const ANALYTICS_FIELD_LABELS: [string, string][] = [
+  ["report_name", "Report Name"],
+  ["report_type", "Report Type"],
+  ["description", "Description"],
+  ["detail_columns", "Columns"],
+  ["groupings_down", "Row Groupings"],
+  ["groupings_across", "Column Groupings"],
+  ["aggregates", "Aggregates"],
+  ["report_filters", "Filters"],
+  ["filter_logic", "Filter Logic"],
+  ["chart", "Chart"],
+  ["folder_id", "Folder"],
+  ["source_dashboard_id", "Source Dashboard"],
+  ["filters", "Dashboard Filters"],
+];
+
+function stringifyAnalyticsValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.every((v) => typeof v === "string")
+      ? value.join(", ")
+      : `${value.length} item(s)`;
+  }
+  if (typeof value === "object" && value !== null) {
+    const obj = value as Record<string, unknown>;
+    // Chart objects — show type and title
+    if ("chartType" in obj) {
+      return [obj.chartType, obj.title].filter(Boolean).join(" — ");
+    }
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+/**
+ * Normalizes Tooling API fields for display.
+ * Tooling API SObject operations send { FullName, Metadata: {...} } where Metadata
+ * is a nested object. This flattens Metadata into readable key-value pairs and
+ * drops FullName (redundant with record_name shown in the card header).
+ */
+function normalizeToolingFields(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fields: Record<string, any> | undefined,
+): Record<string, string | number | boolean | null> | undefined {
+  if (
+    !fields ||
+    typeof fields.Metadata !== "object" ||
+    fields.Metadata === null
+  ) {
+    return fields as
+      | Record<string, string | number | boolean | null>
+      | undefined;
+  }
+
+  const metadata = fields.Metadata as Record<string, unknown>;
+  const result: Record<string, string | number | boolean | null> = {};
+
+  // Known Metadata keys → human-readable labels
+  const METADATA_LABELS: Record<string, string> = {
+    type: "Field Type",
+    label: "Label",
+    description: "Description",
+    length: "Length",
+    precision: "Precision",
+    scale: "Scale",
+    required: "Required",
+    unique: "Unique",
+    externalId: "External ID",
+    defaultValue: "Default Value",
+    inlineHelpText: "Help Text",
+    formula: "Formula",
+    errorMessage: "Error Message",
+    errorConditionFormula: "Error Condition",
+    active: "Active",
+  };
+
+  for (const [key, label] of Object.entries(METADATA_LABELS)) {
+    if (metadata[key] != null) {
+      result[label] =
+        typeof metadata[key] === "boolean"
+          ? metadata[key]
+          : String(metadata[key]);
+    }
+  }
+
+  // Flatten picklist valueSet into a readable summary
+  if (metadata.valueSet && typeof metadata.valueSet === "object") {
+    const valueSet = metadata.valueSet as Record<string, unknown>;
+    const def = valueSet.valueSetDefinition as
+      | Record<string, unknown>
+      | undefined;
+    if (def?.value && Array.isArray(def.value)) {
+      const values = def.value.map(
+        (v: { label?: string; fullName?: string; default?: boolean }) => {
+          const name = v.label || v.fullName || "?";
+          return v.default ? `${name} (default)` : name;
+        },
+      );
+      result["Picklist Values"] = values.join(", ");
+    }
+  }
+
+  // Include non-Metadata fields except FullName (redundant with record_name)
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === "Metadata" || key === "FullName") continue;
+    result[key] =
+      typeof value === "object" && value !== null
+        ? JSON.stringify(value)
+        : (value as string | number | boolean | null);
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
+ * Normalizes analytics operations into the standard approval card shape.
+ * Deterministically builds display data (fields/changes) from the known
+ * flat param structure — operation shapes are fixed, no agent formatting needed.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeAnalyticsOp(op: Record<string, any>): Record<string, any> {
+  const mapping = ANALYTICS_OPERATIONS[op.operation];
+  if (!mapping) return op;
+
+  const record_name =
+    op.record_name ||
+    op.report_name ||
+    (op.report_id ? `Report ${op.report_id}` : null) ||
+    (op.dashboard_id ? `Dashboard ${op.dashboard_id}` : null) ||
+    (op.source_dashboard_id
+      ? `Dashboard (clone of ${op.source_dashboard_id})`
+      : null) ||
+    "Unknown";
+
+  let fields: Record<string, string | number | boolean | null> | undefined;
+  let changes:
+    | Array<{
+        field: string;
+        before?: string | number | boolean | null;
+        after: string | number | boolean | null;
+      }>
+    | undefined;
+
+  if (mapping.baseOp === "create") {
+    // Creates/clones: build fields dict for 2-column display
+    const f: Record<string, string | number | boolean | null> = {};
+    for (const [key, label] of ANALYTICS_FIELD_LABELS) {
+      if (op[key] != null) {
+        f[label] = stringifyAnalyticsValue(op[key]);
+      }
+    }
+    if (Object.keys(f).length > 0) fields = f;
+  } else if (mapping.baseOp === "update") {
+    // Prefer agent-provided changes (has before/after), fall back to building from flat params
+    if (Array.isArray(op.changes) && op.changes.length > 0) {
+      changes = op.changes;
+    } else {
+      const c: Array<{
+        field: string;
+        after: string | number | boolean | null;
+      }> = [];
+      for (const [key, label] of ANALYTICS_FIELD_LABELS) {
+        if (op[key] != null) {
+          c.push({
+            field: label,
+            after: stringifyAnalyticsValue(op[key]),
+          });
+        }
+      }
+      if (c.length > 0) changes = c;
+    }
+  }
+
+  return {
+    ...op,
+    operation: mapping.baseOp,
+    sobject_type: mapping.entityType,
+    record_name,
+    record_id:
+      op.record_id || op.report_id || op.dashboard_id || op.source_dashboard_id,
+    ...(fields && { fields }),
+    ...(changes && { changes }),
+  };
+}
+
+/**
  * Generic approval detection from tool arguments
  * Supports: Salesforce, Google Calendar, Bulk operations, and generic approvals
  *
@@ -236,7 +438,8 @@ function detectApprovalFromArgs(
 ): DetectedApprovalData | null {
   // Pattern 1: Operations array with summary (Salesforce or Google Calendar)
   if (parsed.operations && Array.isArray(parsed.operations) && parsed.summary) {
-    const ops = parsed.operations;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ops = parsed.operations.map((op: any) => normalizeAnalyticsOp(op));
     const isBulk = ops.length > 1;
     const firstOp = ops[0];
 
@@ -444,7 +647,7 @@ function detectApprovalFromArgs(
             sobject_type: op.sobject_type || "Record",
             record_name: op.record_name || "Unknown",
             record_id: op.record_id,
-            fields: op.fields,
+            fields: normalizeToolingFields(op.fields),
             changes: normalizeChanges(op.changes),
           }),
         )
@@ -467,11 +670,13 @@ function detectApprovalFromArgs(
             const changes =
               opChanges && opChanges.length > 0
                 ? opChanges
-                : op.fields
-                  ? Object.entries(op.fields).map(([field, value]) => ({
-                      field,
-                      after: value,
-                    }))
+                : normalizeToolingFields(op.fields)
+                  ? Object.entries(normalizeToolingFields(op.fields)!).map(
+                      ([field, value]) => ({
+                        field,
+                        after: value,
+                      }),
+                    )
                   : [];
             return {
               recordId: op.record_id || `record-${op.record_name || "unknown"}`,
@@ -503,7 +708,7 @@ function detectApprovalFromArgs(
             ),
           )
         : normalizeChanges(firstOp?.changes),
-      fields: !isBulk ? firstOp?.fields : undefined,
+      fields: !isBulk ? normalizeToolingFields(firstOp?.fields) : undefined,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
       bulkRecords: sfBulkRecords,
