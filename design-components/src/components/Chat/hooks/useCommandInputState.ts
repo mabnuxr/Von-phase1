@@ -40,7 +40,8 @@ export function useCommandInputState({
       const plainText = getPlainText(newValue);
       // Open the list when the field starts with "/".
       // Works even when a command is already selected — selecting a new one replaces it.
-      if (plainText.startsWith('/')) {
+      // Close if the user types "/ " (slash + space) — they likely don't want a command.
+      if (plainText.startsWith('/') && !plainText.startsWith('/ ')) {
         setShowCommandsList(true);
         setCommandSearch(plainText.slice(1).trim());
       } else {

@@ -8,7 +8,7 @@
  * This component is purely presentational: it renders whatever `commands` it receives.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, ArrowsOut, BookmarkSimple } from '@phosphor-icons/react';
 import type { Command } from './types';
 import { TertiaryIconButton, IconButton } from '../forms/buttons';
@@ -49,16 +49,12 @@ interface CommandItemProps {
   onSelect: (command: Command) => void;
   onExpand?: (command: Command) => void;
   onToggleFavorite?: (command: Command) => void;
+  isHighlighted?: boolean;
 }
 
-const CommandItem: React.FC<CommandItemProps> = ({
-  command,
-  onSelect,
-  onExpand,
-  onToggleFavorite,
-}) => (
+const CommandItem: React.FC<CommandItemProps> = ({ command, onSelect, onExpand, onToggleFavorite, isHighlighted }) => (
   <div
-    className="group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-gray-50"
+    className={`group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent ${isHighlighted ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
     onClick={() => onSelect(command)}
   >
     <div className="flex-1 min-w-0">
@@ -145,6 +141,8 @@ export interface CommandsListProps {
   onToggleFavorite?: (command: Command) => void;
   /** Max height in px for the scrollable list — computed dynamically by CommandsOverlay */
   maxHeight?: number;
+  /** Index of the currently keyboard-highlighted command */
+  highlightedIndex?: number;
 }
 
 export const CommandsList: React.FC<CommandsListProps> = ({
@@ -157,7 +155,14 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   onExpandCommand,
   onToggleFavorite,
   maxHeight = 300,
+  highlightedIndex = 0,
 }) => {
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Scroll highlighted item into view when navigating with arrow keys
+  useEffect(() => {
+    itemRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
+  }, [highlightedIndex]);
   if (isLoading && commands.length === 0) {
     return (
       <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
@@ -174,14 +179,16 @@ export const CommandsList: React.FC<CommandsListProps> = ({
         {commands.length === 0 ? (
           <EmptyState />
         ) : (
-          commands.map((command) => (
-            <CommandItem
-              key={command.id}
-              command={command}
-              onSelect={onSelectCommand}
-              onExpand={onExpandCommand}
-              onToggleFavorite={onToggleFavorite}
-            />
+          commands.map((command, index) => (
+            <div key={command.id} ref={(el) => { itemRefs.current[index] = el; }}>
+              <CommandItem
+                command={command}
+                onSelect={onSelectCommand}
+                onExpand={onExpandCommand}
+                onToggleFavorite={onToggleFavorite}
+                isHighlighted={index === highlightedIndex}
+              />
+            </div>
           ))
         )}
       </div>

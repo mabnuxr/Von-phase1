@@ -5,14 +5,7 @@
  */
 
 import React from 'react';
-import {
-  X,
-  MagnifyingGlass,
-  Trash,
-  ArrowsOut,
-  BookmarkSimple,
-  SortAscending,
-} from '@phosphor-icons/react';
+import { X, MagnifyingGlass, Trash, BookmarkSimple, SortAscending } from '@phosphor-icons/react';
 import { type Command, SORT_OPTIONS } from './types';
 import { Drawer } from '../Drawer';
 import { useCommandsFilter } from './useCommandsFilter';
@@ -177,7 +170,8 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
           orderedCommands.map((command) => (
             <div
               key={command.id}
-              className="group flex items-start px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+              className="group flex items-start px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={() => onEditCommand(command)}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -212,14 +206,10 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
 
               <div className="flex items-center gap-0.5 ml-3 shrink-0">
                 <button
-                  onClick={() => onEditCommand(command)}
-                  className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-opacity opacity-0 group-hover:opacity-100 cursor-pointer"
-                  title={command.createdBy === 'me' ? 'Expand & edit' : 'View'}
-                >
-                  <ArrowsOut size={16} />
-                </button>
-                <button
-                  onClick={() => onToggleFavorite?.(command)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite?.(command);
+                  }}
                   className={`p-1 rounded-md transition-all cursor-pointer ${
                     command.isFavorite
                       ? 'text-gray-800 hover:text-gray-900'
@@ -231,7 +221,12 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                 </button>
                 <div className="w-px h-4 bg-gray-200 mx-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <button
-                  onClick={() => command.createdBy === 'me' && onDeleteCommand(command.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (command.createdBy === 'me') {
+                      onDeleteCommand(command.id);
+                    }
+                  }}
                   disabled={command.createdBy !== 'me'}
                   className={`p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
                   title={

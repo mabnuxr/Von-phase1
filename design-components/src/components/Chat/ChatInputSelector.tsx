@@ -18,6 +18,7 @@ export type ChatInputSelectorRef = StandardChatInputRef;
 
 import { getPlainText } from './utils/text';
 import { useCommandInputState } from './hooks/useCommandInputState';
+import { useCommandsKeyboardNav } from './hooks/useCommandsKeyboardNav';
 import { CommandNotificationBar } from './CommandNotificationBar';
 
 // ---------------------------------------------------------------------------
@@ -181,6 +182,15 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       dismissCommandsList,
     } = useCommandInputState({ enableCommands, onChange });
 
+    // Arrow-key navigation for the commands list
+    const { highlightedIndex } = useCommandsKeyboardNav({
+      commands: enableCommands ? commands : [],
+      commandSearch,
+      showCommandsList,
+      onSelectCommand: handleSelectCommand,
+      useDocumentListener: true,
+    });
+
     // Notification bar shown after sending a message with a command
     const [commandNotificationFileCount, setCommandNotificationFileCount] = useState<number | null>(
       null
@@ -236,7 +246,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               onChange?.('');
               clearSelectedCommand();
               const fileCount = selectedCommand.dataSources?.length ?? 0;
-              setCommandNotificationFileCount(fileCount);
+              if (fileCount > 0) setCommandNotificationFileCount(fileCount);
               return;
             }
             onSend(message, attachments);
@@ -261,6 +271,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         contextBar={
           enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined
         }
+        onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
       />
     );
 
@@ -293,7 +304,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               onChange?.('');
               clearSelectedCommand();
               const fileCount = selectedCommand.dataSources?.length ?? 0;
-              setCommandNotificationFileCount(fileCount);
+              if (fileCount > 0) setCommandNotificationFileCount(fileCount);
               return;
             }
             onSend(message, attachments, { agentMode });
@@ -332,6 +343,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
+            highlightedIndex={highlightedIndex}
           />
         )}
         {chatInput}
