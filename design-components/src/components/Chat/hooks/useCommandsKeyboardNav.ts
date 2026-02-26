@@ -41,7 +41,7 @@ export function useCommandsKeyboardNav({
 
   const navigate = useCallback(
     (key: string): boolean => {
-      if (!showCommandsList) return false;
+      if (!showCommandsList || filteredCommands.length === 0) return false;
       if (key === 'ArrowDown') {
         setHighlightedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
         return true;
