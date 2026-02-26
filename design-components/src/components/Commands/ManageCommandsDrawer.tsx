@@ -79,13 +79,13 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={onNewCommand}
-              className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
             >
               Create New
             </button>
             <button
               onClick={onClose}
-              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X size={14} />
@@ -100,14 +100,14 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
           <div className="flex-1 relative">
             <MagnifyingGlass
               size={13}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search commands..."
-              className="w-full pl-7 pr-2.5 py-1 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 transition-all placeholder:text-gray-400"
+              className="w-full pl-8 pr-3 py-1.5 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 transition-all placeholder:text-gray-400"
             />
           </div>
           <div className="relative">
@@ -177,7 +177,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
           orderedCommands.map((command) => (
             <div
               key={command.id}
-              className="flex items-start px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+              className="group flex items-start px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -213,37 +213,35 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
               <div className="flex items-center gap-0.5 ml-3 shrink-0">
                 <button
                   onClick={() => onEditCommand(command)}
-                  className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
+                  className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-opacity opacity-0 group-hover:opacity-100 cursor-pointer"
                   title={command.createdBy === 'me' ? 'Expand & edit' : 'View'}
                 >
                   <ArrowsOut size={16} />
                 </button>
                 <button
                   onClick={() => onToggleFavorite?.(command)}
-                  className={`p-1 rounded-md transition-colors cursor-pointer ${
+                  className={`p-1 rounded-md transition-all cursor-pointer ${
                     command.isFavorite
                       ? 'text-gray-800 hover:text-gray-900'
-                      : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                      : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 opacity-0 group-hover:opacity-100'
                   }`}
                   title={command.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                 >
                   <BookmarkSimple size={16} weight={command.isFavorite ? 'fill' : 'regular'} />
                 </button>
-                <>
-                  <div className="w-px h-4 bg-gray-200 mx-0.5" />
-                  <button
-                    onClick={() => command.createdBy === 'me' && onDeleteCommand(command.id)}
-                    disabled={command.createdBy !== 'me'}
-                    className={`p-1 rounded-md transition-colors ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
-                    title={
-                      command.createdBy === 'me'
-                        ? 'Delete'
-                        : 'Only the creator can delete this command'
-                    }
-                  >
-                    <Trash size={16} />
-                  </button>
-                </>
+                <div className="w-px h-4 bg-gray-200 mx-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <button
+                  onClick={() => command.createdBy === 'me' && onDeleteCommand(command.id)}
+                  disabled={command.createdBy !== 'me'}
+                  className={`p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
+                  title={
+                    command.createdBy === 'me'
+                      ? 'Delete'
+                      : 'Only the creator can delete this command'
+                  }
+                >
+                  <Trash size={16} />
+                </button>
               </div>
             </div>
           ))

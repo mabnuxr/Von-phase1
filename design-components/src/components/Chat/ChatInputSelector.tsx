@@ -1,4 +1,4 @@
-import { forwardRef, useCallback } from 'react';
+import { forwardRef, useCallback, useState, useEffect } from 'react';
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
@@ -18,6 +18,7 @@ export type ChatInputSelectorRef = StandardChatInputRef;
 
 import { getPlainText } from './utils/text';
 import { useCommandInputState } from './hooks/useCommandInputState';
+import { CommandNotificationBar } from './CommandNotificationBar';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -180,6 +181,17 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       dismissCommandsList,
     } = useCommandInputState({ enableCommands, onChange });
 
+    // Notification bar shown after sending a message with a command
+    const [commandNotificationFileCount, setCommandNotificationFileCount] = useState<number | null>(
+      null
+    );
+
+    useEffect(() => {
+      if (commandNotificationFileCount === null) return;
+      const timer = setTimeout(() => setCommandNotificationFileCount(null), 4000);
+      return () => clearTimeout(timer);
+    }, [commandNotificationFileCount]);
+
     // If the selected command is deleted, clear it from the chip.
     const handleDeleteCommand = useCallback(
       (id: string) => {
@@ -222,7 +234,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { command: selectedCommand });
               onChange?.('');
-              // Command chip stays visible and removable after send
+              clearSelectedCommand();
+              const fileCount = selectedCommand.dataSources?.length ?? 0;
+              setCommandNotificationFileCount(fileCount);
               return;
             }
             onSend(message, attachments);
@@ -277,7 +291,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
               onChange?.('');
-              // Command chip stays visible and removable after send
+              clearSelectedCommand();
+              const fileCount = selectedCommand.dataSources?.length ?? 0;
+              setCommandNotificationFileCount(fileCount);
               return;
             }
             onSend(message, attachments, { agentMode });
@@ -298,6 +314,12 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
     return (
       <div className="relative">
+        {enableCommands && commandNotificationFileCount !== null && (
+          <CommandNotificationBar
+            isVisible
+            fileCount={commandNotificationFileCount}
+          />
+        )}
         {enableCommands && (
           <CommandsOverlay
             showCommandsList={showCommandsList}

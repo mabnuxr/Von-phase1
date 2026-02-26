@@ -368,7 +368,6 @@ export const Chat: React.FC<ChatProps> = ({
                   showTransparency={showTransparency}
                   salesforceInstanceUrl={salesforceInstanceUrl}
                   enableDeepLinks={enableDeepLinks}
-                  onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   // V2 Thinking Process props
                   thinkingProcessVersion={thinkingProcessVersion}
                   timelineSteps={message.timelineSteps}

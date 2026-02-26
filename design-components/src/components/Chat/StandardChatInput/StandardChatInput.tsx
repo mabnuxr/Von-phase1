@@ -487,7 +487,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           onClick={() => fileInputRef.current?.click()}
                           disabled={disabled && !isStreaming}
                           title="Upload file"
-                          className="w-8.5 h-8.5 rounded-xl"
+                          className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
                         />
 
                         {/* Slash commands button */}
@@ -504,7 +504,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             }}
                             disabled={disabled && !isStreaming}
                             title="Open commands"
-                            className="w-8.5 h-8.5 rounded-xl"
+                            className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
                           />
                         )}
 
