@@ -264,9 +264,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             typeof navigator.maxTouchPoints === 'number' &&
             navigator.maxTouchPoints > 1));
 
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && onCloseCommandsList) {
         e.preventDefault();
-        onCloseCommandsList?.();
+        onCloseCommandsList();
         return;
       }
       if (!isMobileDevice && e.key === 'Enter' && !e.shiftKey) {

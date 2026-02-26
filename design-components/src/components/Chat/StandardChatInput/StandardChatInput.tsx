@@ -147,6 +147,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       contextBar,
       // Commands
       enableCommands = false,
+      onCloseCommandsList,
     },
     ref
   ) => {
@@ -460,6 +461,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             placeholder={placeholder}
                             disabled={disabled && !isStreaming}
                             editorRef={editorRef}
+                            onEscape={onCloseCommandsList}
                             onPasteFiles={(files) => {
                               if (isAttachmentsControlled) {
                                 onFilesSelected?.(files);
@@ -625,6 +627,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                         placeholder={placeholder}
                         disabled={disabled && !isStreaming}
                         editorRef={editorRef}
+                        onEscape={onCloseCommandsList}
                         onPasteFiles={(files) => {
                           if (isAttachmentsControlled) {
                             onFilesSelected?.(files);

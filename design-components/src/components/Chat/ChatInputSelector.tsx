@@ -319,6 +319,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           onSend={standardOnSend}
           enableCommands={enableCommands}
           contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
+          onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
         />
       );
     }

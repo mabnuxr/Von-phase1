@@ -72,7 +72,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
     () =>
       (command.dataSources ?? []).map((ds) => ({
         file: ds,
-        previewUrl: ds.id in fetchedUrls ? fetchedUrls[ds.id] : ds.previewUrl,
+        previewUrl: fetchedUrls[ds.id] ?? ds.previewUrl,
       })),
     [command.dataSources, fetchedUrls]
   );
