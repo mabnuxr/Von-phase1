@@ -281,7 +281,7 @@ export interface StandardChatInputProps {
    * Command chip to render inside the input bubble (above the textarea)
    * When provided, sending is allowed even with an empty message
    */
-  commandChip?: ReactNode;
+  contextBar?: ReactNode;
 
   /**
    * When true, shows a "/" button in the toolbar that opens the commands overlay

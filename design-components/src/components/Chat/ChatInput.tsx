@@ -137,7 +137,7 @@ export interface ChatInputProps {
    * Optional node rendered above the input when a slash command is active
    * (e.g. a CommandChip showing the selected command with a remove button).
    */
-  commandChip?: ReactNode;
+  contextBar?: ReactNode;
 }
 
 /**
@@ -163,7 +163,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   mode = 'ask',
   onModeChange,
   autoFocus = false,
-  commandChip,
+  contextBar,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -306,9 +306,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         )}
 
         {/* Command chip - shown above the input when a command is selected */}
-        {commandChip && (
+        {contextBar && (
           <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
-            {commandChip}
+            {contextBar}
           </div>
         )}
 

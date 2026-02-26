@@ -144,7 +144,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       fileErrorMessage,
       onDismissFileError,
       // Command chip
-      commandChip,
+      contextBar,
       // Commands
       enableCommands = false,
     },
@@ -233,7 +233,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
       // message is now markdown from TiptapEditor
       const hasTextContent = message.trim().length > 0;
-      const hasContent = hasTextContent || hasAttachments || Boolean(commandChip);
+      const hasContent = hasTextContent || hasAttachments || Boolean(contextBar);
 
       if (hasContent && onSend) {
         // Send markdown directly
@@ -259,7 +259,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDisabledInput,
       message,
       hasAttachments,
-      commandChip,
+      contextBar,
       onSend,
       attachments,
       isControlled,
@@ -313,7 +313,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const canSend =
-      (message.trim() || hasAttachments || Boolean(commandChip)) &&
+      (message.trim() || hasAttachments || Boolean(contextBar)) &&
       !disabled &&
       !disableSubmit &&
       !isStreaming;
@@ -396,9 +396,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             />
 
             {/* Command chip - shown above the input when a command is selected */}
-            {commandChip && !activePopover && (
+            {contextBar && !activePopover && (
               <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
-                {commandChip}
+                {contextBar}
               </div>
             )}
 
@@ -487,7 +487,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           onClick={() => fileInputRef.current?.click()}
                           disabled={disabled && !isStreaming}
                           title="Upload file"
-                          className="w-8.5 h-8.5 rounded-xl"
+                          className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
                         />
 
                         {/* Slash commands button */}
@@ -504,7 +504,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             }}
                             disabled={disabled && !isStreaming}
                             title="Open commands"
-                            className="w-8.5 h-8.5 rounded-xl"
+                            className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
                           />
                         )}
 

@@ -32,36 +32,14 @@ function getPromptPreview(prompt: string, maxLen = 60): string {
 // ---------------------------------------------------------------------------
 
 interface CommandsListHeaderProps {
-  onNewCommand: () => void;
-  onManageCommands: () => void;
   onClose?: () => void;
 }
 
-const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({
-  onNewCommand,
-  onManageCommands,
-  onClose,
-}) => (
+const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({ onClose }) => (
   <div className="px-3 py-2.5 border-b border-gray-100 bg-white">
     <div className="flex items-center justify-between">
       <h3 className="text-sm font-medium text-gray-900">Commands</h3>
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onManageCommands}
-          className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          Manage
-        </button>
-        <button
-          type="button"
-          onClick={onNewCommand}
-          className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          Create New
-        </button>
-        <TertiaryIconButton icon={<X size={14} />} title="Close" size="small" onClick={onClose} />
-      </div>
+      <TertiaryIconButton icon={<X size={14} />} title="Close" size="small" onClick={onClose} />
     </div>
   </div>
 );
@@ -99,6 +77,7 @@ const CommandItem: React.FC<CommandItemProps> = ({
         }}
         title={command.createdBy === 'me' ? 'Expand & edit' : 'View'}
         size="small"
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
       />
       <IconButton
         icon={
@@ -114,6 +93,7 @@ const CommandItem: React.FC<CommandItemProps> = ({
         }}
         title={command.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         size="small"
+        className={command.isFavorite ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}
       />
     </div>
   </div>
@@ -124,15 +104,29 @@ const EmptyState: React.FC = () => (
 );
 
 interface CommandsListFooterProps {
-  count: number;
+  onNewCommand: () => void;
+  onManageCommands: () => void;
 }
 
-const CommandsListFooter: React.FC<CommandsListFooterProps> = ({ count }) => (
-  <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-between">
-    <span className="text-xs text-gray-500">
-      {count} command{count !== 1 ? 's' : ''}
-    </span>
-    <span className="text-[10px] text-gray-400">Type to filter</span>
+const CommandsListFooter: React.FC<CommandsListFooterProps> = ({
+  onNewCommand,
+  onManageCommands,
+}) => (
+  <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-end gap-1.5">
+    <button
+      type="button"
+      onClick={onManageCommands}
+      className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+    >
+      Manage
+    </button>
+    <button
+      type="button"
+      onClick={onNewCommand}
+      className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+    >
+      Create New
+    </button>
   </div>
 );
 
@@ -174,11 +168,7 @@ export const CommandsList: React.FC<CommandsListProps> = ({
 
   return (
     <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <CommandsListHeader
-        onNewCommand={onNewCommand}
-        onManageCommands={onManageCommands}
-        onClose={onClose}
-      />
+      <CommandsListHeader onClose={onClose} />
 
       <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
         {commands.length === 0 ? (
@@ -196,7 +186,7 @@ export const CommandsList: React.FC<CommandsListProps> = ({
         )}
       </div>
 
-      <CommandsListFooter count={commands.length} />
+      <CommandsListFooter onNewCommand={onNewCommand} onManageCommands={onManageCommands} />
     </div>
   );
 };
