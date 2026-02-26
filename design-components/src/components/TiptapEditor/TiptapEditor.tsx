@@ -20,7 +20,6 @@ function getMarkdown(editor: Editor): string {
     return markdownStorage.getMarkdown();
   }
 
-  // Fallback to HTML if markdown storage is not available
   return editor.getHTML();
 }
 
@@ -138,9 +137,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         try {
           const doc = new DOMParser().parseFromString(html, 'text/html');
           doc.querySelectorAll('span').forEach((span) => {
-            if (span.hasAttribute('data-streamdown') || !span.hasAttribute('style')) {
-              span.replaceWith(...Array.from(span.childNodes));
-            }
+            span.replaceWith(...Array.from(span.childNodes));
           });
           return doc.body.innerHTML;
         } catch {
