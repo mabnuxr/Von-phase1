@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText } from '@phosphor-icons/react';
 
 export interface CommandNotificationBarProps {
   /**
