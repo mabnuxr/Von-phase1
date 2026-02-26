@@ -12,10 +12,9 @@
  *   null      — fetch was attempted and failed; panel shows "Preview not available"
  *   string    — URL is ready; panel loads and renders the file content
  */
-
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Drawer } from '../Drawer';
 import {
   X,
   FileDoc,
@@ -83,7 +82,6 @@ export interface FilesPreviewPanelProps {
 // Animation constants
 // ---------------------------------------------------------------------------
 
-const SLIDE_TRANSITION = { type: 'spring', damping: 30, stiffness: 300 } as const;
 const FADE_TRANSITION = { duration: 0.12 } as const;
 
 // ---------------------------------------------------------------------------
@@ -343,47 +341,35 @@ export const FilesPreviewPanel: React.FC<FilesPreviewPanelProps> = ({
     onRequestPreviewUrl(id);
   }, [isOpen, activeEntry?.file.id, activeEntry?.previewUrl, onRequestPreviewUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return ReactDOM.createPortal(
-    <AnimatePresence>
-      {isOpen && files.length > 0 && (
-        <motion.div
-          className="fixed top-0 right-0 h-full p-2"
-          style={{ width: 600, maxWidth: '90vw', zIndex: 100 }}
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={SLIDE_TRANSITION}
-        >
-          <div className="h-full flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <PanelHeader
-              contextName={contextName}
-              fileName={activeEntry?.file.name}
-              onClose={onClose}
-            />
+  return (
+    <Drawer
+      isOpen={isOpen && files.length > 0}
+      onClose={onClose}
+      width={600}
+      showBackdrop={false}
+      zIndex={100}
+    >
+      <PanelHeader contextName={contextName} fileName={activeEntry?.file.name} onClose={onClose} />
 
-            <FileTabs files={files} activeIndex={activeIndex} onSelect={setActiveIndex} />
+      <FileTabs files={files} activeIndex={activeIndex} onSelect={setActiveIndex} />
 
-            <div className="flex-1 relative overflow-hidden flex flex-col">
-              <AnimatePresence mode="wait">
-                {activeEntry && (
-                  <motion.div
-                    key={activeEntry.file.id}
-                    className="absolute inset-0 flex flex-col"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={FADE_TRANSITION}
-                  >
-                    <FileContentArea entry={activeEntry} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        <AnimatePresence mode="wait">
+          {activeEntry && (
+            <motion.div
+              key={activeEntry.file.id}
+              className="absolute inset-0 flex flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={FADE_TRANSITION}
+            >
+              <FileContentArea entry={activeEntry} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </Drawer>
   );
 };
 

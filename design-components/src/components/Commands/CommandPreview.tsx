@@ -12,13 +12,14 @@
  *   4. [Expanded] Separator — only when hasContentBelow is true
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Command } from './types';
 import { CommandChip } from './CommandChip';
 import { TiptapViewer } from '../TiptapEditor';
 import { useVisibilityToggle } from '../../hooks';
 import { FilesPreviewPanel } from '../FilesPreview';
+import { FileIconStack } from '../FileChip';
 
 export interface CommandPreviewProps {
   command: Command;
@@ -38,10 +39,15 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
 
   // Presigned URLs fetched on demand; null = fetch failed.
   const [fetchedUrls, setFetchedUrls] = useState<Record<string, string | null>>({});
+  // Tracks fileIds that have been requested (including in-flight). Using a ref
+  // instead of state means the check is always current, preventing concurrent
+  // duplicate fetches and keeping the callback stable.
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
 
   const handleRequestPreviewUrl = useCallback(
     async (fileId: string) => {
-      if (fileId in fetchedUrls) return;
+      if (fetchedIdsRef.current.has(fileId)) return;
+      fetchedIdsRef.current.add(fileId);
       const s3Key = command.dataSources?.find((ds) => ds.id === fileId)?.s3Key;
       if (!s3Key || !onRequestFilePreviewUrl) {
         setFetchedUrls((prev) => ({ ...prev, [fileId]: null }));
@@ -54,7 +60,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
         setFetchedUrls((prev) => ({ ...prev, [fileId]: null }));
       }
     },
-    [command.dataSources, fetchedUrls, onRequestFilePreviewUrl]
+    [command.dataSources, onRequestFilePreviewUrl]
   );
 
   const fileEntries = useMemo(
@@ -87,9 +93,12 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
             {attachmentCount > 0 && (
               <button
                 onClick={filesPanel.show}
-                className="mt-2 text-xs text-gray-500 hover:text-gray-800 cursor-pointer transition-colors"
+                className="mt-2 cursor-pointer hover:opacity-75 transition-opacity"
               >
-                Referring {attachmentCount} file{attachmentCount !== 1 ? 's' : ''}
+                <FileIconStack
+                  files={command.dataSources ?? []}
+                  label={`referring ${attachmentCount} file${attachmentCount !== 1 ? 's' : ''}`}
+                />
               </button>
             )}
           </motion.div>

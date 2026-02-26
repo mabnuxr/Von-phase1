@@ -6,8 +6,9 @@ import type { BuildMode } from '../DashboardBuilder';
 import type { FileAttachment } from './FileAttachment/types';
 import type { AgentMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
-import { CommandsOverlay, CommandChip } from '../Commands';
+import { CommandsOverlay } from '../Commands';
 import type { Command } from '../Commands';
+import { CommandStrip } from './CommandStrip';
 
 // Re-export SendMessageOptions for consumers who import from this file
 export type { SendMessageOptions } from './types';
@@ -111,12 +112,6 @@ export interface ChatInputSelectorProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
-  /**
-   * The locked command derived from the last user message that was sent with a
-   * data-sources command. When provided the chip is shown as locked (no X)
-   * on mount, and is restored even after navigating away and back.
-   */
-  lockedCommandFromHistory?: Command | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +163,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
-      lockedCommandFromHistory,
     },
     ref
   ) => {
@@ -179,25 +173,30 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       showCommandsList,
       commandSearch,
       selectedCommand,
-      isCommandLocked,
       handleChange,
       handleSelectCommand,
       handleCloseCommandsList,
       clearSelectedCommand,
       dismissCommandsList,
-      lockCommand,
-    } = useCommandInputState({ enableCommands, onChange, lockedCommandFromHistory });
+    } = useCommandInputState({ enableCommands, onChange });
 
-    // If the currently locked command is deleted, clear it from the chip so
-    // the stale chip doesn't persist in the input.
+    // If the selected command is deleted, clear it from the chip.
     const handleDeleteCommand = useCallback(
       (id: string) => {
-        if (selectedCommand?.id === id && isCommandLocked) {
+        if (selectedCommand?.id === id) {
           clearSelectedCommand();
         }
         onDeleteCommand?.(id);
       },
-      [onDeleteCommand, selectedCommand, isCommandLocked, clearSelectedCommand]
+      [onDeleteCommand, selectedCommand, clearSelectedCommand]
+    );
+
+    const buildCommandStrip = (command: Command) => (
+      <CommandStrip
+        command={command}
+        onRemove={clearSelectedCommand}
+        onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+      />
     );
 
     // -----------------------------------------------------------------------
@@ -223,11 +222,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { command: selectedCommand });
               onChange?.('');
-              if (selectedCommand.dataSources && selectedCommand.dataSources.length > 0) {
-                lockCommand();
-              } else {
-                clearSelectedCommand();
-              }
+              // Command chip stays visible and removable after send
               return;
             }
             onSend(message, attachments);
@@ -249,13 +244,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         mode={mode}
         onModeChange={onModeChange}
         autoFocus={autoFocus}
-        commandChip={
-          enableCommands && selectedCommand ? (
-            <CommandChip
-              command={selectedCommand}
-              onRemove={isCommandLocked ? undefined : clearSelectedCommand}
-            />
-          ) : undefined
+        contextBar={
+          enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined
         }
       />
     );
@@ -287,11 +277,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
               onChange?.('');
-              if (selectedCommand.dataSources && selectedCommand.dataSources.length > 0) {
-                lockCommand();
-              } else {
-                clearSelectedCommand();
-              }
+              // Command chip stays visible and removable after send
               return;
             }
             onSend(message, attachments, { agentMode });
@@ -305,14 +291,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           {...sharedStandardProps}
           onSend={standardOnSend}
           enableCommands={enableCommands}
-          commandChip={
-            selectedCommand ? (
-              <CommandChip
-                command={selectedCommand}
-                onRemove={isCommandLocked ? undefined : clearSelectedCommand}
-              />
-            ) : undefined
-          }
+          contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
         />
       );
     }
