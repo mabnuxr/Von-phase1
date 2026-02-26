@@ -29,9 +29,7 @@ export function useCommandsKeyboardNav({
   const filteredCommands = useMemo(
     () =>
       commandSearch
-        ? commands.filter((c) =>
-            c.name.toLowerCase().includes(commandSearch.toLowerCase().trim())
-          )
+        ? commands.filter((c) => c.name.toLowerCase().includes(commandSearch.toLowerCase().trim()))
         : commands,
     [commands, commandSearch]
   );

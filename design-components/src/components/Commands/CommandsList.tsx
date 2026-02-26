@@ -52,7 +52,13 @@ interface CommandItemProps {
   isHighlighted?: boolean;
 }
 
-const CommandItem: React.FC<CommandItemProps> = ({ command, onSelect, onExpand, onToggleFavorite, isHighlighted }) => (
+const CommandItem: React.FC<CommandItemProps> = ({
+  command,
+  onSelect,
+  onExpand,
+  onToggleFavorite,
+  isHighlighted,
+}) => (
   <div
     className={`group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent ${isHighlighted ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
     onClick={() => onSelect(command)}
@@ -180,7 +186,12 @@ export const CommandsList: React.FC<CommandsListProps> = ({
           <EmptyState />
         ) : (
           commands.map((command, index) => (
-            <div key={command.id} ref={(el) => { itemRefs.current[index] = el; }}>
+            <div
+              key={command.id}
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
+            >
               <CommandItem
                 command={command}
                 onSelect={onSelectCommand}
