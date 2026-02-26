@@ -397,7 +397,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
             {/* Command chip - shown above the input when a command is selected */}
             {contextBar && !activePopover && (
-              <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+              <div className="flex items-center px-1 pb-4 pt-1 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
                 {contextBar}
               </div>
             )}

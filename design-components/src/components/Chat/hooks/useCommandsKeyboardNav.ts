@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Command } from '../../Commands/types';
 
 export interface UseCommandsKeyboardNavOptions {
@@ -25,6 +25,9 @@ export function useCommandsKeyboardNav({
   useDocumentListener = false,
 }: UseCommandsKeyboardNavOptions): UseCommandsKeyboardNavReturn {
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const highlightedIndexRef = useRef(0);
+  // Keep ref in sync with state so navigate always reads the latest value
+  highlightedIndexRef.current = highlightedIndex;
 
   const filteredCommands = useMemo(
     () =>
@@ -43,15 +46,23 @@ export function useCommandsKeyboardNav({
     (key: string): boolean => {
       if (!showCommandsList || filteredCommands.length === 0) return false;
       if (key === 'ArrowDown') {
-        setHighlightedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
+        setHighlightedIndex((i) => {
+          const next = Math.min(i + 1, filteredCommands.length - 1);
+          highlightedIndexRef.current = next;
+          return next;
+        });
         return true;
       }
       if (key === 'ArrowUp') {
-        setHighlightedIndex((i) => Math.max(i - 1, 0));
+        setHighlightedIndex((i) => {
+          const next = Math.max(i - 1, 0);
+          highlightedIndexRef.current = next;
+          return next;
+        });
         return true;
       }
       if (key === 'Enter') {
-        const cmd = filteredCommands[highlightedIndex];
+        const cmd = filteredCommands[highlightedIndexRef.current];
         if (cmd) {
           onSelectCommand(cmd);
           return true;
@@ -59,7 +70,7 @@ export function useCommandsKeyboardNav({
       }
       return false;
     },
-    [showCommandsList, filteredCommands, highlightedIndex, onSelectCommand]
+    [showCommandsList, filteredCommands, onSelectCommand]
   );
 
   // Document-level listener mode (for inputs that don't expose onKeyDown)
