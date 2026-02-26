@@ -47,27 +47,36 @@ export interface FileChipProps {
 // Icon helper — exported so FileIconStack and other consumers can reuse it
 // ---------------------------------------------------------------------------
 
-export function FileTypeIcon({ file, size }: { file: ChipFile; size: number }) {
+export function FileTypeIcon({
+  file,
+  size,
+  weight = 'duotone',
+  className = '',
+}: {
+  file: ChipFile;
+  size: number;
+  weight?: 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone';
+  className?: string;
+}) {
   const ext = file.extension?.toLowerCase();
   const mime = file.type ?? '';
+  const cls = `text-gray-400 shrink-0 ${className}`.trim();
 
-  if (file.category === 'image')
-    return <FileImage size={size} weight="duotone" className="text-gray-400 shrink-0" />;
+  if (file.category === 'image') return <FileImage size={size} weight={weight} className={cls} />;
   if (mime === 'application/pdf' || ext === 'pdf')
-    return <FilePdf size={size} weight="duotone" className="text-gray-400 shrink-0" />;
+    return <FilePdf size={size} weight={weight} className={cls} />;
   if (file.category === 'spreadsheet')
     return ext === 'csv' ? (
-      <FileCsv size={size} weight="duotone" className="text-gray-400 shrink-0" />
+      <FileCsv size={size} weight={weight} className={cls} />
     ) : (
-      <FileXls size={size} weight="duotone" className="text-gray-400 shrink-0" />
+      <FileXls size={size} weight={weight} className={cls} />
     );
   if (file.category === 'presentation')
-    return <FilePpt size={size} weight="duotone" className="text-gray-400 shrink-0" />;
-  if (file.category === 'text')
-    return <FileText size={size} weight="duotone" className="text-gray-400 shrink-0" />;
+    return <FilePpt size={size} weight={weight} className={cls} />;
+  if (file.category === 'text') return <FileText size={size} weight={weight} className={cls} />;
   if (ext === 'doc' || ext === 'docx')
-    return <FileDoc size={size} weight="duotone" className="text-gray-400 shrink-0" />;
-  return <GenericFileIcon size={size} weight="duotone" className="text-gray-400 shrink-0" />;
+    return <FileDoc size={size} weight={weight} className={cls} />;
+  return <GenericFileIcon size={size} weight={weight} className={cls} />;
 }
 
 // ---------------------------------------------------------------------------

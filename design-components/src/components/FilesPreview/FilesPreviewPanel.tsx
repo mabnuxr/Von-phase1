@@ -15,19 +15,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Drawer } from '../Drawer';
-import {
-  X,
-  FileDoc,
-  FilePdf,
-  FileXls,
-  FileCsv,
-  FilePpt,
-  FileText,
-  FileImage,
-  File as GenericFileIcon,
-  SpinnerGap,
-  WarningCircle,
-} from '@phosphor-icons/react';
+import { X, SpinnerGap, WarningCircle } from '@phosphor-icons/react';
+import { FileTypeIcon } from '../FileChip';
 import { useArtifactContent } from '../Chat/hooks/useArtifactContent';
 import { PdfViewer } from '../Chat/viewers/PdfViewer';
 import { TextViewer } from '../Chat/viewers/TextViewer';
@@ -85,46 +74,6 @@ export interface FilesPreviewPanelProps {
 const FADE_TRANSITION = { duration: 0.12 } as const;
 
 // ---------------------------------------------------------------------------
-// AttachmentIcon — unified file-type icon, parameterised by size and weight
-// ---------------------------------------------------------------------------
-
-interface AttachmentIconProps {
-  file: PreviewableFile;
-  size: number;
-  weight?: 'thin' | 'duotone';
-  className?: string;
-}
-
-const AttachmentIcon: React.FC<AttachmentIconProps> = ({
-  file,
-  size,
-  weight = 'thin',
-  className = '',
-}) => {
-  const ext = file.extension?.toLowerCase();
-  const mime = file.type ?? '';
-  const base = `shrink-0 ${className}`;
-
-  if (file.category === 'image')
-    return <FileImage size={size} weight={weight} className={`text-purple-400 ${base}`} />;
-  if (mime === 'application/pdf' || ext === 'pdf')
-    return <FilePdf size={size} weight={weight} className={`text-red-400 ${base}`} />;
-  if (file.category === 'spreadsheet')
-    return ext === 'csv' ? (
-      <FileCsv size={size} weight={weight} className={`text-green-500 ${base}`} />
-    ) : (
-      <FileXls size={size} weight={weight} className={`text-green-500 ${base}`} />
-    );
-  if (file.category === 'presentation')
-    return <FilePpt size={size} weight={weight} className={`text-orange-400 ${base}`} />;
-  if (file.category === 'text')
-    return <FileText size={size} weight={weight} className={`text-slate-400 ${base}`} />;
-  if (ext === 'doc' || ext === 'docx')
-    return <FileDoc size={size} weight={weight} className={`text-blue-400 ${base}`} />;
-  return <GenericFileIcon size={size} weight={weight} className={`text-gray-400 ${base}`} />;
-};
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -156,7 +105,7 @@ const UnsupportedPlaceholder: React.FC<UnsupportedPlaceholderProps> = ({
   message = 'Preview not available',
 }) => (
   <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-gray-50/60 select-none">
-    <AttachmentIcon file={file} size={40} weight="thin" />
+    <FileTypeIcon file={file} size={40} weight="thin" />
     <div className="text-center">
       <p className="text-sm font-medium text-gray-700">{file.name}</p>
       <p className="text-xs text-gray-400 mt-0.5">{getFileTypeLabel(file)}</p>
@@ -285,7 +234,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ files, activeIndex, onSelect }) => 
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
           }`}
         >
-          <AttachmentIcon file={entry.file} size={13} weight="duotone" />
+          <FileTypeIcon file={entry.file} size={13} />
           <span className="max-w-[140px] truncate">{entry.file.name}</span>
         </button>
       ))}
