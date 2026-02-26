@@ -15,6 +15,8 @@ export interface TiptapEditorProps {
   editorRef?: React.RefObject<Editor | null>;
   /** Callback when files are pasted from clipboard */
   onPasteFiles?: (files: File[]) => void;
+  /** Callback when Escape is pressed */
+  onEscape?: () => void;
 }
 
 export interface EditorToolbarProps {

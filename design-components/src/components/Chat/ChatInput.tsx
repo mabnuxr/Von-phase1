@@ -138,6 +138,8 @@ export interface ChatInputProps {
    * (e.g. a CommandChip showing the selected command with a remove button).
    */
   contextBar?: ReactNode;
+  /** Called when the user presses Escape to dismiss the commands overlay */
+  onCloseCommandsList?: () => void;
 }
 
 /**
@@ -164,6 +166,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onModeChange,
   autoFocus = false,
   contextBar,
+  onCloseCommandsList,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -261,6 +264,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             typeof navigator.maxTouchPoints === 'number' &&
             navigator.maxTouchPoints > 1));
 
+      if (e.key === 'Escape' && onCloseCommandsList) {
+        e.preventDefault();
+        onCloseCommandsList();
+        return;
+      }
       if (!isMobileDevice && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         if (!isStreaming && !disableSubmit) {
@@ -268,7 +276,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }
       }
     },
-    [isStreaming, disableSubmit, handleSend]
+    [isStreaming, disableSubmit, handleSend, onCloseCommandsList]
   );
 
   const handlePaste = useCallback(
@@ -307,7 +315,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
         {/* Command chip - shown above the input when a command is selected */}
         {contextBar && (
-          <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+          <div className="flex items-center px-1 pb-4 pt-1 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
             {contextBar}
           </div>
         )}

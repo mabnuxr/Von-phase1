@@ -379,6 +379,7 @@ export const Chat: React.FC<ChatProps> = ({
                   artifacts={showArtifacts ? message.artifacts : undefined}
                   onFileArtifactClick={showArtifacts ? onFileArtifactClick : undefined}
                   onArtifactDownload={showArtifacts ? onArtifactDownload : undefined}
+                  onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 />
               </div>
             ))}

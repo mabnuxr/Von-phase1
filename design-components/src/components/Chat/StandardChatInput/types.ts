@@ -288,4 +288,7 @@ export interface StandardChatInputProps {
    * @default false
    */
   enableCommands?: boolean;
+
+  /** Called when the user presses Escape to dismiss the commands overlay */
+  onCloseCommandsList?: () => void;
 }
