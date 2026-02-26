@@ -54,6 +54,8 @@ export interface CommandsOverlayProps {
   ) => void;
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand: (id: string) => void;
+  /** Index of the keyboard-highlighted command in the filtered list */
+  highlightedIndex?: number;
   /** Disables the save button while a mutation is in-flight */
   isSaving?: boolean;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
@@ -125,6 +127,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
+  highlightedIndex = 0,
 }) => {
   const formDrawer = useVisibilityToggle();
   const manageDrawer = useVisibilityToggle();
@@ -190,6 +193,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
             onExpandCommand={openEditDrawer}
             onToggleFavorite={onToggleFavorite}
             maxHeight={maxHeight}
+            highlightedIndex={highlightedIndex}
           />
         )}
       </AnchoredPopup>
