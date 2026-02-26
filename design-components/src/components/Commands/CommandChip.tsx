@@ -1,13 +1,12 @@
 /**
  * CommandChip component
  * Displays the selected command as a small pill.
- * Layout: [name >]
- * The file icon stack and remove button live outside this component,
- * in the command strip row rendered by the parent input container.
+ * Layout: [name >] [×?]
+ * The file icon stack lives outside this component, in CommandStrip.
  */
 
 import React from 'react';
-import { CaretRight } from '@phosphor-icons/react';
+import { CaretRight, X } from '@phosphor-icons/react';
 import type { Command } from './types';
 
 export interface CommandChipProps {
@@ -15,6 +14,8 @@ export interface CommandChipProps {
   command: Command;
   /** Callback when the chip is clicked — opens details drawer */
   onClick?: () => void;
+  /** If provided, renders an inline × remove button */
+  onRemove?: () => void;
   /** Whether to show the caret icon — defaults to true */
   showCaret?: boolean;
   /** Whether the chip is in an expanded state (rotates the caret) */
@@ -26,6 +27,7 @@ export interface CommandChipProps {
 export const CommandChip: React.FC<CommandChipProps> = ({
   command,
   onClick,
+  onRemove,
   showCaret = true,
   isExpanded = false,
   showDescription = false,
@@ -59,6 +61,19 @@ export const CommandChip: React.FC<CommandChipProps> = ({
         >
           <CaretRight size={11} weight="bold" className="opacity-60" />
         </span>
+      )}
+
+      {onRemove && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="text-gray-400 hover:text-gray-600 transition-colors duration-150 cursor-pointer shrink-0 ml-1"
+          aria-label="Remove command"
+        >
+          <X size={12} weight="bold" />
+        </button>
       )}
     </div>
   );
