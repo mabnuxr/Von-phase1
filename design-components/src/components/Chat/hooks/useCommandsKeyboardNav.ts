@@ -68,7 +68,10 @@ export function useCommandsKeyboardNav({
     const handler = (e: KeyboardEvent) => {
       if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
         const handled = navigate(e.key);
-        if (handled) e.preventDefault();
+        if (handled) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
       }
     };
     document.addEventListener('keydown', handler, true);

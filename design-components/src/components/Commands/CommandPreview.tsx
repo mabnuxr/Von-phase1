@@ -53,6 +53,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
       fetchedIdsRef.current.add(fileId);
       const s3Key = command.dataSources?.find((ds) => ds.id === fileId)?.s3Key;
       if (!s3Key || !onRequestFilePreviewUrl) {
+        fetchedIdsRef.current.delete(fileId);
         setFetchedUrls((prev) => ({ ...prev, [fileId]: null }));
         return;
       }
@@ -60,6 +61,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
         const url = await onRequestFilePreviewUrl(s3Key);
         setFetchedUrls((prev) => ({ ...prev, [fileId]: url }));
       } catch {
+        fetchedIdsRef.current.delete(fileId);
         setFetchedUrls((prev) => ({ ...prev, [fileId]: null }));
       }
     },
