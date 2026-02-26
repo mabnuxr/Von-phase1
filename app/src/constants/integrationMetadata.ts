@@ -116,6 +116,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     category: "Call Recorder",
   },
   // Internal Documents integrations
+  googledrive: {
+    id: "googledrive",
+    name: "Google Drive",
+    description: "Search and reference documents from your Google Drive",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg",
+    category: "Internal Documents",
+  },
   highspot: {
     id: "highspot",
     name: "Highspot",
@@ -235,6 +243,7 @@ export function getIntegrationLogoPath(type: string): string {
   // Map backend type to frontend ID
   const typeMap: Record<string, string> = {
     GOOGLE_CALENDAR: "googlecalendar",
+    GOOGLE_DRIVE: "googledrive",
     OUTLOOK_CALENDAR: "outlookcalendar",
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
@@ -278,6 +287,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     fathom: "FATHOM",
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
+    googledrive: "GOOGLE_DRIVE",
     outlookcalendar: "OUTLOOK_CALENDAR",
     chorus: "CHORUS",
     claricopilot: "CLARI_COPILOT",
@@ -310,6 +320,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     FATHOM: "fathom",
     ZOOM: "zoom",
     GOOGLE_CALENDAR: "googlecalendar",
+    GOOGLE_DRIVE: "googledrive",
     OUTLOOK_CALENDAR: "outlookcalendar",
     CHORUS: "chorus",
     CLARI_COPILOT: "claricopilot",
@@ -338,6 +349,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
   // Map backend type to frontend ID first
   const typeMap: Record<string, string> = {
     GOOGLE_CALENDAR: "googlecalendar",
+    GOOGLE_DRIVE: "googledrive",
     OUTLOOK_CALENDAR: "outlookcalendar",
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
@@ -389,6 +401,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   // Personal integrations - user-level only
   hubspot: ["user"],
   googlecalendar: ["user"],
+  googledrive: ["user"],
   outlookcalendar: ["user"],
   highspot: ["user"],
   seismic: ["user"],

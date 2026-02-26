@@ -389,7 +389,7 @@ export function BaseIntegrationConfigPane({
 
       {/* Side Panel */}
       <div
-        className={`fixed top-0 right-0 h-full w-[480px] p-2 z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-120 p-2 z-50 transform transition-transform duration-300 ease-in-out ${
           isVisible ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -435,7 +435,8 @@ export function BaseIntegrationConfigPane({
             <div className="space-y-6">
               {/* OAuth Authentication Info - for OAuth integrations */}
               {(integrationId === "salesforce" ||
-                integrationId === "googlecalendar") && (
+                integrationId === "googlecalendar" ||
+                integrationId === "googledrive") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type
