@@ -54,3 +54,7 @@ export type {
   PresignRequest,
   PresignResponse,
 } from "./quickCommandsService";
+
+// GSuite Services
+export { exportToDrive } from "./gsuite";
+export type { ExportToDriveResponse } from "./gsuite";
