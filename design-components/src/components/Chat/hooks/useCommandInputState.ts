@@ -38,12 +38,12 @@ export function useCommandInputState({
       if (!enableCommands) return;
 
       const plainText = getPlainText(newValue);
-      // Open the list when the field starts with "/".
-      // Works even when a command is already selected — selecting a new one replaces it.
-      // Close if the user types "/ " (slash + space) — they likely don't want a command.
-      if (plainText.startsWith('/') && !plainText.startsWith('/ ')) {
+      // Show the list whenever the text starts with "/". Everything after the
+      // "/" (including spaces) is used as the filter term, matching Slack's
+      // behaviour where "/ foo" keeps the overlay open and filters by "foo".
+      if (plainText.startsWith('/')) {
         setShowCommandsList(true);
-        setCommandSearch(plainText.slice(1).trim());
+        setCommandSearch(plainText.slice(1));
       } else {
         setShowCommandsList(false);
         setCommandSearch('');

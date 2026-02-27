@@ -4,11 +4,13 @@
  * Matches the CommandsList popover layout — flat list, favorites pinned at top.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { X, MagnifyingGlass, Trash, BookmarkSimple, SortAscending } from '@phosphor-icons/react';
 import { type Command, SORT_OPTIONS } from './types';
 import { Drawer } from '../Drawer';
 import { useCommandsFilter } from './useCommandsFilter';
+import { Tooltip } from '../Tooltip';
+import { DeleteCommandConfirmModal } from './DeleteCommandConfirmModal';
 
 // ---------------------------------------------------------------------------
 // Public interface
@@ -28,6 +30,15 @@ export interface ManageCommandsDrawerProps {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function formatModifiedDate(isoString: string): string {
+  const date = new Date(isoString);
+  const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 function getPromptPreview(prompt: string, maxLen = 60): string {
   let text = prompt;
@@ -52,6 +63,8 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
   onDeleteCommand,
   onToggleFavorite,
 }) => {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const {
     searchQuery,
     setSearchQuery,
@@ -198,8 +211,20 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                   )}
                   {command.createdBy && (
                     <span className="text-[11px] text-gray-400">
-                      {command.createdBy === 'me' ? 'Created by me' : 'Created by team'}
+                      {command.createdBy === 'me'
+                        ? 'Created by me'
+                        : command.creatorName
+                          ? `Created by ${command.creatorName}`
+                          : 'Created by team'}
                     </span>
+                  )}
+                  {command.updatedAt && (
+                    <>
+                      <span className="text-[11px] text-gray-300">·</span>
+                      <span className="text-[11px] text-gray-400">
+                        Modified {formatModifiedDate(command.updatedAt)}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
@@ -220,28 +245,41 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                   <BookmarkSimple size={16} weight={command.isFavorite ? 'fill' : 'regular'} />
                 </button>
                 <div className="w-px h-4 bg-gray-200 mx-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (command.createdBy === 'me') {
-                      onDeleteCommand(command.id);
-                    }
-                  }}
-                  disabled={command.createdBy !== 'me'}
-                  className={`p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
-                  title={
-                    command.createdBy === 'me'
-                      ? 'Delete'
-                      : 'Only the creator can delete this command'
+                <Tooltip
+                  content={
+                    command.createdBy === 'me' ? 'Delete' : 'Only the owner can delete'
                   }
+                  placement="top"
                 >
-                  <Trash size={16} />
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (command.createdBy === 'me') {
+                        setConfirmDeleteId(command.id);
+                      }
+                    }}
+                    disabled={command.createdBy !== 'me'}
+                    className={`p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
+                  >
+                    <Trash size={16} />
+                  </button>
+                </Tooltip>
               </div>
             </div>
           ))
         )}
       </div>
+      <DeleteCommandConfirmModal
+        isOpen={!!confirmDeleteId}
+        commandName={orderedCommands.find((c) => c.id === confirmDeleteId)?.name ?? ''}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            onDeleteCommand(confirmDeleteId);
+            setConfirmDeleteId(null);
+          }
+        }}
+      />
     </Drawer>
   );
 };
