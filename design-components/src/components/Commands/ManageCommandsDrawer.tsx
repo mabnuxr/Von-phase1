@@ -218,14 +218,14 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                           : 'Created by team'}
                     </span>
                   )}
-                  {command.updatedAt && (
-                    <>
+                  <>
+                    {(command.usageCount !== undefined || command.createdBy) && (
                       <span className="text-[11px] text-gray-300">·</span>
-                      <span className="text-[11px] text-gray-400">
-                        Modified {formatModifiedDate(command.updatedAt)}
-                      </span>
-                    </>
-                  )}
+                    )}
+                    <span className="text-[11px] text-gray-400">
+                      Modified {formatModifiedDate(command.updatedAt)}
+                    </span>
+                  </>
                 </div>
               </div>
 
