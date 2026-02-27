@@ -246,9 +246,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                 </button>
                 <div className="w-px h-4 bg-gray-200 mx-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Tooltip
-                  content={
-                    command.createdBy === 'me' ? 'Delete' : 'Only the owner can delete'
-                  }
+                  content={command.createdBy === 'me' ? 'Delete' : 'Only the owner can delete'}
                   placement="top"
                 >
                   <button
