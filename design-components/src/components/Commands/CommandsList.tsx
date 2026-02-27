@@ -9,9 +9,9 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { X, ArrowsOut, BookmarkSimple } from '@phosphor-icons/react';
+import { ArrowsOut, BookmarkSimple } from '@phosphor-icons/react';
 import type { Command } from './types';
-import { TertiaryIconButton, IconButton } from '../forms/buttons';
+import { IconButton } from '../forms/buttons';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -31,16 +31,9 @@ function getPromptPreview(prompt: string, maxLen = 60): string {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-interface CommandsListHeaderProps {
-  onClose?: () => void;
-}
-
-const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({ onClose }) => (
-  <div className="px-3 py-2.5 border-b border-gray-100 bg-white">
-    <div className="flex items-center justify-between">
-      <h3 className="text-sm font-medium text-gray-900">Commands</h3>
-      <TertiaryIconButton icon={<X size={14} />} title="Close" size="small" onClick={onClose} />
-    </div>
+const CommandsListHelpText: React.FC = () => (
+  <div className="px-3 pt-2.5 pb-1.5">
+    <span className="text-xs text-gray-400">/ Select command</span>
   </div>
 );
 
@@ -142,7 +135,6 @@ export interface CommandsListProps {
   onSelectCommand: (command: Command) => void;
   onNewCommand: () => void;
   onManageCommands: () => void;
-  onClose?: () => void;
   onExpandCommand?: (command: Command) => void;
   onToggleFavorite?: (command: Command) => void;
   /** Max height in px for the scrollable list — computed dynamically by CommandsOverlay */
@@ -157,7 +149,6 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   onSelectCommand,
   onNewCommand,
   onManageCommands,
-  onClose,
   onExpandCommand,
   onToggleFavorite,
   maxHeight = 300,
@@ -179,7 +170,7 @@ export const CommandsList: React.FC<CommandsListProps> = ({
 
   return (
     <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <CommandsListHeader onClose={onClose} />
+      <CommandsListHelpText />
 
       <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
         {commands.length === 0 ? (
