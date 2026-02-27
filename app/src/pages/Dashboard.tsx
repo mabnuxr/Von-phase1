@@ -20,7 +20,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { TopBar, ChatSkeleton, Banner } from "@vonlabs/design-components";
 import type { AgentMode } from "@vonlabs/design-components";
 
-import { authService, conversationsService } from "../services";
+import {
+  authService,
+  conversationsService,
+  IntegrationType,
+  AuthenticationStatus,
+} from "../services";
+import { useIntegrations } from "../hooks/useIntegrations";
 import useChatStore from "../store/chatStore";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -30,6 +36,7 @@ import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
+import { useToast } from "../hooks/useToast";
 import { conversationKeys } from "../hooks/useConversations";
 import { chatSidebarKeys } from "../hooks/useChatSidebar";
 import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
@@ -95,6 +102,7 @@ const Dashboard = () => {
     isTenantDisabled,
     isFileUploadEnabled,
     isArtifactsEnabled,
+    isGoogleDriveEnabled,
   } = useFeatureFlag();
 
   // --- Salesforce ---
@@ -111,6 +119,30 @@ const Dashboard = () => {
 
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
+
+  // --- Toast ---
+  const { showToast } = useToast();
+
+  // --- Google Drive ---
+  const { data: integrationsData } = useIntegrations();
+  const isDriveConnected = useMemo(
+    () =>
+      integrationsData?.integrations.some(
+        (i) =>
+          i.type === IntegrationType.GOOGLE_DRIVE &&
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+      ) ?? false,
+    [integrationsData],
+  );
+  const isDriveEnabled = isGoogleDriveEnabled;
+  const driveTooltip = !isGoogleDriveEnabled
+    ? "Open in Drive (Coming Soon)"
+    : !isDriveConnected
+      ? "Connect Google Drive"
+      : "Open in Google Drive";
+  const [driveLoadingFileId, setDriveLoadingFileId] = useState<string | null>(
+    null,
+  );
 
   // --- Sidebar ---
   const {
@@ -253,6 +285,32 @@ const Dashboard = () => {
     }
   }, [isTenantDisabled]);
 
+  // --- Google Drive Export ---
+  const handleGoogleDriveClick = useCallback(
+    async (fileId: string) => {
+      if (!isDriveConnected) {
+        navigate("/settings?tab=integrations");
+        return;
+      }
+      if (!currentConversationId) return;
+      try {
+        setDriveLoadingFileId(fileId);
+        const { exportToDrive } = await import("../services/gsuite");
+        const result = await exportToDrive(fileId, currentConversationId);
+        window.open(result.url, "_blank");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to export to Google Drive";
+        showToast({ message, variant: "error" });
+      } finally {
+        setDriveLoadingFileId(null);
+      }
+    },
+    [currentConversationId, isDriveConnected, navigate, showToast],
+  );
+
   // --- Banner ---
   const chatBanner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
@@ -291,6 +349,11 @@ const Dashboard = () => {
     syncAgentModeToBackend,
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,
+    onGoogleDriveClick: handleGoogleDriveClick,
+    isDriveEnabled,
+    isDriveConnected,
+    driveTooltip,
+    driveLoadingFileId,
   };
 
   return (

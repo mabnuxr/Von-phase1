@@ -8,7 +8,7 @@
  * - XLSX/CSV: SheetJS → HTML table preview
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   XIcon,
   DownloadSimpleIcon,
@@ -17,6 +17,7 @@ import {
   TableIcon,
   SpinnerGapIcon,
   WarningCircleIcon,
+  ArrowSquareOutIcon,
 } from '@phosphor-icons/react';
 import { Tooltip } from '../Tooltip';
 import driveLogo from '../../assets/drive-logo.svg';
@@ -39,6 +40,11 @@ export interface ArtifactViewerPanelProps {
   pdfDownloadUrl?: string;
   onClose: () => void;
   onDownload?: () => void;
+  onGoogleDriveClick?: () => void;
+  isDriveEnabled?: boolean;
+  isDriveConnected?: boolean;
+  driveTooltip?: string;
+  isDriveLoading?: boolean;
 }
 
 // ============================================================================
@@ -77,9 +83,15 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
   pdfDownloadUrl,
   onClose,
   onDownload,
+  onGoogleDriveClick,
+  isDriveEnabled,
+  isDriveConnected,
+  driveTooltip,
+  isDriveLoading,
 }) => {
   const config = TYPE_CONFIG[artifactType] ?? DEFAULT_CONFIG;
   const content = useArtifactContent(downloadUrl, mimeType, pdfDownloadUrl);
+  const [showDrivePopup, setShowDrivePopup] = useState(false);
 
   const { width, handleProps } = useHorizontalResize({
     initialWidth: 480,
@@ -111,14 +123,77 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <Tooltip content="Open in Drive (Coming soon)" placement="top">
-              <button
-                disabled
-                className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center opacity-40 cursor-not-allowed transition-colors"
-              >
-                <img src={driveLogo} alt="Google Drive" width={16} height={16} />
-              </button>
-            </Tooltip>
+            <div
+              className="relative"
+              onMouseEnter={() =>
+                isDriveEnabled && isDriveConnected === false && setShowDrivePopup(true)
+              }
+              onMouseLeave={() => setShowDrivePopup(false)}
+            >
+              {isDriveEnabled && isDriveConnected === false ? (
+                <>
+                  <button
+                    disabled={isDriveLoading}
+                    onClick={() => onGoogleDriveClick?.()}
+                    className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
+                      isDriveLoading ? 'cursor-wait' : 'opacity-60 hover:bg-gray-50 cursor-pointer'
+                    }`}
+                  >
+                    {isDriveLoading ? (
+                      <SpinnerGapIcon
+                        size={16}
+                        weight="bold"
+                        className="text-gray-600 animate-spin"
+                      />
+                    ) : (
+                      <img src={driveLogo} alt="Google Drive" width={16} height={16} />
+                    )}
+                  </button>
+                  {showDrivePopup && (
+                    <div className="absolute right-0 top-full pt-1.5 z-10">
+                      <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 whitespace-nowrap">
+                        <a
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onGoogleDriveClick?.();
+                          }}
+                          className="flex items-center gap-1.5 text-sm text-von-purple hover:text-von-purple-dark hover:underline"
+                        >
+                          <img src={driveLogo} alt="" width={14} height={14} />
+                          Connect Google Drive
+                          <ArrowSquareOutIcon size={13} weight="bold" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Tooltip content={driveTooltip ?? 'Open in Drive (Coming soon)'} placement="top">
+                  <button
+                    disabled={!isDriveEnabled || isDriveLoading}
+                    onClick={() => onGoogleDriveClick?.()}
+                    className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
+                      isDriveLoading
+                        ? 'cursor-wait'
+                        : !isDriveEnabled
+                          ? 'opacity-40 cursor-not-allowed'
+                          : 'hover:bg-gray-50 cursor-pointer'
+                    }`}
+                  >
+                    {isDriveLoading ? (
+                      <SpinnerGapIcon
+                        size={16}
+                        weight="bold"
+                        className="text-gray-600 animate-spin"
+                      />
+                    ) : (
+                      <img src={driveLogo} alt="Google Drive" width={16} height={16} />
+                    )}
+                  </button>
+                </Tooltip>
+              )}
+            </div>
             {onDownload && (
               <button
                 onClick={onDownload}

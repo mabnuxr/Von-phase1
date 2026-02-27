@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { IntegrationCard } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { Resource, AuthenticationStatus } from "../services";
 import {
   getAllIntegrations,
@@ -373,7 +374,15 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const allApps = getAllIntegrations();
+  const { isGoogleDriveEnabled } = useFeatureFlag();
+
+  const allApps = useMemo(() => {
+    const apps = getAllIntegrations();
+    return apps.filter((app) => {
+      if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
+      return true;
+    });
+  }, [isGoogleDriveEnabled]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {

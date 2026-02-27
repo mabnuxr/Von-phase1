@@ -9,6 +9,7 @@ export const IntegrationType = {
   HUBSPOT: "HUBSPOT",
   FATHOM: "FATHOM",
   GOOGLE_CALENDAR: "GOOGLE_CALENDAR",
+  GOOGLE_DRIVE: "GOOGLE_DRIVE",
   ZOOM: "ZOOM",
 } as const;
 

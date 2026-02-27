@@ -54,6 +54,11 @@ export interface ChatV2ContainerProps {
   syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
+  onGoogleDriveClick?: (fileId: string) => void;
+  isDriveEnabled?: boolean;
+  isDriveConnected?: boolean;
+  driveTooltip?: string;
+  driveLoadingFileId?: string | null;
 }
 
 export function ChatV2Container(props: ChatV2ContainerProps) {
@@ -74,6 +79,11 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isFileUploadEnabled,
     isArtifactsEnabled,
     banner,
+    onGoogleDriveClick,
+    isDriveEnabled,
+    isDriveConnected,
+    driveTooltip,
+    driveLoadingFileId,
   } = props;
 
   const chatV2 = useChatV2({
@@ -202,6 +212,11 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               showArtifacts={isArtifactsEnabled}
               onFileArtifactClick={chatV2.handleFileArtifactClick}
               onArtifactDownload={chatV2.handleArtifactDownload}
+              onGoogleDriveClick={onGoogleDriveClick}
+              isDriveEnabled={isDriveEnabled}
+              isDriveConnected={isDriveConnected}
+              driveTooltip={driveTooltip}
+              driveLoadingFileId={driveLoadingFileId}
             />
           </div>
 
@@ -225,6 +240,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
                           chatV2.fileArtifactPanel.fileId!,
                         )
                     : undefined
+                }
+                onGoogleDriveClick={
+                  onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
+                    ? () => onGoogleDriveClick(chatV2.fileArtifactPanel.fileId!)
+                    : undefined
+                }
+                isDriveEnabled={isDriveEnabled}
+                isDriveConnected={isDriveConnected}
+                driveTooltip={driveTooltip}
+                isDriveLoading={
+                  driveLoadingFileId === chatV2.fileArtifactPanel.fileId
                 }
               />
             )}
