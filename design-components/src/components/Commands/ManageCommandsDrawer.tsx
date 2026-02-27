@@ -33,7 +33,7 @@ export interface ManageCommandsDrawerProps {
 
 function formatModifiedDate(isoString: string): string {
   const date = new Date(isoString);
-  const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  const diffDays = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
   if (diffDays === 0) return 'today';
   if (diffDays === 1) return 'yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -63,7 +63,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
   onDeleteCommand,
   onToggleFavorite,
 }) => {
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   const {
     searchQuery,
@@ -253,7 +253,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (command.createdBy === 'me') {
-                        setConfirmDeleteId(command.id);
+                        setConfirmDelete({ id: command.id, name: command.name });
                       }
                     }}
                     disabled={command.createdBy !== 'me'}
@@ -268,13 +268,13 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
         )}
       </div>
       <DeleteCommandConfirmModal
-        isOpen={!!confirmDeleteId}
-        commandName={orderedCommands.find((c) => c.id === confirmDeleteId)?.name ?? ''}
-        onCancel={() => setConfirmDeleteId(null)}
+        isOpen={!!confirmDelete}
+        commandName={confirmDelete?.name ?? ''}
+        onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
-          if (confirmDeleteId) {
-            onDeleteCommand(confirmDeleteId);
-            setConfirmDeleteId(null);
+          if (confirmDelete) {
+            onDeleteCommand(confirmDelete.id);
+            setConfirmDelete(null);
           }
         }}
       />
