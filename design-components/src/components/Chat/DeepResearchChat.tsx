@@ -135,7 +135,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   // Handle confirmation - send the message and close modal
   const handleConfirmAnalysis = () => {
     setShowConfirmModal(false);
-    onSendMessage?.('Accept plan and run full analysis');
+    onSendMessage?.('Run full analysis and create the dashboard');
   };
 
   // Handle cancel - just close the modal
@@ -241,7 +241,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       primaryAction={
                         !hasSkipped
                           ? {
-                              label: 'Run Full Analysis',
+                              label: 'Create Dashboard',
                               onClick: handleRunFullAnalysisClick,
                               disabled: isDeepResearchRunning,
                               isLoading: isDeepResearchRunning,
@@ -353,7 +353,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
         estimatedTime={researchResults?.metadata?.estimated_time || '10-15 minutes'}
         onConfirm={handleConfirmAnalysis}
         onCancel={handleCancelAnalysis}
-        operationName="Run Full Analysis"
+        operationName="Create Dashboard"
       />
     </div>
   );

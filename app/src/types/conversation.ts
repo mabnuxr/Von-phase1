@@ -56,7 +56,7 @@ export interface MessageFileAttachment {
 
 /**
  * Conversation phase from RUN_FINISHED event
- * - "plan-proposed": Show approval buttons (Skip/Run Full Analysis)
+ * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
  * - "ask": Normal conversation mode (hide approval buttons)
  * - null/undefined: Normal conversation mode (hide approval buttons)
  */

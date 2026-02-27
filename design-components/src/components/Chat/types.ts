@@ -177,7 +177,7 @@ export interface Message {
   /**
    * Conversation phase from RUN_FINISHED event (assistant messages only)
    * Controls whether approval buttons are shown
-   * - "plan-proposed": Show approval buttons (Skip/Run Full Analysis)
+   * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
    * - "ask": Normal conversation mode (hide approval buttons)
    * - null/undefined: Normal conversation mode (hide approval buttons)
    */
@@ -390,7 +390,7 @@ export interface RunFinishedEvent {
     error_message?: string;
     /**
      * Conversation phase for approval button control (nested inside result)
-     * - "plan-proposed": Show approval buttons (Skip/Run Full Analysis)
+     * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
      * - "ask": Normal conversation mode (hide approval buttons)
      * - null/undefined: Normal conversation mode (hide approval buttons)
      */

@@ -33,7 +33,7 @@ export interface ExpensiveOperationModalProps {
   onCancel: () => void;
 
   /**
-   * Operation description (e.g., "Run full analysis")
+   * Operation description (e.g., "Create Dashboard")
    */
   operationName?: string;
 }
@@ -88,7 +88,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
   estimatedTime = '10-15 minutes',
   onConfirm,
   onCancel,
-  operationName = 'Run full analysis',
+  operationName = 'Create Dashboard',
 }) => {
   const safeRecordCount = recordCount ?? 0;
 
@@ -132,9 +132,8 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
               {/* Description */}
               <p className="text-[13px] text-gray-800 leading-relaxed mb-4">
                 <span className="font-medium text-gray-900">
-                  {safeRecordCount.toLocaleString()} records
+                  Create the underlying data sources and the dashboard.
                 </span>
-                {' across your connected data sources.'}
               </p>
 
               {/* Time estimate */}
@@ -155,7 +154,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
                   onClick={onConfirm}
                   className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
                 >
-                  Run Analysis
+                  Create Dashboard
                 </button>
               </div>
             </div>

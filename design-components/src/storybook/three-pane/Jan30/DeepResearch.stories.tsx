@@ -1720,7 +1720,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                   variant="analysis-request"
                   markdown={`${sampleAnalysisContent}`}
                   primaryAction={{
-                    label: 'Run Full Analysis',
+                    label: 'Create Dashboard',
                     onClick: onRunFullAnalysis,
                   }}
                   secondaryAction={{
@@ -1822,7 +1822,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
             {/* User confirmation message */}
             <div className="flex justify-end gap-2">
               <div className="max-w-[80%] bg-gray-50 rounded-2xl rounded-br-md px-3 py-2">
-                <p className="text-sm text-gray-900">Yes, run full analysis</p>
+                <p className="text-sm text-gray-900">Yes, create dashboard</p>
               </div>
               <UserAvatar initials="JD" size={28} />
             </div>
@@ -2332,7 +2332,7 @@ const DeepResearchDemo = () => {
       {
         id: 'msg-4-user-confirm',
         type: 'user',
-        content: 'Run Full Analysis',
+        content: 'Create Dashboard',
       },
       // 5. Full thinking process (collapsed)
       {
@@ -2935,7 +2935,7 @@ const DeepResearchDemo = () => {
         isOpen={showExpensiveOperationModal}
         recordCount={2847}
         estimatedTime="10-15 minutes"
-        operationName="Run Full Analysis"
+        operationName="Create Dashboard"
         onConfirm={startFullAnalysis}
         onCancel={() => setShowExpensiveOperationModal(false)}
       />
