@@ -36,6 +36,7 @@ import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
+import { useToast } from "../hooks/useToast";
 import { conversationKeys } from "../hooks/useConversations";
 import { chatSidebarKeys } from "../hooks/useChatSidebar";
 import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
@@ -118,6 +119,9 @@ const Dashboard = () => {
 
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
+
+  // --- Toast ---
+  const { showToast } = useToast();
 
   // --- Google Drive ---
   const { data: integrationsData } = useIntegrations();
@@ -294,14 +298,17 @@ const Dashboard = () => {
         const { exportToDrive } = await import("../services/gsuite");
         const result = await exportToDrive(fileId, currentConversationId);
         window.open(result.url, "_blank");
-      } catch {
-        // TODO: replace with toast once toast system is wired
-        console.error("[Dashboard] Failed to export to Google Drive");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to export to Google Drive";
+        showToast({ message, variant: "error" });
       } finally {
         setDriveLoadingFileId(null);
       }
     },
-    [currentConversationId, isDriveConnected, navigate],
+    [currentConversationId, isDriveConnected, navigate, showToast],
   );
 
   // --- Banner ---
