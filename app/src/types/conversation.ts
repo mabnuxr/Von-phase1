@@ -55,6 +55,31 @@ export interface MessageFileAttachment {
 }
 
 /**
+ * Data source attached to a quick command (matches backend shape)
+ */
+export interface CommandDataSource {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  extension: string;
+  category: string;
+  s3Key: string;
+}
+
+/**
+ * Quick command embedded on a user message (populated by backend when the
+ * message was sent via a slash command)
+ */
+export interface MessageCommand {
+  id: string;
+  name: string;
+  slug?: string;
+  prompt: string;
+  dataSources?: CommandDataSource[];
+}
+
+/**
  * Conversation phase from RUN_FINISHED event
  * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
  * - "ask": Normal conversation mode (hide approval buttons)
@@ -75,11 +100,8 @@ export interface Message {
   createdAt: string;
   createdBy: string | null;
   fileAttachments?: MessageFileAttachment[];
-  /**
-   * Conversation phase from RUN_FINISHED event (assistant messages only)
-   * Controls whether approval buttons are shown
-   */
   phase?: ConversationPhase;
+  command?: MessageCommand;
 }
 
 /**

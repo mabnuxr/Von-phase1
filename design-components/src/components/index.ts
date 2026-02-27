@@ -261,17 +261,48 @@ export { ChatConversation } from './ChatConversation';
 export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
 
 // ============================================================================
+// FILES PREVIEW (Generic slide-in panel for previewing one or more files)
+// ============================================================================
+export { FilesPreviewPanel } from './FilesPreview';
+export type { FilesPreviewPanelProps, FilePreviewEntry, PreviewableFile } from './FilesPreview';
+
+// ============================================================================
+// ANCHORED POPUP (Self-positioning popup anchored to a relative container)
+// ============================================================================
+export { AnchoredPopup } from './AnchoredPopup';
+export type { AnchoredPopupProps, AnchoredPopupRenderProps, PopupPlacement } from './AnchoredPopup';
+
+// ============================================================================
+// DRAWER (Reusable right-side slide-in panel primitive)
+// ============================================================================
+export { Drawer } from './Drawer';
+export type { DrawerProps } from './Drawer';
+
+// ============================================================================
+// ACCORDION (Collapsible section with animated body)
+// ============================================================================
+export { Accordion } from './Accordion';
+export type { AccordionProps } from './Accordion';
+
+// ============================================================================
+// FILE CHIP (Pill chip for representing an attached file)
+// ============================================================================
+export { FileChip, FileTypeIcon, FileIconStack } from './FileChip';
+export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
+
+// ============================================================================
 // COMMANDS (Self-contained slash commands feature)
 // ============================================================================
 export {
   CommandsList,
   CommandDrawer,
   ManageCommandsDrawer,
-  ChatInputWithCommands,
+  CommandChip,
+  CommandsOverlay,
+  CommandPreview,
   useCommands,
-  DATA_SOURCE_LABELS,
+  useCommandsInput,
   ACTION_TYPE_LABELS,
-  CATEGORY_OPTIONS,
   DEFAULT_COMMANDS,
   getCommands,
   saveCommands,
@@ -280,16 +311,20 @@ export {
   deleteCommand,
   getCommandById,
   searchCommands,
-  getCommandsByCategory,
   resetToDefaults,
 } from './Commands';
 export type {
   Command,
-  CommandCategory,
-  DataSource,
-  ActionType,
+  CommandAttachment,
   CommandsState,
-  ChatInputWithCommandsProps,
+  CommandChipProps,
+  CommandDrawerProps,
+  ManageCommandsDrawerProps,
+  CommandsListProps,
+  CommandsOverlayProps,
+  CommandPreviewProps,
+  UseCommandsInputOptions,
+  UseCommandsInputReturn,
 } from './Commands';
 
 // ============================================================================
@@ -443,3 +478,6 @@ export type { UseAutoScrollConfig, UseAutoScrollReturn } from '../hooks';
 
 export { useIsTruncated } from '../hooks';
 export type { UseIsTruncatedReturn } from '../hooks';
+
+export { useVisibilityToggle } from '../hooks';
+export type { UseVisibilityToggleReturn } from '../hooks';

@@ -103,7 +103,7 @@ export const StepRow = React.memo<StepRowProps>(
     return (
       <div className="relative flex gap-1">
         {/* Timeline connector - small dot indicator, centered with title */}
-        <div className="flex flex-col items-center flex-shrink-0">
+        <div className="flex flex-col items-center shrink-0">
           <div className="w-6 h-5 flex items-center justify-center">
             <StepIndicator
               status={effectiveStatus}
@@ -112,7 +112,7 @@ export const StepRow = React.memo<StepRowProps>(
               hasExpandableContent={!!hasExpandableContent}
             />
           </div>
-          {!isLast && <div className="w-px flex-1 bg-gray-100 min-h-[8px]" />}
+          {!isLast && <div className="w-px flex-1 bg-gray-100 min-h-2" />}
         </div>
 
         {/* Content */}
@@ -280,7 +280,7 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                       }}
                     >
-                      <ArrowsOutIcon size={14} className="text-gray-800 flex-shrink-0" />
+                      <ArrowsOutIcon size={14} className="text-gray-800 shrink-0" />
                       <span className="text-sm text-gray-900 truncate">
                         {step.artifact.tool_name} results
                       </span>

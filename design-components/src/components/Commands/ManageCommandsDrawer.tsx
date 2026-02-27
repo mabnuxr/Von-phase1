@@ -1,224 +1,285 @@
 /**
  * ManageCommandsDrawer component
- * Drawer for viewing, searching, filtering, and managing all commands
- * Updated with compact styling and removed blue accents
+ * Full drawer for viewing, searching, sorting, and managing all commands.
+ * Matches the CommandsList popover layout — flat list, favorites pinned at top.
  */
 
-import React, { useState, useMemo } from 'react';
-import { X, Plus, MagnifyingGlass, Trash, PencilSimple } from '@phosphor-icons/react';
-import { type Command, type CommandCategory, CATEGORY_OPTIONS } from './types';
+import React, { useState } from 'react';
+import { X, MagnifyingGlass, Trash, BookmarkSimple, SortAscending } from '@phosphor-icons/react';
+import { type Command, SORT_OPTIONS } from './types';
+import { Drawer } from '../Drawer';
+import { useCommandsFilter } from './useCommandsFilter';
+import { Tooltip } from '../Tooltip';
+import { DeleteCommandConfirmModal } from './DeleteCommandConfirmModal';
 
-interface ManageCommandsDrawerProps {
+// ---------------------------------------------------------------------------
+// Public interface
+// ---------------------------------------------------------------------------
+
+export interface ManageCommandsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   commands: Command[];
+  isLoading?: boolean;
   onNewCommand: () => void;
   onEditCommand: (command: Command) => void;
   onDeleteCommand: (id: string) => void;
+  onToggleFavorite?: (command: Command) => void;
 }
 
-type FilterCategory = CommandCategory | 'All';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatModifiedDate(isoString: string): string {
+  const date = new Date(isoString);
+  const diffDays = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function getPromptPreview(prompt: string, maxLen = 60): string {
+  let text = prompt;
+  if (text.includes('<') && text.includes('>')) {
+    text = text.replace(/<[^>]*>/g, '');
+  }
+  text = text.replace(/\s+/g, ' ').trim();
+  return text.length > maxLen ? text.slice(0, maxLen) + '…' : text;
+}
+
+// ---------------------------------------------------------------------------
+// Drawer
+// ---------------------------------------------------------------------------
 
 export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
   isOpen,
   onClose,
   commands,
+  isLoading = false,
   onNewCommand,
   onEditCommand,
   onDeleteCommand,
+  onToggleFavorite,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('All');
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
-  const categoryOptions: FilterCategory[] = ['All', ...CATEGORY_OPTIONS];
-
-  // Filter commands
-  const filteredCommands = useMemo(() => {
-    let result = commands;
-
-    // Filter by category
-    if (selectedCategory !== 'All') {
-      result = result.filter((cmd) => cmd.category === selectedCategory);
-    }
-
-    // Filter by search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (cmd) =>
-          cmd.name.toLowerCase().includes(query) || cmd.description.toLowerCase().includes(query)
-      );
-    }
-
-    return result;
-  }, [commands, selectedCategory, searchQuery]);
-
-  // Group by category
-  const groupedCommands = useMemo(() => {
-    const groups: Record<string, Command[]> = {};
-    filteredCommands.forEach((cmd) => {
-      if (!groups[cmd.category]) {
-        groups[cmd.category] = [];
-      }
-      groups[cmd.category].push(cmd);
-    });
-    return groups;
-  }, [filteredCommands]);
-
-  const sortedCategories = CATEGORY_OPTIONS.filter((cat) => groupedCommands[cat]?.length > 0);
-
-  if (!isOpen) return null;
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortOption,
+    setSortOption,
+    showSortMenu,
+    setShowSortMenu,
+    currentSortLabel,
+    orderedCommands,
+  } = useCommandsFilter(commands);
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/20 transition-opacity duration-300 z-[55]"
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div
-        className="fixed top-0 right-0 h-full p-2 z-[60]"
-        style={{ width: '520px', maxWidth: '90vw' }}
-      >
-        <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-lg">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
-            <h2 className="text-base font-semibold text-gray-900">Manage Quick Actions</h2>
+    <Drawer isOpen={isOpen} onClose={onClose}>
+      {/* Header */}
+      <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-gray-900">Commands</h2>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onNewCommand}
+              className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              Create New
+            </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
               aria-label="Close"
             >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* Search and New Action */}
-          <div className="px-5 py-3 border-b border-gray-100">
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <MagnifyingGlass
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search quick actions..."
-                  className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 transition-all"
-                />
-              </div>
-              <button
-                onClick={onNewCommand}
-                className="flex items-center gap-1.5 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-              >
-                <Plus size={14} weight="bold" />
-                <span>New</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Category Filters */}
-          <div className="px-5 py-2.5 border-b border-gray-100">
-            <div className="flex gap-1.5 overflow-x-auto">
-              {categoryOptions.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 text-xs rounded-md border whitespace-nowrap transition-colors cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-gray-900 border-gray-900 text-white'
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Commands List */}
-          <div className="flex-1 overflow-y-auto">
-            {sortedCategories.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <div className="text-gray-400 mb-1 text-sm">No commands found</div>
-                <p className="text-xs text-gray-500">
-                  {searchQuery
-                    ? `No results for "${searchQuery}"`
-                    : 'Create your first quick action to get started'}
-                </p>
-              </div>
-            ) : (
-              sortedCategories.map((category) => (
-                <div key={category}>
-                  {/* Category Header */}
-                  <div className="px-5 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wider bg-gray-50 sticky top-0">
-                    {category}
-                  </div>
-
-                  {/* Commands */}
-                  {groupedCommands[category].map((command) => (
-                    <div
-                      key={command.id}
-                      onMouseEnter={() => setHoveredId(command.id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                      className={`px-5 py-3 border-b border-gray-100 transition-colors ${
-                        hoveredId === command.id ? 'bg-gray-50' : 'bg-white'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900">{command.name}</div>
-                          <div className="text-xs text-gray-500 mt-0.5 truncate">
-                            {command.description}
-                          </div>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div
-                          className={`flex items-center gap-0.5 ml-3 transition-opacity ${
-                            hoveredId === command.id ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        >
-                          <button
-                            onClick={() => onEditCommand(command)}
-                            className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
-                            title="Edit"
-                          >
-                            <PencilSimple size={14} />
-                          </button>
-                          <button
-                            onClick={() => onDeleteCommand(command.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-            <span className="text-xs text-gray-500">{filteredCommands.length} actions</span>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-white transition-colors cursor-pointer"
-            >
-              Close
+              <X size={14} />
             </button>
           </div>
         </div>
       </div>
-    </>
+
+      {/* Search + Sort */}
+      <div className="px-3 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <MagnifyingGlass
+              size={13}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search commands..."
+              className="w-full pl-8 pr-3 py-1.5 border border-gray-100 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 transition-all placeholder:text-gray-400"
+            />
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-900 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+              title="Sort commands"
+            >
+              <SortAscending size={13} />
+              <span>{currentSortLabel}</span>
+            </button>
+            {showSortMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 rounded-lg shadow-sm z-20 py-1">
+                  {SORT_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSortOption(option.value);
+                        setShowSortMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs transition-colors cursor-pointer ${
+                        sortOption === option.value
+                          ? 'bg-gray-50 text-gray-900 font-medium'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Commands list */}
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        {isLoading ? (
+          <div className="space-y-1" aria-busy="true" aria-label="Loading commands">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-start px-3 py-2 rounded-xl animate-pulse">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-3.5 bg-gray-100 rounded w-32" />
+                    <div className="h-3.5 bg-gray-100 rounded w-10 shrink-0" />
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-20" />
+                </div>
+                <div className="flex items-center gap-0.5 ml-3 shrink-0">
+                  <div className="h-6 w-6 bg-gray-100 rounded-md" />
+                  <div className="h-6 w-6 bg-gray-100 rounded-md" />
+                  <div className="w-px h-4 bg-gray-100 mx-0.5" />
+                  <div className="h-6 w-6 bg-gray-100 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : orderedCommands.length === 0 ? (
+          <div className="px-4 py-8 text-sm text-gray-500 text-center">
+            No commands found{searchQuery ? ` for "${searchQuery}"` : ''}.
+          </div>
+        ) : (
+          orderedCommands.map((command) => (
+            <div
+              key={command.id}
+              className="group flex items-start px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={() => onEditCommand(command)}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-gray-900 truncate">{command.name}</span>
+                  {command.sharingScope === 'org' ? (
+                    <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
+                      Org
+                    </span>
+                  ) : (
+                    <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
+                      Private
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-800/80 mt-0.5 line-clamp-1">
+                  {getPromptPreview(command.prompt)}
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {command.usageCount !== undefined && (
+                    <span className="text-[11px] text-gray-400">Used {command.usageCount}x</span>
+                  )}
+                  {command.usageCount !== undefined && command.createdBy && (
+                    <span className="text-[11px] text-gray-300">·</span>
+                  )}
+                  {command.createdBy && (
+                    <span className="text-[11px] text-gray-400">
+                      {command.createdBy === 'me'
+                        ? 'Created by me'
+                        : command.creatorName
+                          ? `Created by ${command.creatorName}`
+                          : 'Created by team'}
+                    </span>
+                  )}
+                  <>
+                    {(command.usageCount !== undefined || command.createdBy) && (
+                      <span className="text-[11px] text-gray-300">·</span>
+                    )}
+                    <span className="text-[11px] text-gray-400">
+                      Modified {formatModifiedDate(command.updatedAt)}
+                    </span>
+                  </>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-0.5 ml-3 shrink-0">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite?.(command);
+                  }}
+                  className={`p-1 rounded-md transition-all cursor-pointer ${
+                    command.isFavorite
+                      ? 'text-gray-800 hover:text-gray-900'
+                      : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 opacity-0 group-hover:opacity-100'
+                  }`}
+                  title={command.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <BookmarkSimple size={16} weight={command.isFavorite ? 'fill' : 'regular'} />
+                </button>
+                <div className="w-px h-4 bg-gray-200 mx-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Tooltip
+                  content={command.createdBy === 'me' ? 'Delete' : 'Only the owner can delete'}
+                  placement="top"
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (command.createdBy === 'me') {
+                        setConfirmDelete({ id: command.id, name: command.name });
+                      }
+                    }}
+                    disabled={command.createdBy !== 'me'}
+                    className={`p-1 rounded-md transition-all opacity-0 group-hover:opacity-100 ${command.createdBy === 'me' ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
+                  >
+                    <Trash size={16} />
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      <DeleteCommandConfirmModal
+        isOpen={!!confirmDelete}
+        commandName={confirmDelete?.name ?? ''}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) {
+            onDeleteCommand(confirmDelete.id);
+            setConfirmDelete(null);
+          }
+        }}
+      />
+    </Drawer>
   );
 };
+
+export default ManageCommandsDrawer;

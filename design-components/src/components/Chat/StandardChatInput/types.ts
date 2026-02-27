@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { FileAttachment } from '../FileAttachment/types';
 import type { BuildMode } from '../../DashboardBuilder/types';
 
@@ -276,4 +277,19 @@ export interface StandardChatInputProps {
    * Callback to dismiss the file error toast
    */
   onDismissFileError?: () => void;
+
+  /**
+   * Command chip to render inside the input bubble (above the textarea)
+   * When provided, sending is allowed even with an empty message
+   */
+  contextBar?: ReactNode;
+
+  /**
+   * When true, shows a "/" button in the toolbar that opens the commands overlay
+   * @default false
+   */
+  enableCommands?: boolean;
+
+  /** Called when the user presses Escape to dismiss the commands overlay */
+  onCloseCommandsList?: () => void;
 }

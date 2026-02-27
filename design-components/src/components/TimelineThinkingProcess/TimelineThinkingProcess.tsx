@@ -158,19 +158,15 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {/* Collapse/Expand Caret */}
             {isCollapsed ? (
-              <CaretRightIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
+              <CaretRightIcon size={12} weight="bold" className="text-gray-500 shrink-0" />
             ) : (
-              <CaretDownIcon size={12} weight="bold" className="text-gray-500 flex-shrink-0" />
+              <CaretDownIcon size={12} weight="bold" className="text-gray-500 shrink-0" />
             )}
 
             {/* Status indicator and title */}
             {allComplete ? (
               <>
-                <CheckCircleIcon
-                  size={16}
-                  weight="fill"
-                  className="text-emerald-600 flex-shrink-0"
-                />
+                <CheckCircleIcon size={16} weight="fill" className="text-emerald-600 shrink-0" />
                 <span className="text-sm text-gray-800">{title} completed</span>
                 {summary && <span className="text-sm text-gray-600 ml-1">({summary})</span>}
               </>
@@ -186,7 +182,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          <div className="flex items-center gap-2 shrink-0 ml-2">
             {/* Approval indicator */}
             {awaitingApprovalStep && (
               <div className="flex items-center px-2 py-1 bg-gray-50 border border-gray-100 text-gray-800 rounded-full">
@@ -231,7 +227,10 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                     const isLocallyApproved = localState === 'approved';
                     const isLocallyRejected = localState === 'rejected';
 
-                    // For bulk approval scenarios, only expand the first approval card by default
+                    // Expand approval card by default if it's currently awaiting approval
+                    // (ensures action buttons are always visible) or if it's the first
+                    // approval card (for historical display). Non-first completed approvals
+                    // start collapsed to reduce visual noise.
                     const firstApprovalIdx = visibleSteps.findIndex((s) => s.approval);
                     const isFirstApproval = step.approval && idx === firstApprovalIdx;
 
@@ -278,7 +277,9 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                         onArtifactClick={onArtifactClick}
                         isLocallyApproved={isLocallyApproved}
                         isLocallyRejected={isLocallyRejected}
-                        defaultApprovalExpanded={isFirstApproval}
+                        defaultApprovalExpanded={
+                          step.status === 'awaiting-approval' || !!isFirstApproval
+                        }
                         onApproveRecord={onApproveRecord}
                         onRejectRecord={onRejectRecord}
                         onApproveAll={onApproveAll}

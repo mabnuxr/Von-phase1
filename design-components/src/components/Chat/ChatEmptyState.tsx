@@ -12,6 +12,7 @@ import {
 import type { BuildMode } from '../DashboardBuilder';
 import type { AgentMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
+import type { Command } from '../Commands';
 
 export interface ChatEmptyStateProps {
   /**
@@ -121,6 +122,27 @@ export interface ChatEmptyStateProps {
    * Callback to dismiss the file error toast
    */
   onDismissFileError?: () => void;
+  /** Prefetched commands list */
+  commands?: Command[];
+  /** True while the initial commands fetch is in-flight */
+  isLoadingCommands?: boolean;
+  /** Called for both create and edit */
+  onSaveCommand?: (
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    editingId?: string
+  ) => void;
+  /** Called when a command is deleted */
+  onDeleteCommand?: (id: string) => void;
+  /** True while a save/delete mutation is in-flight */
+  isSavingCommand?: boolean;
+  /** Called when the bookmark/favorite icon is toggled on a command */
+  onToggleFavorite?: (command: Command) => void;
+  /** Fetches a presigned download URL for a command's already-uploaded data source file */
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+  /** Eagerly uploads a file when the user picks it in the command drawer */
+  onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** When true, the "Org-wide" sharing option is available in the command drawer */
+  isAdmin?: boolean;
 }
 
 /**
@@ -168,6 +190,15 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onFilesSelected,
   fileErrorMessage,
   onDismissFileError,
+  commands,
+  isLoadingCommands,
+  onSaveCommand,
+  onDeleteCommand,
+  isSavingCommand,
+  isAdmin = false,
+  onToggleFavorite,
+  onRequestFilePreviewUrl,
+  onUploadFile,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -347,6 +378,15 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         <ChatInputSelector
           useStandardInput={useStandardInput}
           enableCommands={enableCommands}
+          commands={commands}
+          isLoadingCommands={isLoadingCommands}
+          onSaveCommand={onSaveCommand}
+          onDeleteCommand={onDeleteCommand}
+          isSavingCommand={isSavingCommand}
+          isAdmin={isAdmin}
+          onToggleFavorite={onToggleFavorite}
+          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+          onUploadFile={onUploadFile}
           placeholder={placeholder}
           onSend={handleSend}
           disabled={disabled}

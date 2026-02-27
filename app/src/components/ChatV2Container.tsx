@@ -28,6 +28,7 @@ import { DeepResearchConversation } from "./DeepResearchConversation";
 import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 import { reportRenderTiming } from "../lib/datadog";
+import { useCommandsPanel } from "../hooks/useCommandsPanel";
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -101,6 +102,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isLoading: isFetchingNextMessagePage,
   });
 
+  const {
+    commands,
+    isLoadingCommands,
+    isSavingCommand,
+    handleSaveCommand,
+    handleUploadFile,
+    handleRequestFilePreviewUrl,
+    handleDeleteCommand,
+    handleToggleFavorite,
+  } = useCommandsPanel(user?.id);
+
   return (
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
@@ -157,6 +169,15 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               onExamplePromptDisabledClick={onDisabledInteraction}
               onInputWhileDisabled={onDisabledInteraction}
               enableCommands={isSlashCommandsEnabled}
+              commands={commands}
+              isLoadingCommands={isLoadingCommands}
+              onSaveCommand={handleSaveCommand}
+              onDeleteCommand={handleDeleteCommand}
+              isSavingCommand={isSavingCommand}
+              isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+              onToggleFavorite={handleToggleFavorite}
+              onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
+              onUploadFile={handleUploadFile}
               enableActions={isActionsEnabled}
               onApprove={chatV2.handleApproval}
               onReject={chatV2.handleRejection}

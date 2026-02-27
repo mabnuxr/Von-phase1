@@ -73,7 +73,7 @@ const LongTextValue: React.FC<{ value: string; isStrikethrough?: boolean }> = ({
       {/* Tooltip - fixed position to escape overflow containers */}
       {shouldTruncate && showTooltip && (
         <div
-          className="fixed z-[9999] max-w-[300px] p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-pre-wrap pointer-events-none"
+          className="fixed z-9999 max-w-75 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-pre-wrap pointer-events-none"
           style={{ top: tooltipPosition.top, left: tooltipPosition.left }}
         >
           {value}
@@ -87,7 +87,7 @@ const LongTextValue: React.FC<{ value: string; isStrikethrough?: boolean }> = ({
  * Renders a field value based on its type
  */
 const FieldValue: React.FC<{
-  value: string | number | boolean | null | undefined;
+  value: string | number | boolean | Record<string, unknown> | null | undefined;
   fieldType?: ApprovalFieldType;
   isStrikethrough?: boolean;
 }> = ({ value, fieldType, isStrikethrough }) => {
@@ -96,7 +96,8 @@ const FieldValue: React.FC<{
     return <span className="text-gray-400">&mdash;</span>;
   }
 
-  const stringValue = String(value);
+  // Handle objects (e.g. Tooling API Metadata) — stringify for display
+  const stringValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
 
   // Render based on field type
   switch (fieldType) {
@@ -251,9 +252,9 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
             <div className="flex items-center gap-2 min-w-0">
               {hasExpandableContent &&
                 (isExpanded ? (
-                  <CaretDownIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+                  <CaretDownIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
                 ) : (
-                  <CaretRightIcon size={14} weight="bold" className="text-gray-500 flex-shrink-0" />
+                  <CaretRightIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
                 ))}
               {/* IMPORTANT: Always check isRejected first, not isApproved.
                  During a rejection flow, both isApproved and isRejected can briefly
@@ -264,13 +265,9 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
                  with rejectionReason arrives. Checking isRejected first ensures
                  rejection always takes visual priority during this window. */}
               {isRejected ? (
-                <XCircleIcon size={14} weight="fill" className="text-red-500 flex-shrink-0" />
+                <XCircleIcon size={14} weight="fill" className="text-red-500 shrink-0" />
               ) : (
-                <CheckCircleIcon
-                  size={14}
-                  weight="fill"
-                  className="text-emerald-600 flex-shrink-0"
-                />
+                <CheckCircleIcon size={14} weight="fill" className="text-emerald-600 shrink-0" />
               )}
               {approval.recordUrl ? (
                 <a
@@ -287,7 +284,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               )}
             </div>
             <span
-              className={`text-xs flex-shrink-0 ml-2 ${isRejected ? 'text-red-600' : 'text-emerald-700'}`}
+              className={`text-xs shrink-0 ml-2 ${isRejected ? 'text-red-600' : 'text-emerald-700'}`}
             >
               {isRejected ? 'Rejected' : 'Approved'}
             </span>
@@ -361,9 +358,9 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
           <div className="flex items-center gap-2 min-w-0">
             {allowCollapse &&
               (isExpanded ? (
-                <CaretDownIcon size={14} weight="bold" className="text-gray-700 flex-shrink-0" />
+                <CaretDownIcon size={14} weight="bold" className="text-gray-700 shrink-0" />
               ) : (
-                <CaretRightIcon size={14} weight="bold" className="text-gray-700 flex-shrink-0" />
+                <CaretRightIcon size={14} weight="bold" className="text-gray-700 shrink-0" />
               ))}
             {approval.recordUrl ? (
               <a
@@ -379,7 +376,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               <span className="text-sm text-gray-900 truncate">{approval.recordName}</span>
             )}
           </div>
-          <span className="text-xs text-gray-600 flex-shrink-0 ml-2">
+          <span className="text-xs text-gray-600 shrink-0 ml-2">
             {operationLabel} {approval.label}
           </span>
         </div>

@@ -42,3 +42,15 @@ export type {
 
 // Memory Contexts Service
 export { memoryContextsService } from "./memoryContextsService";
+
+// Quick Commands Service
+export { quickCommandsService } from "./quickCommandsService";
+export type {
+  QuickCommand,
+  QuickCommandListResponse,
+  CreateQuickCommandInput,
+  UpdateQuickCommandInput,
+  CommandDataSource as QuickCommandDataSource,
+  PresignRequest,
+  PresignResponse,
+} from "./quickCommandsService";

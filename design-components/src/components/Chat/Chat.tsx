@@ -59,6 +59,15 @@ export const Chat: React.FC<ChatProps> = ({
   onApprove,
   onReject,
   enableCommands = false,
+  commands,
+  isLoadingCommands,
+  onSaveCommand,
+  onDeleteCommand,
+  isSavingCommand,
+  isAdmin = false,
+  onToggleFavorite,
+  onRequestFilePreviewUrl,
+  onUploadFile,
   enableActions = false,
   onConvertToDashboard,
   onTransparencyClick,
@@ -303,6 +312,15 @@ export const Chat: React.FC<ChatProps> = ({
             disabled={examplePromptsDisabled}
             onDisabledClick={onExamplePromptDisabledClick}
             enableCommands={enableCommands}
+            commands={commands}
+            isLoadingCommands={isLoadingCommands}
+            onSaveCommand={onSaveCommand}
+            onDeleteCommand={onDeleteCommand}
+            isSavingCommand={isSavingCommand}
+            isAdmin={isAdmin}
+            onToggleFavorite={onToggleFavorite}
+            onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+            onUploadFile={onUploadFile}
             banner={banner}
             topBanner={topBanner}
             useStandardInput={useStandardInput}
@@ -323,6 +341,7 @@ export const Chat: React.FC<ChatProps> = ({
                 <ChatMessage
                   type={message.type}
                   content={message.content}
+                  command={message.command}
                   reasoningContent={message.reasoningContent}
                   timestamp={message.timestamp}
                   activeTab={message.activeTab}
@@ -360,6 +379,7 @@ export const Chat: React.FC<ChatProps> = ({
                   artifacts={showArtifacts ? message.artifacts : undefined}
                   onFileArtifactClick={showArtifacts ? onFileArtifactClick : undefined}
                   onArtifactDownload={showArtifacts ? onArtifactDownload : undefined}
+                  onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 />
               </div>
             ))}
@@ -389,6 +409,15 @@ export const Chat: React.FC<ChatProps> = ({
         <ChatInputSelector
           useStandardInput={useStandardInput}
           enableCommands={enableCommands}
+          commands={commands}
+          isLoadingCommands={isLoadingCommands}
+          onSaveCommand={onSaveCommand}
+          onDeleteCommand={onDeleteCommand}
+          isSavingCommand={isSavingCommand}
+          isAdmin={isAdmin}
+          onToggleFavorite={onToggleFavorite}
+          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+          onUploadFile={onUploadFile}
           placeholder={placeholder}
           onSend={handleSendMessage}
           onStop={handleStop}

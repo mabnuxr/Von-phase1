@@ -303,6 +303,11 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // Agent selection props (for locking after first message)
       isAgentLocked = false,
       lockedAgentMode = 'auto',
+      // Command chip
+      contextBar,
+      // Commands
+      enableCommands = false,
+      onCloseCommandsList,
     },
     ref
   ) => {
@@ -389,7 +394,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
       // message is now markdown from TiptapEditor
       const hasTextContent = message.trim().length > 0;
-      const hasContent = hasTextContent || hasAttachments;
+      const hasContent = hasTextContent || hasAttachments || Boolean(contextBar);
 
       if (hasContent && onSend) {
         // Send markdown directly
@@ -415,6 +420,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDisabledInput,
       message,
       hasAttachments,
+      contextBar,
       onSend,
       attachments,
       isControlled,
@@ -469,7 +475,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const canSend =
-      (message.trim() || hasAttachments) && !disabled && !disableSubmit && !isStreaming;
+      (message.trim() || hasAttachments || Boolean(contextBar)) &&
+      !disabled &&
+      !disableSubmit &&
+      !isStreaming;
 
     const handlePlusButtonClick = useCallback(() => {
       setIsPlusMenuOpen(true);
@@ -541,6 +550,22 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             </div>
           )}
 
+          {/* Toast + input wrapper */}
+          <div className="flex flex-col gap-1.5">
+            {/* File validation error toast — inline above input */}
+            <FileErrorToast
+              isVisible={!!fileErrorMessage}
+              message={fileErrorMessage || ''}
+              onDismiss={onDismissFileError || (() => {})}
+            />
+
+            {/* Command chip - shown above the input when a command is selected */}
+            {contextBar && !activePopover && (
+              <div className="flex items-center px-1 pb-4 pt-1 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+                {contextBar}
+              </div>
+            )}
+
           {/* Main input container with gradient border */}
           <div
             className={`p-[1px] rounded-2xl transition-all duration-200 ${
@@ -599,6 +624,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           placeholder={placeholder}
                           disabled={disabled && !isStreaming}
                           editorRef={editorRef}
+                            onEscape={onCloseCommandsList}
                         />
                       </div>
                     </div>
@@ -609,22 +635,48 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                     <EditorToolbar editor={editorRef.current} />
                   )}
 
-                  {/* Bottom toolbar with plus menu */}
-                  <div className="flex items-center justify-between px-3 pb-3">
-                    {/* Left side - Plus button and Mode toggle */}
-                    <div className="flex items-center gap-2">
-                      {/* Plus button - opens menu with options */}
-                      <PlusButtonMenu
-                        isOpen={isPlusMenuOpen}
-                        onClose={() => setIsPlusMenuOpen(false)}
-                        onOpen={handlePlusButtonClick}
-                        onAgentModeChange={handleAgentModeChange}
-                        onBuildDashboard={onBuildDashboard}
-                        onUploadClick={() => fileInputRef.current?.click()}
-                        selectedAgentMode={selectedAgentMode}
-                        disabled={disabled && !isStreaming}
-                        isAgentLocked={isAgentLocked}
-                      />
+                    {/* Bottom toolbar with plus menu */}
+                    <div className="flex items-center justify-between px-3 pb-3">
+                      {/* Left side - Plus button and Mode toggle */}
+                      <div className="flex items-center gap-2">
+                        {/* Plus button - directly opens file picker */}
+                        <SecondaryIconButton
+                          icon={
+                            <PlusButtonMenu
+                              isOpen={isPlusMenuOpen}
+                              onClose={() => setIsPlusMenuOpen(false)}
+                              onOpen={handlePlusButtonClick}
+                              onAgentModeChange={handleAgentModeChange}
+                              onBuildDashboard={onBuildDashboard}
+                              onUploadClick={() => fileInputRef.current?.click()}
+                              selectedAgentMode={selectedAgentMode}
+                              disabled={disabled && !isStreaming}
+                              isAgentLocked={isAgentLocked}
+                            />
+                          }
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={disabled && !isStreaming}
+                          title="Upload file"
+                          className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
+                        />
+
+                        {/* Slash commands button */}
+                        {enableCommands && (
+                          <SecondaryIconButton
+                            icon={
+                              <span className="text-[13px] font-semibold text-gray-800 leading-none">
+                                /
+                              </span>
+                            }
+                            onClick={() => {
+                              editorRef.current?.commands.insertContent('/');
+                              editorRef.current?.commands.focus('end');
+                            }}
+                            disabled={(disabled && !isStreaming) || message.trim().length > 0}
+                            title="Commands"
+                            className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
+                          />
+                        )}
 
                       {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
                       <AnimatePresence>
@@ -744,6 +796,14 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                       placeholder={placeholder}
                       disabled={disabled && !isStreaming}
                       editorRef={editorRef}
+                      onEscape={onCloseCommandsList}
+                      onPasteFiles={(files) => {
+                          if (isAttachmentsControlled) {
+                            onFilesSelected?.(files);
+                          } else {
+                            addFiles(files);
+                          }
+                      }}
                     />
                   </div>
 

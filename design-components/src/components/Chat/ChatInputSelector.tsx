@@ -1,19 +1,29 @@
-import React, { forwardRef } from 'react';
+import { forwardRef, useCallback, useState, useEffect } from 'react';
 import { ChatInput } from './ChatInput';
-import { ChatInputWithCommands } from '../Commands/ChatInputWithCommands';
-import { StandardChatInput, StandardChatInputWithCommands } from './StandardChatInput';
+import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
 import type { BuildMode } from '../DashboardBuilder';
 import type { FileAttachment } from './FileAttachment/types';
 import type { AgentMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
-import type { Command } from '../Commands/types';
+import { CommandsOverlay } from '../Commands';
+import type { Command } from '../Commands';
+import { CommandStrip } from './CommandStrip';
 
 // Re-export SendMessageOptions for consumers who import from this file
 export type { SendMessageOptions } from './types';
 
 // Re-export StandardChatInputRef as ChatInputSelectorRef for consumers
 export type ChatInputSelectorRef = StandardChatInputRef;
+
+import { getPlainText } from './utils/text';
+import { useCommandInputState } from './hooks/useCommandInputState';
+import { useCommandsKeyboardNav } from './hooks/useCommandsKeyboardNav';
+import { CommandNotificationBar } from './CommandNotificationBar';
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 export interface ChatInputSelectorProps {
   /** Use StandardChatInput instead of ChatInput */
@@ -23,10 +33,8 @@ export interface ChatInputSelectorProps {
   /** Placeholder text for the input */
   placeholder?: string;
   /**
-   * Callback when send/enter is pressed
-   * @param message - The message content
-   * @param attachments - Optional file attachments
-   * @param options - Additional options (agentMode, command, etc.)
+   * Callback when send/enter is pressed.
+   * `options.command` is populated when the user selected a slash command.
    */
   onSend?: (message: string, attachments?: FileAttachment[], options?: SendMessageOptions) => void;
   /** Callback when stop button is clicked during streaming */
@@ -77,11 +85,44 @@ export interface ChatInputSelectorProps {
   fileErrorMessage?: string | null;
   /** Callback to dismiss the file error toast */
   onDismissFileError?: () => void;
+
+  // -------------------------------------------------------------------------
+  // Commands props (used when enableCommands=true)
+  // -------------------------------------------------------------------------
+
+  /** Prefetched commands list — should be fetched when this component mounts */
+  commands?: Command[];
+  /** True while the initial commands fetch is in-flight */
+  isLoadingCommands?: boolean;
+  /**
+   * Called for both create and edit.
+   * Pass `editingId` to update; omit to create.
+   */
+  onSaveCommand?: (
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    editingId?: string
+  ) => void;
+  /** Called when a command is deleted from the manage drawer */
+  onDeleteCommand?: (id: string) => void;
+  /** True while a save/delete mutation is in-flight */
+  isSavingCommand?: boolean;
+  /** When true, the "Org-wide" sharing option is available in the command drawer */
+  isAdmin?: boolean;
+  /** Called when the bookmark/favorite icon is toggled on a command */
+  onToggleFavorite?: (command: Command) => void;
+  /** Fetches a presigned download URL for a command's already-uploaded data source file */
+  onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+  /** Eagerly uploads a file when picked in the command drawer */
+  onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 /**
  * Selector component that renders the appropriate chat input based on configuration.
- * Reduces conditional complexity in parent components.
+ * When enableCommands=true it also manages slash-command state and renders CommandsOverlay.
  */
 export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelectorProps>(
   (
@@ -114,10 +155,76 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onFilesSelected,
       fileErrorMessage,
       onDismissFileError,
+      // Commands props
+      commands = [],
+      isLoadingCommands = false,
+      onSaveCommand,
+      onDeleteCommand,
+      isSavingCommand = false,
+      isAdmin = false,
+      onToggleFavorite,
+      onRequestFilePreviewUrl,
+      onUploadFile,
     },
     ref
   ) => {
-    // Base props shared by all input variants (excluding onSend which has different signatures)
+    // -----------------------------------------------------------------------
+    // Slash-command state (only active when enableCommands=true)
+    // -----------------------------------------------------------------------
+    const {
+      showCommandsList,
+      commandSearch,
+      selectedCommand,
+      handleChange,
+      handleSelectCommand,
+      handleCloseCommandsList,
+      clearSelectedCommand,
+      dismissCommandsList,
+    } = useCommandInputState({ enableCommands, onChange });
+
+    // Arrow-key navigation for the commands list
+    const { highlightedIndex } = useCommandsKeyboardNav({
+      commands: enableCommands ? commands : [],
+      commandSearch,
+      showCommandsList,
+      onSelectCommand: handleSelectCommand,
+      useDocumentListener: true,
+    });
+
+    // Notification bar shown after sending a message with a command
+    const [commandNotificationFileCount, setCommandNotificationFileCount] = useState<number | null>(
+      null
+    );
+
+    useEffect(() => {
+      if (commandNotificationFileCount === null) return;
+      const timer = setTimeout(() => setCommandNotificationFileCount(null), 4000);
+      return () => clearTimeout(timer);
+    }, [commandNotificationFileCount]);
+
+    // If the selected command is deleted, clear it from the chip.
+    const handleDeleteCommand = useCallback(
+      (id: string) => {
+        if (selectedCommand?.id === id) {
+          clearSelectedCommand();
+        }
+        onDeleteCommand?.(id);
+      },
+      [onDeleteCommand, selectedCommand, clearSelectedCommand]
+    );
+
+    const buildCommandStrip = (command: Command) => (
+      <CommandStrip
+        command={command}
+        onRemove={clearSelectedCommand}
+        onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+      />
+    );
+
+    // -----------------------------------------------------------------------
+    // Build props shared across all input variants
+    // -----------------------------------------------------------------------
+
     const baseCommonProps = {
       placeholder,
       onStop,
@@ -125,8 +232,48 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       isStreaming,
       disableSubmit,
       value,
-      onChange,
+      onChange: handleChange,
     };
+
+    // Wrap onSend for ChatInput so that a selected command is forwarded via options,
+    // even though ChatInput itself only accepts (message, attachments).
+    const chatInputOnSend: ((message: string, attachments?: FileAttachment[]) => void) | undefined =
+      onSend
+        ? (message: string, attachments?: FileAttachment[]) => {
+            if (enableCommands && selectedCommand) {
+              const plainMessage = getPlainText(message).trim();
+              onSend(plainMessage, attachments, { command: selectedCommand });
+              onChange?.('');
+              clearSelectedCommand();
+              const fileCount = selectedCommand.dataSources?.length ?? 0;
+              if (fileCount > 0) setCommandNotificationFileCount(fileCount);
+              return;
+            }
+            onSend(message, attachments);
+            if (enableCommands) dismissCommandsList();
+          }
+        : undefined;
+
+    let chatInput = (
+      <ChatInput
+        {...baseCommonProps}
+        onSend={chatInputOnSend}
+        onDisabledInput={onDisabledInput}
+        hideDisclaimer={hideDisclaimer}
+        enableFileUpload={enableFileUpload}
+        onFileError={onFileError}
+        droppedFiles={droppedFiles}
+        onDroppedFilesProcessed={onDroppedFilesProcessed}
+        showModeToggle={showModeToggle}
+        mode={mode}
+        onModeChange={onModeChange}
+        autoFocus={autoFocus}
+        contextBar={
+          enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined
+        }
+        onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
+      />
+    );
 
     if (useStandardInput) {
       const sharedStandardProps = {
@@ -148,71 +295,60 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         onDismissFileError,
       };
 
-      if (enableCommands) {
-        // StandardChatInputWithCommands passes (message, attachments, command, agentMode)
-        const commandOnSend = onSend
-          ? (
-              message: string,
-              attachments?: FileAttachment[],
-              command?: Command,
-              agentMode?: AgentMode
-            ) => {
-              onSend(message, attachments, { command, agentMode });
-            }
-          : undefined;
-
-        return <StandardChatInputWithCommands {...sharedStandardProps} onSend={commandOnSend} />;
-      }
-
-      // StandardChatInput passes (message, attachments, agentMode)
+      // Wrap onSend to handle command execution
       const standardOnSend = onSend
         ? (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+            if (selectedCommand) {
+              const plainMessage = getPlainText(message).trim();
+              onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
+              onChange?.('');
+              clearSelectedCommand();
+              const fileCount = selectedCommand.dataSources?.length ?? 0;
+              if (fileCount > 0) setCommandNotificationFileCount(fileCount);
+              return;
+            }
             onSend(message, attachments, { agentMode });
+            dismissCommandsList();
           }
         : undefined;
 
-      return <StandardChatInput ref={ref} {...sharedStandardProps} onSend={standardOnSend} />;
-    }
-
-    if (enableCommands) {
-      // ChatInputWithCommands passes (message, attachments, command) - wrap into SendMessageOptions
-      const commandOnSend = onSend
-        ? (message: string, attachments?: FileAttachment[], command?: Command) => {
-            onSend(message, attachments, { command });
-          }
-        : undefined;
-
-      return (
-        <ChatInputWithCommands
-          {...baseCommonProps}
-          onSend={commandOnSend}
-          onDisabledInput={onDisabledInput}
-          hideDisclaimer={hideDisclaimer}
-          autoFocus={autoFocus}
+      chatInput = (
+        <StandardChatInput
+          ref={ref}
+          {...sharedStandardProps}
+          onSend={standardOnSend}
+          enableCommands={enableCommands}
+          contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
+          onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
         />
       );
     }
 
-    // For ChatInput, onSend doesn't use a third param
-    const baseOnSend = onSend as
-      | ((message: string, attachments?: FileAttachment[]) => void)
-      | undefined;
-
     return (
-      <ChatInput
-        {...baseCommonProps}
-        onSend={baseOnSend}
-        onDisabledInput={onDisabledInput}
-        hideDisclaimer={hideDisclaimer}
-        enableFileUpload={enableFileUpload}
-        onFileError={onFileError}
-        droppedFiles={droppedFiles}
-        onDroppedFilesProcessed={onDroppedFilesProcessed}
-        showModeToggle={showModeToggle}
-        mode={mode}
-        onModeChange={onModeChange}
-        autoFocus={autoFocus}
-      />
+      <div className="relative">
+        {enableCommands && commandNotificationFileCount !== null && (
+          <CommandNotificationBar isVisible fileCount={commandNotificationFileCount} />
+        )}
+        {enableCommands && (
+          <CommandsOverlay
+            showCommandsList={showCommandsList}
+            commandSearch={commandSearch}
+            commands={commands}
+            isLoading={isLoadingCommands}
+            onSelectCommand={handleSelectCommand}
+            onCloseCommandsList={handleCloseCommandsList}
+            onSaveCommand={onSaveCommand ?? (() => {})}
+            onDeleteCommand={handleDeleteCommand}
+            isSaving={isSavingCommand}
+            isAdmin={isAdmin}
+            onToggleFavorite={onToggleFavorite}
+            onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+            onUploadFile={onUploadFile}
+            highlightedIndex={highlightedIndex}
+          />
+        )}
+        {chatInput}
+      </div>
     );
   }
 );
