@@ -1,27 +1,12 @@
 import { apiClient } from "./apiClient";
-import { getDashboardFixture } from "../fixtures/dashboards";
-import type {
-  DashboardMetadataResponse,
-  WidgetDataRequest,
-  WidgetDataResponse,
-} from "../types/dashboard";
+import type { WidgetDataRequest, WidgetDataResponse } from "../types/dashboard";
 
 /**
  * Service for dashboard API endpoints.
- * Falls back to fixture data when the API is unavailable.
  */
 class DashboardService {
-  async getDashboard(dashboardId: string): Promise<DashboardMetadataResponse> {
-    try {
-      return await apiClient.get<DashboardMetadataResponse>(
-        `/api/v1/dashboards/${dashboardId}`,
-      );
-    } catch {
-      // Fall back to fixtures during development
-      const fixture = getDashboardFixture(dashboardId);
-      if (fixture) return fixture;
-      throw new Error(`Dashboard not found: ${dashboardId}`);
-    }
+  async getDashboard(dashboardId: string) {
+    return apiClient.get(`/api/v1/dashboards/${dashboardId}`);
   }
 
   async getWidgetData(
