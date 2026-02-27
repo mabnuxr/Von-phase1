@@ -152,7 +152,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 type="text"
                 value={form.name}
                 onChange={setField('name')}
-                placeholder="manager-note-for-deal"
+                placeholder="1x1-prep"
                 className="w-full px-3 py-2 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all placeholder:text-gray-400"
               />
             )}
@@ -168,7 +168,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
               onChange={setField('prompt')}
               rows={6}
               readOnly={readOnly}
-              placeholder="Summarize the latest call notes and highlight key action items for the manager"
+              placeholder="Help me prep for my 1x1 with my direct report"
               className={`w-full px-3 py-2 text-sm border border-gray-100 rounded-lg resize-none transition-all placeholder:text-gray-400 ${
                 readOnly
                   ? 'bg-gray-50 text-gray-600 cursor-default focus:outline-none'
@@ -190,7 +190,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
               onChange={setField('prefillText')}
               rows={3}
               readOnly={readOnly}
-              placeholder={readOnly ? '—' : 'Where owner is [owner_name]'}
+              placeholder={readOnly ? '—' : 'Direct report name is [name]'}
               className={`w-full px-3 py-2 text-sm border border-gray-100 rounded-lg resize-none transition-all placeholder:text-gray-400 ${
                 readOnly
                   ? 'bg-gray-50 text-gray-600 cursor-default focus:outline-none'

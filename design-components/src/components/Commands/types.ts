@@ -91,6 +91,8 @@ export interface Command {
   usageCount?: number;
   lastUsedAt?: string;
   createdBy?: 'me' | 'team';
+  /** Display name of the creator — populated for team-owned commands */
+  creatorName?: string;
   actionType?: string;
 }
 

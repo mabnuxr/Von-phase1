@@ -504,8 +504,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                               editorRef.current?.commands.insertContent('/');
                               editorRef.current?.commands.focus('end');
                             }}
-                            disabled={disabled && !isStreaming}
-                            title="Open commands"
+                            disabled={(disabled && !isStreaming) || message.trim().length > 0}
+                            title="Commands"
                             className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
                           />
                         )}
