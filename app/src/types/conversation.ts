@@ -88,6 +88,18 @@ export interface MessageCommand {
 export type ConversationPhase = "plan-proposed" | "ask" | null;
 
 /**
+ * Dashboard metadata from RUN_FINISHED event
+ * Sent by backend when a dashboard is created
+ */
+export interface DashboardMetadata {
+  dashboard_id: string;
+  dashboard_name: string;
+  dashboard_version: number;
+  panel_count: number;
+  query_count: number;
+}
+
+/**
  * Message entity from backend
  */
 export interface Message {
@@ -102,6 +114,11 @@ export interface Message {
   fileAttachments?: MessageFileAttachment[];
   phase?: ConversationPhase;
   command?: MessageCommand;
+  /**
+   * Dashboard metadata from RUN_FINISHED event (assistant messages only)
+   * Present when a dashboard was created during this run
+   */
+  dashboard?: DashboardMetadata;
 }
 
 /**

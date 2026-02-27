@@ -543,6 +543,7 @@ export function useChatV2(props: UseChatV2Props) {
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
     phase: v2Processor.phase,
+    dashboard: v2Processor.dashboard,
 
     // Messages
     transformedMessages,

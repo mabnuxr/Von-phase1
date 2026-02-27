@@ -33,6 +33,7 @@ interface ChatInputSelectorRef {
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
+import { DashboardPanel } from "./DashboardPanel";
 
 export interface ResearchResultsState {
   isStreaming: boolean;
@@ -68,6 +69,14 @@ export interface DeepResearchConversationProps {
   researchResults?: ResearchResultsState;
   /** Whether deep research is currently running */
   isDeepResearchRunning?: boolean;
+  /** Dashboard metadata (when dashboard is created) */
+  dashboard?: {
+    dashboard_id: string;
+    dashboard_name: string;
+    dashboard_version: number;
+    panel_count: number;
+    query_count: number;
+  };
   /** Callback when message is sent */
   onSendMessage?: (
     content: string,
@@ -112,6 +121,7 @@ export const DeepResearchConversation: React.FC<
   conversationId,
   researchResults,
   isDeepResearchRunning = false,
+  dashboard,
   onSendMessage,
   onStopStreaming,
   onArtifactClick,
@@ -272,6 +282,7 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
+          dashboard={dashboard ?? undefined}
           onSendMessage={(content) => handleSendMessage(content)}
           onSkip={handleSkip}
           hasSkipped={hasSkipped}
