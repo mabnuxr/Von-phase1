@@ -28,6 +28,7 @@ import {
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
 import { DragDropOverlay } from '../FileAttachment/DragDropOverlay';
+import { FileErrorToast } from '../FileAttachment/FileErrorToast';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -308,6 +309,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // Commands
       enableCommands = false,
       onCloseCommandsList,
+      // File error props
+      fileErrorMessage,
+      onDismissFileError,
     },
     ref
   ) => {
@@ -639,25 +643,17 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                     <div className="flex items-center justify-between px-3 pb-3">
                       {/* Left side - Plus button and Mode toggle */}
                       <div className="flex items-center gap-2">
-                        {/* Plus button - directly opens file picker */}
-                        <SecondaryIconButton
-                          icon={
-                            <PlusButtonMenu
-                              isOpen={isPlusMenuOpen}
-                              onClose={() => setIsPlusMenuOpen(false)}
-                              onOpen={handlePlusButtonClick}
-                              onAgentModeChange={handleAgentModeChange}
-                              onBuildDashboard={onBuildDashboard}
-                              onUploadClick={() => fileInputRef.current?.click()}
-                              selectedAgentMode={selectedAgentMode}
-                              disabled={disabled && !isStreaming}
-                              isAgentLocked={isAgentLocked}
-                            />
-                          }
-                          onClick={() => fileInputRef.current?.click()}
+                        {/* Plus button - opens menu with agent and upload options */}
+                        <PlusButtonMenu
+                          isOpen={isPlusMenuOpen}
+                          onClose={() => setIsPlusMenuOpen(false)}
+                          onOpen={handlePlusButtonClick}
+                          onAgentModeChange={handleAgentModeChange}
+                          onBuildDashboard={onBuildDashboard}
+                          onUploadClick={() => fileInputRef.current?.click()}
+                          selectedAgentMode={selectedAgentMode}
                           disabled={disabled && !isStreaming}
-                          title="Upload file"
-                          className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
+                          isAgentLocked={isAgentLocked}
                         />
 
                         {/* Slash commands button */}
@@ -831,6 +827,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 </div>
               )}
             </div>
+          </div>
           </div>
 
           {!hideDisclaimer && (
