@@ -183,13 +183,25 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     } = useCommandInputState({ enableCommands, onChange });
 
     // Arrow-key navigation for the commands list
-    const { highlightedIndex } = useCommandsKeyboardNav({
+    const { highlightedIndex, filteredCommands } = useCommandsKeyboardNav({
       commands: enableCommands ? commands : [],
       commandSearch,
       showCommandsList,
       onSelectCommand: handleSelectCommand,
       useDocumentListener: true,
     });
+
+    // Ghost text: always show highlighted background when list is open.
+    // Text = command name when arrowing through, "select-command" otherwise.
+    const ghostCommandName =
+      showCommandsList && !commandSearch
+        ? highlightedIndex >= 0 && filteredCommands.length > 0
+          ? filteredCommands[highlightedIndex]?.name ?? 'select-command'
+          : 'select-command'
+        : null;
+
+    const isGhostHighlighted = showCommandsList && !commandSearch;
+
 
     // Notification bar shown after sending a message with a command
     const [commandNotificationFileCount, setCommandNotificationFileCount] = useState<number | null>(
@@ -271,7 +283,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         contextBar={
           enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined
         }
-        onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
+        onCloseCommandsList={enableCommands && showCommandsList ? handleCloseCommandsList : undefined}
       />
     );
 
@@ -318,6 +330,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           {...sharedStandardProps}
           onSend={standardOnSend}
           enableCommands={enableCommands}
+          ghostCommandName={ghostCommandName}
+          isGhostHighlighted={isGhostHighlighted}
           contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
           onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
         />

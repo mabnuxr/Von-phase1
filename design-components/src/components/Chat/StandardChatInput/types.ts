@@ -291,4 +291,10 @@ export interface StandardChatInputProps {
 
   /** Called when the user presses Escape to dismiss the commands overlay */
   onCloseCommandsList?: () => void;
+
+  /** Ghost command name shown as inline typeahead next to "/" */
+  ghostCommandName?: string | null;
+
+  /** When true, ghost text renders with a highlighted/selected background */
+  isGhostHighlighted?: boolean;
 }

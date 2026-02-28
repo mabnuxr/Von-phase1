@@ -24,8 +24,8 @@ export function useCommandsKeyboardNav({
   onSelectCommand,
   useDocumentListener = false,
 }: UseCommandsKeyboardNavOptions): UseCommandsKeyboardNavReturn {
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
-  const highlightedIndexRef = useRef(0);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const highlightedIndexRef = useRef(-1);
   // Keep ref in sync with state so navigate always reads the latest value
   highlightedIndexRef.current = highlightedIndex;
 
@@ -37,9 +37,9 @@ export function useCommandsKeyboardNav({
     [commands, commandSearch]
   );
 
-  // Reset to first item when list opens or search changes
+  // Reset to no highlight when list opens or search changes
   useEffect(() => {
-    if (showCommandsList) setHighlightedIndex(0);
+    if (showCommandsList) setHighlightedIndex(-1);
   }, [showCommandsList, commandSearch]);
 
   const navigate = useCallback(
@@ -47,7 +47,7 @@ export function useCommandsKeyboardNav({
       if (!showCommandsList || filteredCommands.length === 0) return false;
       if (key === 'ArrowDown') {
         setHighlightedIndex((i) => {
-          const next = Math.min(i + 1, filteredCommands.length - 1);
+          const next = i < 0 ? 0 : Math.min(i + 1, filteredCommands.length - 1);
           highlightedIndexRef.current = next;
           return next;
         });
@@ -55,13 +55,14 @@ export function useCommandsKeyboardNav({
       }
       if (key === 'ArrowUp') {
         setHighlightedIndex((i) => {
-          const next = Math.max(i - 1, 0);
+          const next = i <= 0 ? -1 : i - 1;
           highlightedIndexRef.current = next;
           return next;
         });
         return true;
       }
       if (key === 'Enter') {
+        if (highlightedIndexRef.current < 0) return false;
         const cmd = filteredCommands[highlightedIndexRef.current];
         if (cmd) {
           onSelectCommand(cmd);

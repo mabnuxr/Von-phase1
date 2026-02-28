@@ -156,9 +156,11 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       },
       handleKeyDown: (view, event) => {
         if (event.key === 'Escape' && onEscape) {
-          event.preventDefault();
-          onEscape();
-          return true;
+          const consumed = onEscape();
+          if (consumed) {
+            event.preventDefault();
+            return true;
+          }
         }
 
         // Handle Enter key for submission (Shift+Enter is handled by CustomListItem extension)

@@ -148,6 +148,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // Commands
       enableCommands = false,
       onCloseCommandsList,
+      ghostCommandName,
+      isGhostHighlighted = false,
     },
     ref
   ) => {
@@ -156,6 +158,15 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     // const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
     // const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
     const editorRef = useRef<Editor | null>(null);
+
+    // Wrap onCloseCommandsList so it returns true (consumed) only when the list is open
+    const handleEscape = useCallback((): boolean => {
+      if (ghostCommandName && onCloseCommandsList) {
+        onCloseCommandsList();
+        return true;
+      }
+      return false;
+    }, [ghostCommandName, onCloseCommandsList]);
 
     // Expose focus method via ref
     useImperativeHandle(
@@ -167,6 +178,19 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       }),
       []
     );
+
+    // Hide editor text when ghost highlight is active (overlay renders its own "/")
+    useEffect(() => {
+      const el = editorRef.current?.view?.dom as HTMLElement | undefined;
+      if (!el) return;
+      if (isGhostHighlighted) {
+        el.style.setProperty('color', 'transparent', 'important');
+        el.style.setProperty('caret-color', '#111827');
+      } else {
+        el.style.removeProperty('color');
+        el.style.removeProperty('caret-color');
+      }
+    }, [isGhostHighlighted]);
 
     // TODO: Uncomment when agent mode is reimplemented
     // const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
@@ -453,7 +477,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                     {/* Text input area - Tiptap Editor */}
                     <div className="px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 relative">
                           <TiptapEditor
                             content={message}
                             onChange={handleChange}
@@ -461,7 +485,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             placeholder={placeholder}
                             disabled={disabled && !isStreaming}
                             editorRef={editorRef}
-                            onEscape={onCloseCommandsList}
+                            onEscape={handleEscape}
                             onPasteFiles={(files) => {
                               if (isAttachmentsControlled) {
                                 onFilesSelected?.(files);
@@ -470,6 +494,36 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                               }
                             }}
                           />
+                          {ghostCommandName && (
+                            <div
+                              className={`absolute top-0 left-0 z-10 pointer-events-none select-none${isGhostHighlighted ? ' bg-gray-100 rounded-md px-1' : ''}`}
+                              aria-hidden="true"
+                            >
+                              <p
+                                style={{
+                                  margin: 0,
+                                  padding: 0,
+                                  fontSize: '15px',
+                                  fontFamily:
+                                    "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif",
+                                  lineHeight: '1.5',
+                                  WebkitFontSmoothing: 'antialiased',
+                                }}
+                              >
+                                {isGhostHighlighted ? (
+                                  <>
+                                    <span style={{ color: '#111827' }}>/</span>
+                                    <span className="text-gray-400">{ghostCommandName}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="invisible">/</span>
+                                    <span className="text-gray-400">{ghostCommandName}</span>
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -619,7 +673,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                   /* Inline layout - text input with send button on same row */
                   <div className="flex items-center gap-2 px-4 py-3">
                     {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 relative">
                       <TiptapEditor
                         content={message}
                         onChange={handleChange}
@@ -627,7 +681,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                         placeholder={placeholder}
                         disabled={disabled && !isStreaming}
                         editorRef={editorRef}
-                        onEscape={onCloseCommandsList}
+                        onEscape={handleEscape}
                         onPasteFiles={(files) => {
                           if (isAttachmentsControlled) {
                             onFilesSelected?.(files);
@@ -636,6 +690,36 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           }
                         }}
                       />
+                      {ghostCommandName && (
+                        <div
+                          className={`absolute top-0 left-0 z-10 pointer-events-none select-none${isGhostHighlighted ? ' bg-gray-100 rounded-md px-1' : ''}`}
+                          aria-hidden="true"
+                        >
+                          <p
+                            style={{
+                              margin: 0,
+                              padding: 0,
+                              fontSize: '15px',
+                              fontFamily:
+                                "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif",
+                              lineHeight: '1.5',
+                              WebkitFontSmoothing: 'antialiased',
+                            }}
+                          >
+                            {isGhostHighlighted ? (
+                              <>
+                                <span style={{ color: '#111827' }}>/</span>
+                                <span className="text-gray-400">{ghostCommandName}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="invisible">/</span>
+                                <span className="text-gray-400">{ghostCommandName}</span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Send/Stop button inline */}

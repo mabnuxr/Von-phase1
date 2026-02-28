@@ -14,7 +14,7 @@
  *   onDeleteCommand
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Command } from './types';
 import { CommandDrawer } from './CommandDrawer';
 import { CommandsList } from './CommandsList';
@@ -133,6 +133,19 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   const manageDrawer = useVisibilityToggle();
   const [editingCommand, setEditingCommand] = useState<Command | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Close commands list on click outside
+  useEffect(() => {
+    if (!showCommandsList) return;
+    const handler = (e: MouseEvent) => {
+      if (listRef.current && !listRef.current.contains(e.target as Node)) {
+        onCloseCommandsList();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showCommandsList, onCloseCommandsList]);
 
   const openCreateDrawer = useCallback(() => {
     setEditingCommand(null);
@@ -180,20 +193,23 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         isOpen={showCommandsList}
         minHeight={MIN_LIST_HEIGHT}
         maxHeight={MAX_LIST_HEIGHT}
-        className="max-w-4xl mx-auto w-full z-50"
+        margin={-56}
+        className="max-w-4xl mx-auto w-full z-50 flex justify-start pl-6"
       >
         {({ maxHeight }) => (
-          <CommandsList
-            commands={filteredCommands}
-            isLoading={isLoading}
-            onSelectCommand={onSelectCommand}
-            onNewCommand={openCreateDrawer}
-            onManageCommands={openManageDrawer}
-            onExpandCommand={openEditDrawer}
-            onToggleFavorite={onToggleFavorite}
-            maxHeight={maxHeight}
-            highlightedIndex={highlightedIndex}
-          />
+          <div ref={listRef}>
+            <CommandsList
+              commands={filteredCommands}
+              isLoading={isLoading}
+              onSelectCommand={onSelectCommand}
+              onNewCommand={openCreateDrawer}
+              onManageCommands={openManageDrawer}
+              onExpandCommand={openEditDrawer}
+              onToggleFavorite={onToggleFavorite}
+              maxHeight={maxHeight}
+              highlightedIndex={highlightedIndex}
+            />
+          </div>
         )}
       </AnchoredPopup>
 

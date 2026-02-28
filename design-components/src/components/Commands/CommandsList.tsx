@@ -18,7 +18,7 @@ import { IconButton } from '../forms/buttons';
 // ---------------------------------------------------------------------------
 
 /** Strip HTML tags and truncate for prompt preview */
-function getPromptPreview(prompt: string, maxLen = 60): string {
+function getPromptPreview(prompt: string, maxLen = 150): string {
   let text = prompt;
   if (text.includes('<') && text.includes('>')) {
     text = text.replace(/<[^>]*>/g, '');
@@ -30,12 +30,6 @@ function getPromptPreview(prompt: string, maxLen = 60): string {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-const CommandsListHelpText: React.FC = () => (
-  <div className="px-3 pt-2.5 pb-1.5">
-    <span className="text-xs text-gray-400">/ Select command</span>
-  </div>
-);
 
 interface CommandItemProps {
   command: Command;
@@ -53,7 +47,7 @@ const CommandItem: React.FC<CommandItemProps> = ({
   isHighlighted,
 }) => (
   <div
-    className={`group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent ${isHighlighted ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
+    className={`group flex items-start pl-3 pr-1.5 py-1.5 rounded-xl transition-colors cursor-pointer border border-transparent ${isHighlighted ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
     onClick={() => onSelect(command)}
   >
     <div className="flex-1 min-w-0">
@@ -162,17 +156,15 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   }, [highlightedIndex]);
   if (isLoading && commands.length === 0) {
     return (
-      <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
+      <div className="w-72 bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
         Loading commands…
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <CommandsListHelpText />
-
-      <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
+    <div className="w-72 bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
+      <div className="overflow-y-auto scrollbar-hide px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
         {commands.length === 0 ? (
           <EmptyState />
         ) : (
