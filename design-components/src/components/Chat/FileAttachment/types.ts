@@ -47,10 +47,10 @@ export type FileCategory = 'document' | 'spreadsheet' | 'presentation' | 'text' 
 /**
  * File size limits
  */
-export const FILE_SIZE_LIMIT_MB = 7;
+export const FILE_SIZE_LIMIT_MB = 20;
 export const FILE_SIZE_LIMIT_BYTES = FILE_SIZE_LIMIT_MB * 1024 * 1024;
 export const MAX_FILES = 5;
-export const AGGREGATE_SIZE_LIMIT_MB = 20;
+export const AGGREGATE_SIZE_LIMIT_MB = 50;
 export const AGGREGATE_SIZE_LIMIT_BYTES = AGGREGATE_SIZE_LIMIT_MB * 1024 * 1024;
 
 /**
