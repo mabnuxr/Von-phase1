@@ -108,16 +108,10 @@ export class ApiClient {
     endpoint: string,
     options: ApiRequestOptions = {},
   ): Promise<T> {
-    const {
-      headers: customHeaders,
-      ...fetchOptions
-    } = options;
+    const { headers: customHeaders, ...fetchOptions } = options;
 
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = this.mergeHeaders(
-      this.getDefaultHeaders(),
-      customHeaders,
-    );
+    const headers = this.mergeHeaders(this.getDefaultHeaders(), customHeaders);
 
     if (import.meta.env.DEV) {
       console.log(`[API] ${fetchOptions.method || "GET"} ${url}`);
@@ -141,7 +135,6 @@ export class ApiClient {
         }
       }
 
-<<<<<<< abhishek-commands-ux
       // Handle non-OK responses
       if (!response.ok) {
         const errorMessage = extractErrorMessage(
@@ -157,24 +150,12 @@ export class ApiClient {
             console.log(
               `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
             );
-=======
-        // Handle 401 Unauthorized — backend middleware handles transparent
-        // token refresh, so a 401 means the session is truly expired
-        if (response.status === 401) {
-          if (import.meta.env.DEV) {
-            console.log("[API] 401 Unauthorized - session expired, logging out");
->>>>>>> main
           }
           clearAllAuth();
           setTimeout(() => {
             window.location.href = "/";
           }, 100);
-<<<<<<< abhishek-commands-ux
           throw new ApiError(errorMessage, response.status, responseData);
-=======
-
-          throw new ApiError(errorMessage, response.status, errorData);
->>>>>>> main
         }
 
         throw new ApiError(errorMessage, response.status, responseData);
