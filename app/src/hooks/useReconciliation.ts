@@ -70,7 +70,6 @@ export function useReconciliation({
   isThinking,
   isFinalResponseStreaming,
   isConnected,
-  pusherRef,
   eventsRef,
   finishedRunsRef,
   lastEventTimeRef,
@@ -187,7 +186,6 @@ export function useReconciliation({
     }
   }, [
     conversationId,
-    pusherRef,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

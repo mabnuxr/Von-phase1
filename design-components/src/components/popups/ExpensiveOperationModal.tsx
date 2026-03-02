@@ -84,7 +84,6 @@ const VonLogo: React.FC<{ size?: number }> = ({ size = 32 }) => (
  */
 export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = ({
   isOpen,
-  recordCount,
   estimatedTime = '10-15 minutes',
   onConfirm,
   onCancel,
