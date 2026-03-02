@@ -56,6 +56,10 @@ export interface CommandsOverlayProps {
   onDeleteCommand: (id: string) => void;
   /** Index of the keyboard-highlighted command in the filtered list */
   highlightedIndex?: number;
+  /** Called when the user hovers a command row — lets the parent sync keyboard nav position */
+  onHoverIndex?: (index: number) => void;
+  /** Screen coordinates of the "/" character — when provided, the list is portalled near the caret */
+  slashRect?: { left: number; top: number; bottom: number } | null;
   /** Disables the save button while a mutation is in-flight */
   isSaving?: boolean;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
@@ -128,6 +132,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onRequestFilePreviewUrl,
   onUploadFile,
   highlightedIndex = 0,
+  onHoverIndex,
+  slashRect,
 }) => {
   const formDrawer = useVisibilityToggle();
   const manageDrawer = useVisibilityToggle();
@@ -188,13 +194,13 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
 
   return (
     <>
-      {/* "/" dropdown — AnchoredPopup owns the sentinel, placement, and animation */}
+      {/* "/" dropdown */}
       <AnchoredPopup
         isOpen={showCommandsList}
         minHeight={MIN_LIST_HEIGHT}
         maxHeight={MAX_LIST_HEIGHT}
-        margin={-56}
-        className="max-w-4xl mx-auto w-full z-50 flex justify-start pl-6"
+        className="z-50"
+        anchorRect={slashRect}
       >
         {({ maxHeight }) => (
           <div ref={listRef}>
@@ -208,6 +214,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
               onToggleFavorite={onToggleFavorite}
               maxHeight={maxHeight}
               highlightedIndex={highlightedIndex}
+              onHoverIndex={onHoverIndex}
             />
           </div>
         )}

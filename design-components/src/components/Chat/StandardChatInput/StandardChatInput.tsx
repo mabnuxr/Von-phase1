@@ -159,21 +159,28 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     // const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
     const editorRef = useRef<Editor | null>(null);
 
-    // Wrap onCloseCommandsList so it returns true (consumed) only when the list is open
+    // When the commands list is open, consume the Escape event so it doesn't
+    // bubble up to useEscapeToStopStreaming and stop an in-flight message.
     const handleEscape = useCallback((): boolean => {
-      if (ghostCommandName && onCloseCommandsList) {
+      if (onCloseCommandsList) {
         onCloseCommandsList();
         return true;
       }
       return false;
-    }, [ghostCommandName, onCloseCommandsList]);
+    }, [onCloseCommandsList]);
 
-    // Expose focus method via ref
+    // Expose imperative methods via ref
     useImperativeHandle(
       ref,
       () => ({
         focus: () => {
           editorRef.current?.commands.focus();
+        },
+        getCaretRect: () => {
+          const view = editorRef.current?.view;
+          if (!view) return null;
+          const coords = view.coordsAtPos(view.state.selection.from);
+          return { left: coords.left, top: coords.top, bottom: coords.bottom };
         },
       }),
       []

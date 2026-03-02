@@ -12,6 +12,7 @@ export interface UseCommandsKeyboardNavOptions {
 
 export interface UseCommandsKeyboardNavReturn {
   highlightedIndex: number;
+  setHighlightedIndex: React.Dispatch<React.SetStateAction<number>>;
   filteredCommands: Command[];
   /** Call this in a textarea/input's onKeyDown when useDocumentListener is false */
   handleKeyDown: (e: React.KeyboardEvent) => boolean;
@@ -100,5 +101,5 @@ export function useCommandsKeyboardNav({
     [navigate]
   );
 
-  return { highlightedIndex, filteredCommands, handleKeyDown };
+  return { highlightedIndex, setHighlightedIndex, filteredCommands, handleKeyDown };
 }

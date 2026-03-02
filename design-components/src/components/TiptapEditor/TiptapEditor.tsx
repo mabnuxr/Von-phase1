@@ -159,6 +159,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           const consumed = onEscape();
           if (consumed) {
             event.preventDefault();
+            event.stopPropagation();
             return true;
           }
         }

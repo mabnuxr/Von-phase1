@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useState, useEffect } from 'react';
+import { forwardRef, useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
@@ -168,6 +168,17 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     },
     ref
   ) => {
+    // Internal ref to StandardChatInput so we can call getCaretRect()
+    const standardInputRef = useRef<StandardChatInputRef | null>(null);
+    const setInputRef = useCallback(
+      (el: StandardChatInputRef | null) => {
+        standardInputRef.current = el;
+        if (typeof ref === 'function') ref(el);
+        else if (ref) ref.current = el;
+      },
+      [ref]
+    );
+
     // -----------------------------------------------------------------------
     // Slash-command state (only active when enableCommands=true)
     // -----------------------------------------------------------------------
@@ -182,8 +193,24 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       dismissCommandsList,
     } = useCommandInputState({ enableCommands, onChange });
 
+    // Capture caret position when the commands list opens so the overlay
+    // can be anchored near the "/" character rather than the full input.
+    const [slashRect, setSlashRect] = useState<{
+      left: number;
+      top: number;
+      bottom: number;
+    } | null>(null);
+    useLayoutEffect(() => {
+      if (showCommandsList) {
+        const coords = standardInputRef.current?.getCaretRect();
+        if (coords) setSlashRect(coords);
+      } else {
+        setSlashRect(null);
+      }
+    }, [showCommandsList]);
+
     // Arrow-key navigation for the commands list
-    const { highlightedIndex, filteredCommands } = useCommandsKeyboardNav({
+    const { highlightedIndex, setHighlightedIndex, filteredCommands } = useCommandsKeyboardNav({
       commands: enableCommands ? commands : [],
       commandSearch,
       showCommandsList,
@@ -196,12 +223,11 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     const ghostCommandName =
       showCommandsList && !commandSearch
         ? highlightedIndex >= 0 && filteredCommands.length > 0
-          ? filteredCommands[highlightedIndex]?.name ?? 'select-command'
+          ? (filteredCommands[highlightedIndex]?.name ?? 'select-command')
           : 'select-command'
         : null;
 
     const isGhostHighlighted = showCommandsList && !commandSearch;
-
 
     // Notification bar shown after sending a message with a command
     const [commandNotificationFileCount, setCommandNotificationFileCount] = useState<number | null>(
@@ -283,7 +309,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         contextBar={
           enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined
         }
-        onCloseCommandsList={enableCommands && showCommandsList ? handleCloseCommandsList : undefined}
+        onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
       />
     );
 
@@ -326,14 +352,14 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
       chatInput = (
         <StandardChatInput
-          ref={ref}
+          ref={setInputRef}
           {...sharedStandardProps}
           onSend={standardOnSend}
           enableCommands={enableCommands}
           ghostCommandName={ghostCommandName}
           isGhostHighlighted={isGhostHighlighted}
           contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
-          onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
+          onCloseCommandsList={enableCommands && showCommandsList ? handleCloseCommandsList : undefined}
         />
       );
     }
@@ -363,6 +389,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
             highlightedIndex={highlightedIndex}
+            onHoverIndex={setHighlightedIndex}
+            slashRect={slashRect}
           />
         )}
         {chatInput}

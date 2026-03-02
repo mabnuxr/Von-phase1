@@ -18,9 +18,13 @@
  *   </AnchoredPopup>
  * </div>
  * ```
+ *
+ * When `anchorRect` is provided, the popup aligns horizontally and vertically
+ * to a specific point (e.g. a caret position) inside the relative container
+ * using CSS offsets — no portal required.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ---------------------------------------------------------------------------
@@ -63,6 +67,14 @@ export interface AnchoredPopupProps {
   className?: string;
   /** Framer Motion transition overrides */
   transition?: object;
+  /**
+   * When provided, the popup aligns to this viewport rect instead of the
+   * sentinel's edges. Placement (above/below) and maxHeight are computed
+   * relative to this rect, and a CSS left offset + adjusted margin is applied
+   * so the popup appears next to the anchor point (e.g. a caret position).
+   * No portal — pure CSS offset via `left` + negative margin adjustment.
+   */
+  anchorRect?: { left: number; top: number; bottom: number } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -115,20 +127,72 @@ export const AnchoredPopup: React.FC<AnchoredPopupProps> = ({
   margin = DEFAULT_MARGIN,
   className = '',
   transition = DEFAULT_TRANSITION,
+  anchorRect,
 }) => {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<PopupPlacement>('above');
   const [computedMaxHeight, setComputedMaxHeight] = useState(maxHeightCap);
+  // CSS offsets applied when anchorRect is provided
+  const [anchorOffset, setAnchorOffset] = useState<{ left: number; verticalMargin: number } | null>(
+    null
+  );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen || !sentinelRef.current) return;
 
     const updatePlacement = () => {
       if (!sentinelRef.current) return;
-      const rect = sentinelRef.current.getBoundingClientRect();
-      const result = computePlacement(rect, minHeight, maxHeightCap, margin);
-      setPlacement(result.placement);
-      setComputedMaxHeight(result.maxHeight);
+      const sentinelRect = sentinelRef.current.getBoundingClientRect();
+
+      if (anchorRect) {
+        // Compute placement relative to the caret/anchor point
+        const spaceAbove = anchorRect.top;
+        const spaceBelow = window.innerHeight - anchorRect.bottom;
+
+        const prefersAbove = spaceAbove >= minHeight + margin && spaceAbove >= spaceBelow;
+        const canGoBelow = spaceBelow >= minHeight + margin;
+
+        let p: PopupPlacement;
+        let mh: number;
+        if (prefersAbove) {
+          p = 'above';
+          mh = Math.min(spaceAbove - margin, maxHeightCap);
+        } else if (canGoBelow) {
+          p = 'below';
+          mh = Math.min(spaceBelow - margin, maxHeightCap);
+        } else if (spaceAbove >= spaceBelow) {
+          p = 'above';
+          mh = Math.max(minHeight, spaceAbove - margin);
+        } else {
+          p = 'below';
+          mh = Math.max(minHeight, spaceBelow - margin);
+        }
+
+        setPlacement(p);
+        setComputedMaxHeight(mh);
+
+        // Horizontal: shift popup so its left edge aligns with the caret
+        const left = anchorRect.left - sentinelRect.left;
+
+        // Vertical: adjust margin so the gap is relative to the caret, not the sentinel edge
+        // For "above": default popup bottom = sentinelRect.top - margin (in viewport)
+        //   We want:  popup bottom = anchorRect.top - margin
+        //   => verticalMargin = margin - (anchorRect.top - sentinelRect.top)
+        // For "below": default popup top = sentinelRect.bottom + margin (in viewport)
+        //   We want:  popup top = anchorRect.bottom + margin
+        //   => verticalMargin = margin - (sentinelRect.bottom - anchorRect.bottom)
+        const verticalMargin =
+          p === 'above'
+            ? margin - (anchorRect.top - sentinelRect.top)
+            : margin - (sentinelRect.bottom - anchorRect.bottom);
+
+        setAnchorOffset({ left, verticalMargin });
+      } else {
+        const result = computePlacement(sentinelRect, minHeight, maxHeightCap, margin);
+        setPlacement(result.placement);
+        setComputedMaxHeight(result.maxHeight);
+        setAnchorOffset(null);
+      }
     };
 
     // Throttle resize recalculations to one per animation frame
@@ -144,13 +208,31 @@ export const AnchoredPopup: React.FC<AnchoredPopupProps> = ({
       window.removeEventListener('resize', handleResize);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [isOpen, minHeight, maxHeightCap, margin]);
+  }, [isOpen, minHeight, maxHeightCap, margin, anchorRect]);
 
   const isAbove = placement === 'above';
-  const positionClass = isAbove
-    ? 'absolute bottom-full left-0 right-0'
-    : 'absolute top-full left-0 right-0';
-  const positionStyle = isAbove ? { marginBottom: margin } : { marginTop: margin };
+
+  // When anchorOffset is active, drop `left-0 right-0` so the popup is
+  // only as wide as its content (not stretched edge-to-edge).
+  const positionClass = anchorOffset
+    ? isAbove
+      ? 'absolute bottom-full'
+      : 'absolute top-full'
+    : isAbove
+      ? 'absolute bottom-full left-0 right-0'
+      : 'absolute top-full left-0 right-0';
+
+  const positionStyle: React.CSSProperties = anchorOffset
+    ? {
+        left: anchorOffset.left,
+        ...(isAbove
+          ? { marginBottom: anchorOffset.verticalMargin }
+          : { marginTop: anchorOffset.verticalMargin }),
+      }
+    : isAbove
+      ? { marginBottom: margin }
+      : { marginTop: margin };
+
   const motionY = isAbove ? 8 : -8;
 
   return (

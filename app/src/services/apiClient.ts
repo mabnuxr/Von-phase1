@@ -31,6 +31,46 @@ export interface ApiRequestOptions extends RequestInit {
 }
 
 /**
+ * Extract a human-readable error message from a parsed response body.
+ * Handles three server formats:
+ *   1. { error: { message } }  — app standard (e.g. 409 slug conflict)
+ *   2. { detail: "..." }       — FastAPI validation errors
+ *   3. { message: "..." }      — generic
+ */
+function extractErrorMessage(
+  data: unknown,
+  status: number,
+  statusText: string,
+): string {
+  if (data && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    if (d.error && typeof d.error === "object") {
+      const nested = d.error as Record<string, unknown>;
+      if (typeof nested.message === "string" && nested.message)
+        return nested.message;
+    }
+    if (typeof d.detail === "string" && d.detail) return d.detail;
+    if (typeof d.message === "string" && d.message) return d.message;
+  }
+  return `API request failed: ${status} ${statusText}`;
+}
+
+/**
+ * Extract the error code from a parsed response body.
+ * Handles { error: { code } } and legacy { error: "code" }.
+ */
+function getErrorCode(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  if (d.error && typeof d.error === "object") {
+    const nested = d.error as Record<string, unknown>;
+    if (typeof nested.code === "string") return nested.code;
+  }
+  if (typeof d.error === "string") return d.error;
+  return null;
+}
+
+/**
  * Base API client for making HTTP requests to the backend
  */
 export class ApiClient {
@@ -109,71 +149,41 @@ export class ApiClient {
         headers,
       });
 
+      // Read the body once — response body is a one-time readable stream
+      let responseData: unknown;
+      if (response.status !== 204) {
+        try {
+          const text = await response.text();
+          if (text) responseData = JSON.parse(text);
+        } catch {
+          // not JSON — responseData stays undefined
+        }
+      }
+
       // Handle non-OK responses
       if (!response.ok) {
-        let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
-        let errorData: unknown;
+        const errorMessage = extractErrorMessage(
+          responseData,
+          response.status,
+          response.statusText,
+        );
 
-        try {
-          errorData = await response.json();
-          if (
-            typeof errorData === "object" &&
-            errorData !== null &&
-            "detail" in errorData
-          ) {
-            errorMessage = (errorData as { detail: string }).detail;
-          } else if (
-            typeof errorData === "object" &&
-            errorData !== null &&
-            "message" in errorData
-          ) {
-            errorMessage = (errorData as { message: string }).message;
-          }
-        } catch {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-
-        // Handle 401 Unauthorized - check for token expiration
+        // Handle 401 Unauthorized
         if (response.status === 401) {
-          const errorCode =
-            typeof errorData === "object" &&
-            errorData !== null &&
-            "error" in errorData
-              ? (errorData as { error: string }).error
-              : null;
-
+          const errorCode = getErrorCode(responseData);
           if (import.meta.env.DEV) {
             console.log(
               `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
             );
           }
-
-          // Check if this is a token expiration error
-          if (errorCode === "token_expired") {
-            if (import.meta.env.DEV) {
-              console.log("[API] Token expired - logging out");
-            }
-            clearAllAuth();
-            // Use a small delay to ensure storage events propagate
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 100);
-          } else {
-            // Other 401 errors (invalid token, missing auth, etc.)
-            if (import.meta.env.DEV) {
-              console.log("[API] Authentication error - logging out");
-            }
-            clearAllAuth();
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 100);
-          }
-
-          throw new ApiError(errorMessage, response.status, errorData);
+          clearAllAuth();
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 100);
+          throw new ApiError(errorMessage, response.status, responseData);
         }
 
-        throw new ApiError(errorMessage, response.status, errorData);
+        throw new ApiError(errorMessage, response.status, responseData);
       }
 
       // Handle empty responses (204 No Content)
@@ -181,9 +191,7 @@ export class ApiClient {
         return undefined as T;
       }
 
-      // Parse JSON response
-      const data = await response.json();
-      return data as T;
+      return responseData as T;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
