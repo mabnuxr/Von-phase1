@@ -149,7 +149,8 @@ export const RECONCILIATION_STALL_THRESHOLD_AUTO_MS = 10000 as const; // 10 seco
  * Stall threshold for "dashboard-builder" chat type.
  * Longer threshold since dashboard builder mode has natural pauses (external data fetching).
  */
-export const RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS = 30000 as const; // 30 seconds
+export const RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS =
+  30000 as const; // 30 seconds
 
 /**
  * Health check interval in milliseconds.

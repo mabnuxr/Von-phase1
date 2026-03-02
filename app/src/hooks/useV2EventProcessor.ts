@@ -91,7 +91,7 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
-  phase: 'plan-proposed' | 'ask' | null;
+  phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
   markStopped: () => void;
   markTimedOut: () => void;
@@ -137,7 +137,7 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
-  const [phase, setPhase] = useState<'plan-proposed' | 'ask' | null>(null);
+  const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
@@ -427,12 +427,14 @@ export function useV2EventProcessor(
         const result = transformAguiToTimelineSteps(runEvents);
 
         // Extract phase and dashboard from RUN_FINISHED event
-        const runFinishedPhase = eventType === "RUN_FINISHED"
-          ? (wrapper.event as any)?.result?.phase || null
-          : undefined;
-        const runFinishedDashboard = eventType === "RUN_FINISHED"
-          ? (wrapper.event as any)?.result?.dashboard || null
-          : undefined;
+        const runFinishedPhase =
+          eventType === "RUN_FINISHED"
+            ? (wrapper.event as any)?.result?.phase || null
+            : undefined;
+        const runFinishedDashboard =
+          eventType === "RUN_FINISHED"
+            ? (wrapper.event as any)?.result?.dashboard || null
+            : undefined;
 
         // Update state synchronously
         flushSync(() => {
@@ -453,7 +455,10 @@ export function useV2EventProcessor(
           // Update dashboard when RUN_FINISHED arrives with dashboard metadata
           if (runFinishedDashboard !== undefined) {
             if (import.meta.env.DEV) {
-              console.log("[useV2EventProcessor] Dashboard metadata received:", runFinishedDashboard);
+              console.log(
+                "[useV2EventProcessor] Dashboard metadata received:",
+                runFinishedDashboard,
+              );
             }
             setDashboard(runFinishedDashboard);
           }
@@ -545,7 +550,9 @@ export function useV2EventProcessor(
     const result = transformAguiToTimelineSteps(mergedEvents);
 
     // Extract phase and dashboard from seeded events (for page refresh)
-    const runFinishedEvent = mergedEvents.find(e => e.event?.type === "RUN_FINISHED");
+    const runFinishedEvent = mergedEvents.find(
+      (e) => e.event?.type === "RUN_FINISHED",
+    );
     const seededPhase = runFinishedEvent
       ? (runFinishedEvent.event as any)?.result?.phase || null
       : null;

@@ -11,7 +11,13 @@
  * This component is rendered instead of Chat when in deep research mode.
  */
 
-import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import {
   DeepResearchChat,
   DeepResearchNotificationBar,

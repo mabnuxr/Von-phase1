@@ -235,7 +235,7 @@ export interface V2LiveData {
     import("../services/fileUploadService").FileMetadataResponse[]
   >;
   /** Conversation phase for approval button control */
-  phase?: 'plan-proposed' | 'ask' | null;
+  phase?: "plan-proposed" | "ask" | null;
 }
 
 /**
@@ -373,7 +373,9 @@ function transformMessagesForV2(
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
       // Extract phase from persisted events
-      const runFinishedEvent = msg.events.find((e) => e.event?.type === "RUN_FINISHED");
+      const runFinishedEvent = msg.events.find(
+        (e) => e.event?.type === "RUN_FINISHED",
+      );
       const persistedPhase = runFinishedEvent
         ? (runFinishedEvent.event as any)?.result?.phase || null
         : null;

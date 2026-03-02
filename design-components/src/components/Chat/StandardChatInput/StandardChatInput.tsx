@@ -570,74 +570,74 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
               </div>
             )}
 
-          {/* Main input container with gradient border */}
-          <div
-            className={`p-[1px] rounded-2xl transition-all duration-200 ${
-              disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
-            }`}
-            style={{
-              background: disabled
-                ? '#e5e7eb'
-                : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
-            }}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={wrappedHandleDrop}
-          >
-            <div className="flex flex-col bg-white rounded-[15px]">
-              {/* Drag-and-drop overlay */}
-              <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
-              {/* File previews - shown above the input when files are attached */}
-              {hasAttachments && (
-                <div className="px-4 pt-3 pb-1">
-                  <div className="flex flex-wrap gap-1.5">
-                    {attachments.map((attachment) => (
-                      <FilePreview
-                        key={attachment.id}
-                        attachment={attachment}
-                        onRemove={handleRemoveAttachment}
-                        removable={!disabled}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Hidden file input - always render for ref access */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={getAcceptString()}
-                onChange={handleFileInputChange}
-                className="hidden"
-                aria-hidden="true"
-              />
-
-              {showPlusMenu ? (
-                <>
-                  {/* Text input area - Tiptap Editor */}
-                  <div className="px-4 py-3">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <TiptapEditor
-                          content={message}
-                          onChange={handleChange}
-                          onSubmit={handleSend}
-                          placeholder={placeholder}
-                          disabled={disabled && !isStreaming}
-                          editorRef={editorRef}
-                            onEscape={onCloseCommandsList}
+            {/* Main input container with gradient border */}
+            <div
+              className={`p-[1px] rounded-2xl transition-all duration-200 ${
+                disabled ? 'opacity-60 cursor-not-allowed' : 'shadow-sm hover:shadow-md'
+              }`}
+              style={{
+                background: disabled
+                  ? '#e5e7eb'
+                  : 'linear-gradient(135deg, rgba(255, 158, 140, 0.3) 0%, rgba(190, 154, 243, 0.3) 100%)',
+              }}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={wrappedHandleDrop}
+            >
+              <div className="flex flex-col bg-white rounded-[15px]">
+                {/* Drag-and-drop overlay */}
+                <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
+                {/* File previews - shown above the input when files are attached */}
+                {hasAttachments && (
+                  <div className="px-4 pt-3 pb-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      {attachments.map((attachment) => (
+                        <FilePreview
+                          key={attachment.id}
+                          attachment={attachment}
+                          onRemove={handleRemoveAttachment}
+                          removable={!disabled}
                         />
-                      </div>
+                      ))}
                     </div>
                   </div>
+                )}
 
-                  {/* Formatting toolbar - Slack-style */}
-                  {showFormattingToolbar && editorRef.current && (
-                    <EditorToolbar editor={editorRef.current} />
-                  )}
+                {/* Hidden file input - always render for ref access */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept={getAcceptString()}
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                  aria-hidden="true"
+                />
+
+                {showPlusMenu ? (
+                  <>
+                    {/* Text input area - Tiptap Editor */}
+                    <div className="px-4 py-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <TiptapEditor
+                            content={message}
+                            onChange={handleChange}
+                            onSubmit={handleSend}
+                            placeholder={placeholder}
+                            disabled={disabled && !isStreaming}
+                            editorRef={editorRef}
+                            onEscape={onCloseCommandsList}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Formatting toolbar - Slack-style */}
+                    {showFormattingToolbar && editorRef.current && (
+                      <EditorToolbar editor={editorRef.current} />
+                    )}
 
                     {/* Bottom toolbar with plus menu */}
                     <div className="flex items-center justify-between px-3 pb-3">
@@ -674,160 +674,164 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           />
                         )}
 
-                      {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
-                      <AnimatePresence>
-                        {selectedAgentMode !== 'auto' && (
-                          <motion.button
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.15 }}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                              selectedAgentMode === 'dashboard-builder'
-                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                                : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
-                            }`}
-                            onClick={handleCancelAgentMode}
-                            onMouseEnter={() => setIsAgentTagHovered(true)}
-                            onMouseLeave={() => setIsAgentTagHovered(false)}
-                            title={
-                              isAgentLocked
-                                ? 'Agent locked for this conversation'
-                                : 'Click to reset to Auto mode'
-                            }
-                            disabled={isAgentLocked}
-                          >
-                            {isAgentTagHovered && !isAgentLocked ? (
-                              <XIcon
-                                size={14}
-                                weight="bold"
-                                className={
-                                  selectedAgentMode === 'dashboard-builder'
-                                    ? 'text-green-600'
-                                    : 'text-gray-800'
-                                }
-                              />
-                            ) : selectedAgentMode === 'dashboard-builder' ? (
-                              // Green dot indicator for Dashboard Builder
-                              <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
-                            ) : (
-                              (() => {
-                                const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
-                                return AgentIcon ? (
-                                  <AgentIcon size={14} weight="regular" className="text-gray-800" />
-                                ) : null;
-                              })()
-                            )}
-                            {getAgentModeDisplay(selectedAgentMode).label}
-                          </motion.button>
+                        {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
+                        <AnimatePresence>
+                          {selectedAgentMode !== 'auto' && (
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.15 }}
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                                selectedAgentMode === 'dashboard-builder'
+                                  ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                  : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
+                              }`}
+                              onClick={handleCancelAgentMode}
+                              onMouseEnter={() => setIsAgentTagHovered(true)}
+                              onMouseLeave={() => setIsAgentTagHovered(false)}
+                              title={
+                                isAgentLocked
+                                  ? 'Agent locked for this conversation'
+                                  : 'Click to reset to Auto mode'
+                              }
+                              disabled={isAgentLocked}
+                            >
+                              {isAgentTagHovered && !isAgentLocked ? (
+                                <XIcon
+                                  size={14}
+                                  weight="bold"
+                                  className={
+                                    selectedAgentMode === 'dashboard-builder'
+                                      ? 'text-green-600'
+                                      : 'text-gray-800'
+                                  }
+                                />
+                              ) : selectedAgentMode === 'dashboard-builder' ? (
+                                // Green dot indicator for Dashboard Builder
+                                <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
+                              ) : (
+                                (() => {
+                                  const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
+                                  return AgentIcon ? (
+                                    <AgentIcon
+                                      size={14}
+                                      weight="regular"
+                                      className="text-gray-800"
+                                    />
+                                  ) : null;
+                                })()
+                              )}
+                              {getAgentModeDisplay(selectedAgentMode).label}
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+
+                        {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                        {showModeSelector && onAutoEditModeChange && (
+                          <ModeSelector
+                            mode={autoEditMode}
+                            onModeChange={onAutoEditModeChange}
+                            disabled={disabled && !isStreaming}
+                          />
                         )}
-                      </AnimatePresence>
+                      </div>
 
-                      {/* Mode selector - Auto edits: off/on/Plan Mode */}
-                      {showModeSelector && onAutoEditModeChange && (
-                        <ModeSelector
-                          mode={autoEditMode}
-                          onModeChange={onAutoEditModeChange}
-                          disabled={disabled && !isStreaming}
-                        />
-                      )}
+                      {/* Right side - Voice and Send buttons */}
+                      <div className="flex items-center gap-2">
+                        {/* Voice input button */}
+                        {onVoiceInput && (
+                          <SecondaryIconButton
+                            icon={
+                              <MicrophoneIcon
+                                size={16}
+                                weight={isRecording ? 'fill' : 'bold'}
+                                className={isRecording ? 'text-red-500' : 'text-gray-800'}
+                              />
+                            }
+                            onClick={onVoiceInput}
+                            disabled={disabled && !isStreaming}
+                            title={isRecording ? 'Stop recording' : 'Start voice input'}
+                            className={
+                              isRecording
+                                ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
+                                : 'w-8.5 h-8.5 rounded-xl'
+                            }
+                          />
+                        )}
+
+                        {/* Send/Stop button */}
+                        {isStreaming ? (
+                          <SecondaryIconButton
+                            icon={<StopIcon />}
+                            onClick={onStop}
+                            title="Stop generating"
+                            className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
+                          />
+                        ) : (
+                          <SecondaryIconButton
+                            icon={<SendIcon size={16} />}
+                            onClick={handleSend}
+                            disabled={!canSend}
+                            title="Send message"
+                            className={
+                              canSend
+                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                                : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
-
-                    {/* Right side - Voice and Send buttons */}
-                    <div className="flex items-center gap-2">
-                      {/* Voice input button */}
-                      {onVoiceInput && (
-                        <SecondaryIconButton
-                          icon={
-                            <MicrophoneIcon
-                              size={16}
-                              weight={isRecording ? 'fill' : 'bold'}
-                              className={isRecording ? 'text-red-500' : 'text-gray-800'}
-                            />
-                          }
-                          onClick={onVoiceInput}
-                          disabled={disabled && !isStreaming}
-                          title={isRecording ? 'Stop recording' : 'Start voice input'}
-                          className={
-                            isRecording
-                              ? 'bg-red-50 border-red-200 w-8.5 h-8.5 rounded-xl'
-                              : 'w-8.5 h-8.5 rounded-xl'
-                          }
-                        />
-                      )}
-
-                      {/* Send/Stop button */}
-                      {isStreaming ? (
-                        <SecondaryIconButton
-                          icon={<StopIcon />}
-                          onClick={onStop}
-                          title="Stop generating"
-                          className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl"
-                        />
-                      ) : (
-                        <SecondaryIconButton
-                          icon={<SendIcon size={16} />}
-                          onClick={handleSend}
-                          disabled={!canSend}
-                          title="Send message"
-                          className={
-                            canSend
-                              ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
-                              : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                          }
-                        />
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                /* Inline layout - text input with send button on same row */
-                <div className="flex items-center gap-2 px-4 py-3">
-                  {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                  <div className="flex-1 min-w-0">
-                    <TiptapEditor
-                      content={message}
-                      onChange={handleChange}
-                      onSubmit={handleSend}
-                      placeholder={placeholder}
-                      disabled={disabled && !isStreaming}
-                      editorRef={editorRef}
-                      onEscape={onCloseCommandsList}
-                      onPasteFiles={(files) => {
+                  </>
+                ) : (
+                  /* Inline layout - text input with send button on same row */
+                  <div className="flex items-center gap-2 px-4 py-3">
+                    {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
+                    <div className="flex-1 min-w-0">
+                      <TiptapEditor
+                        content={message}
+                        onChange={handleChange}
+                        onSubmit={handleSend}
+                        placeholder={placeholder}
+                        disabled={disabled && !isStreaming}
+                        editorRef={editorRef}
+                        onEscape={onCloseCommandsList}
+                        onPasteFiles={(files) => {
                           if (isAttachmentsControlled) {
                             onFilesSelected?.(files);
                           } else {
                             addFiles(files);
                           }
-                      }}
-                    />
-                  </div>
+                        }}
+                      />
+                    </div>
 
-                  {/* Send/Stop button inline */}
-                  {isStreaming ? (
-                    <SecondaryIconButton
-                      icon={<StopIcon />}
-                      onClick={onStop}
-                      title="Stop generating"
-                      className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
-                    />
-                  ) : (
-                    <SecondaryIconButton
-                      icon={<SendIcon size={16} />}
-                      onClick={handleSend}
-                      disabled={!canSend}
-                      title="Send message"
-                      className={`flex-shrink-0 ${
-                        canSend
-                          ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
-                          : 'opacity-80 w-8.5 h-8.5 rounded-xl'
-                      }`}
-                    />
-                  )}
-                </div>
-              )}
+                    {/* Send/Stop button inline */}
+                    {isStreaming ? (
+                      <SecondaryIconButton
+                        icon={<StopIcon />}
+                        onClick={onStop}
+                        title="Stop generating"
+                        className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl flex-shrink-0"
+                      />
+                    ) : (
+                      <SecondaryIconButton
+                        icon={<SendIcon size={16} />}
+                        onClick={handleSend}
+                        disabled={!canSend}
+                        title="Send message"
+                        className={`flex-shrink-0 ${
+                          canSend
+                            ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-8.5 h-8.5 rounded-xl'
+                            : 'opacity-80 w-8.5 h-8.5 rounded-xl'
+                        }`}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
           </div>
 
           {!hideDisclaimer && (

@@ -307,9 +307,7 @@ export function useDeepResearchArtifacts(
     const allArtifacts = listQuery.data?.artifacts ?? [];
     const displayableArtifacts = allArtifacts.filter(
       (s) =>
-        s.category !== "e2b" &&
-        s.category !== "rag" &&
-        s.category !== "memory"
+        s.category !== "e2b" && s.category !== "rag" && s.category !== "memory",
     );
     return displayableArtifacts.length > 0
       ? {

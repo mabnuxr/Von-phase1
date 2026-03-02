@@ -220,7 +220,13 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
         })();
 
         // Special rendering for last assistant message with dashboard (no research results)
-        if (isLastAssistant && !showResearchResults && dashboard && message.v2FinalResponse && !message.isStreaming) {
+        if (
+          isLastAssistant &&
+          !showResearchResults &&
+          dashboard &&
+          message.v2FinalResponse &&
+          !message.isStreaming
+        ) {
           return (
             <div key={message.id} className="max-w-4xl mx-auto w-full">
               <div className="flex gap-2">

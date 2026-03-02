@@ -304,12 +304,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     [addFiles]
   );
 
-  const handleUploadClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowDropdown(false);
-    openFilePicker();
-  }, [openFilePicker]);
+  const handleUploadClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setShowDropdown(false);
+      openFilePicker();
+    },
+    [openFilePicker]
+  );
 
   // Close dropdown when clicking outside
   useEffect(() => {
