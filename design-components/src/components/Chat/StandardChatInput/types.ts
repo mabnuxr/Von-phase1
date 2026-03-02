@@ -55,7 +55,7 @@ export interface StandardChatInputRef {
   /** Focus the input editor */
   focus: () => void;
   /** Returns the viewport coordinates of the current caret position */
-  getCaretRect: () => { left: number; top: number; bottom: number } | null;
+  getCaretRect?: () => { left: number; top: number; bottom: number } | null;
 }
 
 export interface StandardChatInputProps {

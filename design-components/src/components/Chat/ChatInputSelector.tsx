@@ -202,7 +202,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     } | null>(null);
     useLayoutEffect(() => {
       if (showCommandsList) {
-        const coords = standardInputRef.current?.getCaretRect();
+        const coords = standardInputRef.current?.getCaretRect?.();
         if (coords) setSlashRect(coords);
       } else {
         setSlashRect(null);
