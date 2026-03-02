@@ -83,7 +83,9 @@ export function useChatV2(props: UseChatV2Props) {
   // 1. Agent is locked to dashboard-builder (has messages), OR
   // 2. Conversation mode is dashboard-builder (backend confirmed)
   const isDeepResearchMode =
-    lockedAgentMode === "dashboard-builder" || chatType === "dashboard-builder";
+    (lockedAgentMode === "dashboard-builder" ||
+      chatType === "dashboard-builder") &&
+    conversationMessages.length > 0;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(

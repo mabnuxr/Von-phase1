@@ -60,7 +60,7 @@ function parseKpiFormat(format: string) {
   }
 
   const decimalMatch = format.match(/\.(\d+)/);
-  const decimals = decimalMatch ? parseInt(decimalMatch[1], 10) : 0;
+  const decimals = decimalMatch ? decimalMatch[1].length : 0;
 
   return { format: fmt, prefix, suffix, decimals };
 }
