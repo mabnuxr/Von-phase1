@@ -13,7 +13,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import type { Channel } from "pusher-js";
-import type { AguiEventWrapper, RunFinishedEvent } from "@vonlabs/design-components";
+import type {
+  AguiEventWrapper,
+  RunFinishedEvent,
+} from "@vonlabs/design-components";
 
 import type {
   MessageWithStreaming,

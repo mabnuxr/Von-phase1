@@ -68,16 +68,10 @@ export class ApiClient {
     endpoint: string,
     options: ApiRequestOptions = {},
   ): Promise<T> {
-    const {
-      headers: customHeaders,
-      ...fetchOptions
-    } = options;
+    const { headers: customHeaders, ...fetchOptions } = options;
 
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = this.mergeHeaders(
-      this.getDefaultHeaders(),
-      customHeaders,
-    );
+    const headers = this.mergeHeaders(this.getDefaultHeaders(), customHeaders);
 
     if (import.meta.env.DEV) {
       console.log(`[API] ${fetchOptions.method || "GET"} ${url}`);
@@ -119,7 +113,9 @@ export class ApiClient {
         // token refresh, so a 401 means the session is truly expired
         if (response.status === 401) {
           if (import.meta.env.DEV) {
-            console.log("[API] 401 Unauthorized - session expired, logging out");
+            console.log(
+              "[API] 401 Unauthorized - session expired, logging out",
+            );
           }
           clearAllAuth();
           setTimeout(() => {

@@ -436,11 +436,13 @@ export function useV2EventProcessor(
         // Extract phase and dashboard from RUN_FINISHED event
         const runFinishedPhase =
           eventType === "RUN_FINISHED"
-            ? (wrapper.event as RunFinishedEventWithDashboard).result?.phase ?? null
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result?.phase ??
+              null)
             : undefined;
         const runFinishedDashboard =
           eventType === "RUN_FINISHED"
-            ? (wrapper.event as RunFinishedEventWithDashboard).result?.dashboard ?? null
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+                ?.dashboard ?? null)
             : undefined;
 
         // Update state synchronously
@@ -552,10 +554,12 @@ export function useV2EventProcessor(
       (e) => e.event?.type === "RUN_FINISHED",
     );
     const seededPhase = runFinishedEvent
-      ? (runFinishedEvent.event as RunFinishedEventWithDashboard).result?.phase ?? null
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.phase ?? null)
       : null;
     const seededDashboard = runFinishedEvent
-      ? (runFinishedEvent.event as RunFinishedEventWithDashboard).result?.dashboard ?? null
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.dashboard ?? null)
       : null;
 
     eventsRef.current.set(runId, mergedEvents);
@@ -628,7 +632,7 @@ export function useV2EventProcessor(
       }
       scheduleGapFill(runId, 1500, "Reconciliation");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRunEvents]);
 
   // Bind/unbind AGUI events when channel changes

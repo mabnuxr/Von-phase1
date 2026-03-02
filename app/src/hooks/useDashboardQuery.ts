@@ -178,7 +178,9 @@ export function useDashboardQuery(dashboardId: string | undefined) {
           );
         }
 
-        const response = adaptApiResponse(rawResponse as RawApiDashboardResponse);
+        const response = adaptApiResponse(
+          rawResponse as RawApiDashboardResponse,
+        );
 
         const { dashboard, refreshInfo } = response.data;
 
