@@ -283,11 +283,7 @@ export interface ChatMessageProps {
    * Quick command used for this user message (shows expandable chip)
    */
   command?: Command;
-
-  /**
-   * Fetches a presigned download URL for a command data-source file.
-   * Forwarded to CommandPreview so its file-preview panel can load content.
-   */
+  /** Fetches a presigned download URL for a command's data source file */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
 }
 
@@ -618,10 +614,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <CommandPreview
                           command={command}
                           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                          hasContentBelow={!!(content || (attachments && attachments.length > 0))}
                         />
                       )}
                       {attachments && attachments.length > 0 && (
-                        <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
+                        <div className={command ? 'mt-2' : undefined}>
+                          <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
+                        </div>
                       )}
                       {/* Text content - render markdown using TiptapViewer */}
                       {content && (

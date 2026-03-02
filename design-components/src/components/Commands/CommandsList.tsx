@@ -8,7 +8,7 @@
  * This component is purely presentational: it renders whatever `commands` it receives.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, ArrowsOut, BookmarkSimple } from '@phosphor-icons/react';
 import type { Command } from './types';
 import { TertiaryIconButton, IconButton } from '../forms/buttons';
@@ -32,36 +32,14 @@ function getPromptPreview(prompt: string, maxLen = 60): string {
 // ---------------------------------------------------------------------------
 
 interface CommandsListHeaderProps {
-  onNewCommand: () => void;
-  onManageCommands: () => void;
   onClose?: () => void;
 }
 
-const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({
-  onNewCommand,
-  onManageCommands,
-  onClose,
-}) => (
+const CommandsListHeader: React.FC<CommandsListHeaderProps> = ({ onClose }) => (
   <div className="px-3 py-2.5 border-b border-gray-100 bg-white">
     <div className="flex items-center justify-between">
       <h3 className="text-sm font-medium text-gray-900">Commands</h3>
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onManageCommands}
-          className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          Manage
-        </button>
-        <button
-          type="button"
-          onClick={onNewCommand}
-          className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          Create New
-        </button>
-        <TertiaryIconButton icon={<X size={14} />} title="Close" size="small" onClick={onClose} />
-      </div>
+      <TertiaryIconButton icon={<X size={14} />} title="Close" size="small" onClick={onClose} />
     </div>
   </div>
 );
@@ -71,6 +49,7 @@ interface CommandItemProps {
   onSelect: (command: Command) => void;
   onExpand?: (command: Command) => void;
   onToggleFavorite?: (command: Command) => void;
+  isHighlighted?: boolean;
 }
 
 const CommandItem: React.FC<CommandItemProps> = ({
@@ -78,9 +57,10 @@ const CommandItem: React.FC<CommandItemProps> = ({
   onSelect,
   onExpand,
   onToggleFavorite,
+  isHighlighted,
 }) => (
   <div
-    className="group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-gray-50"
+    className={`group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent ${isHighlighted ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
     onClick={() => onSelect(command)}
   >
     <div className="flex-1 min-w-0">
@@ -99,6 +79,7 @@ const CommandItem: React.FC<CommandItemProps> = ({
         }}
         title={command.createdBy === 'me' ? 'Expand & edit' : 'View'}
         size="small"
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
       />
       <IconButton
         icon={
@@ -114,6 +95,7 @@ const CommandItem: React.FC<CommandItemProps> = ({
         }}
         title={command.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         size="small"
+        className={command.isFavorite ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity'}
       />
     </div>
   </div>
@@ -124,15 +106,29 @@ const EmptyState: React.FC = () => (
 );
 
 interface CommandsListFooterProps {
-  count: number;
+  onNewCommand: () => void;
+  onManageCommands: () => void;
 }
 
-const CommandsListFooter: React.FC<CommandsListFooterProps> = ({ count }) => (
-  <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-between">
-    <span className="text-xs text-gray-500">
-      {count} command{count !== 1 ? 's' : ''}
-    </span>
-    <span className="text-[10px] text-gray-400">Type to filter</span>
+const CommandsListFooter: React.FC<CommandsListFooterProps> = ({
+  onNewCommand,
+  onManageCommands,
+}) => (
+  <div className="px-3 py-2 border-t border-gray-100 flex items-center justify-end gap-1.5">
+    <button
+      type="button"
+      onClick={onManageCommands}
+      className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+    >
+      Manage
+    </button>
+    <button
+      type="button"
+      onClick={onNewCommand}
+      className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+    >
+      Create New
+    </button>
   </div>
 );
 
@@ -151,6 +147,8 @@ export interface CommandsListProps {
   onToggleFavorite?: (command: Command) => void;
   /** Max height in px for the scrollable list — computed dynamically by CommandsOverlay */
   maxHeight?: number;
+  /** Index of the currently keyboard-highlighted command */
+  highlightedIndex?: number;
 }
 
 export const CommandsList: React.FC<CommandsListProps> = ({
@@ -163,7 +161,14 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   onExpandCommand,
   onToggleFavorite,
   maxHeight = 300,
+  highlightedIndex = 0,
 }) => {
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Scroll highlighted item into view when navigating with arrow keys
+  useEffect(() => {
+    itemRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
+  }, [highlightedIndex]);
   if (isLoading && commands.length === 0) {
     return (
       <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
@@ -174,29 +179,32 @@ export const CommandsList: React.FC<CommandsListProps> = ({
 
   return (
     <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <CommandsListHeader
-        onNewCommand={onNewCommand}
-        onManageCommands={onManageCommands}
-        onClose={onClose}
-      />
+      <CommandsListHeader onClose={onClose} />
 
       <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
         {commands.length === 0 ? (
           <EmptyState />
         ) : (
-          commands.map((command) => (
-            <CommandItem
+          commands.map((command, index) => (
+            <div
               key={command.id}
-              command={command}
-              onSelect={onSelectCommand}
-              onExpand={onExpandCommand}
-              onToggleFavorite={onToggleFavorite}
-            />
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
+            >
+              <CommandItem
+                command={command}
+                onSelect={onSelectCommand}
+                onExpand={onExpandCommand}
+                onToggleFavorite={onToggleFavorite}
+                isHighlighted={index === highlightedIndex}
+              />
+            </div>
           ))
         )}
       </div>
 
-      <CommandsListFooter count={commands.length} />
+      <CommandsListFooter onNewCommand={onNewCommand} onManageCommands={onManageCommands} />
     </div>
   );
 };

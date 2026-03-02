@@ -444,7 +444,7 @@ export const mockApprovalStep: TimelineStep = {
 
 export const mockDeepResearchApprovalStep: TimelineStep = {
   id: "step-dr-approval",
-  text: "Requesting approval to run full analysis",
+  text: "Requesting approval to create dashboard",
   status: "awaiting-approval",
   type: "approval",
   approval: {

@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { ChatMessage } from './ChatMessage';
+import { ChatMarkdown } from './ChatMarkdown';
 import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
 import { DataTablesCard } from './DeepResearch/DataTablesCard';
 import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
 import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import { MessageActions } from './MessageActions';
+import { DashboardPanel } from './DashboardPanel';
 import type { Message } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
@@ -43,6 +45,14 @@ const VonLogoAvatar: React.FC = () => (
   </div>
 );
 
+export interface DashboardMetadata {
+  dashboard_id: string;
+  dashboard_name: string;
+  dashboard_version: number;
+  panel_count: number;
+  query_count: number;
+}
+
 export interface DeepResearchChatProps {
   /** Messages to display */
   messages: Message[];
@@ -68,6 +78,8 @@ export interface DeepResearchChatProps {
   };
   /** Whether data tables info is loading */
   isDataTablesLoading?: boolean;
+  /** Dashboard metadata (when dashboard is created) */
+  dashboard?: DashboardMetadata;
   /** Callback when send message is triggered */
   onSendMessage?: (content: string) => void;
   /** Callback when skip button is clicked (should focus input without sending message) */
@@ -113,6 +125,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   isDeepResearchRunning,
   dataTablesInfo,
   isDataTablesLoading = false,
+  dashboard,
   onSendMessage,
   onSkip,
   hasSkipped = false,
@@ -135,7 +148,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   // Handle confirmation - send the message and close modal
   const handleConfirmAnalysis = () => {
     setShowConfirmModal(false);
-    onSendMessage?.('Accept plan and run full analysis');
+    onSendMessage?.('Run full analysis and create the dashboard');
   };
 
   // Handle cancel - just close the modal
@@ -144,6 +157,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   };
 
   // Find the last assistant message for approval flow
+  // SOLE CRITERIA: Show approval buttons only when phase === "plan-proposed"
   const approvalMessage = useMemo(() => {
     // Don't show approval if research results are streaming/completed
     if (researchResults?.isCompleted || researchResults?.isStreaming) return null;
@@ -157,6 +171,9 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
 
     // Must have v2FinalResponse (sample analysis completed)
     if (!lastMessage.v2FinalResponse || lastMessage.isStreaming) return null;
+
+    // Only show buttons when phase is "plan-proposed"
+    if (lastMessage.phase !== 'plan-proposed') return null;
 
     return lastMessage;
   }, [messages, researchResults]);
@@ -202,6 +219,49 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           return false;
         })();
 
+        // Special rendering for last assistant message with dashboard (no research results)
+        if (isLastAssistant && !showResearchResults && dashboard && message.v2FinalResponse && !message.isStreaming) {
+          return (
+            <div key={message.id} className="max-w-4xl mx-auto w-full">
+              <div className="flex gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <VonLogoAvatar />
+                </div>
+                <div className="flex-1 space-y-3 min-w-0">
+                  {message.timelineSteps && message.timelineSteps.length > 0 && (
+                    <TimelineThinkingProcess
+                      steps={message.timelineSteps}
+                      isThinking={message.isStreaming}
+                      initiallyCollapsed={!message.isStreaming && !!message.v2FinalResponse}
+                      elapsedTime={message.thinkingElapsedTime}
+                      onApprove={(stepId) => {
+                        if (message.runId) onApprove?.(stepId, message.runId);
+                      }}
+                      onReject={(stepId) => {
+                        if (message.runId) onReject?.(stepId, message.runId);
+                      }}
+                      onArtifactClick={onArtifactClick}
+                    />
+                  )}
+                  <ChatMarkdown
+                    content={message.v2FinalResponse}
+                    isStreaming={false}
+                    className="text-sm text-gray-700"
+                  />
+                  <DashboardPanel dashboard={dashboard} />
+                  <MessageActions
+                    messageContent={message.v2FinalResponse}
+                    messageId={message.messageId || message.id}
+                    onLike={onLike}
+                    onDislike={onDislike}
+                    showTransparency={false}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        }
+
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
             <div key={message.id} className="max-w-4xl mx-auto w-full">
@@ -237,7 +297,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       primaryAction={
                         !hasSkipped
                           ? {
-                              label: 'Run Full Analysis',
+                              label: 'Create Dashboard',
                               onClick: handleRunFullAnalysisClick,
                               disabled: isDeepResearchRunning,
                               isLoading: isDeepResearchRunning,
@@ -248,7 +308,14 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         !hasSkipped
                           ? {
                               label: 'Skip',
-                              onClick: () => onSkip?.(),
+                              onClick: () => {
+                                // Call onReject to update backend phase to "plan-rejected"
+                                if (approvalMessage?.messageId && approvalMessage?.runId) {
+                                  onReject?.(approvalMessage.messageId, approvalMessage.runId);
+                                }
+                                // Also call onSkip to hide buttons and focus input
+                                onSkip?.();
+                              },
                               disabled: isDeepResearchRunning,
                             }
                           : undefined
@@ -293,6 +360,10 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           completedAt: null,
                         }}
                       />
+                      {/* Dashboard Panel - shown when dashboard is created */}
+                      {researchResults.isCompleted && dashboard && (
+                        <DashboardPanel dashboard={dashboard} />
+                      )}
                       {/* Action buttons outside the card - using MessageActions for consistency */}
                       {researchResults.isCompleted && (
                         <MessageActions
@@ -342,7 +413,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
         estimatedTime={researchResults?.metadata?.estimated_time || '10-15 minutes'}
         onConfirm={handleConfirmAnalysis}
         onCancel={handleCancelAnalysis}
-        operationName="Run Full Analysis"
+        operationName="Create Dashboard"
       />
     </div>
   );

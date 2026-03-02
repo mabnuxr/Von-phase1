@@ -132,6 +132,11 @@ const Conversation = () => {
               ? chatSidebarKeys.sidebar()
               : conversationKeys.lists(),
           });
+
+          // Refetch the specific conversation so currentConversation.mode updates
+          await queryClient.refetchQueries({
+            queryKey: ["conversation", currentConversationId],
+          });
           if (import.meta.env.DEV) {
             console.log(
               "[Conversation] Synced agent mode to backend:",

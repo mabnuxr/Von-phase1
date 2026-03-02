@@ -137,7 +137,9 @@ export interface ChatInputProps {
    * Optional node rendered above the input when a slash command is active
    * (e.g. a CommandChip showing the selected command with a remove button).
    */
-  commandChip?: ReactNode;
+  contextBar?: ReactNode;
+  /** Called when the user presses Escape to dismiss the commands overlay */
+  onCloseCommandsList?: () => void;
 }
 
 /**
@@ -163,10 +165,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   mode = 'ask',
   onModeChange,
   autoFocus = false,
-  commandChip,
+  contextBar,
+  onCloseCommandsList,
 }) => {
   const [internalMessage, setInternalMessage] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // File upload hook
   const { attachments, addFiles, removeFile, clearFiles, openFilePicker, fileInputRef } =
@@ -261,6 +266,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             typeof navigator.maxTouchPoints === 'number' &&
             navigator.maxTouchPoints > 1));
 
+      if (e.key === 'Escape' && onCloseCommandsList) {
+        e.preventDefault();
+        onCloseCommandsList();
+        return;
+      }
       if (!isMobileDevice && e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         if (!isStreaming && !disableSubmit) {
@@ -268,7 +278,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }
       }
     },
-    [isStreaming, disableSubmit, handleSend]
+    [isStreaming, disableSubmit, handleSend, onCloseCommandsList]
   );
 
   const handlePaste = useCallback(
@@ -294,6 +304,27 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     [addFiles]
   );
 
+  const handleUploadClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDropdown(false);
+    openFilePicker();
+  }, [openFilePicker]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDropdown]);
+
   const canSend = (message.trim() || hasAttachments) && !disabled && !disableSubmit;
 
   return (
@@ -306,9 +337,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         )}
 
         {/* Command chip - shown above the input when a command is selected */}
-        {commandChip && (
-          <div className="flex items-center px-3 pb-6 pt-2 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
-            {commandChip}
+        {contextBar && (
+          <div className="flex items-center px-1 pb-4 pt-1 -mb-4 bg-gray-50 border-t border-r border-l border-gray-100 rounded-t-xl">
+            {contextBar}
           </div>
         )}
 
@@ -347,21 +378,37 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
             {/* Input row */}
             <div className="flex items-center gap-2 px-3 py-2">
-              {/* File attachment button */}
+              {/* File attachment button with dropdown */}
               {enableFileUpload && (
-                <>
+                <div className="relative" ref={dropdownRef}>
                   <button
-                    onClick={openFilePicker}
+                    type="button"
+                    onClick={() => setShowDropdown(!showDropdown)}
                     disabled={disabled && !isStreaming}
                     className={`w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center transition-all duration-150 border ${
                       disabled && !isStreaming
                         ? 'cursor-not-allowed opacity-50 bg-white border-gray-200 text-gray-400'
                         : 'cursor-pointer bg-white border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-700'
                     }`}
-                    aria-label="Attach files"
+                    aria-label="Show attachment options"
                   >
                     <PlusIcon size={18} weight="bold" />
                   </button>
+
+                  {/* Dropdown menu */}
+                  {showDropdown && (
+                    <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <button
+                        type="button"
+                        onClick={handleUploadClick}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <PlusIcon size={16} weight="regular" />
+                        Upload file
+                      </button>
+                    </div>
+                  )}
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -371,7 +418,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                     className="hidden"
                     aria-hidden="true"
                   />
-                </>
+                </div>
               )}
 
               {/* Mode toggle (Ask/Build) */}

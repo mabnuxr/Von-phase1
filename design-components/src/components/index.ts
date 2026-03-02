@@ -273,6 +273,24 @@ export { AnchoredPopup } from './AnchoredPopup';
 export type { AnchoredPopupProps, AnchoredPopupRenderProps, PopupPlacement } from './AnchoredPopup';
 
 // ============================================================================
+// DRAWER (Reusable right-side slide-in panel primitive)
+// ============================================================================
+export { Drawer } from './Drawer';
+export type { DrawerProps } from './Drawer';
+
+// ============================================================================
+// ACCORDION (Collapsible section with animated body)
+// ============================================================================
+export { Accordion } from './Accordion';
+export type { AccordionProps } from './Accordion';
+
+// ============================================================================
+// FILE CHIP (Pill chip for representing an attached file)
+// ============================================================================
+export { FileChip, FileTypeIcon, FileIconStack } from './FileChip';
+export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
+
+// ============================================================================
 // COMMANDS (Self-contained slash commands feature)
 // ============================================================================
 export {

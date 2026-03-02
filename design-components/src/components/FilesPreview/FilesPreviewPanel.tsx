@@ -12,23 +12,11 @@
  *   null      — fetch was attempted and failed; panel shows "Preview not available"
  *   string    — URL is ready; panel loads and renders the file content
  */
-
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X,
-  FileDoc,
-  FilePdf,
-  FileXls,
-  FileCsv,
-  FilePpt,
-  FileText,
-  FileImage,
-  File as GenericFileIcon,
-  SpinnerGap,
-  WarningCircle,
-} from '@phosphor-icons/react';
+import { Drawer } from '../Drawer';
+import { X, SpinnerGap, WarningCircle } from '@phosphor-icons/react';
+import { FileTypeIcon } from '../FileChip';
 import { useArtifactContent } from '../Chat/hooks/useArtifactContent';
 import { PdfViewer } from '../Chat/viewers/PdfViewer';
 import { TextViewer } from '../Chat/viewers/TextViewer';
@@ -83,48 +71,7 @@ export interface FilesPreviewPanelProps {
 // Animation constants
 // ---------------------------------------------------------------------------
 
-const SLIDE_TRANSITION = { type: 'spring', damping: 30, stiffness: 300 } as const;
 const FADE_TRANSITION = { duration: 0.12 } as const;
-
-// ---------------------------------------------------------------------------
-// AttachmentIcon — unified file-type icon, parameterised by size and weight
-// ---------------------------------------------------------------------------
-
-interface AttachmentIconProps {
-  file: PreviewableFile;
-  size: number;
-  weight?: 'thin' | 'duotone';
-  className?: string;
-}
-
-const AttachmentIcon: React.FC<AttachmentIconProps> = ({
-  file,
-  size,
-  weight = 'thin',
-  className = '',
-}) => {
-  const ext = file.extension?.toLowerCase();
-  const mime = file.type ?? '';
-  const base = `shrink-0 ${className}`;
-
-  if (file.category === 'image')
-    return <FileImage size={size} weight={weight} className={`text-purple-400 ${base}`} />;
-  if (mime === 'application/pdf' || ext === 'pdf')
-    return <FilePdf size={size} weight={weight} className={`text-red-400 ${base}`} />;
-  if (file.category === 'spreadsheet')
-    return ext === 'csv' ? (
-      <FileCsv size={size} weight={weight} className={`text-green-500 ${base}`} />
-    ) : (
-      <FileXls size={size} weight={weight} className={`text-green-500 ${base}`} />
-    );
-  if (file.category === 'presentation')
-    return <FilePpt size={size} weight={weight} className={`text-orange-400 ${base}`} />;
-  if (file.category === 'text')
-    return <FileText size={size} weight={weight} className={`text-slate-400 ${base}`} />;
-  if (ext === 'doc' || ext === 'docx')
-    return <FileDoc size={size} weight={weight} className={`text-blue-400 ${base}`} />;
-  return <GenericFileIcon size={size} weight={weight} className={`text-gray-400 ${base}`} />;
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -158,7 +105,7 @@ const UnsupportedPlaceholder: React.FC<UnsupportedPlaceholderProps> = ({
   message = 'Preview not available',
 }) => (
   <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-gray-50/60 select-none">
-    <AttachmentIcon file={file} size={40} weight="thin" />
+    <FileTypeIcon file={file} size={40} weight="thin" />
     <div className="text-center">
       <p className="text-sm font-medium text-gray-700">{file.name}</p>
       <p className="text-xs text-gray-400 mt-0.5">{getFileTypeLabel(file)}</p>
@@ -287,7 +234,7 @@ const FileTabs: React.FC<FileTabsProps> = ({ files, activeIndex, onSelect }) => 
               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
           }`}
         >
-          <AttachmentIcon file={entry.file} size={13} weight="duotone" />
+          <FileTypeIcon file={entry.file} size={13} />
           <span className="max-w-[140px] truncate">{entry.file.name}</span>
         </button>
       ))}
@@ -343,47 +290,35 @@ export const FilesPreviewPanel: React.FC<FilesPreviewPanelProps> = ({
     onRequestPreviewUrl(id);
   }, [isOpen, activeEntry?.file.id, activeEntry?.previewUrl, onRequestPreviewUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return ReactDOM.createPortal(
-    <AnimatePresence>
-      {isOpen && files.length > 0 && (
-        <motion.div
-          className="fixed top-0 right-0 h-full p-2"
-          style={{ width: 600, maxWidth: '90vw', zIndex: 100 }}
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={SLIDE_TRANSITION}
-        >
-          <div className="h-full flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <PanelHeader
-              contextName={contextName}
-              fileName={activeEntry?.file.name}
-              onClose={onClose}
-            />
+  return (
+    <Drawer
+      isOpen={isOpen && files.length > 0}
+      onClose={onClose}
+      width={600}
+      showBackdrop={false}
+      zIndex={100}
+    >
+      <PanelHeader contextName={contextName} fileName={activeEntry?.file.name} onClose={onClose} />
 
-            <FileTabs files={files} activeIndex={activeIndex} onSelect={setActiveIndex} />
+      <FileTabs files={files} activeIndex={activeIndex} onSelect={setActiveIndex} />
 
-            <div className="flex-1 relative overflow-hidden flex flex-col">
-              <AnimatePresence mode="wait">
-                {activeEntry && (
-                  <motion.div
-                    key={activeEntry.file.id}
-                    className="absolute inset-0 flex flex-col"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={FADE_TRANSITION}
-                  >
-                    <FileContentArea entry={activeEntry} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        <AnimatePresence mode="wait">
+          {activeEntry && (
+            <motion.div
+              key={activeEntry.file.id}
+              className="absolute inset-0 flex flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={FADE_TRANSITION}
+            >
+              <FileContentArea entry={activeEntry} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </Drawer>
   );
 };
 

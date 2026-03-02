@@ -175,6 +175,14 @@ export interface Message {
    */
   v2FinalResponseStreaming?: boolean;
   /**
+   * Conversation phase from RUN_FINISHED event (assistant messages only)
+   * Controls whether approval buttons are shown
+   * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+   * - "ask": Normal conversation mode (hide approval buttons)
+   * - null/undefined: Normal conversation mode (hide approval buttons)
+   */
+  phase?: 'plan-proposed' | 'ask' | null;
+  /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.
    */
@@ -385,6 +393,13 @@ export interface RunFinishedEvent {
     stopped_by_user?: boolean;
     error_occurred?: boolean;
     error_message?: string;
+    /**
+     * Conversation phase for approval button control (nested inside result)
+     * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+     * - "ask": Normal conversation mode (hide approval buttons)
+     * - null/undefined: Normal conversation mode (hide approval buttons)
+     */
+    phase?: 'plan-proposed' | 'ask' | null;
   };
 }
 
@@ -1234,12 +1249,6 @@ export interface ChatProps {
 
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
-  /**
-   * The locked command derived from the last user message sent with a
-   * data-sources command. Passed through to the input so the chip is restored
-   * automatically when the conversation is revisited.
-   */
-  lockedCommandFromHistory?: Command | null;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
 
@@ -1334,7 +1343,7 @@ export interface ChatProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+  lockedAgentMode?: AgentMode;
 
   /**
    * Whether to show the plus menu button (with agents and upload options)

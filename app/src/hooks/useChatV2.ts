@@ -7,7 +7,7 @@
  * Handles both regular V2 chat and deep research mode.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
 import type {
@@ -79,8 +79,12 @@ export function useChatV2(props: UseChatV2Props) {
   const { downloadBlob } = useFileDownload();
 
   const chatType: ConversationMode = currentConversation.mode || "auto";
+
+  // Deep research mode is active if:
+  // 1. Agent is locked to dashboard-builder (has messages), OR
+  // 2. Conversation mode is dashboard-builder (backend confirmed)
   const isDeepResearchMode =
-    lockedAgentMode === "deep-research" && isAgentLocked;
+    lockedAgentMode === "dashboard-builder" || chatType === "dashboard-builder";
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -368,6 +372,7 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
+        phase: v2Processor.phase,
       }),
     [
       conversationMessages,
@@ -381,6 +386,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
+      v2Processor.phase,
     ],
   );
 
@@ -469,6 +475,7 @@ export function useChatV2(props: UseChatV2Props) {
       const currentMessages =
         useChatStore.getState().messages[conversationId] || [];
       if (currentMessages.length === 0 && options?.agentMode) {
+        // Update conversation mode before sending first message
         await syncAgentModeToBackend(options.agentMode);
       }
 
@@ -535,6 +542,8 @@ export function useChatV2(props: UseChatV2Props) {
 
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
+    phase: v2Processor.phase,
+    dashboard: v2Processor.dashboard,
 
     // Messages
     transformedMessages,

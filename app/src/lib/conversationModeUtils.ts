@@ -1,8 +1,12 @@
 /**
  * Utility functions for converting between frontend AgentMode and backend ConversationMode
  *
- * Frontend AgentMode: 'auto' | 'build-dashboard' | 'deep-research'
- * Backend ConversationMode: 'auto' | 'dashboard_builder' | 'deep_research'
+ * Unified naming (no conversion needed):
+ * - 'auto' (both frontend and backend)
+ * - 'dashboard-builder' (both frontend and backend - triggers research workflows)
+ *
+ * Note: If design-components AgentMode still uses 'build-dashboard',
+ * conversion functions below handle the mapping for backward compatibility.
  */
 
 import type { AgentMode } from "@vonlabs/design-components";
@@ -10,11 +14,11 @@ import type { ConversationMode } from "../types/conversation";
 
 /**
  * Agent mode constants for type-safe usage across the app
+ * Using unified naming that matches backend ConversationMode
  */
 export const AGENT_MODES = {
   AUTO: "auto",
-  BUILD_DASHBOARD: "build-dashboard",
-  DEEP_RESEARCH: "deep-research",
+  DASHBOARD_BUILDER: "dashboard-builder",
 } as const satisfies Record<string, AgentMode>;
 
 /**
@@ -24,6 +28,7 @@ export const DEFAULT_AGENT_MODE: AgentMode = AGENT_MODES.AUTO;
 
 /**
  * Convert frontend AgentMode to backend ConversationMode
+ * Handles backward compatibility if design-components still uses 'build-dashboard'
  */
 export function agentModeToConversationMode(
   agentMode: AgentMode,
@@ -32,9 +37,10 @@ export function agentModeToConversationMode(
     case "auto":
       return "auto";
     case "build-dashboard":
-      return "dashboard_builder";
-    case "deep-research":
-      return "deep_research";
+      // Legacy value from design-components - map to new unified naming
+      return "dashboard-builder";
+    case "dashboard-builder":
+      return "dashboard-builder";
     default:
       return "auto";
   }
@@ -42,6 +48,7 @@ export function agentModeToConversationMode(
 
 /**
  * Convert backend ConversationMode to frontend AgentMode
+ * Returns unified naming values
  */
 export function conversationModeToAgentMode(
   conversationMode: ConversationMode | undefined,
@@ -49,10 +56,8 @@ export function conversationModeToAgentMode(
   switch (conversationMode) {
     case "auto":
       return "auto";
-    case "dashboard_builder":
-      return "build-dashboard";
-    case "deep_research":
-      return "deep-research";
+    case "dashboard-builder":
+      return "dashboard-builder";
     default:
       return "auto";
   }

@@ -11,7 +11,7 @@
  * This component is rendered instead of Chat when in deep research mode.
  */
 
-import React, { useCallback, useMemo, useState, useRef } from "react";
+import React, { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import {
   DeepResearchChat,
   DeepResearchNotificationBar,
@@ -33,6 +33,7 @@ interface ChatInputSelectorRef {
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
+import { DashboardPanel } from "./DashboardPanel";
 
 export interface ResearchResultsState {
   isStreaming: boolean;
@@ -68,6 +69,14 @@ export interface DeepResearchConversationProps {
   researchResults?: ResearchResultsState;
   /** Whether deep research is currently running */
   isDeepResearchRunning?: boolean;
+  /** Dashboard metadata (when dashboard is created) */
+  dashboard?: {
+    dashboard_id: string;
+    dashboard_name: string;
+    dashboard_version: number;
+    panel_count: number;
+    query_count: number;
+  };
   /** Callback when message is sent */
   onSendMessage?: (
     content: string,
@@ -112,6 +121,7 @@ export const DeepResearchConversation: React.FC<
   conversationId,
   researchResults,
   isDeepResearchRunning = false,
+  dashboard,
   onSendMessage,
   onStopStreaming,
   onArtifactClick,
@@ -162,6 +172,14 @@ export const DeepResearchConversation: React.FC<
   // Can open drawers when either sample run or full analysis is complete
   const canOpenDrawers = isSampleRunComplete || isFullAnalysisComplete;
 
+  // Reset hasSkipped when a new plan is generated
+  // This ensures approval buttons show for the new plan after user rejects previous plan
+  useEffect(() => {
+    if (isSampleRunComplete && lastAssistantRunId) {
+      setHasSkipped(false);
+    }
+  }, [lastAssistantRunId, isSampleRunComplete]);
+
   // Fetch artifact summaries for both drawers when either sample run or full analysis completes
   const {
     dataTablesInfo: vonIqDataTablesInfo,
@@ -185,11 +203,10 @@ export const DeepResearchConversation: React.FC<
     enabled: canOpenDrawers,
   });
 
-  // Handle DataTablesCard click - opens DataTables drawer (during approval flow)
+  // Handle DataTablesCard click - opens Transparency drawer to show all artifacts
   const handleDataTablesClick = useCallback(() => {
     if (lastAssistantRunId && isSampleRunComplete) {
-      setDataTablesRunId(lastAssistantRunId);
-      setIsDataTablesOpen(true);
+      setIsTransparencyDrawerOpen(true);
     }
   }, [lastAssistantRunId, isSampleRunComplete]);
 
@@ -265,6 +282,7 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
+          dashboard={dashboard ?? undefined}
           onSendMessage={(content) => handleSendMessage(content)}
           onSkip={handleSkip}
           hasSkipped={hasSkipped}
@@ -303,7 +321,7 @@ export const DeepResearchConversation: React.FC<
           disableSubmit={disableSubmit}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
-          lockedAgentMode="deep-research"
+          lockedAgentMode="dashboard-builder"
           showPlusMenu={showPlusMenu}
         />
       )}

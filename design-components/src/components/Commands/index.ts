@@ -21,6 +21,15 @@ export type { CommandPreviewProps } from './CommandPreview';
 export { useCommands } from './useCommands';
 export { useCommandsInput } from './useCommandsInput';
 export type { UseCommandsInputOptions, UseCommandsInputReturn } from './useCommandsInput';
+export { useCommandsFilter } from './useCommandsFilter';
+export type { UseCommandsFilterReturn } from './useCommandsFilter';
+export { useCommandForm } from './useCommandForm';
+export type { UseCommandFormOptions, UseCommandFormReturn, FormValues } from './useCommandForm';
+export { useCommandDataSources } from './useCommandDataSources';
+export type {
+  UseCommandDataSourcesOptions,
+  UseCommandDataSourcesReturn,
+} from './useCommandDataSources';
 
 // Types
 export type {

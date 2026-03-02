@@ -45,8 +45,9 @@ export interface ActivePopover {
 
 /**
  * Agent mode type for agent selection
+ * Unified naming to match backend ConversationMode
  */
-export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
+export type AgentMode = 'auto' | 'dashboard-builder';
 
 /**
  * Ref handle for StandardChatInput, exposing imperative methods
@@ -281,11 +282,14 @@ export interface StandardChatInputProps {
    * Command chip to render inside the input bubble (above the textarea)
    * When provided, sending is allowed even with an empty message
    */
-  commandChip?: ReactNode;
+  contextBar?: ReactNode;
 
   /**
    * When true, shows a "/" button in the toolbar that opens the commands overlay
    * @default false
    */
   enableCommands?: boolean;
+
+  /** Called when the user presses Escape to dismiss the commands overlay */
+  onCloseCommandsList?: () => void;
 }

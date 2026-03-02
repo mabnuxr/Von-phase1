@@ -94,6 +94,12 @@ export function useV1EventProcessor(
       const isStreaming = wrapper.event?.type !== "RUN_FINISHED";
       const status = isStreaming ? "streaming" : "completed";
 
+      // Extract phase from RUN_FINISHED event
+      let phase = existingMessage?.phase;
+      if (wrapper.event?.type === "RUN_FINISHED") {
+        phase = (wrapper.event as any)?.result?.phase || null;
+      }
+
       const messageUpdate: MessageWithStreaming = {
         ...existingMessage,
         id: run_id,
@@ -113,6 +119,7 @@ export function useV1EventProcessor(
         status,
         stoppedByUser: replayed.stoppedByUser,
         lastStreamedAt: new Date().toISOString(),
+        phase, // Add phase for approval button control
       };
 
       flushSync(() => {
