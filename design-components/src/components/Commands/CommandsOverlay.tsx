@@ -189,7 +189,6 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
             onSelectCommand={onSelectCommand}
             onNewCommand={openCreateDrawer}
             onManageCommands={openManageDrawer}
-            onClose={onCloseCommandsList}
             onExpandCommand={openEditDrawer}
             onToggleFavorite={onToggleFavorite}
             maxHeight={maxHeight}

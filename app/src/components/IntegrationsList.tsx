@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { IntegrationCard } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { Resource, AuthenticationStatus } from "../services";
 import {
   getAllIntegrations,
@@ -10,36 +11,14 @@ import {
   type IntegrationMetadata,
 } from "../constants/integrationMetadata";
 import type { Integration } from "./IntegrationsPanel";
-import { getAccessToken } from "../lib/auth";
+import { getUserContext } from "../lib/auth";
 
 /**
- * Decode JWT token payload without verification
- * Note: This only decodes the payload, it does NOT verify the signature
- */
-function decodeJWT(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = atob(parts[1]);
-    return JSON.parse(payload);
-  } catch (error) {
-    console.error("[IntegrationsList] Failed to decode JWT:", error);
-    return null;
-  }
-}
-
-/**
- * Get backend user ID from JWT token
- * Returns the xuid claim which matches the backend user ID
+ * Get backend user ID from stored user context (set during token exchange)
  */
 function getBackendUserId(): string | null {
-  const token = getAccessToken();
-  if (!token) return null;
-
-  const payload = decodeJWT(token);
-  if (!payload) return null;
-
-  return (payload.xuid as string) || null;
+  const userContext = getUserContext();
+  return userContext?.user_id ?? null;
 }
 
 // Define category order for display
@@ -373,7 +352,15 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const allApps = getAllIntegrations();
+  const { isGoogleDriveEnabled } = useFeatureFlag();
+
+  const allApps = useMemo(() => {
+    const apps = getAllIntegrations();
+    return apps.filter((app) => {
+      if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
+      return true;
+    });
+  }, [isGoogleDriveEnabled]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {

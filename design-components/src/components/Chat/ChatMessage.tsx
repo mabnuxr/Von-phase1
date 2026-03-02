@@ -280,6 +280,31 @@ export interface ChatMessageProps {
   onArtifactDownload?: (fileId: string) => void;
 
   /**
+   * Callback when user clicks Google Drive button on an artifact card
+   */
+  onGoogleDriveClick?: (fileId: string) => void;
+
+  /**
+   * Whether Google Drive export is enabled (feature flag is on)
+   */
+  isDriveEnabled?: boolean;
+
+  /**
+   * Whether Google Drive is connected (user has authenticated)
+   */
+  isDriveConnected?: boolean;
+
+  /**
+   * Tooltip text for the Google Drive button
+   */
+  driveTooltip?: string;
+
+  /**
+   * File ID of the artifact currently being exported to Drive (shows spinner)
+   */
+  driveLoadingFileId?: string | null;
+
+  /**
    * Quick command used for this user message (shows expandable chip)
    */
   command?: Command;
@@ -324,6 +349,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   artifacts,
   onFileArtifactClick,
   onArtifactDownload,
+  onGoogleDriveClick,
+  isDriveEnabled,
+  isDriveConnected,
+  driveTooltip,
+  driveLoadingFileId,
   command,
   onRequestFilePreviewUrl,
 }) => {
@@ -656,6 +686,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               ? () => onArtifactDownload(artifact.fileId)
                               : undefined
                           }
+                          onGoogleDriveClick={
+                            onGoogleDriveClick
+                              ? () => onGoogleDriveClick(artifact.fileId)
+                              : undefined
+                          }
+                          isDriveEnabled={isDriveEnabled}
+                          isDriveConnected={isDriveConnected}
+                          driveTooltip={driveTooltip}
+                          isDriveLoading={driveLoadingFileId === artifact.fileId}
                         />
                       ))}
                     </div>

@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { config } from "../config";
 import {
-  setTokens,
+  setAuthData,
   readCodeVerifier,
   readOAuthState,
-  getAccessToken,
-  logCurrentToken,
+  isAuthenticated,
+  logCurrentAuth,
   clearCodeVerifier,
   clearOAuthState,
 } from "../lib/auth";
@@ -38,44 +38,45 @@ export default function Callback() {
     }
 
     try {
-      const tokenUrl = new URL(
-        config.scalekitTokenPath,
-        config.scalekitAuthBaseUrl,
-      ).toString();
-      const form = new URLSearchParams();
-      form.set("grant_type", config.oauthGrantType);
-      form.set("code", code || "");
-      form.set("redirect_uri", config.scalekitRedirectUri);
-      form.set("client_id", config.scalekitClientId);
-      form.set("code_verifier", codeVerifier);
-      form.set("scope", config.oauthScope);
-
-      const res = await fetch(tokenUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: form.toString(),
-      });
+      // Exchange code via backend — backend sets HttpOnly cookies for
+      // access_token and refresh_token, returns id_token + user context
+      const res = await fetch(
+        `${config.apiBaseUrl}/api/v1/auth/token-exchange`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", // Accept Set-Cookie from response
+          body: JSON.stringify({
+            code: code || "",
+            redirect_uri: config.scalekitRedirectUri,
+            code_verifier: codeVerifier,
+            state: storedState,
+          }),
+        },
+      );
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
 
       const data = await res.json();
-      if (!data.access_token) {
-        throw new Error("No access token received from server");
+      if (!data.id_token) {
+        throw new Error("No id_token received from server");
       }
-      setTokens(data.access_token, data.refresh_token);
+
+      // Store id_token and user context in localStorage
+      // (access_token and refresh_token are in HttpOnly cookies)
+      setAuthData(data.id_token, data.user);
       clearCodeVerifier();
       clearOAuthState();
 
-      // Verify token was stored successfully before navigation
-      const storedToken = getAccessToken();
-      if (!storedToken) {
-        throw new Error("Failed to store access token");
+      // Verify auth data was stored successfully before navigation
+      if (!isAuthenticated()) {
+        throw new Error("Failed to store auth data");
       }
 
       if (import.meta.env.DEV) {
-        logCurrentToken("after login");
+        logCurrentAuth("after login");
       }
 
       // Identify user in LaunchDarkly after successful login
@@ -88,7 +89,6 @@ export default function Callback() {
       }
       clearCodeVerifier();
       clearOAuthState();
-      // TODO: Add user-friendly error message
       navigate("/", { replace: true });
     }
   }, [code, state, navigate, identifyUser]);

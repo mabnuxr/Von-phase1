@@ -49,6 +49,11 @@ export const Chat: React.FC<ChatProps> = ({
   showArtifacts = false,
   onFileArtifactClick,
   onArtifactDownload,
+  onGoogleDriveClick,
+  isDriveEnabled,
+  isDriveConnected,
+  driveTooltip,
+  driveLoadingFileId,
   onFileClick,
   banner,
   topBanner,
@@ -379,6 +384,11 @@ export const Chat: React.FC<ChatProps> = ({
                   artifacts={showArtifacts ? message.artifacts : undefined}
                   onFileArtifactClick={showArtifacts ? onFileArtifactClick : undefined}
                   onArtifactDownload={showArtifacts ? onArtifactDownload : undefined}
+                  onGoogleDriveClick={showArtifacts ? onGoogleDriveClick : undefined}
+                  isDriveEnabled={isDriveEnabled}
+                  isDriveConnected={isDriveConnected}
+                  driveTooltip={driveTooltip}
+                  driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 />
               </div>

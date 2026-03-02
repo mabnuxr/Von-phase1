@@ -327,7 +327,11 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     return (
       <div className="relative">
         {enableCommands && commandNotificationFileCount !== null && (
-          <CommandNotificationBar isVisible fileCount={commandNotificationFileCount} />
+          <CommandNotificationBar
+            isVisible
+            fileCount={commandNotificationFileCount}
+            onDismiss={() => setCommandNotificationFileCount(null)}
+          />
         )}
         {enableCommands && (
           <CommandsOverlay

@@ -15,17 +15,25 @@
  */
 
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
 import type { AgentMode } from "@vonlabs/design-components";
 
-import { conversationsService } from "../services";
+import {
+  authService,
+  conversationsService,
+  IntegrationType,
+  AuthenticationStatus,
+} from "../services";
+import { useIntegrations } from "../hooks/useIntegrations";
 import useChatStore from "../store/chatStore";
 import { useMessages } from "../hooks/useMessages";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useAppShell } from "../hooks/useAppShell";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useToast } from "../hooks/useToast";
 import { conversationKeys } from "../hooks/useConversations";
 import { chatSidebarKeys } from "../hooks/useChatSidebar";
 import { ChatV1Container } from "../components/ChatV1Container";
@@ -42,6 +50,7 @@ import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
 const Conversation = () => {
+  const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
   }>();
@@ -87,6 +96,9 @@ const Conversation = () => {
     refetch: refetchMessages,
   } = useMessages(currentConversationId, MESSAGES_PAGE_LIMIT);
 
+  // --- Feature Flags ---
+  const { isGoogleDriveEnabled } = useFeatureFlag();
+
   // --- Salesforce ---
   const {
     isConnected: isSalesforceConnected,
@@ -101,6 +113,30 @@ const Conversation = () => {
 
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
+
+  // --- Toast ---
+  const { showToast } = useToast();
+
+  // --- Google Drive ---
+  const { data: integrationsData } = useIntegrations();
+  const isDriveConnected = useMemo(
+    () =>
+      integrationsData?.integrations.some(
+        (i) =>
+          i.type === IntegrationType.GOOGLE_DRIVE &&
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+      ) ?? false,
+    [integrationsData],
+  );
+  const isDriveEnabled = isGoogleDriveEnabled;
+  const driveTooltip = !isGoogleDriveEnabled
+    ? "Open in Drive (Coming Soon)"
+    : !isDriveConnected
+      ? "Connect Google Drive"
+      : "Open in Google Drive";
+  const [driveLoadingFileId, setDriveLoadingFileId] = useState<string | null>(
+    null,
+  );
 
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";
@@ -182,6 +218,32 @@ const Conversation = () => {
     }
   }, [isTenantDisabled]);
 
+  // --- Google Drive Export ---
+  const handleGoogleDriveClick = useCallback(
+    async (fileId: string) => {
+      if (!isDriveConnected) {
+        navigate("/settings?tab=integrations");
+        return;
+      }
+      if (!currentConversationId) return;
+      try {
+        setDriveLoadingFileId(fileId);
+        const { exportToDrive } = await import("../services/gsuite");
+        const result = await exportToDrive(fileId, currentConversationId);
+        window.open(result.url, "_blank");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to export to Google Drive";
+        showToast({ message, variant: "error" });
+      } finally {
+        setDriveLoadingFileId(null);
+      }
+    },
+    [currentConversationId, isDriveConnected, navigate, showToast],
+  );
+
   // --- Banner ---
   const chatBanner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
@@ -220,6 +282,11 @@ const Conversation = () => {
     syncAgentModeToBackend,
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,
+    onGoogleDriveClick: handleGoogleDriveClick,
+    isDriveEnabled,
+    isDriveConnected,
+    driveTooltip,
+    driveLoadingFileId,
   };
 
   return (

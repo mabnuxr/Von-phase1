@@ -1153,6 +1153,32 @@ export interface ChatProps {
   onArtifactDownload?: (fileId: string) => void;
 
   /**
+   * Callback when user clicks Google Drive button on an artifact card
+   */
+  onGoogleDriveClick?: (fileId: string) => void;
+
+  /**
+   * Whether Google Drive export is enabled (feature flag is on)
+   */
+  isDriveEnabled?: boolean;
+
+  /**
+   * Whether Google Drive is connected (user has authenticated).
+   * When isDriveEnabled but not isDriveConnected, clicking navigates to settings.
+   */
+  isDriveConnected?: boolean;
+
+  /**
+   * Tooltip text for the Google Drive button
+   */
+  driveTooltip?: string;
+
+  /**
+   * File ID of the artifact currently being exported to Drive (shows spinner)
+   */
+  driveLoadingFileId?: string | null;
+
+  /**
    * Callback when a file attachment pill is clicked (for preview/download)
    */
   onFileClick?: (attachment: MessageFileAttachment) => void;

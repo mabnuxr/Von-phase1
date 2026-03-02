@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { startAuthorization } from "../lib/authFlow";
-import { getAccessToken, logCurrentToken } from "../lib/auth";
+import { isAuthenticated, logCurrentAuth } from "../lib/auth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function RootGate() {
@@ -10,7 +10,7 @@ export default function RootGate() {
 
   useEffect(() => {
     if (import.meta.env.DEV) {
-      logCurrentToken("on site load");
+      logCurrentAuth("on site load");
     }
 
     // If user just logged out from ScaleKit, show confirmation
@@ -18,13 +18,11 @@ export default function RootGate() {
       return;
     }
 
-    // Check if user already has a token
-    const token = getAccessToken();
-    if (token) {
-      // User is authenticated, go to chat
+    // Check if user is already authenticated (id_token in localStorage)
+    if (isAuthenticated()) {
       navigate("/chat", { replace: true });
     } else {
-      // No token, redirect to ScaleKit auth
+      // Not authenticated, redirect to ScaleKit auth
       const t = setTimeout(() => {
         startAuthorization();
       }, 300);

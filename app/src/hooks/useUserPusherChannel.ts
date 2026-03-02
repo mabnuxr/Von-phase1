@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import Pusher, { type Channel } from "pusher-js";
-import { getAccessToken } from "../lib/auth";
 import { config as appConfig } from "../config";
 
 interface UseUserPusherChannelConfig {
@@ -54,25 +53,18 @@ export function useUserPusherChannel(
     const channelName = `private-vonlabs-user-${config.tenantId}-${config.userId}`;
 
     try {
-      // Initialize Pusher with dynamic authorizer (reads fresh token on each
-      // auth request, fixing stale-token issues after token refresh)
+      // Initialize Pusher with dynamic authorizer using HttpOnly cookies
       const pusher = new Pusher(pusherKey, {
         cluster: pusherCluster,
         forceTLS: true,
         authorizer: (channel) => ({
           authorize: (socketId, callback) => {
-            const token = getAccessToken();
-            if (!token || token.trim() === "") {
-              callback(new Error("No access token available"), null);
-              return;
-            }
-
             fetch(`${appConfig.apiBaseUrl}/api/v1/pusher/auth`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
-                Authorization: `Bearer ${token.trim()}`,
               },
+              credentials: "include", // Send HttpOnly cookies
               body: new URLSearchParams({
                 socket_id: socketId,
                 channel_name: channel.name,
