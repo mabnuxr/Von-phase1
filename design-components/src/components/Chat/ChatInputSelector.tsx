@@ -359,7 +359,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           ghostCommandName={ghostCommandName}
           isGhostHighlighted={isGhostHighlighted}
           contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
-          onCloseCommandsList={enableCommands && showCommandsList ? handleCloseCommandsList : undefined}
+          onCloseCommandsList={
+            enableCommands && showCommandsList ? handleCloseCommandsList : undefined
+          }
         />
       );
     }
