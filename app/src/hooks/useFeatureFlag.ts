@@ -55,44 +55,45 @@ export function useFeatureFlag() {
     /**
      * Controls whether Slash Commands feature is enabled in chat
      */
-    isSlashCommandsEnabled: true,
+    isSlashCommandsEnabled: flags[FEATURE_FLAGS.SLASH_COMMANDS] === true,
 
     /**
      * Controls whether additional actions menu is enabled (convert to dashboard, etc.)
      */
-    isActionsEnabled: true,
+    isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
 
     /**
      * Controls whether Salesforce deep links are enabled
      * (clickable record names in approval cards and query results)
      */
-    isDeepLinksEnabled: true,
+    isDeepLinksEnabled: flags[FEATURE_FLAGS.DEEP_LINKS] === true,
 
     /**
      * Controls if we need to show new sidebar UI experience
      */
-    isSidebarV2: true,
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
 
     /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isAgentV2: true,
+    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
+
     /**
      * Controls whether user memory feature is enabled
      * (personal memory segment for each user)
      */
-    isUserMemoryEnabled: true,
+    isUserMemoryEnabled: flags[FEATURE_FLAGS.USER_MEMORY] === true,
 
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
      */
-    isDeepResearchEnabled: true,
+    isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
 
     /**
      * Controls whether the Sources button is shown on assistant messages
      */
-    isSourcesEnabled: true,
+    isSourcesEnabled: flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
 
     /**
      * Controls whether the current tenant's subscription is inactive
@@ -102,7 +103,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether file upload (plus menu) is enabled in chat
      */
-    isFileUploadEnabled: true,
+    isFileUploadEnabled: flags[FEATURE_FLAGS.FILE_UPLOAD] === true,
 
     /**
      * Controls whether agent-generated artifact cards and preview panel are shown
