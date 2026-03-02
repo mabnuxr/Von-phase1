@@ -30,10 +30,14 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
 
     const syncSize = () => {
       const chart = chartRef.current?.chart;
-      if (!chart || chart.renderTo === null) return;
+      if (!chart) return;
       const { width, height } = el.getBoundingClientRect();
       if (width > 0 && height > 0) {
-        chart.setSize(Math.floor(width), Math.floor(height), false);
+        try {
+          chart.setSize(Math.floor(width), Math.floor(height), false);
+        } catch {
+          // Chart was destroyed between rAF scheduling and execution
+        }
       }
     };
 

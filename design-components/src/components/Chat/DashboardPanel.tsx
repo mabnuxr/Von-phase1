@@ -10,13 +10,19 @@ import type { DashboardMetadata } from './DeepResearchChat';
 
 export interface DashboardPanelProps {
   dashboard: DashboardMetadata;
+  /** Optional navigation callback — provide React Router's navigate for SPA navigation */
+  onNavigate?: (url: string) => void;
 }
 
-export const DashboardPanel: React.FC<DashboardPanelProps> = ({ dashboard }) => {
+export const DashboardPanel: React.FC<DashboardPanelProps> = ({ dashboard, onNavigate }) => {
   const handleViewDashboard = () => {
     // Construct dashboard URL from ID and version
     const dashboardUrl = `/dashboard/${dashboard.dashboard_id}?version=${dashboard.dashboard_version}`;
-    window.location.href = dashboardUrl;
+    if (onNavigate) {
+      onNavigate(dashboardUrl);
+    } else {
+      window.location.href = dashboardUrl;
+    }
   };
 
   return (

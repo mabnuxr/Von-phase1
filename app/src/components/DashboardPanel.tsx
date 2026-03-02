@@ -5,6 +5,7 @@
  * when a dashboard is successfully created.
  */
 
+import { useNavigate } from "react-router-dom";
 import type { DashboardMetadata } from "../types/conversation";
 
 export interface DashboardPanelProps {
@@ -12,10 +13,11 @@ export interface DashboardPanelProps {
 }
 
 export function DashboardPanel({ dashboard }: DashboardPanelProps) {
+  const navigate = useNavigate();
+
   const handleViewDashboard = () => {
-    // Construct dashboard URL from ID and version
     const dashboardUrl = `/dashboard/${dashboard.dashboard_id}?version=${dashboard.dashboard_version}`;
-    window.location.href = dashboardUrl;
+    navigate(dashboardUrl);
   };
 
   return (

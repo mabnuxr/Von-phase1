@@ -105,6 +105,8 @@ export interface DeepResearchChatProps {
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
+  /** Optional navigation callback for dashboard links — provide React Router's navigate for SPA navigation */
+  onNavigate?: (url: string) => void;
 }
 
 /**
@@ -136,6 +138,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onReject,
   onLike,
   onDislike,
+  onNavigate,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -254,7 +257,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                     isStreaming={false}
                     className="text-sm text-gray-700"
                   />
-                  <DashboardPanel dashboard={dashboard} />
+                  <DashboardPanel dashboard={dashboard} onNavigate={onNavigate} />
                   <MessageActions
                     messageContent={message.v2FinalResponse}
                     messageId={message.messageId || message.id}
@@ -368,7 +371,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       />
                       {/* Dashboard Panel - shown when dashboard is created */}
                       {researchResults.isCompleted && dashboard && (
-                        <DashboardPanel dashboard={dashboard} />
+                        <DashboardPanel dashboard={dashboard} onNavigate={onNavigate} />
                       )}
                       {/* Action buttons outside the card - using MessageActions for consistency */}
                       {researchResults.isCompleted && (

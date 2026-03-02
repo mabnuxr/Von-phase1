@@ -37,6 +37,7 @@ import type {
 interface ChatInputSelectorRef {
   focus: () => void;
 }
+import { useNavigate } from "react-router-dom";
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
@@ -144,6 +145,8 @@ export const DeepResearchConversation: React.FC<
   onDislike,
   lockedAgentMode = "dashboard-builder",
 }) => {
+  const navigate = useNavigate();
+
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
   const [dataTablesRunId, setDataTablesRunId] = useState<string | null>(null);
@@ -302,6 +305,7 @@ export const DeepResearchConversation: React.FC<
           onReject={onReject}
           onLike={onLike}
           onDislike={onDislike}
+          onNavigate={navigate}
         />
 
         {/* Scroll to bottom button */}
