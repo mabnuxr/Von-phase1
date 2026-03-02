@@ -407,6 +407,7 @@ export function useV2EventProcessor(
               setCurrentRunId(run_id);
               setRunErrorMessage("");
               setDashboard(null);
+              setPhase(null);
             });
             timer.start();
           } else {

@@ -1,4 +1,4 @@
-import { DashboardGrid } from "@vonlabs/design-components";
+import { DashboardGrid, ErrorBoundary } from "@vonlabs/design-components";
 import { AnalyticsHeader } from "../AnalyticsHeader";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import type { Dashboard, RefreshInfo } from "../../../types/dashboard";
@@ -45,11 +45,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
-        <DashboardGrid
-          layout={layout}
-          widgets={widgets}
-          gridConfig={gridConfig}
-        />
+        <ErrorBoundary>
+          <DashboardGrid
+            layout={layout}
+            widgets={widgets}
+            gridConfig={gridConfig}
+          />
+        </ErrorBoundary>
       </div>
     </div>
   );

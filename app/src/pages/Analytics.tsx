@@ -33,7 +33,11 @@ const Analytics = () => {
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
 
   const handleRefresh = useCallback(async () => {
-    await refreshMutation.mutateAsync();
+    try {
+      await refreshMutation.mutateAsync();
+    } catch (error) {
+      console.error("[Analytics] Refresh failed:", error);
+    }
   }, [refreshMutation]);
 
   // Collapse left sidebar on mount

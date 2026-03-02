@@ -61,7 +61,9 @@ export function applyChartTheme(
     chart: { ...chart, backgroundColor: CHART_BG },
     colors: CHART_PALETTE,
     ...(xAxis ? { xAxis: injectAxisLabelColor(xAxis) } : {}),
-    ...(yAxis ? { yAxis: yAxis.map((y) => injectAxisLabelColor(y)) } : {}),
+    ...(yAxis && Array.isArray(yAxis)
+      ? { yAxis: yAxis.map((y) => injectAxisLabelColor(y)) }
+      : {}),
     ...(patchedSeries ? { series: patchedSeries } : {}),
   };
 }

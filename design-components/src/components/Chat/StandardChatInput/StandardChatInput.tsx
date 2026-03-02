@@ -628,6 +628,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             disabled={disabled && !isStreaming}
                             editorRef={editorRef}
                             onEscape={onCloseCommandsList}
+                            onPasteFiles={(files) => {
+                              if (isAttachmentsControlled) {
+                                onFilesSelected?.(files);
+                              } else {
+                                addFiles(files);
+                              }
+                            }}
                           />
                         </div>
                       </div>

@@ -167,8 +167,14 @@ export function useDashboardQuery(dashboardId: string | undefined) {
         const rawResponse = await dashboardService.getDashboard(dashboardId!);
 
         if (
-          rawResponse &&
-          typeof rawResponse === "object" &&
+          !rawResponse ||
+          typeof rawResponse !== "object" ||
+          !("id" in rawResponse)
+        ) {
+          throw new Error("Invalid dashboard response structure");
+        }
+
+        if (
           "success" in rawResponse &&
           !(rawResponse as { success: boolean }).success
         ) {
