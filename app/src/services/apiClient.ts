@@ -1,5 +1,5 @@
 import { config } from "../config";
-import { getAccessToken, clearAllAuth } from "../lib/auth";
+import { clearAllAuth } from "../lib/auth";
 
 /**
  * API Error class for handling API-specific errors
@@ -20,10 +20,6 @@ export class ApiError extends Error {
  * API Client configuration options
  */
 export interface ApiRequestOptions extends RequestInit {
-  /**
-   * Skip authorization header
-   */
-  skipAuth?: boolean;
   /**
    * Custom headers to merge with defaults
    */
@@ -83,26 +79,11 @@ export class ApiClient {
   /**
    * Get default headers for API requests
    */
-  private getDefaultHeaders(skipAuth = false): HeadersInit {
-    const headers: HeadersInit = {
+  private getDefaultHeaders(): HeadersInit {
+    return {
       Accept: "application/json",
       "Content-Type": "application/json",
     };
-
-    // Add authorization header if not skipped and token exists
-    if (!skipAuth) {
-      const token = getAccessToken();
-      if (token) {
-        const trimmedToken = token.trim();
-        if (trimmedToken) {
-          headers.Authorization = `Bearer ${trimmedToken}`;
-        } else if (import.meta.env.DEV) {
-          console.warn("[API] Empty access token found");
-        }
-      }
-    }
-
-    return headers;
   }
 
   /**
@@ -128,14 +109,13 @@ export class ApiClient {
     options: ApiRequestOptions = {},
   ): Promise<T> {
     const {
-      skipAuth = false,
       headers: customHeaders,
       ...fetchOptions
     } = options;
 
     const url = `${this.baseUrl}${endpoint}`;
     const headers = this.mergeHeaders(
-      this.getDefaultHeaders(skipAuth),
+      this.getDefaultHeaders(),
       customHeaders,
     );
 
@@ -147,6 +127,7 @@ export class ApiClient {
       const response = await fetch(url, {
         ...fetchOptions,
         headers,
+        credentials: "include", // Send HttpOnly cookies with every request
       });
 
       // Read the body once — response body is a one-time readable stream
@@ -160,6 +141,7 @@ export class ApiClient {
         }
       }
 
+<<<<<<< abhishek-commands-ux
       // Handle non-OK responses
       if (!response.ok) {
         const errorMessage = extractErrorMessage(
@@ -175,12 +157,24 @@ export class ApiClient {
             console.log(
               `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
             );
+=======
+        // Handle 401 Unauthorized — backend middleware handles transparent
+        // token refresh, so a 401 means the session is truly expired
+        if (response.status === 401) {
+          if (import.meta.env.DEV) {
+            console.log("[API] 401 Unauthorized - session expired, logging out");
+>>>>>>> main
           }
           clearAllAuth();
           setTimeout(() => {
             window.location.href = "/";
           }, 100);
+<<<<<<< abhishek-commands-ux
           throw new ApiError(errorMessage, response.status, responseData);
+=======
+
+          throw new ApiError(errorMessage, response.status, errorData);
+>>>>>>> main
         }
 
         throw new ApiError(errorMessage, response.status, responseData);

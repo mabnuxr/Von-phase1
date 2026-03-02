@@ -6,7 +6,18 @@ export async function startAuthorization() {
   const codeVerifier = randomString(64);
   const challengeBuffer = await sha256(codeVerifier);
   const codeChallenge = base64UrlEncode(challengeBuffer);
-  const state = crypto.randomUUID();
+
+  // Fetch a server-signed state from the backend. The backend also sets a
+  // signed oauth_state HttpOnly cookie that will be validated during
+  // token-exchange to prevent login CSRF / session fixation.
+  const authorizeRes = await fetch(
+    `${config.apiBaseUrl}/api/v1/auth/authorize`,
+    { credentials: "include" },
+  );
+  if (!authorizeRes.ok) {
+    throw new Error(`Failed to fetch OAuth state: HTTP ${authorizeRes.status}`);
+  }
+  const { state } = (await authorizeRes.json()) as { state: string };
 
   storeCodeVerifier(codeVerifier);
   storeOAuthState(state);

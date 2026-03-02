@@ -43,7 +43,7 @@ export interface UseFileUploadPipelineOptions {
  * transitions: pending → uploading → uploaded/error.
  *
  * Enforces limits:
- * - Per-file: 7MB max
+ * - Per-file: 20MB max
  * - Per-batch: 5 files max
  */
 export function useFileUploadPipeline(
