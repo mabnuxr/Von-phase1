@@ -217,6 +217,7 @@ export type {
   TableData,
   QueryInfo,
   MetricData,
+  RunFinishedEvent,
 } from './Chat/index';
 
 // Export approval utility functions

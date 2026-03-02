@@ -36,9 +36,6 @@ export function agentModeToConversationMode(
   switch (agentMode) {
     case "auto":
       return "auto";
-    case "build-dashboard":
-      // Legacy value from design-components - map to new unified naming
-      return "dashboard-builder";
     case "dashboard-builder":
       return "dashboard-builder";
     default:
