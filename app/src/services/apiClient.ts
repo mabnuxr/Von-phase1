@@ -124,28 +124,26 @@ export class ApiClient {
         credentials: "include", // Send HttpOnly cookies with every request
       });
 
-      // Read the body once — response body is a one-time readable stream
-      let responseData: unknown;
-      if (response.status !== 204) {
+      // Handle non-OK responses — read as text so we can extract an error
+      // message even when the body isn't valid JSON.
+      if (!response.ok) {
+        let errorData: unknown;
         try {
           const text = await response.text();
-          if (text) responseData = JSON.parse(text);
+          if (text) errorData = JSON.parse(text);
         } catch {
-          // not JSON — responseData stays undefined
+          // body unreadable or not JSON — errorData stays undefined
         }
-      }
 
-      // Handle non-OK responses
-      if (!response.ok) {
         const errorMessage = extractErrorMessage(
-          responseData,
+          errorData,
           response.status,
           response.statusText,
         );
 
         // Handle 401 Unauthorized
         if (response.status === 401) {
-          const errorCode = getErrorCode(responseData);
+          const errorCode = getErrorCode(errorData);
           if (import.meta.env.DEV) {
             console.log(
               `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
@@ -155,10 +153,10 @@ export class ApiClient {
           setTimeout(() => {
             window.location.href = "/";
           }, 100);
-          throw new ApiError(errorMessage, response.status, responseData);
+          throw new ApiError(errorMessage, response.status, errorData);
         }
 
-        throw new ApiError(errorMessage, response.status, responseData);
+        throw new ApiError(errorMessage, response.status, errorData);
       }
 
       // Handle empty responses (204 No Content)
@@ -166,7 +164,8 @@ export class ApiClient {
         return undefined as T;
       }
 
-      return responseData as T;
+      // OK response — let response.json() parse and throw on malformed JSON
+      return (await response.json()) as T;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
