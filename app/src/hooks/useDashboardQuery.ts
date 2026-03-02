@@ -164,17 +164,21 @@ export function useDashboardQuery(dashboardId: string | undefined) {
     queryKey: dashboardKeys.detail(dashboardId!),
     queryFn: async () => {
       try {
-        const rawResponse = (await dashboardService.getDashboard(
-          dashboardId!,
-        )) as RawApiDashboardResponse;
+        const rawResponse = await dashboardService.getDashboard(dashboardId!);
 
-        const response = adaptApiResponse(rawResponse);
-
-        if (!response.success) {
+        if (
+          rawResponse &&
+          typeof rawResponse === "object" &&
+          "success" in rawResponse &&
+          !(rawResponse as { success: boolean }).success
+        ) {
           throw new Error(
-            response.error?.message ?? "Failed to load dashboard",
+            (rawResponse as { error?: { message?: string } }).error?.message ??
+              "Failed to load dashboard",
           );
         }
+
+        const response = adaptApiResponse(rawResponse as RawApiDashboardResponse);
 
         const { dashboard, refreshInfo } = response.data;
 

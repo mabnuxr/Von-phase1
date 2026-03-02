@@ -64,11 +64,25 @@ function getStallThreshold(chatType: ConversationMode): number {
   }
 }
 
-export function useReconciliation(config: UseReconciliationConfig): void {
+export function useReconciliation({
+  conversationId,
+  chatType,
+  isThinking,
+  isFinalResponseStreaming,
+  isConnected,
+  pusherRef,
+  eventsRef,
+  finishedRunsRef,
+  lastEventTimeRef,
+  onStateUpdate,
+  onRunFinished,
+  onReconcile,
+  onTimeout,
+}: UseReconciliationConfig): void {
   const isReconcilingRef = useRef<boolean>(false);
 
   const reconcile = useCallback(async () => {
-    if (!config.conversationId || isReconcilingRef.current) return;
+    if (!conversationId || isReconcilingRef.current) return;
 
     isReconcilingRef.current = true;
 
@@ -79,7 +93,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     try {
       // Step 1: Fetch latest messages from backend
       const response = await conversationsService.getConversationMessages(
-        config.conversationId,
+        conversationId,
         1,
         5,
       );
@@ -107,10 +121,10 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       if (!runId) return;
 
       // Don't reconcile for runs that are already finished
-      if (config.finishedRunsRef.current.has(runId)) return;
+      if (finishedRunsRef.current.has(runId)) return;
 
       // Step 4: Merge local + API events (deduped, API wins on conflict)
-      const localEvents = config.eventsRef.current.get(runId) || [];
+      const localEvents = eventsRef.current.get(runId) || [];
       const mergedMap = new Map<string, AguiEventWrapper>();
 
       for (const evt of localEvents) {
@@ -125,13 +139,13 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       );
 
       // Update eventsRef
-      config.eventsRef.current.set(runId, mergedEvents);
+      eventsRef.current.set(runId, mergedEvents);
 
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
       // Step 6: Update state
-      config.onStateUpdate(result, runId);
+      onStateUpdate(result, runId);
 
       // Step 7: Handle run completion
       const isTransitionalFinish =
@@ -141,17 +155,17 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       if (
         !result.isThinking &&
         !isTransitionalFinish &&
-        !config.finishedRunsRef.current.has(runId)
+        !finishedRunsRef.current.has(runId)
       ) {
-        config.finishedRunsRef.current.add(runId);
+        finishedRunsRef.current.add(runId);
 
         const actualElapsed = getElapsedTimeFromEvents(mergedEvents);
-        config.onRunFinished?.(runId, actualElapsed);
+        onRunFinished?.(runId, actualElapsed);
       }
 
       // Only reset stall timer if we got genuinely new events
       if (mergedEvents.length > localEvents.length) {
-        config.lastEventTimeRef.current = Date.now();
+        lastEventTimeRef.current = Date.now();
       }
 
       console.log(
@@ -165,35 +179,34 @@ export function useReconciliation(config: UseReconciliationConfig): void {
         result.isThinking,
       );
 
-      config.onReconcile?.();
+      onReconcile?.();
     } catch (err) {
       console.error("[useReconciliation] Reconciliation failed:", err);
     } finally {
       isReconcilingRef.current = false;
     }
   }, [
-    config.conversationId,
-    config.pusherRef,
-    config.eventsRef,
-    config.finishedRunsRef,
-    config.lastEventTimeRef,
-    config.onStateUpdate,
-    config.onRunFinished,
-    config.onReconcile,
+    conversationId,
+    pusherRef,
+    eventsRef,
+    finishedRunsRef,
+    lastEventTimeRef,
+    onStateUpdate,
+    onRunFinished,
+    onReconcile,
   ]);
 
   // Health check interval — active when thinking OR streaming final response
-  const isActivelyStreaming =
-    config.isThinking || config.isFinalResponseStreaming;
+  const isActivelyStreaming = isThinking || isFinalResponseStreaming;
 
   useEffect(() => {
-    if (!isActivelyStreaming || !config.conversationId) return;
+    if (!isActivelyStreaming || !conversationId) return;
 
-    const stallThreshold = getStallThreshold(config.chatType);
+    const stallThreshold = getStallThreshold(chatType);
 
     if (import.meta.env.DEV) {
       console.log(
-        `[useReconciliation] Health check active — chatType: ${config.chatType}, threshold: ${stallThreshold}ms`,
+        `[useReconciliation] Health check active — chatType: ${chatType}, threshold: ${stallThreshold}ms`,
       );
     }
 
@@ -201,9 +214,9 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       if (isReconcilingRef.current) return;
 
       // Skip if no events received yet
-      if (config.lastEventTimeRef.current === 0) return;
+      if (lastEventTimeRef.current === 0) return;
 
-      const timeSinceLastEvent = Date.now() - config.lastEventTimeRef.current;
+      const timeSinceLastEvent = Date.now() - lastEventTimeRef.current;
 
       // Hard timeout — no genuinely new events for too long, give up
       if (timeSinceLastEvent >= STREAM_TIMEOUT_MS) {
@@ -213,7 +226,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
           "seconds",
         );
         clearInterval(intervalId);
-        config.onTimeout?.();
+        onTimeout?.();
         return;
       }
 
@@ -230,9 +243,10 @@ export function useReconciliation(config: UseReconciliationConfig): void {
     return () => clearInterval(intervalId);
   }, [
     isActivelyStreaming,
-    config.conversationId,
-    config.chatType,
-    config.lastEventTimeRef,
+    conversationId,
+    chatType,
+    lastEventTimeRef,
+    onTimeout,
     reconcile,
   ]);
 
@@ -246,14 +260,14 @@ export function useReconciliation(config: UseReconciliationConfig): void {
   // Reconnect (false→true): reconcile immediately to catch up on any events
   // missed during the outage. Pusher does NOT replay missed events after
   // reconnecting, so a backend fetch is the only recovery path.
-  const prevConnectedRef = useRef(config.isConnected);
+  const prevConnectedRef = useRef(isConnected);
   useEffect(() => {
     const wasConnected = prevConnectedRef.current;
-    prevConnectedRef.current = config.isConnected;
+    prevConnectedRef.current = isConnected;
 
     if (!isActivelyStreaming) return;
 
-    if (wasConnected && !config.isConnected) {
+    if (wasConnected && !isConnected) {
       console.log(
         "[useReconciliation] Pusher disconnected during active streaming — scheduling reconciliation",
       );
@@ -263,7 +277,7 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       return () => clearTimeout(timerId);
     }
 
-    if (!wasConnected && config.isConnected) {
+    if (!wasConnected && isConnected) {
       console.log(
         "[useReconciliation] Pusher reconnected during active streaming — reconciling missed events",
       );
@@ -273,5 +287,5 @@ export function useReconciliation(config: UseReconciliationConfig): void {
       }, 500);
       return () => clearTimeout(timerId);
     }
-  }, [config.isConnected, isActivelyStreaming, reconcile]);
+  }, [isConnected, isActivelyStreaming, reconcile]);
 }

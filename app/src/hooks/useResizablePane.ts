@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 interface UseResizablePaneOptions {
   defaultWidth?: number;
@@ -30,6 +30,15 @@ export function useResizablePane({
   const [isResizing, setIsResizing] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+
+  useEffect(() => {
+    if (isResizing) {
+      return () => {
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+    }
+  }, [isResizing]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {

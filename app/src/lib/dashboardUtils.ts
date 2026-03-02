@@ -2,6 +2,7 @@
 import type {
   Message as ChatMessage,
   TimelineStep,
+  RunFinishedEvent,
 } from "@vonlabs/design-components";
 import type { ChatItem } from "@vonlabs/design-components";
 
@@ -377,7 +378,7 @@ function transformMessagesForV2(
         (e) => e.event?.type === "RUN_FINISHED",
       );
       const persistedPhase = runFinishedEvent
-        ? (runFinishedEvent.event as any)?.result?.phase || null
+        ? (runFinishedEvent.event as RunFinishedEvent).result?.phase ?? null
         : null;
 
       // Extract persisted research results; prefer the latest completed run when no live data

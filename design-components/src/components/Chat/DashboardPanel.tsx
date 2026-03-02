@@ -15,7 +15,7 @@ export interface DashboardPanelProps {
 export const DashboardPanel: React.FC<DashboardPanelProps> = ({ dashboard }) => {
   const handleViewDashboard = () => {
     // Construct dashboard URL from ID and version
-    const dashboardUrl = `/dashboards/${dashboard.dashboard_id}?version=${dashboard.dashboard_version}`;
+    const dashboardUrl = `/dashboard/${dashboard.dashboard_id}?version=${dashboard.dashboard_version}`;
     window.location.href = dashboardUrl;
   };
 

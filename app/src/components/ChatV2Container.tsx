@@ -137,6 +137,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             researchResults={chatV2.effectiveResearchResults ?? undefined}
             isDeepResearchRunning={chatV2.isDeepResearchRunning}
             dashboard={chatV2.dashboard ?? undefined}
+            lockedAgentMode={lockedAgentMode}
             onSendMessage={chatV2.handleSendMessage}
             onStopStreaming={chatV2.handleStopStreaming}
             onArtifactClick={chatV2.handleArtifactClick}

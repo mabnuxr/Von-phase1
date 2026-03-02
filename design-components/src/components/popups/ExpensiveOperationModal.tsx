@@ -90,8 +90,6 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
   onCancel,
   operationName = 'Create Dashboard',
 }) => {
-  const safeRecordCount = recordCount ?? 0;
-
   return (
     <AnimatePresence>
       {isOpen && (

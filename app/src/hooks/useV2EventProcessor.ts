@@ -22,7 +22,13 @@ import type { Channel } from "pusher-js";
 import type {
   AguiEventWrapper,
   TimelineStep,
+  RunFinishedEvent,
 } from "@vonlabs/design-components";
+
+/** RUN_FINISHED result extended with the optional dashboard field the backend emits. */
+type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, "result"> & {
+  result: RunFinishedEvent["result"] & { dashboard?: DashboardMetadata | null };
+};
 import type { DashboardMetadata } from "../types/conversation";
 
 import {
@@ -232,7 +238,7 @@ export function useV2EventProcessor(
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [timer.stop, timer.set, onRunComplete],
+    [timer, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
@@ -274,7 +280,7 @@ export function useV2EventProcessor(
       timer.stop();
       timer.set(elapsed);
     },
-    [timer.stop, timer.set],
+    [timer],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -400,6 +406,7 @@ export function useV2EventProcessor(
               setStoppedByUser(false);
               setCurrentRunId(run_id);
               setRunErrorMessage("");
+              setDashboard(null);
             });
             timer.start();
           } else {
@@ -429,11 +436,11 @@ export function useV2EventProcessor(
         // Extract phase and dashboard from RUN_FINISHED event
         const runFinishedPhase =
           eventType === "RUN_FINISHED"
-            ? (wrapper.event as any)?.result?.phase || null
+            ? (wrapper.event as RunFinishedEventWithDashboard).result?.phase ?? null
             : undefined;
         const runFinishedDashboard =
           eventType === "RUN_FINISHED"
-            ? (wrapper.event as any)?.result?.dashboard || null
+            ? (wrapper.event as RunFinishedEventWithDashboard).result?.dashboard ?? null
             : undefined;
 
         // Update state synchronously
@@ -513,16 +520,7 @@ export function useV2EventProcessor(
         console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
-    [
-      conversationId,
-      timer.start,
-      timer.stop,
-      timer.pause,
-      timer.play,
-      timer.set,
-      onRunComplete,
-      scheduleGapFill,
-    ],
+    [conversationId, timer, onRunComplete, scheduleGapFill],
   );
 
   // Seed/reconcile from initialRunEvents on mount or when backend events arrive.
@@ -554,10 +552,10 @@ export function useV2EventProcessor(
       (e) => e.event?.type === "RUN_FINISHED",
     );
     const seededPhase = runFinishedEvent
-      ? (runFinishedEvent.event as any)?.result?.phase || null
+      ? (runFinishedEvent.event as RunFinishedEventWithDashboard).result?.phase ?? null
       : null;
     const seededDashboard = runFinishedEvent
-      ? (runFinishedEvent.event as any)?.result?.dashboard || null
+      ? (runFinishedEvent.event as RunFinishedEventWithDashboard).result?.dashboard ?? null
       : null;
 
     eventsRef.current.set(runId, mergedEvents);
@@ -630,6 +628,7 @@ export function useV2EventProcessor(
       }
       scheduleGapFill(runId, 1500, "Reconciliation");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRunEvents]);
 
   // Bind/unbind AGUI events when channel changes

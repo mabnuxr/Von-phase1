@@ -30,6 +30,7 @@ import type {
   Message,
   SendMessageOptions,
   FileAttachment,
+  AgentMode,
 } from "@vonlabs/design-components";
 
 /** Ref handle for ChatInputSelector */
@@ -39,7 +40,6 @@ interface ChatInputSelectorRef {
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
-import { DashboardPanel } from "./DashboardPanel";
 
 export interface ResearchResultsState {
   isStreaming: boolean;
@@ -116,6 +116,8 @@ export interface DeepResearchConversationProps {
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
+  /** The locked agent mode to display in the chat input */
+  lockedAgentMode?: AgentMode;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -140,6 +142,7 @@ export const DeepResearchConversation: React.FC<
   showPlusMenu = false,
   onLike,
   onDislike,
+  lockedAgentMode = "dashboard-builder",
 }) => {
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
@@ -327,7 +330,7 @@ export const DeepResearchConversation: React.FC<
           disableSubmit={disableSubmit}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
-          lockedAgentMode="dashboard-builder"
+          lockedAgentMode={lockedAgentMode}
           showPlusMenu={showPlusMenu}
         />
       )}

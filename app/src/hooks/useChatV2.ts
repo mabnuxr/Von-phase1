@@ -7,7 +7,7 @@
  * Handles both regular V2 chat and deep research mode.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
 import type {
@@ -70,7 +70,6 @@ export function useChatV2(props: UseChatV2Props) {
     conversationMessages,
     refetchMessages,
     lockedAgentMode,
-    isAgentLocked,
     syncAgentModeToBackend,
     onCollapseSidebar,
   } = props;

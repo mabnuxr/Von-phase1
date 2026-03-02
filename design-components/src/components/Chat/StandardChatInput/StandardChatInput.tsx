@@ -20,7 +20,6 @@ import {
   HashIcon,
   DatabaseIcon,
   RobotIcon,
-  ChartBarIcon,
   CaretRightIcon,
   UploadSimpleIcon,
   AtomIcon,

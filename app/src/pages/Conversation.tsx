@@ -21,7 +21,6 @@ import { ChatSkeleton, Banner } from "@vonlabs/design-components";
 import type { AgentMode } from "@vonlabs/design-components";
 
 import {
-  authService,
   conversationsService,
   IntegrationType,
   AuthenticationStatus,

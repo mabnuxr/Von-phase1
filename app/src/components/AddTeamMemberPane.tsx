@@ -47,7 +47,7 @@ export function AddTeamMemberPane() {
       });
       setValidationErrors([]);
     }
-  }, [addingTeamMember, roles, user?.roles]);
+  }, [addingTeamMember, roles, user?.roles, roleOptions]);
 
   const handleClose = () => {
     setAddingTeamMember(false);

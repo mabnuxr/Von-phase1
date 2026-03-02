@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import type { Channel } from "pusher-js";
-import type { AguiEventWrapper } from "@vonlabs/design-components";
+import type { AguiEventWrapper, RunFinishedEvent } from "@vonlabs/design-components";
 
 import type {
   MessageWithStreaming,
@@ -97,7 +97,7 @@ export function useV1EventProcessor(
       // Extract phase from RUN_FINISHED event
       let phase = existingMessage?.phase;
       if (wrapper.event?.type === "RUN_FINISHED") {
-        phase = (wrapper.event as any)?.result?.phase || null;
+        phase = (wrapper.event as RunFinishedEvent).result?.phase ?? null;
       }
 
       const messageUpdate: MessageWithStreaming = {
