@@ -15,7 +15,6 @@ import {
   ArrowLeftIcon,
   BrainIcon,
 } from "@phosphor-icons/react";
-import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
@@ -116,7 +115,6 @@ const Settings = () => {
             "[Settings] No redirect URL provided, using default logout flow",
           );
         }
-        // Scalekit session invalidation is handled on the backend, so we can just redirect to the home page
         window.location.href = location.origin;
       }
     } catch (error) {
@@ -124,8 +122,7 @@ const Settings = () => {
       if (import.meta.env.DEV) {
         console.error("[Settings] Backend logout failed:", error);
       }
-      // Still clear local tokens and redirect, even if backend call fails
-      startProviderLogout();
+      window.location.href = location.origin;
     }
   };
 

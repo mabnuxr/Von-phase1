@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { clearAllAuth } from "../lib/auth";
-import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services/authService";
 
 function Logout() {
@@ -29,7 +28,6 @@ function Logout() {
               "[Logout] No redirect URL provided, using default logout flow",
             );
           }
-          // Scalekit session invalidation is handled on the backend, so we can just redirect to the home page
           window.location.href = location.origin;
         }
       } catch (error) {
@@ -37,9 +35,8 @@ function Logout() {
         if (import.meta.env.DEV) {
           console.error("[Logout] Backend logout failed:", error);
         }
-        // Still clear local tokens and redirect, even if backend call fails
         clearAllAuth();
-        startProviderLogout();
+        window.location.href = location.origin;
       }
     };
 

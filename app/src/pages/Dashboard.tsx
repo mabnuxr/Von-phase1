@@ -51,7 +51,6 @@ import {
   conversationModeToAgentMode,
   DEFAULT_AGENT_MODE,
 } from "../lib/conversationModeUtils";
-import { startProviderLogout } from "../lib/authFlow";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
@@ -243,6 +242,8 @@ const Dashboard = () => {
   };
 
   const handleLogoutClick = async () => {
+    const { clearAllAuth } = await import("../lib/auth");
+
     if (import.meta.env.DEV) {
       console.log("[Dashboard] Logout clicked");
     }
@@ -256,7 +257,6 @@ const Dashboard = () => {
         );
       }
 
-      const { clearAllAuth } = await import("../lib/auth");
       clearAllAuth();
 
       if (response.redirectUrl) {
@@ -267,15 +267,14 @@ const Dashboard = () => {
             "[Dashboard] No redirect URL provided, using default logout flow",
           );
         }
-        
-          // Scalekit session invalidation is handled on the backend, so we can just redirect to the home page
-          window.location.href = location.origin;
+        window.location.href = location.origin;
       }
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("[Dashboard] Backend logout failed:", error);
       }
-      startProviderLogout();
+      clearAllAuth();
+      window.location.href = location.origin;
     }
   };
 
