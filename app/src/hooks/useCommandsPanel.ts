@@ -9,6 +9,7 @@ import {
 } from "./useQuickCommands";
 import { quickCommandsService } from "../services/quickCommandsService";
 import { useToast } from "./useToast";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 /**
  * Encapsulates all quick-command panel logic shared between ChatV1Container
@@ -88,9 +89,12 @@ export function useCommandsPanel(userId?: string) {
         }
       } catch (err) {
         showToast({
-          message: editingId
-            ? "Failed to update command. Please try again."
-            : "Failed to create command. Please try again.",
+          message: getErrorMessage(
+            err,
+            editingId
+              ? "Failed to update command. Please try again."
+              : "Failed to create command. Please try again.",
+          ),
           variant: "error",
         });
         throw err;
@@ -114,7 +118,10 @@ export function useCommandsPanel(userId?: string) {
         return { fileId: presign.uploadId, s3Key: presign.s3Key };
       } catch (err) {
         showToast({
-          message: `Failed to upload "${file.name}". Please try again.`,
+          message: getErrorMessage(
+            err,
+            `Failed to upload "${file.name}". Please try again.`,
+          ),
           variant: "error",
         });
         throw err;
@@ -131,7 +138,7 @@ export function useCommandsPanel(userId?: string) {
         return downloadUrl;
       } catch (err) {
         showToast({
-          message: "Could not load file preview.",
+          message: getErrorMessage(err, "Could not load file preview."),
           variant: "error",
         });
         throw err;
@@ -145,9 +152,12 @@ export function useCommandsPanel(userId?: string) {
       deleteCommand(id, {
         onSuccess: () =>
           showToast({ message: "Command deleted", variant: "success" }),
-        onError: () =>
+        onError: (err) =>
           showToast({
-            message: "Failed to delete command. Please try again.",
+            message: getErrorMessage(
+              err,
+              "Failed to delete command. Please try again.",
+            ),
             variant: "error",
           }),
       }),
@@ -159,9 +169,12 @@ export function useCommandsPanel(userId?: string) {
       toggleBookmark(
         { id: cmd.id, bookmark: !cmd.isFavorite },
         {
-          onError: () =>
+          onError: (err) =>
             showToast({
-              message: "Failed to update bookmark. Please try again.",
+              message: getErrorMessage(
+                err,
+                "Failed to update bookmark. Please try again.",
+              ),
               variant: "error",
             }),
         },

@@ -60,6 +60,8 @@ export type ConversationMode = (typeof ConversationMode)[keyof typeof Conversati
 export interface StandardChatInputRef {
   /** Focus the input editor */
   focus: () => void;
+  /** Returns the viewport coordinates of the current caret position */
+  getCaretRect?: () => { left: number; top: number; bottom: number } | null;
 }
 
 export interface StandardChatInputProps {
@@ -291,4 +293,7 @@ export interface StandardChatInputProps {
 
   /** Called when the user presses Escape to dismiss the commands overlay */
   onCloseCommandsList?: () => void;
+
+  /** Ghost command name shown as inline typeahead next to "/" */
+  ghostCommandName?: string | null;
 }

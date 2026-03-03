@@ -2,6 +2,7 @@ import React, {
   useState,
   useRef,
   useEffect,
+  useLayoutEffect,
   useCallback,
   forwardRef,
   useImperativeHandle,
@@ -258,6 +259,29 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
  * - File preview area at the top when files are attached
  * - White background with subtle gradient border
  */
+
+// Ghost text that appears at the caret position after "/" — no DOM manipulation needed.
+const GhostCommandText: React.FC<{ text: string; offset: { left: number; top: number } }> = ({
+  text,
+  offset,
+}) => (
+  <span
+    className="absolute z-10 pointer-events-none select-none whitespace-pre"
+    style={{
+      left: offset.left,
+      top: offset.top,
+      fontSize: '14px',
+      fontFamily:
+        "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif",
+      lineHeight: '1.5',
+      transform: 'translateY(1px)',
+    }}
+    aria-hidden="true"
+  >
+    <span className="bg-gray-100 text-gray-400 rounded px-2 py-1">/{text}</span>
+  </span>
+);
+
 export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatInputProps>(
   (
     {
@@ -306,6 +330,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // Commands
       enableCommands = false,
       onCloseCommandsList,
+      ghostCommandName,
       // File error props
       fileErrorMessage,
       onDismissFileError,
@@ -315,22 +340,65 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const [internalMessage, setInternalMessage] = useState('');
     const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
     const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-    const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(ConversationMode.Auto);
+    const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(
+      ConversationMode.Auto
+    );
     const editorRef = useRef<Editor | null>(null);
+    const editorContainerRef = useRef<HTMLDivElement>(null);
 
-    // Expose focus method via ref
+    // When the commands list is open, consume the Escape event so it doesn't
+    // bubble up to useEscapeToStopStreaming and stop an in-flight message.
+    const handleEscape = useCallback((): boolean => {
+      if (onCloseCommandsList) {
+        onCloseCommandsList();
+        return true;
+      }
+      return false;
+    }, [onCloseCommandsList]);
+
+    // Expose imperative methods via ref
     useImperativeHandle(
       ref,
       () => ({
         focus: () => {
           editorRef.current?.commands.focus();
         },
+        getCaretRect: () => {
+          const view = editorRef.current?.view;
+          if (!view) return null;
+          const coords = view.coordsAtPos(view.state.selection.from);
+          return { left: coords.left, top: coords.top, bottom: coords.bottom };
+        },
       }),
       []
     );
 
+    // Position ghost text at the caret. Captured once when the ghost first
+    // appears — arrow-key navigation changes the label but not the caret position.
+    const [caretOffset, setCaretOffset] = useState<{ left: number; top: number } | null>(null);
+    const caretCaptured = useRef(false);
+    useLayoutEffect(() => {
+      if (!ghostCommandName) {
+        setCaretOffset(null);
+        caretCaptured.current = false;
+        return;
+      }
+      if (caretCaptured.current) return;
+      const view = editorRef.current?.view;
+      const container = editorContainerRef.current;
+      if (!view || !container) return;
+      // Step back one position to start at the "/" character so the chip covers it too
+      const slashPos = Math.max(0, view.state.selection.from - 1);
+      const coords = view.coordsAtPos(slashPos);
+      const rect = container.getBoundingClientRect();
+      setCaretOffset({ left: coords.left - rect.left, top: coords.top - rect.top });
+      caretCaptured.current = true;
+    }, [ghostCommandName]);
+
     // When locked, show the locked mode from backend; otherwise use internal state
-    const selectedConversationMode = isAgentLocked ? lockedConversationMode : internalConversationMode;
+    const selectedConversationMode = isAgentLocked
+      ? lockedConversationMode
+      : internalConversationMode;
 
     // File upload hook for uncontrolled mode
     const {
@@ -620,7 +688,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                     {/* Text input area - Tiptap Editor */}
                     <div className="px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
+                        <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
                           <TiptapEditor
                             content={message}
                             onChange={handleChange}
@@ -628,7 +696,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             placeholder={placeholder}
                             disabled={disabled && !isStreaming}
                             editorRef={editorRef}
-                            onEscape={onCloseCommandsList}
+                            onEscape={handleEscape}
                             onPasteFiles={(files) => {
                               if (isAttachmentsControlled) {
                                 onFilesSelected?.(files);
@@ -637,6 +705,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                               }
                             }}
                           />
+                          {caretOffset && ghostCommandName && (
+                            <GhostCommandText text={ghostCommandName} offset={caretOffset} />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -719,7 +790,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                               ) : (
                                 (() => {
-                                  const AgentIcon = getConversationModeDisplay(selectedConversationMode).icon;
+                                  const AgentIcon =
+                                    getConversationModeDisplay(selectedConversationMode).icon;
                                   return AgentIcon ? (
                                     <AgentIcon
                                       size={14}
@@ -795,7 +867,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                   /* Inline layout - text input with send button on same row */
                   <div className="flex items-center gap-2 px-4 py-3">
                     {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                    <div className="flex-1 min-w-0">
+                    <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
                       <TiptapEditor
                         content={message}
                         onChange={handleChange}
@@ -803,7 +875,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                         placeholder={placeholder}
                         disabled={disabled && !isStreaming}
                         editorRef={editorRef}
-                        onEscape={onCloseCommandsList}
+                        onEscape={handleEscape}
                         onPasteFiles={(files) => {
                           if (isAttachmentsControlled) {
                             onFilesSelected?.(files);
@@ -812,6 +884,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           }
                         }}
                       />
+                      {caretOffset && ghostCommandName && (
+                        <GhostCommandText text={ghostCommandName} offset={caretOffset} />
+                      )}
                     </div>
 
                     {/* Send/Stop button inline */}
