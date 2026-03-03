@@ -266,9 +266,10 @@ const Dashboard = () => {
           console.warn(
             "[Dashboard] No redirect URL provided, using default logout flow",
           );
+        }
+        
           // Scalekit session invalidation is handled on the backend, so we can just redirect to the home page
           window.location.href = location.origin;
-        }
       }
     } catch (error) {
       if (import.meta.env.DEV) {
