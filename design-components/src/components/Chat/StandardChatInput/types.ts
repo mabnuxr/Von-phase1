@@ -297,6 +297,4 @@ export interface StandardChatInputProps {
   /** Ghost command name shown as inline typeahead next to "/" */
   ghostCommandName?: string | null;
 
-  /** When true, ghost text renders with a highlighted/selected background */
-  isGhostHighlighted?: boolean;
 }

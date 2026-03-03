@@ -220,14 +220,11 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
     // Ghost text: always show highlighted background when list is open.
     // Text = command name when arrowing through, "select-command" otherwise.
-    const ghostCommandName =
-      showCommandsList && !commandSearch
-        ? highlightedIndex >= 0 && filteredCommands.length > 0
-          ? (filteredCommands[highlightedIndex]?.name ?? 'select-command')
-          : 'select-command'
-        : null;
-
-    const isGhostHighlighted = showCommandsList && !commandSearch;
+    const ghostCommandName = showCommandsList
+      ? highlightedIndex >= 0 && filteredCommands.length > 0
+        ? (filteredCommands[highlightedIndex]?.name ?? 'select-command')
+        : (commandSearch || 'select-command')
+      : null;
 
     // Notification bar shown after sending a message with a command
     const [commandNotificationFileCount, setCommandNotificationFileCount] = useState<number | null>(
@@ -357,7 +354,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           onSend={standardOnSend}
           enableCommands={enableCommands}
           ghostCommandName={ghostCommandName}
-          isGhostHighlighted={isGhostHighlighted}
           contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
           onCloseCommandsList={
             enableCommands && showCommandsList ? handleCloseCommandsList : undefined
