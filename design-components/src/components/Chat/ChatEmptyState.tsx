@@ -10,7 +10,7 @@ import {
   type TemplateCategory,
 } from '../Templates';
 import type { BuildMode } from '../DashboardBuilder';
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { Command } from '../Commands';
 
@@ -97,7 +97,7 @@ export interface ChatEmptyStateProps {
   /**
    * The agent mode to display when locked (from backend)
    */
-  lockedAgentMode?: AgentMode;
+  lockedConversationMode?: ConversationMode;
   /**
    * Whether to show the plus menu button (with agents and upload options)
    */
@@ -183,7 +183,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onModeChange,
   useStandardInput = false,
   isAgentLocked,
-  lockedAgentMode,
+  lockedConversationMode,
   showPlusMenu,
   controlledAttachments,
   onRemoveAttachment,
@@ -404,7 +404,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           mode={mode}
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
+          lockedConversationMode={lockedConversationMode}
           showPlusMenu={showPlusMenu}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}

@@ -39,7 +39,7 @@ import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
 import { ChatInputPopover } from './ChatInputPopover';
-import type { AgentMode } from './types';
+import { ConversationMode } from './types';
 
 /**
  * Get icon for reference type
@@ -89,8 +89,8 @@ function getReferenceLabel(type: ReferenceContext['type']) {
   }
 }
 
-// Re-export AgentMode type from types for external use
-export type { AgentMode } from './types';
+// Re-export ConversationMode from types for external use
+export { ConversationMode } from './types';
 
 /**
  * PlusButtonMenu - Plus button with context menu for agent modes
@@ -99,10 +99,10 @@ interface PlusButtonMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onOpen: () => void;
-  onAgentModeChange: (mode: AgentMode) => void;
+  onConversationModeChange: (mode: ConversationMode) => void;
   onBuildDashboard?: () => void;
   onUploadClick?: () => void;
-  selectedAgentMode: AgentMode;
+  selectedConversationMode: ConversationMode;
   disabled?: boolean;
   isAgentLocked?: boolean;
 }
@@ -111,19 +111,19 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   isOpen,
   onClose,
   onOpen,
-  onAgentModeChange,
+  onConversationModeChange,
   onBuildDashboard,
   onUploadClick,
-  selectedAgentMode,
+  selectedConversationMode,
   disabled = false,
   isAgentLocked = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAgentSubmenuOpen, setIsAgentSubmenuOpen] = useState(false);
 
-  const handleAgentSelect = (mode: AgentMode) => {
-    onAgentModeChange(mode);
-    if (mode === 'dashboard-builder' && onBuildDashboard) {
+  const handleAgentSelect = (mode: ConversationMode) => {
+    onConversationModeChange(mode);
+    if (mode === ConversationMode.DashboardBuilder && onBuildDashboard) {
       onBuildDashboard();
     }
     onClose();
@@ -210,10 +210,10 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                         {/* Auto (default) */}
                         <TransparentButton
                           icon={<RobotIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect('auto')}
-                          active={selectedAgentMode === 'auto'}
+                          onClick={() => handleAgentSelect(ConversationMode.Auto)}
+                          active={selectedConversationMode === ConversationMode.Auto}
                           rightContent={
-                            selectedAgentMode === 'auto' ? (
+                            selectedConversationMode === ConversationMode.Auto ? (
                               <CheckIcon size={14} weight="bold" className="text-green-600" />
                             ) : undefined
                           }
@@ -224,10 +224,10 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                         {/* Dashboard Builder */}
                         <TransparentButton
                           icon={<AtomIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect('dashboard-builder')}
-                          active={selectedAgentMode === 'dashboard-builder'}
+                          onClick={() => handleAgentSelect(ConversationMode.DashboardBuilder)}
+                          active={selectedConversationMode === ConversationMode.DashboardBuilder}
                           rightContent={
-                            selectedAgentMode === 'dashboard-builder' ? (
+                            selectedConversationMode === ConversationMode.DashboardBuilder ? (
                               <CheckIcon size={14} weight="bold" className="text-green-600" />
                             ) : undefined
                           }
@@ -302,7 +302,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       showPlusMenu = false,
       // Agent selection props (for locking after first message)
       isAgentLocked = false,
-      lockedAgentMode = 'auto',
+      lockedConversationMode = ConversationMode.Auto,
       // Command chip
       contextBar,
       // Commands
@@ -317,7 +317,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const [internalMessage, setInternalMessage] = useState('');
     const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
     const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-    const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
+    const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(ConversationMode.Auto);
     const editorRef = useRef<Editor | null>(null);
 
     // Expose focus method via ref
@@ -332,7 +332,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     // When locked, show the locked mode from backend; otherwise use internal state
-    const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
+    const selectedConversationMode = isAgentLocked ? lockedConversationMode : internalConversationMode;
 
     // File upload hook for uncontrolled mode
     const {
@@ -403,7 +403,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
         // Send markdown directly
         const messageToSend = message.trim();
 
-        onSend(messageToSend, hasAttachments ? attachments : undefined, selectedAgentMode);
+        onSend(messageToSend, hasAttachments ? attachments : undefined, selectedConversationMode);
         if (isControlled) {
           onChange?.('');
         } else {
@@ -430,7 +430,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onChange,
       isAttachmentsControlled,
       clearFiles,
-      selectedAgentMode,
+      selectedConversationMode,
     ]);
 
     // handleKeyDown is now managed by TiptapEditor
@@ -487,27 +487,27 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       setIsPlusMenuOpen(true);
     }, []);
 
-    const handleAgentModeChange = useCallback(
-      (mode: AgentMode) => {
+    const handleConversationModeChange = useCallback(
+      (mode: ConversationMode) => {
         if (!isAgentLocked) {
-          setInternalAgentMode(mode);
+          setInternalConversationMode(mode);
         }
       },
       [isAgentLocked]
     );
 
-    const handleCancelAgentMode = useCallback(() => {
+    const handleCancelConversationMode = useCallback(() => {
       if (!isAgentLocked) {
-        setInternalAgentMode('auto');
+        setInternalConversationMode(ConversationMode.Auto);
       }
     }, [isAgentLocked]);
 
     // Helper to get agent mode display label and icon
-    const getAgentModeDisplay = (mode: AgentMode) => {
+    const getConversationModeDisplay = (mode: ConversationMode) => {
       switch (mode) {
-        case 'auto':
+        case ConversationMode.Auto:
           return { label: 'Auto', icon: RobotIcon };
-        case 'dashboard-builder':
+        case ConversationMode.DashboardBuilder:
           return { label: 'Dashboard Builder', icon: null }; // Uses green dot instead of icon
       }
     };
@@ -654,10 +654,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           isOpen={isPlusMenuOpen}
                           onClose={() => setIsPlusMenuOpen(false)}
                           onOpen={handlePlusButtonClick}
-                          onAgentModeChange={handleAgentModeChange}
+                          onConversationModeChange={handleConversationModeChange}
                           onBuildDashboard={onBuildDashboard}
                           onUploadClick={() => fileInputRef.current?.click()}
-                          selectedAgentMode={selectedAgentMode}
+                          selectedConversationMode={selectedConversationMode}
                           disabled={disabled && !isStreaming}
                           isAgentLocked={isAgentLocked}
                         />
@@ -682,18 +682,18 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
                         {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
                         <AnimatePresence>
-                          {selectedAgentMode !== 'auto' && (
+                          {selectedConversationMode !== ConversationMode.Auto && (
                             <motion.button
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.9 }}
                               transition={{ duration: 0.15 }}
                               className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                                selectedAgentMode === 'dashboard-builder'
+                                selectedConversationMode === ConversationMode.DashboardBuilder
                                   ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
                                   : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
                               }`}
-                              onClick={handleCancelAgentMode}
+                              onClick={handleCancelConversationMode}
                               onMouseEnter={() => setIsAgentTagHovered(true)}
                               onMouseLeave={() => setIsAgentTagHovered(false)}
                               title={
@@ -708,17 +708,17 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                   size={14}
                                   weight="bold"
                                   className={
-                                    selectedAgentMode === 'dashboard-builder'
+                                    selectedConversationMode === ConversationMode.DashboardBuilder
                                       ? 'text-green-600'
                                       : 'text-gray-800'
                                   }
                                 />
-                              ) : selectedAgentMode === 'dashboard-builder' ? (
+                              ) : selectedConversationMode === ConversationMode.DashboardBuilder ? (
                                 // Green dot indicator for Dashboard Builder
                                 <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
                               ) : (
                                 (() => {
-                                  const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
+                                  const AgentIcon = getConversationModeDisplay(selectedConversationMode).icon;
                                   return AgentIcon ? (
                                     <AgentIcon
                                       size={14}
@@ -728,7 +728,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                   ) : null;
                                 })()
                               )}
-                              {getAgentModeDisplay(selectedAgentMode).label}
+                              {getConversationModeDisplay(selectedConversationMode).label}
                             </motion.button>
                           )}
                         </AnimatePresence>

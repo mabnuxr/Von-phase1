@@ -11,24 +11,20 @@
  * on conversation switch (no stale state, no race conditions).
  */
 
-import { Profiler } from "react";
-import {
-  Chat,
-  FilePreviewModal,
-  ArtifactViewerPanel,
-} from "@vonlabs/design-components";
-import type { AgentMode } from "@vonlabs/design-components";
+import { Profiler } from 'react';
+import { Chat, FilePreviewModal, ArtifactViewerPanel } from '@vonlabs/design-components';
+import type { ConversationMode } from '@vonlabs/design-components';
 
-import type { MessageWithStreaming, Conversation } from "../types/conversation";
-import type { User } from "../services";
-import { config } from "../config";
-import { useChatV2 } from "../hooks/useChatV2";
-import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
-import { DeepResearchConversation } from "./DeepResearchConversation";
-import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
-import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
-import { reportRenderTiming } from "../lib/datadog";
-import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import type { MessageWithStreaming, Conversation } from '../types/conversation';
+import type { User } from '../services';
+import { config } from '../config';
+import { useChatV2 } from '../hooks/useChatV2';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { DeepResearchConversation } from './DeepResearchConversation';
+import { SingleArtifactDrawerContainer } from './SingleArtifactDrawerContainer';
+import { LazyTransparencyDrawer } from './LazyTransparencyDrawer';
+import { reportRenderTiming } from '../lib/datadog';
+import { useCommandsPanel } from '../hooks/useCommandsPanel';
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -40,7 +36,7 @@ export interface ChatV2ContainerProps {
   hasNextMessagePage: boolean;
   isFetchingNextMessagePage: boolean;
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -51,7 +47,7 @@ export interface ChatV2ContainerProps {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   isArtifactsEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
   onGoogleDriveClick?: (fileId: string) => void;
@@ -68,7 +64,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isFetchingNextMessagePage,
     fetchNextMessagePage,
     hasNextMessagePage,
-    lockedAgentMode,
+    lockedConversationMode,
     isAgentLocked,
     onDisabledInteraction,
     salesforceInstanceUrl,
@@ -92,7 +88,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     currentConversation: props.currentConversation,
     conversationMessages: props.conversationMessages,
     refetchMessages: props.refetchMessages,
-    lockedAgentMode: props.lockedAgentMode,
+    lockedConversationMode: props.lockedConversationMode,
     isAgentLocked: props.isAgentLocked,
     canSubmit: props.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction,
@@ -102,7 +98,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isDeepLinksEnabled: props.isDeepLinksEnabled,
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
-    syncAgentModeToBackend: props.syncAgentModeToBackend,
+    syncConversationModeToBackend: props.syncConversationModeToBackend,
     onCollapseSidebar: props.onCollapseSidebar,
   });
 
@@ -131,13 +127,13 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
           {banner}
           <DeepResearchConversation
             messages={chatV2.transformedMessages}
-            userName={user?.firstName || user?.name?.split(" ")[0]}
+            userName={user?.firstName || user?.name?.split(' ')[0]}
             userEmail={user?.email}
             conversationId={conversationId}
             researchResults={chatV2.effectiveResearchResults ?? undefined}
             isDeepResearchRunning={chatV2.isDeepResearchRunning}
             dashboard={chatV2.dashboard ?? undefined}
-            lockedAgentMode={lockedAgentMode}
+            lockedConversationMode={lockedConversationMode}
             onSendMessage={chatV2.handleSendMessage}
             onStopStreaming={chatV2.handleStopStreaming}
             onArtifactClick={chatV2.handleArtifactClick}
@@ -157,7 +153,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             <Chat
               title="von AI"
               userId={user?.id}
-              userName={user?.firstName || user?.name?.split(" ")[0]}
+              userName={user?.firstName || user?.name?.split(' ')[0]}
               userEmail={user?.email}
               apiBaseUrl={config.apiBaseUrl}
               conversationId={conversationId}
@@ -186,7 +182,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               onSaveCommand={handleSaveCommand}
               onDeleteCommand={handleDeleteCommand}
               isSavingCommand={isSavingCommand}
-              isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+              isAdmin={user?.roles?.some((r) => r.toLowerCase() === 'admin')}
               onToggleFavorite={handleToggleFavorite}
               onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
               onUploadFile={handleUploadFile}
@@ -199,9 +195,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               enableDeepLinks={isDeepLinksEnabled}
               thinkingProcessVersion="v2"
               useStandardInput={true}
-              isAgentLocked={isAgentLocked}
-              lockedAgentMode={lockedAgentMode}
-              showPlusMenu={isFileUploadEnabled}
+              isAgentLocked={isAgentLocked && false}
+              lockedConversationMode={lockedConversationMode}
+              showPlusMenu={isFileUploadEnabled || true}
               controlledAttachments={chatV2.fileAttachmentState}
               onRemoveAttachment={chatV2.handleRemoveAttachment}
               onFilesSelected={chatV2.handleFilesSelected}
@@ -228,19 +224,14 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             chatV2.fileArtifactPanel.fileName && (
               <ArtifactViewerPanel
                 fileName={chatV2.fileArtifactPanel.fileName}
-                artifactType={
-                  chatV2.fileArtifactPanel.artifactType ?? "document"
-                }
+                artifactType={chatV2.fileArtifactPanel.artifactType ?? 'document'}
                 mimeType={chatV2.fileArtifactPanel.mimeType}
                 downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
                 pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
                 onClose={chatV2.closeFileArtifactPanel}
                 onDownload={
                   chatV2.fileArtifactPanel.fileId
-                    ? () =>
-                        chatV2.handleArtifactDownload(
-                          chatV2.fileArtifactPanel.fileId!,
-                        )
+                    ? () => chatV2.handleArtifactDownload(chatV2.fileArtifactPanel.fileId!)
                     : undefined
                 }
                 onGoogleDriveClick={
@@ -251,9 +242,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
                 isDriveEnabled={isDriveEnabled}
                 isDriveConnected={isDriveConnected}
                 driveTooltip={driveTooltip}
-                isDriveLoading={
-                  driveLoadingFileId === chatV2.fileArtifactPanel.fileId
-                }
+                isDriveLoading={driveLoadingFileId === chatV2.fileArtifactPanel.fileId}
               />
             )}
         </div>

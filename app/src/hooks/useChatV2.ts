@@ -11,16 +11,15 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
 import type {
-  AgentMode,
   SendMessageOptions,
   FileAttachment,
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 
+import { ConversationMode } from "@vonlabs/design-components";
 import type {
   MessageWithStreaming,
   Conversation,
-  ConversationMode,
 } from "../types/conversation";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
@@ -48,7 +47,7 @@ export interface UseChatV2Props {
   currentConversation: Conversation;
   conversationMessages: MessageWithStreaming[];
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -58,7 +57,7 @@ export interface UseChatV2Props {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   onCollapseSidebar: () => void;
 }
 
@@ -69,22 +68,22 @@ export function useChatV2(props: UseChatV2Props) {
     currentConversation,
     conversationMessages,
     refetchMessages,
-    lockedAgentMode,
-    syncAgentModeToBackend,
+    lockedConversationMode,
+    syncConversationModeToBackend,
     onCollapseSidebar,
   } = props;
 
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
 
-  const chatType: ConversationMode = currentConversation.mode || "auto";
+  const chatType: ConversationMode = currentConversation.mode || ConversationMode.Auto;
 
   // Deep research mode is active if:
   // 1. Agent is locked to dashboard-builder (has messages), OR
   // 2. Conversation mode is dashboard-builder (backend confirmed)
   const isDeepResearchMode =
-    (lockedAgentMode === "dashboard-builder" ||
-      chatType === "dashboard-builder") &&
+    (lockedConversationMode === ConversationMode.DashboardBuilder ||
+      chatType === ConversationMode.DashboardBuilder) &&
     conversationMessages.length > 0;
 
   // Pusher connection (single instance)
@@ -477,7 +476,7 @@ export function useChatV2(props: UseChatV2Props) {
         useChatStore.getState().messages[conversationId] || [];
       if (currentMessages.length === 0 && options?.agentMode) {
         // Update conversation mode before sending first message
-        await syncAgentModeToBackend(options.agentMode);
+        await syncConversationModeToBackend(options.agentMode);
       }
 
       let fileAttachments;
@@ -522,7 +521,7 @@ export function useChatV2(props: UseChatV2Props) {
       hasFileAttachments,
       sendMessage,
       clearFileAttachments,
-      syncAgentModeToBackend,
+      syncConversationModeToBackend,
       uploadPendingFiles,
     ],
   );

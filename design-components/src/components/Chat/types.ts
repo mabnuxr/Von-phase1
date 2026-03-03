@@ -2,7 +2,7 @@
  * Type definitions for Chat component with backend integration
  */
 
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { Command } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -12,7 +12,7 @@ import type { FileAttachment } from './FileAttachment/types';
  */
 export interface SendMessageOptions {
   /** Selected agent mode for the message */
-  agentMode?: AgentMode;
+  agentMode?: ConversationMode;
   /** Selected command (when slash commands are enabled) */
   command?: Command;
 }
@@ -1359,7 +1359,7 @@ export interface ChatProps {
 
   /**
    * Whether agent selection is locked (e.g., after first message in conversation)
-   * When true, the agent selector will be disabled and show lockedAgentMode
+   * When true, the agent selector will be disabled and show lockedConversationMode
    * @default false
    */
   isAgentLocked?: boolean;
@@ -1369,7 +1369,7 @@ export interface ChatProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: AgentMode;
+  lockedConversationMode?: ConversationMode;
 
   /**
    * Whether to show the plus menu button (with agents and upload options)

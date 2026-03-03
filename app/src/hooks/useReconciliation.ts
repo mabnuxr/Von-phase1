@@ -32,7 +32,7 @@ import {
   RECONCILIATION_CHECK_INTERVAL_MS,
   STREAM_TIMEOUT_MS,
 } from "../config/constants";
-import type { ConversationMode } from "../types/conversation";
+import { ConversationMode } from "@vonlabs/design-components";
 
 export interface UseReconciliationConfig {
   conversationId: string | null;
@@ -55,9 +55,9 @@ export interface UseReconciliationConfig {
 
 function getStallThreshold(chatType: ConversationMode): number {
   switch (chatType) {
-    case "auto":
+    case ConversationMode.Auto:
       return RECONCILIATION_STALL_THRESHOLD_AUTO_MS;
-    case "dashboard-builder":
+    case ConversationMode.DashboardBuilder:
       return RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS;
     default:
       return RECONCILIATION_STALL_THRESHOLD_MS;

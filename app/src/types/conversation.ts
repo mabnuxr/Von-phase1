@@ -1,10 +1,7 @@
-/**
- * Conversation mode values supported by the backend API
- * Uses the same values as frontend AgentMode for consistency:
- *   - "auto" -> auto mode
- *   - "dashboard-builder" -> dashboard builder mode (triggers research workflows)
- */
-export type ConversationMode = "auto" | "dashboard-builder";
+import type { ConversationMode } from "@vonlabs/design-components";
+
+// Re-export for consumers that import from this file
+export type { ConversationMode } from "@vonlabs/design-components";
 
 /**
  * Conversation entity from backend

@@ -81,7 +81,6 @@ export function AppShell() {
       collapseSidebar,
       handleLogout,
       handleNewChatClick,
-      featureFlags,
     }),
     [
       user,
@@ -89,7 +88,6 @@ export function AppShell() {
       collapseSidebar,
       handleLogout,
       handleNewChatClick,
-      featureFlags,
     ],
   );
 

@@ -1,7 +1,4 @@
 import { createContext } from "react";
-import type { useFeatureFlag } from "../hooks/useFeatureFlag";
-
-type FeatureFlags = ReturnType<typeof useFeatureFlag>;
 
 export interface AppShellContextValue {
   /** Current user data */
@@ -14,8 +11,6 @@ export interface AppShellContextValue {
   handleLogout: () => Promise<void>;
   /** Create a new chat from the sidebar */
   handleNewChatClick: () => void;
-  /** All feature flags */
-  featureFlags: FeatureFlags;
 }
 
 export const AppShellContext = createContext<AppShellContextValue | null>(null);

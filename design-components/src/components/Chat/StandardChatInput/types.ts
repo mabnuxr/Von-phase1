@@ -44,10 +44,15 @@ export interface ActivePopover {
 }
 
 /**
- * Agent mode type for agent selection
- * Unified naming to match backend ConversationMode
+ * Conversation mode — determines which agent/workflow handles a conversation.
+ * Shared between frontend and backend.
  */
-export type AgentMode = 'auto' | 'dashboard-builder';
+export const ConversationMode = {
+  Auto: 'auto',
+  DashboardBuilder: 'dashboard-builder',
+} as const;
+
+export type ConversationMode = (typeof ConversationMode)[keyof typeof ConversationMode];
 
 /**
  * Ref handle for StandardChatInput, exposing imperative methods
@@ -68,7 +73,7 @@ export interface StandardChatInputProps {
    * Callback when send/enter is pressed
    * Includes the selected agent mode for the message
    */
-  onSend?: (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => void;
 
   /**
    * Callback when stop button is clicked during streaming
@@ -252,7 +257,7 @@ export interface StandardChatInputProps {
 
   /**
    * Whether agent selection is locked (e.g., after first message in conversation)
-   * When true, the agent selector will be disabled and show lockedAgentMode
+   * When true, the agent selector will be disabled and show lockedConversationMode
    * @default false
    */
   isAgentLocked?: boolean;
@@ -262,7 +267,7 @@ export interface StandardChatInputProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: AgentMode;
+  lockedConversationMode?: ConversationMode;
 
   // ============================================================================
   // File Error Props

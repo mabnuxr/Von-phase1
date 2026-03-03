@@ -8,6 +8,7 @@ import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
 import { useEscapeToStopStreaming } from './hooks/useEscapeToStopStreaming';
 import type { ChatProps, SendMessageOptions } from './types';
+import { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 
 // Export types from types.ts
@@ -84,7 +85,7 @@ export const Chat: React.FC<ChatProps> = ({
   useStandardInput = false,
   // Agent selection props
   isAgentLocked = false,
-  lockedAgentMode = 'auto',
+  lockedConversationMode = ConversationMode.Auto,
   // Plus menu visibility (defaults to false when not provided)
   showPlusMenu = false,
   // Controlled attachment props
@@ -330,7 +331,7 @@ export const Chat: React.FC<ChatProps> = ({
             topBanner={topBanner}
             useStandardInput={useStandardInput}
             isAgentLocked={isAgentLocked}
-            lockedAgentMode={lockedAgentMode}
+            lockedConversationMode={lockedConversationMode}
             showPlusMenu={showPlusMenu}
             controlledAttachments={controlledAttachments}
             onRemoveAttachment={onRemoveAttachment}
@@ -438,7 +439,7 @@ export const Chat: React.FC<ChatProps> = ({
           onChange={setInputValue}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
+          lockedConversationMode={lockedConversationMode}
           showPlusMenu={showPlusMenu}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}

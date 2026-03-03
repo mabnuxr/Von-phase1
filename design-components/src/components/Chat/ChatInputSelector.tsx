@@ -4,7 +4,7 @@ import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
 import type { BuildMode } from '../DashboardBuilder';
 import type { FileAttachment } from './FileAttachment/types';
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
 import { CommandsOverlay } from '../Commands';
 import type { Command } from '../Commands';
@@ -72,7 +72,7 @@ export interface ChatInputSelectorProps {
   /** Whether agent selection is locked (after first message) */
   isAgentLocked?: boolean;
   /** The agent mode to display when locked (from backend) */
-  lockedAgentMode?: AgentMode;
+  lockedConversationMode?: ConversationMode;
   /** Whether to show the plus menu button (with agents and upload options) */
   showPlusMenu?: boolean;
   /** Controlled file attachments (when provided, input uses controlled mode) */
@@ -148,7 +148,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       mode,
       onModeChange,
       isAgentLocked,
-      lockedAgentMode,
+      lockedConversationMode,
       showPlusMenu,
       attachments: controlledAttachments,
       onRemoveAttachment,
@@ -286,7 +286,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         mode,
         onModeChange,
         isAgentLocked,
-        lockedAgentMode,
+        lockedConversationMode,
         showPlusMenu,
         attachments: controlledAttachments,
         onRemoveAttachment,
@@ -297,7 +297,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
       // Wrap onSend to handle command execution
       const standardOnSend = onSend
-        ? (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+        ? (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => {
             if (selectedCommand) {
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });

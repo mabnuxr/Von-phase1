@@ -195,9 +195,9 @@ export type {
   Message,
   MessageFileAttachment,
   FixedPosition,
-  AgentMode,
   SendMessageOptions,
 } from './Chat';
+export { ConversationMode } from './Chat';
 
 // ChatInputSelector - Selector component for different input variants
 export { ChatInputSelector } from './Chat';

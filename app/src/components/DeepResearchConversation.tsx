@@ -26,11 +26,13 @@ import {
   useAutoScroll,
   ScrollToBottomButton,
 } from "@vonlabs/design-components";
+import {
+  ConversationMode,
+} from "@vonlabs/design-components";
 import type {
   Message,
   SendMessageOptions,
   FileAttachment,
-  AgentMode,
 } from "@vonlabs/design-components";
 
 /** Ref handle for ChatInputSelector */
@@ -118,7 +120,7 @@ export interface DeepResearchConversationProps {
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
   /** The locked agent mode to display in the chat input */
-  lockedAgentMode?: AgentMode;
+  lockedConversationMode?: ConversationMode;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -143,7 +145,7 @@ export const DeepResearchConversation: React.FC<
   showPlusMenu = false,
   onLike,
   onDislike,
-  lockedAgentMode = "dashboard-builder",
+  lockedConversationMode = ConversationMode.DashboardBuilder,
 }) => {
   const navigate = useNavigate();
 
@@ -334,7 +336,7 @@ export const DeepResearchConversation: React.FC<
           disableSubmit={disableSubmit}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
-          lockedAgentMode={lockedAgentMode}
+          lockedConversationMode={lockedConversationMode}
           showPlusMenu={showPlusMenu}
         />
       )}

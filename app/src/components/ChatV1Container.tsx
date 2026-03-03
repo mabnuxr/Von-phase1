@@ -10,7 +10,7 @@
 
 import { Profiler } from "react";
 import { Chat, FilePreviewModal } from "@vonlabs/design-components";
-import type { AgentMode } from "@vonlabs/design-components";
+import type { ConversationMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming } from "../types/conversation";
 import type { User } from "../services";
@@ -30,7 +30,7 @@ export interface ChatV1ContainerProps {
   hasNextMessagePage: boolean;
   isFetchingNextMessagePage: boolean;
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -40,7 +40,7 @@ export interface ChatV1ContainerProps {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
 }
@@ -52,7 +52,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isFetchingNextMessagePage,
     fetchNextMessagePage,
     hasNextMessagePage,
-    lockedAgentMode,
+    lockedConversationMode,
     isAgentLocked,
     canSubmit,
     onDisabledInteraction,
@@ -91,7 +91,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     user: props.user,
     conversationMessages: props.conversationMessages,
     refetchMessages: props.refetchMessages,
-    lockedAgentMode: props.lockedAgentMode,
+    lockedConversationMode: props.lockedConversationMode,
     isAgentLocked: props.isAgentLocked,
     canSubmit: props.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction,
@@ -102,7 +102,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isDeepLinksEnabled: props.isDeepLinksEnabled,
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
-    syncAgentModeToBackend: props.syncAgentModeToBackend,
+    syncConversationModeToBackend: props.syncConversationModeToBackend,
   });
 
   const loadMoreMessagesRef = useInfiniteScroll({
@@ -166,7 +166,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         thinkingProcessVersion="v1"
         useStandardInput={false}
         isAgentLocked={isAgentLocked}
-        lockedAgentMode={lockedAgentMode}
+        lockedConversationMode={lockedConversationMode}
         showPlusMenu={isFileUploadEnabled}
         controlledAttachments={fileAttachmentState}
         onRemoveAttachment={handleRemoveAttachment}
