@@ -50,8 +50,12 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
 
   // Track agent mode at this level so it persists when switching to command mode
   // When locked, always use the locked mode from backend
-  const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(ConversationMode.Auto);
-  const selectedConversationMode = isAgentLocked ? lockedConversationMode : internalConversationMode;
+  const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(
+    ConversationMode.Auto
+  );
+  const selectedConversationMode = isAgentLocked
+    ? lockedConversationMode
+    : internalConversationMode;
 
   const {
     commands,

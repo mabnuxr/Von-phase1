@@ -82,13 +82,7 @@ export function AppShell() {
       handleLogout,
       handleNewChatClick,
     }),
-    [
-      user,
-      isCreatingChat,
-      collapseSidebar,
-      handleLogout,
-      handleNewChatClick,
-    ],
+    [user, isCreatingChat, collapseSidebar, handleLogout, handleNewChatClick],
   );
 
   return (

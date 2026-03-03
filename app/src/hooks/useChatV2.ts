@@ -17,10 +17,7 @@ import type {
 } from "@vonlabs/design-components";
 
 import { ConversationMode } from "@vonlabs/design-components";
-import type {
-  MessageWithStreaming,
-  Conversation,
-} from "../types/conversation";
+import type { MessageWithStreaming, Conversation } from "../types/conversation";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
@@ -76,7 +73,8 @@ export function useChatV2(props: UseChatV2Props) {
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
 
-  const chatType: ConversationMode = currentConversation.mode || ConversationMode.Auto;
+  const chatType: ConversationMode =
+    currentConversation.mode || ConversationMode.Auto;
 
   // Deep research mode is active if:
   // 1. Agent is locked to dashboard-builder (has messages), OR

@@ -26,9 +26,7 @@ import {
   useAutoScroll,
   ScrollToBottomButton,
 } from "@vonlabs/design-components";
-import {
-  ConversationMode,
-} from "@vonlabs/design-components";
+import { ConversationMode } from "@vonlabs/design-components";
 import type {
   Message,
   SendMessageOptions,

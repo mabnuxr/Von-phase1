@@ -42,7 +42,11 @@ export interface UseCommandsInputReturn {
 
   // Handlers
   handleInputChange: (newValue: string) => void;
-  handleSend: (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => void;
+  handleSend: (
+    message: string,
+    attachments?: FileAttachment[],
+    agentMode?: ConversationMode
+  ) => void;
   handleSelectCommand: (command: Command) => void;
   handleRemoveCommand: () => void;
   handleNewCommand: () => void;
