@@ -87,6 +87,8 @@ const Settings = () => {
 
   // Handle Logout click
   const handleLogoutClick = async () => {
+    const { clearAllAuth } = await import("../lib/auth");
+
     if (import.meta.env.DEV) {
       console.log("[Settings] Logout clicked");
     }
@@ -102,7 +104,6 @@ const Settings = () => {
       }
 
       // Clear all local auth tokens
-      const { clearAllAuth } = await import("../lib/auth");
       clearAllAuth();
 
       // Redirect to the URL provided by backend
@@ -122,6 +123,7 @@ const Settings = () => {
       if (import.meta.env.DEV) {
         console.error("[Settings] Backend logout failed:", error);
       }
+      clearAllAuth();
       window.location.href = location.origin;
     }
   };
