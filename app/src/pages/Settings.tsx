@@ -15,7 +15,6 @@ import {
   ArrowLeftIcon,
   BrainIcon,
 } from "@phosphor-icons/react";
-import { startProviderLogout } from "../lib/authFlow";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
@@ -88,6 +87,8 @@ const Settings = () => {
 
   // Handle Logout click
   const handleLogoutClick = async () => {
+    const { clearAllAuth } = await import("../lib/auth");
+
     if (import.meta.env.DEV) {
       console.log("[Settings] Logout clicked");
     }
@@ -103,7 +104,6 @@ const Settings = () => {
       }
 
       // Clear all local auth tokens
-      const { clearAllAuth } = await import("../lib/auth");
       clearAllAuth();
 
       // Redirect to the URL provided by backend
@@ -116,15 +116,15 @@ const Settings = () => {
             "[Settings] No redirect URL provided, using default logout flow",
           );
         }
-        startProviderLogout();
+        window.location.href = location.origin;
       }
     } catch (error) {
       // Log error but continue with logout flow
       if (import.meta.env.DEV) {
         console.error("[Settings] Backend logout failed:", error);
       }
-      // Still clear local tokens and redirect, even if backend call fails
-      startProviderLogout();
+      clearAllAuth();
+      window.location.href = location.origin;
     }
   };
 
