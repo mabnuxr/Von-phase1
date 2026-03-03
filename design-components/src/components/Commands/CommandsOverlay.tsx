@@ -131,7 +131,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
-  highlightedIndex = 0,
+  highlightedIndex = -1,
   onHoverIndex,
   slashRect,
 }) => {

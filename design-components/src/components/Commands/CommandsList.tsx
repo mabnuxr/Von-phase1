@@ -151,7 +151,7 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   onExpandCommand,
   onToggleFavorite,
   maxHeight = 300,
-  highlightedIndex = 0,
+  highlightedIndex = -1,
   onHoverIndex,
 }) => {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
