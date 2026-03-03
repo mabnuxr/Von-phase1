@@ -29,7 +29,8 @@ function Logout() {
               "[Logout] No redirect URL provided, using default logout flow",
             );
           }
-          startProviderLogout();
+          // Scalekit session invalidation is handled on the backend, so we can just redirect to the home page
+          window.location.href = location.origin;
         }
       } catch (error) {
         // Log error but continue with logout flow
