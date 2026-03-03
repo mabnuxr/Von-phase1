@@ -9,14 +9,7 @@ import {
 } from "./useQuickCommands";
 import { quickCommandsService } from "../services/quickCommandsService";
 import { useToast } from "./useToast";
-
-function getServerMessage(err: unknown, fallback: string): string {
-  if (err && typeof err === "object") {
-    const msg = (err as { message?: unknown }).message;
-    if (typeof msg === "string" && msg) return msg;
-  }
-  return fallback;
-}
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 /**
  * Encapsulates all quick-command panel logic shared between ChatV1Container
@@ -96,7 +89,7 @@ export function useCommandsPanel(userId?: string) {
         }
       } catch (err) {
         showToast({
-          message: getServerMessage(
+          message: getErrorMessage(
             err,
             editingId
               ? "Failed to update command. Please try again."
@@ -125,7 +118,7 @@ export function useCommandsPanel(userId?: string) {
         return { fileId: presign.uploadId, s3Key: presign.s3Key };
       } catch (err) {
         showToast({
-          message: getServerMessage(
+          message: getErrorMessage(
             err,
             `Failed to upload "${file.name}". Please try again.`,
           ),
@@ -145,7 +138,7 @@ export function useCommandsPanel(userId?: string) {
         return downloadUrl;
       } catch (err) {
         showToast({
-          message: getServerMessage(err, "Could not load file preview."),
+          message: getErrorMessage(err, "Could not load file preview."),
           variant: "error",
         });
         throw err;
@@ -161,7 +154,7 @@ export function useCommandsPanel(userId?: string) {
           showToast({ message: "Command deleted", variant: "success" }),
         onError: (err) =>
           showToast({
-            message: getServerMessage(
+            message: getErrorMessage(
               err,
               "Failed to delete command. Please try again.",
             ),
@@ -178,7 +171,7 @@ export function useCommandsPanel(userId?: string) {
         {
           onError: (err) =>
             showToast({
-              message: getServerMessage(
+              message: getErrorMessage(
                 err,
                 "Failed to update bookmark. Please try again.",
               ),
