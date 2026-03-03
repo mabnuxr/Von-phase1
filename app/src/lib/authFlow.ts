@@ -1,6 +1,6 @@
 import { config } from "../config";
 import { randomString, sha256, base64UrlEncode } from "./pkce";
-import { storeCodeVerifier, storeOAuthState, clearAllAuth } from "./auth";
+import { storeCodeVerifier, storeOAuthState } from "./auth";
 
 export async function startAuthorization() {
   const codeVerifier = randomString(64);
