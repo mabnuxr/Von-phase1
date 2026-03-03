@@ -1372,12 +1372,6 @@ export interface ChatProps {
   lockedConversationMode?: ConversationMode;
 
   /**
-   * Whether to show the plus menu button (with agents and upload options)
-   * @default false
-   */
-  showPlusMenu?: boolean;
-
-  /**
    * Controlled file attachments for the chat input.
    * When provided, the input uses controlled mode — parent owns state.
    */

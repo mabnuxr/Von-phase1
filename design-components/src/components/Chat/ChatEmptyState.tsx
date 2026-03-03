@@ -99,10 +99,6 @@ export interface ChatEmptyStateProps {
    */
   lockedConversationMode?: ConversationMode;
   /**
-   * Whether to show the plus menu button (with agents and upload options)
-   */
-  showPlusMenu?: boolean;
-  /**
    * Controlled attachments from parent (wired to useFileUploadPipeline)
    */
   controlledAttachments?: FileAttachment[];
@@ -184,7 +180,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   useStandardInput = false,
   isAgentLocked,
   lockedConversationMode,
-  showPlusMenu,
   controlledAttachments,
   onRemoveAttachment,
   onFilesSelected,
@@ -405,7 +400,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}
           lockedConversationMode={lockedConversationMode}
-          showPlusMenu={showPlusMenu}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}

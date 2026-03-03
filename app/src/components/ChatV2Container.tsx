@@ -72,7 +72,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isActionsEnabled,
     isDeepLinksEnabled,
     isSourcesEnabled,
-    isFileUploadEnabled,
     isArtifactsEnabled,
     banner,
     onGoogleDriveClick,
@@ -143,7 +142,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             disableSubmit={!chatV2.canSubmitFinal}
             onInputWhileDisabled={onDisabledInteraction}
             enableCommands={isSlashCommandsEnabled}
-            showPlusMenu={isFileUploadEnabled}
           />
         </>
       ) : (
@@ -195,9 +193,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               enableDeepLinks={isDeepLinksEnabled}
               thinkingProcessVersion="v2"
               useStandardInput={true}
-              isAgentLocked={isAgentLocked && false}
+              isAgentLocked={isAgentLocked}
               lockedConversationMode={lockedConversationMode}
-              showPlusMenu={isFileUploadEnabled || true}
               controlledAttachments={chatV2.fileAttachmentState}
               onRemoveAttachment={chatV2.handleRemoveAttachment}
               onFilesSelected={chatV2.handleFilesSelected}

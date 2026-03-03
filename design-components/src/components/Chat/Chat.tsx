@@ -86,8 +86,6 @@ export const Chat: React.FC<ChatProps> = ({
   // Agent selection props
   isAgentLocked = false,
   lockedConversationMode = ConversationMode.Auto,
-  // Plus menu visibility (defaults to false when not provided)
-  showPlusMenu = false,
   // Controlled attachment props
   controlledAttachments,
   onRemoveAttachment,
@@ -332,7 +330,6 @@ export const Chat: React.FC<ChatProps> = ({
             useStandardInput={useStandardInput}
             isAgentLocked={isAgentLocked}
             lockedConversationMode={lockedConversationMode}
-            showPlusMenu={showPlusMenu}
             controlledAttachments={controlledAttachments}
             onRemoveAttachment={onRemoveAttachment}
             onFilesSelected={onFilesSelected}
@@ -440,7 +437,6 @@ export const Chat: React.FC<ChatProps> = ({
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={isAgentLocked}
           lockedConversationMode={lockedConversationMode}
-          showPlusMenu={showPlusMenu}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}

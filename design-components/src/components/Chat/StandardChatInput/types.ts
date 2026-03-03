@@ -239,12 +239,6 @@ export interface StandardChatInputProps {
   hideDisclaimer?: boolean;
 
   /**
-   * Whether to show the plus menu button (with agents and upload options)
-   * @default false
-   */
-  showPlusMenu?: boolean;
-
-  /**
    * Callback when files are selected via plus menu or drag-drop in controlled mode.
    * Only fires when `attachments` prop is provided (controlled mode).
    * Parent is responsible for validation and state management.

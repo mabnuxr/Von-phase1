@@ -113,8 +113,6 @@ export interface DeepResearchConversationProps {
   onInputWhileDisabled?: () => void;
   /** Whether slash commands are enabled */
   enableCommands?: boolean;
-  /** Whether to show the plus menu (file upload) */
-  showPlusMenu?: boolean;
   /** Callback when thumbs up is clicked */
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
@@ -142,7 +140,6 @@ export const DeepResearchConversation: React.FC<
   disableSubmit = false,
   onInputWhileDisabled,
   enableCommands = false,
-  showPlusMenu = false,
   onLike,
   onDislike,
   lockedConversationMode = ConversationMode.DashboardBuilder,
@@ -337,7 +334,6 @@ export const DeepResearchConversation: React.FC<
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
           lockedConversationMode={lockedConversationMode}
-          showPlusMenu={showPlusMenu}
         />
       )}
 

@@ -167,7 +167,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         useStandardInput={false}
         isAgentLocked={isAgentLocked}
         lockedConversationMode={lockedConversationMode}
-        showPlusMenu={isFileUploadEnabled}
         controlledAttachments={fileAttachmentState}
         onRemoveAttachment={handleRemoveAttachment}
         onFilesSelected={handleFilesSelected}

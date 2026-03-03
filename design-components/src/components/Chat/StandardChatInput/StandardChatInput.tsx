@@ -298,8 +298,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onBuildDashboard,
       // Disclaimer
       hideDisclaimer = false,
-      // Plus menu visibility (defaults to false when not provided, feature flag controls this)
-      showPlusMenu = false,
       // Agent selection props (for locking after first message)
       isAgentLocked = false,
       lockedConversationMode = ConversationMode.Auto,
@@ -356,6 +354,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const isAttachmentsControlled = controlledAttachments !== undefined;
     const attachments = isAttachmentsControlled ? controlledAttachments : internalAttachments;
     const hasAttachments = attachments.length > 0;
+
+    // Show the enhanced toolbar when any toolbar feature is wired up
+    const showPlusMenu = !!(onFilesSelected || hasAttachments || enableCommands);
 
     // Handle dropped files from parent
     useEffect(() => {
