@@ -14,7 +14,7 @@
  *   onDeleteCommand
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { Command } from './types';
 import { CommandDrawer } from './CommandDrawer';
 import { CommandsList } from './CommandsList';
@@ -56,6 +56,10 @@ export interface CommandsOverlayProps {
   onDeleteCommand: (id: string) => void;
   /** Index of the keyboard-highlighted command in the filtered list */
   highlightedIndex?: number;
+  /** Called when the user hovers a command row — lets the parent sync keyboard nav position */
+  onHoverIndex?: (index: number) => void;
+  /** Screen coordinates of the "/" character — when provided, the list is portalled near the caret */
+  slashRect?: { left: number; top: number; bottom: number } | null;
   /** Disables the save button while a mutation is in-flight */
   isSaving?: boolean;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
@@ -127,29 +131,55 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
-  highlightedIndex = 0,
+  highlightedIndex = -1,
+  onHoverIndex,
+  slashRect,
 }) => {
   const formDrawer = useVisibilityToggle();
   const manageDrawer = useVisibilityToggle();
   const [editingCommand, setEditingCommand] = useState<Command | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [openedFromManage, setOpenedFromManage] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Close commands list on click outside
+  useEffect(() => {
+    if (!showCommandsList) return;
+    const handler = (e: MouseEvent) => {
+      if (listRef.current && !listRef.current.contains(e.target as Node)) {
+        onCloseCommandsList();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showCommandsList, onCloseCommandsList]);
 
   const openCreateDrawer = useCallback(() => {
     setEditingCommand(null);
+    setOpenedFromManage(false);
     manageDrawer.hide();
     formDrawer.show();
     onCloseCommandsList();
   }, [formDrawer, manageDrawer, onCloseCommandsList]);
 
   const openEditDrawer = useCallback(
-    (command: Command) => {
+    (command: Command, fromManage = false) => {
       setEditingCommand(command);
       setIsReadOnly(command.createdBy !== 'me');
+      setOpenedFromManage(fromManage);
       manageDrawer.hide();
       formDrawer.show();
     },
     [formDrawer, manageDrawer]
   );
+
+  const handleBackToManage = useCallback(() => {
+    formDrawer.hide();
+    setEditingCommand(null);
+    setIsReadOnly(false);
+    setOpenedFromManage(false);
+    manageDrawer.show();
+  }, [formDrawer, manageDrawer]);
 
   const openManageDrawer = useCallback(() => {
     manageDrawer.show();
@@ -175,25 +205,29 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
 
   return (
     <>
-      {/* "/" dropdown — AnchoredPopup owns the sentinel, placement, and animation */}
+      {/* "/" dropdown */}
       <AnchoredPopup
         isOpen={showCommandsList}
         minHeight={MIN_LIST_HEIGHT}
         maxHeight={MAX_LIST_HEIGHT}
-        className="max-w-4xl mx-auto w-full z-50"
+        className="z-50"
+        anchorRect={slashRect}
       >
         {({ maxHeight }) => (
-          <CommandsList
-            commands={filteredCommands}
-            isLoading={isLoading}
-            onSelectCommand={onSelectCommand}
-            onNewCommand={openCreateDrawer}
-            onManageCommands={openManageDrawer}
-            onExpandCommand={openEditDrawer}
-            onToggleFavorite={onToggleFavorite}
-            maxHeight={maxHeight}
-            highlightedIndex={highlightedIndex}
-          />
+          <div ref={listRef}>
+            <CommandsList
+              commands={filteredCommands}
+              isLoading={isLoading}
+              onSelectCommand={onSelectCommand}
+              onNewCommand={openCreateDrawer}
+              onManageCommands={openManageDrawer}
+              onExpandCommand={openEditDrawer}
+              onToggleFavorite={onToggleFavorite}
+              maxHeight={maxHeight}
+              highlightedIndex={highlightedIndex}
+              onHoverIndex={onHoverIndex}
+            />
+          </div>
         )}
       </AnchoredPopup>
 
@@ -204,6 +238,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
           formDrawer.hide();
           setEditingCommand(null);
           setIsReadOnly(false);
+          setOpenedFromManage(false);
         }}
         onSave={handleSave}
         editingCommand={editingCommand}
@@ -212,6 +247,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         isAdmin={isAdmin}
         onRequestFilePreviewUrl={onRequestFilePreviewUrl}
         onUploadFile={onUploadFile}
+        onBack={openedFromManage ? handleBackToManage : undefined}
       />
 
       {/* Manage drawer */}
@@ -221,7 +257,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         commands={commands}
         isLoading={isLoading}
         onNewCommand={openCreateDrawer}
-        onEditCommand={openEditDrawer}
+        onEditCommand={(command) => openEditDrawer(command, true)}
         onDeleteCommand={onDeleteCommand}
         onToggleFavorite={onToggleFavorite}
       />

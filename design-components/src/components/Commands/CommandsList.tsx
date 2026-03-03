@@ -31,17 +31,12 @@ function getPromptPreview(prompt: string, maxLen = 60): string {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-const CommandsListHelpText: React.FC = () => (
-  <div className="px-3 pt-2.5 pb-1.5">
-    <span className="text-xs text-gray-400">/ Select command</span>
-  </div>
-);
-
 interface CommandItemProps {
   command: Command;
   onSelect: (command: Command) => void;
   onExpand?: (command: Command) => void;
   onToggleFavorite?: (command: Command) => void;
+  onMouseEnter?: () => void;
   isHighlighted?: boolean;
 }
 
@@ -50,11 +45,13 @@ const CommandItem: React.FC<CommandItemProps> = ({
   onSelect,
   onExpand,
   onToggleFavorite,
+  onMouseEnter,
   isHighlighted,
 }) => (
   <div
-    className={`group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent ${isHighlighted ? 'bg-gray-50' : 'hover:bg-gray-50'}`}
+    className={`group flex items-start px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-gray-100 ${isHighlighted ? 'bg-gray-100' : ''}`}
     onClick={() => onSelect(command)}
+    onMouseEnter={onMouseEnter}
   >
     <div className="flex-1 min-w-0">
       <div className="text-sm font-medium text-gray-900">{command.name}</div>
@@ -141,6 +138,8 @@ export interface CommandsListProps {
   maxHeight?: number;
   /** Index of the currently keyboard-highlighted command */
   highlightedIndex?: number;
+  /** Called when the user hovers a row — syncs keyboard nav start position */
+  onHoverIndex?: (index: number) => void;
 }
 
 export const CommandsList: React.FC<CommandsListProps> = ({
@@ -152,7 +151,8 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   onExpandCommand,
   onToggleFavorite,
   maxHeight = 300,
-  highlightedIndex = 0,
+  highlightedIndex = -1,
+  onHoverIndex,
 }) => {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -162,16 +162,14 @@ export const CommandsList: React.FC<CommandsListProps> = ({
   }, [highlightedIndex]);
   if (isLoading && commands.length === 0) {
     return (
-      <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
+      <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
         Loading commands…
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-sm bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <CommandsListHelpText />
-
+    <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
       <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-1" style={{ maxHeight }}>
         {commands.length === 0 ? (
           <EmptyState />
@@ -188,6 +186,7 @@ export const CommandsList: React.FC<CommandsListProps> = ({
                 onSelect={onSelectCommand}
                 onExpand={onExpandCommand}
                 onToggleFavorite={onToggleFavorite}
+                onMouseEnter={() => onHoverIndex?.(index)}
                 isHighlighted={index === highlightedIndex}
               />
             </div>

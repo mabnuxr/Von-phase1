@@ -38,12 +38,12 @@ export function useCommandInputState({
       if (!enableCommands) return;
 
       const plainText = getPlainText(newValue);
-      // Show the list whenever the text starts with "/". Everything after the
-      // "/" (including spaces) is used as the filter term, matching Slack's
-      // behaviour where "/ foo" keeps the overlay open and filters by "foo".
-      if (plainText.startsWith('/')) {
+      // Show the list when text is "/" optionally followed by non-space chars.
+      // Close it as soon as a space is typed after "/".
+      const afterSlash = plainText.slice(1);
+      if (plainText.startsWith('/') && !afterSlash.startsWith(' ')) {
         setShowCommandsList(true);
-        setCommandSearch(plainText.slice(1));
+        setCommandSearch(afterSlash);
       } else {
         setShowCommandsList(false);
         setCommandSearch('');

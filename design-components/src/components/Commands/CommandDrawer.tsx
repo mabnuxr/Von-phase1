@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { X, PaperclipIcon, UploadSimple } from '@phosphor-icons/react';
+import { X, PaperclipIcon, UploadSimple, ArrowLeft } from '@phosphor-icons/react';
 import type { Command, CommandAttachment } from './types';
 import { FilesPreviewPanel } from '../FilesPreview';
 import { useFileDrop } from '../../hooks';
@@ -55,6 +55,8 @@ export interface CommandDrawerProps {
    * has no local blob URL. Should return a presigned download URL for the file.
    */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+  /** When provided, renders a back arrow in the header (e.g. when opened from the manage drawer) */
+  onBack?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +73,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   isAdmin = false,
   onUploadFile,
   onRequestFilePreviewUrl,
+  onBack,
 }) => {
   const { form, setForm, setField, commandId, isEditing, sharingLabel } = useCommandForm({
     isOpen,
@@ -123,9 +126,20 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       <Drawer isOpen={isOpen} onClose={onClose}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="text-sm font-medium text-gray-900">
-            {readOnly ? 'View Command' : isEditing ? 'Edit Command' : 'New Command'}
-          </h2>
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                aria-label="Back to manage"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <h2 className="text-sm font-medium text-gray-900">
+              {readOnly ? 'View Command' : isEditing ? 'Edit Command' : 'New Command'}
+            </h2>
+          </div>
           <button
             onClick={onClose}
             className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"

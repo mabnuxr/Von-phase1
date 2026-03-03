@@ -27,6 +27,46 @@ export interface ApiRequestOptions extends RequestInit {
 }
 
 /**
+ * Extract a human-readable error message from a parsed response body.
+ * Handles three server formats:
+ *   1. { error: { message } }  — app standard (e.g. 409 slug conflict)
+ *   2. { detail: "..." }       — FastAPI validation errors
+ *   3. { message: "..." }      — generic
+ */
+function extractErrorMessage(
+  data: unknown,
+  status: number,
+  statusText: string,
+): string {
+  if (data && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    if (d.error && typeof d.error === "object") {
+      const nested = d.error as Record<string, unknown>;
+      if (typeof nested.message === "string" && nested.message)
+        return nested.message;
+    }
+    if (typeof d.detail === "string" && d.detail) return d.detail;
+    if (typeof d.message === "string" && d.message) return d.message;
+  }
+  return `API request failed: ${status} ${statusText}`;
+}
+
+/**
+ * Extract the error code from a parsed response body.
+ * Handles { error: { code } } and legacy { error: "code" }.
+ */
+function getErrorCode(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  if (d.error && typeof d.error === "object") {
+    const nested = d.error as Record<string, unknown>;
+    if (typeof nested.code === "string") return nested.code;
+  }
+  if (typeof d.error === "string") return d.error;
+  return null;
+}
+
+/**
  * Base API client for making HTTP requests to the backend
  */
 export class ApiClient {
@@ -68,16 +108,10 @@ export class ApiClient {
     endpoint: string,
     options: ApiRequestOptions = {},
   ): Promise<T> {
-    const {
-      headers: customHeaders,
-      ...fetchOptions
-    } = options;
+    const { headers: customHeaders, ...fetchOptions } = options;
 
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = this.mergeHeaders(
-      this.getDefaultHeaders(),
-      customHeaders,
-    );
+    const headers = this.mergeHeaders(this.getDefaultHeaders(), customHeaders);
 
     if (import.meta.env.DEV) {
       console.log(`[API] ${fetchOptions.method || "GET"} ${url}`);
@@ -90,42 +124,35 @@ export class ApiClient {
         credentials: "include", // Send HttpOnly cookies with every request
       });
 
-      // Handle non-OK responses
+      // Handle non-OK responses — read as text so we can extract an error
+      // message even when the body isn't valid JSON.
       if (!response.ok) {
-        let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
         let errorData: unknown;
-
         try {
-          errorData = await response.json();
-          if (
-            typeof errorData === "object" &&
-            errorData !== null &&
-            "detail" in errorData
-          ) {
-            errorMessage = (errorData as { detail: string }).detail;
-          } else if (
-            typeof errorData === "object" &&
-            errorData !== null &&
-            "message" in errorData
-          ) {
-            errorMessage = (errorData as { message: string }).message;
-          }
+          const text = await response.text();
+          if (text) errorData = JSON.parse(text);
         } catch {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
+          // body unreadable or not JSON — errorData stays undefined
         }
 
-        // Handle 401 Unauthorized — backend middleware handles transparent
-        // token refresh, so a 401 means the session is truly expired
+        const errorMessage = extractErrorMessage(
+          errorData,
+          response.status,
+          response.statusText,
+        );
+
+        // Handle 401 Unauthorized
         if (response.status === 401) {
+          const errorCode = getErrorCode(errorData);
           if (import.meta.env.DEV) {
-            console.log("[API] 401 Unauthorized - session expired, logging out");
+            console.log(
+              `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
+            );
           }
           clearAllAuth();
           setTimeout(() => {
             window.location.href = "/";
           }, 100);
-
           throw new ApiError(errorMessage, response.status, errorData);
         }
 
@@ -137,9 +164,8 @@ export class ApiClient {
         return undefined as T;
       }
 
-      // Parse JSON response
-      const data = await response.json();
-      return data as T;
+      // OK response — let response.json() parse and throw on malformed JSON
+      return (await response.json()) as T;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
