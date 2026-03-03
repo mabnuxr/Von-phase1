@@ -139,6 +139,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   const manageDrawer = useVisibilityToggle();
   const [editingCommand, setEditingCommand] = useState<Command | null>(null);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [openedFromManage, setOpenedFromManage] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Close commands list on click outside
@@ -155,20 +156,30 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
 
   const openCreateDrawer = useCallback(() => {
     setEditingCommand(null);
+    setOpenedFromManage(false);
     manageDrawer.hide();
     formDrawer.show();
     onCloseCommandsList();
   }, [formDrawer, manageDrawer, onCloseCommandsList]);
 
   const openEditDrawer = useCallback(
-    (command: Command) => {
+    (command: Command, fromManage = false) => {
       setEditingCommand(command);
       setIsReadOnly(command.createdBy !== 'me');
+      setOpenedFromManage(fromManage);
       manageDrawer.hide();
       formDrawer.show();
     },
     [formDrawer, manageDrawer]
   );
+
+  const handleBackToManage = useCallback(() => {
+    formDrawer.hide();
+    setEditingCommand(null);
+    setIsReadOnly(false);
+    setOpenedFromManage(false);
+    manageDrawer.show();
+  }, [formDrawer, manageDrawer]);
 
   const openManageDrawer = useCallback(() => {
     manageDrawer.show();
@@ -227,6 +238,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
           formDrawer.hide();
           setEditingCommand(null);
           setIsReadOnly(false);
+          setOpenedFromManage(false);
         }}
         onSave={handleSave}
         editingCommand={editingCommand}
@@ -235,6 +247,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         isAdmin={isAdmin}
         onRequestFilePreviewUrl={onRequestFilePreviewUrl}
         onUploadFile={onUploadFile}
+        onBack={openedFromManage ? handleBackToManage : undefined}
       />
 
       {/* Manage drawer */}
@@ -244,7 +257,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         commands={commands}
         isLoading={isLoading}
         onNewCommand={openCreateDrawer}
-        onEditCommand={openEditDrawer}
+        onEditCommand={(command) => openEditDrawer(command, true)}
         onDeleteCommand={onDeleteCommand}
         onToggleFavorite={onToggleFavorite}
       />
