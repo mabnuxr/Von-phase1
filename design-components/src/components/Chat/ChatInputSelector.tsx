@@ -223,7 +223,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     const ghostCommandName = showCommandsList
       ? highlightedIndex >= 0 && filteredCommands.length > 0
         ? (filteredCommands[highlightedIndex]?.name ?? 'select-command')
-        : (commandSearch || 'select-command')
+        : commandSearch || 'select-command'
       : null;
 
     // Notification bar shown after sending a message with a command

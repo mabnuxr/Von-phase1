@@ -296,5 +296,4 @@ export interface StandardChatInputProps {
 
   /** Ghost command name shown as inline typeahead next to "/" */
   ghostCommandName?: string | null;
-
 }
