@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StandardChatInput } from '../../../../components/Chat/StandardChatInput';
 import type { FileAttachment } from '../../../../components/Chat/FileAttachment/types';
 import type { ReferenceContext } from '../../../../components/Chat/StandardChatInput/types';
-import type { BuildMode } from '../../../../components/DashboardBuilder/types';
+import type { BuildMode } from '../../../../components/Chat/StandardChatInput/types';
 
 /**
  * ChatInputDecorator - Wraps stories in a container that mimics the chat area
@@ -25,7 +25,7 @@ const ChatInputDecorator: Decorator = (Story) => (
 );
 
 const meta = {
-  title: '3-Pane/Components/Chat/StandardChatInputWithReference',
+  title: 'Components/Chat/StandardChatInputWithReference',
   component: StandardChatInput,
   decorators: [ChatInputDecorator],
   parameters: {

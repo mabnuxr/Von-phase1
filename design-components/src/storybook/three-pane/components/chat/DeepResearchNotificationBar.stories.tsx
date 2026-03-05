@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { DeepResearchNotificationBar } from './DeepResearchNotificationBar';
+import { DeepResearchNotificationBar } from '../../../../components/Chat/DeepResearch/DeepResearchNotificationBar';
 
 const meta = {
-  title: '3-Pane/Components/Chat/DeepResearchNotificationBar',
+  title: 'Components/Chat/DeepResearchNotificationBar',
   component: DeepResearchNotificationBar,
   parameters: {
     layout: 'centered',

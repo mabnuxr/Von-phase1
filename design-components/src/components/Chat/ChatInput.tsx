@@ -7,8 +7,7 @@ import { FilePreview } from './FileAttachment/FilePreview';
 import { useFileUpload } from './FileAttachment/useFileUpload';
 import { getAcceptString } from './FileAttachment/types';
 import type { FileAttachment } from './FileAttachment/types';
-import { ModeToggle } from '../DashboardBuilder';
-import type { BuildMode } from '../DashboardBuilder';
+import type { BuildMode } from './StandardChatInput/types';
 
 export interface ChatInputProps {
   /**
@@ -161,9 +160,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onFileError,
   droppedFiles,
   onDroppedFilesProcessed,
-  showModeToggle = false,
-  mode = 'ask',
-  onModeChange,
   autoFocus = false,
   contextBar,
   onCloseCommandsList,
@@ -382,10 +378,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 </>
               )}
 
-              {/* Mode toggle (Ask/Build) */}
-              {showModeToggle && (
-                <ModeToggle mode={mode} onModeChange={onModeChange || (() => {})} size="sm" />
-              )}
+              {/* Mode toggle (Ask/Build) - removed, was DashboardBuilder-specific */}
 
               {/* Text input */}
               {messageHasPlaceholders ? (

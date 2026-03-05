@@ -9,7 +9,7 @@ import {
   type Template,
   type TemplateCategory,
 } from '../Templates';
-import type { BuildMode } from '../DashboardBuilder';
+import type { BuildMode } from './StandardChatInput/types';
 import type { AgentMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { Command } from '../Commands';

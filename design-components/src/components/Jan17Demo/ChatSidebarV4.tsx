@@ -31,7 +31,7 @@ import {
   type MoveToFolderConfig,
 } from '../popups';
 import { ArrowBendUpRightIcon } from '@phosphor-icons/react';
-import { ChatSidebarSkeleton } from '../ChatSidebarV3/ChatSidebarSkeleton';
+import { ChatSidebarSkeleton } from '../ChatSidebarV2/ChatSidebarSkeleton';
 
 const VON_COMBINATION_MARK_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';

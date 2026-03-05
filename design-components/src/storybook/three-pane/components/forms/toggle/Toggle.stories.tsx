@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Toggle } from '../../../../../components/forms/toggle';
 
 const meta = {
-  title: '3-Pane/Components/Forms/Toggle',
+  title: 'Components/Forms/Toggle',
   component: Toggle,
   parameters: {
     layout: 'padded',

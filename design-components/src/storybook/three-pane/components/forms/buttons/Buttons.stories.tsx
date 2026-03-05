@@ -23,7 +23,7 @@ import {
 const ButtonShowcase = () => <div>Button Components</div>;
 
 const meta = {
-  title: '3-Pane/Components/Forms/Buttons',
+  title: 'Components/Forms/Buttons',
   component: ButtonShowcase,
   parameters: {
     layout: 'padded',

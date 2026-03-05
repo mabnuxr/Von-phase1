@@ -26,7 +26,7 @@ const ChatInputDecorator: Decorator = (Story) => (
 );
 
 const meta = {
-  title: '3-Pane/Components/Popups/ChatInputPopover',
+  title: 'Components/Popups/ChatInputPopover',
   component: StandardChatInput,
   decorators: [ChatInputDecorator],
   parameters: {
