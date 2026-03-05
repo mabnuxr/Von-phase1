@@ -18,7 +18,7 @@ import { FinalizationOverlay } from './FinalizationOverlay';
 import { ThinkingProcess } from '../ThinkingProcess';
 import { usePrototypeOrchestrator } from './usePrototypeOrchestrator';
 import { mockDataTables, mockDashboard } from '../mockData';
-// DataViewTab type is used indirectly via the orchestrator
+import type { DashboardWidget } from '../types';
 
 // Von logo for collapsed sidebar
 const VonLogoMini: React.FC = () => (
@@ -81,8 +81,8 @@ export const InteractivePrototype: React.FC<InteractivePrototypeProps> = ({ onCo
 
   // Get the tables and charts to show
   const tablesToShow = mockDataTables.slice(0, 6);
-  const metricsWidgets = mockDashboard.widgets.filter((w) => w.type === 'metric');
-  const chartWidgets = mockDashboard.widgets.filter((w) => w.type === 'chart');
+  const metricsWidgets = mockDashboard.widgets.filter((w: DashboardWidget) => w.type === 'metric');
+  const chartWidgets = mockDashboard.widgets.filter((w: DashboardWidget) => w.type === 'chart');
 
   return (
     <div className="h-screen w-full overflow-hidden  relative">
@@ -250,7 +250,7 @@ export const InteractivePrototype: React.FC<InteractivePrototypeProps> = ({ onCo
                       animate={{ opacity: 1, y: 0 }}
                       className="grid grid-cols-4 gap-4"
                     >
-                      {metricsWidgets.map((widget, idx) => (
+                      {metricsWidgets.map((widget: DashboardWidget, idx: number) => (
                         <AnimatedChart
                           key={widget.id}
                           widget={widget}
