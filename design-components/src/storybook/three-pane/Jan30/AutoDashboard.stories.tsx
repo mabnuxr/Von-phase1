@@ -876,7 +876,6 @@ const AutoDashboardDemo = () => {
               userName="John"
               onSendMessage={handleLandingMessage}
               placeholder="Ask Von to build a dashboard..."
-              showModeToggle={false}
               defaultValue="Build me a dashboard of my deals at risk"
             />
           </div>

@@ -32,8 +32,6 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   userName,
   userEmail,
   placeholder = 'Type a message...',
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  showModeToggle: _showModeToggle = true,
   enableVoiceInput = false,
   onVoiceInput,
   isRecording = false,

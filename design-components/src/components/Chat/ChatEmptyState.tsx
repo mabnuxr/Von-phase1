@@ -73,10 +73,6 @@ export interface ChatEmptyStateProps {
    */
   onDroppedFilesProcessed?: () => void;
   /**
-   * Show mode toggle (Ask/Build) in the input
-   */
-  showModeToggle?: boolean;
-  /**
    * Current mode (ask or build)
    */
   mode?: BuildMode;
@@ -178,7 +174,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onFileError,
   droppedFiles,
   onDroppedFilesProcessed,
-  showModeToggle = false,
   mode = 'ask',
   onModeChange,
   useStandardInput = false,
@@ -400,7 +395,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onFileError={onFileError}
           droppedFiles={droppedFiles}
           onDroppedFilesProcessed={onDroppedFilesProcessed}
-          showModeToggle={showModeToggle}
           mode={mode}
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}
