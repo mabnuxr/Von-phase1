@@ -67,7 +67,10 @@ describe("transformAguiToTimelineSteps", () => {
 
   describe("step lifecycle", () => {
     it("creates a step from STEP_STARTED with correct properties", () => {
-      const events = [fixtures.runStarted(0), fixtures.stepStarted(1, 1, "Analyzing data")];
+      const events = [
+        fixtures.runStarted(0),
+        fixtures.stepStarted(1, 1, "Analyzing data"),
+      ];
       const result = transformAguiToTimelineSteps(events);
       expect(result.steps).toHaveLength(1);
       expect(result.steps[0].text).toBe("Analyzing data");
@@ -238,9 +241,7 @@ describe("transformAguiToTimelineSteps", () => {
       const events = fixtures.runWithFailedToolCall();
       const result = transformAguiToTimelineSteps(events);
       // Failed step should be removed
-      const failedStep = result.steps.find((s) =>
-        s.id?.includes("tc-fail"),
-      );
+      const failedStep = result.steps.find((s) => s.id?.includes("tc-fail"));
       expect(failedStep).toBeUndefined();
       expect(result.finalResponse).toBe("The query failed.");
     });
@@ -260,9 +261,7 @@ describe("transformAguiToTimelineSteps", () => {
     it("marks denied tool call as error", () => {
       const events = fixtures.runWithDeniedToolCall();
       const result = transformAguiToTimelineSteps(events);
-      const deniedStep = result.steps.find(
-        (s) => s.status === "error",
-      );
+      const deniedStep = result.steps.find((s) => s.status === "error");
       expect(deniedStep).toBeDefined();
     });
 
@@ -279,9 +278,7 @@ describe("transformAguiToTimelineSteps", () => {
       const events = fixtures.runWithFailedArtifact();
       const result = transformAguiToTimelineSteps(events);
       // Failed artifact step should be removed
-      const artStep = result.steps.find((s) =>
-        s.id?.includes("tc-art-fail"),
-      );
+      const artStep = result.steps.find((s) => s.id?.includes("tc-art-fail"));
       expect(artStep).toBeUndefined();
     });
 
@@ -346,7 +343,9 @@ describe("transformAguiToTimelineSteps", () => {
         fixtures.runFinished(4),
       ];
       const genericResult = transformAguiToTimelineSteps(genericEvents);
-      expect(genericResult.steps.some((s) => s.source === "generic")).toBe(true);
+      expect(genericResult.steps.some((s) => s.source === "generic")).toBe(
+        true,
+      );
     });
   });
 
@@ -432,12 +431,8 @@ describe("transformAguiToTimelineSteps", () => {
         expect(result.isThinking).toBe(false);
         expect(result.finalResponse).toBe("Update completed successfully.");
         // Approval step should be marked complete after resume
-        const approvalSteps = result.steps.filter(
-          (s) => s.type === "approval",
-        );
-        expect(
-          approvalSteps.every((s) => s.status === "complete"),
-        ).toBe(true);
+        const approvalSteps = result.steps.filter((s) => s.type === "approval");
+        expect(approvalSteps.every((s) => s.status === "complete")).toBe(true);
       });
 
       it("normalizes old_value/new_value to before/after", () => {
@@ -645,9 +640,7 @@ describe("transformAguiToTimelineSteps", () => {
     it("marks in-progress steps as error on RUN_ERROR", () => {
       const events = fixtures.runWithError();
       const result = transformAguiToTimelineSteps(events);
-      const processingStep = result.steps.find(
-        (s) => s.text === "Processing",
-      );
+      const processingStep = result.steps.find((s) => s.text === "Processing");
       expect(processingStep?.status).toBe("error");
     });
 
@@ -682,9 +675,7 @@ describe("transformAguiToTimelineSteps", () => {
     it("handles research results with snapshot (replaces content)", () => {
       const events = fixtures.runWithResearchSnapshot();
       const result = transformAguiToTimelineSteps(events);
-      expect(result.researchResults.content).toBe(
-        "Full content from snapshot",
-      );
+      expect(result.researchResults.content).toBe("Full content from snapshot");
       expect(result.researchResults.isCompleted).toBe(true);
     });
 
@@ -831,9 +822,7 @@ describe("transformAguiToTimelineSteps", () => {
       // After rejection + STEP_FINISHED, step becomes "complete" with type "approval".
       // The duplicate TOOL_CALL_START should NOT reset it to "awaiting-approval"
       // because the alreadyResolved check catches complete+approval type.
-      const approvalStep = result.steps.find(
-        (s) => s.type === "approval",
-      );
+      const approvalStep = result.steps.find((s) => s.type === "approval");
       expect(approvalStep).toBeDefined();
       expect(approvalStep!.status).not.toBe("awaiting-approval");
       expect(approvalStep!.rejectionReason).toBe("Rejected");
@@ -860,9 +849,14 @@ describe("transformAguiToTimelineSteps", () => {
         fixtures.toolCallStart(2, "tc", "request_salesforce_approval", {
           stepNumber: 1,
         }),
-        fixtures.toolCallArgs(3, "tc", '{"summary":"test","operations":[{"operation":"update","sobject_type":"X","record_name":"Y","record_id":"Z","changes":[]}]}', {
-          stepNumber: 1,
-        }),
+        fixtures.toolCallArgs(
+          3,
+          "tc",
+          '{"summary":"test","operations":[{"operation":"update","sobject_type":"X","record_name":"Y","record_id":"Z","changes":[]}]}',
+          {
+            stepNumber: 1,
+          },
+        ),
         fixtures.toolCallEnd(4, "tc", { stepNumber: 1 }),
         // Intermediate RUN_FINISHED
         fixtures.runFinished(5),
@@ -1006,10 +1000,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
           stepNumber: 1,
         }),
         fixtures.toolCallEnd(4, "tc-fart", { stepNumber: 1 }),
-        fixtures.toolCallResult(5, "tc-fart", '{"_artifact":{"success":false}}', {
-          stepNumber: 1,
-          isDelta: true,
-        }),
+        fixtures.toolCallResult(
+          5,
+          "tc-fart",
+          '{"_artifact":{"success":false}}',
+          {
+            stepNumber: 1,
+            isDelta: true,
+          },
+        ),
         fixtures.stepFinished(6, 1, "Chart:"),
         fixtures.runFinished(7),
       ];
@@ -1346,7 +1345,11 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
                     valueSet: {
                       valueSetDefinition: {
                         value: [
-                          { label: "Active", fullName: "Active", default: true },
+                          {
+                            label: "Active",
+                            fullName: "Active",
+                            default: true,
+                          },
                           { label: "Inactive", fullName: "Inactive" },
                         ],
                       },
@@ -1367,7 +1370,9 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       expect(step?.approval?.fields?.["Field Type"]).toBe("Picklist");
       expect(step?.approval?.fields?.["Label"]).toBe("Status");
       expect(step?.approval?.fields?.["Picklist Values"]).toContain("Active");
-      expect(step?.approval?.fields?.["Picklist Values"]).toContain("(default)");
+      expect(step?.approval?.fields?.["Picklist Values"]).toContain(
+        "(default)",
+      );
       expect(step?.approval?.fields?.["ExtraField"]).toBe("extra");
     });
 
@@ -1537,7 +1542,9 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((step?.approval?.changes?.[0] as any)?.display_name).toBe("Custom Label");
+      expect((step?.approval?.changes?.[0] as any)?.display_name).toBe(
+        "Custom Label",
+      );
     });
   });
 
@@ -1791,12 +1798,9 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Bulk tooling"),
-        fixtures.toolCallStart(
-          2,
-          "tc-bt",
-          "salesforce_tooling_mutate",
-          { stepNumber: 1 },
-        ),
+        fixtures.toolCallStart(2, "tc-bt", "salesforce_tooling_mutate", {
+          stepNumber: 1,
+        }),
         fixtures.toolCallArgs(
           3,
           "tc-bt",
@@ -2304,12 +2308,10 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
         fixtures.toolCallEnd(4, "tc-def-ch", { stepNumber: 1 }),
         fixtures.runFinished(5), // intermediate
         // Chunked result with unknown shape (no approved, no error)
-        fixtures.toolCallResult(
-          6,
-          "tc-def-ch",
-          '{"status":"done"}',
-          { stepNumber: 1, isDelta: true },
-        ),
+        fixtures.toolCallResult(6, "tc-def-ch", '{"status":"done"}', {
+          stepNumber: 1,
+          isDelta: true,
+        }),
         fixtures.stepFinished(7, 1, "Action"),
         fixtures.runFinished(8),
       ];
@@ -2420,7 +2422,10 @@ describe("getElapsedTimeFromEvents", () => {
   it("sorts events by sequence before calculating", () => {
     const base = "2024-01-01T00:00:00.000Z";
     const events = [
-      { ...fixtures.runFinished(5), timestamp: new Date(new Date(base).getTime() + 5000).toISOString() },
+      {
+        ...fixtures.runFinished(5),
+        timestamp: new Date(new Date(base).getTime() + 5000).toISOString(),
+      },
       { ...fixtures.runStarted(0), timestamp: base },
     ];
     const elapsed = getElapsedTimeFromEvents(events);

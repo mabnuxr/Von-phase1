@@ -122,9 +122,7 @@ export function toolCallStart(
     type: "TOOL_CALL_START",
     tool_call_id: toolCallId,
     tool_call_name: toolName,
-    ...(opts?.stepNumber !== undefined
-      ? { step_number: opts.stepNumber }
-      : {}),
+    ...(opts?.stepNumber !== undefined ? { step_number: opts.stepNumber } : {}),
   });
 }
 
@@ -138,9 +136,7 @@ export function toolCallArgs(
     type: "TOOL_CALL_ARGS",
     tool_call_id: toolCallId,
     delta,
-    ...(opts?.stepNumber !== undefined
-      ? { step_number: opts.stepNumber }
-      : {}),
+    ...(opts?.stepNumber !== undefined ? { step_number: opts.stepNumber } : {}),
   });
 }
 
@@ -152,9 +148,7 @@ export function toolCallEnd(
   return wrap(seq, {
     type: "TOOL_CALL_END",
     tool_call_id: toolCallId,
-    ...(opts?.stepNumber !== undefined
-      ? { step_number: opts.stepNumber }
-      : {}),
+    ...(opts?.stepNumber !== undefined ? { step_number: opts.stepNumber } : {}),
   });
 }
 
@@ -168,9 +162,7 @@ export function toolCallResult(
     type: "TOOL_CALL_RESULT",
     tool_call_id: toolCallId,
     ...(opts?.isDelta ? { delta: content } : { content }),
-    ...(opts?.stepNumber !== undefined
-      ? { step_number: opts.stepNumber }
-      : {}),
+    ...(opts?.stepNumber !== undefined ? { step_number: opts.stepNumber } : {}),
   });
 }
 
@@ -324,12 +316,9 @@ export function salesforceApprovalApproved(): AguiEventWrapper[] {
   return [
     ...salesforceApprovalPending(),
     // After user approves, new events arrive
-    toolCallResult(
-      6,
-      "tc-approval",
-      JSON.stringify({ approved: true }),
-      { stepNumber: 1 },
-    ),
+    toolCallResult(6, "tc-approval", JSON.stringify({ approved: true }), {
+      stepNumber: 1,
+    }),
     stepFinished(7, 1, "Updating Opportunity"),
     textMessageStart(8, "final-1", { isFinalResponse: true }),
     textMessageContent(9, "final-1", "Done!", { isFinalResponse: true }),
@@ -404,7 +393,11 @@ export function deepResearchApprovalPending(): AguiEventWrapper[] {
         research_query: "What are the pipeline trends for Q1?",
         estimated_time: "5 minutes",
         data_sources: [
-          { name: "Opportunities", record_count: 150, description: "Open opps" },
+          {
+            name: "Opportunities",
+            record_count: 150,
+            description: "Open opps",
+          },
         ],
       }),
       { stepNumber: 1 },
@@ -629,7 +622,7 @@ export function runWithChunkedToolResult(): AguiEventWrapper[] {
       stepNumber: 1,
       isDelta: true,
     }),
-    toolCallResult(6, "tc-chunk", ':true}', {
+    toolCallResult(6, "tc-chunk", ":true}", {
       stepNumber: 1,
       isDelta: true,
     }),
@@ -775,12 +768,9 @@ export function approvalResumedAfterApprove(): AguiEventWrapper[] {
     ...salesforceApprovalPending(),
     // Run resumes with new processing events after approval
     stepStarted(6, 2, "Executing update"),
-    toolCallResult(
-      7,
-      "tc-approval",
-      JSON.stringify({ approved: true }),
-      { stepNumber: 1 },
-    ),
+    toolCallResult(7, "tc-approval", JSON.stringify({ approved: true }), {
+      stepNumber: 1,
+    }),
     stepFinished(8, 2, "Executing update"),
     textMessageStart(9, "final-1", { isFinalResponse: true }),
     textMessageContent(10, "final-1", "Update completed successfully.", {
@@ -948,7 +938,10 @@ export function failedRunWithPendingApproval(): AguiEventWrapper[] {
       { stepNumber: 1 },
     ),
     toolCallEnd(4, "tc-fail-appr", { stepNumber: 1 }),
-    runFinished(5, { status: "failed", errorMessage: "Run failed during approval" }),
+    runFinished(5, {
+      status: "failed",
+      errorMessage: "Run failed during approval",
+    }),
   ];
 }
 
