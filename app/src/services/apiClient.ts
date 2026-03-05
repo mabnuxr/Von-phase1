@@ -107,6 +107,7 @@ export class ApiClient {
   private async request<T>(
     endpoint: string,
     options: ApiRequestOptions = {},
+    _isRetry = false,
   ): Promise<T> {
     const { headers: customHeaders, ...fetchOptions } = options;
 
@@ -149,6 +150,17 @@ export class ApiClient {
               `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
             );
           }
+
+          // Token refresh in progress on the backend — wait and retry once
+          if (errorCode === "refresh_in_progress" && !_isRetry) {
+            const retryAfter =
+              parseInt(response.headers.get("Retry-After") || "1", 10) || 1;
+            await new Promise((resolve) =>
+              setTimeout(resolve, retryAfter * 1000),
+            );
+            return this.request<T>(endpoint, options, true);
+          }
+
           clearAllAuth();
           setTimeout(() => {
             window.location.href = "/";
@@ -200,6 +212,25 @@ export class ApiClient {
       ...options,
       method: "POST",
       body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  /**
+   * Make a POST request with form-urlencoded body (e.g. Pusher auth)
+   */
+  async postForm<T>(
+    endpoint: string,
+    body: URLSearchParams,
+    options?: ApiRequestOptions,
+  ): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...(options?.headers as Record<string, string>),
+      },
+      body,
     });
   }
 
