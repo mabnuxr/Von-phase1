@@ -12,7 +12,8 @@
     "format:check": "npx prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "preview": "npx vite preview --host 0.0.0.0 --port 4173",
     "test": "npx vitest run",
-    "test:watch": "npx vitest"
+    "test:watch": "npx vitest",
+    "test:coverage": "npx vitest run --coverage"
   },
   "dependencies": {
     "@crayonai/react-ui": "^0.9.5",

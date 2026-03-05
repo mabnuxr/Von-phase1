@@ -230,6 +230,7 @@ export interface V2LiveData {
   elapsedTime: number;
   finalResponse: string;
   isFinalResponseStreaming: boolean;
+  isAwaitingApproval: boolean;
   researchResults: ResearchResultsState;
   stoppedByUser: boolean;
   /** Error message if the current run failed */
@@ -353,7 +354,7 @@ function transformMessagesForV2(
     ) {
       return {
         ...msg,
-        isStreaming: v2LiveData.isThinking,
+        isStreaming: v2LiveData.isThinking && !v2LiveData.isAwaitingApproval,
         timelineSteps: usableV2TimelineSteps,
         thinkingElapsedTime: v2LiveData.elapsedTime,
         v2FinalResponse: v2LiveData.finalResponse,
@@ -387,7 +388,11 @@ function transformMessagesForV2(
       // steps are marked complete. This handles cases where events were persisted
       // before a RUN_FINISHED event (e.g., stopped runs without a final event).
       for (const step of usableSteps) {
-        if (step.status === "in-progress" || step.status === "pending") {
+        if (
+          step.status === "in-progress" ||
+          step.status === "pending" ||
+          step.status === "awaiting-approval"
+        ) {
           step.status = "complete";
         }
       }
@@ -550,6 +555,7 @@ export function transformConversationMessages(
     elapsedTime: 0,
     finalResponse: "",
     isFinalResponseStreaming: false,
+    isAwaitingApproval: false,
     researchResults: {
       isStreaming: false,
       isCompleted: false,

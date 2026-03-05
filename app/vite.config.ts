@@ -31,6 +31,7 @@ function s3ProxyPlugin() {
 }
 
 // https://vite.dev/config/
+/// <reference types="vitest/config" />
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
@@ -105,6 +106,20 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ["@thesysai/genui-sdk", "@crayonai/react-ui"],
+    },
+    test: {
+      environment: "node",
+      include: ["src/**/*.test.ts"],
+      setupFiles: ["src/__tests__/setup.ts"],
+      alias: [
+        {
+          find: "@vonlabs/design-components",
+          replacement: path.resolve(
+            __dirname,
+            "src/__tests__/stubs/design-components.ts",
+          ),
+        },
+      ],
     },
   };
 });
