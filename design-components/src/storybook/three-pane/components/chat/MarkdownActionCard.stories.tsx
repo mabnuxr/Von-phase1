@@ -1,5 +1,5 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
-import { MarkdownActionCard } from './MarkdownActionCard';
+import { MarkdownActionCard } from '../../../../components/Chat/DeepResearch/MarkdownActionCard';
 
 // ============================================================================
 // Decorator
@@ -25,7 +25,7 @@ const CardDecorator: Decorator = (Story) => (
 // ============================================================================
 
 const meta = {
-  title: '3-Pane/Components/Chat/MarkdownActionCard',
+  title: 'Components/Chat/MarkdownActionCard',
   component: MarkdownActionCard,
   decorators: [CardDecorator],
   parameters: {

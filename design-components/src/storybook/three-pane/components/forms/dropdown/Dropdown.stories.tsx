@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Dropdown, Select } from '../../../../../components/forms/dropdown';
 
 const meta = {
-  title: '3-Pane/Components/Forms/Dropdown',
+  title: 'Components/Forms/Dropdown',
   component: Dropdown,
   parameters: {
     layout: 'padded',

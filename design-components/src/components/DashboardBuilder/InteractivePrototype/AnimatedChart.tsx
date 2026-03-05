@@ -342,7 +342,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
       case 'bar':
       case 'column': {
         const categories = data.map((d) => String(d[config.xAxis || '']));
-        const series = config.series?.map((seriesKey) => ({
+        const series = config.series?.map((seriesKey: string) => ({
           name: seriesKey.charAt(0).toUpperCase() + seriesKey.slice(1),
           data: data.map((d) => Number(d[seriesKey]) || 0),
         })) || [
@@ -380,7 +380,7 @@ export const AnimatedChart: React.FC<AnimatedChartProps> = ({
       case 'area': {
         const categories = data.map((d) => String(d[config.xAxis || '']));
         const series =
-          config.series?.map((seriesKey) => ({
+          config.series?.map((seriesKey: string) => ({
             name: seriesKey.charAt(0).toUpperCase() + seriesKey.slice(1).replace(/([A-Z])/g, ' $1'),
             data: data.map((d) => Number(d[seriesKey]) || 0),
             type: config.type as 'line' | 'area',

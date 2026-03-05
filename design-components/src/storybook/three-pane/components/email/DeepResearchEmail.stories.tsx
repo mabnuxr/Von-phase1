@@ -6,7 +6,7 @@ const SAMPLE_QUERY =
   'Perform a comprehensive analysis of our Q4 sales performance across all regions and product categories. Identify trends, top-performing segments, underperforming areas, and provide strategic recommendations for Q1 planning.';
 
 const meta: Meta<typeof DeepResearchEmail> = {
-  title: '3-Pane/Components/Email/Deep Research Email',
+  title: 'Components/Email/Deep Research Email',
   component: DeepResearchEmail,
   parameters: {
     layout: 'centered',

@@ -13,7 +13,7 @@ import {
 } from '../../../../components/ReportTable/AIFilterPanel';
 
 const meta: Meta<typeof ReportTable> = {
-  title: '3-Pane/Components/Data/ReportTable',
+  title: 'Components/Data/ReportTable',
   component: ReportTable,
   parameters: {
     layout: 'padded',

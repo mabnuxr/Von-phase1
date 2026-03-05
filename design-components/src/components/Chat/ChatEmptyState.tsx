@@ -9,7 +9,7 @@ import {
   type Template,
   type TemplateCategory,
 } from '../Templates';
-import type { BuildMode } from '../DashboardBuilder';
+import type { BuildMode } from './StandardChatInput/types';
 import type { AgentMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { Command } from '../Commands';
@@ -72,10 +72,6 @@ export interface ChatEmptyStateProps {
    * Callback when dropped files have been processed
    */
   onDroppedFilesProcessed?: () => void;
-  /**
-   * Show mode toggle (Ask/Build) in the input
-   */
-  showModeToggle?: boolean;
   /**
    * Current mode (ask or build)
    */
@@ -178,7 +174,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onFileError,
   droppedFiles,
   onDroppedFilesProcessed,
-  showModeToggle = false,
   mode = 'ask',
   onModeChange,
   useStandardInput = false,
@@ -400,7 +395,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onFileError={onFileError}
           droppedFiles={droppedFiles}
           onDroppedFilesProcessed={onDroppedFilesProcessed}
-          showModeToggle={showModeToggle}
           mode={mode}
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}

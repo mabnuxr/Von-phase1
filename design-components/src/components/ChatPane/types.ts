@@ -99,12 +99,6 @@ export interface ChatPaneProps {
   placeholder?: string;
 
   /**
-   * Whether to show the mode toggle (Ask/Build)
-   * @default true
-   */
-  showModeToggle?: boolean;
-
-  /**
    * Whether to enable voice input
    * @default false
    */

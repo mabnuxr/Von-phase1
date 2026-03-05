@@ -241,7 +241,7 @@ export const AnimatedTable: React.FC<AnimatedTableProps> = ({
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50/80">
-              {visibleColumns.map((col) => (
+              {visibleColumns.map((col: DataColumn) => (
                 <th
                   key={col.key}
                   className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
@@ -271,15 +271,17 @@ export const AnimatedTable: React.FC<AnimatedTableProps> = ({
               )}
               {(phase === 'data' || phase === 'complete') && (
                 <>
-                  {dataToShow.slice(0, visibleRows).map((row, i) => (
-                    <DataRow
-                      key={`row-${i}`}
-                      data={row as Record<string, unknown>}
-                      columns={visibleColumns}
-                      index={i}
-                      isNew={phase === 'data'}
-                    />
-                  ))}
+                  {dataToShow
+                    .slice(0, visibleRows)
+                    .map((row: Record<string, unknown>, i: number) => (
+                      <DataRow
+                        key={`row-${i}`}
+                        data={row as Record<string, unknown>}
+                        columns={visibleColumns}
+                        index={i}
+                        isNew={phase === 'data'}
+                      />
+                    ))}
                 </>
               )}
             </AnimatePresence>
