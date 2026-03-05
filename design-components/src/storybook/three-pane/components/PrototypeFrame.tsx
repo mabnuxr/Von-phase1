@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ChatSidebar } from '../../../components/ChatSidebarV2';
 import type { SidebarItem, Folder } from '../../../components/ChatSidebarV2';
 
@@ -68,6 +68,12 @@ export function PrototypeFrame({
   const [folders, setFolders] = useState(sidebarFolders);
   const [rpWidth, setRpWidth] = useState(rightPanelWidth);
   const isResizing = useRef(false);
+
+  useEffect(() => {
+    if (controlledSelectedId == null) {
+      setInternalSelectedId(sidebarItems[0]?.id ?? '');
+    }
+  }, [controlledSelectedId, sidebarItems]);
 
   const selectedId = controlledSelectedId ?? internalSelectedId;
 

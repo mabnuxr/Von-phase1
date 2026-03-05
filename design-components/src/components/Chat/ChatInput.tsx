@@ -7,7 +7,6 @@ import { FilePreview } from './FileAttachment/FilePreview';
 import { useFileUpload } from './FileAttachment/useFileUpload';
 import { getAcceptString } from './FileAttachment/types';
 import type { FileAttachment } from './FileAttachment/types';
-import type { BuildMode } from './StandardChatInput/types';
 
 export interface ChatInputProps {
   /**
@@ -109,22 +108,6 @@ export interface ChatInputProps {
    * Callback when dropped files have been processed
    */
   onDroppedFilesProcessed?: () => void;
-
-  /**
-   * Show mode toggle (Ask/Build) in the input
-   * @default false
-   */
-  showModeToggle?: boolean;
-
-  /**
-   * Current mode (ask or build)
-   */
-  mode?: BuildMode;
-
-  /**
-   * Callback when mode changes
-   */
-  onModeChange?: (mode: BuildMode) => void;
 
   /**
    * Auto-focus the input on mount
