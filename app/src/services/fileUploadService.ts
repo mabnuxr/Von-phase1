@@ -155,6 +155,30 @@ class FileUploadService {
   }
 
   /**
+   * Check if artifacts are in-flight for a run (Redis-backed).
+   * Returns null if no artifacts in flight or endpoint unreachable.
+   */
+  async getInflightArtifacts(
+    conversationId: string,
+    runId: string,
+  ): Promise<{
+    status: string;
+    artifacts: { file_name: string; artifact_type?: string }[];
+  } | null> {
+    try {
+      const response = await apiClient.get<{
+        status: string;
+        artifacts: { file_name: string; artifact_type?: string }[];
+      }>(
+        `${this.getFilesBase(conversationId)}/inflight?run_id=${encodeURIComponent(runId)}`,
+      );
+      return response ?? null; // 204 returns undefined → null
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Delete file metadata (soft delete). No S3 cleanup needed.
    */
   async deleteFile(conversationId: string, fileId: string): Promise<void> {
