@@ -181,7 +181,7 @@ export function useDashboardQuery(dashboardId: string | undefined) {
     queryKey: dashboardKeys.detail(dashboardId!),
     queryFn: async () => {
       try {
-        const rawResponse = await dashboardService.getDashboard(dashboardId!);
+        const rawResponse = await dashboardService.getDashboardWithRenderData(dashboardId!);
 
         if (
           !rawResponse ||

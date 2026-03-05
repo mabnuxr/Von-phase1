@@ -5,8 +5,8 @@ import type { WidgetDataRequest, WidgetDataResponse } from "../types/dashboard";
  * Service for dashboard API endpoints.
  */
 class DashboardService {
-  async getDashboard(dashboardId: string) {
-    return apiClient.get(`/api/v1/dashboards/${dashboardId}`);
+  async getDashboardWithRenderData(dashboardId: string) {
+    return apiClient.get(`/api/v1/dashboards/${dashboardId}/render`);
   }
 
   async getWidgetData(
