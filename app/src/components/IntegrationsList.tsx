@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { IntegrationCard } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useSetSalesforceScope } from "../hooks/useIntegrations";
 import { Resource, AuthenticationStatus } from "../services";
+import type { SalesforceWriteScope } from "../services";
 import {
   getAllIntegrations,
   canBeOrgLevel,
@@ -53,6 +55,7 @@ interface IntegrationsListProps {
           config: Record<string, unknown>;
           accessLevel: string;
           readonly: boolean;
+          scope?: SalesforceWriteScope;
         }[];
       }
     | undefined;
@@ -79,6 +82,157 @@ interface IntegrationItemProps {
     id: string,
     connectionType: "workspace" | "personal" | "both",
   ) => void;
+}
+
+const SCOPE_OPTIONS: {
+  value: SalesforceWriteScope;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "full_access",
+    label: "Full Access",
+    description: "All users can write via the shared service account",
+  },
+  {
+    value: "user_level_write",
+    label: "User-Level Write",
+    description: "Each user must connect their own Salesforce account to write",
+  },
+  {
+    value: "read_only",
+    label: "Read Only",
+    description: "All writes are blocked for the entire org",
+  },
+];
+
+function SalesforceScopeMenu({
+  currentScope,
+}: {
+  currentScope: SalesforceWriteScope;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showScopeSubmenu, setShowScopeSubmenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const setScopeMutation = useSetSalesforceScope();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setShowScopeSubmenu(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const handleSelect = (scope: SalesforceWriteScope) => {
+    if (scope === currentScope) return;
+    setScopeMutation.mutate(scope, {
+      onSuccess: () => {
+        setIsOpen(false);
+        setShowScopeSubmenu(false);
+      },
+    });
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setShowScopeSubmenu(false);
+        }}
+        className="p-1 rounded-lg hover:bg-gray-200 transition-colors duration-150 cursor-pointer"
+        aria-label="Open settings"
+      >
+        <svg
+          className="w-5 h-5 text-gray-600"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+          />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 bottom-full mb-2 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+          {/* Write Scope */}
+          <div className="relative">
+            <button
+              onClick={() => setShowScopeSubmenu(!showScopeSubmenu)}
+              className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+            >
+              <span>Write Scope</span>
+              <svg
+                className="w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+
+            {/* Scope Submenu */}
+            {showScopeSubmenu && (
+              <div className="absolute left-full top-0 ml-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                {SCOPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleSelect(option.value)}
+                    disabled={setScopeMutation.isPending}
+                    className={`w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      option.value === currentScope ? "bg-gray-50" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900">
+                        {option.label}
+                      </span>
+                      {option.value === currentScope && (
+                        <svg
+                          className="w-4 h-4 text-green-500 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {option.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -157,6 +311,12 @@ function IntegrationItem({
     (loadingIntegrationId === personal.id ||
       (personalIsAuthenticating && !personalIsTimedOut));
 
+  // Salesforce scope - read from workspace config if available
+  const isSalesforce = item.id === "salesforce";
+  const currentScope = (workspaceBackendIntegration?.scope ??
+    "full_access") as SalesforceWriteScope;
+  const canEditScope = isSalesforce && workspace && workspacePerms?.update;
+
   // Case 1: Not connected at all - show as available
   // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
   if (!isConnected) {
@@ -232,6 +392,11 @@ function IntegrationItem({
         disabled={!!isLoading}
         loadingText={isLoading ? "Authenticating" : undefined}
         deleteTooltip={deleteTooltip}
+        actionSlot={
+          canEditScope ? (
+            <SalesforceScopeMenu currentScope={currentScope} />
+          ) : undefined
+        }
       />
     );
   }
@@ -291,6 +456,11 @@ function IntegrationItem({
             isOwner && canConnectPersonal
               ? "Removes both workspace and personal connections"
               : "Removes workspace connection"
+          }
+          actionSlot={
+            canEditScope ? (
+              <SalesforceScopeMenu currentScope={currentScope} />
+            ) : undefined
           }
         />
         {canConnectPersonal && !isOwner && (

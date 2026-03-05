@@ -9,6 +9,10 @@ export interface TeamMemberUsage {
   last_month: number;
 }
 
+export interface TeamMemberPermissions {
+  sfdc_write: boolean;
+}
+
 export interface TeamMember {
   id: string;
   email: string;
@@ -18,6 +22,7 @@ export interface TeamMember {
   joinedDate: string | null;
   isActive: boolean;
   usage: TeamMemberUsage;
+  permissions?: TeamMemberPermissions;
 }
 
 /**
@@ -105,6 +110,31 @@ export class TeamService {
       await apiClient.get<RolesListResponse>("/api/v1/team/roles");
     return response.roles;
   }
+
+  /**
+   * Update per-user permissions (admin only)
+   */
+  async updateMemberPermissions(
+    userId: string,
+    permissions: UpdateMemberPermissionsRequest,
+  ): Promise<UpdateMemberPermissionsResponse> {
+    return apiClient.patch<UpdateMemberPermissionsResponse>(
+      `/api/v1/team/members/${userId}/permissions`,
+      permissions,
+    );
+  }
+}
+
+export interface UpdateMemberPermissionsRequest {
+  sfdc_write: boolean | null;
+}
+
+export interface UpdateMemberPermissionsResponse {
+  user_id: string;
+  permissions: {
+    sfdc_write: boolean;
+  };
+  message: string;
 }
 
 export const teamService = new TeamService();

@@ -1,6 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { SearchIcon, MoreVerticalIcon, TrashIcon } from "../icons";
-import { useTeamMembers, useRemoveTeamMember } from "../../hooks/useTeam";
+import { SearchIcon, MoreVerticalIcon } from "../icons";
+import {
+  useTeamMembers,
+  useRemoveTeamMember,
+  useUpdateMemberPermissions,
+} from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import usePreferencesStore from "../../store/preferencesStore";
@@ -9,6 +13,7 @@ import { Banner, Tooltip } from "@vonlabs/design-components";
 export function ManageUsersTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
+  const [showPermissionsSubmenu, setShowPermissionsSubmenu] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     userId: string;
     userName: string;
@@ -33,6 +38,9 @@ export function ManageUsersTab() {
   // Remove team member mutation
   const removeMutation = useRemoveTeamMember(activeTenant);
 
+  // Update member permissions mutation
+  const updatePermissionsMutation = useUpdateMemberPermissions(activeTenant);
+
   // Access store to open add team member panel
   const { setAddingTeamMember } = usePreferencesStore();
 
@@ -41,6 +49,7 @@ export function ManageUsersTab() {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpenMenuUserId(null);
+        setShowPermissionsSubmenu(false);
       }
     };
 
@@ -100,6 +109,15 @@ export function ManageUsersTab() {
 
   const toggleMenu = (userId: string) => {
     setOpenMenuUserId(openMenuUserId === userId ? null : userId);
+    setShowPermissionsSubmenu(false);
+  };
+
+  const handleToggleSfdcWrite = (member: (typeof filteredUsers)[number]) => {
+    const currentValue = member.permissions?.sfdc_write ?? true;
+    updatePermissionsMutation.mutate({
+      userId: member.id,
+      permissions: { sfdc_write: !currentValue },
+    });
   };
 
   const formatDate = (dateString: string | null) => {
@@ -373,8 +391,73 @@ export function ManageUsersTab() {
                               {openMenuUserId === member.id && (
                                 <div
                                   ref={menuRef}
-                                  className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                                  className="absolute right-0 bottom-full mb-2 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
                                 >
+                                  {/* Customize Permissions */}
+                                  <div className="relative">
+                                    <button
+                                      onClick={() =>
+                                        setShowPermissionsSubmenu(
+                                          !showPermissionsSubmenu,
+                                        )
+                                      }
+                                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                                    >
+                                      <span>Customize Permissions</span>
+                                      <svg
+                                        className="w-4 h-4 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M9 5l7 7-7 7"
+                                        />
+                                      </svg>
+                                    </button>
+
+                                    {/* Permissions Submenu */}
+                                    {showPermissionsSubmenu && (
+                                      <div className="absolute right-full top-0 mr-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                                        <div className="flex items-center justify-between px-4 py-2">
+                                          <span className="text-sm text-gray-700">
+                                            SFDC Write
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              handleToggleSfdcWrite(member)
+                                            }
+                                            disabled={
+                                              updatePermissionsMutation.isPending
+                                            }
+                                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
+                                              (member.permissions?.sfdc_write ??
+                                              true)
+                                                ? "bg-green-500"
+                                                : "bg-gray-200"
+                                            }`}
+                                          >
+                                            <span
+                                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                (member.permissions
+                                                  ?.sfdc_write ?? true)
+                                                  ? "translate-x-4"
+                                                  : "translate-x-0"
+                                              }`}
+                                            />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Divider */}
+                                  <div className="border-t border-gray-100 my-1" />
+
+                                  {/* Delete User */}
                                   <button
                                     onClick={() =>
                                       handleDeleteUser(
@@ -385,7 +468,6 @@ export function ManageUsersTab() {
                                     disabled={removeMutation.isPending}
                                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                                   >
-                                    <TrashIcon className="w-4 h-4" />
                                     {removeMutation.isPending
                                       ? "Removing..."
                                       : "Delete User"}

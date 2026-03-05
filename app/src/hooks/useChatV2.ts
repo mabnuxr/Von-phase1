@@ -36,6 +36,7 @@ import { useArtifactState } from "./useArtifactState";
 import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
 import { useAgentArtifacts } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
+import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import {
   transformConversationMessages,
   handleToolApproval,
@@ -159,6 +160,9 @@ export function useChatV2(props: UseChatV2Props) {
 
   // Agent-generated file artifacts (React Query + Pusher invalidation)
   useArtifactCreatedEvent(channel, conversationId);
+
+  // Surface write-blocked notifications as toasts
+  useWriteBlockedEvent(channel);
 
   // Extract unique runIds from assistant messages for per-run artifact fetching
   const assistantRunIds = useMemo(() => {

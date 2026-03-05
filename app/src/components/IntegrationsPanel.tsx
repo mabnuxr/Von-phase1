@@ -5,7 +5,11 @@ import {
   useCheckAllAuthStatuses,
   useDeleteIntegration,
 } from "../hooks/useIntegrations";
-import { IntegrationType, AuthenticationStatus } from "../services";
+import {
+  IntegrationType,
+  AuthenticationStatus,
+  type SalesforceWriteScope,
+} from "../services";
 import usePreferencesStore from "../store/preferencesStore";
 import { WorkspaceIntegrationPane } from "./WorkspaceIntegrationPane";
 import { PersonalIntegrationPane } from "./PersonalIntegrationPane";
@@ -28,6 +32,7 @@ export interface Integration {
   ownerLastName?: string;
   authenticationStatus: string;
   isConfigured?: boolean;
+  scope?: SalesforceWriteScope;
 }
 
 export interface IntegrationsPanelProps {

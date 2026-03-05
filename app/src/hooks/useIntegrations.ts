@@ -7,7 +7,7 @@ import {
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { integrationsService } from "../services";
-import type { IntegrationType } from "../services";
+import type { IntegrationType, SalesforceWriteScope } from "../services";
 import {
   OAUTH_POLLING_TIMEOUT_MS,
   OAUTH_POLLING_INTERVAL_MS,
@@ -484,6 +484,21 @@ export function useUpdateIntegration() {
       if (import.meta.env.DEV) {
         console.error("[useUpdateIntegration] Error:", error);
       }
+    },
+  });
+}
+
+/**
+ * Set the org-level Salesforce write scope
+ */
+export function useSetSalesforceScope() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (scope: SalesforceWriteScope) =>
+      integrationsService.setSalesforceScope(scope),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
     },
   });
 }

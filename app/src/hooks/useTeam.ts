@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { teamService } from "../services";
-import type { TeamMember, AddTeamMemberRequest } from "../services/teamService";
+import type {
+  TeamMember,
+  AddTeamMemberRequest,
+  UpdateMemberPermissionsRequest,
+} from "../services/teamService";
 
 /**
  * Query keys for team - scoped by tenant
@@ -179,6 +183,37 @@ export function useRemoveTeamMember(tenantId: string | undefined) {
     onSuccess: () => {
       if (!tenantId) return;
       queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+    },
+  });
+}
+
+/**
+ * Update per-user permissions (admin only)
+ *
+ * @param tenantId - Current tenant ID from user context
+ */
+export function useUpdateMemberPermissions(tenantId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      permissions,
+    }: {
+      userId: string;
+      permissions: UpdateMemberPermissionsRequest;
+    }) => teamService.updateMemberPermissions(userId, permissions),
+
+    onSuccess: () => {
+      if (!tenantId) return;
+      queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+    },
+
+    onError: (err) => {
+      console.error(
+        "[useUpdateMemberPermissions] Failed to update permissions:",
+        err,
+      );
     },
   });
 }
