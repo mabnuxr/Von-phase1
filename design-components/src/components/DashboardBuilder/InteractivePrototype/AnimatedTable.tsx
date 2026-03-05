@@ -271,15 +271,17 @@ export const AnimatedTable: React.FC<AnimatedTableProps> = ({
               )}
               {(phase === 'data' || phase === 'complete') && (
                 <>
-                  {dataToShow.slice(0, visibleRows).map((row: Record<string, unknown>, i: number) => (
-                    <DataRow
-                      key={`row-${i}`}
-                      data={row as Record<string, unknown>}
-                      columns={visibleColumns}
-                      index={i}
-                      isNew={phase === 'data'}
-                    />
-                  ))}
+                  {dataToShow
+                    .slice(0, visibleRows)
+                    .map((row: Record<string, unknown>, i: number) => (
+                      <DataRow
+                        key={`row-${i}`}
+                        data={row as Record<string, unknown>}
+                        columns={visibleColumns}
+                        index={i}
+                        isNew={phase === 'data'}
+                      />
+                    ))}
                 </>
               )}
             </AnimatePresence>
