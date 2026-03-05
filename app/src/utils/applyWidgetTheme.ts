@@ -116,6 +116,12 @@ export function applyColumnColors(col: TableColumn): TableColumn {
 }
 
 export function applyTableTheme(config: TableWidgetConfig): TableWidgetConfig {
+  // Defensive check: if columns is undefined or not an array, return config as-is
+  if (!Array.isArray(config.columns)) {
+    console.warn('[applyTableTheme] Table widget missing columns array:', config);
+    return config;
+  }
+
   const columns = config.columns.map(applyColumnColors);
 
   const rowStyles = config.rowStyles?.map((rs) => ({

@@ -424,7 +424,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const hasAttachments = attachments.length > 0;
 
     // Show the enhanced toolbar when any toolbar feature is wired up
-    const showPlusMenu = !!(onFilesSelected || hasAttachments || enableCommands);
+    const showPlusMenu = !!(hasAttachments || enableCommands);
 
     // Handle dropped files from parent
     useEffect(() => {

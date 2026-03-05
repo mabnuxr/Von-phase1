@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { GridLayout, verticalCompactor, type Layout } from 'react-grid-layout';
 import { WidgetRenderer } from '../WidgetRenderer';
+import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 import type { DashboardGridProps } from '../types';
 import 'react-grid-layout/css/styles.css';
 
@@ -55,7 +56,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ layout, widgets, gridConf
           if (!widget) return <div key={item.i} />;
           return (
             <div key={item.i} className="h-full">
-              <WidgetRenderer widget={widget} />
+              <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
+                <WidgetRenderer widget={widget} />
+              </WidgetErrorBoundary>
             </div>
           );
         })}

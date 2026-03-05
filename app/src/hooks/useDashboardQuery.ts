@@ -25,7 +25,7 @@ interface RawApiWidget {
   title: string;
   query_ref: string;
   layout: { x: number; y: number; w: number; h: number };
-  kpi: { value: number[]; format: string } | null;
+  kpi: { value: number | number[]; format: string; suffix?: string } | null;
   highcharts: Record<string, unknown> | null;
 }
 
@@ -68,15 +68,20 @@ function parseKpiFormat(format: string) {
 function adaptWidget(raw: RawApiWidget): WidgetConfig {
   if (raw.type === "kpi" && raw.kpi) {
     const { format, prefix, suffix, decimals } = parseKpiFormat(raw.kpi.format);
+    // Handle both number and array formats for KPI value
+    const value = Array.isArray(raw.kpi.value) ? raw.kpi.value[0] ?? 0 : raw.kpi.value;
+    // Use API suffix if provided, otherwise use parsed suffix
+    const finalSuffix = raw.kpi.suffix ?? suffix;
+
     return {
       id: raw.id,
       type: "counter",
       title: raw.title,
       config: {
-        value: raw.kpi.value[0] ?? 0,
+        value,
         format,
         ...(prefix && { prefix }),
-        ...(suffix && { suffix }),
+        ...(finalSuffix && { suffix: finalSuffix }),
         decimals,
       },
     };
@@ -99,6 +104,18 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
     };
+  }
+
+  // Table widget - provide empty columns array if not present
+  if (raw.type === "table") {
+    return {
+      id: raw.id,
+      type: "table",
+      title: raw.title,
+      config: {
+        columns: [],
+      },
+    } as WidgetConfig;
   }
 
   // Fallback for unknown widget types

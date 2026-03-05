@@ -1,0 +1,1 @@
+export { WidgetErrorBoundary } from './WidgetErrorBoundary';
