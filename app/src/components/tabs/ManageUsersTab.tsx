@@ -1,5 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { SearchIcon, MoreVerticalIcon } from "../icons";
+import { SearchIcon } from "../icons";
+import {
+  DotsThreeVertical,
+  CaretRight,
+  ShieldCheck,
+  TrashSimple,
+} from "@phosphor-icons/react";
 import {
   useTeamMembers,
   useRemoveTeamMember,
@@ -142,7 +148,7 @@ export function ManageUsersTab() {
 
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
-        <div className="pt-6 pb-12 space-y-6 w-full">
+        <div className="pt-6 pb-12 space-y-6 w-4xl mx-auto">
           {/* Actions Row */}
           <div className="flex items-center gap-4">
             {/* Search Input - Full Width */}
@@ -177,25 +183,25 @@ export function ManageUsersTab() {
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Name
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Email
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Role
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-center text-xs text-gray-700 tracking-wide"
                     >
                       <Tooltip content="Number of conversations created">
                         <span className="cursor-default">Questions</span>
@@ -203,14 +209,14 @@ export function ManageUsersTab() {
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Joined
                     </th>
                     {canDeleteTeamMember && (
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                       >
                         Action
                       </th>
@@ -272,31 +278,31 @@ export function ManageUsersTab() {
 
           {/* Data Table */}
           {!isLoading && !error && teamMembers && filteredUsers.length > 0 && (
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="overflow-visible border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Name
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Email
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Role
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-center text-xs text-gray-700 tracking-wide"
                     >
                       <Tooltip content="Number of conversations created">
                         <span className="cursor-default">Questions</span>
@@ -304,14 +310,14 @@ export function ManageUsersTab() {
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Joined
                     </th>
                     {canDeleteTeamMember && (
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                       >
                         Action
                       </th>
@@ -381,17 +387,21 @@ export function ManageUsersTab() {
                             <div className="relative">
                               <button
                                 onClick={() => toggleMenu(member.id)}
-                                className="p-1 rounded-lg hover:bg-gray-200 transition-colors duration-150"
+                                className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+                                  openMenuUserId === member.id
+                                    ? "bg-gray-200 text-gray-900"
+                                    : "hover:bg-gray-200 text-gray-600"
+                                }`}
                                 aria-label="Open menu"
                               >
-                                <MoreVerticalIcon className="w-5 h-5 text-gray-600" />
+                                <DotsThreeVertical size={18} weight="bold" />
                               </button>
 
                               {/* Dropdown Menu */}
                               {openMenuUserId === member.id && (
                                 <div
                                   ref={menuRef}
-                                  className="absolute right-0 bottom-full mb-2 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                                  className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[100]"
                                 >
                                   {/* Customize Permissions */}
                                   <div className="relative">
@@ -401,29 +411,30 @@ export function ManageUsersTab() {
                                           !showPermissionsSubmenu,
                                         )
                                       }
-                                      className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                                      className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
+                                        showPermissionsSubmenu
+                                          ? "bg-gray-100/80"
+                                          : "hover:bg-gray-100/80"
+                                      }`}
                                     >
-                                      <span>Customize Permissions</span>
-                                      <svg
-                                        className="w-4 h-4 text-gray-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M9 5l7 7-7 7"
+                                      <div className="flex items-center gap-2.5">
+                                        <ShieldCheck
+                                          size={14}
+                                          className="text-gray-800"
                                         />
-                                      </svg>
+                                        <span>Access Permissions</span>
+                                      </div>
+                                      <CaretRight
+                                        size={14}
+                                        className="text-gray-400"
+                                      />
                                     </button>
 
                                     {/* Permissions Submenu */}
                                     {showPermissionsSubmenu && (
-                                      <div className="absolute right-full top-0 mr-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-                                        <div className="flex items-center justify-between px-4 py-2">
-                                          <span className="text-sm text-gray-700">
+                                      <div className="absolute right-full top-0 mr-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+                                        <div className="flex items-center justify-between rounded-xl px-3 py-2">
+                                          <span className="text-sm text-gray-900">
                                             SFDC Write
                                           </span>
                                           <button
@@ -454,9 +465,6 @@ export function ManageUsersTab() {
                                     )}
                                   </div>
 
-                                  {/* Divider */}
-                                  <div className="border-t border-gray-100 my-1" />
-
                                   {/* Delete User */}
                                   <button
                                     onClick={() =>
@@ -466,8 +474,9 @@ export function ManageUsersTab() {
                                       )
                                     }
                                     disabled={removeMutation.isPending}
-                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                    className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
                                   >
+                                    <TrashSimple size={14} />
                                     {removeMutation.isPending
                                       ? "Removing..."
                                       : "Delete User"}
@@ -545,14 +554,14 @@ export function ManageUsersTab() {
                   <div className="flex gap-3 justify-end">
                     <button
                       onClick={cancelDelete}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="px-3 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={confirmDelete}
                       disabled={removeMutation.isPending}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       {removeMutation.isPending ? "Removing..." : "Remove"}
                     </button>

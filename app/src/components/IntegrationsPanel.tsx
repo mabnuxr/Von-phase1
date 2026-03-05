@@ -260,7 +260,7 @@ export function IntegrationsPanel() {
         </div>
         <button
           onClick={() => refetch()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+          className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
         >
           Retry
         </button>
@@ -282,7 +282,7 @@ export function IntegrationsPanel() {
 
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
-        <div className="pt-6 pb-12 space-y-6 w-2xl mx-auto">
+        <div className="pt-6 pb-12 space-y-6 w-4xl mx-auto">
           {oauthError && (
             <div className="mb-4">
               <Banner
