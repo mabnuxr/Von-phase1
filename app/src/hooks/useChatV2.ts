@@ -161,8 +161,9 @@ export function useChatV2(props: UseChatV2Props) {
   // Agent-generated file artifacts (React Query + Pusher invalidation)
   useArtifactCreatedEvent(channel, conversationId);
 
-  // Surface write-blocked notifications as toasts
-  useWriteBlockedEvent(channel);
+  // Surface write-blocked notifications as banner above chat input
+  const { writeBlocked, dismissWriteBlocked } =
+    useWriteBlockedEvent(channel);
 
   // Extract unique runIds from assistant messages for per-run artifact fetching
   const assistantRunIds = useMemo(() => {
@@ -586,6 +587,10 @@ export function useChatV2(props: UseChatV2Props) {
     handleFileArtifactClick,
     closeFileArtifactPanel,
     handleArtifactDownload,
+
+    // Write-blocked banner
+    writeBlocked,
+    dismissWriteBlocked,
 
     // Submit guard
     canSubmitFinal: props.canSubmit && (!hasFileAttachments || allUploaded),

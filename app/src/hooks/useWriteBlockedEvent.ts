@@ -1,28 +1,38 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Channel } from "pusher-js";
-import { useToast } from "./useToast";
 import {
   ConversationChannelEvents,
   type AgentWriteBlockedPayload,
+  type WriteBlockCode,
 } from "../types/conversationChannelEvents";
 
+export interface WriteBlockedState {
+  blockCode: WriteBlockCode;
+  message: string;
+}
+
 /**
- * Listens for `agent.write_blocked` events on the conversation Pusher channel
- * and surfaces the server-provided message as a toast notification.
+ * Listens for `integration.write_blocked` events on the conversation Pusher channel
+ * and exposes the latest block as dismissible banner state.
  */
 export function useWriteBlockedEvent(channel: Channel | null) {
-  const { showToast } = useToast();
+  const [writeBlocked, setWriteBlocked] = useState<WriteBlockedState | null>(
+    null,
+  );
+
+  const dismissWriteBlocked = useCallback(() => {
+    setWriteBlocked(null);
+  }, []);
 
   useEffect(() => {
     if (!channel) return;
 
-    const eventName = ConversationChannelEvents.AGENT_WRITE_BLOCKED;
+    const eventName = ConversationChannelEvents.INTEGRATION_WRITE_BLOCKED;
 
     const handler = (data: AgentWriteBlockedPayload) => {
-      showToast({
-        message: data.event.message,
-        variant: "warning",
-        autoDismissMs: 8000,
+      setWriteBlocked({
+        blockCode: data.block_code,
+        message: data.message,
       });
     };
 
@@ -31,5 +41,7 @@ export function useWriteBlockedEvent(channel: Channel | null) {
     return () => {
       channel.unbind(eventName, handler);
     };
-  }, [channel, showToast]);
+  }, [channel]);
+
+  return { writeBlocked, dismissWriteBlocked };
 }

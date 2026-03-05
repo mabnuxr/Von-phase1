@@ -7,7 +7,7 @@
 
 export const ConversationChannelEvents = {
   ARTIFACT_CREATED: "artifact_created",
-  AGENT_WRITE_BLOCKED: "agent.write_blocked",
+  INTEGRATION_WRITE_BLOCKED: "integration.write_blocked",
 } as const;
 
 export type ConversationChannelEventName =
@@ -25,10 +25,8 @@ export type WriteBlockCode =
   | "personal_oauth_expired";
 
 export interface AgentWriteBlockedPayload {
-  event: {
-    block_code: WriteBlockCode;
-    message: string;
-  };
+  block_code: WriteBlockCode;
+  message: string;
 }
 
 export interface ArtifactCreatedEventPayload {
