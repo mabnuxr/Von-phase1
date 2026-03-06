@@ -86,6 +86,9 @@ export const Chat: React.FC<ChatProps> = ({
   // Agent selection props
   isAgentLocked = false,
   lockedConversationMode = ConversationMode.Auto,
+  // Agent modes & file upload
+  availableAgentModes,
+  enableFileUpload = false,
   // Controlled attachment props
   controlledAttachments,
   onRemoveAttachment,
@@ -335,6 +338,8 @@ export const Chat: React.FC<ChatProps> = ({
             onFilesSelected={onFilesSelected}
             fileErrorMessage={fileErrorMessage}
             onDismissFileError={onDismissFileError}
+            availableAgentModes={availableAgentModes}
+            enableFileUpload={enableFileUpload}
           />
         ) : (
           /* Standard message rendering */
@@ -442,6 +447,8 @@ export const Chat: React.FC<ChatProps> = ({
           onFilesSelected={onFilesSelected}
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
+          availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
         />
       )}
     </div>

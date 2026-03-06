@@ -299,4 +299,17 @@ export interface StandardChatInputProps {
 
   /** Ghost command name shown as inline typeahead next to "/" */
   ghostCommandName?: string | null;
+
+  /**
+   * Agent modes available for selection in the plus menu.
+   * When more than just "Auto" is provided, the Agents submenu is shown.
+   * @default [ConversationMode.Auto]
+   */
+  availableAgentModes?: ConversationMode[];
+
+  /**
+   * Whether to show the Upload option in the plus menu.
+   * @default false
+   */
+  enableFileUpload?: boolean;
 }

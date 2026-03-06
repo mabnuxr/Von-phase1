@@ -51,6 +51,7 @@ export interface ChatV2ContainerProps {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   isArtifactsEnabled: boolean;
+  availableAgentModes?: ConversationMode[];
   syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
@@ -77,6 +78,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isDeepLinksEnabled,
     isSourcesEnabled,
     isArtifactsEnabled,
+    isFileUploadEnabled,
+    availableAgentModes,
     banner,
     onGoogleDriveClick,
     isDriveEnabled,
@@ -146,6 +149,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             disableSubmit={!chatV2.canSubmitFinal}
             onInputWhileDisabled={onDisabledInteraction}
             enableCommands={isSlashCommandsEnabled}
+            availableAgentModes={availableAgentModes}
           />
         </>
       ) : (
@@ -216,6 +220,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              availableAgentModes={availableAgentModes}
+              enableFileUpload={isFileUploadEnabled}
             />
           </div>
 

@@ -110,6 +110,8 @@ export interface ChatInputSelectorProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
 }
 
 // ---------------------------------------------------------------------------
@@ -159,6 +161,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      availableAgentModes,
     },
     ref
   ) => {
@@ -348,6 +351,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           onCloseCommandsList={
             enableCommands && showCommandsList ? handleCloseCommandsList : undefined
           }
+          availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
         />
       );
     }

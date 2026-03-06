@@ -1372,6 +1372,13 @@ export interface ChatProps {
   lockedConversationMode?: ConversationMode;
 
   /**
+   * Agent modes available for selection in the plus menu.
+   * When more than just "Auto" is provided, the Agents submenu is shown in the plus menu.
+   * @default [ConversationMode.Auto]
+   */
+  availableAgentModes?: ConversationMode[];
+
+  /**
    * Controlled file attachments for the chat input.
    * When provided, the input uses controlled mode — parent owns state.
    */

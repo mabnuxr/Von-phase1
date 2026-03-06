@@ -40,11 +40,6 @@ import { ChatV2Container } from "../components/ChatV2Container";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
-import {
-  agentModeToConversationMode,
-  conversationModeToAgentMode,
-  DEFAULT_AGENT_MODE,
-} from "../lib/conversationModeUtils";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
@@ -66,6 +61,7 @@ const Conversation = () => {
     isFileUploadEnabled,
     isArtifactsEnabled,
     isGoogleDriveEnabled,
+    isDeepResearchEnabled,
   } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
@@ -303,6 +299,13 @@ const Conversation = () => {
     />
   );
 
+  // --- Agent modes available in the plus menu ---
+  const availableAgentModes = useMemo(() => {
+    const modes: ConversationMode[] = [ConversationMode.Auto];
+    if (isDeepResearchEnabled) modes.push(ConversationMode.DashboardBuilder);
+    return modes;
+  }, [isDeepResearchEnabled]);
+
   // --- Shared container props ---
   const sharedContainerProps = {
     user,
@@ -323,6 +326,7 @@ const Conversation = () => {
     isSourcesEnabled,
     isFileUploadEnabled,
     isArtifactsEnabled,
+    availableAgentModes,
     syncConversationModeToBackend,
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,

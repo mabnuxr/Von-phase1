@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { authService } from "../services";
-import { startProviderLogout } from "../lib/authFlow";
 
 /**
  * Encapsulates logout logic: backend logout, clear auth, redirect.
@@ -32,7 +31,7 @@ export function useLogout() {
             "[useLogout] No redirect URL provided, using default logout flow",
           );
         }
-        startProviderLogout();
+        window.location.href = window.location.origin;
       }
     } catch (error) {
       if (import.meta.env.DEV) {

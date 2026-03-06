@@ -117,6 +117,8 @@ export interface DeepResearchConversationProps {
   onDislike?: (messageId: string) => void;
   /** The locked agent mode to display in the chat input */
   lockedConversationMode?: ConversationMode;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
 }
 
 export const DeepResearchConversation: React.FC<
@@ -141,6 +143,7 @@ export const DeepResearchConversation: React.FC<
   onLike,
   onDislike,
   lockedConversationMode = ConversationMode.DashboardBuilder,
+  availableAgentModes,
 }) => {
   const navigate = useNavigate();
 
@@ -332,6 +335,7 @@ export const DeepResearchConversation: React.FC<
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
           lockedConversationMode={lockedConversationMode}
+          availableAgentModes={availableAgentModes}
         />
       )}
 

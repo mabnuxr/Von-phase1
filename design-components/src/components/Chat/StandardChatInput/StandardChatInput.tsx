@@ -23,7 +23,6 @@ import {
   RobotIcon,
   CaretRightIcon,
   UploadSimpleIcon,
-  AtomIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
@@ -94,6 +93,18 @@ function getReferenceLabel(type: ReferenceContext['type']) {
 export { ConversationMode } from './types';
 
 /**
+ * Get agent mode display label and icon
+ */
+function getConversationModeDisplay(mode: ConversationMode) {
+  switch (mode) {
+    case ConversationMode.Auto:
+      return { label: 'Auto', icon: RobotIcon };
+    case ConversationMode.DashboardBuilder:
+      return { label: 'Dashboard Builder', icon: null }; // Uses green dot instead of icon
+  }
+}
+
+/**
  * PlusButtonMenu - Plus button with context menu for agent modes
  */
 interface PlusButtonMenuProps {
@@ -106,6 +117,8 @@ interface PlusButtonMenuProps {
   selectedConversationMode: ConversationMode;
   disabled?: boolean;
   isAgentLocked?: boolean;
+  availableAgentModes: ConversationMode[];
+  enableFileUpload?: boolean;
 }
 
 const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
@@ -118,6 +131,8 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
   selectedConversationMode,
   disabled = false,
   isAgentLocked = false,
+  availableAgentModes,
+  enableFileUpload = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isAgentSubmenuOpen, setIsAgentSubmenuOpen] = useState(false);
@@ -167,79 +182,91 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
               transition={{ duration: 0.1 }}
               className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
             >
-              <div className="py-0.5">
-                {/* Upload option */}
-                <TransparentButton
-                  icon={<UploadSimpleIcon size={16} className="text-gray-800" />}
-                  onClick={() => {
-                    onUploadClick?.();
-                    onClose();
-                  }}
-                >
-                  Upload
-                </TransparentButton>
-              </div>
+              {/* Upload option */}
+              {enableFileUpload && (
+                <div className="py-0.5">
+                  <TransparentButton
+                    icon={<UploadSimpleIcon size={16} className="text-gray-800" />}
+                    onClick={() => {
+                      onUploadClick?.();
+                      onClose();
+                    }}
+                  >
+                    Upload
+                  </TransparentButton>
+                </div>
+              )}
 
-              {/* Divider */}
-              <div className="my-0.5 border-t border-gray-100 mx-1" />
-
-              {/* Agents submenu trigger */}
-              <div
-                className="relative py-0.5"
-                onMouseEnter={() => !isAgentLocked && setIsAgentSubmenuOpen(true)}
-                onMouseLeave={() => setIsAgentSubmenuOpen(false)}
-              >
-                <TransparentButton
-                  icon={<RobotIcon size={16} className="text-gray-800" />}
-                  rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
-                  onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
-                >
-                  Agents
-                </TransparentButton>
-
-                {/* Agents submenu */}
-                <AnimatePresence>
-                  {isAgentSubmenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, x: -8 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, x: -8 }}
-                      transition={{ duration: 0.1 }}
-                      className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
-                    >
-                      <div className="py-0.5">
-                        {/* Auto (default) */}
-                        <TransparentButton
-                          icon={<RobotIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect(ConversationMode.Auto)}
-                          active={selectedConversationMode === ConversationMode.Auto}
-                          rightContent={
-                            selectedConversationMode === ConversationMode.Auto ? (
-                              <CheckIcon size={14} weight="bold" className="text-green-600" />
-                            ) : undefined
-                          }
-                        >
-                          Auto
-                        </TransparentButton>
-
-                        {/* Dashboard Builder */}
-                        <TransparentButton
-                          icon={<AtomIcon size={16} className="text-gray-500" />}
-                          onClick={() => handleAgentSelect(ConversationMode.DashboardBuilder)}
-                          active={selectedConversationMode === ConversationMode.DashboardBuilder}
-                          rightContent={
-                            selectedConversationMode === ConversationMode.DashboardBuilder ? (
-                              <CheckIcon size={14} weight="bold" className="text-green-600" />
-                            ) : undefined
-                          }
-                        >
-                          Dashboard Builder
-                        </TransparentButton>
-                      </div>
-                    </motion.div>
+              {/* Agents submenu trigger — only when modes beyond Auto exist */}
+              {availableAgentModes.length > 1 && (
+                <>
+                  {/* Divider — only when Upload is also visible */}
+                  {enableFileUpload && (
+                    <div className="my-0.5 border-t border-gray-100 mx-1" />
                   )}
-                </AnimatePresence>
-              </div>
+
+                  <div
+                    className="relative py-0.5"
+                    onMouseEnter={() => !isAgentLocked && setIsAgentSubmenuOpen(true)}
+                    onMouseLeave={() => setIsAgentSubmenuOpen(false)}
+                  >
+                    <TransparentButton
+                      icon={<RobotIcon size={16} className="text-gray-800" />}
+                      rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
+                      onClick={() =>
+                        !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)
+                      }
+                    >
+                      Agents
+                    </TransparentButton>
+
+                    {/* Agents submenu */}
+                    <AnimatePresence>
+                      {isAgentSubmenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, x: -8 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, x: -8 }}
+                          transition={{ duration: 0.1 }}
+                          className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
+                        >
+                          <div className="py-0.5">
+                            {availableAgentModes.map((mode) => {
+                              const display = getConversationModeDisplay(mode);
+                              const ModeIcon = display.icon;
+                              return (
+                                <TransparentButton
+                                  key={mode}
+                                  icon={
+                                    ModeIcon ? (
+                                      <ModeIcon size={16} className="text-gray-500" />
+                                    ) : (
+                                      <RobotIcon size={16} className="text-gray-500" />
+                                    )
+                                  }
+                                  onClick={() => handleAgentSelect(mode)}
+                                  active={selectedConversationMode === mode}
+                                  rightContent={
+                                    selectedConversationMode === mode ? (
+                                      <CheckIcon
+                                        size={14}
+                                        weight="bold"
+                                        className="text-green-600"
+                                      />
+                                    ) : undefined
+                                  }
+                                >
+                                  {display.label}
+                                </TransparentButton>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </>
+              )}
             </motion.div>
           </>
         )}
@@ -334,6 +361,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // File error props
       fileErrorMessage,
       onDismissFileError,
+      // Agent modes
+      availableAgentModes = [ConversationMode.Auto],
+      // File upload
+      enableFileUpload = false,
     },
     ref
   ) => {
@@ -423,8 +454,11 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const attachments = isAttachmentsControlled ? controlledAttachments : internalAttachments;
     const hasAttachments = attachments.length > 0;
 
-    // Show the enhanced toolbar when any toolbar feature is wired up
-    const showPlusMenu = !!(hasAttachments || enableCommands);
+    // Show the plus button when there is at least one action inside the popup
+    const hasAgentModes = availableAgentModes.length > 1;
+    const showPlusButton = hasAgentModes || enableFileUpload;
+    // Show the enhanced toolbar layout when plus button, commands, or attachments are present
+    const showPlusMenu = !!(hasAttachments || enableCommands || showPlusButton);
 
     // Handle dropped files from parent
     useEffect(() => {
@@ -571,16 +605,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       }
     }, [isAgentLocked]);
 
-    // Helper to get agent mode display label and icon
-    const getConversationModeDisplay = (mode: ConversationMode) => {
-      switch (mode) {
-        case ConversationMode.Auto:
-          return { label: 'Auto', icon: RobotIcon };
-        case ConversationMode.DashboardBuilder:
-          return { label: 'Dashboard Builder', icon: null }; // Uses green dot instead of icon
-      }
-    };
-
     return (
       <div className="bg-white antialiased font-sf px-2">
         <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
@@ -722,17 +746,21 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                       {/* Left side - Plus button and Mode toggle */}
                       <div className="flex items-center gap-2">
                         {/* Plus button - opens menu with agent and upload options */}
-                        <PlusButtonMenu
-                          isOpen={isPlusMenuOpen}
-                          onClose={() => setIsPlusMenuOpen(false)}
-                          onOpen={handlePlusButtonClick}
-                          onConversationModeChange={handleConversationModeChange}
-                          onBuildDashboard={onBuildDashboard}
-                          onUploadClick={() => fileInputRef.current?.click()}
-                          selectedConversationMode={selectedConversationMode}
-                          disabled={disabled && !isStreaming}
-                          isAgentLocked={isAgentLocked}
-                        />
+                        {showPlusButton && (
+                          <PlusButtonMenu
+                            isOpen={isPlusMenuOpen}
+                            onClose={() => setIsPlusMenuOpen(false)}
+                            onOpen={handlePlusButtonClick}
+                            onConversationModeChange={handleConversationModeChange}
+                            onBuildDashboard={onBuildDashboard}
+                            onUploadClick={() => fileInputRef.current?.click()}
+                            selectedConversationMode={selectedConversationMode}
+                            disabled={disabled && !isStreaming}
+                            isAgentLocked={isAgentLocked}
+                            availableAgentModes={availableAgentModes}
+                            enableFileUpload={enableFileUpload}
+                          />
+                        )}
 
                         {/* Slash commands button */}
                         {enableCommands && (

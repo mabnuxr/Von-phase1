@@ -135,6 +135,8 @@ export interface ChatEmptyStateProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
 }
 
 /**
@@ -189,6 +191,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
+  availableAgentModes,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -399,6 +402,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onFilesSelected={onFilesSelected}
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
+          availableAgentModes={availableAgentModes}
         />
       </motion.div>
 
