@@ -98,18 +98,18 @@ const SCOPE_OPTIONS: {
 }[] = [
   {
     value: "full_access",
-    label: "Full Access",
-    description: "All users can write via the shared service account",
+    label: "Read & Write",
+    description: "Read and update Salesforce for all users",
   },
   {
     value: "user_level_write",
-    label: "User-Level Write",
-    description: "Each user must connect their own Salesforce account to write",
+    label: "Write with Personal Login",
+    description: "Read for all users, but updates require each user to connect their Salesforce",
   },
   {
     value: "read_only",
     label: "Read Only",
-    description: "All writes are blocked for the entire org",
+    description: "Only read from Salesforce — no updates will be made",
   },
 ];
 

@@ -382,9 +382,7 @@ export function ManageUsersTab() {
                       </td>
                       {canDeleteTeamMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {/* Don't show delete option for current user */}
-                          {member.email !== user?.email && (
-                            <div className="relative">
+                          <div className="relative">
                               <button
                                 onClick={() => toggleMenu(member.id)}
                                 className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
@@ -432,10 +430,10 @@ export function ManageUsersTab() {
 
                                     {/* Permissions Submenu */}
                                     {showPermissionsSubmenu && (
-                                      <div className="absolute right-full top-0 mr-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+                                      <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
                                         <div className="flex items-center justify-between rounded-xl px-3 py-2">
-                                          <span className="text-sm text-gray-900">
-                                            SFDC Write
+                                          <span className="text-sm text-gray-900 whitespace-nowrap">
+                                            Salesforce Updates
                                           </span>
                                           <button
                                             onClick={() =>
@@ -461,30 +459,32 @@ export function ManageUsersTab() {
                                             />
                                           </button>
                                         </div>
+                                        <p className="px-3 pb-2" style={{ color: '#9ca3af', fontSize: '11px', lineHeight: '1.3' }}>Overrides org-level access</p>
                                       </div>
                                     )}
                                   </div>
 
-                                  {/* Delete User */}
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteUser(
-                                        member.id,
-                                        `${member.firstName} ${member.lastName}`,
-                                      )
-                                    }
-                                    disabled={removeMutation.isPending}
-                                    className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
-                                  >
-                                    <TrashSimple size={14} />
-                                    {removeMutation.isPending
-                                      ? "Removing..."
-                                      : "Delete User"}
-                                  </button>
+                                  {/* Delete User - not shown for current user */}
+                                  {member.email !== user?.email && (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteUser(
+                                          member.id,
+                                          `${member.firstName} ${member.lastName}`,
+                                        )
+                                      }
+                                      disabled={removeMutation.isPending}
+                                      className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+                                    >
+                                      <TrashSimple size={14} />
+                                      {removeMutation.isPending
+                                        ? "Removing..."
+                                        : "Delete User"}
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
                         </td>
                       )}
                     </tr>

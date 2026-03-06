@@ -209,14 +209,10 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
     onSuccess: (_data, { permissions }) => {
       if (!tenantId) return;
       queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
-      const action =
-        permissions.sfdc_write === null
-          ? "reset to default"
-          : permissions.sfdc_write
-            ? "enabled"
-            : "disabled";
       showToast({
-        message: `Salesforce write ${action}`,
+        message: permissions.sfdc_write
+          ? "Salesforce updates enabled for this user"
+          : "Salesforce updates disabled for this user",
         variant: "success",
       });
     },

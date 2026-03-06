@@ -503,9 +503,9 @@ export function useSetSalesforceScope() {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
       const label =
         scope === "full_access"
-          ? "Full Access"
+          ? "Read & Write"
           : scope === "user_level_write"
-            ? "User-Level Write"
+            ? "Write with Personal Login"
             : "Read Only";
       showToast({
         message: `Salesforce scope updated to ${label}`,
