@@ -5,12 +5,13 @@ import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 
 function formatValue(
-  value: string | number,
+  value: string | number | null,
   format: string,
   prefix?: string,
   suffix?: string,
   decimals?: number
 ): string {
+  if (value == null) return '—';
   if (typeof value === 'string') return `${prefix ?? ''}${value}${suffix ?? ''}`;
 
   let formatted: string;

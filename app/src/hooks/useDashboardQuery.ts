@@ -25,7 +25,7 @@ interface RawApiWidget {
   title: string;
   query_ref: string;
   layout: { x: number; y: number; w: number; h: number };
-  kpi: { value: number | number[]; format: string; suffix?: string } | null;
+  kpi: { value: string | number | number[]; format?: string; suffix?: string } | null;
   highcharts: Record<string, unknown> | null;
 }
 
@@ -67,8 +67,10 @@ function parseKpiFormat(format: string) {
 
 function adaptWidget(raw: RawApiWidget): WidgetConfig {
   if (raw.type === "kpi" && raw.kpi) {
-    const { format, prefix, suffix, decimals } = parseKpiFormat(raw.kpi.format);
-    // Handle both number and array formats for KPI value
+    const { format, prefix, suffix, decimals } = raw.kpi.format
+      ? parseKpiFormat(raw.kpi.format)
+      : { format: "number" as const, prefix: undefined, suffix: undefined, decimals: 0 };
+    // Handle string, number, and array formats for KPI value
     const value = Array.isArray(raw.kpi.value)
       ? (raw.kpi.value[0] ?? 0)
       : raw.kpi.value;

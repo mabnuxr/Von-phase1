@@ -46,7 +46,7 @@ export interface ChartWidgetProps {
 // ─── Counter ─────────────────────────────────────────────────────
 
 export interface CounterWidgetConfig {
-  value: string | number;
+  value: string | number | null;
   format: 'number' | 'currency' | 'percentage';
   prefix?: string;
   suffix?: string;
