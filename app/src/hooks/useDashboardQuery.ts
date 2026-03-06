@@ -69,7 +69,9 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
   if (raw.type === "kpi" && raw.kpi) {
     const { format, prefix, suffix, decimals } = parseKpiFormat(raw.kpi.format);
     // Handle both number and array formats for KPI value
-    const value = Array.isArray(raw.kpi.value) ? raw.kpi.value[0] ?? 0 : raw.kpi.value;
+    const value = Array.isArray(raw.kpi.value)
+      ? (raw.kpi.value[0] ?? 0)
+      : raw.kpi.value;
     // Use API suffix if provided, otherwise use parsed suffix
     const finalSuffix = raw.kpi.suffix ?? suffix;
 
@@ -181,7 +183,9 @@ export function useDashboardQuery(dashboardId: string | undefined) {
     queryKey: dashboardKeys.detail(dashboardId!),
     queryFn: async () => {
       try {
-        const rawResponse = await dashboardService.getDashboardWithRenderData(dashboardId!);
+        const rawResponse = await dashboardService.getDashboardWithRenderData(
+          dashboardId!,
+        );
 
         if (
           !rawResponse ||
