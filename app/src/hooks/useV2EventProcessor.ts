@@ -229,9 +229,13 @@ export function useV2EventProcessor(
           runErrorMessage: errorMsg,
         } = transformAguiToTimelineSteps(activeRunEvents);
 
-        // Mark any in-progress/pending steps as complete (run is terminated)
+        // Mark any in-progress/pending/awaiting-approval steps as complete (run is terminated)
         for (const step of steps) {
-          if (step.status === 'in-progress' || step.status === 'pending') {
+          if (
+            step.status === 'in-progress' ||
+            step.status === 'pending' ||
+            step.status === 'awaiting-approval'
+          ) {
             step.status = 'complete';
           }
         }
@@ -240,6 +244,7 @@ export function useV2EventProcessor(
           setTimelineSteps(steps);
           setIsThinking(false);
           setIsFinalResponseStreaming(false);
+          setIsAwaitingApproval(false);
           setStoppedByUser(options.stoppedByUser);
           setFinalResponse(response);
           setResearchResults(research);
