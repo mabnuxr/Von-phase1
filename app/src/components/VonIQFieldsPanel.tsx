@@ -34,7 +34,7 @@ export function VonIQFieldsPanel() {
     <div className="w-full h-full flex flex-col">
       {/* Fields List */}
       <div className="h-full w-full pb-6">
-        <div className="flex flex-col gap-6 h-full w-4xl mx-auto">
+        <div className="flex flex-col gap-6 h-full w-full max-w-4xl mx-auto">
           {/* Header Row with Add New Button and Search */}
           <div className="flex flex-col items-baseline justify-between">
             {/* Search Input */}
