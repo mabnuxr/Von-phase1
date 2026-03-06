@@ -305,7 +305,9 @@ export const DeepResearchConversation: React.FC<
           onReject={onReject}
           onLike={onLike}
           onDislike={onDislike}
-          onNavigate={navigate}
+          onNavigate={(url) =>
+            navigate(url, { state: { conversationId } })
+          }
         />
 
         {/* Scroll to bottom button */}

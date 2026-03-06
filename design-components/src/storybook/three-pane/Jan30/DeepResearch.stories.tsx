@@ -30,12 +30,9 @@ import {
   type Template,
   type TemplateCategory,
 } from '../../../components/Templates';
-import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
-import type {
-  ChatMessage,
-  ReferenceContext,
-  ThinkingStep,
-} from '../../../components/Jan17Demo/ChatPaneV2';
+import { Chat } from '../../../components/Chat';
+import type { Message } from '../../../components/Chat/types';
+import type { ReferenceContext } from '../../../components/Chat/StandardChatInput/types';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
 import type {
   KPICardData,
@@ -187,7 +184,7 @@ const DEEP_RESEARCH_PROMPT =
   'Perform a comprehensive analysis of our Q4 sales performance across all regions and product categories. Identify trends, top-performing segments, underperforming areas, and provide strategic recommendations for Q1 planning.';
 
 // Sample analysis thinking steps (shorter) - matches Dashboard V2 style
-const sampleThinkingSteps: DeepResearchThinkingStep[] = [
+const sampleThinkingSteps: DeepResearchTimelineStep[] = [
   {
     id: 'sample-1',
     text: 'Connecting to Salesforce',
@@ -226,7 +223,7 @@ const sampleThinkingSteps: DeepResearchThinkingStep[] = [
 ];
 
 // Full research thinking steps (extensive)
-const fullResearchThinkingSteps: DeepResearchThinkingStep[] = [
+const fullResearchThinkingSteps: DeepResearchTimelineStep[] = [
   { id: 'full-1', text: 'Connecting to Salesforce CRM...', status: 'pending' },
   { id: 'full-2', text: 'Analyzing 2,847 deals from Q4 2025...', status: 'pending' },
   { id: 'full-3', text: 'Segmenting by region and product category...', status: 'pending' },
@@ -990,7 +987,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ initials, size = 24 }) => (
 // Timeline Helpers
 // ============================================================================
 
-const toTimelineSteps = (steps: DeepResearchThinkingStep[]): TimelineStep[] =>
+const toTimelineSteps = (steps: DeepResearchTimelineStep[]): TimelineStep[] =>
   steps.map((step) => ({
     id: step.id,
     text: step.text,
@@ -1004,7 +1001,7 @@ const toTimelineSteps = (steps: DeepResearchThinkingStep[]): TimelineStep[] =>
 // ============================================================================
 
 interface DeepResearchThinkingBlockProps {
-  steps: DeepResearchThinkingStep[];
+  steps: DeepResearchTimelineStep[];
   isThinking: boolean;
   progress: number;
   estimatedTimeRemaining: string;
@@ -1568,10 +1565,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSendMessage }) => {
 // ============================================================================
 
 interface DeepResearchChatViewProps {
-  messages: ChatMessage[];
+  messages: Message[];
   phase: DeepResearchPhase;
-  sampleThinkingSteps: DeepResearchThinkingStep[];
-  fullThinkingSteps: DeepResearchThinkingStep[];
+  sampleThinkingSteps: DeepResearchTimelineStep[];
+  fullThinkingSteps: DeepResearchTimelineStep[];
   sampleProgress: number;
   fullProgress: number;
   sampleTimeRemaining: string;
@@ -1946,8 +1943,8 @@ const DeepResearchDemo = () => {
   >({});
 
   // Thinking state
-  const [sampleSteps, setSampleSteps] = useState<DeepResearchThinkingStep[]>([]);
-  const [fullSteps, setFullSteps] = useState<DeepResearchThinkingStep[]>([]);
+  const [sampleSteps, setSampleSteps] = useState<DeepResearchTimelineStep[]>([]);
+  const [fullSteps, setFullSteps] = useState<DeepResearchTimelineStep[]>([]);
   const [sampleProgress, setSampleProgress] = useState(0);
   const [fullProgress, setFullProgress] = useState(0);
   const [sampleTimeRemaining, setSampleTimeRemaining] = useState('~15s');
@@ -1963,7 +1960,7 @@ const DeepResearchDemo = () => {
   const [disableAutoScroll, setDisableAutoScroll] = useState(false);
 
   // Chat messages
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [initialUserMessage, setInitialUserMessage] = useState(DEEP_RESEARCH_PROMPT);
   const [initialUserCommand, setInitialUserCommand] = useState<Command | null>(null);
 
@@ -2290,23 +2287,21 @@ const DeepResearchDemo = () => {
 
     // Create full conversation history for the chat pane
     // This shows the complete DeepResearch flow: user request → sample → full analysis → dashboard
-    const sampleThinkingStepsForChat: ThinkingStep[] = sampleThinkingSteps.map((step) => ({
+    const sampleThinkingStepsForChat: TimelineStep[] = sampleThinkingSteps.map((step) => ({
       id: step.id,
       text: step.text,
       status: 'complete' as const,
-      subtitle: step.subtitle,
-      icon: step.icon,
+      description: step.subtitle,
     }));
 
-    const fullThinkingStepsForChat: ThinkingStep[] = fullResearchThinkingSteps.map((step) => ({
+    const fullThinkingStepsForChat: TimelineStep[] = fullResearchThinkingSteps.map((step) => ({
       id: step.id,
       text: step.text,
       status: 'complete' as const,
-      subtitle: step.subtitle,
-      icon: step.icon,
+      description: step.subtitle,
     }));
 
-    const fullConversation: ChatMessage[] = [
+    const fullConversation: Message[] = [
       // 1. User's initial research request
       {
         id: 'msg-1-user-request',
@@ -2319,7 +2314,7 @@ const DeepResearchDemo = () => {
         id: 'msg-2-sample-thinking',
         type: 'assistant',
         content: '',
-        thinkingSteps: sampleThinkingStepsForChat,
+        timelineSteps: sampleThinkingStepsForChat,
         thinkingElapsedTime: sampleElapsedTime,
       },
       // 3. Sample preview output
@@ -2339,7 +2334,7 @@ const DeepResearchDemo = () => {
         id: 'msg-5-full-thinking',
         type: 'assistant',
         content: '',
-        thinkingSteps: fullThinkingStepsForChat,
+        timelineSteps: fullThinkingStepsForChat,
         thinkingElapsedTime: fullElapsedTime,
       },
       // 6. Full report complete message with artifact
@@ -2900,20 +2895,15 @@ const DeepResearchDemo = () => {
               <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
             </div>
           )}
-          <ChatPaneV2
-            conversationName="Deep Research Analysis"
+          <Chat
+            title="Deep Research Analysis"
             messages={chatMessages}
-            isCollapsed={isChatPaneCollapsed}
-            onToggleCollapse={() => setIsChatPaneCollapsed(!isChatPaneCollapsed)}
             placeholder="Ask about this dashboard..."
-            referenceContext={referenceContext}
-            onSourcesClick={() => setShowTransparencyDrawer(true)}
-            onArtifactClick={(messageId) => {
-              // Open report modal when clicking on the report artifact (msg-6-report-complete)
-              if (messageId === 'msg-6-report-complete') {
-                setShowReportModal(true);
-              }
-            }}
+            variant="floating"
+            height="100%"
+            width="100%"
+            thinkingProcessVersion="v2"
+            useStandardInput
           />
         </div>
       )}
