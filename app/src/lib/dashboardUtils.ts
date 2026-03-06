@@ -449,7 +449,7 @@ function transformMessagesForV2(
                 fileName: a.fileName,
                 artifactType: a.artifactType ?? "document",
                 mimeType: a.mimeType,
-                isPending: a.isPending,
+                isPending: a.isPending ?? a.status !== "completed",
                 pdfPreview: pdfPreview
                   ? { id: pdfPreview.id, fileName: pdfPreview.fileName }
                   : undefined,

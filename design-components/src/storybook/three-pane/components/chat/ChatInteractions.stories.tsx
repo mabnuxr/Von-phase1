@@ -6,7 +6,7 @@ import {
   type TimelineStep,
 } from '../../../../components/TimelineThinkingProcess';
 import { StandardChatInput } from '../../../../components/Chat/StandardChatInput';
-import { DeepResearchNotificationBar } from './DeepResearchNotificationBar';
+import { DeepResearchNotificationBar } from '../../../../components/Chat/DeepResearch/DeepResearchNotificationBar';
 
 /**
  * ChatInteractionsDecorator - Wraps stories in a container that mimics the chat area
@@ -28,7 +28,7 @@ const ChatInteractionsDecorator: Decorator = (Story) => (
 
 // Using ChatMessage as the base component
 const meta = {
-  title: '3-Pane/Components/Chat/ChatInteractions',
+  title: 'Components/Chat/ChatInteractions',
   component: ChatMessage,
   decorators: [ChatInteractionsDecorator],
   parameters: {

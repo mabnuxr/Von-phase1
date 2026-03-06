@@ -9,7 +9,7 @@ import { AddButton, PrimaryButton, GhostButton } from '../../../../components/fo
 const FormComponents = () => <div>Form Components</div>;
 
 const meta = {
-  title: '3-Pane/Components/Forms',
+  title: 'Components/Forms',
   component: FormComponents,
   parameters: {
     layout: 'padded',

@@ -15,7 +15,7 @@ import { SecondaryIconButton, PrimaryButton } from '../../../../components/forms
 import { PlusIcon, DotsThreeIcon } from '@phosphor-icons/react';
 
 const meta = {
-  title: '3-Pane/Components/Popups/ContextMenu',
+  title: 'Components/Popups/ContextMenu',
   component: ContextMenu,
   parameters: {
     layout: 'centered',

@@ -3,12 +3,8 @@ import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LayoutItem } from 'react-grid-layout';
 import { CheckCircle } from '@phosphor-icons/react';
-import { ChatSidebarV3 } from '../../../components/ChatSidebarV3/ChatSidebarV3';
-import type {
-  SidebarItem,
-  Folder,
-  ItemType,
-} from '../../../components/ChatSidebarV3/ChatSidebarV3';
+import { ChatSidebar } from '../../../components/ChatSidebarV2';
+import type { SidebarItem, Folder } from '../../../components/ChatSidebarV2';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import type {
   ChartComponent,
@@ -107,25 +103,8 @@ const dummySidebarItems: SidebarItem[] = [
   { id: 'chat-6', label: 'Competitive Analysis Review', type: 'chat' },
   { id: 'chat-7', label: 'Sales Enablement Strategy', type: 'chat' },
   { id: 'chat-8', label: 'Lead Scoring Model Update', type: 'chat' },
-  { id: 'dash-1', label: 'Sales Overview', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-2', label: 'Team Performance', type: 'dashboard', ownership: 'mine' },
-  {
-    id: 'dash-3',
-    label: 'Executive Dashboard',
-    type: 'dashboard',
-    ownership: 'shared',
-    ownerName: 'Sarah Chen',
-  },
-  { id: 'dash-4', label: 'Regional Metrics', type: 'dashboard', ownership: 'shared_by_me' },
   { id: 'chat-f1-1', label: 'Q4 Pipeline Deep Dive', type: 'chat', folderId: 'folder-1' },
   { id: 'chat-f1-2', label: 'Q4 Revenue Projections', type: 'chat', folderId: 'folder-1' },
-  {
-    id: 'dash-f2-1',
-    label: 'Weekly Sales Report',
-    type: 'dashboard',
-    folderId: 'folder-2',
-    ownership: 'mine',
-  },
 ];
 
 const dummyFolders: Folder[] = [
@@ -664,8 +643,7 @@ const AutoDashboardDemo = () => {
   };
 
   // Handle sidebar item click
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSidebarItemClick = (id: string, _type: ItemType) => {
+  const handleSidebarItemClick = (id: string) => {
     setSelectedSidebarItem(id);
   };
 
@@ -820,32 +798,33 @@ const AutoDashboardDemo = () => {
         style={{
           height: showAgentBar ? 'calc(100% - 48px)' : '100%',
           marginTop: showAgentBar ? '48px' : '0',
-          width: isSidebarCollapsed ? '64px' : '260px',
+          width: isSidebarCollapsed ? '50px' : '240px',
           transition: 'width 0.3s ease, height 0.3s ease, margin-top 0.3s ease',
-          borderRadius: '12px',
+          borderRadius: '8px',
           overflow: 'hidden',
           backgroundColor: '#ffffff',
           boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-          border: '1px solid #f3f4f6',
+          border: '1px solid #e5e7eb',
           flexShrink: 0,
         }}
       >
-        <ChatSidebarV3
-          items={dummySidebarItems}
+        <ChatSidebar
+          items={dummySidebarItems.filter((i) => !i.folderId)}
           folders={folders}
+          folderItems={{
+            'folder-1': dummySidebarItems.filter((i) => i.folderId === 'folder-1'),
+          }}
           selectedItemId={selectedSidebarItem}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           onItemClick={handleSidebarItemClick}
           onNewChatClick={handleReset}
-          onCreateDashboard={(config) => console.log('Create Dashboard:', config)}
           onFolderToggle={(folderId, isExpanded) => {
             setFolders(folders.map((f) => (f.id === folderId ? { ...f, isExpanded } : f)));
           }}
           userName="John Doe"
           userEmail="john@example.com"
           avatarLabel="JD"
-          hasNextPage={false}
         />
       </div>
 
@@ -897,7 +876,6 @@ const AutoDashboardDemo = () => {
               userName="John"
               onSendMessage={handleLandingMessage}
               placeholder="Ask Von to build a dashboard..."
-              showModeToggle={false}
               defaultValue="Build me a dashboard of my deals at risk"
             />
           </div>
@@ -963,7 +941,7 @@ const AutoDashboardDemo = () => {
 // ============================================================================
 
 const meta = {
-  title: '3-Pane/Jan30/Auto Dashboard',
+  title: 'Prototypes/Auto Dashboard',
   component: AutoDashboardDemo,
   parameters: {
     layout: 'fullscreen',

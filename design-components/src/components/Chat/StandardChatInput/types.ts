@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import type { FileAttachment } from '../FileAttachment/types';
-import type { BuildMode } from '../../DashboardBuilder/types';
+/**
+ * Build mode for ask/build toggle
+ */
+export type BuildMode = 'ask' | 'build';
 
 /**
  * Reference context for the chat input

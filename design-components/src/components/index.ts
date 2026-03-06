@@ -18,9 +18,6 @@ export { ErrorBoundary } from './ErrorBoundary';
 
 // Display Atoms
 // -------------
-export { Avatar } from './Avatar';
-export type { AvatarProps } from './Avatar';
-
 export { Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 
@@ -41,26 +38,17 @@ export type { ButtonProps } from './Button';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 
-export { MultiSelect } from './MultiSelect';
-export type { MultiSelectProps, MultiSelectOption } from './MultiSelect';
-
 export { SingleSelect } from './SingleSelect';
 export type { SingleSelectProps, SingleSelectOption } from './SingleSelect';
+
+export { MultiSelect } from './MultiSelect';
+export type { MultiSelectProps, MultiSelectOption } from './MultiSelect';
 
 export { RadioButton } from './RadioButton';
 export type { RadioButtonProps } from './RadioButton';
 
 // Layout Atoms
 // ------------
-export { Box } from './Box';
-export type { BoxProps } from './Box';
-
-export { Stack } from './Stack';
-export type { StackProps } from './Stack';
-
-export { Container } from './Container';
-export type { ContainerProps } from './Container';
-
 export { TabPill } from './TabPill';
 export type { TabPillProps } from './TabPill';
 
@@ -71,9 +59,6 @@ export type { SidePaneProps } from './SidePane';
 // ----------------
 export { Text } from './Text';
 export type { TextProps } from './Text';
-
-export { Heading } from './Heading';
-export type { HeadingProps } from './Heading';
 
 // File Attachment Types & Components
 export type { FileAttachment, FileCategory } from './Chat/FileAttachment';
@@ -163,12 +148,6 @@ export { Dropdown } from './Dropdown';
 export type { DropdownProps, DropdownItem } from './Dropdown';
 
 // Chat Molecules
-export { ChatBubble } from './ChatBubble';
-export type { ChatBubbleProps } from './ChatBubble';
-
-export { DocumentCard } from './DocumentCard';
-export type { DocumentCardProps } from './DocumentCard';
-
 export { TabSwitcher } from './TabSwitcher';
 export type { TabSwitcherProps, TabSwitcherTab } from './TabSwitcher';
 
@@ -183,10 +162,6 @@ export type { ConfirmationModalProps } from './ConfirmationModal';
 // Complex components with state management, hooks, and business logic.
 // These coordinate multiple atoms/molecules to create complete features.
 // ============================================================================
-
-// Header Organism (simple page header with logo)
-export { Header } from './Header';
-export type { HeaderProps } from './Header';
 
 // Chat Organism (uses: ChatHeader + ChatMessage + ChatInput, manages chat state & API)
 export { Chat } from './Chat';
@@ -252,14 +227,6 @@ export type {
   FolderItemsMap,
   FolderLoadingMap,
 } from './ChatSidebarV2';
-
-// ChatSidebarV3 Organism (extended version for prototyping)
-export { ChatSidebarV3 } from './ChatSidebarV3';
-export type { ChatSidebarV3Props } from './ChatSidebarV3';
-
-// ChatConversation Organism (uses: ChatBubble + TabSwitcher + DocumentCard + ChatInput)
-export { ChatConversation } from './ChatConversation';
-export type { ChatConversationProps, ConversationMessage } from './ChatConversation';
 
 // ============================================================================
 // FILES PREVIEW (Generic slide-in panel for previewing one or more files)

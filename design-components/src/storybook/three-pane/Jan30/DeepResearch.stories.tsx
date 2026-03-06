@@ -2609,13 +2609,13 @@ const DeepResearchDemo = () => {
         style={{
           height: showAgentBar ? 'calc(100% - 48px)' : '100%',
           marginTop: showAgentBar ? '48px' : '0',
-          width: isSidebarCollapsed ? '64px' : '260px',
+          width: isSidebarCollapsed ? '50px' : '240px',
           transition: 'width 0.3s ease, height 0.3s ease, margin-top 0.3s ease',
-          borderRadius: '12px',
+          borderRadius: '8px',
           overflow: 'hidden',
           backgroundColor: '#ffffff',
           boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-          border: '1px solid #f3f4f6',
+          border: '1px solid #e5e7eb',
           flexShrink: 0,
         }}
       >
@@ -2948,7 +2948,7 @@ const DeepResearchDemo = () => {
 // ============================================================================
 
 const meta = {
-  title: '3-Pane/Jan30/Deep Research',
+  title: 'Prototypes/Deep Research',
   component: DeepResearchDemo,
   parameters: {
     layout: 'fullscreen',

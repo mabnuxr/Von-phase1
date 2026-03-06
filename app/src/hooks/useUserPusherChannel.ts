@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Pusher, { type Channel } from "pusher-js";
-import { config as appConfig } from "../config";
+import { apiClient } from "../services/apiClient";
 
 interface UseUserPusherChannelConfig {
   tenantId?: string;
@@ -59,31 +59,16 @@ export function useUserPusherChannel(
         forceTLS: true,
         authorizer: (channel) => ({
           authorize: (socketId, callback) => {
-            fetch(`${appConfig.apiBaseUrl}/api/v1/pusher/auth`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              credentials: "include", // Send HttpOnly cookies
-              body: new URLSearchParams({
-                socket_id: socketId,
-                channel_name: channel.name,
-              }),
-            })
-              .then((res) => {
-                if (!res.ok) {
-                  throw new Error(
-                    `Pusher auth failed: ${res.status} ${res.statusText}`,
-                  );
-                }
-                return res.json();
-              })
-              .then((data) => {
-                callback(null, data);
-              })
-              .catch((err) => {
-                callback(err, null);
-              });
+            apiClient
+              .postForm<{ auth: string; channel_data?: string }>(
+                "/api/v1/pusher/auth",
+                new URLSearchParams({
+                  socket_id: socketId,
+                  channel_name: channel.name,
+                }),
+              )
+              .then((data) => callback(null, data))
+              .catch((err) => callback(err, null));
           },
         }),
       });

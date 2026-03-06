@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
 import type {
@@ -30,7 +31,7 @@ import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
-import { useAgentArtifacts } from "./useAgentArtifacts";
+import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import {
   transformConversationMessages,
@@ -70,6 +71,7 @@ export function useChatV2(props: UseChatV2Props) {
     onCollapseSidebar,
   } = props;
 
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
 
@@ -143,7 +145,17 @@ export function useChatV2(props: UseChatV2Props) {
       }
     }
     refetchMessages();
-  }, [conversationId, refetchMessages]);
+
+    // Invalidate artifact cache for the current run so the query re-fires.
+    // At this point notify_pending_artifacts has already written to Redis,
+    // so the re-query will find inflight data and start polling.
+    const runId = processor?.currentRunId;
+    if (runId) {
+      queryClient.invalidateQueries({
+        queryKey: agentArtifactKeys.run(conversationId, runId),
+      });
+    }
+  }, [conversationId, refetchMessages, queryClient]);
 
   // V2 event processing (AGUI events → timeline steps)
   const v2Processor = useV2EventProcessor(

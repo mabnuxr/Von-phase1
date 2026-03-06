@@ -4,7 +4,7 @@ import { Filter, FilterButton } from '../../../../../components/forms/filter';
 import type { FilterGroup } from '../../../../../components/forms/filter';
 
 const meta = {
-  title: '3-Pane/Components/Forms/Filter',
+  title: 'Components/Forms/Filter',
   component: Filter,
   parameters: {
     layout: 'padded',

@@ -1,6 +1,6 @@
 import { config } from "../config";
 import { randomString, sha256, base64UrlEncode } from "./pkce";
-import { storeCodeVerifier, storeOAuthState, clearAllAuth } from "./auth";
+import { storeCodeVerifier, storeOAuthState } from "./auth";
 
 export async function startAuthorization() {
   const codeVerifier = randomString(64);
@@ -40,25 +40,4 @@ export async function startAuthorization() {
   authorizeUrl.searchParams.set("prompt", "login");
 
   window.location.href = authorizeUrl.toString();
-}
-
-export function startProviderLogout() {
-  // Clear all local auth data before redirecting
-  clearAllAuth();
-
-  const logoutUrl = new URL(
-    config.scalekitLogoutPath,
-    config.scalekitAuthBaseUrl,
-  );
-  // After ScaleKit logout, redirect back with a flag to show logout confirmation
-  logoutUrl.searchParams.set(
-    "post_logout_redirect_uri",
-    location.origin + "/?logged_out=true",
-  );
-
-  if (import.meta.env.DEV) {
-    console.log("[Auth] Redirecting to ScaleKit logout:", logoutUrl.toString());
-  }
-
-  window.location.href = logoutUrl.toString();
 }

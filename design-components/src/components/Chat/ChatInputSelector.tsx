@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useState, useEffect, useLayoutEffect, useRef }
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
-import type { BuildMode } from '../DashboardBuilder';
+import type { BuildMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { ConversationMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
@@ -63,8 +63,6 @@ export interface ChatInputSelectorProps {
   droppedFiles?: File[];
   /** Callback when dropped files have been processed */
   onDroppedFilesProcessed?: () => void;
-  /** Show mode toggle (ChatInput only) */
-  showModeToggle?: boolean;
   /** Current mode (ask or build) */
   mode?: BuildMode;
   /** Callback when mode changes */
@@ -142,7 +140,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onFileError,
       droppedFiles,
       onDroppedFilesProcessed,
-      showModeToggle,
       mode,
       onModeChange,
       isAgentLocked,
@@ -296,9 +293,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         onFileError={onFileError}
         droppedFiles={droppedFiles}
         onDroppedFilesProcessed={onDroppedFilesProcessed}
-        showModeToggle={showModeToggle}
-        mode={mode}
-        onModeChange={onModeChange}
         autoFocus={autoFocus}
         contextBar={
           enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined

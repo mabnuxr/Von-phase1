@@ -20,6 +20,7 @@ import {
   PUSHER_ACTIVITY_TIMEOUT_S,
   PUSHER_PONG_TIMEOUT_S,
 } from "../config/constants";
+import { apiClient } from "../services/apiClient";
 
 export interface UsePusherChannelConfig {
   conversationId: string | null;
@@ -84,31 +85,16 @@ export function usePusherChannel(
           // Backend middleware reads access_token from cookie automatically.
           authorizer: (channel) => ({
             authorize: (socketId, callback) => {
-              fetch(appConfig.pusherAuthEndpoint, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded",
-                },
-                credentials: "include", // Send HttpOnly cookies
-                body: new URLSearchParams({
-                  socket_id: socketId,
-                  channel_name: channel.name,
-                }),
-              })
-                .then((res) => {
-                  if (!res.ok) {
-                    throw new Error(
-                      `Pusher auth failed: ${res.status} ${res.statusText}`,
-                    );
-                  }
-                  return res.json();
-                })
-                .then((data) => {
-                  callback(null, data);
-                })
-                .catch((err) => {
-                  callback(err, null);
-                });
+              apiClient
+                .postForm<{ auth: string; channel_data?: string }>(
+                  "/api/v1/pusher/auth",
+                  new URLSearchParams({
+                    socket_id: socketId,
+                    channel_name: channel.name,
+                  }),
+                )
+                .then((data) => callback(null, data))
+                .catch((err) => callback(err, null));
             },
           }),
         });

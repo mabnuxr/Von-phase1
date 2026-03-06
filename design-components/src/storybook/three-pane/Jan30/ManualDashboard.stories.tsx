@@ -1,12 +1,8 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState } from 'react';
 import type { LayoutItem } from 'react-grid-layout';
-import { ChatSidebarV3 } from '../../../components/ChatSidebarV3/ChatSidebarV3';
-import type {
-  SidebarItem,
-  Folder,
-  ItemType,
-} from '../../../components/ChatSidebarV3/ChatSidebarV3';
+import { ChatSidebar } from '../../../components/ChatSidebarV2';
+import type { SidebarItem, Folder } from '../../../components/ChatSidebarV2';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import type {
   ChartComponent,
@@ -73,7 +69,6 @@ const FullLayoutDecorator: Decorator = (Story) => (
 // ============================================================================
 
 const dummySidebarItems: SidebarItem[] = [
-  // Root chats (lots of them to test scroll)
   { id: 'chat-1', label: 'Pipeline Analysis Q4', type: 'chat' },
   { id: 'chat-2', label: 'Win Rate Optimization', type: 'chat' },
   { id: 'chat-3', label: 'Revenue Forecast Discussion', type: 'chat' },
@@ -94,45 +89,9 @@ const dummySidebarItems: SidebarItem[] = [
   { id: 'chat-18', label: 'Forecasting Accuracy Check', type: 'chat' },
   { id: 'chat-19', label: 'Pipeline Coverage Analysis', type: 'chat' },
   { id: 'chat-20', label: 'Quota Attainment Review', type: 'chat' },
-  // Root dashboards
-  { id: 'dash-1', label: 'Sales Overview', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-2', label: 'Team Performance', type: 'dashboard', ownership: 'mine' },
-  {
-    id: 'dash-3',
-    label: 'Executive Dashboard',
-    type: 'dashboard',
-    ownership: 'shared',
-    ownerName: 'Sarah Chen',
-  },
-  { id: 'dash-4', label: 'Regional Metrics', type: 'dashboard', ownership: 'shared_by_me' },
-  { id: 'dash-5', label: 'Pipeline Health', type: 'dashboard', ownership: 'mine' },
-  { id: 'dash-6', label: 'Revenue Trends', type: 'dashboard', ownership: 'mine' },
-  {
-    id: 'dash-7',
-    label: 'Win/Loss Analysis',
-    type: 'dashboard',
-    ownership: 'shared',
-    ownerName: 'Mike Johnson',
-  },
-  { id: 'dash-8', label: 'Activity Dashboard', type: 'dashboard', ownership: 'mine' },
-  // Chats in folders
   { id: 'chat-f1-1', label: 'Q4 Pipeline Deep Dive', type: 'chat', folderId: 'folder-1' },
   { id: 'chat-f1-2', label: 'Q4 Revenue Projections', type: 'chat', folderId: 'folder-1' },
   { id: 'chat-f1-3', label: 'Q4 Team Performance', type: 'chat', folderId: 'folder-1' },
-  {
-    id: 'dash-f2-1',
-    label: 'Weekly Sales Report',
-    type: 'dashboard',
-    folderId: 'folder-2',
-    ownership: 'mine',
-  },
-  {
-    id: 'dash-f2-2',
-    label: 'Weekly Pipeline Status',
-    type: 'dashboard',
-    folderId: 'folder-2',
-    ownership: 'mine',
-  },
 ];
 
 const dummyFolders: Folder[] = [
@@ -529,9 +488,7 @@ const ManualDashboardDemo = () => {
   const [activePopover, setActivePopover] = useState<ActivePopover | undefined>();
 
   // Current dashboard/report name
-  const currentDashboardName =
-    dummySidebarItems.find((item) => item.id === selectedSidebarItem && item.type === 'dashboard')
-      ?.label || 'Sales Overview';
+  const currentDashboardName = 'Sales Overview';
 
   const currentReportName = getReportName(selectedReportId);
 
@@ -561,14 +518,8 @@ const ManualDashboardDemo = () => {
   };
 
   // Handle sidebar item click
-  const handleSidebarItemClick = (id: string, type: ItemType) => {
+  const handleSidebarItemClick = (id: string) => {
     setSelectedSidebarItem(id);
-    if (type === 'dashboard') {
-      setPane1Tab('dashboard');
-      setPane2Mode('dashboard');
-    } else {
-      // For chats, stay on current view
-    }
   };
 
   // Handle drag start from Pane1
@@ -931,32 +882,33 @@ const ManualDashboardDemo = () => {
       <div
         style={{
           height: '100%',
-          width: isSidebarCollapsed ? '64px' : '260px',
+          width: isSidebarCollapsed ? '50px' : '240px',
           transition: 'width 0.3s ease',
-          borderRadius: '12px',
+          borderRadius: '8px',
           overflow: 'hidden',
           backgroundColor: '#ffffff',
           boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-          border: '1px solid #f3f4f6',
+          border: '1px solid #e5e7eb',
           flexShrink: 0,
         }}
       >
-        <ChatSidebarV3
-          items={dummySidebarItems}
+        <ChatSidebar
+          items={dummySidebarItems.filter((i) => !i.folderId)}
           folders={folders}
+          folderItems={{
+            'folder-1': dummySidebarItems.filter((i) => i.folderId === 'folder-1'),
+          }}
           selectedItemId={selectedSidebarItem}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           onItemClick={handleSidebarItemClick}
           onNewChatClick={() => console.log('New Chat clicked')}
-          onCreateDashboard={(config) => console.log('Create Dashboard:', config)}
           onFolderToggle={(folderId, isExpanded) => {
             setFolders(folders.map((f) => (f.id === folderId ? { ...f, isExpanded } : f)));
           }}
           userName="John Doe"
           userEmail="john@example.com"
           avatarLabel="JD"
-          hasNextPage={false}
         />
       </div>
 
@@ -1187,7 +1139,7 @@ const ManualDashboardDemo = () => {
 // ============================================================================
 
 const meta = {
-  title: '3-Pane/Jan30/Manual Dashboard',
+  title: 'Prototypes/Manual Dashboard',
   component: ManualDashboardDemo,
   parameters: {
     layout: 'fullscreen',

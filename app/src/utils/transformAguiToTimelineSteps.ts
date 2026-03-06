@@ -222,6 +222,33 @@ function normalizeChanges(
 }
 
 /**
+ * Cross-reference changes with fields: when a change has `after: null` but
+ * the same field name exists in `fields` with a real value, fill it in.
+ * This handles cases where the backend puts the new value in `fields` but
+ * leaves `changes[].after` as null.
+ */
+function mergeFieldsIntoChanges(
+  changes:
+    | Array<{
+        field: string;
+        before?: string | number | boolean | null;
+        after: string | number | boolean | null;
+        display_name?: string;
+      }>
+    | undefined,
+  fields: Record<string, string | number | boolean | null> | undefined,
+): typeof changes {
+  if (!changes || !fields) return changes;
+
+  return changes.map((change) => {
+    if (change.after === null && fields[change.field] != null) {
+      return { ...change, after: fields[change.field] };
+    }
+    return change;
+  });
+}
+
+/**
  * Maps analytics operation names to base operation type and entity label.
  * Analytics ops (create_report, clone_dashboard, etc.) use compound operation
  * names that don't match the standard 'create' | 'update' | 'delete' union.
@@ -689,6 +716,20 @@ function detectApprovalFromArgs(
         )
       : undefined;
 
+    // Compute changes and fields, then cross-reference so null `after` values
+    // are filled from fields when the backend puts the value there instead.
+    const sfChanges = isBulk
+      ? normalizeChanges(
+          ops.flatMap(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (op: any) => op.changes || [],
+          ),
+        )
+      : normalizeChanges(firstOp?.changes);
+    const sfFields = !isBulk
+      ? normalizeToolingFields(firstOp?.fields)
+      : undefined;
+
     return {
       toolCallId,
       summary: parsed.summary,
@@ -700,15 +741,8 @@ function detectApprovalFromArgs(
         : firstOp?.record_name,
       recordId: !isBulk ? firstOp?.record_id : undefined,
       operation: firstOp?.operation || "update",
-      changes: isBulk
-        ? normalizeChanges(
-            ops.flatMap(
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (op: any) => op.changes || [],
-            ),
-          )
-        : normalizeChanges(firstOp?.changes),
-      fields: !isBulk ? normalizeToolingFields(firstOp?.fields) : undefined,
+      changes: mergeFieldsIntoChanges(sfChanges, sfFields),
+      fields: sfFields,
       approvalType: isBulk ? "bulk" : "salesforce",
       operations: bulkOperations,
       bulkRecords: sfBulkRecords,
@@ -1327,7 +1361,7 @@ export function transformAguiToTimelineSteps(
             } catch (e) {
               if (import.meta.env.DEV) {
                 console.warn(
-                  "[transformAguiToTimelineSteps] Failed to parse tool args at TOOL_CALL_END:",
+                  "[transformAguiToTimelineSteps] Failed to parse tool args:",
                   e,
                 );
               }
@@ -1490,11 +1524,12 @@ export function transformAguiToTimelineSteps(
                     step.status = "complete" as StepStatus;
                   }
                 } catch (e) {
-                  // Log parse errors instead of silently defaulting
-                  console.warn(
-                    "[transformAguiToTimelineSteps] Failed to parse approval result:",
-                    e,
-                  );
+                  if (import.meta.env.DEV) {
+                    console.warn(
+                      "[transformAguiToTimelineSteps] Failed to parse non-chunked approval result:",
+                      e,
+                    );
+                  }
                   step.status = "complete" as StepStatus;
                 }
                 break;
