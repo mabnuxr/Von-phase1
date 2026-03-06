@@ -1,0 +1,433 @@
+#!/usr/bin/env node
+
+/**
+ * von-fe - Revenue OS Frontend CLI
+ *
+ * Usage: von-fe [action] [subaction]
+ *
+ * Actions:
+ *   dev up:app           Start the app dev server
+ *   dev up:storybook     Start Storybook
+ *   dev down:app         Stop the app dev server
+ *   dev down:storybook   Stop Storybook
+ *   setup init           First-time environment setup (seed.cfg → .env)
+ *   build [app|design|all] Build workspaces (default: all)
+ *   clean                Remove all node_modules
+ *   lint                 Run ESLint across all workspaces
+ *   typecheck            Run TypeScript checks across all workspaces
+ *   logs [app|storybook] Tail dev server logs (default: app)
+ *   help                 Show this help message
+ */
+
+'use strict';
+
+const { spawn, execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// ── Project root (one level up from bin/) ─────────────────────────────────────
+const ROOT     = path.resolve(__dirname, '..');
+const LOGS_DIR = path.join(ROOT, '.von', 'logs');
+const PIDS_DIR = path.join(ROOT, '.von', 'pids');
+
+// ── ANSI colors ────────────────────────────────────────────────────────────────
+const c = {
+  reset:   '\x1b[0m',
+  bold:    '\x1b[1m',
+  dim:     '\x1b[2m',
+  cyan:    '\x1b[36m',
+  green:   '\x1b[32m',
+  yellow:  '\x1b[33m',
+  red:     '\x1b[31m',
+  blue:    '\x1b[34m',
+};
+
+const tag = {
+  info:  `${c.cyan}${c.bold}  von${c.reset}`,
+  ok:    `${c.green}${c.bold}   ok${c.reset}`,
+  warn:  `${c.yellow}${c.bold} warn${c.reset}`,
+  error: `${c.red}${c.bold}  err${c.reset}`,
+  run:   `${c.blue}${c.bold}  run${c.reset}`,
+};
+
+function log(level, msg) {
+  console.log(`${tag[level]} ${msg}`);
+}
+
+function die(msg) {
+  log('error', msg);
+  process.exit(1);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function ensureDirs() {
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
+  fs.mkdirSync(PIDS_DIR, { recursive: true });
+}
+
+/** Run a command with inherited stdio (blocks until done). */
+function run(cmd, args, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      stdio: 'inherit',
+      cwd: ROOT,
+      env: { ...process.env, FORCE_COLOR: '1' },
+      ...opts,
+    });
+
+    process.on('SIGINT',  () => child.kill('SIGINT'));
+    process.on('SIGTERM', () => child.kill('SIGTERM'));
+
+    child.on('close', (code) => {
+      if (code === 0 || code === null) resolve();
+      else reject(new Error(`Process exited with code ${code}`));
+    });
+  });
+}
+
+/** Run npm script from project root (blocking). */
+function npm(script) {
+  log('run', `npm run ${script}`);
+  return run('npm', ['run', script]);
+}
+
+/**
+ * Start a service in the background, teeing output to a log file.
+ * Writes the child PID to .von/pids/<service>.pid.
+ */
+function startService(service, npmScript, port) {
+  ensureDirs();
+
+  const pidFile = path.join(PIDS_DIR, `${service}.pid`);
+  const logFile = path.join(LOGS_DIR, `${service}.log`);
+
+  // Check if already running
+  if (fs.existsSync(pidFile)) {
+    const pid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
+    try {
+      process.kill(pid, 0); // signal 0 = existence check
+      log('warn', `${service} is already running (PID ${pid}). Use von-fe dev down:${service} to stop it.`);
+      return;
+    } catch {
+      // PID is stale — remove and continue
+      fs.unlinkSync(pidFile);
+    }
+  }
+
+  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+  logStream.write(`\n\n─── Session started at ${new Date().toISOString()} ───\n\n`);
+
+  const child = spawn('npm', ['run', npmScript], {
+    cwd: ROOT,
+    env: { ...process.env, FORCE_COLOR: '1' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
+  });
+
+  child.stdout.pipe(process.stdout);
+  child.stderr.pipe(process.stderr);
+  child.stdout.pipe(logStream);
+  child.stderr.pipe(logStream);
+
+  child.unref(); // allow parent to exit independently
+
+  fs.writeFileSync(pidFile, String(child.pid));
+
+  log('ok', `${service} started ${c.dim}(PID ${child.pid})${c.reset}`);
+  if (port) log('info', `→ http://localhost:${port}  ${c.dim}logs: .von/logs/${service}.log${c.reset}`);
+
+  child.on('close', (code) => {
+    logStream.end();
+    if (fs.existsSync(pidFile)) fs.unlinkSync(pidFile);
+    if (code !== 0 && code !== null) {
+      process.stderr.write(`\n${tag.error} ${service} exited with code ${code}\n`);
+    }
+  });
+}
+
+/**
+ * Stop a running service by reading its PID file.
+ */
+function stopService(service) {
+  const pidFile = path.join(PIDS_DIR, `${service}.pid`);
+
+  if (!fs.existsSync(pidFile)) {
+    die(`${service} does not appear to be running (no PID file found).`);
+  }
+
+  const pid = parseInt(fs.readFileSync(pidFile, 'utf8').trim(), 10);
+
+  try {
+    process.kill(pid, 0); // check it's alive
+  } catch {
+    fs.unlinkSync(pidFile);
+    die(`${service} process (PID ${pid}) is no longer running. Cleaned up stale PID file.`);
+  }
+
+  try {
+    // Kill the process group so child npm processes are also terminated
+    process.kill(-pid, 'SIGTERM');
+  } catch {
+    // Fallback: kill just the direct process
+    process.kill(pid, 'SIGTERM');
+  }
+
+  fs.unlinkSync(pidFile);
+  log('ok', `${service} stopped ${c.dim}(PID ${pid})${c.reset}`);
+}
+
+// ── Version checks ─────────────────────────────────────────────────────────────
+
+function checkVersions() {
+  const nodeMajor = parseInt(process.versions.node.split('.')[0], 10);
+  if (nodeMajor < 22) {
+    die(`Node.js >= 22 required (found ${process.versions.node}). Visit https://nodejs.org`);
+  }
+
+  let npmVersion = '0.0.0';
+  try { npmVersion = execSync('npm --version', { encoding: 'utf8' }).trim(); } catch {}
+  const npmMajor = parseInt(npmVersion.split('.')[0], 10);
+  if (npmMajor < 10) {
+    die(`npm >= 10 required (found ${npmVersion}). Run: npm install -g npm`);
+  }
+
+  log('ok', `Node ${process.versions.node}  npm ${npmVersion}`);
+}
+
+// ── Setup init ─────────────────────────────────────────────────────────────────
+
+const SEED_CFG = path.join(ROOT, 'seed.cfg');
+
+const SEED_TEMPLATE = `# Revenue OS Frontend - Environment Configuration
+# Fill in the values below, then re-run: von-fe setup init
+
+# ============================================
+# APP CONFIGURATION
+# ============================================
+
+# API Configuration
+VITE_API_BASE_URL=
+
+# Scalekit Auth Configuration
+VITE_SCALEKIT_AUTH_BASE_URL=
+VITE_SCALEKIT_AUTH_AUTHORIZE_PATH=
+VITE_SCALEKIT_AUTH_TOKEN_PATH=
+VITE_SCALEKIT_AUTH_LOGOUT_PATH=
+VITE_SCALEKIT_CLIENT_ID=
+VITE_SCALEKIT_REDIRECT_URI=
+
+# ============================================
+# DESIGN COMPONENTS / STORYBOOK CONFIGURATION
+# ============================================
+
+# Application Environment (development, staging, production)
+VITE_APP_ENV=
+
+# API Configuration for Storybook
+VITE_API_TIMEOUT=
+
+# Feature Flags
+VITE_ENABLE_DEBUG=
+VITE_ENABLE_ANALYTICS=
+
+# Build Configuration
+VITE_BUILD_VERSION=
+VITE_BUILD_TIMESTAMP=
+
+# External Services (configure as needed)
+VITE_SENTRY_DSN=
+VITE_GA_TRACKING_ID=
+
+# Pusher Configuration for Real-time Chat
+VITE_PUSHER_KEY=
+VITE_PUSHER_CLUSTER=
+
+VITE_LAUNCHDARKLY_CLIENT_ID=
+
+# ============================================
+# IMPORTANT: DO NOT SET NODE_ENV HERE
+# ============================================
+# Node.js and npm use NODE_ENV to determine environment
+# Setting NODE_ENV=production will skip devDependencies during npm install
+# Let the build tools (Vite) handle this automatically
+`;
+
+async function runSetupInit() {
+  const envPath = path.join(ROOT, '.env');
+
+  // ── First run: seed.cfg does not exist yet ─────────────────────────────────
+  if (!fs.existsSync(SEED_CFG)) {
+    fs.writeFileSync(SEED_CFG, SEED_TEMPLATE);
+    log('ok', `seed.cfg created at ${c.dim}${SEED_CFG}${c.reset}`);
+    console.log('');
+    console.log(`  ${c.yellow}${c.bold}Next steps:${c.reset}`);
+    console.log(`  1. Open ${c.cyan}seed.cfg${c.reset} and fill in your environment values`);
+    console.log(`  2. Re-run ${c.cyan}von-fe setup init${c.reset} to create ${c.cyan}.env${c.reset} and install dependencies`);
+    console.log('');
+    return;
+  }
+
+  // ── Second run: seed.cfg exists → copy to .env and install ─────────────────
+  if (fs.existsSync(envPath)) {
+    log('warn', `.env already exists — overwriting with values from seed.cfg`);
+  }
+
+  fs.copyFileSync(SEED_CFG, envPath);
+  log('ok', `.env created from seed.cfg`);
+
+  checkVersions();
+  log('info', 'Installing dependencies and building design-components...');
+  await npm('setup');
+  log('ok', `Setup complete. Run ${c.cyan}von-fe dev up:app${c.reset} to start.`);
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────────
+
+function runDev(sub) {
+  switch (sub) {
+    case 'up:app':
+      startService('app', 'dev:app', 5173);
+      break;
+    case 'up:storybook':
+      startService('storybook', 'dev:design', 6006);
+      break;
+    case 'down:app':
+      stopService('app');
+      break;
+    case 'down:storybook':
+      stopService('storybook');
+      break;
+    default:
+      die(`Unknown dev subaction: "${sub}". Try: up:app, up:storybook, down:app, down:storybook`);
+  }
+}
+
+
+async function runBuild(sub) {
+  switch (sub) {
+    case 'all':
+    case undefined:
+    case null:
+      log('info', 'Building design-components + app...');
+      await npm('build:all');
+      log('ok', 'Build complete');
+      break;
+    case 'app':
+      log('info', 'Building app...');
+      await npm('build:app');
+      log('ok', 'App build complete');
+      break;
+    case 'design':
+      log('info', 'Building design-components...');
+      await npm('build:design');
+      log('ok', 'Design-components build complete');
+      break;
+    default:
+      die(`Unknown build target: "${sub}". Try: app, design, all`);
+  }
+}
+
+async function runClean() {
+  log('info', 'Removing node_modules across all workspaces...');
+  await npm('clean');
+  log('ok', `Clean complete. Run ${c.cyan}von-fe setup init${c.reset} to reinstall.`);
+}
+
+async function runLint() {
+  log('info', 'Running ESLint across all workspaces...');
+  await npm('lint:all');
+  log('ok', 'Lint passed');
+}
+
+async function runTypecheck() {
+  log('info', 'Running TypeScript checks across all workspaces...');
+  await npm('typecheck:all');
+  log('ok', 'Type checks passed');
+}
+
+async function runLogs(sub) {
+  const service = sub || 'app';
+  const logFile = path.join(LOGS_DIR, `${service}.log`);
+
+  if (!fs.existsSync(logFile)) {
+    die(`No log file for "${service}". Start it first: von-fe dev up:${service}`);
+  }
+
+  log('info', `Tailing ${c.dim}${logFile}${c.reset}  (Ctrl+C to stop)`);
+  await run('tail', ['-f', logFile]);
+}
+
+function showHelp() {
+  console.log(`
+${c.bold}${c.cyan}von-fe${c.reset} — Revenue OS Frontend CLI
+
+${c.bold}USAGE${c.reset}
+  von-fe <action> [subaction]
+
+${c.bold}ACTIONS${c.reset}
+  ${c.cyan}dev${c.reset} up:app             Start app dev server      ${c.dim}→ http://localhost:5173${c.reset}
+  ${c.cyan}dev${c.reset} up:storybook       Start Storybook           ${c.dim}→ http://localhost:6006${c.reset}
+  ${c.cyan}dev${c.reset} down:app           Stop app dev server
+  ${c.cyan}dev${c.reset} down:storybook     Stop Storybook
+  ${c.cyan}setup init${c.reset}             First-time env setup      ${c.dim}(seed.cfg → .env + npm install)${c.reset}
+  ${c.cyan}build${c.reset} [app|design|all] Build workspaces          ${c.dim}(default: all)${c.reset}
+  ${c.cyan}clean${c.reset}                  Remove all node_modules
+  ${c.cyan}lint${c.reset}                   Run ESLint (all workspaces)
+  ${c.cyan}typecheck${c.reset}              Run TypeScript checks (all workspaces)
+  ${c.cyan}logs${c.reset} [app|storybook]   Tail dev server logs      ${c.dim}(default: app)${c.reset}
+  ${c.cyan}help${c.reset}                   Show this help
+
+${c.bold}EXAMPLES${c.reset}
+  von-fe setup init         # Run once: creates seed.cfg to fill in
+  von-fe setup init         # Run again after filling seed.cfg: creates .env + npm install
+  von-fe dev up:app         # Start app in background on http://localhost:5173
+  von-fe dev up:storybook   # Start Storybook in background on http://localhost:6006
+  von-fe logs app           # Tail app dev server logs
+  von-fe dev down:app       # Stop the app dev server
+  von-fe build              # Build design-components + app
+
+${c.bold}URLS${c.reset}
+  App        http://localhost:5173
+  Storybook  http://localhost:6006
+  API        http://localhost:8000 ${c.dim}(backend)${c.reset}
+
+${c.bold}LOGS${c.reset}
+  Logs are written to ${c.dim}.von/logs/app.log${c.reset} and ${c.dim}.von/logs/storybook.log${c.reset}
+`);
+}
+
+// ── Entry point ────────────────────────────────────────────────────────────────
+
+const [,, action, subaction] = process.argv;
+
+(async () => {
+  try {
+    switch (action) {
+      case 'dev':        runDev(subaction); break;
+      case 'setup':
+        if (subaction === 'init') await runSetupInit();
+        else { log('warn', `Unknown setup subaction: "${subaction}". Try: init`); process.exit(1); }
+        break;
+      case 'build':      await runBuild(subaction); break;
+      case 'clean':      await runClean(); break;
+      case 'lint':       await runLint(); break;
+      case 'typecheck':  await runTypecheck(); break;
+      case 'logs':       await runLogs(subaction); break;
+      case 'help':
+      case '--help':
+      case '-h':
+      case undefined:
+        showHelp(); break;
+      default:
+        log('warn', `Unknown action: "${action}"`);
+        showHelp();
+        process.exit(1);
+    }
+  } catch (err) {
+    if (err.message && !err.message.includes('code')) {
+      log('error', err.message);
+    }
+    process.exit(1);
+  }
+})();
