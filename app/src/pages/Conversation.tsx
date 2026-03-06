@@ -14,35 +14,39 @@
  * all timers clear. No stale state, no race conditions.
  */
 
-import { useEffect, useState, useMemo, useCallback, Profiler } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { ChatSkeleton, Banner } from '@vonlabs/design-components';
-import { ConversationMode } from '@vonlabs/design-components';
+import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChatSkeleton, Banner } from "@vonlabs/design-components";
+import { ConversationMode } from "@vonlabs/design-components";
 
-import { conversationsService, IntegrationType, AuthenticationStatus } from '../services';
-import { useIntegrations } from '../hooks/useIntegrations';
-import useChatStore from '../store/chatStore';
-import { useMessages } from '../hooks/useMessages';
-import { useConversationInit } from '../hooks/useConversationInit';
-import { useSalesforceConnection } from '../hooks/useSalesforceConnection';
-import { useAppShell } from '../hooks/useAppShell';
-import { useFeatureFlag } from '../hooks/useFeatureFlag';
-import { useToast } from '../hooks/useToast';
-import { conversationKeys } from '../hooks/useConversations';
-import { chatSidebarKeys } from '../hooks/useChatSidebar';
-import { ChatV1Container } from '../components/ChatV1Container';
-import { ChatV2Container } from '../components/ChatV2Container';
-import { SalesforceConnectionBanner } from '../components/SalesforceConnectionBanner';
-import { SubscriptionInactiveBanner } from '../components/SubscriptionInactiveBanner';
-import { useCurrentConversation } from '../hooks/useCurrentConversation';
+import {
+  conversationsService,
+  IntegrationType,
+  AuthenticationStatus,
+} from "../services";
+import { useIntegrations } from "../hooks/useIntegrations";
+import useChatStore from "../store/chatStore";
+import { useMessages } from "../hooks/useMessages";
+import { useConversationInit } from "../hooks/useConversationInit";
+import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
+import { useAppShell } from "../hooks/useAppShell";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useToast } from "../hooks/useToast";
+import { conversationKeys } from "../hooks/useConversations";
+import { chatSidebarKeys } from "../hooks/useChatSidebar";
+import { ChatV1Container } from "../components/ChatV1Container";
+import { ChatV2Container } from "../components/ChatV2Container";
+import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
+import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
+import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import {
   agentModeToConversationMode,
   conversationModeToAgentMode,
   DEFAULT_AGENT_MODE,
-} from '../lib/conversationModeUtils';
-import { MESSAGES_PAGE_LIMIT } from '../config/constants';
-import { reportRenderTiming } from '../lib/datadog';
+} from "../lib/conversationModeUtils";
+import { MESSAGES_PAGE_LIMIT } from "../config/constants";
+import { reportRenderTiming } from "../lib/datadog";
 
 const Conversation = () => {
   const navigate = useNavigate();
@@ -71,14 +75,17 @@ const Conversation = () => {
   const { messages } = useChatStore();
   const conversationMessages = useMemo(
     () => (currentConversationId ? messages[currentConversationId] || [] : []),
-    [currentConversationId, messages]
+    [currentConversationId, messages],
   );
 
   // --- Conversation Init ---
-  const { isInitializing, error: initError } = useConversationInit(urlConversationId);
+  const { isInitializing, error: initError } =
+    useConversationInit(urlConversationId);
 
   // Fetch current conversation metadata (agentVersion, mode, title)
-  const { data: currentConversation } = useCurrentConversation(currentConversationId);
+  const { data: currentConversation } = useCurrentConversation(
+    currentConversationId,
+  );
 
   // --- Messages ---
   const {
@@ -112,22 +119,24 @@ const Conversation = () => {
       integrationsData?.integrations.some(
         (i) =>
           i.type === IntegrationType.GOOGLE_DRIVE &&
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
       ) ?? false,
-    [integrationsData]
+    [integrationsData],
   );
 
   const isDriveEnabled = isGoogleDriveEnabled;
   const driveTooltip = !isGoogleDriveEnabled
-    ? 'Open in Drive (Coming Soon)'
+    ? "Open in Drive (Coming Soon)"
     : !isDriveConnected
-      ? 'Connect Google Drive'
-      : 'Open in Google Drive';
+      ? "Connect Google Drive"
+      : "Open in Google Drive";
 
-  const [driveLoadingFileId, setDriveLoadingFileId] = useState<string | null>(null);
+  const [driveLoadingFileId, setDriveLoadingFileId] = useState<string | null>(
+    null,
+  );
 
   // --- Agent Version & Mode ---
-  const isAgentV2 = currentConversation?.agentVersion === 'v2';
+  const isAgentV2 = currentConversation?.agentVersion === "v2";
 
   const lockedConversationMode: ConversationMode = useMemo(() => {
     return currentConversation?.mode || ConversationMode.Auto;
@@ -143,36 +152,52 @@ const Conversation = () => {
 
       if (mode !== ConversationMode.Auto) {
         try {
-          await conversationsService.updateConversationMode(currentConversationId, mode);
+          await conversationsService.updateConversationMode(
+            currentConversationId,
+            mode,
+          );
           queryClient.invalidateQueries({
-            queryKey: isSidebarV2 ? chatSidebarKeys.sidebar() : conversationKeys.lists(),
+            queryKey: isSidebarV2
+              ? chatSidebarKeys.sidebar()
+              : conversationKeys.lists(),
           });
 
           // Refetch the specific conversation so currentConversation.mode updates
           await queryClient.refetchQueries({
-            queryKey: ['conversation', currentConversationId],
+            queryKey: ["conversation", currentConversationId],
           });
           if (import.meta.env.DEV) {
-            console.log('[Conversation] Synced conversation mode to backend:', mode);
+            console.log(
+              "[Conversation] Synced conversation mode to backend:",
+              mode,
+            );
           }
         } catch (error) {
-          console.error('[Conversation] Failed to sync conversation mode:', error);
+          console.error(
+            "[Conversation] Failed to sync conversation mode:",
+            error,
+          );
         }
       }
     },
-    [currentConversationId, queryClient, isSidebarV2]
+    [currentConversationId, queryClient, isSidebarV2],
   );
 
   // --- UI State ---
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
-  const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] = useState(false);
+  const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
+    useState(false);
 
   // --- Loading ---
   const isLoading =
-    isCreatingChat || isInitializing || (isLoadingMessages && conversationMessages.length === 0);
+    isCreatingChat ||
+    isInitializing ||
+    (isLoadingMessages && conversationMessages.length === 0);
 
   // --- Reset message filter on conversation switch ---
-  const resetShowMessagesFromIndex = useChatStore((state) => state.resetShowMessagesFromIndex);
+  const resetShowMessagesFromIndex = useChatStore(
+    (state) => state.resetShowMessagesFromIndex,
+  );
 
   useEffect(() => {
     if (urlConversationId) {
@@ -183,26 +208,29 @@ const Conversation = () => {
   // --- Handlers ---
   const handleRetry = async () => {
     if (import.meta.env.DEV) {
-      console.log('[Dashboard] Retrying connection...');
+      console.log("[Dashboard] Retrying connection...");
     }
     await refetch();
   };
 
   const handleSettingsClick = () => {
-    navigate('/settings');
+    navigate("/settings");
   };
 
   const handleLogoutClick = async () => {
-    const { clearAllAuth } = await import('../lib/auth');
+    const { clearAllAuth } = await import("../lib/auth");
 
     if (import.meta.env.DEV) {
-      console.log('[Dashboard] Logout clicked');
+      console.log("[Dashboard] Logout clicked");
     }
 
     try {
       const response = await authService.logout();
       if (import.meta.env.DEV) {
-        console.log('[Dashboard] Backend logout successful, redirect URL:', response.redirectUrl);
+        console.log(
+          "[Dashboard] Backend logout successful, redirect URL:",
+          response.redirectUrl,
+        );
       }
 
       clearAllAuth();
@@ -211,13 +239,15 @@ const Conversation = () => {
         window.location.href = response.redirectUrl;
       } else {
         if (import.meta.env.DEV) {
-          console.warn('[Dashboard] No redirect URL provided, using default logout flow');
+          console.warn(
+            "[Dashboard] No redirect URL provided, using default logout flow",
+          );
         }
         window.location.href = location.origin;
       }
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('[Dashboard] Backend logout failed:', error);
+        console.error("[Dashboard] Backend logout failed:", error);
       }
       clearAllAuth();
       window.location.href = location.origin;
@@ -236,23 +266,26 @@ const Conversation = () => {
   const handleGoogleDriveClick = useCallback(
     async (fileId: string) => {
       if (!isDriveConnected) {
-        navigate('/settings?tab=integrations');
+        navigate("/settings?tab=integrations");
         return;
       }
       if (!currentConversationId) return;
       try {
         setDriveLoadingFileId(fileId);
-        const { exportToDrive } = await import('../services/gsuite');
+        const { exportToDrive } = await import("../services/gsuite");
         const result = await exportToDrive(fileId, currentConversationId);
-        window.open(result.url, '_blank');
+        window.open(result.url, "_blank");
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to export to Google Drive';
-        showToast({ message, variant: 'error' });
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to export to Google Drive";
+        showToast({ message, variant: "error" });
       } finally {
         setDriveLoadingFileId(null);
       }
     },
-    [currentConversationId, isDriveConnected, navigate, showToast]
+    [currentConversationId, isDriveConnected, navigate, showToast],
   );
 
   // --- Banner ---
