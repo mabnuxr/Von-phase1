@@ -7,10 +7,17 @@
  * - String > 100 chars → truncate to 97 chars + "..."
  * - Null/undefined → "—"
  */
-export function formatValue(value: string | number | boolean | null | undefined): string {
+export function formatValue(
+  value: string | number | boolean | Record<string, unknown> | null | undefined
+): string {
   // Handle null/undefined
   if (value === null || value === undefined) {
     return '—';
+  }
+
+  // Handle objects (e.g. Tooling API Metadata) — stringify for display
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
   }
 
   // Handle boolean

@@ -69,7 +69,7 @@ function isAnyApprovalTool(toolName: string): boolean {
  */
 function getApprovalType(
   toolName: string,
-): "salesforce" | "calendar" | "deep_research" | "generic" {
+): "salesforce" | "calendar" | "generic" {
   if (isApprovalTool(toolName)) return "salesforce";
   if (isGoogleCalendarApprovalTool(toolName)) return "calendar";
   return "generic";
@@ -136,7 +136,8 @@ interface DetectedApprovalData {
   changes?: Array<{
     field: string;
     before?: string | number | boolean | null;
-    after: string | number | boolean | null;
+    after?: string | number | boolean | null;
+    display_name?: string;
   }>;
   fields?: Record<string, string | number | boolean | null>;
   approvalType:
@@ -145,10 +146,10 @@ interface DetectedApprovalData {
     | "bulk"
     | "deep_research"
     | "generic";
-  // Bulk operations array for Salesforce bulk approvals
+  // Bulk operations array for backward compat with BulkApprovalCard
   operations?: BulkOperation[];
   recordCount?: number;
-  // Bulk records for per-record approval UI (maps operations to BulkApprovalRecord format)
+  // Bulk records for per-record approval UI
   bulkRecords?: Array<{
     recordId: string;
     recordName: string;
@@ -157,7 +158,8 @@ interface DetectedApprovalData {
     changes: Array<{
       field: string;
       before?: string | number | boolean | null;
-      after: string | number | boolean | null;
+      after?: string | number | boolean | null;
+      display_name?: string;
     }>;
   }>;
   // Deep research specific fields
@@ -173,7 +175,8 @@ interface DetectedApprovalData {
 
 /**
  * Normalize changes array: convert old_value/new_value to before/after for consistency.
- * Backend normalization may not reach frontend if TOOL_CALL_ARGS is emitted before validation.
+ * This is a lightweight fallback — the backend now normalizes changes in _validate_operation(),
+ * but TOOL_CALL_ARGS may arrive before backend validation completes.
  */
 function normalizeChanges(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,7 +185,7 @@ function normalizeChanges(
   | Array<{
       field: string;
       before?: string | number | boolean | null;
-      after: string | number | boolean | null;
+      after?: string | number | boolean | null;
       display_name?: string;
     }>
   | undefined {
@@ -192,21 +195,18 @@ function normalizeChanges(
     const normalized: {
       field: string;
       before?: string | number | boolean | null;
-      after: string | number | boolean | null;
+      after?: string | number | boolean | null;
       display_name?: string;
     } = {
       field: change.field,
-      after: null, // Default to null (required field)
     };
 
-    // Prefer 'before' but fallback to 'old_value'
-    if ("before" in change) {
+    if ("before" in change && change.before !== undefined) {
       normalized.before = change.before;
-    } else if ("old_value" in change) {
+    } else if ("old_value" in change && change.old_value !== undefined) {
       normalized.before = change.old_value;
     }
 
-    // Prefer 'after' but fallback to 'new_value', default to null
     if ("after" in change && change.after !== undefined) {
       normalized.after = change.after;
     } else if ("new_value" in change && change.new_value !== undefined) {
@@ -222,587 +222,132 @@ function normalizeChanges(
 }
 
 /**
- * Cross-reference changes with fields: when a change has `after: null` but
- * the same field name exists in `fields` with a real value, fill it in.
- * This handles cases where the backend puts the new value in `fields` but
- * leaves `changes[].after` as null.
+ * Map a single backend operation to the approval data format.
+ * The backend now produces a uniform shape with `changes`, `record_id`, `label`,
+ * and `record_name` across all tools (SF CRUD, Calendar, Tooling, Analytics).
  */
-function mergeFieldsIntoChanges(
-  changes:
-    | Array<{
-        field: string;
-        before?: string | number | boolean | null;
-        after: string | number | boolean | null;
-        display_name?: string;
-      }>
-    | undefined,
-  fields: Record<string, string | number | boolean | null> | undefined,
-): typeof changes {
-  if (!changes || !fields) return changes;
-
-  return changes.map((change) => {
-    if (change.after === null && fields[change.field] != null) {
-      return { ...change, after: fields[change.field] };
-    }
-    return change;
-  });
-}
-
-/**
- * Maps analytics operation names to base operation type and entity label.
- * Analytics ops (create_report, clone_dashboard, etc.) use compound operation
- * names that don't match the standard 'create' | 'update' | 'delete' union.
- */
-const ANALYTICS_OPERATIONS: Record<
-  string,
-  { baseOp: "create" | "update" | "delete"; entityType: string }
-> = {
-  create_report: { baseOp: "create", entityType: "Report" },
-  update_report: { baseOp: "update", entityType: "Report" },
-  delete_report: { baseOp: "delete", entityType: "Report" },
-  update_dashboard: { baseOp: "update", entityType: "Dashboard" },
-  clone_dashboard: { baseOp: "create", entityType: "Dashboard" },
-};
-
-// Analytics param keys → human-readable labels for the approval card
-const ANALYTICS_FIELD_LABELS: [string, string][] = [
-  ["report_name", "Report Name"],
-  ["report_type", "Report Type"],
-  ["description", "Description"],
-  ["detail_columns", "Columns"],
-  ["groupings_down", "Row Groupings"],
-  ["groupings_across", "Column Groupings"],
-  ["aggregates", "Aggregates"],
-  ["report_filters", "Filters"],
-  ["filter_logic", "Filter Logic"],
-  ["chart", "Chart"],
-  ["folder_id", "Folder"],
-  ["source_dashboard_id", "Source Dashboard"],
-  ["filters", "Dashboard Filters"],
-];
-
-function stringifyAnalyticsValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) {
-    return value.every((v) => typeof v === "string")
-      ? value.join(", ")
-      : `${value.length} item(s)`;
-  }
-  if (typeof value === "object" && value !== null) {
-    const obj = value as Record<string, unknown>;
-    // Chart objects — show type and title
-    if ("chartType" in obj) {
-      return [obj.chartType, obj.title].filter(Boolean).join(" — ");
-    }
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
-/**
- * Normalizes Tooling API fields for display.
- * Tooling API SObject operations send { FullName, Metadata: {...} } where Metadata
- * is a nested object. This flattens Metadata into readable key-value pairs and
- * drops FullName (redundant with record_name shown in the card header).
- */
-function normalizeToolingFields(
+function mapUniformOperation(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fields: Record<string, any> | undefined,
-): Record<string, string | number | boolean | null> | undefined {
-  if (
-    !fields ||
-    typeof fields.Metadata !== "object" ||
-    fields.Metadata === null
-  ) {
-    return fields as
-      | Record<string, string | number | boolean | null>
-      | undefined;
-  }
-
-  const metadata = fields.Metadata as Record<string, unknown>;
-  const result: Record<string, string | number | boolean | null> = {};
-
-  // Known Metadata keys → human-readable labels
-  const METADATA_LABELS: Record<string, string> = {
-    type: "Field Type",
-    label: "Label",
-    description: "Description",
-    length: "Length",
-    precision: "Precision",
-    scale: "Scale",
-    required: "Required",
-    unique: "Unique",
-    externalId: "External ID",
-    defaultValue: "Default Value",
-    inlineHelpText: "Help Text",
-    formula: "Formula",
-    errorMessage: "Error Message",
-    errorConditionFormula: "Error Condition",
-    active: "Active",
-  };
-
-  for (const [key, label] of Object.entries(METADATA_LABELS)) {
-    if (metadata[key] != null) {
-      result[label] =
-        typeof metadata[key] === "boolean"
-          ? metadata[key]
-          : String(metadata[key]);
-    }
-  }
-
-  // Flatten picklist valueSet into a readable summary
-  if (metadata.valueSet && typeof metadata.valueSet === "object") {
-    const valueSet = metadata.valueSet as Record<string, unknown>;
-    const def = valueSet.valueSetDefinition as
-      | Record<string, unknown>
-      | undefined;
-    if (def?.value && Array.isArray(def.value)) {
-      const values = def.value.map(
-        (v: { label?: string; fullName?: string; default?: boolean }) => {
-          const name = v.label || v.fullName || "?";
-          return v.default ? `${name} (default)` : name;
-        },
-      );
-      result["Picklist Values"] = values.join(", ");
-    }
-  }
-
-  // Include non-Metadata fields except FullName (redundant with record_name)
-  for (const [key, value] of Object.entries(fields)) {
-    if (key === "Metadata" || key === "FullName") continue;
-    result[key] =
-      typeof value === "object" && value !== null
-        ? JSON.stringify(value)
-        : (value as string | number | boolean | null);
-  }
-
-  return Object.keys(result).length > 0 ? result : undefined;
-}
-
-/**
- * Normalizes analytics operations into the standard approval card shape.
- * Deterministically builds display data (fields/changes) from the known
- * flat param structure — operation shapes are fixed, no agent formatting needed.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeAnalyticsOp(op: Record<string, any>): Record<string, any> {
-  const mapping = ANALYTICS_OPERATIONS[op.operation];
-  if (!mapping) return op;
-
-  const record_name =
-    op.record_name ||
-    op.report_name ||
-    (op.report_id ? `Report ${op.report_id}` : null) ||
-    (op.dashboard_id ? `Dashboard ${op.dashboard_id}` : null) ||
-    (op.source_dashboard_id
-      ? `Dashboard (clone of ${op.source_dashboard_id})`
-      : null) ||
-    "Unknown";
-
-  let fields: Record<string, string | number | boolean | null> | undefined;
-  let changes:
-    | Array<{
-        field: string;
-        before?: string | number | boolean | null;
-        after: string | number | boolean | null;
-      }>
-    | undefined;
-
-  if (mapping.baseOp === "create") {
-    // Creates/clones: build fields dict for 2-column display
-    const f: Record<string, string | number | boolean | null> = {};
-    for (const [key, label] of ANALYTICS_FIELD_LABELS) {
-      if (op[key] != null) {
-        f[label] = stringifyAnalyticsValue(op[key]);
-      }
-    }
-    if (Object.keys(f).length > 0) fields = f;
-  } else if (mapping.baseOp === "update") {
-    // Prefer agent-provided changes (has before/after), fall back to building from flat params
-    if (Array.isArray(op.changes) && op.changes.length > 0) {
-      changes = op.changes;
-    } else {
-      const c: Array<{
-        field: string;
-        after: string | number | boolean | null;
-      }> = [];
-      for (const [key, label] of ANALYTICS_FIELD_LABELS) {
-        if (op[key] != null) {
-          c.push({
-            field: label,
-            after: stringifyAnalyticsValue(op[key]),
-          });
-        }
-      }
-      if (c.length > 0) changes = c;
-    }
-  }
-
+  op: Record<string, any>,
+): {
+  operation: "create" | "update" | "delete";
+  recordId?: string;
+  recordName: string;
+  label: string;
+  changes: Array<{
+    field: string;
+    before?: string | number | boolean | null;
+    after?: string | number | boolean | null;
+    display_name?: string;
+  }>;
+} {
   return {
-    ...op,
-    operation: mapping.baseOp,
-    sobject_type: mapping.entityType,
-    record_name,
-    record_id:
-      op.record_id || op.report_id || op.dashboard_id || op.source_dashboard_id,
-    ...(fields && { fields }),
-    ...(changes && { changes }),
+    operation: (op.normalized_operation || op.operation || "update") as
+      | "create"
+      | "update"
+      | "delete",
+    recordId:
+      op.record_id ||
+      op.event_id ||
+      op.report_id ||
+      op.dashboard_id ||
+      op.source_dashboard_id,
+    recordName: op.record_name || op.summary || "Unknown",
+    label: op.label || op.sobject_type || "Record",
+    changes: normalizeChanges(op.changes) || [],
   };
 }
 
 /**
- * Generic approval detection from tool arguments
- * Supports: Salesforce, Google Calendar, Bulk operations, and generic approvals
+ * Generic approval detection from tool arguments.
+ * The backend now produces uniform operations with `changes`, `record_id`, `label`,
+ * so this function is a thin mapping layer rather than tool-specific normalization.
  *
  * @param toolCallId - The tool call ID for API calls
  * @param parsed - Parsed JSON arguments from the tool call
+ * @param approvalTypeHint - Optional hint from TOOL_CALL_START (avoids heuristic detection)
  * @returns ApprovalData if this is an approval request, null otherwise
  */
 function detectApprovalFromArgs(
   toolCallId: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   parsed: Record<string, any>,
+  approvalTypeHint?: "salesforce" | "calendar" | "generic",
 ): DetectedApprovalData | null {
-  // Pattern 1: Operations array with summary (Salesforce or Google Calendar)
+  // Pattern 1: Operations array with summary (Salesforce, Calendar, Tooling, Analytics)
   if (parsed.operations && Array.isArray(parsed.operations) && parsed.summary) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ops = parsed.operations.map((op: any) => normalizeAnalyticsOp(op));
+    const ops = parsed.operations;
     const isBulk = ops.length > 1;
     const firstOp = ops[0];
 
-    // Detect if this is Google Calendar (has calendar-specific fields)
+    // Determine approval type: prefer hint from tool name, fallback to label-based heuristic
     const isCalendar =
-      firstOp?.start_datetime ||
-      firstOp?.calendar_id ||
-      firstOp?.event_id ||
-      firstOp?.attendees_emails;
+      approvalTypeHint === "calendar" ||
+      (!approvalTypeHint && firstOp?.label === "Calendar Event");
 
-    if (isCalendar) {
-      // Google Calendar operations
-      // For bulk operations, include the full operations array
-      const calendarBulkOperations: BulkOperation[] | undefined = isBulk
-        ? ops.map(
-            (op: {
-              operation?: string;
-              summary?: string;
-              event_summary?: string;
-              start_datetime?: string;
-              end_datetime?: string;
-              duration_minutes?: number;
-              attendees?: string[];
-              attendees_emails?: string[];
-              description?: string;
-              location?: string;
-              calendar_id?: string;
-              changes?: DetectedApprovalData["changes"];
-              fields?: Record<string, string | number | boolean | null>;
-            }) => {
-              // Build fields from calendar event properties for display
-              const fields: Record<string, string | number | boolean | null> =
-                op.fields || {};
+    const baseApprovalType =
+      approvalTypeHint === "calendar" || isCalendar
+        ? "calendar"
+        : approvalTypeHint || "salesforce";
 
-              // Add calendar-specific fields if not already in fields
-              if (op.start_datetime && !fields["Start"]) {
-                fields["Start"] = op.start_datetime;
-              }
-              if (op.end_datetime && !fields["End"]) {
-                fields["End"] = op.end_datetime;
-              }
-              if (op.duration_minutes && !fields["Duration"]) {
-                fields["Duration"] = `${op.duration_minutes} minutes`;
-              }
-              if (op.attendees?.length && !fields["Attendees"]) {
-                fields["Attendees"] = op.attendees.join(", ");
-              }
-              if (op.attendees_emails?.length && !fields["Attendees"]) {
-                fields["Attendees"] = op.attendees_emails.join(", ");
-              }
-              if (op.location && !fields["Location"]) {
-                fields["Location"] = op.location;
-              }
-              if (op.description && !fields["Description"]) {
-                fields["Description"] = op.description;
-              }
-
-              return {
-                operation:
-                  (op.operation as "create" | "update" | "delete") || "create",
-                sobject_type: "Calendar Event",
-                record_name: op.summary || op.event_summary || "Event",
-                changes: normalizeChanges(op.changes),
-                fields: Object.keys(fields).length > 0 ? fields : undefined,
-              };
-            },
-          )
-        : undefined;
-
-      // Build fields for single calendar operation
-      let calendarFields:
-        | Record<string, string | number | boolean | null>
-        | undefined = undefined;
-      if (!isBulk && firstOp) {
-        const fields: Record<string, string | number | boolean | null> =
-          firstOp.fields || {};
-
-        // Add calendar-specific fields
-        if (firstOp.start_datetime && !fields["Start"]) {
-          fields["Start"] = firstOp.start_datetime;
-        }
-        if (firstOp.end_datetime && !fields["End"]) {
-          fields["End"] = firstOp.end_datetime;
-        }
-        if (firstOp.duration_minutes && !fields["Duration"]) {
-          fields["Duration"] = `${firstOp.duration_minutes} minutes`;
-        }
-        if (firstOp.attendees?.length && !fields["Attendees"]) {
-          fields["Attendees"] = firstOp.attendees.join(", ");
-        }
-        if (firstOp.attendees_emails?.length && !fields["Attendees"]) {
-          fields["Attendees"] = firstOp.attendees_emails.join(", ");
-        }
-        if (firstOp.location && !fields["Location"]) {
-          fields["Location"] = firstOp.location;
-        }
-        if (firstOp.description && !fields["Description"]) {
-          fields["Description"] = firstOp.description;
-        }
-
-        calendarFields = Object.keys(fields).length > 0 ? fields : undefined;
-      }
-
-      // Build bulkRecords for per-record approval UI
-      const calBulkRecords = isBulk
-        ? ops.map(
-            (op: {
-              operation?: string;
-              summary?: string;
-              event_summary?: string;
-              event_id?: string;
-              event_url?: string;
-              start_datetime?: string;
-              end_datetime?: string;
-              duration_minutes?: number;
-              attendees_emails?: string[];
-              changes?: DetectedApprovalData["changes"];
-              fields?: Record<string, string | number | boolean | null>;
-            }) => {
-              const opChanges = normalizeChanges(op.changes);
-              // For calendar events, build changes from event fields if no explicit changes
-              let changes: Array<{
-                field: string;
-                before?: string | number | boolean | null;
-                after: string | number | boolean | null;
-              }> = [];
-              if (opChanges && opChanges.length > 0) {
-                changes = opChanges;
-              } else if (op.fields) {
-                changes = Object.entries(op.fields).map(([field, value]) => ({
-                  field,
-                  after: value,
-                }));
-              } else {
-                // Build from calendar-specific fields
-                if (op.start_datetime)
-                  changes.push({
-                    field: "Start",
-                    after: op.start_datetime,
-                  });
-                if (op.end_datetime)
-                  changes.push({ field: "End", after: op.end_datetime });
-                if (op.duration_minutes)
-                  changes.push({
-                    field: "Duration",
-                    after: `${op.duration_minutes} minutes`,
-                  });
-                if (op.attendees_emails?.length)
-                  changes.push({
-                    field: "Attendees",
-                    after: op.attendees_emails.join(", "),
-                  });
-              }
-              return {
-                recordId:
-                  op.event_id ||
-                  `event-${op.summary || op.event_summary || "unknown"}`,
-                recordName: op.summary || op.event_summary || "Event",
-                label: "Calendar Event",
-                recordUrl: op.event_url,
-                changes,
-              };
-            },
-          )
-        : undefined;
-
-      return {
-        toolCallId,
-        summary: parsed.summary,
-        label: isBulk ? `${ops.length} Calendar Events` : "Calendar Event",
-        recordName: isBulk
-          ? `${ops.length} events to ${firstOp?.operation || "create"}`
-          : firstOp?.summary || firstOp?.event_summary,
-        operation: firstOp?.operation || "create",
-        changes: isBulk
-          ? normalizeChanges(
-              ops.flatMap(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (op: any) => op.changes || [],
-              ),
-            )
-          : normalizeChanges(firstOp?.changes),
-        fields: !isBulk ? calendarFields : undefined,
-        approvalType: isBulk ? "bulk" : "calendar",
-        operations: calendarBulkOperations,
-        bulkRecords: calBulkRecords,
-        recordCount: isBulk ? ops.length : undefined,
-      };
-    }
-
-    // Salesforce operations (has sobject_type or record_name)
-    // For bulk operations, include the full operations array
-    const bulkOperations: BulkOperation[] | undefined = isBulk
-      ? ops.map(
-          (op: {
-            operation?: string;
-            sobject_type?: string;
-            record_name?: string;
-            record_id?: string;
-            fields?: Record<string, string | number | boolean | null>;
-            changes?: DetectedApprovalData["changes"];
-          }) => ({
-            operation:
-              (op.operation as "create" | "update" | "delete") || "update",
-            sobject_type: op.sobject_type || "Record",
-            record_name: op.record_name || "Unknown",
-            record_id: op.record_id,
-            fields: normalizeToolingFields(op.fields),
-            changes: normalizeChanges(op.changes),
-          }),
-        )
-      : undefined;
+    // Map each operation to the uniform shape
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mappedOps = ops.map((op: Record<string, any>) =>
+      mapUniformOperation(op),
+    );
+    const firstMapped = mappedOps[0];
 
     // Build bulkRecords for per-record approval UI
-    const sfBulkRecords = isBulk
-      ? ops.map(
-          (op: {
-            operation?: string;
-            sobject_type?: string;
-            record_name?: string;
-            record_id?: string;
-            record_url?: string;
-            fields?: Record<string, string | number | boolean | null>;
-            changes?: DetectedApprovalData["changes"];
-          }) => {
-            // Use changes if available, otherwise convert fields to changes format
-            const opChanges = normalizeChanges(op.changes);
-            const changes =
-              opChanges && opChanges.length > 0
-                ? opChanges
-                : normalizeToolingFields(op.fields)
-                  ? Object.entries(normalizeToolingFields(op.fields)!).map(
-                      ([field, value]) => ({
-                        field,
-                        after: value,
-                      }),
-                    )
-                  : [];
-            return {
-              recordId: op.record_id || `record-${op.record_name || "unknown"}`,
-              recordName: op.record_name || "Unknown",
-              label: op.sobject_type || "Salesforce Record",
-              recordUrl: op.record_url,
-              changes,
-            };
-          },
-        )
+    const bulkRecords = isBulk
+      ? mappedOps.map((mapped) => ({
+          recordId:
+            mapped.recordId || `record-${mapped.recordName || "unknown"}`,
+          recordName: mapped.recordName,
+          label: mapped.label,
+          changes: mapped.changes,
+        }))
       : undefined;
 
-    // Compute changes and fields, then cross-reference so null `after` values
-    // are filled from fields when the backend puts the value there instead.
-    const sfChanges = isBulk
-      ? normalizeChanges(
-          ops.flatMap(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (op: any) => op.changes || [],
-          ),
-        )
-      : normalizeChanges(firstOp?.changes);
-    const sfFields = !isBulk
-      ? normalizeToolingFields(firstOp?.fields)
+    // Build bulk operations array for backward compat with BulkApprovalCard
+    const bulkOperations: BulkOperation[] | undefined = isBulk
+      ? mappedOps.map((mapped) => ({
+          operation: mapped.operation,
+          sobject_type: mapped.label,
+          record_name: mapped.recordName,
+          record_id: mapped.recordId,
+          changes: mapped.changes,
+        }))
       : undefined;
 
     return {
       toolCallId,
       summary: parsed.summary,
       label: isBulk
-        ? `${ops.length} Salesforce records`
-        : firstOp?.sobject_type || "Salesforce Record",
+        ? `${ops.length} ${firstMapped?.label || "Record"} records`
+        : firstMapped?.label || "Record",
       recordName: isBulk
-        ? `${ops.length} records to ${firstOp?.operation || "update"}`
-        : firstOp?.record_name,
-      recordId: !isBulk ? firstOp?.record_id : undefined,
-      operation: firstOp?.operation || "update",
-      changes: mergeFieldsIntoChanges(sfChanges, sfFields),
-      fields: sfFields,
-      approvalType: isBulk ? "bulk" : "salesforce",
+        ? `${ops.length} records to ${firstMapped?.operation || "update"}`
+        : firstMapped?.recordName,
+      recordId: !isBulk ? firstMapped?.recordId : undefined,
+      operation: firstMapped?.operation || "update",
+      changes: isBulk
+        ? mappedOps.flatMap((m) => m.changes)
+        : firstMapped?.changes || [],
+      approvalType: isBulk ? "bulk" : baseApprovalType,
       operations: bulkOperations,
-      bulkRecords: sfBulkRecords,
+      bulkRecords,
       recordCount: isBulk ? ops.length : undefined,
     };
   }
 
-  // Pattern 2: Google Calendar approval (direct fields without operations array)
-  if (
-    parsed.summary &&
-    (parsed.event_summary ||
-      parsed.start_datetime ||
-      parsed.end_datetime ||
-      parsed.calendar_id ||
-      parsed.attendees)
-  ) {
-    // Build fields object from calendar properties
-    const fields: Record<string, string | number | boolean | null> = {};
-
-    if (parsed.start_datetime) {
-      fields["Start"] = parsed.start_datetime;
-    }
-    if (parsed.end_datetime) {
-      fields["End"] = parsed.end_datetime;
-    }
-    if (parsed.duration_minutes) {
-      fields["Duration"] = `${parsed.duration_minutes} minutes`;
-    }
-    if (parsed.attendees?.length) {
-      fields["Attendees"] = Array.isArray(parsed.attendees)
-        ? parsed.attendees.join(", ")
-        : parsed.attendees;
-    }
-    if (parsed.location) {
-      fields["Location"] = parsed.location;
-    }
-    if (parsed.description) {
-      fields["Description"] = parsed.description;
-    }
-
-    return {
-      toolCallId,
-      summary: parsed.summary,
-      label: "Calendar Event",
-      recordName: parsed.event_summary || parsed.title || parsed.summary,
-      operation: parsed.operation || "create",
-      changes: parsed.changes,
-      fields: Object.keys(fields).length > 0 ? fields : undefined,
-      approvalType: "calendar",
-    };
-  }
-
-  // Pattern 3: Deep Research approval (has research_query field)
+  // Pattern 2: Deep Research approval (has research_query field)
   if (parsed.summary && parsed.research_query) {
     return {
       toolCallId,
       summary: parsed.summary,
       label: "Deep Research",
       recordName: parsed.research_query,
-      operation: "create", // Research is always a "create" operation conceptually
+      operation: "create",
       approvalType: "deep_research",
       researchQuery: parsed.research_query,
       estimatedTime: parsed.estimated_time,
@@ -811,7 +356,7 @@ function detectApprovalFromArgs(
     };
   }
 
-  // Pattern 5: Generic approval with explicit approval_required or requires_approval flag
+  // Pattern 3: Generic approval with explicit approval_required flag
   if (
     (parsed.approval_required === true ||
       parsed.requires_approval === true ||
@@ -829,7 +374,7 @@ function detectApprovalFromArgs(
     };
   }
 
-  // Pattern 6: Generic approval with action/resource pattern
+  // Pattern 4: Generic approval with action/resource pattern
   if (
     parsed.summary &&
     parsed.action &&
@@ -1235,20 +780,14 @@ export function transformAguiToTimelineSteps(
             step.status = "awaiting-approval" as StepStatus;
             // Initialize approval data with tool call info (will be populated with args later)
             const approvalType = getApprovalType(toolName);
-            const label =
-              approvalType === "calendar"
-                ? "Calendar Event"
-                : approvalType === "deep_research"
-                  ? "Deep Research"
-                  : "Salesforce Record";
             step.approval = {
               toolCallId: toolId || "",
-              summary:
-                approvalType === "deep_research"
-                  ? "Awaiting approval to proceed with full research..."
-                  : "Requesting approval...",
-              label,
-              operation: approvalType === "deep_research" ? "create" : "update",
+              summary: "Requesting approval...",
+              label:
+                approvalType === "calendar"
+                  ? "Calendar Event"
+                  : "Salesforce Record",
+              operation: "update",
               approvalType,
             };
           }
@@ -1343,7 +882,16 @@ export function transformAguiToTimelineSteps(
               // If step was already marked as approval (detected at TOOL_CALL_START by tool name),
               // update the approval data with the actual arguments
               if (step.type === "approval" && step.approval) {
-                const approvalData = detectApprovalFromArgs(toolId, parsed);
+                const approvalTypeHint = step.approval.approvalType as
+                  | "salesforce"
+                  | "calendar"
+                  | "generic"
+                  | undefined;
+                const approvalData = detectApprovalFromArgs(
+                  toolId,
+                  parsed,
+                  approvalTypeHint,
+                );
                 if (approvalData) {
                   // Update with parsed data from arguments
                   step.approval = approvalData;
