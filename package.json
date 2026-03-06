@@ -20,6 +20,9 @@
     "typecheck:all": "npm run typecheck --workspaces --if-present",
     "clean": "rm -rf app/node_modules design-components/node_modules node_modules"
   },
+  "bin": {
+    "von-fe": "bin/von-fe"
+  },
   "devDependencies": {
     "prettier": "^3.6.2"
   },

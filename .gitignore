@@ -57,6 +57,10 @@ app/node_modules/
 design-components/package-lock.json
 design-components/node_modules/
 
+# von CLI runtime data
+.von/
+seed.cfg
+
 # claude.md
 claude.md
 .claude
