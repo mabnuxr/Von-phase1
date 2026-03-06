@@ -279,14 +279,19 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
       return approval.changes && approval.changes.length > 0 ? approval.changes : [];
     }, [approval.changes]);
 
-    // Determine table layout from the shape of the changes data
+    // Use the operation type as the authoritative layout signal. An UPDATE that
+    // sets a previously-empty field has before: null, which the old data-shape
+    // heuristic misclassified as 'create'. Fall back to data-shape inference
+    // only for unknown operation values.
     const changesLayout: ChangesLayout = useMemo(() => {
+      const op = approval.operation;
+      if (op === 'update' || op === 'delete' || op === 'create') return op;
       const hasBefore = displayChanges.some((c) => c.before !== undefined && c.before !== null);
       const hasAfter = displayChanges.some((c) => c.after !== undefined && c.after !== null);
       if (hasBefore && hasAfter) return 'update';
       if (hasBefore) return 'delete';
       return 'create';
-    }, [displayChanges]);
+    }, [approval.operation, displayChanges]);
 
     const hasExpandableContent = displayChanges.length > 0;
 
