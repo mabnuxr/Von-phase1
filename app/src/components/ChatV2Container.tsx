@@ -150,6 +150,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             onInputWhileDisabled={onDisabledInteraction}
             enableCommands={isSlashCommandsEnabled}
             availableAgentModes={availableAgentModes}
+            fetchNextMessagePage={fetchNextMessagePage}
+            hasNextMessagePage={hasNextMessagePage}
+            isFetchingNextMessagePage={isFetchingNextMessagePage}
           />
         </>
       ) : (

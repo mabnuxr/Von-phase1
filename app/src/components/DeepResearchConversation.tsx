@@ -40,6 +40,7 @@ interface ChatInputSelectorRef {
 import { useNavigate } from "react-router-dom";
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 
 export interface ResearchResultsState {
@@ -119,6 +120,12 @@ export interface DeepResearchConversationProps {
   lockedConversationMode?: ConversationMode;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
+  /** Callback to load older messages (infinite scroll) */
+  fetchNextMessagePage?: () => void;
+  /** Whether there are more messages to load */
+  hasNextMessagePage?: boolean;
+  /** Whether currently fetching older messages */
+  isFetchingNextMessagePage?: boolean;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -144,6 +151,9 @@ export const DeepResearchConversation: React.FC<
   onDislike,
   lockedConversationMode = ConversationMode.DashboardBuilder,
   availableAgentModes,
+  fetchNextMessagePage,
+  hasNextMessagePage,
+  isFetchingNextMessagePage,
 }) => {
   const navigate = useNavigate();
 
@@ -266,6 +276,13 @@ export const DeepResearchConversation: React.FC<
   const { containerRef, scrollToBottom, showScrollButton, onBeforeSend } =
     useAutoScroll([messages], isStreaming);
 
+  // Infinite scroll for loading older messages
+  const loadMoreMessagesRef = useInfiniteScroll({
+    onLoadMore: fetchNextMessagePage || (() => {}),
+    hasMore: !!hasNextMessagePage,
+    isLoading: !!isFetchingNextMessagePage,
+  });
+
   // Wrap onSendMessage to trigger scroll before sending
   const handleSendMessage = useCallback(
     (
@@ -286,6 +303,16 @@ export const DeepResearchConversation: React.FC<
         ref={containerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-white settings-scrollbar"
       >
+        {/* Infinite scroll trigger at TOP (for loading older messages) */}
+        {loadMoreMessagesRef && <div ref={loadMoreMessagesRef} className="h-px" />}
+
+        {/* Loading indicator for older messages */}
+        {isFetchingNextMessagePage && (
+          <div className="text-center py-3 text-xs text-gray-500">
+            <span className="inline-block animate-spin">⟳</span> Loading older messages...
+          </div>
+        )}
+
         <DeepResearchChat
           messages={messages}
           userName={userName}

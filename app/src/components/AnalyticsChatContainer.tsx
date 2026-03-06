@@ -16,6 +16,7 @@ import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useMessages } from "../hooks/useMessages";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import useChatStore from "../store/chatStore";
 import { useChatV2 } from "../hooks/useChatV2";
 import { config } from "../config";
@@ -45,10 +46,13 @@ function AnalyticsChatInner({
     [conversationId, messages],
   );
 
-  const { refetch: refetchMessages } = useMessages(
-    conversationId,
-    MESSAGES_PAGE_LIMIT,
-  );
+  const {
+    fetchNextPage: fetchNextMessagePage,
+    hasNextPage: hasNextMessagePage,
+    isFetchingNextPage: isFetchingNextMessagePage,
+    isLoading: isLoadingMessages,
+    refetch: refetchMessages,
+  } = useMessages(conversationId, MESSAGES_PAGE_LIMIT);
 
   const {
     isConnected: isSalesforceConnected,
@@ -59,6 +63,13 @@ function AnalyticsChatInner({
 
   const lockedConversationMode =
     currentConversation?.mode || ConversationMode.DashboardBuilder;
+
+  // Infinite scroll for loading older messages
+  const loadMoreMessagesRef = useInfiniteScroll({
+    onLoadMore: fetchNextMessagePage,
+    hasMore: !!hasNextMessagePage,
+    isLoading: isFetchingNextMessagePage,
+  });
 
   const chatV2 = useChatV2({
     conversationId,
@@ -114,6 +125,8 @@ function AnalyticsChatInner({
       onTransparencyClick={chatV2.handleTransparencyClick}
       onApprove={chatV2.handleApproval}
       onReject={chatV2.handleRejection}
+      loadMoreRef={loadMoreMessagesRef}
+      isFetchingMore={isFetchingNextMessagePage}
     />
   );
 }
