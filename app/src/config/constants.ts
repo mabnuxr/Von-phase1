@@ -206,6 +206,17 @@ export const ARTIFACT_RETRY_COUNT = 3 as const;
  */
 export const ARTIFACT_MAX_RETRY_DELAY = 30000 as const; // 30 seconds
 
+/**
+ * Maximum number of polls for in-flight artifact status before giving up.
+ * At 3s intervals, 40 polls = ~2 minutes max wait.
+ */
+export const ARTIFACT_INFLIGHT_MAX_POLLS = 40 as const;
+
+/**
+ * Interval in milliseconds between polls for in-flight artifact status.
+ */
+export const ARTIFACT_INFLIGHT_POLL_INTERVAL_MS = 3000 as const; // 3 seconds
+
 // ============================================================================
 // UI Text & Display Constants
 // ============================================================================
@@ -273,6 +284,8 @@ export const QUERY_CONSTANTS = {
   ARTIFACT_GC_TIME,
   ARTIFACT_RETRY_COUNT,
   ARTIFACT_MAX_RETRY_DELAY,
+  ARTIFACT_INFLIGHT_MAX_POLLS,
+  ARTIFACT_INFLIGHT_POLL_INTERVAL_MS,
   ERROR_MESSAGE_TRUNCATE_LENGTH,
   ARTIFACT_PANE_WIDTH,
   LOGO_URL,
