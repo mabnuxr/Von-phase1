@@ -76,10 +76,14 @@ function run(cmd, args, opts = {}) {
       ...opts,
     });
 
-    process.on('SIGINT',  () => child.kill('SIGINT'));
-    process.on('SIGTERM', () => child.kill('SIGTERM'));
+    const onSIGINT  = () => child.kill('SIGINT');
+    const onSIGTERM = () => child.kill('SIGTERM');
+    process.once('SIGINT',  onSIGINT);
+    process.once('SIGTERM', onSIGTERM);
 
     child.on('close', (code) => {
+      process.off('SIGINT',  onSIGINT);
+      process.off('SIGTERM', onSIGTERM);
       if (code === 0 || code === null) resolve();
       else reject(new Error(`Process exited with code ${code}`));
     });
@@ -121,14 +125,17 @@ function startService(service, npmScript, port) {
   const child = spawn('npm', ['run', npmScript], {
     cwd: ROOT,
     env: { ...process.env, FORCE_COLOR: '1' },
+    // Use 'ignore' for stdin; pipe stdout/stderr to log file only (not to
+    // process.stdout/stderr) so the parent's event loop is not kept alive
+    // by readable stream references after child.unref().
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: true,
   });
 
-  child.stdout.pipe(process.stdout);
-  child.stderr.pipe(process.stderr);
-  child.stdout.pipe(logStream);
-  child.stderr.pipe(logStream);
+  // Pipe only to the log file — piping to process.stdout/stderr would keep
+  // the parent's event loop alive despite child.unref().
+  child.stdout.pipe(logStream, { end: false });
+  child.stderr.pipe(logStream, { end: false });
 
   child.unref(); // allow parent to exit independently
 
@@ -136,6 +143,12 @@ function startService(service, npmScript, port) {
 
   log('ok', `${service} started ${c.dim}(PID ${child.pid})${c.reset}`);
   if (port) log('info', `→ http://localhost:${port}  ${c.dim}logs: .von/logs/${service}.log${c.reset}`);
+
+  child.on('error', (err) => {
+    logStream.end();
+    if (fs.existsSync(pidFile)) fs.unlinkSync(pidFile);
+    process.stderr.write(`\n${tag.error} ${service} failed to start: ${err.message}\n`);
+  });
 
   child.on('close', (code) => {
     logStream.end();
