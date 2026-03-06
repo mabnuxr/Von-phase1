@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "./useToast";
 import { teamService } from "../services";
 import type {
   TeamMember,
@@ -194,6 +195,7 @@ export function useRemoveTeamMember(tenantId: string | undefined) {
  */
 export function useUpdateMemberPermissions(tenantId: string | undefined) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation({
     mutationFn: ({
@@ -204,9 +206,19 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
       permissions: UpdateMemberPermissionsRequest;
     }) => teamService.updateMemberPermissions(userId, permissions),
 
-    onSuccess: () => {
+    onSuccess: (_data, { permissions }) => {
       if (!tenantId) return;
       queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      const action =
+        permissions.sfdc_write === null
+          ? "reset to default"
+          : permissions.sfdc_write
+            ? "enabled"
+            : "disabled";
+      showToast({
+        message: `Salesforce write ${action}`,
+        variant: "success",
+      });
     },
 
     onError: (err) => {
@@ -214,6 +226,10 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
         "[useUpdateMemberPermissions] Failed to update permissions:",
         err,
       );
+      showToast({
+        message: "Failed to update permissions",
+        variant: "error",
+      });
     },
   });
 }

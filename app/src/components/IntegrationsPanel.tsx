@@ -282,7 +282,7 @@ export function IntegrationsPanel() {
 
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
-        <div className="pt-6 pb-12 space-y-6 w-4xl mx-auto">
+        <div className="pt-6 pb-12 space-y-6 w-full max-w-4xl mx-auto">
           {oauthError && (
             <div className="mb-4">
               <Banner

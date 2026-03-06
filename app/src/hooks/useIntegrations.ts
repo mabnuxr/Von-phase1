@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "./useToast";
 import { integrationsService } from "../services";
 import type { IntegrationType, SalesforceWriteScope } from "../services";
 import {
@@ -493,12 +494,29 @@ export function useUpdateIntegration() {
  */
 export function useSetSalesforceScope() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation({
     mutationFn: (scope: SalesforceWriteScope) =>
       integrationsService.setSalesforceScope(scope),
-    onSuccess: () => {
+    onSuccess: (_data, scope) => {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      const label =
+        scope === "full_access"
+          ? "Full Access"
+          : scope === "user_level_write"
+            ? "User-Level Write"
+            : "Read Only";
+      showToast({
+        message: `Salesforce scope updated to ${label}`,
+        variant: "success",
+      });
+    },
+    onError: () => {
+      showToast({
+        message: "Failed to update Salesforce scope",
+        variant: "error",
+      });
     },
   });
 }

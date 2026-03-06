@@ -185,7 +185,7 @@ function SalesforceScopeMenu({
 
             {/* Scope Submenu */}
             {showScopeSubmenu && (
-              <div className="absolute left-full top-0 ml-1 w-64 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+              <div className="absolute right-full top-0 mr-1 w-64 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
                 {SCOPE_OPTIONS.map((option) => (
                   <button
                     key={option.value}
