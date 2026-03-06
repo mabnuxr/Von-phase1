@@ -27,6 +27,7 @@ export type WriteBlockCode =
 export interface AgentWriteBlockedPayload {
   block_code: WriteBlockCode;
   message: string;
+  idempotency_key: string;
 }
 
 export interface ArtifactCreatedEventPayload {

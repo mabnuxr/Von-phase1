@@ -162,8 +162,7 @@ export function useChatV2(props: UseChatV2Props) {
   useArtifactCreatedEvent(channel, conversationId);
 
   // Surface write-blocked notifications as banner above chat input
-  const { writeBlocked, dismissWriteBlocked } =
-    useWriteBlockedEvent(channel);
+  const { writeBlocked, dismissWriteBlocked } = useWriteBlockedEvent(channel);
 
   // Extract unique runIds from assistant messages for per-run artifact fetching
   const assistantRunIds = useMemo(() => {
