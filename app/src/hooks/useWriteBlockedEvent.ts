@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Channel } from "pusher-js";
 import {
   ConversationChannelEvents,
@@ -9,19 +9,30 @@ import {
 export interface WriteBlockedState {
   blockCode: WriteBlockCode;
   message: string;
+  idempotencyKey: string;
 }
 
 /**
  * Listens for `integration.write_blocked` events on the conversation Pusher channel
  * and exposes the latest block as dismissible banner state.
+ *
+ * Uses the idempotency key from the backend to:
+ * - Ignore duplicate deliveries of the same event
+ * - Prevent dismissed banners from reappearing on re-delivery
  */
 export function useWriteBlockedEvent(channel: Channel | null) {
   const [writeBlocked, setWriteBlocked] = useState<WriteBlockedState | null>(
     null,
   );
+  const dismissedKeysRef = useRef<Set<string>>(new Set());
 
   const dismissWriteBlocked = useCallback(() => {
-    setWriteBlocked(null);
+    setWriteBlocked((prev) => {
+      if (prev) {
+        dismissedKeysRef.current.add(prev.idempotencyKey);
+      }
+      return null;
+    });
   }, []);
 
   useEffect(() => {
@@ -30,9 +41,17 @@ export function useWriteBlockedEvent(channel: Channel | null) {
     const eventName = ConversationChannelEvents.INTEGRATION_WRITE_BLOCKED;
 
     const handler = (data: AgentWriteBlockedPayload) => {
-      setWriteBlocked({
-        blockCode: data.block_code,
-        message: data.message,
+      const key = data.idempotency_key;
+
+      if (dismissedKeysRef.current.has(key)) return;
+
+      setWriteBlocked((prev) => {
+        if (prev?.idempotencyKey === key) return prev;
+        return {
+          blockCode: data.block_code,
+          message: data.message,
+          idempotencyKey: key,
+        };
       });
     };
 
