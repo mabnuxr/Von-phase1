@@ -119,12 +119,10 @@ export function ManageUsersTab() {
   };
 
   const handleToggleSfdcWrite = (member: (typeof filteredUsers)[number]) => {
-    const currentValue = member.permissions?.sfdc_write ?? null;
-    const nextValue =
-      currentValue === null ? true : currentValue === true ? false : null;
+    const currentValue = member.permissions?.sfdc_write ?? true;
     updatePermissionsMutation.mutate({
       userId: member.id,
-      permissions: { sfdc_write: nextValue },
+      permissions: { sfdc_write: !currentValue },
     });
   };
 
