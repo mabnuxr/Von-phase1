@@ -7,6 +7,7 @@
 
 export const ConversationChannelEvents = {
   ARTIFACT_CREATED: "artifact_created",
+  INTEGRATION_WRITE_BLOCKED: "integration.write_blocked",
 } as const;
 
 export type ConversationChannelEventName =
@@ -17,6 +18,18 @@ export type ConversationChannelEventName =
  * 1. status="processing" — emitted before RUN_FINISHED with file names only (seeds skeletons)
  * 2. status="completed"  — emitted after S3 upload + FileMetadata insert (real metadata)
  */
+export type WriteBlockCode =
+  | "org_read_only"
+  | "admin_disabled"
+  | "personal_oauth_not_connected"
+  | "personal_oauth_expired";
+
+export interface AgentWriteBlockedPayload {
+  block_code: WriteBlockCode;
+  message: string;
+  idempotency_key: string;
+}
+
 export interface ArtifactCreatedEventPayload {
   type: "artifact_created";
   status?: "processing" | "completed";

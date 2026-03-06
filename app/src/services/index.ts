@@ -14,6 +14,8 @@ export {
 export type {
   Integration,
   IntegrationListResponse,
+  SalesforceWriteScope,
+  SalesforceScopeResponse,
 } from "./integrationsService";
 export {
   IntegrationType,
@@ -30,7 +32,13 @@ export type { PreferencesData } from "./preferencesService";
 
 // Team Service
 export { teamService } from "./teamService";
-export type { TeamMember, Role, AddTeamMemberRequest } from "./teamService";
+export type {
+  TeamMember,
+  Role,
+  AddTeamMemberRequest,
+  UpdateMemberPermissionsRequest,
+  UpdateMemberPermissionsResponse,
+} from "./teamService";
 
 // Permissions Service
 export { permissionsService, Resource } from "./permissionsService";

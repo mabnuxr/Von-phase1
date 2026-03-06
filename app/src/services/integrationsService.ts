@@ -69,6 +69,7 @@ export interface IntegrationBackendResponse {
   has_credentials?: boolean;
   credentials_last_updated?: string | null;
   requires_oauth?: boolean;
+  scope?: SalesforceWriteScope;
 }
 
 /**
@@ -109,6 +110,7 @@ export interface Integration {
   hasCredentials?: boolean;
   credentialsLastUpdated?: string | null;
   requiresOauth?: boolean;
+  scope?: SalesforceWriteScope;
 }
 
 /**
@@ -141,6 +143,7 @@ function transformIntegration(
     hasCredentials: backendIntegration.has_credentials,
     credentialsLastUpdated: backendIntegration.credentials_last_updated,
     requiresOauth: backendIntegration.requires_oauth,
+    scope: backendIntegration.scope,
   };
 }
 
@@ -471,6 +474,32 @@ export class IntegrationsService {
   async deleteIntegration(integrationId: string): Promise<void> {
     await apiClient.delete(`/api/v1/integrations/${integrationId}`);
   }
+
+  /**
+   * Set the org-level Salesforce write scope
+   */
+  async setSalesforceScope(
+    scope: SalesforceWriteScope,
+  ): Promise<SalesforceScopeResponse> {
+    return apiClient.patch<SalesforceScopeResponse>(
+      "/api/v1/integrations/salesforce/scope",
+      { scope },
+    );
+  }
+}
+
+/**
+ * Salesforce write scope values
+ */
+export type SalesforceWriteScope =
+  | "full_access"
+  | "user_level_write"
+  | "read_only";
+
+export interface SalesforceScopeResponse {
+  integration_id: string;
+  scope: SalesforceWriteScope;
+  message: string;
 }
 
 // Export a default instance

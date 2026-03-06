@@ -317,7 +317,7 @@ export function AddTeamMemberPane() {
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                className="px-3 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -326,7 +326,7 @@ export function AddTeamMemberPane() {
                 disabled={
                   addMutation.isPending || rolesLoading || rolesNotInitialized
                 }
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 border rounded-lg hover:bg-gray-800 transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {addMutation.isPending ? "Adding..." : "Add Team Member"}
               </button>

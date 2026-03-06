@@ -6,8 +6,9 @@ import {
 } from "@tanstack/react-query";
 import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { useToast } from "./useToast";
 import { integrationsService } from "../services";
-import type { IntegrationType } from "../services";
+import type { IntegrationType, SalesforceWriteScope } from "../services";
 import {
   OAUTH_POLLING_TIMEOUT_MS,
   OAUTH_POLLING_INTERVAL_MS,
@@ -484,6 +485,38 @@ export function useUpdateIntegration() {
       if (import.meta.env.DEV) {
         console.error("[useUpdateIntegration] Error:", error);
       }
+    },
+  });
+}
+
+/**
+ * Set the org-level Salesforce write scope
+ */
+export function useSetSalesforceScope() {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  return useMutation({
+    mutationFn: (scope: SalesforceWriteScope) =>
+      integrationsService.setSalesforceScope(scope),
+    onSuccess: (_data, scope) => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      const label =
+        scope === "full_access"
+          ? "Read & Write"
+          : scope === "user_level_write"
+            ? "Write with Personal Login"
+            : "Read Only";
+      showToast({
+        message: `Salesforce scope updated to ${label}`,
+        variant: "success",
+      });
+    },
+    onError: () => {
+      showToast({
+        message: "Failed to update Salesforce scope",
+        variant: "error",
+      });
     },
   });
 }

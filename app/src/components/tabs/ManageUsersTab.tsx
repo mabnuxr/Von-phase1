@@ -1,6 +1,16 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { SearchIcon, MoreVerticalIcon, TrashIcon } from "../icons";
-import { useTeamMembers, useRemoveTeamMember } from "../../hooks/useTeam";
+import { SearchIcon } from "../icons";
+import {
+  DotsThreeVertical,
+  CaretRight,
+  ShieldCheck,
+  TrashSimple,
+} from "@phosphor-icons/react";
+import {
+  useTeamMembers,
+  useRemoveTeamMember,
+  useUpdateMemberPermissions,
+} from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import usePreferencesStore from "../../store/preferencesStore";
@@ -9,6 +19,7 @@ import { Banner, Tooltip } from "@vonlabs/design-components";
 export function ManageUsersTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
+  const [showPermissionsSubmenu, setShowPermissionsSubmenu] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     userId: string;
     userName: string;
@@ -33,6 +44,9 @@ export function ManageUsersTab() {
   // Remove team member mutation
   const removeMutation = useRemoveTeamMember(activeTenant);
 
+  // Update member permissions mutation
+  const updatePermissionsMutation = useUpdateMemberPermissions(activeTenant);
+
   // Access store to open add team member panel
   const { setAddingTeamMember } = usePreferencesStore();
 
@@ -41,6 +55,7 @@ export function ManageUsersTab() {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpenMenuUserId(null);
+        setShowPermissionsSubmenu(false);
       }
     };
 
@@ -100,6 +115,15 @@ export function ManageUsersTab() {
 
   const toggleMenu = (userId: string) => {
     setOpenMenuUserId(openMenuUserId === userId ? null : userId);
+    setShowPermissionsSubmenu(false);
+  };
+
+  const handleToggleSfdcWrite = (member: (typeof filteredUsers)[number]) => {
+    const currentValue = member.permissions?.sfdc_write ?? true;
+    updatePermissionsMutation.mutate({
+      userId: member.id,
+      permissions: { sfdc_write: !currentValue },
+    });
   };
 
   const formatDate = (dateString: string | null) => {
@@ -124,7 +148,7 @@ export function ManageUsersTab() {
 
       {/* Content - Scrollable */}
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
-        <div className="pt-6 pb-12 space-y-6 w-full">
+        <div className="pt-6 pb-12 space-y-6 w-full max-w-4xl mx-auto">
           {/* Actions Row */}
           <div className="flex items-center gap-4">
             {/* Search Input - Full Width */}
@@ -159,25 +183,25 @@ export function ManageUsersTab() {
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Name
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Email
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Role
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-center text-xs text-gray-700 tracking-wide"
                     >
                       <Tooltip content="Number of conversations created">
                         <span className="cursor-default">Questions</span>
@@ -185,14 +209,14 @@ export function ManageUsersTab() {
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Joined
                     </th>
                     {canDeleteTeamMember && (
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                       >
                         Action
                       </th>
@@ -254,31 +278,31 @@ export function ManageUsersTab() {
 
           {/* Data Table */}
           {!isLoading && !error && teamMembers && filteredUsers.length > 0 && (
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="overflow-visible border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Name
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Email
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Role
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-center text-xs text-gray-700 tracking-wide"
                     >
                       <Tooltip content="Number of conversations created">
                         <span className="cursor-default">Questions</span>
@@ -286,14 +310,14 @@ export function ManageUsersTab() {
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                     >
                       Joined
                     </th>
                     {canDeleteTeamMember && (
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                       >
                         Action
                       </th>
@@ -358,42 +382,109 @@ export function ManageUsersTab() {
                       </td>
                       {canDeleteTeamMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {/* Don't show delete option for current user */}
-                          {member.email !== user?.email && (
-                            <div className="relative">
+                          <div className="relative">
                               <button
                                 onClick={() => toggleMenu(member.id)}
-                                className="p-1 rounded-lg hover:bg-gray-200 transition-colors duration-150"
+                                className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+                                  openMenuUserId === member.id
+                                    ? "bg-gray-200 text-gray-900"
+                                    : "hover:bg-gray-200 text-gray-600"
+                                }`}
                                 aria-label="Open menu"
                               >
-                                <MoreVerticalIcon className="w-5 h-5 text-gray-600" />
+                                <DotsThreeVertical size={18} weight="bold" />
                               </button>
 
                               {/* Dropdown Menu */}
                               {openMenuUserId === member.id && (
                                 <div
                                   ref={menuRef}
-                                  className="absolute right-0 bottom-full mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                                  className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[100]"
                                 >
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteUser(
-                                        member.id,
-                                        `${member.firstName} ${member.lastName}`,
-                                      )
-                                    }
-                                    disabled={removeMutation.isPending}
-                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                                  >
-                                    <TrashIcon className="w-4 h-4" />
-                                    {removeMutation.isPending
-                                      ? "Removing..."
-                                      : "Delete User"}
-                                  </button>
+                                  {/* Customize Permissions */}
+                                  <div className="relative">
+                                    <button
+                                      onClick={() =>
+                                        setShowPermissionsSubmenu(
+                                          !showPermissionsSubmenu,
+                                        )
+                                      }
+                                      className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
+                                        showPermissionsSubmenu
+                                          ? "bg-gray-100/80"
+                                          : "hover:bg-gray-100/80"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2.5">
+                                        <ShieldCheck
+                                          size={14}
+                                          className="text-gray-800"
+                                        />
+                                        <span>Access Permissions</span>
+                                      </div>
+                                      <CaretRight
+                                        size={14}
+                                        className="text-gray-400"
+                                      />
+                                    </button>
+
+                                    {/* Permissions Submenu */}
+                                    {showPermissionsSubmenu && (
+                                      <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+                                        <div className="flex items-center justify-between rounded-xl px-3 py-2">
+                                          <span className="text-sm text-gray-900 whitespace-nowrap">
+                                            Salesforce Updates
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              handleToggleSfdcWrite(member)
+                                            }
+                                            disabled={
+                                              updatePermissionsMutation.isPending
+                                            }
+                                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
+                                              (member.permissions?.sfdc_write ??
+                                              true)
+                                                ? "bg-green-500"
+                                                : "bg-gray-200"
+                                            }`}
+                                          >
+                                            <span
+                                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                (member.permissions
+                                                  ?.sfdc_write ?? true)
+                                                  ? "translate-x-4"
+                                                  : "translate-x-0"
+                                              }`}
+                                            />
+                                          </button>
+                                        </div>
+                                        <p className="px-3 pb-2" style={{ color: '#9ca3af', fontSize: '11px', lineHeight: '1.3' }}>Overrides org-level access</p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Delete User - not shown for current user */}
+                                  {member.email !== user?.email && (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteUser(
+                                          member.id,
+                                          `${member.firstName} ${member.lastName}`,
+                                        )
+                                      }
+                                      disabled={removeMutation.isPending}
+                                      className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+                                    >
+                                      <TrashSimple size={14} />
+                                      {removeMutation.isPending
+                                        ? "Removing..."
+                                        : "Delete User"}
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
                         </td>
                       )}
                     </tr>
@@ -463,14 +554,14 @@ export function ManageUsersTab() {
                   <div className="flex gap-3 justify-end">
                     <button
                       onClick={cancelDelete}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="px-3 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={confirmDelete}
                       disabled={removeMutation.isPending}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       {removeMutation.isPending ? "Removing..." : "Remove"}
                     </button>

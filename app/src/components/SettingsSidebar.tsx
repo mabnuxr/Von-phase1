@@ -1,5 +1,12 @@
 import React from "react";
-import { GearSixIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
+import {
+  SidebarSimpleIcon,
+  ArrowLeftIcon,
+  CaretUpDownIcon,
+} from "@phosphor-icons/react";
+
+const VON_COMBINATION_MARK_URL =
+  "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg";
 
 export interface SettingsItem {
   id: string;
@@ -14,82 +21,20 @@ export interface SettingsGroupItem {
 }
 
 export interface SettingsSidebarProps {
-  /**
-   * List of settings items to display
-   */
   settingsItems?: SettingsGroupItem;
-
-  /**
-   * Selected settings ID
-   */
   selectedSettingId?: string;
-
-  /**
-   * Settings item click handler
-   */
   onSettingClick?: (id: string) => void;
-
-  /**
-   * Width of the sidebar
-   * @default '280px'
-   */
   width?: string;
-
-  /**
-   * Whether the sidebar is collapsed
-   * @default false
-   */
   isCollapsed?: boolean;
-
-  /**
-   * Callback when collapse toggle is clicked
-   */
   onToggleCollapse?: () => void;
-
-  /**
-   * Avatar image URL
-   */
   avatarSrc?: string;
-
-  /**
-   * Avatar initials/label (shown when no image)
-   */
   avatarLabel?: string;
-
-  /**
-   * User's display name
-   */
   userName?: string;
-
-  /**
-   * User's email
-   */
   userEmail?: string;
-
-  /**
-   * Callback when avatar is clicked
-   * Receives the DOMRect of the clicked button for positioning menus
-   */
   onAvatarClick?: (rect: DOMRect) => void;
+  onBackToHome?: () => void;
 }
 
-/**
- * SettingsSidebar - Left sidebar for settings navigation
- *
- * Displays a list of settings sections with clean, minimal design.
- *
- * @example
- * ```tsx
- * <SettingsSidebar
- *   settingsItems={[
- *     { id: 'integrations', label: 'Integrations' },
- *     { id: 'fields', label: 'Fields' }
- *   ]}
- *   selectedSettingId="integrations"
- *   onSettingClick={(id) => console.log(id)}
- * />
- * ```
- */
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   settingsItems = {},
   selectedSettingId,
@@ -102,6 +47,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   userName,
   userEmail,
   onAvatarClick,
+  onBackToHome,
 }) => {
   // Get all items flattened for collapsed view
   const allItems = [
@@ -110,28 +56,76 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     ...(settingsItems?.team || []),
   ];
 
-  // Collapsed state - show minimal sidebar with icons only
+  // Reusable menu item renderer
+  const renderMenuItem = (item: SettingsItem) => {
+    const isSelected = item.id === selectedSettingId;
+
+    return (
+      <button
+        key={item.id}
+        className={`
+          flex items-center gap-2.5 px-2 h-8 mb-0.5
+          text-sm rounded-xl cursor-pointer
+          w-full text-left transition-colors duration-150
+          ${
+            isSelected
+              ? "shadow-xs bg-gray-50 border border-gray-200 text-gray-900 font-medium"
+              : "border border-transparent text-gray-900 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs"
+          }
+        `}
+        onClick={() => onSettingClick?.(item.id)}
+      >
+        {item.icon && (
+          <span
+            className={`flex-shrink-0 ${isSelected ? "text-gray-900" : "text-gray-600"}`}
+          >
+            {item.icon}
+          </span>
+        )}
+        <span>{item.label}</span>
+      </button>
+    );
+  };
+
+  // Collapsed state
   if (isCollapsed) {
     return (
       <div className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased">
-        {/* Collapsed Header - Just icon and expand button */}
-        <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-200 mb-2">
+        {/* Collapse toggle */}
+        <div className="flex flex-col items-start pb-2 border-b border-gray-100 mb-2">
           <button
             onClick={onToggleCollapse}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             title="Expand sidebar"
           >
             <SidebarSimpleIcon
-              size={18}
+              size={16}
               weight="regular"
-              className="text-gray-500"
+              className="text-gray-800"
             />
           </button>
         </div>
 
+        {/* Back to Home - collapsed */}
+        {onBackToHome && (
+          <div className="mb-2">
+            <button
+              onClick={onBackToHome}
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
+              title="Back to Home"
+            >
+              <ArrowLeftIcon
+                size={18}
+                weight="regular"
+                className="text-gray-600"
+              />
+            </button>
+          </div>
+        )}
+
         {/* Collapsed Menu Items - Icons only */}
-        <div className="flex-1 overflow-y-auto px-1 settings-scrollbar">
-          <div className="flex flex-col items-center gap-1">
+        <div className="flex-1 overflow-y-auto settings-scrollbar">
+          <div className="flex flex-col items-start gap-1">
             {allItems.map((item: SettingsItem) => {
               const isSelected = item.id === selectedSettingId;
 
@@ -140,12 +134,12 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   key={item.id}
                   className={`
                     flex items-center justify-center w-8 h-8
-                    rounded-lg border-0 cursor-pointer
-                    transition-all duration-200
+                    rounded-lg cursor-pointer
+                    transition-colors duration-150
                     ${
                       isSelected
-                        ? "bg-gray-100 text-gray-900"
-                        : "bg-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-gray-50 border border-gray-200 shadow-xs text-gray-900"
+                        : "border border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs hover:text-gray-900"
                     }
                   `}
                   onClick={() => onSettingClick?.(item.id)}
@@ -160,9 +154,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </div>
         </div>
 
-        {/* Collapsed Avatar Section - Just avatar */}
+        {/* Collapsed Avatar */}
         {(userName || userEmail || avatarLabel) && (
-          <div className="pt-3 mt-auto border-t border-gray-200">
+          <div className="pt-2 mt-auto border-t border-gray-100">
             <button
               className="w-full flex items-center justify-center p-1 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={(e) =>
@@ -170,7 +164,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               }
               title={userName || userEmail}
             >
-              <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
+              <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}
@@ -178,7 +172,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
+                  <div className="w-full h-7 bg-indigo-600 flex items-center justify-center text-white text-[11px] font-semibold">
                     {avatarLabel || userName?.charAt(0)?.toUpperCase() || "?"}
                   </div>
                 )}
@@ -190,158 +184,96 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     );
   }
 
-  // Expanded state - show full sidebar
+  // Expanded state
   return (
     <div
-      className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased"
+      className="pl-2 py-3 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased"
       style={{ width }}
     >
-      {/* Section Header - Matching ChatSidebar style */}
-      <div className="flex items-center justify-between px-2 pt-1 pb-3 border-b border-gray-200 mb-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-          <GearSixIcon size={16} weight="regular" />
-          Settings
-        </div>
+      {/* Header - Logo and collapse toggle */}
+      <div className="flex items-center justify-between mb-3 px-2 pr-4">
+        <img
+          src={VON_COMBINATION_MARK_URL}
+          alt="Von logo"
+          width={64}
+          height={24}
+          className="cursor-default"
+        />
         <button
           onClick={onToggleCollapse}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
           title="Collapse sidebar"
         >
           <SidebarSimpleIcon
             size={16}
             weight="regular"
-            className="text-gray-500"
+            className="text-gray-800"
           />
         </button>
       </div>
 
+      {/* Back to Home button */}
+      {onBackToHome && (
+        <div className="pr-2 my-1">
+          <button
+            onClick={onBackToHome}
+            className="flex items-center gap-1.5 px-2 h-8 w-full rounded-xl text-sm text-gray-900 border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
+          >
+            <ArrowLeftIcon
+              size={20}
+              weight="regular"
+              className="flex-shrink-0 text-gray-600"
+            />
+            <span className="whitespace-nowrap">Back to Home</span>
+          </button>
+        </div>
+      )}
+
       {/* Menu Items */}
-      <div className="flex-1 overflow-y-auto px-1 settings-scrollbar">
-        {/* Integrations Section */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 settings-scrollbar">
+        {/* Integrations Section - no header, just the items */}
         {settingsItems?.integrations &&
           settingsItems.integrations.length > 0 && (
-            <div className="mb-4">
-              {settingsItems.integrations.map((item: SettingsItem) => {
-                const isSelected = item.id === selectedSettingId;
-
-                return (
-                  <button
-                    key={item.id}
-                    className={`
-                      flex items-center gap-2 px-2 py-1.5 mx-0 mb-0.5
-                      text-sm rounded-lg cursor-pointer
-                      w-full text-left transition-all duration-200
-                      ${
-                        isSelected
-                          ? "bg-gray-100 border border-gray-200 text-gray-900 font-medium"
-                          : "bg-transparent border border-transparent text-gray-700 font-normal hover:bg-gray-50"
-                      }
-                    `}
-                    onClick={() => onSettingClick?.(item.id)}
-                  >
-                    {item.icon && (
-                      <span
-                        className={`flex-shrink-0 ${isSelected ? "text-gray-900" : "text-gray-600"}`}
-                      >
-                        {item.icon}
-                      </span>
-                    )}
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+            <div className="mb-3">
+              {settingsItems.integrations.map(renderMenuItem)}
             </div>
           )}
 
         {/* Configurations Section */}
         {settingsItems?.configurations &&
           settingsItems.configurations.length > 0 && (
-            <div className="mb-4">
-              <h3 className="px-2 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                Configurations
-              </h3>
-              {settingsItems.configurations.map((item: SettingsItem) => {
-                const isSelected = item.id === selectedSettingId;
-
-                return (
-                  <button
-                    key={item.id}
-                    className={`
-                      flex items-center gap-2 px-2 py-1.5 mx-0 mb-0.5
-                      text-sm rounded-lg cursor-pointer
-                      w-full text-left transition-all duration-200
-                      ${
-                        isSelected
-                          ? "bg-gray-100 border border-gray-200 text-gray-900 font-medium"
-                          : "bg-transparent border border-transparent text-gray-700 font-normal hover:bg-gray-50"
-                      }
-                    `}
-                    onClick={() => onSettingClick?.(item.id)}
-                  >
-                    {item.icon && (
-                      <span
-                        className={`flex-shrink-0 ${isSelected ? "text-gray-900" : "text-gray-600"}`}
-                      >
-                        {item.icon}
-                      </span>
-                    )}
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
+            <div className="mb-3">
+              <div className="px-2 py-1.5">
+                <span className="text-xs font-medium text-gray-600">
+                  Configurations
+                </span>
+              </div>
+              {settingsItems.configurations.map(renderMenuItem)}
             </div>
           )}
 
         {/* Team Section */}
         {settingsItems?.team && settingsItems.team.length > 0 && (
           <div>
-            <h3 className="px-2 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
-              Team
-            </h3>
-            {settingsItems.team.map((item: SettingsItem) => {
-              const isSelected = item.id === selectedSettingId;
-
-              return (
-                <button
-                  key={item.id}
-                  className={`
-                    flex items-center gap-2 px-2 py-1.5 mx-0 mb-0.5
-                    text-sm rounded-lg cursor-pointer
-                    w-full text-left transition-all duration-200
-                    ${
-                      isSelected
-                        ? "bg-gray-100 border border-gray-200 text-gray-900 font-medium"
-                        : "bg-transparent border border-transparent text-gray-700 font-normal hover:bg-gray-50"
-                    }
-                  `}
-                  onClick={() => onSettingClick?.(item.id)}
-                >
-                  {item.icon && (
-                    <span
-                      className={`flex-shrink-0 ${isSelected ? "text-gray-900" : "text-gray-600"}`}
-                    >
-                      {item.icon}
-                    </span>
-                  )}
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+            <div className="px-2 py-1.5">
+              <span className="text-xs font-medium text-gray-600">Team</span>
+            </div>
+            {settingsItems.team.map(renderMenuItem)}
           </div>
         )}
       </div>
 
       {/* Avatar Section at Bottom */}
       {(userName || userEmail || avatarLabel) && (
-        <div className="pt-3 mt-auto border-t border-gray-200">
+        <div className="mt-auto pt-2 border-t border-gray-100 pr-2">
           <button
-            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 pl-0.5 pr-2 py-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={(e) =>
               onAvatarClick?.(e.currentTarget.getBoundingClientRect())
             }
           >
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
+            <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden">
               {avatarSrc ? (
                 <img
                   src={avatarSrc}
@@ -349,7 +281,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
+                <div className="w-full h-7 bg-indigo-600 flex items-center justify-center text-white text-[11px] font-semibold">
                   {avatarLabel || userName?.charAt(0)?.toUpperCase() || "?"}
                 </div>
               )}
@@ -362,25 +294,16 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 </p>
               )}
               {userEmail && (
-                <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+                <p className="text-[11px] text-gray-500 truncate">
+                  {userEmail}
+                </p>
               )}
             </div>
             {/* Chevron */}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+            <CaretUpDownIcon
+              size={14}
               className="text-gray-400 flex-shrink-0"
-            >
-              <path
-                d="M9 18l6-6-6-6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            />
           </button>
         </div>
       )}

@@ -403,7 +403,7 @@ export function OrgContextTab() {
             </div>
 
             {/* Org Memory Card */}
-            <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden">
+            <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
               <div
                 className={`flex w-full ${isUserMemoryEnabled ? "h-[50vh]" : "h-[70vh]"}`}
               >
@@ -474,7 +474,7 @@ export function OrgContextTab() {
               </div>
 
               {/* User Memory Card - Fixed height with scroll */}
-              <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-indigo-100/50 border border-gray-200/40 overflow-hidden h-[200px] relative">
+              <div className="w-full bg-white/80 rounded-2xl shadow-xs border border-gray-200 overflow-hidden h-[200px] relative">
                 {isUserMemoryLoading || isCreatingUserMemory ? (
                   <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                     <span className="animate-pulse">Loading...</span>
