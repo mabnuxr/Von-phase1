@@ -37,7 +37,9 @@ export function useLogout() {
       if (import.meta.env.DEV) {
         console.error("[useLogout] Backend logout failed:", error);
       }
-      startProviderLogout();
+      const { clearAllAuth } = await import("../lib/auth");
+      clearAllAuth();
+      window.location.href = window.location.origin;
     }
   }, []);
 

@@ -967,7 +967,7 @@ const DashboardV2Demo = () => {
   } | null>(null);
 
   // Reference context state for Pane3
-  const [referenceContext, setReferenceContext] = useState<ReferenceContext>({
+  const [, setReferenceContext] = useState<ReferenceContext>({
     type: 'dashboard',
     name: 'Deals Closing This Quarter',
     id: 'dashboard-deals-q1',

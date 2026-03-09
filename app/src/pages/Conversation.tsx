@@ -201,55 +201,6 @@ const Conversation = () => {
     }
   }, [urlConversationId, resetShowMessagesFromIndex]);
 
-  // --- Handlers ---
-  const handleRetry = async () => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Retrying connection...");
-    }
-    await refetch();
-  };
-
-  const handleSettingsClick = () => {
-    navigate("/settings");
-  };
-
-  const handleLogoutClick = async () => {
-    const { clearAllAuth } = await import("../lib/auth");
-
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Logout clicked");
-    }
-
-    try {
-      const response = await authService.logout();
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Backend logout successful, redirect URL:",
-          response.redirectUrl,
-        );
-      }
-
-      clearAllAuth();
-
-      if (response.redirectUrl) {
-        window.location.href = response.redirectUrl;
-      } else {
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Dashboard] No redirect URL provided, using default logout flow",
-          );
-        }
-        window.location.href = location.origin;
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("[Dashboard] Backend logout failed:", error);
-      }
-      clearAllAuth();
-      window.location.href = location.origin;
-    }
-  };
-
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {
       setShouldShakeSubscriptionBanner(true);

@@ -148,13 +148,6 @@ type DeepResearchPhase =
   | 'building-dashboard'
   | 'dashboard-complete';
 
-interface DeepResearchThinkingStep {
-  id: string;
-  text: string;
-  status: 'pending' | 'in-progress' | 'complete';
-  subtitle?: string;
-  icon?: 'salesforce' | 'database' | 'chart' | 'table';
-}
 
 // ============================================================================
 // Sidebar Data
@@ -2012,7 +2005,7 @@ const DeepResearchDemo = () => {
   const [showDataTablesDrawer, setShowDataTablesDrawer] = useState(false);
 
   // Reference context state
-  const [referenceContext, setReferenceContext] = useState<ReferenceContext>({
+  const [, setReferenceContext] = useState<ReferenceContext>({
     type: 'dashboard',
     name: 'Q4 Sales Performance Dashboard',
     id: 'dashboard-q4-performance',

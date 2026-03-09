@@ -48,7 +48,7 @@ export interface ArtifactSummary {
   artifact_type: string;
   category?: string;
   query_name?: string;
-  row_count?: number | null;
+  row_count?: number;
   size_bytes: number;
   persisted_at: string;
   source_context?: string | null;

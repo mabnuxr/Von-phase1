@@ -8,7 +8,7 @@
  */
 
 import { useMemo } from "react";
-import { Chat, ChatSkeleton } from "@vonlabs/design-components";
+import { Chat } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
@@ -50,7 +50,6 @@ function AnalyticsChatInner({
     fetchNextPage: fetchNextMessagePage,
     hasNextPage: hasNextMessagePage,
     isFetchingNextPage: isFetchingNextMessagePage,
-    isLoading: isLoadingMessages,
     refetch: refetchMessages,
   } = useMessages(conversationId, MESSAGES_PAGE_LIMIT);
 

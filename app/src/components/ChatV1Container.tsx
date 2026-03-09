@@ -60,7 +60,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isSlashCommandsEnabled,
     isActionsEnabled,
     isDeepLinksEnabled,
-    isFileUploadEnabled,
     banner,
   } = props;
 
