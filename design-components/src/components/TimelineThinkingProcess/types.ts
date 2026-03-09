@@ -27,7 +27,8 @@ export type StepStatus =
   | 'warning'
   | 'error'
   | 'awaiting-approval'
-  | 'rejected';
+  | 'rejected'
+  | 'expired';
 
 /**
  * Field type for approval changes - affects rendering

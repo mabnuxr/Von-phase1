@@ -418,6 +418,8 @@ export interface TransformResult {
   hadApprovalPause: boolean;
   /** Error message if the run failed (from RUN_FINISHED with status=failed or RUN_ERROR) */
   runErrorMessage: string;
+  /** Whether an approval request has expired */
+  isExpiredApproval: boolean;
 }
 
 /**
@@ -448,6 +450,7 @@ export function transformAguiToTimelineSteps(
       stoppedByUser: false,
       hadApprovalPause: false,
       runErrorMessage: "",
+      isExpiredApproval: false,
     };
   }
 
@@ -773,6 +776,7 @@ export function transformAguiToTimelineSteps(
           const alreadyResolved =
             step.status === ("rejected" as StepStatus) ||
             step.status === ("error" as StepStatus) ||
+            step.status === ("expired" as StepStatus) ||
             (step.status === ("complete" as StepStatus) &&
               step.type === ("approval" as StepType));
           if (!alreadyResolved) {
@@ -958,6 +962,12 @@ export function transformAguiToTimelineSteps(
                   if (result.approved === true) {
                     step.status = "complete" as StepStatus;
                     toolCallResultMap.delete(toolId);
+                  } else if (result.status === "expired") {
+                    // Approval request expired
+                    step.status = "expired" as StepStatus;
+                    step.errorMessage =
+                      result.message || "Approval request has expired";
+                    toolCallResultMap.delete(toolId);
                   } else if (result.approved === false) {
                     // User rejected - use 'rejected' status and store reason
                     step.status = "rejected" as StepStatus;
@@ -1057,6 +1067,11 @@ export function transformAguiToTimelineSteps(
                   // Trust backend's explicit approval status
                   if (result.approved === true) {
                     step.status = "complete" as StepStatus;
+                  } else if (result.status === "expired") {
+                    // Approval request expired
+                    step.status = "expired" as StepStatus;
+                    step.errorMessage =
+                      result.message || "Approval request has expired";
                   } else if (result.approved === false) {
                     // User rejected - use 'rejected' status and store reason
                     step.status = "rejected" as StepStatus;
@@ -1294,6 +1309,11 @@ export function transformAguiToTimelineSteps(
           if (step.status === "awaiting-approval") {
             if (result.approved === true) {
               step.status = "complete" as StepStatus;
+            } else if (result.status === "expired") {
+              // Approval request expired
+              step.status = "expired" as StepStatus;
+              step.errorMessage =
+                result.message || "Approval request has expired";
             } else if (result.approved === false) {
               // User rejected - use 'rejected' status and store reason
               step.status = "rejected" as StepStatus;
@@ -1368,6 +1388,7 @@ export function transformAguiToTimelineSteps(
     stoppedByUser,
     hadApprovalPause: sawRunFinishedWithPendingApproval,
     runErrorMessage,
+    isExpiredApproval: steps.some((s) => (s.status as string) === "expired"),
   };
 }
 

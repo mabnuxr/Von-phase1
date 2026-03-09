@@ -78,7 +78,7 @@ export const StepIndicator = React.memo<StepIndicatorProps>(
         </motion.div>
       );
     }
-    if (status === 'warning') {
+    if (status === 'warning' || status === 'expired') {
       // Exclamation mark inside gray bordered circle
       return (
         <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50 border border-gray-100">

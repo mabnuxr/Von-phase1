@@ -3,35 +3,31 @@ import type {
   Message as ChatMessage,
   TimelineStep,
   RunFinishedEvent,
-} from "@vonlabs/design-components";
-import type { ChatItem } from "@vonlabs/design-components";
+} from '@vonlabs/design-components';
+import type { ChatItem } from '@vonlabs/design-components';
 
 // App services
-import { conversationsService } from "../services/conversationsService";
+import { conversationsService } from '../services/conversationsService';
 
 // App types
-import type {
-  MessageWithStreaming,
-  Conversation,
-  DashboardMetadata,
-} from "../types/conversation";
+import type { MessageWithStreaming, Conversation, DashboardMetadata } from '../types/conversation';
 
 // Existing utilities
-import { replayAguiEvents } from "../utils/replayAguiEvents";
-import { findLast } from "../utils/findLast";
-import { getDisplayTitle } from "./conversationUtils";
+import { replayAguiEvents } from '../utils/replayAguiEvents';
+import { findLast } from '../utils/findLast';
+import { getDisplayTitle } from './conversationUtils';
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
   type ResearchResultsState,
-} from "../utils/transformAguiToTimelineSteps";
+} from '../utils/transformAguiToTimelineSteps';
 
 /**
  * Transform backend MessageWithStreaming to Chat component Message format
  * Replays AGUI events if needed to reconstruct stepMessages and toolCalls
  */
 export function transformMessagesToChatFormat(
-  conversationMessages: MessageWithStreaming[],
+  conversationMessages: MessageWithStreaming[]
 ): ChatMessage[] {
   return conversationMessages.map((msg) => {
     const streamingMsg = msg as MessageWithStreaming;
@@ -60,10 +56,7 @@ export function transformMessagesToChatFormat(
 
     return {
       id: streamingMsg.id,
-      type:
-        streamingMsg.role === "user"
-          ? ("user" as const)
-          : ("assistant" as const),
+      type: streamingMsg.role === 'user' ? ('user' as const) : ('assistant' as const),
       content,
       timestamp: new Date(streamingMsg.createdAt),
       isStreaming: streamingMsg.isStreaming || false,
@@ -86,12 +79,7 @@ export function transformMessagesToChatFormat(
         size: fa.fileSize,
         type: fa.mimeType,
         extension: fa.extension,
-        category: fa.category as
-          | "document"
-          | "spreadsheet"
-          | "presentation"
-          | "text"
-          | "image",
+        category: fa.category as 'document' | 'spreadsheet' | 'presentation' | 'text' | 'image',
       })),
       // Map the quick command so ChatMessage can render CommandPreview
       command: streamingMsg.command
@@ -99,8 +87,8 @@ export function transformMessagesToChatFormat(
             id: streamingMsg.command.id,
             name: streamingMsg.command.name,
             prompt: streamingMsg.command.prompt,
-            createdAt: "",
-            updatedAt: "",
+            createdAt: '',
+            updatedAt: '',
             dataSources: streamingMsg.command.dataSources?.map((ds) => ({
               id: ds.fileId,
               name: ds.fileName,
@@ -122,10 +110,10 @@ export function transformMessagesToChatFormat(
  */
 export function transformConversationsToChatItems(
   conversations: Conversation[],
-  animatedTitles: Map<string, string>,
+  animatedTitles: Map<string, string>
 ): ChatItem[] {
   return conversations
-    .filter((conv) => conv.title && conv.title.trim() !== "")
+    .filter((conv) => conv.title && conv.title.trim() !== '')
     .map((conv) => {
       // Check if this conversation has an animated title in progress
       const animatedTitle = animatedTitles.get(conv.conversationId);
@@ -147,7 +135,7 @@ export function transformConversationsToChatItems(
 async function withRetry<T>(
   fn: () => Promise<T>,
   maxRetries: number = 2,
-  baseDelayMs: number = 1000,
+  baseDelayMs: number = 1000
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -158,8 +146,8 @@ async function withRetry<T>(
       const isRetryable =
         error instanceof TypeError || // Network error (fetch failed)
         (error &&
-          typeof error === "object" &&
-          "status" in error &&
+          typeof error === 'object' &&
+          'status' in error &&
           (error as { status: number }).status >= 500);
       if (!isRetryable || attempt === maxRetries) break;
       await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** attempt));
@@ -175,22 +163,15 @@ async function withRetry<T>(
 export async function handleToolApproval(
   toolCallId: string,
   runId: string,
-  conversationId: string,
+  conversationId: string
 ): Promise<void> {
   try {
-    await withRetry(() =>
-      conversationsService.resumeConversation(conversationId, true, runId),
-    );
+    await withRetry(() => conversationsService.resumeConversation(conversationId, true, runId));
     if (import.meta.env.DEV) {
-      console.log(
-        "[Dashboard] Approval sent for tool:",
-        toolCallId,
-        "runId:",
-        runId,
-      );
+      console.log('[Dashboard] Approval sent for tool:', toolCallId, 'runId:', runId);
     }
   } catch (error) {
-    console.error("[Dashboard] Failed to send approval after retries:", error);
+    console.error('[Dashboard] Failed to send approval after retries:', error);
     throw error;
   }
 }
@@ -202,22 +183,15 @@ export async function handleToolApproval(
 export async function handleToolRejection(
   toolCallId: string,
   runId: string,
-  conversationId: string,
+  conversationId: string
 ): Promise<void> {
   try {
-    await withRetry(() =>
-      conversationsService.resumeConversation(conversationId, false, runId),
-    );
+    await withRetry(() => conversationsService.resumeConversation(conversationId, false, runId));
     if (import.meta.env.DEV) {
-      console.log(
-        "[Dashboard] Rejection sent for tool:",
-        toolCallId,
-        "runId:",
-        runId,
-      );
+      console.log('[Dashboard] Rejection sent for tool:', toolCallId, 'runId:', runId);
     }
   } catch (error) {
-    console.error("[Dashboard] Failed to send rejection after retries:", error);
+    console.error('[Dashboard] Failed to send rejection after retries:', error);
   }
 }
 
@@ -240,10 +214,10 @@ export interface V2LiveData {
   /** Agent-generated file artifacts grouped by runId (from useAgentArtifacts) */
   agentArtifactsByRunId?: Map<
     string,
-    import("../services/fileUploadService").FileMetadataResponse[]
+    import('../services/fileUploadService').FileMetadataResponse[]
   >;
   /** Conversation phase for approval button control */
-  phase?: "plan-proposed" | "ask" | null;
+  phase?: 'plan-proposed' | 'ask' | null;
   /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
   dashboard?: DashboardMetadata | null;
 }
@@ -262,30 +236,27 @@ export interface TransformMessagesResult {
  */
 function transformMessagesForV2(
   conversationMessages: MessageWithStreaming[],
-  v2LiveData: V2LiveData,
+  v2LiveData: V2LiveData
 ): TransformMessagesResult {
   const messages = transformMessagesToChatFormat(conversationMessages);
-  const usableV2TimelineSteps = v2LiveData.timelineSteps.filter(
-    (step) => step.category !== "e2b",
-  );
+  const usableV2TimelineSteps = v2LiveData.timelineSteps.filter((step) => step.category !== 'e2b');
 
   let persistedResearchResults: ResearchResultsState | null = null;
 
   // Check if live data already has research results
   const hasLiveResearchResults =
-    v2LiveData.researchResults?.isStreaming ||
-    v2LiveData.researchResults?.isCompleted;
+    v2LiveData.researchResults?.isStreaming || v2LiveData.researchResults?.isCompleted;
 
   const transformedMessages = messages.map((msg, index) => {
     // Only process assistant messages
-    if (msg.type !== "assistant") {
+    if (msg.type !== 'assistant') {
       return msg;
     }
 
     // Check if this is the latest assistant message
     const isLastAssistant = (() => {
       for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].type === "assistant") {
+        if (messages[i].type === 'assistant') {
           return i === index;
         }
       }
@@ -304,8 +275,7 @@ function transformMessagesForV2(
       !!v2LiveData.runErrorMessage ||
       v2LiveData.stoppedByUser ||
       !!v2LiveData.currentRunId;
-    const isRunActive =
-      v2LiveData.isThinking || v2LiveData.isFinalResponseStreaming;
+    const isRunActive = v2LiveData.isThinking || v2LiveData.isFinalResponseStreaming;
     // V2 data is "stale" only when the message is still marked as streaming (optimistic
     // placeholder) but the V2 hook hasn't started a run yet. Once V2 has processed any
     // run (currentRunId set) or reached a terminal state (steps, response, error, stopped),
@@ -324,8 +294,7 @@ function transformMessagesForV2(
       msg.isStreaming &&
       !isRunActive &&
       (!hasV2TerminalData ||
-        (!msgBelongsToCurrentV2Run &&
-          !(v2LiveData.stoppedByUser && msg.runId)));
+        (!msgBelongsToCurrentV2Run && !(v2LiveData.stoppedByUser && msg.runId)));
 
     // Don't overlay V2 live data on already-persisted completed messages
     // (they have their own events and should use the persisted path below).
@@ -335,10 +304,7 @@ function transformMessagesForV2(
     // from event timestamps. We can't compare msg.runId to v2LiveData.currentRunId
     // because updateMessageId sets msg.runId to the backend message ID (not run_id).
     const v2JustFinishedThisRun =
-      isLastAssistant &&
-      hasLiveV2Data &&
-      !isRunActive &&
-      !!v2LiveData.currentRunId;
+      isLastAssistant && hasLiveV2Data && !isRunActive && !!v2LiveData.currentRunId;
     const shouldUsePersistedData =
       !msg.isStreaming &&
       !isRunActive &&
@@ -346,12 +312,7 @@ function transformMessagesForV2(
       msg.events.length > 0 &&
       !v2JustFinishedThisRun;
 
-    if (
-      isLastAssistant &&
-      hasLiveV2Data &&
-      !isStaleV2Data &&
-      !shouldUsePersistedData
-    ) {
+    if (isLastAssistant && hasLiveV2Data && !isStaleV2Data && !shouldUsePersistedData) {
       return {
         ...msg,
         isStreaming: v2LiveData.isThinking && !v2LiveData.isAwaitingApproval,
@@ -365,7 +326,7 @@ function transformMessagesForV2(
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
-              status: "failed" as const,
+              status: 'failed' as const,
               errorMessage: v2LiveData.runErrorMessage,
             }
           : {}),
@@ -380,8 +341,9 @@ function transformMessagesForV2(
         researchResults,
         stoppedByUser: persistedStoppedByUser,
         runErrorMessage: persistedRunErrorMessage,
+        isExpiredApproval: persistedIsExpiredApproval,
       } = transformAguiToTimelineSteps(msg.events);
-      const usableSteps = steps.filter((step) => step.category !== "e2b");
+      const usableSteps = steps.filter((step) => step.category !== 'e2b');
       const elapsed = getElapsedTimeFromEvents(msg.events);
 
       // For persisted (non-streaming) messages, ensure any remaining in-progress
@@ -389,25 +351,21 @@ function transformMessagesForV2(
       // before a RUN_FINISHED event (e.g., stopped runs without a final event).
       for (const step of usableSteps) {
         if (
-          step.status === "in-progress" ||
-          step.status === "pending" ||
-          step.status === "awaiting-approval"
+          step.status === 'in-progress' ||
+          step.status === 'pending' ||
+          step.status === 'awaiting-approval'
         ) {
-          step.status = "complete";
+          step.status = 'complete';
         }
       }
 
       // Use stoppedByUser from events, falling back to the message-level flag
       // (set by replayAguiEvents or the backend directly)
       const effectiveStoppedByUser =
-        persistedStoppedByUser ||
-        ("stoppedByUser" in msg && msg.stoppedByUser === true);
+        persistedStoppedByUser || ('stoppedByUser' in msg && msg.stoppedByUser === true);
 
       // Extract phase and dashboard from persisted events
-      const runFinishedEvent = findLast(
-        msg.events,
-        (e) => e.event?.type === "RUN_FINISHED",
-      );
+      const runFinishedEvent = findLast(msg.events, (e) => e.event?.type === 'RUN_FINISHED');
       const runFinishedResult = runFinishedEvent
         ? (
             runFinishedEvent.event as RunFinishedEvent & {
@@ -418,17 +376,12 @@ function transformMessagesForV2(
             }
           ).result
         : null;
-      const persistedPhase =
-        (runFinishedResult?.phase as "plan-proposed" | "ask" | null) ?? null;
+      const persistedPhase = (runFinishedResult?.phase as 'plan-proposed' | 'ask' | null) ?? null;
       const persistedDashboard = runFinishedResult?.dashboard ?? null;
 
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
-      if (
-        !hasLiveResearchResults &&
-        researchResults.isCompleted &&
-        researchResults.content
-      ) {
+      if (!hasLiveResearchResults && researchResults.isCompleted && researchResults.content) {
         persistedResearchResults = researchResults;
       }
 
@@ -445,10 +398,24 @@ function transformMessagesForV2(
         // Propagate persisted error from events
         ...(persistedRunErrorMessage
           ? {
-              status: "failed" as const,
+              status: 'failed' as const,
               errorMessage: persistedRunErrorMessage,
             }
           : {}),
+        // Propagate persisted error or expired status from events
+        ...(persistedIsExpiredApproval
+          ? {
+              status: 'expired' as const,
+              errorMessage:
+                steps.find((s) => (s.status as string) === 'expired')?.errorMessage ||
+                'Approval request has expired',
+            }
+          : persistedRunErrorMessage
+            ? {
+                status: 'failed' as const,
+                errorMessage: persistedRunErrorMessage,
+              }
+            : {}),
       };
     }
 
@@ -470,28 +437,22 @@ function transformMessagesForV2(
     const artifactMap = v2LiveData.agentArtifactsByRunId;
     for (let i = 0; i < transformedMessages.length; i++) {
       const msg = transformedMessages[i];
-      if (msg.type === "assistant" && msg.runId) {
+      if (msg.type === 'assistant' && msg.runId) {
         const artifacts = artifactMap.get(msg.runId);
         if (artifacts && artifacts.length > 0) {
-          const previewPdfs = artifacts.filter(
-            (a) => a.artifactType === "slide_preview_pdf",
-          );
-          const displayArtifacts = artifacts.filter(
-            (a) => a.artifactType !== "slide_preview_pdf",
-          );
+          const previewPdfs = artifacts.filter((a) => a.artifactType === 'slide_preview_pdf');
+          const displayArtifacts = artifacts.filter((a) => a.artifactType !== 'slide_preview_pdf');
           transformedMessages[i] = {
             ...msg,
             artifacts: displayArtifacts.map((a) => {
-              const stem = a.fileName.replace(/\.pptx$/i, "");
-              const pdfPreview = previewPdfs.find(
-                (p) => p.fileName === `${stem}.pdf`,
-              );
+              const stem = a.fileName.replace(/\.pptx$/i, '');
+              const pdfPreview = previewPdfs.find((p) => p.fileName === `${stem}.pdf`);
               return {
                 fileId: a.id,
                 fileName: a.fileName,
-                artifactType: a.artifactType ?? "document",
+                artifactType: a.artifactType ?? 'document',
                 mimeType: a.mimeType,
-                isPending: a.isPending ?? a.status !== "completed",
+                isPending: a.isPending ?? a.status !== 'completed',
                 pdfPreview: pdfPreview
                   ? { id: pdfPreview.id, fileName: pdfPreview.fileName }
                   : undefined,
@@ -519,7 +480,7 @@ function transformMessagesForV2(
  * (Internal helper - use transformConversationMessages instead)
  */
 function transformMessagesForV1(
-  conversationMessages: MessageWithStreaming[],
+  conversationMessages: MessageWithStreaming[]
 ): TransformMessagesResult {
   return {
     messages: transformMessagesToChatFormat(conversationMessages),
@@ -542,7 +503,7 @@ function transformMessagesForV1(
 export function transformConversationMessages(
   conversationMessages: MessageWithStreaming[],
   isAgentV2: boolean,
-  v2LiveData?: V2LiveData,
+  v2LiveData?: V2LiveData
 ): TransformMessagesResult {
   if (!isAgentV2) {
     return transformMessagesForV1(conversationMessages);
@@ -553,18 +514,18 @@ export function transformConversationMessages(
     timelineSteps: [],
     isThinking: false,
     elapsedTime: 0,
-    finalResponse: "",
+    finalResponse: '',
     isFinalResponseStreaming: false,
     isAwaitingApproval: false,
     researchResults: {
       isStreaming: false,
       isCompleted: false,
-      content: "",
+      content: '',
       metadata: null,
       messageId: null,
     },
     stoppedByUser: false,
-    runErrorMessage: "",
+    runErrorMessage: '',
     currentRunId: null,
     phase: null,
   };

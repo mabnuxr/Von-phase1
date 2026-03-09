@@ -10,7 +10,7 @@ import { SalesforceLink } from './SalesforceLink';
 import { TiptapViewer } from '../TiptapEditor';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
-import type { MessageFileAttachment } from './types';
+import type { MessageFileAttachment, MessageStatus } from './types';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
@@ -112,8 +112,9 @@ export interface ChatMessageProps {
   /**
    * Message status from backend persistence
    * Includes 'timeout' for client-side timeout recovery
+   * Includes 'expired' for expired approval requests
    */
-  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
+  status?: MessageStatus;
 
   /**
    * Error message if status is 'failed'
@@ -476,6 +477,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             autoCollapse={
                               !!v2FinalResponse ||
                               status === 'timeout' ||
+                              status === 'expired' ||
                               (status === 'failed' && !!errorMessage) ||
                               !!stoppedByUser
                             }
@@ -497,6 +499,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {thinkingProcessVersion === 'v2' &&
                         v2FinalResponse &&
                         status !== 'timeout' &&
+                        status !== 'expired' &&
                         !(status === 'failed' && errorMessage) && (
                           <div className="markdown-content max-w-none">
                             <Streamdown
@@ -723,6 +726,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       </div>
                       <span className="text-sm text-gray-800 leading-relaxed flex-1">
                         Request timed out
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Show expired approval indicator for assistant messages */}
+                  {!isUser && status === 'expired' && (
+                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-gray-50/50 border border-gray-200 rounded-xl">
+                      <div className="shrink-0 mt-0.5">
+                        <InfoIcon size={20} className="text-gray-500" />
+                      </div>
+                      <span className="text-sm text-gray-800 leading-relaxed flex-1">
+                        {errorMessage || 'Approval request has expired'}
                       </span>
                     </div>
                   )}

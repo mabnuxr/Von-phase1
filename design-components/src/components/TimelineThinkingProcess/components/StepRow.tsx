@@ -91,6 +91,7 @@ export const StepRow = React.memo<StepRowProps>(
     // Backend status (error) takes precedence over local optimistic state
     const effectiveStatus = useMemo(() => {
       if (step.status === 'error') return 'error';
+      if (step.status === 'expired') return 'expired';
       if (isLocallyApproved) return 'complete';
       if (isLocallyRejected) return 'error';
       return step.status;

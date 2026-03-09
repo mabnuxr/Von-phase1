@@ -518,6 +518,42 @@ export function useV2EventProcessor(
           }
         });
 
+        // Mark message as expired in chatStore when approval expires
+        if (result.isExpiredApproval) {
+          // Extract the expired message from the step that has expired status
+          const expiredStep = result.steps.find((s) => (s.status as string) === 'expired');
+          const expiredMessage = expiredStep?.errorMessage;
+
+          const messages = useChatStore.getState().messages[conversationId ?? ''] || [];
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i];
+            if (m.role === 'assistant' && m.isStreaming) {
+              useChatStore
+                .getState()
+                .markMessageExpired(conversationId ?? '', m.id, expiredMessage);
+              break;
+            }
+          }
+        }
+
+        // Mark message as expired in chatStore when approval expires
+        if (result.isExpiredApproval) {
+          // Extract the expired message from the step that has expired status
+          const expiredStep = result.steps.find((s) => (s.status as string) === 'expired');
+          const expiredMessage = expiredStep?.errorMessage;
+
+          const messages = useChatStore.getState().messages[conversationId ?? ''] || [];
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const m = messages[i];
+            if (m.role === 'assistant' && m.isStreaming) {
+              useChatStore
+                .getState()
+                .markMessageExpired(conversationId ?? '', m.id, expiredMessage);
+              break;
+            }
+          }
+        }
+
         // Delegate timer pause/play/stop to the controller based on event state
         timerOnEventProcessed(run_id, {
           isAwaitingApproval: result.isAwaitingApproval,

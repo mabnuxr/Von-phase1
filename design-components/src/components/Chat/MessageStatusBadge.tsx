@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import type { MessageStatus } from './types';
 
 interface MessageStatusBadgeProps {
-  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
+  status?: MessageStatus;
   errorMessage?: string;
   className?: string;
 }
@@ -24,7 +25,7 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
   className = '',
 }) => {
   // Don't show badge for normal states or timeout (timeout is internal recovery, not user-facing)
-  if (!status || status === 'created' || status === 'completed' || status === 'timeout') {
+  if (!status || status === 'created' || status === 'completed' || status === 'timeout' || status === 'expired') {
     return null;
   }
 
