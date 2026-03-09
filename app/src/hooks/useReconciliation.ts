@@ -18,7 +18,11 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import type Pusher from "pusher-js";
-import type { AguiEventWrapper } from "@vonlabs/design-components";
+import type {
+  AguiEventWrapper,
+  RunFinishedEvent,
+} from "@vonlabs/design-components";
+import type { DashboardMetadata } from "../types/conversation";
 
 import { conversationsService } from "../services/conversationsService";
 import {
@@ -47,6 +51,10 @@ export interface UseReconciliationConfig {
   onStateUpdate: (
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
+    options?: {
+      phase?: "plan-proposed" | "ask" | null;
+      dashboard?: DashboardMetadata | null;
+    },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
   onReconcile?: () => void;
@@ -143,8 +151,29 @@ export function useReconciliation({
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
-      // Step 6: Update state
-      onStateUpdate(result, runId);
+      // Step 5b: Extract phase and dashboard from RUN_FINISHED event (if present)
+      type RunFinishedWithDashboard = Omit<RunFinishedEvent, "result"> & {
+        result: RunFinishedEvent["result"] & {
+          dashboard?: DashboardMetadata | null;
+        };
+      };
+      const runFinishedEvent = mergedEvents.find(
+        (e) => e.event?.type === "RUN_FINISHED",
+      );
+      const reconciledPhase = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+            ?.phase ?? null)
+        : undefined;
+      const reconciledDashboard = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+            ?.dashboard ?? null)
+        : undefined;
+
+      // Step 6: Update state (including phase/dashboard from RUN_FINISHED)
+      onStateUpdate(result, runId, {
+        phase: reconciledPhase,
+        dashboard: reconciledDashboard,
+      });
 
       // Step 7: Handle run completion
       const isTransitionalFinish =

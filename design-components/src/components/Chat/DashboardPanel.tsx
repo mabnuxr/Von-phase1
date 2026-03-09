@@ -16,7 +16,7 @@ export interface DashboardPanelProps {
 
 export const DashboardPanel: React.FC<DashboardPanelProps> = ({ dashboard, onNavigate }) => {
   const handleViewDashboard = () => {
-    if (!dashboard.dashboard_id || !dashboard.dashboard_version) {
+    if (!dashboard.dashboard_id || dashboard.dashboard_version == null) {
       console.error('[DashboardPanel] Invalid dashboard metadata:', dashboard);
       return;
     }

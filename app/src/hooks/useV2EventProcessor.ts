@@ -176,10 +176,10 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
-        if (options?.phase !== undefined && options.phase !== null) {
+        if (options?.phase !== undefined) {
           setPhase(options.phase);
         }
-        if (options?.dashboard !== undefined && options.dashboard !== null) {
+        if (options?.dashboard !== undefined) {
           setDashboard(options.dashboard);
         }
       });
