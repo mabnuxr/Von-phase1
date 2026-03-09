@@ -119,6 +119,11 @@ export interface IntegrationCardProps {
    * Tooltip text for delete button (shown on hover)
    */
   deleteTooltip?: string;
+
+  /**
+   * Optional slot for custom actions rendered next to the delete button
+   */
+  actionSlot?: React.ReactNode;
 }
 
 /**
@@ -152,6 +157,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   isAvailable = false,
   canDelete = true,
   deleteTooltip,
+  actionSlot,
 }) => {
   const isLoading = !!loadingText;
 
@@ -243,6 +249,9 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           <>
             {/* Connected chip - show if it's in the chips array */}
             {chips?.includes('connected') && <Chip variant="connected" size="small" />}
+
+            {/* Custom action slot */}
+            {actionSlot}
 
             {/* Single delete button - always */}
             {onDelete && canDelete && (

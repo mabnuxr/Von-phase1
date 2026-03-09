@@ -30,26 +30,6 @@ export type StepStatus =
   | 'rejected';
 
 /**
- * Single operation in a bulk approval request
- */
-export interface BulkOperation {
-  operation: 'create' | 'update' | 'delete';
-  sobject_type: string;
-  record_name: string;
-  record_id?: string;
-  fields?: Record<string, string | number | boolean | null>;
-  changes?: Array<{
-    field: string;
-    before?: string | number | boolean | null;
-    after: string | number | boolean | null;
-  }>;
-  status?: 'pending' | 'updating' | 'success' | 'rejected';
-}
-
-/**
- * Data for approval steps
- */
-/**
  * Field type for approval changes - affects rendering
  */
 export type ApprovalFieldType =
@@ -63,8 +43,31 @@ export type ApprovalFieldType =
   | 'boolean';
 
 /**
- * Single record change for bulk approvals
+ * Uniform field change entry — the universal diff format.
+ * CREATE: only `after` is set. UPDATE: both `before` and `after`. DELETE: only `before`.
  */
+export interface FieldChange {
+  field: string;
+  display_name?: string;
+  before?: string | number | boolean | Record<string, unknown> | null;
+  after?: string | number | boolean | Record<string, unknown> | null;
+  fieldType?: ApprovalFieldType;
+}
+
+/**
+ * Single operation in a bulk approval request
+ */
+export interface BulkOperation {
+  operation: 'create' | 'update' | 'delete';
+  sobject_type: string;
+  record_name: string;
+  record_id?: string;
+  /** @deprecated Use changes instead. Kept for backward compat during transition. */
+  fields?: Record<string, string | number | boolean | null>;
+  changes?: FieldChange[];
+  status?: 'pending' | 'updating' | 'success' | 'rejected';
+}
+
 export interface BulkApprovalRecord {
   /** Unique ID for this record */
   recordId: string;
@@ -75,12 +78,7 @@ export interface BulkApprovalRecord {
   /** URL to the record (e.g., Salesforce record URL, Google Calendar event URL) */
   recordUrl?: string;
   /** Changes for this record */
-  changes: Array<{
-    field: string;
-    before?: string | number | boolean | null;
-    after: string | number | boolean | null;
-    fieldType?: ApprovalFieldType;
-  }>;
+  changes: FieldChange[];
 }
 
 export interface ApprovalData {
@@ -93,14 +91,9 @@ export interface ApprovalData {
   recordId?: string;
   recordUrl?: string;
   operation: 'create' | 'update' | 'delete';
-  changes?: Array<{
-    field: string;
-    before?: string | number | boolean | null;
-    after: string | number | boolean | null;
-    /** Field type - affects how the value is rendered */
-    fieldType?: ApprovalFieldType;
-  }>;
-  /** Fields for CREATE operations (initial values without before/after) */
+  /** Uniform changes array — the single source of display data */
+  changes?: FieldChange[];
+  /** @deprecated Use changes instead. Kept for backward compat during transition. */
   fields?: Record<string, string | number | boolean | null>;
   /** The type of approval - salesforce, calendar, bulk, deep_research, generic, etc. */
   approvalType?: 'salesforce' | 'calendar' | 'bulk' | 'deep_research' | 'generic';

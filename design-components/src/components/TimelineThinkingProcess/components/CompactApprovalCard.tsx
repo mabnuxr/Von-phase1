@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { CheckCircleIcon, XCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
-import type { CompactApprovalCardProps, ApprovalFieldType } from '../types';
+import type { CompactApprovalCardProps, ApprovalFieldType, FieldChange } from '../types';
 import { useVisibilityToggle } from '../../../hooks/useVisibilityToggle';
 
 // ============================================================================
@@ -151,6 +151,74 @@ const FieldValue: React.FC<{
   }
 };
 
+/**
+ * Layout mode for the changes table:
+ * - 'create': 2-column (Field | Value) showing `after` values
+ * - 'delete': 2-column (Field | Value) showing `before` values with strikethrough
+ * - 'update': 3-column (Field | Before | After) showing both
+ */
+type ChangesLayout = 'create' | 'delete' | 'update';
+
+/**
+ * Renders the changes/fields diff table used in both approved/rejected and pending states.
+ */
+const ChangesTable: React.FC<{
+  displayChanges: Array<{
+    field: string;
+    display_name?: string;
+    before?: string | number | boolean | Record<string, unknown> | null;
+    after?: string | number | boolean | Record<string, unknown> | null;
+    fieldType?: ApprovalFieldType;
+  }>;
+  layout: ChangesLayout;
+}> = ({ displayChanges, layout }) => (
+  <div className="border-t border-gray-100">
+    {layout === 'update' ? (
+      <div className="grid grid-cols-[1fr_1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
+        <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
+        <span className="text-xs font-medium text-gray-700 tracking-wide">Before</span>
+        <span className="text-xs font-medium text-gray-700 tracking-wide">After</span>
+      </div>
+    ) : (
+      <div className="grid grid-cols-[1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
+        <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
+        <span className="text-xs font-medium text-gray-700 tracking-wide">Value</span>
+      </div>
+    )}
+
+    {displayChanges.map((change, idx) =>
+      layout === 'update' ? (
+        <div
+          key={idx}
+          className="grid grid-cols-[1fr_1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
+        >
+          <span className="text-sm text-gray-900">{change.display_name || change.field}</span>
+          <div className="text-sm">
+            <FieldValue value={change.before} fieldType={change.fieldType} isStrikethrough={true} />
+          </div>
+          <div className="text-sm">
+            <FieldValue value={change.after} fieldType={change.fieldType} />
+          </div>
+        </div>
+      ) : (
+        <div
+          key={idx}
+          className="grid grid-cols-[1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
+        >
+          <span className="text-sm text-gray-900">{change.display_name || change.field}</span>
+          <div className="text-sm">
+            <FieldValue
+              value={layout === 'delete' ? change.before : change.after}
+              fieldType={change.fieldType}
+              isStrikethrough={layout === 'delete'}
+            />
+          </div>
+        </div>
+      )
+    )}
+  </div>
+);
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -205,38 +273,25 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
           ? 'UPDATE'
           : 'DELETE';
 
-    // Merge both approval.changes and approval.fields into a single display list.
-    // The API may send both — changes has before/after diffs, fields has initial values.
-    const displayChanges = useMemo(() => {
-      const result: Array<{
-        field: string;
-        after: string | number | boolean | null;
-        before?: string | number | boolean | null;
-        fieldType?: ApprovalFieldType;
-      }> = [];
+    // changes is the universal display format for all operations:
+    // CREATE: after only. DELETE: before only. UPDATE: both before and after.
+    const displayChanges: FieldChange[] = useMemo(() => {
+      return approval.changes && approval.changes.length > 0 ? approval.changes : [];
+    }, [approval.changes]);
 
-      if (approval.changes && approval.changes.length > 0) {
-        result.push(...approval.changes);
-      }
-
-      if (approval.fields) {
-        // Track fields already covered by changes to avoid duplicates
-        const changesFields = new Set(result.map((c) => c.field));
-        for (const [field, value] of Object.entries(approval.fields)) {
-          if (!changesFields.has(field)) {
-            result.push({ field, after: value });
-          }
-        }
-      }
-
-      return result;
-    }, [approval.changes, approval.fields]);
-
-    // Show 3-column layout (Field | Before | After) only when any entry has a before value
-    const showBeforeColumn = useMemo(
-      () => displayChanges.some((c) => c.before !== undefined && c.before !== null),
-      [displayChanges]
-    );
+    // Use the operation type as the authoritative layout signal. An UPDATE that
+    // sets a previously-empty field has before: null, which the old data-shape
+    // heuristic misclassified as 'create'. Fall back to data-shape inference
+    // only for unknown operation values.
+    const changesLayout: ChangesLayout = useMemo(() => {
+      const op = approval.operation;
+      if (op === 'update' || op === 'delete' || op === 'create') return op;
+      const hasBefore = displayChanges.some((c) => c.before !== undefined && c.before !== null);
+      const hasAfter = displayChanges.some((c) => c.after !== undefined && c.after !== null);
+      if (hasBefore && hasAfter) return 'update';
+      if (hasBefore) return 'delete';
+      return 'create';
+    }, [approval.operation, displayChanges]);
 
     const hasExpandableContent = displayChanges.length > 0;
 
@@ -277,10 +332,12 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
                   onClick={(e) => e.stopPropagation()}
                   className="text-sm text-gray-900 truncate hover:text-indigo-600 hover:underline transition-colors"
                 >
-                  {approval.recordName}
+                  {approval.recordName || approval.label || 'Record'}
                 </a>
               ) : (
-                <span className="text-sm text-gray-900 truncate">{approval.recordName}</span>
+                <span className="text-sm text-gray-900 truncate">
+                  {approval.recordName || approval.label || 'Record'}
+                </span>
               )}
             </div>
             <span
@@ -292,53 +349,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
 
           {/* Expanded content - Changes/Fields table (read-only) */}
           {isExpanded && displayChanges.length > 0 && (
-            <div className="border-t border-gray-100">
-              {/* Table header - 2 columns for CREATE (Field | Value), 3 for UPDATE (Field | Before | After) */}
-              {!showBeforeColumn ? (
-                <div className="grid grid-cols-[1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
-                  <span className="text-xs font-medium text-gray-700 tracking-wide">Value</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-[1fr_1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
-                  <span className="text-xs font-medium text-gray-700 tracking-wide">Before</span>
-                  <span className="text-xs font-medium text-gray-700 tracking-wide">After</span>
-                </div>
-              )}
-
-              {/* Table rows */}
-              {displayChanges.map((change, idx) =>
-                !showBeforeColumn ? (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-[1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
-                  >
-                    <span className="text-sm text-gray-900">{change.field}</span>
-                    <div className="text-sm">
-                      <FieldValue value={change.after} fieldType={change.fieldType} />
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-[1fr_1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
-                  >
-                    <span className="text-sm text-gray-900">{change.field}</span>
-                    <div className="text-sm">
-                      <FieldValue
-                        value={change.before}
-                        fieldType={change.fieldType}
-                        isStrikethrough={true}
-                      />
-                    </div>
-                    <div className="text-sm">
-                      <FieldValue value={change.after} fieldType={change.fieldType} />
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
+            <ChangesTable displayChanges={displayChanges} layout={changesLayout} />
           )}
         </div>
       );
@@ -370,10 +381,12 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
                 onClick={(e) => e.stopPropagation()}
                 className="text-sm text-gray-900 truncate hover:text-indigo-600 hover:underline transition-colors"
               >
-                {approval.recordName}
+                {approval.recordName || approval.label || 'Record'}
               </a>
             ) : (
-              <span className="text-sm text-gray-900 truncate">{approval.recordName}</span>
+              <span className="text-sm text-gray-900 truncate">
+                {approval.recordName || approval.label || 'Record'}
+              </span>
             )}
           </div>
           <span className="text-xs text-gray-600 shrink-0 ml-2">
@@ -383,53 +396,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
 
         {/* Expanded content - Changes/Fields table */}
         {isExpanded && displayChanges.length > 0 && (
-          <div className="border-t border-gray-100">
-            {/* Table header - 2 columns for CREATE (Field | Value), 3 for UPDATE (Field | Before | After) */}
-            {!showBeforeColumn ? (
-              <div className="grid grid-cols-[1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
-                <span className="text-xs font-medium text-gray-700 tracking-wide">Value</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-[1fr_1fr_1fr] px-4 py-2 bg-gray-50 border-b border-gray-100">
-                <span className="text-xs font-medium text-gray-700 tracking-wide">Field</span>
-                <span className="text-xs font-medium text-gray-700 tracking-wide">Before</span>
-                <span className="text-xs font-medium text-gray-700 tracking-wide">After</span>
-              </div>
-            )}
-
-            {/* Table rows */}
-            {displayChanges.map((change, idx) =>
-              !showBeforeColumn ? (
-                <div
-                  key={idx}
-                  className="grid grid-cols-[1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
-                >
-                  <span className="text-sm text-gray-900">{change.field}</span>
-                  <div className="text-sm">
-                    <FieldValue value={change.after} fieldType={change.fieldType} />
-                  </div>
-                </div>
-              ) : (
-                <div
-                  key={idx}
-                  className="grid grid-cols-[1fr_1fr_1fr] px-3 py-2 border-b border-gray-100 last:border-b-0 items-start"
-                >
-                  <span className="text-sm text-gray-900">{change.field}</span>
-                  <div className="text-sm">
-                    <FieldValue
-                      value={change.before}
-                      fieldType={change.fieldType}
-                      isStrikethrough={true}
-                    />
-                  </div>
-                  <div className="text-sm">
-                    <FieldValue value={change.after} fieldType={change.fieldType} />
-                  </div>
-                </div>
-              )
-            )}
-          </div>
+          <ChangesTable displayChanges={displayChanges} layout={changesLayout} />
         )}
 
         {/* Action buttons - only shown when expanded and not hidden (hidden in bulk context) */}

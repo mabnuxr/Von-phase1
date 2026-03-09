@@ -29,6 +29,7 @@ import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import { WriteBlockedBanner } from "./WriteBlockedBanner";
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -131,6 +132,14 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
         /* Deep Research Mode */
         <>
           {banner}
+          {chatV2.writeBlocked && (
+            <div className="w-full max-w-4xl mx-auto mb-2 px-2">
+              <WriteBlockedBanner
+                writeBlocked={chatV2.writeBlocked}
+                onDismiss={chatV2.dismissWriteBlocked}
+              />
+            </div>
+          )}
           <DeepResearchConversation
             messages={chatV2.transformedMessages}
             userName={user?.firstName || user?.name?.split(" ")[0]}
@@ -180,7 +189,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               width="100%"
               showMessagesFromIndex={chatV2.showMessagesFromIndex}
               onArtifactClick={chatV2.handleArtifactClick}
-              banner={banner}
+              banner={
+                <>
+                  {banner}
+                  {chatV2.writeBlocked && (
+                    <WriteBlockedBanner
+                      writeBlocked={chatV2.writeBlocked}
+                      onDismiss={chatV2.dismissWriteBlocked}
+                    />
+                  )}
+                </>
+              }
               disableSubmit={!chatV2.canSubmitFinal}
               examplePromptsDisabled={!chatV2.canSubmitFinal}
               onExamplePromptDisabledClick={onDisabledInteraction}

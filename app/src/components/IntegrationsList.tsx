@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { IntegrationCard } from '@vonlabs/design-components';
 import { usePermissions } from '../hooks/usePermissions';
 import { useFeatureFlag } from '../hooks/useFeatureFlag';
+import { useSetSalesforceScope } from '../hooks/useIntegrations';
 import { Resource, AuthenticationStatus } from '../services';
+import type { SalesforceWriteScope } from '../services';
 import {
   getAllIntegrations,
   canBeOrgLevel,
@@ -12,6 +14,13 @@ import {
 } from '../constants/integrationMetadata';
 import type { Integration } from './IntegrationsPanel';
 import { getUserContext } from '../lib/auth';
+import {
+  DotsThreeVertical,
+  CaretRight,
+  TrashSimple,
+  ShieldCheck,
+  Check,
+} from '@phosphor-icons/react';
 
 /**
  * Get backend user ID from stored user context (set during token exchange)
@@ -53,6 +62,7 @@ interface IntegrationsListProps {
           config: Record<string, unknown>;
           accessLevel: string;
           readonly: boolean;
+          scope?: SalesforceWriteScope;
         }[];
       }
     | undefined;
@@ -73,6 +83,151 @@ interface IntegrationItemProps {
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: 'tenant' | 'user') => void;
   onDelete: (id: string, connectionType: 'workspace' | 'personal' | 'both') => void;
+}
+
+const SCOPE_OPTIONS: {
+  value: SalesforceWriteScope;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'full_access',
+    label: 'Read & Write',
+    description: 'Read and update Salesforce for all users',
+  },
+  {
+    value: 'user_level_write',
+    label: 'Write with Personal Login',
+    description: 'Read for all users, but updates require each user to connect their Salesforce',
+  },
+  {
+    value: 'read_only',
+    label: 'Read Only',
+    description: 'Only read from Salesforce — no updates will be made',
+  },
+];
+
+function SalesforceScopeMenu({
+  currentScope,
+  onDelete,
+}: {
+  currentScope: SalesforceWriteScope;
+  onDelete?: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showScopeSubmenu, setShowScopeSubmenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const setScopeMutation = useSetSalesforceScope();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setShowScopeSubmenu(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  const handleSelect = (scope: SalesforceWriteScope) => {
+    if (scope === currentScope) return;
+    setScopeMutation.mutate(scope, {
+      onSuccess: () => {
+        setIsOpen(false);
+        setShowScopeSubmenu(false);
+      },
+    });
+  };
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setShowScopeSubmenu(false);
+        }}
+        className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+          isOpen ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-200 text-gray-600'
+        }`}
+        aria-label="Open settings"
+      >
+        <DotsThreeVertical size={18} weight="bold" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50">
+          {/* Vonage Permissions */}
+          <div className="relative">
+            <button
+              onClick={() => setShowScopeSubmenu(!showScopeSubmenu)}
+              className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
+                showScopeSubmenu ? 'bg-gray-100/80' : 'hover:bg-gray-100/80'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck size={14} className="text-gray-800" />
+                <span>Access Permissions</span>
+              </div>
+              <CaretRight size={14} className="text-gray-400" />
+            </button>
+
+            {/* Scope Submenu */}
+            {showScopeSubmenu && (
+              <div className="absolute right-full top-0 mr-1 w-64 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+                {SCOPE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleSelect(option.value)}
+                    disabled={setScopeMutation.isPending}
+                    className={`w-full text-left rounded-xl px-3 py-2 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                      option.value === currentScope ? 'bg-green-50' : 'hover:bg-gray-100/80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-sm font-medium ${
+                          option.value === currentScope ? 'text-green-800' : 'text-gray-900'
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                      {option.value === currentScope && (
+                        <Check size={14} weight="bold" className="text-green-600 flex-shrink-0" />
+                      )}
+                    </div>
+                    <p
+                      className={`text-xs mt-0.5 ${
+                        option.value === currentScope ? 'text-green-600' : 'text-gray-500'
+                      }`}
+                    >
+                      {option.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Remove Connection */}
+          {onDelete && (
+            <button
+              onClick={() => {
+                onDelete();
+                setIsOpen(false);
+              }}
+              className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer"
+            >
+              <TrashSimple size={14} />
+              <span>Remove Connection</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -143,6 +298,12 @@ function IntegrationItem({
     personal &&
     (loadingIntegrationId === personal.id || (personalIsAuthenticating && !personalIsTimedOut));
 
+  // Salesforce scope - read from workspace config if available
+  const isSalesforce = item.id === 'salesforce';
+  const currentScope = (workspaceBackendIntegration?.scope ??
+    'full_access') as SalesforceWriteScope;
+  const canEditScope = isSalesforce && workspace && workspacePerms?.update;
+
   // Case 1: Not connected at all - show as available
   // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
   if (!isConnected) {
@@ -208,11 +369,27 @@ function IntegrationItem({
         chips={chips}
         modifiedBy={modifiedBy}
         instanceUrl={instanceUrl}
-        onDelete={personalPerms?.delete ? () => onDelete(personal.id, connectionType) : undefined}
-        canDelete={personalPerms?.delete ?? false}
+        onDelete={
+          canEditScope
+            ? undefined
+            : personalPerms?.delete
+              ? () => onDelete(personal.id, connectionType)
+              : undefined
+        }
+        canDelete={canEditScope ? false : (personalPerms?.delete ?? false)}
         disabled={!!isLoading}
         loadingText={isLoading ? 'Authenticating' : undefined}
         deleteTooltip={deleteTooltip}
+        actionSlot={
+          canEditScope ? (
+            <SalesforceScopeMenu
+              currentScope={currentScope}
+              onDelete={
+                personalPerms?.delete ? () => onDelete(personal.id, connectionType) : undefined
+              }
+            />
+          ) : undefined
+        }
       />
     );
   }
@@ -245,6 +422,10 @@ function IntegrationItem({
         ? ['workspace', 'personal', 'connected']
         : ['workspace', 'connected'];
 
+    const handleWorkspaceDelete = workspacePerms?.delete
+      ? () => onDelete(workspace.id, isOwner && canConnectPersonal ? 'both' : 'workspace')
+      : undefined;
+
     return (
       <div>
         <IntegrationCard
@@ -254,18 +435,19 @@ function IntegrationItem({
           chips={chips}
           modifiedBy={modifiedBy}
           instanceUrl={instanceUrl}
-          onDelete={
-            workspacePerms?.delete
-              ? () => onDelete(workspace.id, isOwner && canConnectPersonal ? 'both' : 'workspace')
-              : undefined
-          }
-          canDelete={workspacePerms?.delete ?? false}
+          onDelete={canEditScope ? undefined : handleWorkspaceDelete}
+          canDelete={canEditScope ? false : (workspacePerms?.delete ?? false)}
           disabled={!!workspaceIsLoading}
           loadingText={workspaceIsLoading ? 'Authenticating' : undefined}
           deleteTooltip={
             isOwner && canConnectPersonal
               ? 'Removes both workspace and personal connections'
               : 'Removes workspace connection'
+          }
+          actionSlot={
+            canEditScope ? (
+              <SalesforceScopeMenu currentScope={currentScope} onDelete={handleWorkspaceDelete} />
+            ) : undefined
           }
         />
         {canConnectPersonal && !isOwner && (

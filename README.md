@@ -71,6 +71,107 @@ All environment variables are managed at the **workspace root level** in `.env`:
 
 ---
 
+## von-fe CLI
+
+`von-fe` is the frontend CLI that wraps common development tasks behind a single command. It is entirely optional — **every `von-fe` command has a direct `npm` equivalent** and you can use whichever you prefer.
+
+### Install the CLI
+
+Run the setup script once after cloning the repo. It makes `bin/von-fe` executable, detects your Node binary (including nvm), and installs a `von-fe` wrapper into your PATH.
+
+```bash
+bash setup.sh
+```
+
+After installation, open a new terminal (or `source ~/.zshrc`) and verify:
+
+```bash
+von-fe help
+```
+
+> **Note:** `setup.sh` is idempotent — safe to re-run after pulling updates.
+
+---
+
+### First-time Environment Setup
+
+You must configure your environment before starting the app. You can do this with `von-fe` or `npm` — both produce the same result.
+
+#### Option A — von-fe (guided)
+
+**Step 1:** Run init. This creates a `seed.cfg` file with all required environment keys (no values).
+
+```bash
+von-fe setup init
+```
+
+**Step 2:** Open `seed.cfg` and fill in your values.
+
+```bash
+# seed.cfg is your personal config file — it is gitignored
+# Key variables to fill in:
+#
+#   VITE_API_BASE_URL          → backend API URL (e.g. http://localhost:8000)
+#   VITE_SCALEKIT_AUTH_BASE_URL → your ScaleKit environment URL
+#   VITE_SCALEKIT_CLIENT_ID    → your ScaleKit client ID
+#   VITE_SCALEKIT_REDIRECT_URI → OAuth callback URL
+```
+
+**Step 3:** Re-run init. This copies `seed.cfg` → `.env` and runs `npm install` + builds design-components.
+
+```bash
+von-fe setup init
+```
+
+#### Option B — npm (manual)
+
+```bash
+# 1. Create .env manually
+cp .env.example .env   # or copy from a teammate's .env
+
+# 2. Edit .env and fill in your values, then:
+npm run setup          # runs: npm install && npm run build:design
+```
+
+> Both options install the same dependencies and produce the same `.env` + `node_modules` result.
+
+---
+
+### ScaleKit Configuration
+
+ScaleKit is used for SAML/OAuth authentication and organization management. Each developer needs their own ScaleKit environment credentials.
+
+1. Sign up at [app.scalekit.com](https://app.scalekit.com) using your `@vonlabs.ai` email
+2. Create a new environment/project in the dashboard
+3. Copy the **Environment URL** → set as `VITE_SCALEKIT_AUTH_BASE_URL`
+4. Generate **API credentials** and copy the **Client ID** → set as `VITE_SCALEKIT_CLIENT_ID`
+5. Set `VITE_SCALEKIT_REDIRECT_URI` to `http://localhost:5173/callback` (or the port your app runs on)
+
+The authorize/token/logout paths (`/oauth/authorize`, `/oauth/token`, `/oauth/logout`) are standard and do not need to be changed.
+
+---
+
+### Daily Development
+
+| Task | von-fe | npm equivalent |
+|------|--------|----------------|
+| Start app | `von-fe dev up:app` | `npm run dev:app` |
+| Start Storybook | `von-fe dev up:storybook` | `npm run dev:design` |
+| Stop app | `von-fe dev down:app` | Ctrl+C in the terminal |
+| Stop Storybook | `von-fe dev down:storybook` | Ctrl+C in the terminal |
+| Tail app logs | `von-fe logs app` | — |
+| Build everything | `von-fe build` | `npm run build:all` |
+| Build app only | `von-fe build app` | `npm run build:app` |
+| Build design-components | `von-fe build design` | `npm run build:design` |
+| Lint | `von-fe lint` | `npm run lint:all` |
+| Type check | `von-fe typecheck` | `npm run typecheck:all` |
+| Clean node_modules | `von-fe clean` | `npm run clean` |
+
+> **`von-fe dev up:*`** starts services in the background and writes logs to `.von/logs/<service>.log`.
+> Use `von-fe logs app` to tail the output without blocking your terminal.
+
+---
+
 ## Development
 
 ### Run the Application (App)

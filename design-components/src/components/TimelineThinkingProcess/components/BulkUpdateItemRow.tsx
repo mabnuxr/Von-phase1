@@ -7,7 +7,7 @@ import {
   SpinnerIcon,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { BulkOperation } from '../types';
+import type { BulkOperation, FieldChange } from '../types';
 import { formatValue } from '../utils/formatValue';
 
 // ============================================================================
@@ -47,17 +47,9 @@ export const BulkUpdateItemRow: React.FC<BulkUpdateItemRowProps> = ({
         ? 'create'
         : 'update';
 
-  // For CREATE operations, convert fields to changes format for display
-  const displayData =
-    operation.changes && operation.changes.length > 0
-      ? operation.changes
-      : operation.operation === 'create' && operation.fields
-        ? Object.entries(operation.fields).map(([field, value]) => ({
-            field,
-            after: value,
-            before: undefined,
-          }))
-        : [];
+  // changes is the universal display format for all operations
+  const displayData: FieldChange[] =
+    operation.changes && operation.changes.length > 0 ? operation.changes : [];
 
   return (
     <div className={`${!isFirst ? 'border-t border-gray-100' : ''}`}>
@@ -135,12 +127,16 @@ export const BulkUpdateItemRow: React.FC<BulkUpdateItemRowProps> = ({
                         <span className="text-red-500 line-through truncate">
                           {formatValue(change.before)}
                         </span>
-                        <span className="text-gray-300 flex-shrink-0">→</span>
+                        {change.after !== undefined && change.after !== null && (
+                          <span className="text-gray-300 shrink-0">→</span>
+                        )}
                       </>
                     )}
-                    <span className="text-gray-900 font-medium truncate">
-                      {formatValue(change.after)}
-                    </span>
+                    {change.after !== undefined && change.after !== null && (
+                      <span className="text-gray-900 font-medium truncate">
+                        {formatValue(change.after)}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
