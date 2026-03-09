@@ -1101,7 +1101,7 @@ export interface ChatProps {
    * Ref for infinite scroll trigger (load older messages)
    * Place this at the top of the messages container
    */
-  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+  loadMoreRef?: React.Ref<HTMLDivElement | null>;
 
   /**
    * Whether currently fetching older messages (for infinite scroll)
