@@ -1,13 +1,13 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { SearchIcon, MoreVerticalIcon, TrashIcon } from "../icons";
-import { useTeamMembers, useRemoveTeamMember } from "../../hooks/useTeam";
-import { useUser } from "../../hooks/useUser";
-import { usePermissions, Resource } from "../../hooks/usePermissions";
-import usePreferencesStore from "../../store/preferencesStore";
-import { Banner, Tooltip } from "@vonlabs/design-components";
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { SearchIcon, MoreVerticalIcon, TrashIcon } from '../icons';
+import { useTeamMembers, useRemoveTeamMember } from '../../hooks/useTeam';
+import { useUser } from '../../hooks/useUser';
+import { usePermissions, Resource } from '../../hooks/usePermissions';
+import usePreferencesStore from '../../store/preferencesStore';
+import { Banner, Tooltip } from '@vonlabs/design-components';
 
 export function ManageUsersTab() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     userId: string;
@@ -45,9 +45,9 @@ export function ManageUsersTab() {
     };
 
     if (openMenuUserId) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
       return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener('mousedown', handleClickOutside);
       };
     }
   }, [openMenuUserId]);
@@ -66,7 +66,7 @@ export function ManageUsersTab() {
         user.firstName.toLowerCase().includes(query) ||
         user.lastName.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
-        user.role.toLowerCase().includes(query),
+        user.role.toLowerCase().includes(query)
     );
   }, [searchQuery, teamMembers]);
 
@@ -88,7 +88,7 @@ export function ManageUsersTab() {
       setDeleteConfirmation(null);
       setShowSuccessBanner(true);
     } catch (error) {
-      console.error("Failed to remove team member:", error);
+      console.error('Failed to remove team member:', error);
       setDeleteConfirmation(null);
       // Error is already handled by the mutation's onError callback
     }
@@ -103,12 +103,12 @@ export function ManageUsersTab() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   };
 
@@ -232,25 +232,18 @@ export function ManageUsersTab() {
           {/* Error State */}
           {error && (
             <div className="flex items-center justify-center min-h-[300px]">
-              <p className="text-sm text-red-600">
-                Failed to load team members. Please try again.
-              </p>
+              <p className="text-sm text-red-600">Failed to load team members. Please try again.</p>
             </div>
           )}
 
           {/* Empty State */}
-          {!isLoading &&
-            !error &&
-            teamMembers &&
-            filteredUsers.length === 0 && (
-              <div className="flex items-center justify-center min-h-[300px]">
-                <p className="text-sm text-gray-500">
-                  {searchQuery
-                    ? "No users found matching your search"
-                    : "No team members yet"}
-                </p>
-              </div>
-            )}
+          {!isLoading && !error && teamMembers && filteredUsers.length === 0 && (
+            <div className="flex items-center justify-center min-h-[300px]">
+              <p className="text-sm text-gray-500">
+                {searchQuery ? 'No users found matching your search' : 'No team members yet'}
+              </p>
+            </div>
+          )}
 
           {/* Data Table */}
           {!isLoading && !error && teamMembers && filteredUsers.length > 0 && (
@@ -302,19 +295,14 @@ export function ManageUsersTab() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((member) => (
-                    <tr
-                      key={member.id}
-                      className="hover:bg-gray-50 transition-colors duration-150"
-                    >
+                    <tr key={member.id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {member.firstName} {member.lastName}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">
-                          {member.email}
-                        </div>
+                        <div className="text-sm text-gray-700">{member.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
@@ -326,22 +314,15 @@ export function ManageUsersTab() {
                           content={
                             <div className="flex flex-col gap-1">
                               <span>
-                                Last 7d:{" "}
-                                <span className="font-medium">
-                                  {member.usage.last_week}
-                                </span>
+                                Last 7d:{' '}
+                                <span className="font-medium">{member.usage.last_week}</span>
                               </span>
                               <span>
-                                Last 30d:{" "}
-                                <span className="font-medium">
-                                  {member.usage.last_month}
-                                </span>
+                                Last 30d:{' '}
+                                <span className="font-medium">{member.usage.last_month}</span>
                               </span>
                               <span>
-                                All time:{" "}
-                                <span className="font-medium">
-                                  {member.usage.total}
-                                </span>
+                                All time: <span className="font-medium">{member.usage.total}</span>
                               </span>
                             </div>
                           }
@@ -352,9 +333,7 @@ export function ManageUsersTab() {
                         </Tooltip>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">
-                          {formatDate(member.joinedDate)}
-                        </div>
+                        <div className="text-sm text-gray-600">{formatDate(member.joinedDate)}</div>
                       </td>
                       {canDeleteTeamMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -379,16 +358,14 @@ export function ManageUsersTab() {
                                     onClick={() =>
                                       handleDeleteUser(
                                         member.id,
-                                        `${member.firstName} ${member.lastName}`,
+                                        `${member.firstName} ${member.lastName}`
                                       )
                                     }
                                     disabled={removeMutation.isPending}
                                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                                   >
                                     <TrashIcon className="w-4 h-4" />
-                                    {removeMutation.isPending
-                                      ? "Removing..."
-                                      : "Delete User"}
+                                    {removeMutation.isPending ? 'Removing...' : 'Delete User'}
                                   </button>
                                 </div>
                               )}
@@ -448,14 +425,10 @@ export function ManageUsersTab() {
 
                 {/* Content */}
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Remove Team Member
-                  </h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove Team Member</h3>
                   <p className="text-sm text-gray-600 mb-6">
-                    Are you sure you want to remove{" "}
-                    <span className="font-medium text-gray-900">
-                      {deleteConfirmation.userName}
-                    </span>{" "}
+                    Are you sure you want to remove{' '}
+                    <span className="font-medium text-gray-900">{deleteConfirmation.userName}</span>{' '}
                     from the team? This action cannot be undone.
                   </p>
 
@@ -472,7 +445,7 @@ export function ManageUsersTab() {
                       disabled={removeMutation.isPending}
                       className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      {removeMutation.isPending ? "Removing..." : "Remove"}
+                      {removeMutation.isPending ? 'Removing...' : 'Remove'}
                     </button>
                   </div>
                 </div>

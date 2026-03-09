@@ -161,8 +161,8 @@ export function useReconciliation({
         (e) => e.event?.type === "RUN_FINISHED",
       );
       const reconciledPhase = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
-            ?.phase ?? null)
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result?.phase ??
+          null)
         : undefined;
       const reconciledDashboard = runFinishedEvent
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
