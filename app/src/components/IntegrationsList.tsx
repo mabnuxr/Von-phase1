@@ -1,26 +1,26 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
-import { IntegrationCard } from '@vonlabs/design-components';
-import { usePermissions } from '../hooks/usePermissions';
-import { useFeatureFlag } from '../hooks/useFeatureFlag';
-import { useSetSalesforceScope } from '../hooks/useIntegrations';
-import { Resource, AuthenticationStatus } from '../services';
-import type { SalesforceWriteScope } from '../services';
+import { useMemo, useState, useRef, useEffect } from "react";
+import { IntegrationCard } from "@vonlabs/design-components";
+import { usePermissions } from "../hooks/usePermissions";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useSetSalesforceScope } from "../hooks/useIntegrations";
+import { Resource, AuthenticationStatus } from "../services";
+import type { SalesforceWriteScope } from "../services";
 import {
   getAllIntegrations,
   canBeOrgLevel,
   canBeUserLevel,
   getFrontendIntegrationId,
   type IntegrationMetadata,
-} from '../constants/integrationMetadata';
-import type { Integration } from './IntegrationsPanel';
-import { getUserContext } from '../lib/auth';
+} from "../constants/integrationMetadata";
+import type { Integration } from "./IntegrationsPanel";
+import { getUserContext } from "../lib/auth";
 import {
   DotsThreeVertical,
   CaretRight,
   TrashSimple,
   ShieldCheck,
   Check,
-} from '@phosphor-icons/react';
+} from "@phosphor-icons/react";
 
 /**
  * Get backend user ID from stored user context (set during token exchange)
@@ -32,23 +32,23 @@ function getBackendUserId(): string | null {
 
 // Define category order for display
 const CATEGORY_ORDER: Array<
-  | 'CRM'
-  | 'Calendar'
-  | 'Call Recorder'
-  | 'Internal Documents'
-  | 'Sales Engagement'
-  | 'Data Warehouse'
-  | 'Customer Support'
-  | 'Other'
+  | "CRM"
+  | "Calendar"
+  | "Call Recorder"
+  | "Internal Documents"
+  | "Sales Engagement"
+  | "Data Warehouse"
+  | "Customer Support"
+  | "Other"
 > = [
-  'CRM',
-  'Calendar',
-  'Call Recorder',
-  'Internal Documents',
-  'Sales Engagement',
-  'Data Warehouse',
-  'Customer Support',
-  'Other',
+  "CRM",
+  "Calendar",
+  "Call Recorder",
+  "Internal Documents",
+  "Sales Engagement",
+  "Data Warehouse",
+  "Customer Support",
+  "Other",
 ];
 
 interface IntegrationsListProps {
@@ -68,8 +68,11 @@ interface IntegrationsListProps {
     | undefined;
   loadingIntegrationId: string | null;
   timedOutIntegrations: string[];
-  onConnect: (appId: string, accessLevel: 'tenant' | 'user') => void;
-  onDelete: (id: string, connectionType: 'workspace' | 'personal' | 'both') => void;
+  onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
+  onDelete: (
+    id: string,
+    connectionType: "workspace" | "personal" | "both",
+  ) => void;
 }
 
 interface IntegrationItemProps {
@@ -78,11 +81,14 @@ interface IntegrationItemProps {
     isConnected: boolean;
   };
   allIntegrations: Integration[];
-  integrationsData: IntegrationsListProps['integrationsData'];
+  integrationsData: IntegrationsListProps["integrationsData"];
   loadingIntegrationId: string | null;
   timedOutIntegrations: string[];
-  onConnect: (appId: string, accessLevel: 'tenant' | 'user') => void;
-  onDelete: (id: string, connectionType: 'workspace' | 'personal' | 'both') => void;
+  onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
+  onDelete: (
+    id: string,
+    connectionType: "workspace" | "personal" | "both",
+  ) => void;
 }
 
 const SCOPE_OPTIONS: {
@@ -91,19 +97,20 @@ const SCOPE_OPTIONS: {
   description: string;
 }[] = [
   {
-    value: 'full_access',
-    label: 'Read & Write',
-    description: 'Read and update Salesforce for all users',
+    value: "full_access",
+    label: "Read & Write",
+    description: "Read and update Salesforce for all users",
   },
   {
-    value: 'user_level_write',
-    label: 'Write with Personal Login',
-    description: 'Read for all users, but updates require each user to connect their Salesforce',
+    value: "user_level_write",
+    label: "Write with Personal Login",
+    description:
+      "Read for all users, but updates require each user to connect their Salesforce",
   },
   {
-    value: 'read_only',
-    label: 'Read Only',
-    description: 'Only read from Salesforce — no updates will be made',
+    value: "read_only",
+    label: "Read Only",
+    description: "Only read from Salesforce — no updates will be made",
   },
 ];
 
@@ -127,8 +134,9 @@ function SalesforceScopeMenu({
       }
     };
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
@@ -150,7 +158,9 @@ function SalesforceScopeMenu({
           setShowScopeSubmenu(false);
         }}
         className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
-          isOpen ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-200 text-gray-600'
+          isOpen
+            ? "bg-gray-200 text-gray-900"
+            : "hover:bg-gray-200 text-gray-600"
         }`}
         aria-label="Open settings"
       >
@@ -164,7 +174,7 @@ function SalesforceScopeMenu({
             <button
               onClick={() => setShowScopeSubmenu(!showScopeSubmenu)}
               className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
-                showScopeSubmenu ? 'bg-gray-100/80' : 'hover:bg-gray-100/80'
+                showScopeSubmenu ? "bg-gray-100/80" : "hover:bg-gray-100/80"
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -183,24 +193,34 @@ function SalesforceScopeMenu({
                     onClick={() => handleSelect(option.value)}
                     disabled={setScopeMutation.isPending}
                     className={`w-full text-left rounded-xl px-3 py-2 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
-                      option.value === currentScope ? 'bg-green-50' : 'hover:bg-gray-100/80'
+                      option.value === currentScope
+                        ? "bg-green-50"
+                        : "hover:bg-gray-100/80"
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span
                         className={`text-sm font-medium ${
-                          option.value === currentScope ? 'text-green-800' : 'text-gray-900'
+                          option.value === currentScope
+                            ? "text-green-800"
+                            : "text-gray-900"
                         }`}
                       >
                         {option.label}
                       </span>
                       {option.value === currentScope && (
-                        <Check size={14} weight="bold" className="text-green-600 flex-shrink-0" />
+                        <Check
+                          size={14}
+                          weight="bold"
+                          className="text-green-600 flex-shrink-0"
+                        />
                       )}
                     </div>
                     <p
                       className={`text-xs mt-0.5 ${
-                        option.value === currentScope ? 'text-green-600' : 'text-gray-500'
+                        option.value === currentScope
+                          ? "text-green-600"
+                          : "text-gray-500"
                       }`}
                     >
                       {option.description}
@@ -244,8 +264,8 @@ function IntegrationItem({
   const { connectedInstances, isConnected } = item;
 
   // Determine workspace and personal instances
-  const workspace = connectedInstances.find((i) => i.accessLevel === 'tenant');
-  const personal = connectedInstances.find((i) => i.accessLevel === 'user');
+  const workspace = connectedInstances.find((i) => i.accessLevel === "tenant");
+  const personal = connectedInstances.find((i) => i.accessLevel === "user");
   const hasBoth = workspace && personal;
 
   // Get backend data for workspace integration
@@ -267,7 +287,7 @@ function IntegrationItem({
           owner_id: workspace.userId,
           tenant_id: workspace.tenantId,
         }
-      : undefined
+      : undefined,
   );
 
   // Check permissions for personal instance
@@ -279,29 +299,37 @@ function IntegrationItem({
           owner_id: personal.userId,
           tenant_id: personal.tenantId,
         }
-      : undefined
+      : undefined,
   );
 
   // Loading and timeout states for workspace
   const workspaceIsAuthenticating =
-    workspaceBackendIntegration?.authenticationStatus === AuthenticationStatus.AUTHENTICATING;
-  const workspaceIsTimedOut = workspace ? timedOutIntegrations.includes(workspace.id) : false;
+    workspaceBackendIntegration?.authenticationStatus ===
+    AuthenticationStatus.AUTHENTICATING;
+  const workspaceIsTimedOut = workspace
+    ? timedOutIntegrations.includes(workspace.id)
+    : false;
   const workspaceIsLoading =
     workspace &&
-    (loadingIntegrationId === workspace.id || (workspaceIsAuthenticating && !workspaceIsTimedOut));
+    (loadingIntegrationId === workspace.id ||
+      (workspaceIsAuthenticating && !workspaceIsTimedOut));
 
   // Loading and timeout states for personal
   const personalIsAuthenticating =
-    personalBackendIntegration?.authenticationStatus === AuthenticationStatus.AUTHENTICATING;
-  const personalIsTimedOut = personal ? timedOutIntegrations.includes(personal.id) : false;
+    personalBackendIntegration?.authenticationStatus ===
+    AuthenticationStatus.AUTHENTICATING;
+  const personalIsTimedOut = personal
+    ? timedOutIntegrations.includes(personal.id)
+    : false;
   const personalIsLoading =
     personal &&
-    (loadingIntegrationId === personal.id || (personalIsAuthenticating && !personalIsTimedOut));
+    (loadingIntegrationId === personal.id ||
+      (personalIsAuthenticating && !personalIsTimedOut));
 
   // Salesforce scope - read from workspace config if available
-  const isSalesforce = item.id === 'salesforce';
+  const isSalesforce = item.id === "salesforce";
   const currentScope = (workspaceBackendIntegration?.scope ??
-    'full_access') as SalesforceWriteScope;
+    "full_access") as SalesforceWriteScope;
   const canEditScope = isSalesforce && workspace && workspacePerms?.update;
 
   // Case 1: Not connected at all - show as available
@@ -309,9 +337,9 @@ function IntegrationItem({
   if (!isConnected) {
     // Show access level chips for available integrations
     // Some integrations (like Salesforce) support both levels
-    const availableChips: Array<'workspace' | 'personal'> = [];
-    if (canBeOrgLevel(item.id)) availableChips.push('workspace');
-    if (canBeUserLevel(item.id)) availableChips.push('personal');
+    const availableChips: Array<"workspace" | "personal"> = [];
+    if (canBeOrgLevel(item.id)) availableChips.push("workspace");
+    if (canBeUserLevel(item.id)) availableChips.push("personal");
 
     return (
       <IntegrationCard
@@ -325,7 +353,7 @@ function IntegrationItem({
           item.disabled
             ? undefined
             : () => {
-                const accessLevel = canBeOrgLevel(item.id) ? 'tenant' : 'user';
+                const accessLevel = canBeOrgLevel(item.id) ? "tenant" : "user";
                 onConnect(item.id, accessLevel);
               }
         }
@@ -341,7 +369,8 @@ function IntegrationItem({
         ? `${workspace.ownerFirstName} ${workspace.ownerLastName}`
         : undefined;
 
-    const instanceUrl = workspaceBackendIntegration?.config?.instance_url as string;
+    const instanceUrl = workspaceBackendIntegration?.config
+      ?.instance_url as string;
 
     // Check if current user is the owner of the workspace integration
     const backendUserId = getBackendUserId();
@@ -349,17 +378,17 @@ function IntegrationItem({
 
     // Remove "connected" chip while authenticating
     const isLoading = workspaceIsLoading || personalIsLoading;
-    const chips: Array<'workspace' | 'personal' | 'connected'> = isLoading
-      ? ['workspace', 'personal']
-      : ['workspace', 'personal', 'connected'];
+    const chips: Array<"workspace" | "personal" | "connected"> = isLoading
+      ? ["workspace", "personal"]
+      : ["workspace", "personal", "connected"];
 
     // Determine connection type and tooltip based on ownership
     // Owner: deleting personal cascades to workspace (removes both)
     // Non-owner: only removes their personal connection
-    const connectionType = isOwner ? 'both' : 'personal';
+    const connectionType = isOwner ? "both" : "personal";
     const deleteTooltip = isOwner
-      ? 'Removes both workspace and personal connections'
-      : 'Removes personal connection';
+      ? "Removes both workspace and personal connections"
+      : "Removes personal connection";
 
     return (
       <IntegrationCard
@@ -378,14 +407,16 @@ function IntegrationItem({
         }
         canDelete={canEditScope ? false : (personalPerms?.delete ?? false)}
         disabled={!!isLoading}
-        loadingText={isLoading ? 'Authenticating' : undefined}
+        loadingText={isLoading ? "Authenticating" : undefined}
         deleteTooltip={deleteTooltip}
         actionSlot={
           canEditScope ? (
             <SalesforceScopeMenu
               currentScope={currentScope}
               onDelete={
-                personalPerms?.delete ? () => onDelete(personal.id, connectionType) : undefined
+                personalPerms?.delete
+                  ? () => onDelete(personal.id, connectionType)
+                  : undefined
               }
             />
           ) : undefined
@@ -402,7 +433,8 @@ function IntegrationItem({
         : undefined;
 
     const canConnectPersonal = canBeUserLevel(item.id);
-    const instanceUrl = workspaceBackendIntegration?.config?.instance_url as string;
+    const instanceUrl = workspaceBackendIntegration?.config
+      ?.instance_url as string;
 
     // Get backend user ID from JWT token and check ownership
     const backendUserId = getBackendUserId();
@@ -414,16 +446,21 @@ function IntegrationItem({
     //   - Non-owner sees only workspace chip
     // For workspace-only integrations: Always show only workspace chip
     // Remove "connected" chip while authenticating
-    const chips: Array<'workspace' | 'personal' | 'connected'> = workspaceIsLoading
-      ? isOwner && canConnectPersonal
-        ? ['workspace', 'personal']
-        : ['workspace']
-      : isOwner && canConnectPersonal
-        ? ['workspace', 'personal', 'connected']
-        : ['workspace', 'connected'];
+    const chips: Array<"workspace" | "personal" | "connected"> =
+      workspaceIsLoading
+        ? isOwner && canConnectPersonal
+          ? ["workspace", "personal"]
+          : ["workspace"]
+        : isOwner && canConnectPersonal
+          ? ["workspace", "personal", "connected"]
+          : ["workspace", "connected"];
 
     const handleWorkspaceDelete = workspacePerms?.delete
-      ? () => onDelete(workspace.id, isOwner && canConnectPersonal ? 'both' : 'workspace')
+      ? () =>
+          onDelete(
+            workspace.id,
+            isOwner && canConnectPersonal ? "both" : "workspace",
+          )
       : undefined;
 
     return (
@@ -438,22 +475,25 @@ function IntegrationItem({
           onDelete={canEditScope ? undefined : handleWorkspaceDelete}
           canDelete={canEditScope ? false : (workspacePerms?.delete ?? false)}
           disabled={!!workspaceIsLoading}
-          loadingText={workspaceIsLoading ? 'Authenticating' : undefined}
+          loadingText={workspaceIsLoading ? "Authenticating" : undefined}
           deleteTooltip={
             isOwner && canConnectPersonal
-              ? 'Removes both workspace and personal connections'
-              : 'Removes workspace connection'
+              ? "Removes both workspace and personal connections"
+              : "Removes workspace connection"
           }
           actionSlot={
             canEditScope ? (
-              <SalesforceScopeMenu currentScope={currentScope} onDelete={handleWorkspaceDelete} />
+              <SalesforceScopeMenu
+                currentScope={currentScope}
+                onDelete={handleWorkspaceDelete}
+              />
             ) : undefined
           }
         />
         {canConnectPersonal && !isOwner && (
           <div className="pl-[72px] pr-4 py-[5px] bg-white border-t border-gray-100 flex items-center">
             <button
-              onClick={() => onConnect(item.id, 'user')}
+              onClick={() => onConnect(item.id, "user")}
               className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
             >
               Connect your personal {item.name}
@@ -466,12 +506,13 @@ function IntegrationItem({
 
   // Case 4: Personal only
   if (personal) {
-    const instanceUrl = personalBackendIntegration?.config?.instance_url as string;
+    const instanceUrl = personalBackendIntegration?.config
+      ?.instance_url as string;
 
     // Remove "connected" chip while authenticating
-    const chips: Array<'personal' | 'connected'> = personalIsLoading
-      ? ['personal']
-      : ['personal', 'connected'];
+    const chips: Array<"personal" | "connected"> = personalIsLoading
+      ? ["personal"]
+      : ["personal", "connected"];
 
     return (
       <IntegrationCard
@@ -480,10 +521,14 @@ function IntegrationItem({
         integrationLogoPath={personal.integrationLogoPath}
         chips={chips}
         instanceUrl={instanceUrl}
-        onDelete={personalPerms?.delete ? () => onDelete(personal.id, 'personal') : undefined}
+        onDelete={
+          personalPerms?.delete
+            ? () => onDelete(personal.id, "personal")
+            : undefined
+        }
         canDelete={personalPerms?.delete ?? false}
         disabled={!!personalIsLoading}
-        loadingText={personalIsLoading ? 'Authenticating' : undefined}
+        loadingText={personalIsLoading ? "Authenticating" : undefined}
         deleteTooltip="Removes personal connection"
       />
     );
@@ -509,7 +554,7 @@ export function IntegrationsList({
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
     return apps.filter((app) => {
-      if (app.id === 'googledrive' && !isGoogleDriveEnabled) return false;
+      if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
       return true;
     });
   }, [isGoogleDriveEnabled]);
@@ -522,7 +567,10 @@ export function IntegrationsList({
       const connectedInstances = integrations.filter((i) => {
         if (getFrontendIntegrationId(i.type) !== app.id) return false;
         // Include if authenticated OR currently authenticating
-        return i.enabled || i.authenticationStatus === AuthenticationStatus.AUTHENTICATING;
+        return (
+          i.enabled ||
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
+        );
       });
       return {
         ...app,
@@ -540,7 +588,7 @@ export function IntegrationsList({
         acc[item.category].push(item);
         return acc;
       },
-      {} as Record<string, typeof mergedData>
+      {} as Record<string, typeof mergedData>,
     );
   }, [mergedData]);
 

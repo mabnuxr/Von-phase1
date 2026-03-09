@@ -1,18 +1,23 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { SearchIcon } from '../icons';
-import { DotsThreeVertical, CaretRight, ShieldCheck, TrashSimple } from '@phosphor-icons/react';
+import { useState, useMemo, useRef, useEffect } from "react";
+import { SearchIcon } from "../icons";
+import {
+  DotsThreeVertical,
+  CaretRight,
+  ShieldCheck,
+  TrashSimple,
+} from "@phosphor-icons/react";
 import {
   useTeamMembers,
   useRemoveTeamMember,
   useUpdateMemberPermissions,
-} from '../../hooks/useTeam';
-import { useUser } from '../../hooks/useUser';
-import { usePermissions, Resource } from '../../hooks/usePermissions';
-import usePreferencesStore from '../../store/preferencesStore';
-import { Banner, Tooltip } from '@vonlabs/design-components';
+} from "../../hooks/useTeam";
+import { useUser } from "../../hooks/useUser";
+import { usePermissions, Resource } from "../../hooks/usePermissions";
+import usePreferencesStore from "../../store/preferencesStore";
+import { Banner, Tooltip } from "@vonlabs/design-components";
 
 export function ManageUsersTab() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
   const [showPermissionsSubmenu, setShowPermissionsSubmenu] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -55,9 +60,9 @@ export function ManageUsersTab() {
     };
 
     if (openMenuUserId) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener("mousedown", handleClickOutside);
       };
     }
   }, [openMenuUserId]);
@@ -76,7 +81,7 @@ export function ManageUsersTab() {
         user.firstName.toLowerCase().includes(query) ||
         user.lastName.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
-        user.role.toLowerCase().includes(query)
+        user.role.toLowerCase().includes(query),
     );
   }, [searchQuery, teamMembers]);
 
@@ -98,7 +103,7 @@ export function ManageUsersTab() {
       setDeleteConfirmation(null);
       setShowSuccessBanner(true);
     } catch (error) {
-      console.error('Failed to remove team member:', error);
+      console.error("Failed to remove team member:", error);
       setDeleteConfirmation(null);
       // Error is already handled by the mutation's onError callback
     }
@@ -122,12 +127,12 @@ export function ManageUsersTab() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -251,18 +256,25 @@ export function ManageUsersTab() {
           {/* Error State */}
           {error && (
             <div className="flex items-center justify-center min-h-[300px]">
-              <p className="text-sm text-red-600">Failed to load team members. Please try again.</p>
+              <p className="text-sm text-red-600">
+                Failed to load team members. Please try again.
+              </p>
             </div>
           )}
 
           {/* Empty State */}
-          {!isLoading && !error && teamMembers && filteredUsers.length === 0 && (
-            <div className="flex items-center justify-center min-h-[300px]">
-              <p className="text-sm text-gray-500">
-                {searchQuery ? 'No users found matching your search' : 'No team members yet'}
-              </p>
-            </div>
-          )}
+          {!isLoading &&
+            !error &&
+            teamMembers &&
+            filteredUsers.length === 0 && (
+              <div className="flex items-center justify-center min-h-[300px]">
+                <p className="text-sm text-gray-500">
+                  {searchQuery
+                    ? "No users found matching your search"
+                    : "No team members yet"}
+                </p>
+              </div>
+            )}
 
           {/* Data Table */}
           {!isLoading && !error && teamMembers && filteredUsers.length > 0 && (
@@ -314,14 +326,19 @@ export function ManageUsersTab() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((member) => (
-                    <tr key={member.id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <tr
+                      key={member.id}
+                      className="hover:bg-gray-50 transition-colors duration-150"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {member.firstName} {member.lastName}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">{member.email}</div>
+                        <div className="text-sm text-gray-700">
+                          {member.email}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
@@ -333,15 +350,22 @@ export function ManageUsersTab() {
                           content={
                             <div className="flex flex-col gap-1">
                               <span>
-                                Last 7d:{' '}
-                                <span className="font-medium">{member.usage.last_week}</span>
+                                Last 7d:{" "}
+                                <span className="font-medium">
+                                  {member.usage.last_week}
+                                </span>
                               </span>
                               <span>
-                                Last 30d:{' '}
-                                <span className="font-medium">{member.usage.last_month}</span>
+                                Last 30d:{" "}
+                                <span className="font-medium">
+                                  {member.usage.last_month}
+                                </span>
                               </span>
                               <span>
-                                All time: <span className="font-medium">{member.usage.total}</span>
+                                All time:{" "}
+                                <span className="font-medium">
+                                  {member.usage.total}
+                                </span>
                               </span>
                             </div>
                           }
@@ -352,7 +376,9 @@ export function ManageUsersTab() {
                         </Tooltip>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{formatDate(member.joinedDate)}</div>
+                        <div className="text-sm text-gray-600">
+                          {formatDate(member.joinedDate)}
+                        </div>
                       </td>
                       {canDeleteTeamMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -361,8 +387,8 @@ export function ManageUsersTab() {
                               onClick={() => toggleMenu(member.id)}
                               className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
                                 openMenuUserId === member.id
-                                  ? 'bg-gray-200 text-gray-900'
-                                  : 'hover:bg-gray-200 text-gray-600'
+                                  ? "bg-gray-200 text-gray-900"
+                                  : "hover:bg-gray-200 text-gray-600"
                               }`}
                               aria-label="Open menu"
                             >
@@ -379,19 +405,27 @@ export function ManageUsersTab() {
                                 <div className="relative">
                                   <button
                                     onClick={() =>
-                                      setShowPermissionsSubmenu(!showPermissionsSubmenu)
+                                      setShowPermissionsSubmenu(
+                                        !showPermissionsSubmenu,
+                                      )
                                     }
                                     className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
                                       showPermissionsSubmenu
-                                        ? 'bg-gray-100/80'
-                                        : 'hover:bg-gray-100/80'
+                                        ? "bg-gray-100/80"
+                                        : "hover:bg-gray-100/80"
                                     }`}
                                   >
                                     <div className="flex items-center gap-2.5">
-                                      <ShieldCheck size={14} className="text-gray-800" />
+                                      <ShieldCheck
+                                        size={14}
+                                        className="text-gray-800"
+                                      />
                                       <span>Access Permissions</span>
                                     </div>
-                                    <CaretRight size={14} className="text-gray-400" />
+                                    <CaretRight
+                                      size={14}
+                                      className="text-gray-400"
+                                    />
                                   </button>
 
                                   {/* Permissions Submenu */}
@@ -402,19 +436,25 @@ export function ManageUsersTab() {
                                           Salesforce Updates
                                         </span>
                                         <button
-                                          onClick={() => handleToggleSfdcWrite(member)}
-                                          disabled={updatePermissionsMutation.isPending}
+                                          onClick={() =>
+                                            handleToggleSfdcWrite(member)
+                                          }
+                                          disabled={
+                                            updatePermissionsMutation.isPending
+                                          }
                                           className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
-                                            (member.permissions?.sfdc_write ?? true)
-                                              ? 'bg-green-500'
-                                              : 'bg-gray-200'
+                                            (member.permissions?.sfdc_write ??
+                                            true)
+                                              ? "bg-green-500"
+                                              : "bg-gray-200"
                                           }`}
                                         >
                                           <span
                                             className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                              (member.permissions?.sfdc_write ?? true)
-                                                ? 'translate-x-4'
-                                                : 'translate-x-0'
+                                              (member.permissions?.sfdc_write ??
+                                              true)
+                                                ? "translate-x-4"
+                                                : "translate-x-0"
                                             }`}
                                           />
                                         </button>
@@ -422,9 +462,9 @@ export function ManageUsersTab() {
                                       <p
                                         className="px-3 pb-2"
                                         style={{
-                                          color: '#9ca3af',
-                                          fontSize: '11px',
-                                          lineHeight: '1.3',
+                                          color: "#9ca3af",
+                                          fontSize: "11px",
+                                          lineHeight: "1.3",
                                         }}
                                       >
                                         Overrides org-level access
@@ -439,14 +479,16 @@ export function ManageUsersTab() {
                                     onClick={() =>
                                       handleDeleteUser(
                                         member.id,
-                                        `${member.firstName} ${member.lastName}`
+                                        `${member.firstName} ${member.lastName}`,
                                       )
                                     }
                                     disabled={removeMutation.isPending}
                                     className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
                                   >
                                     <TrashSimple size={14} />
-                                    {removeMutation.isPending ? 'Removing...' : 'Delete User'}
+                                    {removeMutation.isPending
+                                      ? "Removing..."
+                                      : "Delete User"}
                                   </button>
                                 )}
                               </div>
@@ -506,10 +548,14 @@ export function ManageUsersTab() {
 
                 {/* Content */}
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove Team Member</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Remove Team Member
+                  </h3>
                   <p className="text-sm text-gray-600 mb-6">
-                    Are you sure you want to remove{' '}
-                    <span className="font-medium text-gray-900">{deleteConfirmation.userName}</span>{' '}
+                    Are you sure you want to remove{" "}
+                    <span className="font-medium text-gray-900">
+                      {deleteConfirmation.userName}
+                    </span>{" "}
                     from the team? This action cannot be undone.
                   </p>
 
@@ -526,7 +572,7 @@ export function ManageUsersTab() {
                       disabled={removeMutation.isPending}
                       className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
-                      {removeMutation.isPending ? 'Removing...' : 'Remove'}
+                      {removeMutation.isPending ? "Removing..." : "Remove"}
                     </button>
                   </div>
                 </div>
