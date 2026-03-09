@@ -77,7 +77,7 @@ export interface ChatSidebarProps {
   onPinFolder?: (folderId: string, isPinned: boolean) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+  loadMoreRef?: React.Ref<HTMLDivElement | null>;
   isFetchingMore?: boolean;
   onLogoClick?: () => void;
   userName?: string;
