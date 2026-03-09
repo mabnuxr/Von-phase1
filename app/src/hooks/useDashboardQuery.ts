@@ -25,7 +25,11 @@ interface RawApiWidget {
   title: string;
   query_ref: string;
   layout: { x: number; y: number; w: number; h: number };
-  kpi: { value: string | number | number[]; format?: string; suffix?: string } | null;
+  kpi: {
+    value: string | number | number[];
+    format?: string;
+    suffix?: string;
+  } | null;
   highcharts: Record<string, unknown> | null;
 }
 
@@ -69,7 +73,12 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
   if (raw.type === "kpi" && raw.kpi) {
     const { format, prefix, suffix, decimals } = raw.kpi.format
       ? parseKpiFormat(raw.kpi.format)
-      : { format: "number" as const, prefix: undefined, suffix: undefined, decimals: 0 };
+      : {
+          format: "number" as const,
+          prefix: undefined,
+          suffix: undefined,
+          decimals: 0,
+        };
     // Handle string, number, and array formats for KPI value
     const value = Array.isArray(raw.kpi.value)
       ? (raw.kpi.value[0] ?? 0)
@@ -93,18 +102,30 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
 
   if (raw.type === "chart" && raw.highcharts) {
     const hc = raw.highcharts as Record<string, unknown>;
+    if (typeof hc !== "object" || hc === null) {
+      console.error("[adaptWidget] Invalid highcharts config:", raw);
+      return {
+        id: raw.id,
+        type: raw.type as WidgetConfig["type"],
+        title: raw.title,
+        config: {},
+      } as WidgetConfig;
+    }
     // Normalize yAxis to array — API may return a single object
     const normalizedHc = {
       ...hc,
       ...(hc.yAxis && !Array.isArray(hc.yAxis) ? { yAxis: [hc.yAxis] } : {}),
     };
+    const chartObj =
+      typeof hc.chart === "object" && hc.chart !== null
+        ? (hc.chart as Record<string, unknown>)
+        : {};
     return {
       id: raw.id,
       type: "chart",
       title: raw.title,
       config: {
-        chartType: (((hc.chart as Record<string, unknown>)?.type as string) ??
-          "bar") as ChartType,
+        chartType: ((chartObj.type as string) ?? "bar") as ChartType,
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
     };
@@ -251,5 +272,11 @@ export function useRefreshDashboardMutation(dashboardId: string | undefined) {
         });
       }
     },
+    onMutate: async () => {
+      await queryClient.cancelQueries({
+        queryKey: dashboardKeys.detail(dashboardId!),
+      });
+    },
+    gcTime: 0,
   });
 }

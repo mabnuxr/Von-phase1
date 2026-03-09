@@ -201,9 +201,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
               {availableAgentModes.length > 1 && (
                 <>
                   {/* Divider — only when Upload is also visible */}
-                  {enableFileUpload && (
-                    <div className="my-0.5 border-t border-gray-100 mx-1" />
-                  )}
+                  {enableFileUpload && <div className="my-0.5 border-t border-gray-100 mx-1" />}
 
                   <div
                     className="relative py-0.5"
@@ -213,9 +211,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                     <TransparentButton
                       icon={<RobotIcon size={16} className="text-gray-800" />}
                       rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
-                      onClick={() =>
-                        !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)
-                      }
+                      onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
                     >
                       Agents
                     </TransparentButton>

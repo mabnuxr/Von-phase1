@@ -160,6 +160,10 @@ export function useV2EventProcessor(
     (
       result: ReturnType<typeof transformAguiToTimelineSteps>,
       runId: string,
+      options?: {
+        phase?: "plan-proposed" | "ask" | null;
+        dashboard?: DashboardMetadata | null;
+      },
     ) => {
       flushSync(() => {
         setTimelineSteps(result.steps);
@@ -172,6 +176,12 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
+        if (options?.phase !== undefined && options.phase !== null) {
+          setPhase(options.phase);
+        }
+        if (options?.dashboard !== undefined && options.dashboard !== null) {
+          setDashboard(options.dashboard);
+        }
       });
     },
     [],
@@ -238,7 +248,7 @@ export function useV2EventProcessor(
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [timer, onRunComplete],
+    [timer.stop, timer.set, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
@@ -280,7 +290,7 @@ export function useV2EventProcessor(
       timer.stop();
       timer.set(elapsed);
     },
-    [timer],
+    [timer.stop, timer.set],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -523,7 +533,16 @@ export function useV2EventProcessor(
         console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
-    [conversationId, timer, onRunComplete, scheduleGapFill],
+    [
+      conversationId,
+      timer.start,
+      timer.stop,
+      timer.pause,
+      timer.play,
+      timer.set,
+      onRunComplete,
+      scheduleGapFill,
+    ],
   );
 
   // Seed/reconcile from initialRunEvents on mount or when backend events arrive.
@@ -566,26 +585,9 @@ export function useV2EventProcessor(
     eventsRef.current.set(runId, mergedEvents);
 
     // Apply transform result and set phase/dashboard in same flushSync batch
-    flushSync(() => {
-      // First apply the transform result
-      setTimelineSteps(result.steps);
-      setIsThinking(result.isThinking);
-      setCurrentRunId(runId);
-      setFinalResponse(result.finalResponse);
-      setIsFinalResponseStreaming(result.isFinalResponseStreaming);
-      setIsAwaitingApproval(result.isAwaitingApproval);
-      setResearchResults(result.researchResults);
-      setIsDeepResearchRunning(result.isDeepResearchRunning);
-      setStoppedByUser(result.stoppedByUser);
-      setRunErrorMessage(result.runErrorMessage);
-
-      // Then set phase and dashboard in same batch
-      if (seededPhase !== null) {
-        setPhase(seededPhase);
-      }
-      if (seededDashboard !== null) {
-        setDashboard(seededDashboard);
-      }
+    applyTransformResult(result, runId, {
+      phase: seededPhase,
+      dashboard: seededDashboard,
     });
 
     const elapsed = getElapsedTimeFromEvents(mergedEvents);

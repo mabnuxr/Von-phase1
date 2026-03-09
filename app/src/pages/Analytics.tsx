@@ -40,7 +40,7 @@ const Analytics = () => {
     } catch (error) {
       console.error("[Analytics] Refresh failed:", error);
     }
-  }, [refreshMutation]);
+  }, [refreshMutation.mutateAsync]);
 
   // Collapse left sidebar on mount
   useEffect(() => {

@@ -37,8 +37,7 @@ function AnalyticsChatInner({
   const { user } = useAppShell();
   const { isSourcesEnabled } = useFeatureFlag();
 
-  const { data: currentConversation } =
-    useCurrentConversation(conversationId);
+  const { data: currentConversation } = useCurrentConversation(conversationId);
 
   const { messages } = useChatStore();
   const conversationMessages = useMemo(

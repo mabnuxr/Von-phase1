@@ -319,8 +319,14 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                               label: 'Skip',
                               onClick: () => {
                                 // Call onReject to update backend phase to "plan-rejected"
-                                if (approvalMessage?.messageId && approvalMessage?.runId) {
-                                  onReject?.(approvalMessage.messageId, approvalMessage.runId);
+                                // Find the approval step's toolCallId from timeline steps
+                                const approvalStep = approvalMessage?.timelineSteps?.find(
+                                  (s) => s.type === 'approval' && s.approval?.toolCallId
+                                );
+                                const stepId =
+                                  approvalStep?.approval?.toolCallId ?? approvalStep?.id;
+                                if (stepId && approvalMessage?.runId) {
+                                  onReject?.(stepId, approvalMessage.runId);
                                 }
                                 // Also call onSkip to hide buttons and focus input
                                 onSkip?.();

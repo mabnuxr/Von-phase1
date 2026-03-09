@@ -304,12 +304,15 @@ export const DeepResearchConversation: React.FC<
         className="flex-1 overflow-y-auto flex flex-col bg-white settings-scrollbar"
       >
         {/* Infinite scroll trigger at TOP (for loading older messages) */}
-        {loadMoreMessagesRef && <div ref={loadMoreMessagesRef} className="h-px" />}
+        {loadMoreMessagesRef && (
+          <div ref={loadMoreMessagesRef} className="h-px" />
+        )}
 
         {/* Loading indicator for older messages */}
         {isFetchingNextMessagePage && (
           <div className="text-center py-3 text-xs text-gray-500">
-            <span className="inline-block animate-spin">⟳</span> Loading older messages...
+            <span className="inline-block animate-spin">⟳</span> Loading older
+            messages...
           </div>
         )}
 
@@ -332,9 +335,7 @@ export const DeepResearchConversation: React.FC<
           onReject={onReject}
           onLike={onLike}
           onDislike={onDislike}
-          onNavigate={(url) =>
-            navigate(url, { state: { conversationId } })
-          }
+          onNavigate={(url) => navigate(url, { state: { conversationId } })}
         />
 
         {/* Scroll to bottom button */}
