@@ -579,27 +579,37 @@ export function useV2EventProcessor(
 
     const isPusherAlreadyTracking = timerCtrl.isTrackingRun(runId);
 
-    // Apply transform result and set phase/dashboard in same flushSync batch
-    applyTransformResult(result, runId, {
-      phase: seededPhase,
-      dashboard: seededDashboard,
-    });
+    if (isPusherAlreadyTracking) {
+      // Pusher is already tracking — just update state, don't touch the timer.
+      applyTransformResult(result, runId, {
+        phase: seededPhase,
+        dashboard: seededDashboard,
+      });
 
-    if (!isPusherAlreadyTracking) {
-      // Fresh seed (page refresh recovery) — delegate timer setup to controller
-      const elapsed = getElapsedTimeFromEvents(mergedEvents);
-      if (!result.isThinking) {
-        // Run already completed — mark finished so subsequent events don't re-process
+      if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
+        // Edge case: Pusher is tracking but run completed (Pusher missed RUN_FINISHED).
         finishedRunsRef.current.add(runId);
+        timerCtrl.onSeedingDetectedCompletion(runId);
       }
+    } else if (!result.isThinking) {
+      // Completed run, no live tracking — just bookkeep.
+      // The persisted message path (dashboardUtils) renders the correct elapsed
+      // and timeline from msg.events. Setting currentRunId here would force the
+      // V2 live path, which shows elapsedTime=0 before the timer is seeded.
+      finishedRunsRef.current.add(runId);
+    } else {
+      // Active run, not yet tracked by Pusher (page refresh recovery).
+      // Seed the timer FIRST so that the flushSync render in applyTransformResult
+      // sees the correct elapsed value via the V2 live path.
+      const elapsed = getElapsedTimeFromEvents(mergedEvents);
       timerCtrl.seedFromServer(runId, elapsed, {
         isThinking: result.isThinking,
         isAwaitingApproval: result.isAwaitingApproval,
       });
-    } else if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
-      // Edge case: Pusher is tracking but run completed (Pusher missed RUN_FINISHED).
-      finishedRunsRef.current.add(runId);
-      timerCtrl.onSeedingDetectedCompletion(runId);
+      applyTransformResult(result, runId, {
+        phase: seededPhase,
+        dashboard: seededDashboard,
+      });
     }
 
     if (import.meta.env.DEV) {

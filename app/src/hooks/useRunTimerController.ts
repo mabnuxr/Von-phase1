@@ -140,9 +140,7 @@ export function useRunTimerController(): RunTimerController {
       if (currentRunIdRef.current === runId) return;
 
       currentRunIdRef.current = runId;
-      if (elapsed > 0) {
-        timer.set(elapsed);
-      }
+      timer.set(elapsed);
 
       if (state.isThinking && !state.isAwaitingApproval) {
         timer.stop();
