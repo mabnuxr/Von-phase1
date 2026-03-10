@@ -130,7 +130,19 @@ export function useV2EventProcessor(
   initialRunEvents?: AguiEventWrapper[],
   onRunComplete?: () => void,
 ): UseV2EventProcessorReturn {
-  const timerCtrl = useRunTimerController();
+  const {
+    elapsedTime: timerElapsedTime,
+    onRunStarted: timerOnRunStarted,
+    onReconnected: timerOnReconnected,
+    onEventProcessed: timerOnEventProcessed,
+    onRunCompleted: timerOnRunCompleted,
+    onRunTerminated: timerOnRunTerminated,
+    onApprovalResumed: timerOnApprovalResumed,
+    onReconciliationFinished: timerOnReconciliationFinished,
+    isTrackingRun: timerIsTrackingRun,
+    seedFromServer: timerSeedFromServer,
+    onSeedingDetectedCompletion: timerOnSeedingDetectedCompletion,
+  } = useRunTimerController();
 
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -240,11 +252,11 @@ export function useV2EventProcessor(
         });
       }
 
-      timerCtrl.onRunTerminated();
+      timerOnRunTerminated();
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [timerCtrl.onRunTerminated, onRunComplete],
+    [timerOnRunTerminated, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
@@ -282,10 +294,10 @@ export function useV2EventProcessor(
   }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
-    (runId: string, _elapsed: number) => {
-      timerCtrl.onReconciliationFinished(runId);
+    (runId: string, _: number) => {
+      timerOnReconciliationFinished(runId);
     },
-    [timerCtrl.onReconciliationFinished],
+    [timerOnReconciliationFinished],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -420,12 +432,12 @@ export function useV2EventProcessor(
               setDashboard(null);
               setPhase(null);
             });
-            timerCtrl.onRunStarted(run_id);
+            timerOnRunStarted(run_id);
           } else {
             // Mid-stream reconnect: set run ID but preserve existing state,
             // seeding will fill in the gaps and re-transform
             setCurrentRunId(run_id);
-            timerCtrl.onReconnected(run_id);
+            timerOnReconnected(run_id);
           }
         }
 
@@ -486,7 +498,7 @@ export function useV2EventProcessor(
         });
 
         // Delegate timer pause/play/stop to the controller based on event state
-        timerCtrl.onEventProcessed(run_id, {
+        timerOnEventProcessed(run_id, {
           isAwaitingApproval: result.isAwaitingApproval,
           isThinking: result.isThinking,
           isFinalResponseStreaming: result.isFinalResponseStreaming,
@@ -519,7 +531,7 @@ export function useV2EventProcessor(
           !finishedRunsRef.current.has(run_id)
         ) {
           finishedRunsRef.current.add(run_id);
-          timerCtrl.onRunCompleted(run_id);
+          timerOnRunCompleted(run_id);
           onRunComplete?.();
         }
       } catch (error) {
@@ -529,10 +541,10 @@ export function useV2EventProcessor(
     [
       conversationId,
       currentRunId,
-      timerCtrl.onRunStarted,
-      timerCtrl.onReconnected,
-      timerCtrl.onEventProcessed,
-      timerCtrl.onRunCompleted,
+      timerOnRunStarted,
+      timerOnReconnected,
+      timerOnEventProcessed,
+      timerOnRunCompleted,
       onRunComplete,
       scheduleGapFill,
     ],
@@ -577,7 +589,7 @@ export function useV2EventProcessor(
 
     eventsRef.current.set(runId, mergedEvents);
 
-    const isPusherAlreadyTracking = timerCtrl.isTrackingRun(runId);
+    const isPusherAlreadyTracking = timerIsTrackingRun(runId);
 
     if (isPusherAlreadyTracking) {
       // Pusher is already tracking — just update state, don't touch the timer.
@@ -589,7 +601,7 @@ export function useV2EventProcessor(
       if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
         // Edge case: Pusher is tracking but run completed (Pusher missed RUN_FINISHED).
         finishedRunsRef.current.add(runId);
-        timerCtrl.onSeedingDetectedCompletion(runId);
+        timerOnSeedingDetectedCompletion(runId);
       }
     } else if (!result.isThinking) {
       // Completed run, no live tracking — just bookkeep.
@@ -602,7 +614,7 @@ export function useV2EventProcessor(
       // Seed the timer FIRST so that the flushSync render in applyTransformResult
       // sees the correct elapsed value via the V2 live path.
       const elapsed = getElapsedTimeFromEvents(mergedEvents);
-      timerCtrl.seedFromServer(runId, elapsed, {
+      timerSeedFromServer(runId, elapsed, {
         isThinking: result.isThinking,
         isAwaitingApproval: result.isAwaitingApproval,
       });
@@ -671,7 +683,7 @@ export function useV2EventProcessor(
   return {
     timelineSteps,
     isThinking,
-    elapsedTime: timerCtrl.elapsedTime,
+    elapsedTime: timerElapsedTime,
     currentRunId,
     finalResponse,
     isFinalResponseStreaming,
@@ -685,7 +697,7 @@ export function useV2EventProcessor(
     markStopped,
     markTimedOut,
     clearPendingStop,
-    resumeTimer: timerCtrl.onApprovalResumed,
+    resumeTimer: timerOnApprovalResumed,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

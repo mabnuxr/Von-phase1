@@ -34,13 +34,14 @@ const Analytics = () => {
     handlePointerUp,
   } = useResizablePane();
 
+  const { mutateAsync: refreshAsync } = refreshMutation;
   const handleRefresh = useCallback(async () => {
     try {
-      await refreshMutation.mutateAsync();
+      await refreshAsync();
     } catch (error) {
       console.error("[Analytics] Refresh failed:", error);
     }
-  }, [refreshMutation.mutateAsync]);
+  }, [refreshAsync]);
 
   // Collapse left sidebar on mount
   useEffect(() => {

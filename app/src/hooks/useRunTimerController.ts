@@ -50,7 +50,7 @@ export interface RunTimerController {
 }
 
 export function useRunTimerController(): RunTimerController {
-  const timer = useRunTimer();
+  const { elapsedTime, start, stop, pause, play, set } = useRunTimer();
 
   /** Tracks the active run so timer operations from stale runs are ignored. */
   const currentRunIdRef = useRef<string | null>(null);
@@ -62,17 +62,17 @@ export function useRunTimerController(): RunTimerController {
     (runId: string) => {
       currentRunIdRef.current = runId;
       approvalResumedRef.current = false;
-      timer.start();
+      start();
     },
-    [timer.start],
+    [start],
   );
 
   const onReconnected = useCallback(
     (runId: string) => {
       currentRunIdRef.current = runId;
-      timer.play();
+      play();
     },
-    [timer.play],
+    [play],
   );
 
   const onEventProcessed = useCallback(
@@ -87,43 +87,43 @@ export function useRunTimerController(): RunTimerController {
       if (runId !== currentRunIdRef.current) return;
 
       if (state.isAwaitingApproval && !approvalResumedRef.current) {
-        timer.pause();
+        pause();
       } else if (state.isThinking && !state.isFinalResponseStreaming) {
         if (approvalResumedRef.current && !state.isAwaitingApproval) {
           approvalResumedRef.current = false;
         }
-        timer.play();
+        play();
       } else if (state.isFinalResponseStreaming) {
         approvalResumedRef.current = false;
-        timer.stop();
+        stop();
       }
     },
-    [timer.pause, timer.play, timer.stop],
+    [pause, play, stop],
   );
 
   const onRunCompleted = useCallback(
     (runId: string) => {
       if (runId !== currentRunIdRef.current) return;
-      timer.stop();
+      stop();
     },
-    [timer.stop],
+    [stop],
   );
 
   const onRunTerminated = useCallback(() => {
-    timer.stop();
-  }, [timer.stop]);
+    stop();
+  }, [stop]);
 
   const onApprovalResumed = useCallback(() => {
     approvalResumedRef.current = true;
-    timer.play();
-  }, [timer.play]);
+    play();
+  }, [play]);
 
   const onReconciliationFinished = useCallback(
     (runId: string) => {
       if (runId !== currentRunIdRef.current) return;
-      timer.stop();
+      stop();
     },
-    [timer.stop],
+    [stop],
   );
 
   const isTrackingRun = useCallback((runId: string) => {
@@ -140,31 +140,31 @@ export function useRunTimerController(): RunTimerController {
       if (currentRunIdRef.current === runId) return;
 
       currentRunIdRef.current = runId;
-      timer.set(elapsed);
+      set(elapsed);
 
       if (state.isThinking && !state.isAwaitingApproval) {
-        timer.stop();
-        timer.play();
+        stop();
+        play();
       } else if (!state.isThinking) {
-        timer.stop();
+        stop();
       } else {
         // isThinking && isAwaitingApproval
-        timer.pause();
+        pause();
       }
     },
-    [timer.set, timer.stop, timer.play, timer.pause],
+    [set, stop, play, pause],
   );
 
   const onSeedingDetectedCompletion = useCallback(
     (runId: string) => {
       if (runId !== currentRunIdRef.current) return;
-      timer.stop();
+      stop();
     },
-    [timer.stop],
+    [stop],
   );
 
   return {
-    elapsedTime: timer.elapsedTime,
+    elapsedTime,
     onRunStarted,
     onReconnected,
     onEventProcessed,
