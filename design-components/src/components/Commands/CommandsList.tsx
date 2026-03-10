@@ -11,7 +11,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ArrowsOut, BookmarkSimple } from '@phosphor-icons/react';
 import type { Command } from './types';
-import { formatScheduleBadge } from './types';
 import { IconButton } from '../forms/buttons';
 
 // ---------------------------------------------------------------------------
@@ -57,11 +56,6 @@ const CommandItem: React.FC<CommandItemProps> = ({
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-1.5">
         <span className="text-sm font-medium text-gray-900">{command.name}</span>
-        {command.schedule?.enabled && (
-          <span className="inline-flex items-center shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
-            {formatScheduleBadge(command.schedule)}
-          </span>
-        )}
       </div>
       <div className="text-xs text-gray-800/80 line-clamp-1">
         {getPromptPreview(command.prompt)}
