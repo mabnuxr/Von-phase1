@@ -16,6 +16,8 @@ export { CommandsOverlay } from './CommandsOverlay';
 export type { CommandsOverlayProps } from './CommandsOverlay';
 export { CommandPreview } from './CommandPreview';
 export type { CommandPreviewProps } from './CommandPreview';
+export { ScheduleSection } from './ScheduleSection';
+export type { ScheduleSectionProps } from './ScheduleSection';
 
 // Hooks
 export { useCommands } from './useCommands';
@@ -43,6 +45,10 @@ export type {
   SalesforceFieldConfig,
   DataSourceConfig,
   FillDocConfig,
+  CommandSchedule,
+  ScheduleFrequency,
+  ScheduleDay,
+  ScheduleRecipient,
 } from './types';
 
 export {
@@ -53,6 +59,11 @@ export {
   FILL_DOC_TYPE_LABELS,
   INTERNAL_DOC_FOLDERS,
   generateCommandId,
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_DAYS,
+  SCHEDULE_TIMES,
+  DEFAULT_SCHEDULE,
+  formatScheduleBadge,
 } from './types';
 
 // Storage utilities

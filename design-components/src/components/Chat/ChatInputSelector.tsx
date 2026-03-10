@@ -104,6 +104,10 @@ export interface ChatInputSelectorProps {
   isSavingCommand?: boolean;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: import('../Commands/types').ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: import('../Commands/types').ScheduleRecipient;
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
@@ -158,6 +162,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onDeleteCommand,
       isSavingCommand = false,
       isAdmin = false,
+      teamMembers,
+      currentUser,
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
@@ -378,6 +384,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onDeleteCommand={handleDeleteCommand}
             isSaving={isSavingCommand}
             isAdmin={isAdmin}
+            teamMembers={teamMembers}
+            currentUser={currentUser}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}

@@ -1,5 +1,9 @@
-import { useCallback } from "react";
-import type { Command, CommandAttachment } from "@vonlabs/design-components";
+import { useCallback, useRef, useMemo } from "react";
+import type {
+  Command,
+  CommandAttachment,
+  CommandSchedule,
+} from "@vonlabs/design-components";
 import {
   useQuickCommandsList,
   useCreateQuickCommand,
@@ -23,10 +27,24 @@ import { getErrorMessage } from "../utils/getErrorMessage";
 export function useCommandsPanel(userId?: string) {
   const { showToast } = useToast();
 
+  // Local schedule store — survives API refetches (backend doesn't persist schedule yet)
+  const schedulesRef = useRef<Record<string, CommandSchedule>>({});
+
   const { data: commandsData, isLoading: isLoadingCommands } =
     useQuickCommandsList(undefined, userId);
 
-  const commands = commandsData?.data ?? [];
+  const rawCommands = commandsData?.data ?? [];
+
+  // Merge locally-stored schedules into the API-sourced commands
+  const commands = useMemo(
+    () =>
+      rawCommands.map((cmd) =>
+        schedulesRef.current[cmd.id]
+          ? { ...cmd, schedule: schedulesRef.current[cmd.id] }
+          : cmd,
+      ),
+    [rawCommands],
+  );
 
   const { mutateAsync: createCommand, isPending: isCreating } =
     useCreateQuickCommand();
@@ -37,7 +55,10 @@ export function useCommandsPanel(userId?: string) {
 
   const handleSaveCommand = useCallback(
     async (
-      data: Pick<Command, "name" | "prompt" | "prefillText" | "sharingScope">,
+      data: Pick<
+        Command,
+        "name" | "prompt" | "prefillText" | "sharingScope" | "schedule"
+      >,
       editingId?: string,
       dataSources?: CommandAttachment[],
       commandId?: string,
@@ -73,8 +94,11 @@ export function useCommandsPanel(userId?: string) {
               prefillText: data.prefillText || undefined,
               accessLevel,
               dataSources: apiDataSources,
+              ...(data.schedule ? { schedule: data.schedule } : {}),
             },
           });
+          if (data.schedule) schedulesRef.current[editingId] = data.schedule;
+          else delete schedulesRef.current[editingId];
           showToast({ message: "Command updated", variant: "success" });
         } else {
           await createCommand({
@@ -84,7 +108,9 @@ export function useCommandsPanel(userId?: string) {
             prefillText: data.prefillText || undefined,
             accessLevel,
             dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
+            ...(data.schedule ? { schedule: data.schedule } : {}),
           });
+          if (data.schedule && commandId) schedulesRef.current[commandId] = data.schedule;
           showToast({ message: "Command created", variant: "success" });
         }
       } catch (err) {

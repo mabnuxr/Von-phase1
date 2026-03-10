@@ -20,6 +20,7 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ArtifactPaneContainer } from "./ArtifactPaneContainer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import { useTeamMembers } from "../hooks/useTeam";
 
 export interface ChatV1ContainerProps {
   conversationId: string;
@@ -121,6 +122,22 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     handleToggleFavorite,
   } = useCommandsPanel(user?.id);
 
+  const { data: teamMembersData } = useTeamMembers(user?.tenantId);
+  const teamMembersForSchedule = (teamMembersData ?? []).map((m) => ({
+    id: m.id,
+    email: m.email,
+    firstName: m.firstName,
+    lastName: m.lastName,
+  }));
+  const currentUserRecipient = user
+    ? {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+        lastName: user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+      }
+    : undefined;
+
   return (
     <Profiler id="ChatV1Container" onRender={reportRenderTiming}>
       <Chat
@@ -156,6 +173,8 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
         isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+        teamMembers={teamMembersForSchedule}
+        currentUser={currentUserRecipient}
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Command } from './types';
-import { generateCommandId } from './types';
+import type { Command, CommandSchedule, ScheduleRecipient } from './types';
+import { generateCommandId, DEFAULT_SCHEDULE } from './types';
 import { toSlug } from './utils';
 
 // ---------------------------------------------------------------------------
@@ -12,6 +12,7 @@ export interface FormValues {
   prompt: string;
   prefillText: string;
   sharingScope: 'private' | 'org';
+  schedule: CommandSchedule;
 }
 
 const emptyForm: FormValues = {
@@ -19,6 +20,7 @@ const emptyForm: FormValues = {
   prompt: '',
   prefillText: '',
   sharingScope: 'private',
+  schedule: { ...DEFAULT_SCHEDULE },
 };
 
 function commandToForm(cmd: Command): FormValues {
@@ -27,12 +29,14 @@ function commandToForm(cmd: Command): FormValues {
     prompt: cmd.prompt,
     prefillText: cmd.prefillText ?? '',
     sharingScope: cmd.sharingScope ?? 'private',
+    schedule: cmd.schedule ? { ...cmd.schedule } : { ...DEFAULT_SCHEDULE },
   };
 }
 
 export interface UseCommandFormOptions {
   isOpen: boolean;
   editingCommand?: Command | null;
+  currentUser?: ScheduleRecipient;
 }
 
 export interface UseCommandFormReturn {
@@ -45,6 +49,7 @@ export interface UseCommandFormReturn {
   commandId: string;
   isEditing: boolean;
   sharingLabel: string;
+  setSchedule: (schedule: CommandSchedule) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +59,7 @@ export interface UseCommandFormReturn {
 export function useCommandForm({
   isOpen,
   editingCommand,
+  currentUser,
 }: UseCommandFormOptions): UseCommandFormReturn {
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [commandId, setCommandId] = useState(() => generateCommandId());
@@ -77,8 +83,24 @@ export function useCommandForm({
     []
   );
 
+  const setSchedule = useCallback(
+    (schedule: CommandSchedule) => {
+      setForm((v) => {
+        // Auto-add current user as recipient when schedule is first enabled
+        if (schedule.enabled && !v.schedule.enabled && currentUser) {
+          const alreadyIncluded = schedule.recipients.some((r) => r.id === currentUser.id);
+          if (!alreadyIncluded) {
+            return { ...v, schedule: { ...schedule, recipients: [currentUser, ...schedule.recipients] } };
+          }
+        }
+        return { ...v, schedule };
+      });
+    },
+    [currentUser]
+  );
+
   const isEditing = Boolean(editingCommand);
   const sharingLabel = form.sharingScope === 'org' ? 'Org-wide' : 'Private';
 
-  return { form, setForm, setField, commandId, isEditing, sharingLabel };
+  return { form, setForm, setField, commandId, isEditing, sharingLabel, setSchedule };
 }

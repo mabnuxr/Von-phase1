@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import type { Command } from './types';
+import type { Command, ScheduleRecipient } from './types';
 import { CommandDrawer } from './CommandDrawer';
 import { CommandsList } from './CommandsList';
 import { ManageCommandsDrawer } from './ManageCommandsDrawer';
@@ -47,7 +47,7 @@ export interface CommandsOverlayProps {
    *                as `id` when creating a new command for a single-call create.
    */
   onSaveCommand: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
     editingId?: string,
     dataSources?: import('./types').CommandAttachment[],
     commandId?: string
@@ -76,6 +76,10 @@ export interface CommandsOverlayProps {
    * Should presign + upload the file and return the backend fileId and s3Key.
    */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** Team members available as schedule recipients */
+  teamMembers?: ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: ScheduleRecipient;
 
   // ---------------------------------------------------------------------------
   // Legacy props — accepted for backwards compatibility with older consumers
@@ -131,6 +135,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
+  teamMembers,
+  currentUser,
   highlightedIndex = -1,
   onHoverIndex,
   slashRect,
@@ -188,7 +194,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
 
   const handleSave = useCallback(
     (
-      data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+      data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
       dataSources: import('./types').CommandAttachment[],
       commandId: string
     ) => {
@@ -248,6 +254,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         onRequestFilePreviewUrl={onRequestFilePreviewUrl}
         onUploadFile={onUploadFile}
         onBack={openedFromManage ? handleBackToManage : undefined}
+        teamMembers={teamMembers}
+        currentUser={currentUser}
       />
 
       {/* Manage drawer */}
