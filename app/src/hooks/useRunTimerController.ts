@@ -24,8 +24,9 @@ export interface RunTimerController {
   /** Run completed normally (not thinking, not transitional). */
   onRunCompleted: (runId: string) => void;
 
-  /** Run terminated by user stop or timeout. */
-  onRunTerminated: () => void;
+  /** Run terminated by user stop or timeout.
+   *  Pass resetElapsed=true when no events were received (timer should show 0). */
+  onRunTerminated: (resetElapsed?: boolean) => void;
 
   /** User clicked approve — optimistically resume before Pusher events arrive. */
   onApprovalResumed: () => void;
@@ -109,9 +110,13 @@ export function useRunTimerController(): RunTimerController {
     [stop],
   );
 
-  const onRunTerminated = useCallback(() => {
-    stop();
-  }, [stop]);
+  const onRunTerminated = useCallback(
+    (resetElapsed?: boolean) => {
+      if (resetElapsed) set(0);
+      stop();
+    },
+    [stop, set],
+  );
 
   const onApprovalResumed = useCallback(() => {
     approvalResumedRef.current = true;

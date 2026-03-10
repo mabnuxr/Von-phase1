@@ -164,6 +164,9 @@ export function useV2EventProcessor(
   const finishedRunsRef = useRef<Set<string>>(new Set());
   const lastEventTimeRef = useRef<number>(0);
   const gapFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks currentRunId for the event handler closure without causing
+  // callback recreation (and Pusher handler rebinding) on every state change.
+  const currentRunIdForHandlerRef = useRef<string | null>(null);
   // Guards against events arriving after Stop is clicked but before any run_id
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
@@ -252,7 +255,8 @@ export function useV2EventProcessor(
         });
       }
 
-      timerOnRunTerminated();
+      // Reset elapsed to 0 when no events were found (user stopped before any arrived)
+      timerOnRunTerminated(!activeRunEvents || activeRunEvents.length === 0);
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
@@ -417,10 +421,11 @@ export function useV2EventProcessor(
           // Instead, check if the previous run finished — if so, this must be new.
           // If no run is being tracked yet, or the previously tracked run
           // already finished, this is a brand-new run (not a reconnect).
-          const previousRunId = currentRunId;
+          const previousRunId = currentRunIdForHandlerRef.current;
           const isNewRun =
             !previousRunId || finishedRunsRef.current.has(previousRunId);
           if (isNewRun) {
+            currentRunIdForHandlerRef.current = run_id;
             flushSync(() => {
               setTimelineSteps([]);
               setFinalResponse("");
@@ -436,6 +441,7 @@ export function useV2EventProcessor(
           } else {
             // Mid-stream reconnect: set run ID but preserve existing state,
             // seeding will fill in the gaps and re-transform
+            currentRunIdForHandlerRef.current = run_id;
             setCurrentRunId(run_id);
             timerOnReconnected(run_id);
           }
@@ -540,7 +546,6 @@ export function useV2EventProcessor(
     },
     [
       conversationId,
-      currentRunId,
       timerOnRunStarted,
       timerOnReconnected,
       timerOnEventProcessed,
@@ -593,6 +598,7 @@ export function useV2EventProcessor(
 
     if (isPusherAlreadyTracking) {
       // Pusher is already tracking — just update state, don't touch the timer.
+      currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
         phase: seededPhase,
         dashboard: seededDashboard,
@@ -618,6 +624,7 @@ export function useV2EventProcessor(
         isThinking: result.isThinking,
         isAwaitingApproval: result.isAwaitingApproval,
       });
+      currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
         phase: seededPhase,
         dashboard: seededDashboard,
