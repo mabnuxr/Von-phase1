@@ -79,7 +79,7 @@ export function useUser(): UseUserResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     fetchUser();

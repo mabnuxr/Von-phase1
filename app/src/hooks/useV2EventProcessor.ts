@@ -22,7 +22,14 @@ import type { Channel } from "pusher-js";
 import type {
   AguiEventWrapper,
   TimelineStep,
+  RunFinishedEvent,
 } from "@vonlabs/design-components";
+
+/** RUN_FINISHED result extended with the optional dashboard field the backend emits. */
+type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, "result"> & {
+  result: RunFinishedEvent["result"] & { dashboard?: DashboardMetadata | null };
+};
+import type { DashboardMetadata } from "../types/conversation";
 
 import {
   transformAguiToTimelineSteps,
@@ -90,6 +97,8 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
+  phase: "plan-proposed" | "ask" | null;
+  dashboard: DashboardMetadata | null;
   markStopped: () => void;
   markTimedOut: () => void;
   clearPendingStop: () => void;
@@ -134,6 +143,8 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
+  const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
@@ -149,6 +160,10 @@ export function useV2EventProcessor(
     (
       result: ReturnType<typeof transformAguiToTimelineSteps>,
       runId: string,
+      options?: {
+        phase?: "plan-proposed" | "ask" | null;
+        dashboard?: DashboardMetadata | null;
+      },
     ) => {
       flushSync(() => {
         setTimelineSteps(result.steps);
@@ -161,6 +176,12 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
+        if (options?.phase !== undefined) {
+          setPhase(options.phase);
+        }
+        if (options?.dashboard !== undefined) {
+          setDashboard(options.dashboard);
+        }
       });
     },
     [],
@@ -395,6 +416,8 @@ export function useV2EventProcessor(
               setStoppedByUser(false);
               setCurrentRunId(run_id);
               setRunErrorMessage("");
+              setDashboard(null);
+              setPhase(null);
             });
             timer.start();
           } else {
@@ -421,7 +444,19 @@ export function useV2EventProcessor(
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
 
-        // Update state
+        // Extract phase and dashboard from RUN_FINISHED event
+        const runFinishedPhase =
+          eventType === "RUN_FINISHED"
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result?.phase ??
+              null)
+            : undefined;
+        const runFinishedDashboard =
+          eventType === "RUN_FINISHED"
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+                ?.dashboard ?? null)
+            : undefined;
+
+        // Update state synchronously
         flushSync(() => {
           setTimelineSteps(result.steps);
           setIsThinking(result.isThinking);
@@ -432,6 +467,21 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(result.isDeepResearchRunning);
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
+
+          // Update phase when RUN_FINISHED arrives
+          if (runFinishedPhase !== undefined) {
+            setPhase(runFinishedPhase);
+          }
+          // Update dashboard when RUN_FINISHED arrives with dashboard metadata
+          if (runFinishedDashboard !== undefined) {
+            if (import.meta.env.DEV) {
+              console.log(
+                "[useV2EventProcessor] Dashboard metadata received:",
+                runFinishedDashboard,
+              );
+            }
+            setDashboard(runFinishedDashboard);
+          }
         });
 
         // Pause timer when awaiting approval; resume when approval is acted on
@@ -519,8 +569,26 @@ export function useV2EventProcessor(
 
     const result = transformAguiToTimelineSteps(mergedEvents);
 
+    // Extract phase and dashboard from seeded events (for page refresh)
+    const runFinishedEvent = mergedEvents.find(
+      (e) => e.event?.type === "RUN_FINISHED",
+    );
+    const seededPhase = runFinishedEvent
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.phase ?? null)
+      : null;
+    const seededDashboard = runFinishedEvent
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.dashboard ?? null)
+      : null;
+
     eventsRef.current.set(runId, mergedEvents);
-    applyTransformResult(result, runId);
+
+    // Apply transform result and set phase/dashboard in same flushSync batch
+    applyTransformResult(result, runId, {
+      phase: seededPhase,
+      dashboard: seededDashboard,
+    });
 
     const elapsed = getElapsedTimeFromEvents(mergedEvents);
     if (elapsed > 0) {
@@ -567,6 +635,7 @@ export function useV2EventProcessor(
       }
       scheduleGapFill(runId, 1500, "Reconciliation");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRunEvents]);
 
   // Bind/unbind AGUI events when channel changes
@@ -607,6 +676,8 @@ export function useV2EventProcessor(
     isDeepResearchRunning,
     stoppedByUser,
     runErrorMessage,
+    phase,
+    dashboard,
     markStopped,
     markTimedOut,
     clearPendingStop,

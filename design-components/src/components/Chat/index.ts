@@ -14,8 +14,8 @@ export type {
   ApiEndpoints,
 } from './types';
 
-// Export AgentMode type for agent selection locking
-export type { AgentMode } from './StandardChatInput/types';
+// Export ConversationMode for agent selection
+export { ConversationMode } from './StandardChatInput/types';
 
 // Export ChatInputSelector types
 export { ChatInputSelector } from './ChatInputSelector';

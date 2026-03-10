@@ -73,7 +73,7 @@ export interface MarkdownActionCardProps {
   markdown: string;
 
   /**
-   * Primary action button (e.g., "Approve", "Run Full Analysis", "Update")
+   * Primary action button (e.g., "Approve", "Create Dashboard", "Update")
    */
   primaryAction: ActionButton;
 

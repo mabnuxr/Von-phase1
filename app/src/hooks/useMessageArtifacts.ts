@@ -292,32 +292,38 @@ export function useDeepResearchArtifacts(
   // Only fetch the list of artifacts when enabled (after sample run completes)
   const listQuery = useMessageArtifacts(conversationId, runId, enabled);
 
-  // Filter artifacts by IQ category - memoized to prevent new array reference on every render
+  // Filter artifacts by source_context = "dashboard_builder_plan"
   const vonIqArtifacts = useMemo(
     () =>
       listQuery.data?.artifacts.filter(
-        (artifact) => artifact.category?.toLowerCase() === "iq",
+        (artifact) => artifact.source_context === "dashboard_builder_plan",
       ) ?? [],
     [listQuery.data?.artifacts],
   );
 
-  // Calculate total records from VonIQ artifacts - memoized to prevent new object reference
-  const dataTablesInfo = useMemo(
-    () =>
-      vonIqArtifacts.length > 0
-        ? {
-            tableCount: vonIqArtifacts.length,
-            // processedRecords and totalRecords will be populated when we fetch full content
-            processedRecords: undefined as number | undefined,
-            totalRecords: undefined as number | undefined,
-          }
-        : null,
-    [vonIqArtifacts.length],
-  );
+  // Calculate artifact count from artifacts that will be shown in drawer
+  // Only show artifacts with source_context = "dashboard_builder_plan"
+  const dataTablesInfo = useMemo(() => {
+    const allArtifacts = listQuery.data?.artifacts ?? [];
+    const displayableArtifacts = allArtifacts.filter(
+      (s) => s.source_context === "dashboard_builder_plan",
+    );
+    return displayableArtifacts.length > 0
+      ? {
+          tableCount: displayableArtifacts.length,
+          // processedRecords and totalRecords will be populated when we fetch full content
+          processedRecords: undefined as number | undefined,
+          totalRecords: undefined as number | undefined,
+        }
+      : null;
+  }, [listQuery.data?.artifacts]);
 
-  // Memoize allArtifacts to prevent new array reference
+  // Filter allArtifacts to only include dashboard_builder_plan artifacts
   const allArtifacts = useMemo(
-    () => listQuery.data?.artifacts ?? [],
+    () =>
+      listQuery.data?.artifacts.filter(
+        (artifact) => artifact.source_context === "dashboard_builder_plan",
+      ) ?? [],
     [listQuery.data?.artifacts],
   );
 

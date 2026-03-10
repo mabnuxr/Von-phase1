@@ -2,7 +2,7 @@
  * Type definitions for Chat component with backend integration
  */
 
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { Command } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -12,7 +12,7 @@ import type { FileAttachment } from './FileAttachment/types';
  */
 export interface SendMessageOptions {
   /** Selected agent mode for the message */
-  agentMode?: AgentMode;
+  agentMode?: ConversationMode;
   /** Selected command (when slash commands are enabled) */
   command?: Command;
 }
@@ -174,6 +174,14 @@ export interface Message {
    * Whether the v2 final response is still streaming
    */
   v2FinalResponseStreaming?: boolean;
+  /**
+   * Conversation phase from RUN_FINISHED event (assistant messages only)
+   * Controls whether approval buttons are shown
+   * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+   * - "ask": Normal conversation mode (hide approval buttons)
+   * - null/undefined: Normal conversation mode (hide approval buttons)
+   */
+  phase?: 'plan-proposed' | 'ask' | null;
   /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.
@@ -385,6 +393,13 @@ export interface RunFinishedEvent {
     stopped_by_user?: boolean;
     error_occurred?: boolean;
     error_message?: string;
+    /**
+     * Conversation phase for approval button control (nested inside result)
+     * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+     * - "ask": Normal conversation mode (hide approval buttons)
+     * - null/undefined: Normal conversation mode (hide approval buttons)
+     */
+    phase?: 'plan-proposed' | 'ask' | null;
   };
 }
 
@@ -1086,7 +1101,7 @@ export interface ChatProps {
    * Ref for infinite scroll trigger (load older messages)
    * Place this at the top of the messages container
    */
-  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+  loadMoreRef?: React.Ref<HTMLDivElement | null>;
 
   /**
    * Whether currently fetching older messages (for infinite scroll)
@@ -1344,7 +1359,7 @@ export interface ChatProps {
 
   /**
    * Whether agent selection is locked (e.g., after first message in conversation)
-   * When true, the agent selector will be disabled and show lockedAgentMode
+   * When true, the agent selector will be disabled and show lockedConversationMode
    * @default false
    */
   isAgentLocked?: boolean;
@@ -1354,13 +1369,14 @@ export interface ChatProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+  lockedConversationMode?: ConversationMode;
 
   /**
-   * Whether to show the plus menu button (with agents and upload options)
-   * @default false
+   * Agent modes available for selection in the plus menu.
+   * When more than just "Auto" is provided, the Agents submenu is shown in the plus menu.
+   * @default [ConversationMode.Auto]
    */
-  showPlusMenu?: boolean;
+  availableAgentModes?: ConversationMode[];
 
   /**
    * Controlled file attachments for the chat input.

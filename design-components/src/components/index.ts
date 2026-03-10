@@ -170,9 +170,9 @@ export type {
   Message,
   MessageFileAttachment,
   FixedPosition,
-  AgentMode,
   SendMessageOptions,
 } from './Chat';
+export { ConversationMode } from './Chat';
 
 // ChatInputSelector - Selector component for different input variants
 export { ChatInputSelector } from './Chat';
@@ -192,6 +192,7 @@ export type {
   TableData,
   QueryInfo,
   MetricData,
+  RunFinishedEvent,
 } from './Chat/index';
 
 // Export approval utility functions
@@ -448,3 +449,30 @@ export type { UseIsTruncatedReturn } from '../hooks';
 
 export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
+
+// ============================================================================
+// DASHBOARD (View-only dashboard display components)
+// ============================================================================
+export {
+  DashboardGrid,
+  WidgetShell,
+  WidgetRenderer,
+  ChartWidget,
+  CounterWidget,
+  TextWidget,
+} from './Dashboard';
+export type {
+  DashboardGridProps,
+  WidgetShellProps,
+  WidgetRendererProps,
+  ChartWidgetProps,
+  CounterWidgetProps,
+  TextWidgetProps,
+  WidgetConfig,
+  WidgetType,
+  GridConfig,
+  LayoutItem,
+  ChartWidgetConfig,
+  CounterWidgetConfig,
+  TextWidgetConfig,
+} from './Dashboard';

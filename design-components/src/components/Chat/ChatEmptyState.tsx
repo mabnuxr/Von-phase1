@@ -10,7 +10,7 @@ import {
   type TemplateCategory,
 } from '../Templates';
 import type { BuildMode } from './StandardChatInput/types';
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { Command } from '../Commands';
 
@@ -93,11 +93,7 @@ export interface ChatEmptyStateProps {
   /**
    * The agent mode to display when locked (from backend)
    */
-  lockedAgentMode?: AgentMode;
-  /**
-   * Whether to show the plus menu button (with agents and upload options)
-   */
-  showPlusMenu?: boolean;
+  lockedConversationMode?: ConversationMode;
   /**
    * Controlled attachments from parent (wired to useFileUploadPipeline)
    */
@@ -139,6 +135,8 @@ export interface ChatEmptyStateProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
 }
 
 /**
@@ -178,8 +176,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onModeChange,
   useStandardInput = false,
   isAgentLocked,
-  lockedAgentMode,
-  showPlusMenu,
+  lockedConversationMode,
   controlledAttachments,
   onRemoveAttachment,
   onFilesSelected,
@@ -194,6 +191,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
+  availableAgentModes,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -398,13 +396,13 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           mode={mode}
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
-          showPlusMenu={showPlusMenu}
+          lockedConversationMode={lockedConversationMode}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
+          availableAgentModes={availableAgentModes}
         />
       </motion.div>
 

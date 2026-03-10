@@ -146,10 +146,11 @@ export const RECONCILIATION_STALL_THRESHOLD_MS = 45000 as const; // 45 seconds
 export const RECONCILIATION_STALL_THRESHOLD_AUTO_MS = 10000 as const; // 10 seconds
 
 /**
- * Stall threshold for "deep_research" chat type.
- * Longer threshold since deep research has natural pauses (external data fetching).
+ * Stall threshold for "dashboard-builder" chat type.
+ * Longer threshold since dashboard builder mode has natural pauses (external data fetching).
  */
-export const RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS = 30000 as const; // 30 seconds
+export const RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS =
+  30000 as const; // 30 seconds
 
 /**
  * Health check interval in milliseconds.
@@ -275,7 +276,7 @@ export const QUERY_CONSTANTS = {
   PUSHER_PONG_TIMEOUT_S,
   RECONCILIATION_STALL_THRESHOLD_MS,
   RECONCILIATION_STALL_THRESHOLD_AUTO_MS,
-  RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS,
+  RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
   PERMISSIONS_STALE_TIME,
   PERMISSIONS_GC_TIME,

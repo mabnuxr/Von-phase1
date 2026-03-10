@@ -95,8 +95,8 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({
   // Generate default description if not provided
   const defaultDescription =
     processedRecords && totalRecords
-      ? `${tableCount} ${tableCount === 1 ? 'table' : 'tables'} · ${processedRecords} of ${totalRecords.toLocaleString()} records processed. Please review.`
-      : `${tableCount} ${tableCount === 1 ? 'table' : 'tables'} available for review.`;
+      ? `${tableCount} ${tableCount === 1 ? 'artifact' : 'artifacts'} · ${processedRecords} of ${totalRecords.toLocaleString()} records processed. Please review.`
+      : `${tableCount} ${tableCount === 1 ? 'artifact' : 'artifacts'} generated during planning.`;
 
   return (
     <button

@@ -86,7 +86,7 @@ export interface ResearchResultsMetadata {
   run_id?: string;
 
   /**
-   * Primary action configuration (default: "Run Full Analysis")
+   * Primary action configuration (default: "Create Dashboard")
    */
   primary_action?: ResearchApprovalAction;
 

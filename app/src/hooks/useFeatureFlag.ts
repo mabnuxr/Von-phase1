@@ -85,6 +85,7 @@ export function useFeatureFlag() {
      * instead of the legacy ThinkingBlock component
      */
     isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
+
     /**
      * Controls whether user memory feature is enabled
      * (personal memory segment for each user)

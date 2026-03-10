@@ -18,6 +18,9 @@ services:
     stdin_open: true
     tty: true
     command: sh -c "npm run build:design && sh app/start.sh"
+    networks:
+      - revenue-os-network-frontend
+      - revenue-os-network
 
   storybook:
     build:
@@ -38,7 +41,12 @@ services:
     stdin_open: true
     tty: true
     command: sh -c "npm run build:design && sh design-components/start.sh"
+    networks:
+      - revenue-os-network-frontend
+      - revenue-os-network
 
 networks:
-  default:
+  revenue-os-network-frontend:
     name: revenue-os-network-frontend
+  revenue-os-network:
+    external: true

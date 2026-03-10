@@ -1,14 +1,16 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import RootGate from "./pages/RootGate";
 import Callback from "./pages/Callback";
-import Dashboard from "./pages/Dashboard";
+import Conversation from "./pages/Conversation";
+import Analytics from "./pages/Analytics";
 import Logout from "./pages/Logout";
 import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
+import { AppShell } from "./components/AppShell";
 import { LaunchDarklyGate } from "./components/LaunchDarkly";
-import { DashboardSkeleton } from "./components/DashboardSkeleton";
+import { ConversationSkeleton } from "./components/ConversationSkeleton";
 
 export default function App() {
   return (
@@ -23,22 +25,20 @@ export default function App() {
 
         {/* Authenticated routes - wrapped with LaunchDarkly identification */}
         <Route element={<AuthenticatedLayout />}>
+          {/* Pages with sidebar shell */}
           <Route
-            path="/chat"
             element={
-              <LaunchDarklyGate fallback={<DashboardSkeleton />}>
-                <Dashboard />
+              <LaunchDarklyGate fallback={<ConversationSkeleton />}>
+                <AppShell />
               </LaunchDarklyGate>
             }
-          />
-          <Route
-            path="/chat/:conversationId"
-            element={
-              <LaunchDarklyGate fallback={<DashboardSkeleton />}>
-                <Dashboard />
-              </LaunchDarklyGate>
-            }
-          />
+          >
+            <Route path="/chat" element={<Conversation />} />
+            <Route path="/chat/:conversationId" element={<Conversation />} />
+            <Route path="/dashboard/:dashboardId" element={<Analytics />} />
+          </Route>
+
+          {/* Settings has its own sidebar */}
           <Route
             path="/settings"
             element={

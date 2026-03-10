@@ -17,7 +17,7 @@ import {
   FilePreviewModal,
   ArtifactViewerPanel,
 } from "@vonlabs/design-components";
-import type { AgentMode } from "@vonlabs/design-components";
+import type { ConversationMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming, Conversation } from "../types/conversation";
 import type { User } from "../services";
@@ -41,7 +41,7 @@ export interface ChatV2ContainerProps {
   hasNextMessagePage: boolean;
   isFetchingNextMessagePage: boolean;
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -52,7 +52,8 @@ export interface ChatV2ContainerProps {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   isArtifactsEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  availableAgentModes?: ConversationMode[];
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
   onGoogleDriveClick?: (fileId: string) => void;
@@ -69,7 +70,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isFetchingNextMessagePage,
     fetchNextMessagePage,
     hasNextMessagePage,
-    lockedAgentMode,
+    lockedConversationMode,
     isAgentLocked,
     onDisabledInteraction,
     salesforceInstanceUrl,
@@ -77,8 +78,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isActionsEnabled,
     isDeepLinksEnabled,
     isSourcesEnabled,
-    isFileUploadEnabled,
     isArtifactsEnabled,
+    isFileUploadEnabled,
+    availableAgentModes,
     banner,
     onGoogleDriveClick,
     isDriveEnabled,
@@ -93,7 +95,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     currentConversation: props.currentConversation,
     conversationMessages: props.conversationMessages,
     refetchMessages: props.refetchMessages,
-    lockedAgentMode: props.lockedAgentMode,
+    lockedConversationMode: props.lockedConversationMode,
     isAgentLocked: props.isAgentLocked,
     canSubmit: props.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction,
@@ -103,7 +105,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isDeepLinksEnabled: props.isDeepLinksEnabled,
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
-    syncAgentModeToBackend: props.syncAgentModeToBackend,
+    syncConversationModeToBackend: props.syncConversationModeToBackend,
     onCollapseSidebar: props.onCollapseSidebar,
   });
 
@@ -145,6 +147,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             conversationId={conversationId}
             researchResults={chatV2.effectiveResearchResults ?? undefined}
             isDeepResearchRunning={chatV2.isDeepResearchRunning}
+            dashboard={chatV2.dashboard ?? undefined}
+            lockedConversationMode={lockedConversationMode}
             onSendMessage={chatV2.handleSendMessage}
             onStopStreaming={chatV2.handleStopStreaming}
             onArtifactClick={chatV2.handleArtifactClick}
@@ -154,7 +158,10 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             disableSubmit={!chatV2.canSubmitFinal}
             onInputWhileDisabled={onDisabledInteraction}
             enableCommands={isSlashCommandsEnabled}
-            showPlusMenu={isFileUploadEnabled}
+            availableAgentModes={availableAgentModes}
+            fetchNextMessagePage={fetchNextMessagePage}
+            hasNextMessagePage={hasNextMessagePage}
+            isFetchingNextMessagePage={isFetchingNextMessagePage}
           />
         </>
       ) : (
@@ -217,8 +224,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               thinkingProcessVersion="v2"
               useStandardInput={true}
               isAgentLocked={isAgentLocked}
-              lockedAgentMode={lockedAgentMode}
-              showPlusMenu={isFileUploadEnabled}
+              lockedConversationMode={lockedConversationMode}
               controlledAttachments={chatV2.fileAttachmentState}
               onRemoveAttachment={chatV2.handleRemoveAttachment}
               onFilesSelected={chatV2.handleFilesSelected}
@@ -236,6 +242,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              availableAgentModes={availableAgentModes}
+              enableFileUpload={isFileUploadEnabled}
             />
           </div>
 

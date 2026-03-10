@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
-  AgentMode,
+  ConversationMode,
   SendMessageOptions,
   FileAttachment,
   MessageFileAttachment,
@@ -32,7 +32,7 @@ export interface UseChatV1Props {
   user: User | null;
   conversationMessages: MessageWithStreaming[];
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -43,7 +43,7 @@ export interface UseChatV1Props {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
 }
 
 export function useChatV1(props: UseChatV1Props) {
@@ -53,7 +53,7 @@ export function useChatV1(props: UseChatV1Props) {
     conversationMessages,
     refetchMessages,
     canSubmit,
-    syncAgentModeToBackend,
+    syncConversationModeToBackend,
   } = props;
 
   // Pusher connection (single instance)
@@ -198,7 +198,7 @@ export function useChatV1(props: UseChatV1Props) {
       const currentMessages =
         useChatStore.getState().messages[conversationId] || [];
       if (currentMessages.length === 0 && options?.agentMode) {
-        await syncAgentModeToBackend(options.agentMode);
+        await syncConversationModeToBackend(options.agentMode);
       }
 
       let fileAttachments;
@@ -238,7 +238,7 @@ export function useChatV1(props: UseChatV1Props) {
     },
     [
       conversationId,
-      syncAgentModeToBackend,
+      syncConversationModeToBackend,
       hasFileAttachments,
       uploadPendingFiles,
       sendMessage,

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { asyncWithLDProvider } from "launchdarkly-react-client-sdk";
 import Observability from "@launchdarkly/observability";
 import SessionReplay from "@launchdarkly/session-replay";
-import { DashboardSkeleton } from "../components/DashboardSkeleton";
+import { ConversationSkeleton } from "../components/ConversationSkeleton";
 
 interface LaunchDarklyProviderProps {
   children: ReactNode;
@@ -77,7 +77,7 @@ export function LaunchDarklyProvider({ children }: LaunchDarklyProviderProps) {
 
   // Show loading state while initializing
   if (!LDProvider) {
-    return <DashboardSkeleton />;
+    return <ConversationSkeleton />;
   }
 
   // Show error state if initialization failed

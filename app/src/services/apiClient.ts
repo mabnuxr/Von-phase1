@@ -147,7 +147,7 @@ export class ApiClient {
           const errorCode = getErrorCode(errorData);
           if (import.meta.env.DEV) {
             console.log(
-              `[API] 401 Unauthorized - error code: ${errorCode}, message: ${errorMessage}`,
+              "[API] 401 Unauthorized - session expired, logging out",
             );
           }
 

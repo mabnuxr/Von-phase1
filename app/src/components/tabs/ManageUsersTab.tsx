@@ -383,108 +383,117 @@ export function ManageUsersTab() {
                       {canDeleteTeamMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="relative">
-                              <button
-                                onClick={() => toggleMenu(member.id)}
-                                className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
-                                  openMenuUserId === member.id
-                                    ? "bg-gray-200 text-gray-900"
-                                    : "hover:bg-gray-200 text-gray-600"
-                                }`}
-                                aria-label="Open menu"
+                            <button
+                              onClick={() => toggleMenu(member.id)}
+                              className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+                                openMenuUserId === member.id
+                                  ? "bg-gray-200 text-gray-900"
+                                  : "hover:bg-gray-200 text-gray-600"
+                              }`}
+                              aria-label="Open menu"
+                            >
+                              <DotsThreeVertical size={18} weight="bold" />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {openMenuUserId === member.id && (
+                              <div
+                                ref={menuRef}
+                                className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[100]"
                               >
-                                <DotsThreeVertical size={18} weight="bold" />
-                              </button>
-
-                              {/* Dropdown Menu */}
-                              {openMenuUserId === member.id && (
-                                <div
-                                  ref={menuRef}
-                                  className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[100]"
-                                >
-                                  {/* Customize Permissions */}
-                                  <div className="relative">
-                                    <button
-                                      onClick={() =>
-                                        setShowPermissionsSubmenu(
-                                          !showPermissionsSubmenu,
-                                        )
-                                      }
-                                      className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
-                                        showPermissionsSubmenu
-                                          ? "bg-gray-100/80"
-                                          : "hover:bg-gray-100/80"
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2.5">
-                                        <ShieldCheck
-                                          size={14}
-                                          className="text-gray-800"
-                                        />
-                                        <span>Access Permissions</span>
-                                      </div>
-                                      <CaretRight
+                                {/* Customize Permissions */}
+                                <div className="relative">
+                                  <button
+                                    onClick={() =>
+                                      setShowPermissionsSubmenu(
+                                        !showPermissionsSubmenu,
+                                      )
+                                    }
+                                    className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
+                                      showPermissionsSubmenu
+                                        ? "bg-gray-100/80"
+                                        : "hover:bg-gray-100/80"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      <ShieldCheck
                                         size={14}
-                                        className="text-gray-400"
+                                        className="text-gray-800"
                                       />
-                                    </button>
+                                      <span>Access Permissions</span>
+                                    </div>
+                                    <CaretRight
+                                      size={14}
+                                      className="text-gray-400"
+                                    />
+                                  </button>
 
-                                    {/* Permissions Submenu */}
-                                    {showPermissionsSubmenu && (
-                                      <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
-                                        <div className="flex items-center justify-between rounded-xl px-3 py-2">
-                                          <span className="text-sm text-gray-900 whitespace-nowrap">
-                                            Salesforce Updates
-                                          </span>
-                                          <button
-                                            onClick={() =>
-                                              handleToggleSfdcWrite(member)
-                                            }
-                                            disabled={
-                                              updatePermissionsMutation.isPending
-                                            }
-                                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
+                                  {/* Permissions Submenu */}
+                                  {showPermissionsSubmenu && (
+                                    <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+                                      <div className="flex items-center justify-between rounded-xl px-3 py-2">
+                                        <span className="text-sm text-gray-900 whitespace-nowrap">
+                                          Salesforce Updates
+                                        </span>
+                                        <button
+                                          onClick={() =>
+                                            handleToggleSfdcWrite(member)
+                                          }
+                                          disabled={
+                                            updatePermissionsMutation.isPending
+                                          }
+                                          className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
+                                            (member.permissions?.sfdc_write ??
+                                            true)
+                                              ? "bg-green-500"
+                                              : "bg-gray-200"
+                                          }`}
+                                        >
+                                          <span
+                                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                                               (member.permissions?.sfdc_write ??
                                               true)
-                                                ? "bg-green-500"
-                                                : "bg-gray-200"
+                                                ? "translate-x-4"
+                                                : "translate-x-0"
                                             }`}
-                                          >
-                                            <span
-                                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                                (member.permissions
-                                                  ?.sfdc_write ?? true)
-                                                  ? "translate-x-4"
-                                                  : "translate-x-0"
-                                              }`}
-                                            />
-                                          </button>
-                                        </div>
-                                        <p className="px-3 pb-2" style={{ color: '#9ca3af', fontSize: '11px', lineHeight: '1.3' }}>Overrides org-level access</p>
+                                          />
+                                        </button>
                                       </div>
-                                    )}
-                                  </div>
-
-                                  {/* Delete User - not shown for current user */}
-                                  {member.email !== user?.email && (
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteUser(
-                                          member.id,
-                                          `${member.firstName} ${member.lastName}`,
-                                        )
-                                      }
-                                      disabled={removeMutation.isPending}
-                                      className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
-                                    >
-                                      <TrashSimple size={14} />
-                                      {removeMutation.isPending
-                                        ? "Removing..."
-                                        : "Delete User"}
-                                    </button>
+                                      <p
+                                        className="px-3 pb-2"
+                                        style={{
+                                          color: "#9ca3af",
+                                          fontSize: "11px",
+                                          lineHeight: "1.3",
+                                        }}
+                                      >
+                                        Overrides org-level access
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
+
+                                {/* Delete User - not shown for current user */}
+                                {member.email !== user?.email && (
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteUser(
+                                        member.id,
+                                        `${member.firstName} ${member.lastName}`,
+                                      )
+                                    }
+                                    disabled={removeMutation.isPending}
+                                    className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+                                  >
+                                    <TrashSimple size={14} />
+                                    {removeMutation.isPending
+                                      ? "Removing..."
+                                      : "Delete User"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>

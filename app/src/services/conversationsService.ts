@@ -48,8 +48,10 @@ export interface ArtifactSummary {
   artifact_type: string;
   category?: string;
   query_name?: string;
+  row_count?: number;
   size_bytes: number;
   persisted_at: string;
+  source_context?: string | null;
 }
 
 /**
@@ -84,7 +86,7 @@ class ConversationsService {
    * Create a new conversation
    * Backend expects: { title: string, mode?: ConversationMode, agentVersion?: string }
    * @param title - Conversation title
-   * @param mode - Optional conversation mode (auto, deep_research, dashboard_builder)
+   * @param mode - Optional conversation mode (auto, dashboard-builder)
    * @param agentVersion - Optional agent version ("v1" or "v2")
    */
   async createConversation(

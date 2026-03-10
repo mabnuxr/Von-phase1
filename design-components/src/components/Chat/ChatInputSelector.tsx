@@ -4,7 +4,7 @@ import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
 import type { BuildMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
 import { CommandsOverlay } from '../Commands';
 import type { Command } from '../Commands';
@@ -70,9 +70,7 @@ export interface ChatInputSelectorProps {
   /** Whether agent selection is locked (after first message) */
   isAgentLocked?: boolean;
   /** The agent mode to display when locked (from backend) */
-  lockedAgentMode?: AgentMode;
-  /** Whether to show the plus menu button (with agents and upload options) */
-  showPlusMenu?: boolean;
+  lockedConversationMode?: ConversationMode;
   /** Controlled file attachments (when provided, input uses controlled mode) */
   attachments?: FileAttachment[];
   /** Callback when a file is removed in controlled mode */
@@ -112,6 +110,8 @@ export interface ChatInputSelectorProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
 }
 
 // ---------------------------------------------------------------------------
@@ -145,8 +145,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       mode,
       onModeChange,
       isAgentLocked,
-      lockedAgentMode,
-      showPlusMenu,
+      lockedConversationMode,
       attachments: controlledAttachments,
       onRemoveAttachment,
       onFilesSelected,
@@ -162,6 +161,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      availableAgentModes,
     },
     ref
   ) => {
@@ -315,8 +315,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         mode,
         onModeChange,
         isAgentLocked,
-        lockedAgentMode,
-        showPlusMenu,
+        lockedConversationMode,
         attachments: controlledAttachments,
         onRemoveAttachment,
         onFilesSelected,
@@ -326,7 +325,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
       // Wrap onSend to handle command execution
       const standardOnSend = onSend
-        ? (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+        ? (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => {
             if (selectedCommand) {
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
@@ -352,6 +351,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           onCloseCommandsList={
             enableCommands && showCommandsList ? handleCloseCommandsList : undefined
           }
+          availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
         />
       );
     }

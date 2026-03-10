@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react';
 import { useCommands } from './useCommands';
 import type { Command } from './types';
 import type { FileAttachment } from '../Chat/FileAttachment/types';
-import type { AgentMode } from '../Chat/StandardChatInput/types';
+import type { ConversationMode } from '../Chat/StandardChatInput/types';
 
 import { getPlainText } from '../Chat/utils/text';
 
@@ -22,7 +22,7 @@ export interface UseCommandsInputOptions {
     message: string,
     attachments?: FileAttachment[],
     command?: Command,
-    agentMode?: AgentMode
+    agentMode?: ConversationMode
   ) => void;
 }
 
@@ -42,7 +42,11 @@ export interface UseCommandsInputReturn {
 
   // Handlers
   handleInputChange: (newValue: string) => void;
-  handleSend: (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => void;
+  handleSend: (
+    message: string,
+    attachments?: FileAttachment[],
+    agentMode?: ConversationMode
+  ) => void;
   handleSelectCommand: (command: Command) => void;
   handleRemoveCommand: () => void;
   handleNewCommand: () => void;
@@ -108,7 +112,7 @@ export function useCommandsInput({
   );
 
   const handleSend = useCallback(
-    (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+    (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => {
       // Get plain text version for slash command detection only
       const plainText = getPlainText(message).trim();
       // Keep original message (which may be markdown from TipTap) for sending
