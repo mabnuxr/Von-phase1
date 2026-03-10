@@ -205,6 +205,7 @@ const Settings = () => {
           userEmail={user?.email}
           isOpen={isAvatarMenuOpen}
           onClose={() => setIsAvatarMenuOpen(false)}
+          hideSettings
           onSettingsClick={handleSettingsClick}
           onLogoutClick={handleLogoutClick}
           triggerRect={avatarRect}

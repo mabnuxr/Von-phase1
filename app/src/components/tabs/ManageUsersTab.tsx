@@ -5,6 +5,7 @@ import {
   CaretRight,
   ShieldCheck,
   TrashSimple,
+  BookOpen,
 } from "@phosphor-icons/react";
 import {
   useTeamMembers,
@@ -141,8 +142,21 @@ export function ManageUsersTab() {
       {/* Heading - Fixed */}
       <div className="">
         <div className="px-4 pt-4 pb-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
-          <p className="text-sm text-gray-600">Add and manage team members</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
+              <p className="text-sm text-gray-600">Add and manage team members</p>
+            </div>
+            <a
+              href="https://docs.vonlabs.ai/workspace-setup/manage-and-invite-your-team"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
+            >
+              <BookOpen size={14} />
+              Learn more
+            </a>
+          </div>
         </div>
       </div>
 
