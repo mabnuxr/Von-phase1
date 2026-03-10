@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRunTimerController } from "./useRunTimerController";
+import { useLatestRef } from "./useLatestRef";
 import { flushSync } from "react-dom";
 import type { Channel } from "pusher-js";
 import type {
@@ -145,6 +146,7 @@ export function useV2EventProcessor(
     isTrackingRun: timerIsTrackingRun,
     seedFromServer: timerSeedFromServer,
     onSeedingDetectedCompletion: timerOnSeedingDetectedCompletion,
+    correctElapsed: timerCorrectElapsed,
   } = useRunTimerController();
 
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
@@ -170,6 +172,9 @@ export function useV2EventProcessor(
   // Tracks currentRunId for the event handler closure without causing
   // callback recreation (and Pusher handler rebinding) on every state change.
   const currentRunIdForHandlerRef = useRef<string | null>(null);
+  // Ref snapshot of timerElapsedTime so the seeding effect can read it without
+  // depending on a value that changes every second.
+  const timerElapsedTimeRef = useLatestRef(timerElapsedTime);
   // Guards against events arriving after Stop is clicked but before any run_id
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
@@ -600,7 +605,17 @@ export function useV2EventProcessor(
     const isPusherAlreadyTracking = timerIsTrackingRun(runId);
 
     if (isPusherAlreadyTracking) {
-      // Pusher is already tracking — just update state, don't touch the timer.
+      // Pusher is already tracking — update state and correct timer if needed.
+      // On fresh mount, Pusher may misclassify a reconnect as a new run (because
+      // currentRunIdForHandlerRef is null), resetting the timer to 0. The event-
+      // derived elapsed covers first→last event; add the current timer value to
+      // account for the gap between the last event and now.
+      const eventElapsed = getElapsedTimeFromEvents(mergedEvents);
+      const correctedElapsed = eventElapsed + timerElapsedTimeRef.current;
+      if (correctedElapsed > timerElapsedTimeRef.current) {
+        timerCorrectElapsed(runId, correctedElapsed);
+      }
+
       currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
         phase: seededPhase,
@@ -661,8 +676,16 @@ export function useV2EventProcessor(
       }
       scheduleGapFill(runId, 1500, "Reconciliation");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialRunEvents]);
+  }, [
+    initialRunEvents,
+    applyTransformResult,
+    scheduleGapFill,
+    timerIsTrackingRun,
+    timerCorrectElapsed,
+    timerElapsedTimeRef,
+    timerOnSeedingDetectedCompletion,
+    timerSeedFromServer,
+  ]);
 
   // Bind/unbind AGUI events when channel changes
   useEffect(() => {

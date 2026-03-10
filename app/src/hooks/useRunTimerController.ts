@@ -51,6 +51,11 @@ export interface RunTimerController {
   /** Seeding detected a completed run while Pusher was tracking
    *  (edge case: Pusher missed RUN_FINISHED). */
   onSeedingDetectedCompletion: (runId: string) => void;
+
+  /** Correct the elapsed value upward for an already-tracked run.
+   *  Used when seeding provides a more accurate elapsed than the timer
+   *  (e.g., Pusher misclassified a reconnect as a new run on fresh mount). */
+  correctElapsed: (runId: string, elapsed: number) => void;
 }
 
 export function useRunTimerController(): RunTimerController {
@@ -177,6 +182,14 @@ export function useRunTimerController(): RunTimerController {
     [stop],
   );
 
+  const correctElapsed = useCallback(
+    (runId: string, elapsed: number) => {
+      if (runId !== currentRunIdRef.current) return;
+      set(elapsed);
+    },
+    [set],
+  );
+
   return {
     elapsedTime,
     onRunStarted,
@@ -190,5 +203,6 @@ export function useRunTimerController(): RunTimerController {
     isTrackingRun,
     seedFromServer,
     onSeedingDetectedCompletion,
+    correctElapsed,
   };
 }
