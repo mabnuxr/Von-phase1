@@ -7,7 +7,7 @@
  * Key features:
  * - Accumulates events in eventsRef per run_id
  * - Transforms via transformAguiToTimelineSteps()
- * - Manages elapsed time timer
+ * - Manages elapsed time timer via useRunTimerController
  * - Handles stopped streaming with batching
  * - Seeds from initialRunEvents on mount (page refresh recovery)
  * - Exposes refs for reconciliation hook to use
@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRunTimer } from "./useRunTimer";
+import { useRunTimerController } from "./useRunTimerController";
 import { flushSync } from "react-dom";
 import type { Channel } from "pusher-js";
 import type {
@@ -102,6 +102,8 @@ export interface UseV2EventProcessorReturn {
   markStopped: () => void;
   markTimedOut: () => void;
   clearPendingStop: () => void;
+  /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
+  resumeTimer: () => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -128,7 +130,7 @@ export function useV2EventProcessor(
   initialRunEvents?: AguiEventWrapper[],
   onRunComplete?: () => void,
 ): UseV2EventProcessorReturn {
-  const timer = useRunTimer();
+  const timerCtrl = useRunTimerController();
 
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -218,8 +220,6 @@ export function useV2EventProcessor(
           }
         }
 
-        const actualElapsed = getElapsedTimeFromEvents(activeRunEvents);
-
         flushSync(() => {
           setTimelineSteps(steps);
           setIsThinking(false);
@@ -230,9 +230,6 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
         });
-        if (actualElapsed > 0) {
-          timer.set(actualElapsed);
-        }
       } else {
         flushSync(() => {
           setIsThinking(false);
@@ -241,14 +238,13 @@ export function useV2EventProcessor(
           setRunErrorMessage(options.errorMessage ?? "");
           setTimelineSteps([]);
         });
-        timer.set(0);
       }
 
-      timer.stop();
+      timerCtrl.onRunTerminated();
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [timer.stop, timer.set, onRunComplete],
+    [timerCtrl.onRunTerminated, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
@@ -286,11 +282,10 @@ export function useV2EventProcessor(
   }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
-    (_runId: string, elapsed: number) => {
-      timer.stop();
-      timer.set(elapsed);
+    (runId: string, _elapsed: number) => {
+      timerCtrl.onReconciliationFinished(runId);
     },
-    [timer.stop, timer.set],
+    [timerCtrl.onReconciliationFinished],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -404,10 +399,16 @@ export function useV2EventProcessor(
           runEvents = [];
           eventsRef.current.set(run_id, runEvents);
 
-          // Only reset state for genuinely new runs (sequence 0).
-          // If the first Pusher event has sequence > 0, this is a page-refresh
-          // mid-stream — backend seeding will merge the earlier events shortly.
-          if (sequence === 0) {
+          // Determine if this is a genuinely new run (follow-up) or a
+          // mid-stream reconnect (page refresh). We can't rely on sequence === 0
+          // because backends may start sequences at 1 or higher.
+          // Instead, check if the previous run finished — if so, this must be new.
+          // If no run is being tracked yet, or the previously tracked run
+          // already finished, this is a brand-new run (not a reconnect).
+          const previousRunId = currentRunId;
+          const isNewRun =
+            !previousRunId || finishedRunsRef.current.has(previousRunId);
+          if (isNewRun) {
             flushSync(() => {
               setTimelineSteps([]);
               setFinalResponse("");
@@ -419,12 +420,12 @@ export function useV2EventProcessor(
               setDashboard(null);
               setPhase(null);
             });
-            timer.start();
+            timerCtrl.onRunStarted(run_id);
           } else {
             // Mid-stream reconnect: set run ID but preserve existing state,
             // seeding will fill in the gaps and re-transform
             setCurrentRunId(run_id);
-            timer.play();
+            timerCtrl.onReconnected(run_id);
           }
         }
 
@@ -484,14 +485,12 @@ export function useV2EventProcessor(
           }
         });
 
-        // Pause timer when awaiting approval; resume when approval is acted on
-        if (result.isAwaitingApproval) {
-          timer.pause();
-        } else if (result.isThinking && !result.isFinalResponseStreaming) {
-          timer.play();
-        } else if (result.isFinalResponseStreaming) {
-          timer.stop();
-        }
+        // Delegate timer pause/play/stop to the controller based on event state
+        timerCtrl.onEventProcessed(run_id, {
+          isAwaitingApproval: result.isAwaitingApproval,
+          isThinking: result.isThinking,
+          isFinalResponseStreaming: result.isFinalResponseStreaming,
+        });
 
         // Mid-stream gap detection: if the range of sequences exceeds the event
         // count, some events were lost. Schedule a delayed backend fetch to fill gaps.
@@ -520,13 +519,7 @@ export function useV2EventProcessor(
           !finishedRunsRef.current.has(run_id)
         ) {
           finishedRunsRef.current.add(run_id);
-          timer.stop();
-
-          const actualElapsed = getElapsedTimeFromEvents(runEvents);
-          if (actualElapsed > 0) {
-            timer.set(actualElapsed);
-          }
-
+          timerCtrl.onRunCompleted(run_id);
           onRunComplete?.();
         }
       } catch (error) {
@@ -535,11 +528,11 @@ export function useV2EventProcessor(
     },
     [
       conversationId,
-      timer.start,
-      timer.stop,
-      timer.pause,
-      timer.play,
-      timer.set,
+      currentRunId,
+      timerCtrl.onRunStarted,
+      timerCtrl.onReconnected,
+      timerCtrl.onEventProcessed,
+      timerCtrl.onRunCompleted,
       onRunComplete,
       scheduleGapFill,
     ],
@@ -584,28 +577,29 @@ export function useV2EventProcessor(
 
     eventsRef.current.set(runId, mergedEvents);
 
+    const isPusherAlreadyTracking = timerCtrl.isTrackingRun(runId);
+
     // Apply transform result and set phase/dashboard in same flushSync batch
     applyTransformResult(result, runId, {
       phase: seededPhase,
       dashboard: seededDashboard,
     });
 
-    const elapsed = getElapsedTimeFromEvents(mergedEvents);
-    if (elapsed > 0) {
-      timer.set(elapsed);
-    }
-
-    // Start or stop timer based on run state
-    if (result.isThinking && !result.isAwaitingApproval) {
-      timer.stop();
-      timer.play();
-    } else if (!result.isThinking) {
-      timer.stop();
-      // Mark completed/stopped runs as finished so subsequent events don't re-process
+    if (!isPusherAlreadyTracking) {
+      // Fresh seed (page refresh recovery) — delegate timer setup to controller
+      const elapsed = getElapsedTimeFromEvents(mergedEvents);
+      if (!result.isThinking) {
+        // Run already completed — mark finished so subsequent events don't re-process
+        finishedRunsRef.current.add(runId);
+      }
+      timerCtrl.seedFromServer(runId, elapsed, {
+        isThinking: result.isThinking,
+        isAwaitingApproval: result.isAwaitingApproval,
+      });
+    } else if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
+      // Edge case: Pusher is tracking but run completed (Pusher missed RUN_FINISHED).
       finishedRunsRef.current.add(runId);
-    } else {
-      // isThinking && isAwaitingApproval — pause timer
-      timer.pause();
+      timerCtrl.onSeedingDetectedCompletion(runId);
     }
 
     if (import.meta.env.DEV) {
@@ -667,7 +661,7 @@ export function useV2EventProcessor(
   return {
     timelineSteps,
     isThinking,
-    elapsedTime: timer.elapsedTime,
+    elapsedTime: timerCtrl.elapsedTime,
     currentRunId,
     finalResponse,
     isFinalResponseStreaming,
@@ -681,6 +675,7 @@ export function useV2EventProcessor(
     markStopped,
     markTimedOut,
     clearPendingStop,
+    resumeTimer: timerCtrl.onApprovalResumed,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

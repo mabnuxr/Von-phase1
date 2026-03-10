@@ -413,9 +413,10 @@ export function useChatV2(props: UseChatV2Props) {
   const handleApproval = useCallback(
     async (toolCallId: string, runId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
+      v2Processor.resumeTimer();
       await handleToolApproval(toolCallId, effectiveRunId, conversationId);
     },
-    [conversationId],
+    [conversationId, v2Processor.resumeTimer],
   );
 
   const handleRejection = useCallback(

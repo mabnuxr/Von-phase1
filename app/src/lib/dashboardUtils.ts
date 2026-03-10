@@ -317,9 +317,23 @@ function transformMessagesForV2(
       (!hasV2TerminalData || !msgBelongsToCurrentV2Run);
 
     // Don't overlay V2 live data on already-persisted completed messages
-    // (they have their own events and should use the persisted path below)
+    // (they have their own events and should use the persisted path below).
+    // Exception: if V2 just finished tracking a run and this is the latest
+    // assistant message, keep using live data so the timer value (which
+    // correctly excludes approval wait) is shown instead of wall-clock elapsed
+    // from event timestamps. We can't compare msg.runId to v2LiveData.currentRunId
+    // because updateMessageId sets msg.runId to the backend message ID (not run_id).
+    const v2JustFinishedThisRun =
+      isLastAssistant &&
+      hasLiveV2Data &&
+      !isRunActive &&
+      !!v2LiveData.currentRunId;
     const shouldUsePersistedData =
-      !msg.isStreaming && !isRunActive && msg.events && msg.events.length > 0;
+      !msg.isStreaming &&
+      !isRunActive &&
+      msg.events &&
+      msg.events.length > 0 &&
+      !v2JustFinishedThisRun;
 
     if (
       isLastAssistant &&
