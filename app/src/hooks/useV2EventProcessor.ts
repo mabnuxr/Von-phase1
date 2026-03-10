@@ -632,7 +632,15 @@ export function useV2EventProcessor(
       // The persisted message path (dashboardUtils) renders the correct elapsed
       // and timeline from msg.events. Setting currentRunId here would force the
       // V2 live path, which shows elapsedTime=0 before the timer is seeded.
+      // However, we still need to set phase and dashboard for UI components that
+      // depend on them (e.g., DashboardPanel, approval buttons).
+      // Mark as finished FIRST (synchronously via ref) to prevent race conditions
+      // with late Pusher events before state updates complete.
       finishedRunsRef.current.add(runId);
+      flushSync(() => {
+        setPhase(seededPhase);
+        setDashboard(seededDashboard);
+      });
     } else {
       // Active run, not yet tracked by Pusher (page refresh recovery).
       // Seed the timer FIRST so that the flushSync render in applyTransformResult
