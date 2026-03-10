@@ -201,10 +201,10 @@ const Settings = () => {
 
         {/* Avatar Menu Dropdown */}
         <AvatarMenu
-          userName={displayName}
           userEmail={user?.email}
           isOpen={isAvatarMenuOpen}
           onClose={() => setIsAvatarMenuOpen(false)}
+          hideSettings
           onSettingsClick={handleSettingsClick}
           onLogoutClick={handleLogoutClick}
           triggerRect={avatarRect}

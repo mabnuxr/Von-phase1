@@ -47,7 +47,7 @@ export interface CollapsedSidebarProps {
   onAvatarClick: () => void;
   onCloseProfile: () => void;
   onSettingsClick?: () => void;
-  onHelpClick?: () => void;
+
   onSignOutClick?: () => void;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
@@ -94,7 +94,6 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onAvatarClick,
   onCloseProfile,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
   isNewChatActive = false,
   sortedFolders,
@@ -281,13 +280,9 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
         <ProfilePopover
           isOpen={isProfileOpen}
           onClose={onCloseProfile}
-          userName={userName}
           userEmail={userEmail}
-          avatarSrc={avatarSrc}
-          avatarLabel={avatarLabel}
           position={popoverPosition}
           onSettingsClick={onSettingsClick}
-          onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
         />
       )}

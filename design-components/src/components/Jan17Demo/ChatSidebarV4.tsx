@@ -99,7 +99,7 @@ export interface ChatSidebarV4Props {
   avatarSrc?: string;
   avatarLabel?: string;
   onSettingsClick?: () => void;
-  onHelpClick?: () => void;
+
   onSignOutClick?: () => void;
 }
 
@@ -576,7 +576,6 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
   avatarSrc,
   avatarLabel,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
 }) => {
   const [searchValue, setSearchValue] = useState('');
@@ -965,13 +964,9 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
         <ProfilePopover
           isOpen={isProfileOpen}
           onClose={() => setIsProfileOpen(false)}
-          userName={userName}
           userEmail={userEmail}
-          avatarSrc={avatarSrc}
-          avatarLabel={avatarLabel}
           position={popoverPosition}
           onSettingsClick={onSettingsClick}
-          onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
         />
       </div>
@@ -1303,13 +1298,9 @@ export const ChatSidebarV4: React.FC<ChatSidebarV4Props> = ({
       <ProfilePopover
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-        userName={userName}
         userEmail={userEmail}
-        avatarSrc={avatarSrc}
-        avatarLabel={avatarLabel}
         position={popoverPosition}
         onSettingsClick={onSettingsClick}
-        onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}
       />
 
