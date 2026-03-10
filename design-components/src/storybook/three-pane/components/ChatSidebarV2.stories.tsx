@@ -120,7 +120,6 @@ const DefaultWrapper = () => {
         userEmail="sarah@company.com"
         avatarLabel="SC"
         onSettingsClick={() => console.log('Settings')}
-        onHelpClick={() => console.log('Help')}
         onSignOutClick={() => console.log('Sign out')}
       />
     </div>

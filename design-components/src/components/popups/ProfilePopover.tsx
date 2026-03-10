@@ -14,34 +14,14 @@ export interface ProfilePopoverProps {
   onClose: () => void;
 
   /**
-   * User's display name
-   */
-  userName?: string;
-
-  /**
    * User's email address
    */
   userEmail?: string;
 
   /**
-   * Avatar image URL
-   */
-  avatarSrc?: string;
-
-  /**
-   * Avatar initials/label (shown when no image)
-   */
-  avatarLabel?: string;
-
-  /**
    * Callback when settings is clicked
    */
   onSettingsClick?: () => void;
-
-  /**
-   * Callback when help is clicked
-   */
-  onHelpClick?: () => void;
 
   /**
    * Callback when sign out is clicked
@@ -84,7 +64,13 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={classes}>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={classes}
+        onClick={onClick}
+      >
         {icon}
         <span className="flex-1">{label}</span>
         {trailingIcon}
@@ -109,10 +95,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
 export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   isOpen,
   onClose,
-  userName,
   userEmail,
-  avatarSrc,
-  avatarLabel,
   onSettingsClick,
   onSignOutClick,
   position = { top: 0, right: 0 },

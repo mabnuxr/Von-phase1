@@ -62,7 +62,6 @@ export interface AvatarMenuProps {
  * ```
  */
 export const AvatarMenu: React.FC<AvatarMenuProps> = ({
-  userName,
   userEmail,
   onSettingsClick,
   onLogoutClick,
@@ -139,7 +138,11 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
                 onClick={() => handleItemClick(onSettingsClick)}
                 whileTap={{ scale: 0.98 }}
               >
-                <GearIcon size={20} weight="regular" className="text-gray-700" />
+                <GearIcon
+                  size={20}
+                  weight="regular"
+                  className="text-gray-700"
+                />
                 Settings
               </motion.button>
             )}
@@ -149,8 +152,13 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"
+              onClick={onClose}
             >
-              <ArrowUpRight size={20} weight="regular" className="text-gray-700" />
+              <ArrowUpRight
+                size={20}
+                weight="regular"
+                className="text-gray-700"
+              />
               Help docs
             </a>
 

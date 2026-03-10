@@ -144,8 +144,12 @@ export function ManageUsersTab() {
         <div className="px-4 pt-4 pb-6 border-b border-gray-200">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Manage Team</h2>
-              <p className="text-sm text-gray-600">Add and manage team members</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Manage Team
+              </h2>
+              <p className="text-sm text-gray-600">
+                Add and manage team members
+              </p>
             </div>
             <a
               href="https://docs.vonlabs.ai/workspace-setup/manage-and-invite-your-team"

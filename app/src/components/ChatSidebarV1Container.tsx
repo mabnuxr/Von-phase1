@@ -62,7 +62,6 @@ export function ChatSidebarV1Container({
         onAvatarClick={handleAvatarClick}
       />
       <AvatarMenu
-        userName={displayName}
         userEmail={user?.email}
         isOpen={isAvatarMenuOpen}
         onClose={() => setIsAvatarMenuOpen(false)}
