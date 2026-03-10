@@ -7,7 +7,7 @@
  * Key features:
  * - Accumulates events in eventsRef per run_id
  * - Transforms via transformAguiToTimelineSteps()
- * - Manages elapsed time timer
+ * - Manages elapsed time timer via useRunTimerController
  * - Handles stopped streaming with batching
  * - Seeds from initialRunEvents on mount (page refresh recovery)
  * - Exposes refs for reconciliation hook to use
@@ -16,7 +16,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRunTimer } from "./useRunTimer";
+import { useRunTimerController } from "./useRunTimerController";
+import { useLatestRef } from "./useLatestRef";
 import { flushSync } from "react-dom";
 import type { Channel } from "pusher-js";
 import type {
@@ -102,6 +103,10 @@ export interface UseV2EventProcessorReturn {
   markStopped: () => void;
   markTimedOut: () => void;
   clearPendingStop: () => void;
+  /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
+  resumeTimer: () => void;
+  /** Undo the optimistic timer resume when the approval API fails. */
+  pauseTimerOnApprovalFailure: () => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -128,7 +133,21 @@ export function useV2EventProcessor(
   initialRunEvents?: AguiEventWrapper[],
   onRunComplete?: () => void,
 ): UseV2EventProcessorReturn {
-  const timer = useRunTimer();
+  const {
+    elapsedTime: timerElapsedTime,
+    onRunStarted: timerOnRunStarted,
+    onReconnected: timerOnReconnected,
+    onEventProcessed: timerOnEventProcessed,
+    onRunCompleted: timerOnRunCompleted,
+    onRunTerminated: timerOnRunTerminated,
+    onApprovalResumed: timerOnApprovalResumed,
+    onApprovalFailed: timerOnApprovalFailed,
+    onReconciliationFinished: timerOnReconciliationFinished,
+    isTrackingRun: timerIsTrackingRun,
+    seedFromServer: timerSeedFromServer,
+    onSeedingDetectedCompletion: timerOnSeedingDetectedCompletion,
+    correctElapsed: timerCorrectElapsed,
+  } = useRunTimerController();
 
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -150,6 +169,12 @@ export function useV2EventProcessor(
   const finishedRunsRef = useRef<Set<string>>(new Set());
   const lastEventTimeRef = useRef<number>(0);
   const gapFillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks currentRunId for the event handler closure without causing
+  // callback recreation (and Pusher handler rebinding) on every state change.
+  const currentRunIdForHandlerRef = useRef<string | null>(null);
+  // Ref snapshot of timerElapsedTime so the seeding effect can read it without
+  // depending on a value that changes every second.
+  const timerElapsedTimeRef = useLatestRef(timerElapsedTime);
   // Guards against events arriving after Stop is clicked but before any run_id
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
@@ -218,8 +243,6 @@ export function useV2EventProcessor(
           }
         }
 
-        const actualElapsed = getElapsedTimeFromEvents(activeRunEvents);
-
         flushSync(() => {
           setTimelineSteps(steps);
           setIsThinking(false);
@@ -230,9 +253,6 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
         });
-        if (actualElapsed > 0) {
-          timer.set(actualElapsed);
-        }
       } else {
         flushSync(() => {
           setIsThinking(false);
@@ -241,14 +261,14 @@ export function useV2EventProcessor(
           setRunErrorMessage(options.errorMessage ?? "");
           setTimelineSteps([]);
         });
-        timer.set(0);
       }
 
-      timer.stop();
+      // Reset elapsed to 0 when no events were found (user stopped before any arrived)
+      timerOnRunTerminated(!activeRunEvents || activeRunEvents.length === 0);
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [timer.stop, timer.set, onRunComplete],
+    [timerOnRunTerminated, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
@@ -286,11 +306,10 @@ export function useV2EventProcessor(
   }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
-    (_runId: string, elapsed: number) => {
-      timer.stop();
-      timer.set(elapsed);
+    (runId: string, elapsed: number) => {
+      timerOnReconciliationFinished(runId, elapsed);
     },
-    [timer.stop, timer.set],
+    [timerOnReconciliationFinished],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -404,10 +423,17 @@ export function useV2EventProcessor(
           runEvents = [];
           eventsRef.current.set(run_id, runEvents);
 
-          // Only reset state for genuinely new runs (sequence 0).
-          // If the first Pusher event has sequence > 0, this is a page-refresh
-          // mid-stream — backend seeding will merge the earlier events shortly.
-          if (sequence === 0) {
+          // Determine if this is a genuinely new run (follow-up) or a
+          // mid-stream reconnect (page refresh). We can't rely on sequence === 0
+          // because backends may start sequences at 1 or higher.
+          // Instead, check if the previous run finished — if so, this must be new.
+          // If no run is being tracked yet, or the previously tracked run
+          // already finished, this is a brand-new run (not a reconnect).
+          const previousRunId = currentRunIdForHandlerRef.current;
+          const isNewRun =
+            !previousRunId || finishedRunsRef.current.has(previousRunId);
+          if (isNewRun) {
+            currentRunIdForHandlerRef.current = run_id;
             flushSync(() => {
               setTimelineSteps([]);
               setFinalResponse("");
@@ -419,12 +445,13 @@ export function useV2EventProcessor(
               setDashboard(null);
               setPhase(null);
             });
-            timer.start();
+            timerOnRunStarted(run_id);
           } else {
             // Mid-stream reconnect: set run ID but preserve existing state,
             // seeding will fill in the gaps and re-transform
+            currentRunIdForHandlerRef.current = run_id;
             setCurrentRunId(run_id);
-            timer.play();
+            timerOnReconnected(run_id);
           }
         }
 
@@ -484,14 +511,12 @@ export function useV2EventProcessor(
           }
         });
 
-        // Pause timer when awaiting approval; resume when approval is acted on
-        if (result.isAwaitingApproval) {
-          timer.pause();
-        } else if (result.isThinking && !result.isFinalResponseStreaming) {
-          timer.play();
-        } else if (result.isFinalResponseStreaming) {
-          timer.stop();
-        }
+        // Delegate timer pause/play/stop to the controller based on event state
+        timerOnEventProcessed(run_id, {
+          isAwaitingApproval: result.isAwaitingApproval,
+          isThinking: result.isThinking,
+          isFinalResponseStreaming: result.isFinalResponseStreaming,
+        });
 
         // Mid-stream gap detection: if the range of sequences exceeds the event
         // count, some events were lost. Schedule a delayed backend fetch to fill gaps.
@@ -520,13 +545,7 @@ export function useV2EventProcessor(
           !finishedRunsRef.current.has(run_id)
         ) {
           finishedRunsRef.current.add(run_id);
-          timer.stop();
-
-          const actualElapsed = getElapsedTimeFromEvents(runEvents);
-          if (actualElapsed > 0) {
-            timer.set(actualElapsed);
-          }
-
+          timerOnRunCompleted(run_id);
           onRunComplete?.();
         }
       } catch (error) {
@@ -535,11 +554,10 @@ export function useV2EventProcessor(
     },
     [
       conversationId,
-      timer.start,
-      timer.stop,
-      timer.pause,
-      timer.play,
-      timer.set,
+      timerOnRunStarted,
+      timerOnReconnected,
+      timerOnEventProcessed,
+      timerOnRunCompleted,
       onRunComplete,
       scheduleGapFill,
     ],
@@ -584,28 +602,51 @@ export function useV2EventProcessor(
 
     eventsRef.current.set(runId, mergedEvents);
 
-    // Apply transform result and set phase/dashboard in same flushSync batch
-    applyTransformResult(result, runId, {
-      phase: seededPhase,
-      dashboard: seededDashboard,
-    });
+    const isPusherAlreadyTracking = timerIsTrackingRun(runId);
 
-    const elapsed = getElapsedTimeFromEvents(mergedEvents);
-    if (elapsed > 0) {
-      timer.set(elapsed);
-    }
+    if (isPusherAlreadyTracking) {
+      // Pusher is already tracking — update state and correct timer if needed.
+      // On fresh mount, Pusher may misclassify a reconnect as a new run (because
+      // currentRunIdForHandlerRef is null), resetting the timer to 0. The event-
+      // derived elapsed covers first→last event; add the current timer value to
+      // account for the gap between the last event and now.
+      const eventElapsed = getElapsedTimeFromEvents(mergedEvents);
+      const correctedElapsed = eventElapsed + timerElapsedTimeRef.current;
+      if (correctedElapsed > timerElapsedTimeRef.current) {
+        timerCorrectElapsed(runId, correctedElapsed);
+      }
 
-    // Start or stop timer based on run state
-    if (result.isThinking && !result.isAwaitingApproval) {
-      timer.stop();
-      timer.play();
+      currentRunIdForHandlerRef.current = runId;
+      applyTransformResult(result, runId, {
+        phase: seededPhase,
+        dashboard: seededDashboard,
+      });
+
+      if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
+        // Edge case: Pusher is tracking but run completed (Pusher missed RUN_FINISHED).
+        finishedRunsRef.current.add(runId);
+        timerOnSeedingDetectedCompletion(runId);
+      }
     } else if (!result.isThinking) {
-      timer.stop();
-      // Mark completed/stopped runs as finished so subsequent events don't re-process
+      // Completed run, no live tracking — just bookkeep.
+      // The persisted message path (dashboardUtils) renders the correct elapsed
+      // and timeline from msg.events. Setting currentRunId here would force the
+      // V2 live path, which shows elapsedTime=0 before the timer is seeded.
       finishedRunsRef.current.add(runId);
     } else {
-      // isThinking && isAwaitingApproval — pause timer
-      timer.pause();
+      // Active run, not yet tracked by Pusher (page refresh recovery).
+      // Seed the timer FIRST so that the flushSync render in applyTransformResult
+      // sees the correct elapsed value via the V2 live path.
+      const elapsed = getElapsedTimeFromEvents(mergedEvents);
+      timerSeedFromServer(runId, elapsed, {
+        isThinking: result.isThinking,
+        isAwaitingApproval: result.isAwaitingApproval,
+      });
+      currentRunIdForHandlerRef.current = runId;
+      applyTransformResult(result, runId, {
+        phase: seededPhase,
+        dashboard: seededDashboard,
+      });
     }
 
     if (import.meta.env.DEV) {
@@ -635,8 +676,16 @@ export function useV2EventProcessor(
       }
       scheduleGapFill(runId, 1500, "Reconciliation");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialRunEvents]);
+  }, [
+    initialRunEvents,
+    applyTransformResult,
+    scheduleGapFill,
+    timerIsTrackingRun,
+    timerCorrectElapsed,
+    timerElapsedTimeRef,
+    timerOnSeedingDetectedCompletion,
+    timerSeedFromServer,
+  ]);
 
   // Bind/unbind AGUI events when channel changes
   useEffect(() => {
@@ -667,7 +716,7 @@ export function useV2EventProcessor(
   return {
     timelineSteps,
     isThinking,
-    elapsedTime: timer.elapsedTime,
+    elapsedTime: timerElapsedTime,
     currentRunId,
     finalResponse,
     isFinalResponseStreaming,
@@ -681,6 +730,8 @@ export function useV2EventProcessor(
     markStopped,
     markTimedOut,
     clearPendingStop,
+    resumeTimer: timerOnApprovalResumed,
+    pauseTimerOnApprovalFailure: timerOnApprovalFailed,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,
