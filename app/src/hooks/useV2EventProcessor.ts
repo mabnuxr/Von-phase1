@@ -104,6 +104,8 @@ export interface UseV2EventProcessorReturn {
   clearPendingStop: () => void;
   /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
   resumeTimer: () => void;
+  /** Undo the optimistic timer resume when the approval API fails. */
+  pauseTimerOnApprovalFailure: () => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -138,6 +140,7 @@ export function useV2EventProcessor(
     onRunCompleted: timerOnRunCompleted,
     onRunTerminated: timerOnRunTerminated,
     onApprovalResumed: timerOnApprovalResumed,
+    onApprovalFailed: timerOnApprovalFailed,
     onReconciliationFinished: timerOnReconciliationFinished,
     isTrackingRun: timerIsTrackingRun,
     seedFromServer: timerSeedFromServer,
@@ -298,8 +301,8 @@ export function useV2EventProcessor(
   }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
-    (runId: string, _: number) => {
-      timerOnReconciliationFinished(runId);
+    (runId: string, elapsed: number) => {
+      timerOnReconciliationFinished(runId, elapsed);
     },
     [timerOnReconciliationFinished],
   );
@@ -705,6 +708,7 @@ export function useV2EventProcessor(
     markTimedOut,
     clearPendingStop,
     resumeTimer: timerOnApprovalResumed,
+    pauseTimerOnApprovalFailure: timerOnApprovalFailed,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

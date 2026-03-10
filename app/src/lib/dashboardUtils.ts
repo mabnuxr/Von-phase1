@@ -186,6 +186,7 @@ export async function handleToolApproval(
     }
   } catch (error) {
     console.error("[Dashboard] Failed to send approval after retries:", error);
+    throw error;
   }
 }
 

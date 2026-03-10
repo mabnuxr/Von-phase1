@@ -410,14 +410,18 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   // Tool approval/rejection
-  const { resumeTimer } = v2Processor;
+  const { resumeTimer, pauseTimerOnApprovalFailure } = v2Processor;
   const handleApproval = useCallback(
     async (toolCallId: string, runId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
       resumeTimer();
-      await handleToolApproval(toolCallId, effectiveRunId, conversationId);
+      try {
+        await handleToolApproval(toolCallId, effectiveRunId, conversationId);
+      } catch {
+        pauseTimerOnApprovalFailure();
+      }
     },
-    [conversationId, resumeTimer],
+    [conversationId, resumeTimer, pauseTimerOnApprovalFailure],
   );
 
   const handleRejection = useCallback(

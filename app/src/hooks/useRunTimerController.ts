@@ -31,8 +31,11 @@ export interface RunTimerController {
   /** User clicked approve — optimistically resume before Pusher events arrive. */
   onApprovalResumed: () => void;
 
-  /** Reconciliation detected run finished. */
-  onReconciliationFinished: (runId: string) => void;
+  /** Approval API failed — undo the optimistic resume and re-pause. */
+  onApprovalFailed: () => void;
+
+  /** Reconciliation detected run finished. Sets elapsed before stopping. */
+  onReconciliationFinished: (runId: string, elapsed: number) => void;
 
   /** Check if the controller is already tracking a specific run. */
   isTrackingRun: (runId: string) => boolean;
@@ -123,12 +126,18 @@ export function useRunTimerController(): RunTimerController {
     play();
   }, [play]);
 
+  const onApprovalFailed = useCallback(() => {
+    approvalResumedRef.current = false;
+    pause();
+  }, [pause]);
+
   const onReconciliationFinished = useCallback(
-    (runId: string) => {
+    (runId: string, elapsed: number) => {
       if (runId !== currentRunIdRef.current) return;
+      set(elapsed);
       stop();
     },
-    [stop],
+    [stop, set],
   );
 
   const isTrackingRun = useCallback((runId: string) => {
@@ -176,6 +185,7 @@ export function useRunTimerController(): RunTimerController {
     onRunCompleted,
     onRunTerminated,
     onApprovalResumed,
+    onApprovalFailed,
     onReconciliationFinished,
     isTrackingRun,
     seedFromServer,
