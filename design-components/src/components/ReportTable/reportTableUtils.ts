@@ -155,10 +155,17 @@ export function createAICellFormatter(
 
     // Access _aiReasoning from the row data (Grid Lite TableRow exposes row.data)
     const rowData = (this as unknown as { row?: { data?: Record<string, unknown> } }).row?.data;
-    let aiReasoningRaw = rowData?._aiReasoning as Record<string, AIReasoningData> | string | undefined;
+    let aiReasoningRaw = rowData?._aiReasoning as
+      | Record<string, AIReasoningData>
+      | string
+      | undefined;
     // The data table stores objects as JSON strings, so parse if needed
     if (typeof aiReasoningRaw === 'string') {
-      try { aiReasoningRaw = JSON.parse(aiReasoningRaw); } catch { aiReasoningRaw = undefined; }
+      try {
+        aiReasoningRaw = JSON.parse(aiReasoningRaw);
+      } catch {
+        aiReasoningRaw = undefined;
+      }
     }
     const aiReasoningMap = aiReasoningRaw as Record<string, AIReasoningData> | undefined;
     const reasoning = aiReasoningMap?.[colId];
@@ -300,9 +307,10 @@ export function buildGridOptions(
 
   // Include _aiReasoning in data table columns so TableRow.data exposes it to formatters
   const hasAIColumns = columns.some((col) => col.isAI);
-  const dataColumnIds = hasAIColumns && data.some((row) => '_aiReasoning' in row)
-    ? [...columnIds, '_aiReasoning']
-    : columnIds;
+  const dataColumnIds =
+    hasAIColumns && data.some((row) => '_aiReasoning' in row)
+      ? [...columnIds, '_aiReasoning']
+      : columnIds;
 
   const gridColumns: IndividualColumnOptions[] = columns.map((col) => ({
     id: col.id,
@@ -314,9 +322,7 @@ export function buildGridOptions(
       enabled: col.sortable !== false,
     },
     cells: {
-      formatter: col.isAI
-        ? createAICellFormatter(col.type, col.id)
-        : createCellFormatter(col.type),
+      formatter: col.isAI ? createAICellFormatter(col.type, col.id) : createCellFormatter(col.type),
     },
   }));
 
