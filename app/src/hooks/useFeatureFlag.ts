@@ -6,6 +6,7 @@ import { useFlags } from "launchdarkly-react-client-sdk";
 export const FEATURE_FLAGS = {
   GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
   GOOGLE_DRIVE_INTEGRATION: "enableGoogleDrive",
+  GMAIL_INTEGRATION: "enableGmail",
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
@@ -52,6 +53,11 @@ export function useFeatureFlag() {
      */
     isGoogleDriveEnabled:
       flags[FEATURE_FLAGS.GOOGLE_DRIVE_INTEGRATION] === true,
+
+    /**
+     * Controls whether Gmail integration is visible
+     */
+    isGmailEnabled: flags[FEATURE_FLAGS.GMAIL_INTEGRATION] === true,
 
     /**
      * Controls whether Email Categorization tab is visible
