@@ -49,23 +49,47 @@ export const MarkdownLink = Link.extend({
           const href = linkMark.attrs.href;
           if (!href) return null;
 
-          // Find the contiguous range of this link mark in the parent node
+          // Find the contiguous link run around the cursor position.
+          // We must not merge separate links with the same href.
           const parent = $from.parent;
           const parentStart = $from.start(); // absolute pos of parent content start
+          const cursorOffset = $from.parentOffset;
           let linkFrom = -1;
           let linkTo = -1;
 
+          // Collect contiguous runs of this link mark, then pick the one
+          // that contains the cursor.
+          const runs: { from: number; to: number }[] = [];
+          let runStart = -1;
+          let runEnd = -1;
+
           parent.forEach((node, offset) => {
-            if (node.isText) {
-              const hasThisLink = node.marks.some(
-                (m) => m.type === linkType && m.attrs.href === href
-              );
-              if (hasThisLink) {
-                if (linkFrom === -1) linkFrom = offset;
-                linkTo = offset + node.nodeSize;
+            const nodeEnd = offset + node.nodeSize;
+            const hasThisLink =
+              node.isText && node.marks.some((m) => m.type === linkType && m.attrs.href === href);
+
+            if (hasThisLink) {
+              if (runStart === -1) runStart = offset;
+              runEnd = nodeEnd;
+            } else {
+              if (runStart !== -1) {
+                runs.push({ from: runStart, to: runEnd });
+                runStart = -1;
+                runEnd = -1;
               }
             }
           });
+          // Flush last run
+          if (runStart !== -1) {
+            runs.push({ from: runStart, to: runEnd });
+          }
+
+          // Pick the run that contains (or touches) the cursor
+          const cursorRun = runs.find((r) => cursorOffset >= r.from && cursorOffset <= r.to);
+          if (cursorRun) {
+            linkFrom = cursorRun.from;
+            linkTo = cursorRun.to;
+          }
 
           if (linkFrom === -1 || linkTo === -1) return null;
 
