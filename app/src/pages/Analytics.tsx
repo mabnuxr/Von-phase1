@@ -1,8 +1,10 @@
 import { useEffect, useCallback } from "react";
 import { useParams, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useDashboardQuery,
   useRefreshDashboardMutation,
+  dashboardKeys,
 } from "../hooks/useDashboardQuery";
 import { useResizablePane } from "../hooks/useResizablePane";
 import { useAppShell } from "../hooks/useAppShell";
@@ -48,6 +50,7 @@ const Analytics = () => {
   }, [refreshAsync]);
 
   // Pusher setup for dashboard refresh notifications
+  const queryClient = useQueryClient();
   const { user } = useUser();
   const { showToast } = useToast();
   const { channel: userChannel } = useUserPusherChannel({
@@ -74,10 +77,14 @@ const Analytics = () => {
         variant: "success",
       });
 
-      // Reload the page after a short delay to show updated data
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // Invalidate React Query cache to refetch dashboard data
+      if (dashboardId) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: dashboardKeys.detail(dashboardId),
+          });
+        }, 1000);
+      }
     };
 
     userChannel.bind(
@@ -99,7 +106,7 @@ const Analytics = () => {
         handleRefreshCompleted
       );
     };
-  }, [userChannel, showToast]);
+  }, [userChannel, showToast, dashboardId, queryClient]);
 
   // Collapse left sidebar on mount
   useEffect(() => {
