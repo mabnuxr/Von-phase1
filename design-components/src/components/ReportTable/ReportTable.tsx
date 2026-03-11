@@ -103,7 +103,7 @@ export function ReportTable({
       const rect = target.getBoundingClientRect();
       setPopoverPosition({
         top: rect.bottom + 4,
-        left: Math.min(rect.left - 240, window.innerWidth - 340),
+        left: Math.max(8, Math.min(rect.left - 240, window.innerWidth - 340)),
       });
       setPopoverReasoning(reasoning);
     } catch {
