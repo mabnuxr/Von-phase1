@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState, useCallback } from 'react';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
+import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
 
@@ -84,6 +85,32 @@ export function ReportTable({
   emptyMessage = 'No data available',
   hidePagination = false,
 }: ReportTableProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
+
+  // Event delegation: handle clicks on .von-cell-btn elements inside the grid
+  const handleWrapperClick = useCallback((e: React.MouseEvent) => {
+    const target = (e.target as HTMLElement).closest('.von-cell-btn') as HTMLElement | null;
+    if (!target) return;
+
+    e.stopPropagation();
+    const reasoningAttr = target.getAttribute('data-reasoning');
+    if (!reasoningAttr) return;
+
+    try {
+      const reasoning = JSON.parse(reasoningAttr) as AIReasoningData;
+      const rect = target.getBoundingClientRect();
+      setPopoverPosition({
+        top: rect.bottom + 4,
+        left: Math.min(rect.left - 240, window.innerWidth - 340),
+      });
+      setPopoverReasoning(reasoning);
+    } catch {
+      // Ignore malformed data
+    }
+  }, []);
+
   // Check if data is empty
   const isEmpty = useMemo(() => {
     const dt = options.dataTable;
@@ -124,9 +151,18 @@ export function ReportTable({
 
   return (
     <div
+      ref={wrapperRef}
       className={`w-full flex flex-col h-full report-grid-wrapper ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
+      onClick={handleWrapperClick}
     >
       <Grid options={options} />
+      {popoverReasoning && (
+        <SourcePopover
+          reasoning={popoverReasoning}
+          position={popoverPosition}
+          onClose={() => setPopoverReasoning(null)}
+        />
+      )}
     </div>
   );
 }

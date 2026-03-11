@@ -1,7 +1,7 @@
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { IndividualColumnOptions } from '@highcharts/grid-lite/es-modules/Grid/Core/Options';
 import type { DataTableValue } from '@highcharts/grid-lite/es-modules/Data/DataTableOptions';
-import type { ColumnType, DataSourceType, ReportColumn } from './ReportTable';
+import type { ColumnType, DataSourceType, ReportColumn, AIReasoningData } from './ReportTable';
 
 // ============================================================================
 // Value Formatting Utility
@@ -138,6 +138,43 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;');
 }
 
+// Von logo SVG as inline HTML for AI cell buttons
+const VON_LOGO_SVG = `<svg width="12" height="12" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.57 0.01C11.37 0.2 14.4 3.35 14.4 7.2l-.01.35c-.08 1.73-.78 3.3-1.87 4.5l-.1.13c-.04.04-.08.08-.12.13-.08.08-.17.15-.25.22-1.2 1.09-2.77 1.79-4.5 1.87L7.2 14.4C3.35 14.4.2 11.37.01 7.57L0 7.2c0-1.87.71-3.58 1.88-4.86.07-.08.14-.17.21-.25.08-.08.17-.16.26-.23C3.63.71 5.33 0 7.2 0l.37.01zM1.55 5.9A5.82 5.82 0 001.4 7.2 5.8 5.8 0 007.2 13c.45 0 .88-.05 1.3-.15a11.16 11.16 0 01-4.27-2.68A11.16 11.16 0 011.55 5.9zm3.83-3.05c-1.05-.29-1.74-.16-2.13.1a7.49 7.49 0 00-.32.32c-.32.45-.44 1.22-.14 2.31a10.27 10.27 0 002.42 3.89 10.27 10.27 0 003.89 2.42c1.09.3 1.86.17 2.3-.14.1-.09.2-.19.33-.33.27-.39.4-1.07.14-2.3a10.27 10.27 0 00-2.42-3.89 10.27 10.27 0 00-3.9-2.42zM7.2 1.4c-.45 0-.88.05-1.3.15a11.16 11.16 0 014.27 2.68 11.16 11.16 0 012.68 4.27c.1-.42.15-.85.15-1.3A5.8 5.8 0 007.2 1.4z" fill="url(%23vonGrad)"/><defs><radialGradient id="vonGrad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(11.14 1.08) rotate(121) scale(15.31)"><stop stop-color="%23FFF3EB"/><stop offset=".26" stop-color="%23FF9042"/><stop offset="1" stop-color="%23854FFF"/></radialGradient></defs></svg>`;
+
+/**
+ * Create a cell formatter for an AI column that appends a Von reasoning button.
+ * The button stores reasoning data as a data attribute for event delegation.
+ */
+export function createAICellFormatter(
+  type: ColumnType,
+  colId: string
+): (this: { value: unknown }) => string {
+  const baseFormatter = createCellFormatter(type);
+  return function (this: { value: unknown }) {
+    const baseHtml = baseFormatter.call(this);
+
+    // Access _aiReasoning from the row data (Grid Lite TableRow exposes row.data)
+    const rowData = (this as unknown as { row?: { data?: Record<string, unknown> } }).row?.data;
+    let aiReasoningRaw = rowData?._aiReasoning as Record<string, AIReasoningData> | string | undefined;
+    // The data table stores objects as JSON strings, so parse if needed
+    if (typeof aiReasoningRaw === 'string') {
+      try { aiReasoningRaw = JSON.parse(aiReasoningRaw); } catch { aiReasoningRaw = undefined; }
+    }
+    const aiReasoningMap = aiReasoningRaw as Record<string, AIReasoningData> | undefined;
+    const reasoning = aiReasoningMap?.[colId];
+
+    if (!reasoning) return baseHtml;
+
+    const reasoningJson = escapeHtml(JSON.stringify(reasoning));
+    return (
+      `<div style="display:flex;align-items:center;gap:4px;min-width:0">` +
+      `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1">${baseHtml}</span>` +
+      `<button class="von-cell-btn" data-reasoning="${reasoningJson}" title="View sources" style="margin-left:4px;padding:2px;background:white;box-shadow:0 1px 2px rgba(0,0,0,0.05);border-radius:4px;border:none;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center">${VON_LOGO_SVG}</button>` +
+      `</div>`
+    );
+  };
+}
+
 /** Create a cell formatter for a given ColumnType */
 export function createCellFormatter(type: ColumnType): (this: { value: unknown }) => string {
   return function (this: { value: unknown }) {
@@ -240,7 +277,7 @@ export function rowsToDataTableColumns(
       if (val === null || val === undefined) return null;
       if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')
         return val;
-      if (Array.isArray(val)) return JSON.stringify(val);
+      if (typeof val === 'object') return JSON.stringify(val);
       return String(val);
     });
   }
@@ -261,6 +298,12 @@ export function buildGridOptions(
 ): GridOptions {
   const columnIds = columns.map((c) => c.id);
 
+  // Include _aiReasoning in data table columns so TableRow.data exposes it to formatters
+  const hasAIColumns = columns.some((col) => col.isAI);
+  const dataColumnIds = hasAIColumns && data.some((row) => '_aiReasoning' in row)
+    ? [...columnIds, '_aiReasoning']
+    : columnIds;
+
   const gridColumns: IndividualColumnOptions[] = columns.map((col) => ({
     id: col.id,
     header: {
@@ -271,7 +314,9 @@ export function buildGridOptions(
       enabled: col.sortable !== false,
     },
     cells: {
-      formatter: createCellFormatter(col.type),
+      formatter: col.isAI
+        ? createAICellFormatter(col.type, col.id)
+        : createCellFormatter(col.type),
     },
   }));
 
@@ -280,7 +325,7 @@ export function buildGridOptions(
 
   const options: GridOptions = {
     dataTable: {
-      columns: rowsToDataTableColumns(data, columnIds),
+      columns: rowsToDataTableColumns(data, dataColumnIds),
     },
     columns: gridColumns,
     columnDefaults: {
