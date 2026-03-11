@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon } from '@phosphor-icons/react';
 import { SecondaryIconButton } from '../../forms/buttons';
@@ -24,6 +24,14 @@ export const ViewReportBottomPanel: React.FC<ViewReportBottomPanelProps> = ({
   rows,
 }) => {
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([]);
+
+  const gridOptions = useMemo(
+    () =>
+      buildGridOptions(columns, rows, {
+        pageSize: 25,
+      }),
+    [columns, rows]
+  );
 
   return (
     <AnimatePresence>
@@ -71,12 +79,7 @@ export const ViewReportBottomPanel: React.FC<ViewReportBottomPanelProps> = ({
             {/* Content: table */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
               <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                <ReportTable
-                  options={buildGridOptions(columns, rows, {
-                    pageSize: 25,
-                    showPagination: rows.length > 25,
-                  })}
-                />
+                <ReportTable options={gridOptions} hidePagination={rows.length <= 25} />
               </div>
             </div>
           </motion.div>

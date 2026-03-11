@@ -71,6 +71,8 @@ export interface ReportTableProps {
   isLoading?: boolean;
   /** Message when data is empty */
   emptyMessage?: string;
+  /** Hide the pagination UI while still limiting rows via pageSize */
+  hidePagination?: boolean;
 }
 
 // ============================================================================
@@ -346,7 +348,6 @@ export function buildGridOptions(
   }));
 
   const pageSize = overrides?.pageSize ?? 10;
-  const showPagination = overrides?.showPagination ?? true;
 
   const options: GridOptions = {
     dataTable: {
@@ -365,14 +366,10 @@ export function buildGridOptions(
         strictHeights: true,
       },
     },
-    ...(showPagination
-      ? {
-          pagination: {
-            enabled: true,
-            pageSize,
-          },
-        }
-      : {}),
+    pagination: {
+      enabled: true,
+      pageSize,
+    },
     ...overrides,
   };
 
@@ -393,6 +390,7 @@ export function ReportTable({
   className = '',
   isLoading = false,
   emptyMessage = 'No data available',
+  hidePagination = false,
 }: ReportTableProps) {
   // Check if data is empty
   const isEmpty = useMemo(() => {
@@ -433,7 +431,9 @@ export function ReportTable({
   }
 
   return (
-    <div className={`w-full flex flex-col h-full report-grid-wrapper ${className}`}>
+    <div
+      className={`w-full flex flex-col h-full report-grid-wrapper ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
+    >
       <Grid options={options} />
     </div>
   );

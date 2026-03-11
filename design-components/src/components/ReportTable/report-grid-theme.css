@@ -212,6 +212,11 @@
   padding: 48px 16px;
 }
 
+/* Hide pagination UI when rows are limited but controls aren't needed */
+.report-grid-no-pagination .hcg-pagination-wrapper {
+  display: none;
+}
+
 /* Hide credits */
 .report-grid-wrapper .hcg-credits {
   display: none;
