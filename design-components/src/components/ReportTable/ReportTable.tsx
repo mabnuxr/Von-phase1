@@ -171,8 +171,16 @@ const SENTIMENT_STYLES: Record<string, string> = {
 };
 
 const AVATAR_COLORS = [
-  '#2563eb', '#16a34a', '#9333ea', '#ea580c', '#db2777',
-  '#0d9488', '#4f46e5', '#dc2626', '#ca8a04', '#0891b2',
+  '#2563eb',
+  '#16a34a',
+  '#9333ea',
+  '#ea580c',
+  '#db2777',
+  '#0d9488',
+  '#4f46e5',
+  '#dc2626',
+  '#ca8a04',
+  '#0891b2',
 ];
 
 function hashString(str: string): number {
@@ -193,7 +201,11 @@ function getInitials(name: string): string {
 }
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /** Create a cell formatter for a given ColumnType */
@@ -210,20 +222,26 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
         const initials = getInitials(name);
         const colorIdx = hashString(name) % AVATAR_COLORS.length;
         const bg = AVATAR_COLORS[colorIdx];
-        return `<div style="display:flex;align-items:center;gap:8px">` +
+        return (
+          `<div style="display:flex;align-items:center;gap:8px">` +
           `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${bg};color:white;font-size:10px;font-weight:500;flex-shrink:0">${escapeHtml(initials)}</div>` +
           `<span style="color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}</span>` +
-          `</div>`;
+          `</div>`
+        );
       }
 
       case 'multiPicklist': {
         const items = Array.isArray(value)
           ? value
-          : String(value).split(',').map((s: string) => s.trim());
+          : String(value)
+              .split(',')
+              .map((s: string) => s.trim());
         return items
-          .map((item: string) =>
-            `<span style="display:inline-flex;padding:2px 8px;font-size:14px;font-weight:500;background:#f9fafb;border:1px solid #f3f4f6;border-radius:9999px;color:#1f2937;white-space:nowrap;margin-right:4px">${escapeHtml(String(item))}</span>`
-          ).join('');
+          .map(
+            (item: string) =>
+              `<span style="display:inline-flex;padding:2px 8px;font-size:14px;font-weight:500;background:#f9fafb;border:1px solid #f3f4f6;border-radius:9999px;color:#1f2937;white-space:nowrap;margin-right:4px">${escapeHtml(String(item))}</span>`
+          )
+          .join('');
       }
 
       case 'sentiment': {
@@ -233,7 +251,8 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
       }
 
       case 'boolean': {
-        const isTrue = value === true || value === 'true' || value === 'yes' || value === 'Yes' || value === '1';
+        const isTrue =
+          value === true || value === 'true' || value === 'yes' || value === 'Yes' || value === '1';
         const style = isTrue
           ? 'background:#dcfce7;color:#166534;border:1px solid #bbf7d0'
           : 'background:#fee2e2;color:#991b1b;border:1px solid #fecaca';
@@ -282,7 +301,8 @@ export function rowsToDataTableColumns(
     result[id] = rows.map((row) => {
       const val = row[id];
       if (val === null || val === undefined) return null;
-      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val;
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')
+        return val;
       return String(val);
     });
   }
@@ -350,7 +370,8 @@ export function buildGridOptions(
 
   // Remove our custom keys from overrides that got spread
   if (options && 'pageSize' in options) delete (options as Record<string, unknown>).pageSize;
-  if (options && 'showPagination' in options) delete (options as Record<string, unknown>).showPagination;
+  if (options && 'showPagination' in options)
+    delete (options as Record<string, unknown>).showPagination;
 
   return options;
 }

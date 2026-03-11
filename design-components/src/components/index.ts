@@ -359,7 +359,13 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 // ============================================================================
 // REPORT TABLE (Highcharts Grid Lite)
 // ============================================================================
-export { ReportTable, buildGridOptions, rowsToDataTableColumns, createCellFormatter, formatValue } from './ReportTable';
+export {
+  ReportTable,
+  buildGridOptions,
+  rowsToDataTableColumns,
+  createCellFormatter,
+  formatValue,
+} from './ReportTable';
 export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
 
 // ============================================================================

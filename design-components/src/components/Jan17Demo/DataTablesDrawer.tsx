@@ -335,10 +335,14 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
               <div className="flex-1 overflow-hidden">
                 {activeTable && (
                   <ReportTable
-                    options={buildGridOptions(activeTable.columns, filteredData.slice(0, 30) as Record<string, unknown>[], {
-                      pageSize: 25,
-                      showPagination: filteredData.length > 25,
-                    })}
+                    options={buildGridOptions(
+                      activeTable.columns,
+                      filteredData.slice(0, 30) as Record<string, unknown>[],
+                      {
+                        pageSize: 25,
+                        showPagination: filteredData.length > 25,
+                      }
+                    )}
                   />
                 )}
               </div>
