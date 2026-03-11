@@ -12,6 +12,10 @@ import {
   AnalyticsError,
 } from "../components/Analytics";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
+import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
+import { useUser } from "../hooks/useUser";
+import { useToast } from "../hooks/useToast";
+import { UserChannelEvents } from "../types/userChannelEvents";
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
@@ -42,6 +46,60 @@ const Analytics = () => {
       console.error("[Analytics] Refresh failed:", error);
     }
   }, [refreshAsync]);
+
+  // Pusher setup for dashboard refresh notifications
+  const { user } = useUser();
+  const { showToast } = useToast();
+  const { channel: userChannel } = useUserPusherChannel({
+    tenantId: user?.tenantId,
+    userId: user?.id,
+  });
+
+  // Subscribe to dashboard refresh events
+  useEffect(() => {
+    if (!userChannel) {
+      return;
+    }
+
+    const handleRefreshStarted = () => {
+      showToast({
+        message: "Dashboard refresh started, widgets will be refreshed automatically once its complete.",
+        variant: "info",
+      });
+    };
+
+    const handleRefreshCompleted = () => {
+      showToast({
+        message: "Dashboard refresh complete! Your dashboard data has been updated.",
+        variant: "success",
+      });
+
+      // Reload the page after a short delay to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    };
+
+    userChannel.bind(
+      UserChannelEvents.DASHBOARD_REFRESH_STARTED,
+      handleRefreshStarted
+    );
+    userChannel.bind(
+      UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
+      handleRefreshCompleted
+    );
+
+    return () => {
+      userChannel.unbind(
+        UserChannelEvents.DASHBOARD_REFRESH_STARTED,
+        handleRefreshStarted
+      );
+      userChannel.unbind(
+        UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
+        handleRefreshCompleted
+      );
+    };
+  }, [userChannel, showToast]);
 
   // Collapse left sidebar on mount
   useEffect(() => {
