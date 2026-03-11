@@ -284,6 +284,7 @@ export function rowsToDataTableColumns(
       if (val === null || val === undefined) return null;
       if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')
         return val;
+      if (val instanceof Date) return val.toISOString();
       if (typeof val === 'object') return JSON.stringify(val);
       return String(val);
     });
@@ -326,10 +327,20 @@ export function buildGridOptions(
     },
   }));
 
-  const pageSize = overrides?.pageSize ?? 10;
-  const paginationEnabled = overrides?.showPagination !== false;
+  // Separate custom keys from GridOptions overrides
+  const {
+    pageSize: overridePageSize,
+    showPagination,
+    rendering: renderingOverrides,
+    pagination: paginationOverrides,
+    ...restOverrides
+  } = overrides ?? {};
+
+  const pageSize = overridePageSize ?? 10;
+  const paginationEnabled = showPagination !== false;
 
   const options: GridOptions = {
+    ...restOverrides,
     dataTable: {
       columns: rowsToDataTableColumns(data, dataColumnIds),
     },
@@ -345,18 +356,14 @@ export function buildGridOptions(
       rows: {
         strictHeights: true,
       },
+      ...renderingOverrides,
     },
     pagination: {
       enabled: paginationEnabled,
       ...(paginationEnabled ? { pageSize } : {}),
+      ...paginationOverrides,
     },
-    ...overrides,
   };
-
-  // Remove our custom keys from overrides that got spread
-  if (options && 'pageSize' in options) delete (options as Record<string, unknown>).pageSize;
-  if (options && 'showPagination' in options)
-    delete (options as Record<string, unknown>).showPagination;
 
   return options;
 }
