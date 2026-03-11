@@ -1,4 +1,5 @@
 import Link from '@tiptap/extension-link';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 
 interface MarkAttrs {
   href: string;
@@ -9,6 +10,8 @@ interface Mark {
   attrs: MarkAttrs;
 }
 
+const linkBleedPluginKey = new PluginKey('linkBleedPrevention');
+
 /**
  * MarkdownLink - Custom Link extension with proper markdown serialization
  *
@@ -18,6 +21,100 @@ interface Mark {
  * This ensures consistent markdown output that can be properly parsed by backends.
  */
 export const MarkdownLink = Link.extend({
+  // Ensure the link mark does not extend into newly typed text
+  inclusive() {
+    return false;
+  },
+
+  addProseMirrorPlugins() {
+    const parentPlugins = this.parent?.() ?? [];
+    const linkType = this.editor.schema.marks.link;
+
+    return [
+      ...parentPlugins,
+      new Plugin({
+        key: linkBleedPluginKey,
+        // After every transaction that changes the doc, check whether the link
+        // mark has bled into text that is clearly not part of the URL.
+        appendTransaction(_transactions, oldState, newState) {
+          if (oldState.doc.eq(newState.doc)) return null;
+
+          const { $from, empty } = newState.selection;
+          if (!empty || !$from.parent.isTextblock) return null;
+
+          // Check if cursor sits inside a link mark
+          const linkMark = $from.marks().find((m) => m.type === linkType);
+          if (!linkMark) return null;
+
+          const href = linkMark.attrs.href;
+          if (!href) return null;
+
+          // Find the contiguous link run around the cursor position.
+          // We must not merge separate links with the same href.
+          const parent = $from.parent;
+          const parentStart = $from.start(); // absolute pos of parent content start
+          const cursorOffset = $from.parentOffset;
+          let linkFrom = -1;
+          let linkTo = -1;
+
+          // Collect contiguous runs of this link mark, then pick the one
+          // that contains the cursor.
+          const runs: { from: number; to: number }[] = [];
+          let runStart = -1;
+          let runEnd = -1;
+
+          parent.forEach((node, offset) => {
+            const nodeEnd = offset + node.nodeSize;
+            const hasThisLink =
+              node.isText && node.marks.some((m) => m.type === linkType && m.attrs.href === href);
+
+            if (hasThisLink) {
+              if (runStart === -1) runStart = offset;
+              runEnd = nodeEnd;
+            } else {
+              if (runStart !== -1) {
+                runs.push({ from: runStart, to: runEnd });
+                runStart = -1;
+                runEnd = -1;
+              }
+            }
+          });
+          // Flush last run
+          if (runStart !== -1) {
+            runs.push({ from: runStart, to: runEnd });
+          }
+
+          // Pick the run that contains (or touches) the cursor
+          const cursorRun = runs.find((r) => cursorOffset >= r.from && cursorOffset <= r.to);
+          if (cursorRun) {
+            linkFrom = cursorRun.from;
+            linkTo = cursorRun.to;
+          }
+
+          if (linkFrom === -1 || linkTo === -1) return null;
+
+          const linkText = parent.textBetween(linkFrom, linkTo, '');
+
+          // For autolinks the visible text matches the href. If the text has
+          // grown beyond the href it means the user typed extra characters that
+          // should not be part of the link.
+          if (linkText.length > href.length && linkText.startsWith(href)) {
+            const extra = linkText.substring(href.length);
+            // Only strip when the extra clearly is not a URL continuation:
+            // whitespace, closing parens/brackets, commas, semicolons
+            if (/^[\s)\]>,;]/.test(extra)) {
+              const tr = newState.tr;
+              tr.removeMark(parentStart + linkFrom + href.length, parentStart + linkTo, linkType);
+              return tr;
+            }
+          }
+
+          return null;
+        },
+      }),
+    ];
+  },
+
   addStorage() {
     return {
       markdown: {
