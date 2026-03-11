@@ -231,11 +231,18 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
       }
 
       case 'multiPicklist': {
-        const items = Array.isArray(value)
-          ? value
-          : String(value)
-              .split(',')
-              .map((s: string) => s.trim());
+        let items: string[];
+        if (Array.isArray(value)) {
+          items = value;
+        } else {
+          const str = String(value);
+          try {
+            const parsed = JSON.parse(str);
+            items = Array.isArray(parsed) ? parsed : str.split(',').map((s: string) => s.trim());
+          } catch {
+            items = str.split(',').map((s: string) => s.trim());
+          }
+        }
         return items
           .map(
             (item: string) =>
@@ -303,6 +310,7 @@ export function rowsToDataTableColumns(
       if (val === null || val === undefined) return null;
       if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean')
         return val;
+      if (Array.isArray(val)) return JSON.stringify(val);
       return String(val);
     });
   }
@@ -328,7 +336,7 @@ export function buildGridOptions(
     header: {
       formatter: createHeaderFormatter(col),
     },
-    width: col.width,
+    width: col.width ?? col.minWidth,
     sorting: {
       enabled: col.sortable !== false,
     },

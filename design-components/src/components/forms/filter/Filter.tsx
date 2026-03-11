@@ -1,11 +1,11 @@
 import { useState, useId, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   DotsSixVerticalIcon,
   TrashIcon,
   FunnelIcon,
-  XIcon,
   QuestionIcon,
   PencilSimpleIcon,
 } from '@phosphor-icons/react';
@@ -92,6 +92,8 @@ export interface FilterButtonProps {
   showAIPrompt?: boolean;
   aiPromptPlaceholder?: string;
   onAIPromptSubmit?: (prompt: string) => void;
+  hideIcon?: boolean;
+  readOnly?: boolean;
 }
 
 // ============================================================================
@@ -480,6 +482,7 @@ interface FilterPopoverContentProps {
   aiPromptPlaceholder?: string;
   onAIPromptSubmit?: (prompt: string) => void;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
 const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
@@ -490,6 +493,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
   aiPromptPlaceholder = 'Describe what you want to see',
   onAIPromptSubmit,
   onClose,
+  readOnly = false,
 }) => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -599,20 +603,15 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 min-w-[600px] max-w-[800px]">
+    <div className="flex flex-col gap-3 p-3 min-w-[600px] max-w-[800px]">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-900">Filter</span>
-        <button
-          onClick={onClose}
-          className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-        >
-          <XIcon size={16} />
-        </button>
+      <div>
+        <p className="text-sm font-medium text-gray-900">Filter</p>
+        <p className="text-xs text-gray-500">Narrow down records in this view</p>
       </div>
 
       {/* AI Prompt Input */}
-      {showAIPrompt && (
+      {showAIPrompt && !readOnly && (
         <form onSubmit={handleAISubmit}>
           <div
             className="p-[1px] rounded-lg"
@@ -640,14 +639,16 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">Pre-applied filters</span>
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              title="Edit filters"
-            >
-              <PencilSimpleIcon size={14} />
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                title="Edit filters"
+              >
+                <PencilSimpleIcon size={14} />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1.5 flex-wrap px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
             <span className="text-sm text-gray-500">Where</span>
@@ -670,7 +671,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
       )}
 
       {/* Filter Editor (when editing or no filters applied) */}
-      {(isEditing || !hasAppliedFilters) && (
+      {!readOnly && (isEditing || !hasAppliedFilters) && (
         <>
           {/* Section label */}
           <div className="text-sm text-gray-700">In this view, show records</div>
@@ -756,6 +757,8 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
   showAIPrompt = true,
   aiPromptPlaceholder = 'Describe what you want to see',
   onAIPromptSubmit,
+  hideIcon = false,
+  readOnly = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -772,9 +775,11 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
       const rect = containerRef.current.getBoundingClientRect();
       // Calculate the popover width (min-w-[600px] from FilterPopoverContent)
       const popoverWidth = 600;
-      // Position popover to open to the LEFT of the button (right-aligned)
-      // so it doesn't go off-screen when the button is on the right side
-      const leftPosition = Math.max(16, rect.right - popoverWidth);
+      const viewportWidth = window.innerWidth;
+      // Right-align if button is in right half, left-align if in left half
+      const buttonCenter = rect.left + rect.width / 2;
+      const preferred = buttonCenter > viewportWidth / 2 ? rect.right - popoverWidth : rect.left;
+      const leftPosition = Math.max(16, Math.min(preferred, viewportWidth - popoverWidth - 16));
       setPopoverStyle({
         position: 'fixed',
         top: rect.bottom + 8,
@@ -806,35 +811,43 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
     <>
       <div ref={containerRef}>
         <SecondaryButton onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-1.5">
-          <FunnelIcon size={14} />
+          {!hideIcon && <FunnelIcon size={14} />}
           <span>Filter</span>
           {activeFilterCount > 0 && (
-            <span className="ml-0.5 px-1.5 py-0.5 bg-gray-900 text-white text-[10px] font-medium rounded-md">
+            <span className="ml-0.5 px-1.5 py-0.5 bg-gray-50 border border-gray-200 text-gray-900 text-[10px] font-medium rounded-md">
               {activeFilterCount}
             </span>
           )}
         </SecondaryButton>
       </div>
 
-      {isOpen &&
-        createPortal(
-          <div
-            ref={popoverRef}
-            style={popoverStyle}
-            className="bg-white rounded-xl border border-gray-200 shadow-lg"
-          >
-            <FilterPopoverContent
-              fields={fields}
-              groups={groups}
-              onGroupsChange={onGroupsChange}
-              showAIPrompt={showAIPrompt}
-              aiPromptPlaceholder={aiPromptPlaceholder}
-              onAIPromptSubmit={onAIPromptSubmit}
-              onClose={() => setIsOpen(false)}
-            />
-          </div>,
-          document.body
-        )}
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={popoverRef}
+              initial={{ opacity: 0, y: -6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ type: 'spring', duration: 0.25, bounce: 0.1 }}
+              style={popoverStyle}
+              className="bg-white rounded-xl border border-gray-200 shadow-lg"
+            >
+              <FilterPopoverContent
+                fields={fields}
+                groups={groups}
+                onGroupsChange={onGroupsChange}
+                showAIPrompt={showAIPrompt}
+                aiPromptPlaceholder={aiPromptPlaceholder}
+                onAIPromptSubmit={onAIPromptSubmit}
+                onClose={() => setIsOpen(false)}
+                readOnly={readOnly}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };
