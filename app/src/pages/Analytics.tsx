@@ -97,6 +97,11 @@ const Analytics = () => {
           variant: "success",
         });
 
+        // Clear any existing timeout before scheduling a new one
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+
         // Invalidate React Query cache to refetch dashboard data
         refreshTimeoutRef.current = setTimeout(() => {
           queryClient.invalidateQueries({
