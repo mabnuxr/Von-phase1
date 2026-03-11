@@ -30,7 +30,7 @@ import HighchartsReact from 'highcharts-react-official';
 import 'highcharts/highcharts-more';
 import { SecondaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../popups';
-import { ReportTable, buildGridOptions, type ReportColumn } from '../ReportTable/ReportTable';
+import { ReportTable, buildGridOptions, type ReportColumn } from '../ReportTable';
 import type { FilterField, FilterGroup, FilterCondition } from '../forms/filter/Filter';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

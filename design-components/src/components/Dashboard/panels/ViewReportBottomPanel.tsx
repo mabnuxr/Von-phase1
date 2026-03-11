@@ -4,7 +4,7 @@ import { XIcon } from '@phosphor-icons/react';
 import { SecondaryIconButton } from '../../forms/buttons';
 import { FilterButton, type FilterGroup } from '../../forms/filter';
 import { ReportTable, buildGridOptions, type ReportColumn } from '../../ReportTable';
-import { dashboardFilterFields } from './DashboardFilterBar';
+import { dashboardFilterFields } from './dashboardFilterConstants';
 
 export type { ReportColumn };
 

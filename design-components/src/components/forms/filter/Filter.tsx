@@ -481,7 +481,6 @@ interface FilterPopoverContentProps {
   showAIPrompt?: boolean;
   aiPromptPlaceholder?: string;
   onAIPromptSubmit?: (prompt: string) => void;
-  onClose: () => void;
   readOnly?: boolean;
 }
 
@@ -492,7 +491,6 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
   showAIPrompt = true,
   aiPromptPlaceholder = 'Describe what you want to see',
   onAIPromptSubmit,
-  onClose,
   readOnly = false,
 }) => {
   const [aiPrompt, setAiPrompt] = useState('');
@@ -840,7 +838,6 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
                 showAIPrompt={showAIPrompt}
                 aiPromptPlaceholder={aiPromptPlaceholder}
                 onAIPromptSubmit={onAIPromptSubmit}
-                onClose={() => setIsOpen(false)}
                 readOnly={readOnly}
               />
             </motion.div>

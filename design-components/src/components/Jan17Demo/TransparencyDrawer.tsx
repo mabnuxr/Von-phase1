@@ -18,8 +18,8 @@ import {
   SmileyMehIcon,
   MagnifyingGlassIcon,
 } from '@phosphor-icons/react';
-import { ReportTable, buildGridOptions } from '../ReportTable/ReportTable';
-import type { ReportColumn, AIReasoningData } from '../ReportTable/ReportTable';
+import { ReportTable, buildGridOptions } from '../ReportTable';
+import type { ReportColumn, AIReasoningData } from '../ReportTable';
 import { FilterButton } from '../forms/filter/Filter';
 import type { FilterField, FilterGroup } from '../forms/filter/Filter';
 
