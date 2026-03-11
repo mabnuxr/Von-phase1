@@ -30,7 +30,7 @@ import HighchartsReact from 'highcharts-react-official';
 import 'highcharts/highcharts-more';
 import { SecondaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { ContextMenu, type ContextMenuItem } from '../popups';
-import { ReportTable, type ReportColumn } from '../ReportTable/ReportTable';
+import { ReportTable, buildGridOptions, type ReportColumn } from '../ReportTable/ReportTable';
 import type { FilterField, FilterGroup, FilterCondition } from '../forms/filter/Filter';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1811,13 +1811,10 @@ const TableWidget: React.FC<TableWidgetProps> = ({
       {/* Table using ReportTable component */}
       <div className="max-h-80 overflow-hidden">
         <ReportTable
-          columns={reportColumns}
-          data={tableData}
-          pageSize={10}
-          showPagination={false}
-          frozenColumns={0}
-          prioritizeAIColumns={true}
-          enableColumnReorder={false}
+          options={buildGridOptions(reportColumns, tableData, {
+            pageSize: 10,
+            showPagination: false,
+          })}
         />
       </div>
     </motion.div>

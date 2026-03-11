@@ -18,7 +18,7 @@ import {
   SmileyMehIcon,
   MagnifyingGlassIcon,
 } from '@phosphor-icons/react';
-import { ReportTable } from '../ReportTable/ReportTable';
+import { ReportTable, buildGridOptions } from '../ReportTable/ReportTable';
 import type { ReportColumn, AIReasoningData } from '../ReportTable/ReportTable';
 import { FilterButton } from '../forms/filter/Filter';
 import type { FilterField, FilterGroup } from '../forms/filter/Filter';
@@ -675,16 +675,10 @@ const DeepResearchTableContent: React.FC<DeepResearchTableContentProps> = ({ tab
       {/* ReportTable */}
       <div className="flex-1 overflow-hidden">
         <ReportTable
-          columns={table.columns}
-          data={dataWithReasoning}
-          rowIdKey="_rowId"
-          pageSize={25}
-          showPagination={true}
-          aiReasoningKey="_aiReasoning"
-          nameKey="name"
-          frozenColumns={2}
-          prioritizeAIColumns={true}
-          enableColumnReorder={true}
+          options={buildGridOptions(table.columns, dataWithReasoning, {
+            pageSize: 25,
+            showPagination: true,
+          })}
         />
       </div>
     </div>

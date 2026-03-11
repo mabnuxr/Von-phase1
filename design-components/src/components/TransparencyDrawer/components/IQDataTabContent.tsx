@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react';
-import { ReportTable } from '../../ReportTable';
+import { ReportTable, buildGridOptions } from '../../ReportTable';
 import type { ReportColumn } from '../../ReportTable/ReportTable';
 
 /**
@@ -135,13 +135,10 @@ export const IQDataTabContent = React.memo<IQDataTabContentProps>(
               className="h-full p-4 overflow-auto"
             >
               <ReportTable
-                columns={activeQuery.columns}
-                data={activeQuery.data}
-                pageSize={10}
-                showPagination={true}
-                aiReasoningKey="_aiReasoning"
-                showRowActions={false}
-                frozenColumns={1}
+                options={buildGridOptions(activeQuery.columns, activeQuery.data, {
+                  pageSize: 10,
+                  showPagination: true,
+                })}
               />
             </motion.div>
           )}

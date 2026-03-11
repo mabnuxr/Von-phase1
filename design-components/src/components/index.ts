@@ -357,9 +357,9 @@ export { TiptapEditor, EditorToolbar } from './TiptapEditor';
 export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 
 // ============================================================================
-// REPORT TABLE (TanStack Table for data reports)
+// REPORT TABLE (Highcharts Grid Lite)
 // ============================================================================
-export { ReportTable } from './ReportTable';
+export { ReportTable, buildGridOptions, rowsToDataTableColumns, createCellFormatter, formatValue } from './ReportTable';
 export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
 
 // ============================================================================

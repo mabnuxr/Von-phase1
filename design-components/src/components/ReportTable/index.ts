@@ -1,4 +1,4 @@
-export { ReportTable } from './ReportTable';
+export { ReportTable, buildGridOptions, rowsToDataTableColumns, createCellFormatter, formatValue } from './ReportTable';
 export type {
   ReportTableProps,
   ReportColumn,

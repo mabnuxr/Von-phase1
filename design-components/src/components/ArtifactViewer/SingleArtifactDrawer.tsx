@@ -14,7 +14,7 @@ import { CallsTabContent, EmailsTabContent } from '../TransparencyDrawer/compone
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
 import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
 import type { MemoryResultData } from '../Chat/types';
-import { ReportTable } from '../ReportTable';
+import { ReportTable, buildGridOptions } from '../ReportTable';
 import type { ReportColumn } from '../ReportTable/ReportTable';
 
 // ============================================================================
@@ -373,13 +373,10 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       return (
         <div className="flex-1 min-h-0 p-4 overflow-auto">
           <ReportTable
-            columns={columns}
-            data={data}
-            pageSize={10}
-            showPagination={true}
-            aiReasoningKey="_aiReasoning"
-            showRowActions={false}
-            frozenColumns={1}
+            options={buildGridOptions(columns, data, {
+              pageSize: 10,
+              showPagination: true,
+            })}
           />
         </div>
       );

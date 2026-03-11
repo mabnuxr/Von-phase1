@@ -5,7 +5,7 @@ import {
   Database as DatabaseIcon,
   MagnifyingGlass as MagnifyingGlassIcon,
 } from '@phosphor-icons/react';
-import { ReportTable } from '../ReportTable';
+import { ReportTable, buildGridOptions } from '../ReportTable';
 import type { ReportColumn, AIReasoningData } from '../ReportTable/ReportTable';
 import { FilterButton, type FilterGroup, type FilterField } from '../forms/filter';
 
@@ -335,12 +335,10 @@ export const DataTablesDrawer: React.FC<DataTablesDrawerProps> = ({
               <div className="flex-1 overflow-hidden">
                 {activeTable && (
                   <ReportTable
-                    columns={activeTable.columns}
-                    data={filteredData.slice(0, 30) as Record<string, unknown>[]}
-                    pageSize={25}
-                    showPagination={filteredData.length > 25}
-                    aiReasoningKey="_aiReasoning"
-                    nameKey="name"
+                    options={buildGridOptions(activeTable.columns, filteredData.slice(0, 30) as Record<string, unknown>[], {
+                      pageSize: 25,
+                      showPagination: filteredData.length > 25,
+                    })}
                   />
                 )}
               </div>
