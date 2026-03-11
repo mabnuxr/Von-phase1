@@ -276,6 +276,7 @@ export function buildGridOptions(
   }));
 
   const pageSize = overrides?.pageSize ?? 10;
+  const paginationEnabled = overrides?.showPagination !== false;
 
   const options: GridOptions = {
     dataTable: {
@@ -295,8 +296,8 @@ export function buildGridOptions(
       },
     },
     pagination: {
-      enabled: true,
-      pageSize,
+      enabled: paginationEnabled,
+      ...(paginationEnabled ? { pageSize } : {}),
     },
     ...overrides,
   };
