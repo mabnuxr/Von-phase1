@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,7 +17,11 @@ import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useUser } from "../hooks/useUser";
 import { useToast } from "../hooks/useToast";
-import { UserChannelEvents } from "../types/userChannelEvents";
+import {
+  UserChannelEvents,
+  type DashboardRefreshStartedEvent,
+  type DashboardRefreshCompletedEvent,
+} from "../types/userChannelEvents";
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
@@ -58,52 +62,78 @@ const Analytics = () => {
     userId: user?.id,
   });
 
+  // Track timeout for cleanup
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Subscribe to dashboard refresh events
   useEffect(() => {
     if (!userChannel) {
       return;
     }
 
-    const handleRefreshStarted = () => {
+    const handleRefreshStarted = (data: DashboardRefreshStartedEvent) => {
+      // Only handle events for the currently viewed dashboard
+      if (data.dashboardId !== dashboardId) {
+        return;
+      }
+
       showToast({
-        message: "Dashboard refresh started, widgets will be refreshed automatically once its complete.",
+        message:
+          "Dashboard refresh started, widgets will be refreshed automatically once its complete.",
         variant: "info",
       });
     };
 
-    const handleRefreshCompleted = () => {
-      showToast({
-        message: "Dashboard refresh complete! Your dashboard data has been updated.",
-        variant: "success",
-      });
+    const handleRefreshCompleted = (data: DashboardRefreshCompletedEvent) => {
+      // Only handle events for the currently viewed dashboard
+      if (data.dashboardId !== dashboardId) {
+        return;
+      }
 
-      // Invalidate React Query cache to refetch dashboard data
-      if (dashboardId) {
-        setTimeout(() => {
+      if (data.success) {
+        showToast({
+          message:
+            "Dashboard refresh complete! Your dashboard data has been updated.",
+          variant: "success",
+        });
+
+        // Invalidate React Query cache to refetch dashboard data
+        refreshTimeoutRef.current = setTimeout(() => {
           queryClient.invalidateQueries({
             queryKey: dashboardKeys.detail(dashboardId),
           });
         }, 1000);
+      } else {
+        showToast({
+          message: "Dashboard refresh failed. Please try again.",
+          variant: "error",
+        });
       }
     };
 
     userChannel.bind(
       UserChannelEvents.DASHBOARD_REFRESH_STARTED,
-      handleRefreshStarted
+      handleRefreshStarted,
     );
     userChannel.bind(
       UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
-      handleRefreshCompleted
+      handleRefreshCompleted,
     );
 
     return () => {
+      // Clear any pending refresh timeout
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+
       userChannel.unbind(
         UserChannelEvents.DASHBOARD_REFRESH_STARTED,
-        handleRefreshStarted
+        handleRefreshStarted,
       );
       userChannel.unbind(
         UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
-        handleRefreshCompleted
+        handleRefreshCompleted,
       );
     };
   }, [userChannel, showToast, dashboardId, queryClient]);
