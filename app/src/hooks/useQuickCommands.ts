@@ -3,6 +3,7 @@ import type { Command } from "@vonlabs/design-components";
 import type { FileCategory } from "@vonlabs/design-components";
 import {
   quickCommandsService,
+  apiConfigsToSchedule,
   type CreateQuickCommandInput,
   type UpdateQuickCommandInput,
   type QuickCommand,
@@ -73,6 +74,10 @@ export function apiCommandToUICommand(
     createdBy: currentUserId && cmd.createdBy === currentUserId ? "me" : "team",
     createdAt: cmd.createdAt,
     updatedAt: cmd.updatedAt ?? cmd.createdAt,
+    schedule:
+      cmd.triggerConfig?.scheduleConfig && cmd.deliveryConfig
+        ? apiConfigsToSchedule(cmd.triggerConfig, cmd.deliveryConfig)
+        : undefined,
   };
 }
 

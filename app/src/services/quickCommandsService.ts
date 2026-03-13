@@ -1,4 +1,9 @@
-import type { CommandAttachment } from "@vonlabs/design-components";
+import type {
+  CommandAttachment,
+  CommandSchedule,
+  ScheduleDay,
+  ScheduleFrequency,
+} from "@vonlabs/design-components";
 import { apiClient } from "./apiClient";
 
 /** Shape the backend expects when creating/updating a command's data sources */
@@ -38,6 +43,8 @@ export interface QuickCommand {
   createdAt: string;
   createdBy: string;
   updatedAt: string | null;
+  triggerConfig?: TriggerConfig;
+  deliveryConfig?: DeliveryConfig;
 }
 
 export interface QuickCommandListResponse {
@@ -52,6 +59,36 @@ export interface QuickCommandListResponse {
   };
 }
 
+export interface ScheduleConfig {
+  frequency: ScheduleFrequency;
+  time: string; // "HH:mm"
+  days: ScheduleDay[]; // for weekly / bi-weekly
+  dayOfMonth: number; // 1-31, for monthly
+  timezone: string; // IANA timezone, e.g. "America/New_York"
+}
+
+export interface TriggerConfig {
+  type: "schedule";
+  scheduleConfig: ScheduleConfig;
+}
+
+export interface DeliveryRecipient {
+  id: string; // email address
+  name: string;
+}
+
+export interface DeliveryConfig {
+  type: "email";
+  recipients: DeliveryRecipient[];
+}
+
+export interface TriggerQuickCommandInput {
+  name: string;
+  prompt: string;
+  dataSources?: CommandDataSource[];
+  deliveryConfig: DeliveryConfig;
+}
+
 export interface CreateQuickCommandInput {
   id?: string;
   name: string;
@@ -59,6 +96,8 @@ export interface CreateQuickCommandInput {
   prefillText?: string;
   accessLevel?: "tenant" | "user";
   dataSources?: CommandDataSource[];
+  triggerConfig?: TriggerConfig;
+  deliveryConfig?: DeliveryConfig;
 }
 
 export interface UpdateQuickCommandInput {
@@ -67,6 +106,8 @@ export interface UpdateQuickCommandInput {
   prefillText?: string;
   accessLevel?: "tenant" | "user";
   dataSources?: CommandDataSource[];
+  triggerConfig?: TriggerConfig | null;
+  deliveryConfig?: DeliveryConfig | null;
 }
 
 export interface PresignRequest {
@@ -120,6 +161,10 @@ export const quickCommandsService = {
 
   unbookmark(id: string): Promise<void> {
     return apiClient.delete<void>(`/api/v1/quick-commands/${id}/bookmark`);
+  },
+
+  trigger(data: TriggerQuickCommandInput): Promise<void> {
+    return apiClient.post<void>("/api/v1/quick-commands/trigger", data);
   },
 
   presignFile(
@@ -184,6 +229,66 @@ export const quickCommandsService = {
     });
   },
 };
+
+// ---------------------------------------------------------------------------
+// Schedule <-> API config conversion helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a UI CommandSchedule into triggerConfig + deliveryConfig
+ * ready to send to the backend. Cron generation is handled by the BE.
+ */
+export function scheduleToApiConfigs(schedule: CommandSchedule): {
+  triggerConfig: TriggerConfig;
+  deliveryConfig: DeliveryConfig;
+} {
+  return {
+    triggerConfig: {
+      type: "schedule",
+      scheduleConfig: {
+        frequency: schedule.frequency,
+        time: schedule.time,
+        days: schedule.days,
+        dayOfMonth: schedule.dayOfMonth,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    },
+    deliveryConfig: {
+      type: "email",
+      recipients: schedule.recipients.map((r) => ({
+        id: r.email,
+        name: `${r.firstName} ${r.lastName}`.trim(),
+      })),
+    },
+  };
+}
+
+/**
+ * Convert backend triggerConfig + deliveryConfig back into a UI CommandSchedule.
+ */
+export function apiConfigsToSchedule(
+  triggerConfig: TriggerConfig,
+  deliveryConfig: DeliveryConfig,
+): CommandSchedule {
+  const { frequency, time, days, dayOfMonth } = triggerConfig.scheduleConfig;
+  return {
+    enabled: true,
+    frequency,
+    time,
+    days,
+    dayOfMonth,
+    recipients: deliveryConfig.recipients.map((r) => {
+      const name = r.name ?? "";
+      const [firstName = "", ...rest] = name.split(" ");
+      return {
+        id: r.id,
+        email: r.id,
+        firstName,
+        lastName: rest.join(" "),
+      };
+    }),
+  };
+}
 
 /**
  * Uploads all pending (newly selected) files for a command and returns their

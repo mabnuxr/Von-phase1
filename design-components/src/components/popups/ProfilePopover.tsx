@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GearIcon, SignOutIcon } from '@phosphor-icons/react';
+import { GearIcon, SignOutIcon, ArrowUpRight } from '@phosphor-icons/react';
 
 export interface ProfilePopoverProps {
   /**
@@ -14,34 +14,14 @@ export interface ProfilePopoverProps {
   onClose: () => void;
 
   /**
-   * User's display name
-   */
-  userName?: string;
-
-  /**
    * User's email address
    */
   userEmail?: string;
 
   /**
-   * Avatar image URL
-   */
-  avatarSrc?: string;
-
-  /**
-   * Avatar initials/label (shown when no image)
-   */
-  avatarLabel?: string;
-
-  /**
    * Callback when settings is clicked
    */
   onSettingsClick?: () => void;
-
-  /**
-   * Callback when help is clicked
-   */
-  onHelpClick?: () => void;
 
   /**
    * Callback when sign out is clicked
@@ -65,19 +45,44 @@ interface MenuItemProps {
   label: string;
   onClick?: () => void;
   variant?: 'default' | 'danger';
+  trailingIcon?: React.ReactNode;
+  href?: string;
 }
 
-const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, variant = 'default' }) => {
+const MenuItem: React.FC<MenuItemProps> = ({
+  icon,
+  label,
+  onClick,
+  variant = 'default',
+  trailingIcon,
+  href,
+}) => {
+  const classes = `
+    w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors cursor-pointer text-left rounded-lg
+    ${variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
+  `;
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={classes}
+        onClick={onClick}
+      >
+        {icon}
+        <span className="flex-1">{label}</span>
+        {trailingIcon}
+      </a>
+    );
+  }
+
   return (
-    <button
-      onClick={onClick}
-      className={`
-        w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors cursor-pointer text-left rounded-lg
-        ${variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
-      `}
-    >
+    <button onClick={onClick} className={classes}>
       {icon}
-      <span>{label}</span>
+      <span className="flex-1">{label}</span>
+      {trailingIcon}
     </button>
   );
 };
@@ -90,10 +95,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, label, onClick, variant = 'de
 export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   isOpen,
   onClose,
-  userName,
   userEmail,
-  avatarSrc,
-  avatarLabel,
   onSettingsClick,
   onSignOutClick,
   position = { top: 0, right: 0 },
@@ -145,7 +147,7 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
           exit={{ opacity: 0, scale: 0.95, y: -4 }}
           transition={{ duration: 0.15 }}
           className={`
-            fixed w-64 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-[9999]
+            fixed w-60 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-[9999]
             ${className}
           `}
           style={{
@@ -156,29 +158,9 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
           }}
         >
           {/* User Info Header */}
-          {(userName || userEmail) && (
+          {userEmail && (
             <div className="px-3 py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden">
-                  {avatarSrc ? (
-                    <img
-                      src={avatarSrc}
-                      alt={userName || 'User avatar'}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
-                      {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  {userName && (
-                    <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>
-                  )}
-                  {userEmail && <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>}
-                </div>
-              </div>
+              <p className="text-sm text-gray-500 truncate">{userEmail}</p>
             </div>
           )}
 
@@ -191,6 +173,11 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
                 onSettingsClick?.();
                 onClose();
               }}
+            />
+            <MenuItem
+              icon={<ArrowUpRight size={16} weight="regular" />}
+              label="Help docs"
+              href="https://docs.vonlabs.ai"
             />
           </div>
 

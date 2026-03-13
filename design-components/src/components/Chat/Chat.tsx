@@ -71,6 +71,9 @@ export const Chat: React.FC<ChatProps> = ({
   onDeleteCommand,
   isSavingCommand,
   isAdmin = false,
+  teamMembers,
+  currentUser,
+  onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -96,6 +99,15 @@ export const Chat: React.FC<ChatProps> = ({
   // File error props
   fileErrorMessage,
   onDismissFileError,
+  // Reference context
+  referenceContext,
+  onRemoveReference,
+  // @ Mention props
+  enableMentions = false,
+  mentionItems,
+  isLoadingMentions,
+  onSelectMention,
+  onMentionsActivated,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -325,6 +337,9 @@ export const Chat: React.FC<ChatProps> = ({
             onDeleteCommand={onDeleteCommand}
             isSavingCommand={isSavingCommand}
             isAdmin={isAdmin}
+            teamMembers={teamMembers}
+            currentUser={currentUser}
+            onSendTest={onSendTest}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
@@ -340,6 +355,11 @@ export const Chat: React.FC<ChatProps> = ({
             onDismissFileError={onDismissFileError}
             availableAgentModes={availableAgentModes}
             enableFileUpload={enableFileUpload}
+            enableMentions={enableMentions}
+            mentionItems={mentionItems}
+            isLoadingMentions={isLoadingMentions}
+            onSelectMention={onSelectMention}
+            onMentionsActivated={onMentionsActivated}
           />
         ) : (
           /* Standard message rendering */
@@ -428,6 +448,9 @@ export const Chat: React.FC<ChatProps> = ({
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
           isAdmin={isAdmin}
+          teamMembers={teamMembers}
+          currentUser={currentUser}
+          onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}
@@ -449,6 +472,13 @@ export const Chat: React.FC<ChatProps> = ({
           onDismissFileError={onDismissFileError}
           availableAgentModes={availableAgentModes}
           enableFileUpload={enableFileUpload}
+          referenceContext={referenceContext}
+          onRemoveReference={onRemoveReference}
+          enableMentions={enableMentions}
+          mentionItems={mentionItems}
+          isLoadingMentions={isLoadingMentions}
+          onSelectMention={onSelectMention}
+          onMentionsActivated={onMentionsActivated}
         />
       )}
     </div>

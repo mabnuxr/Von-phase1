@@ -18,7 +18,12 @@ import type {
 } from "@vonlabs/design-components";
 
 import { ConversationMode } from "@vonlabs/design-components";
-import type { MessageWithStreaming, Conversation } from "../types/conversation";
+import { ReferenceType } from "../types/conversation";
+import type {
+  MessageWithStreaming,
+  Conversation,
+  MessageReference,
+} from "../types/conversation";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
@@ -58,6 +63,8 @@ export interface UseChatV2Props {
   isFileUploadEnabled: boolean;
   syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   onCollapseSidebar: () => void;
+  /** References (dashboard/widget context) to send with each message */
+  references?: MessageReference[];
 }
 
 export function useChatV2(props: UseChatV2Props) {
@@ -70,6 +77,7 @@ export function useChatV2(props: UseChatV2Props) {
     lockedConversationMode,
     syncConversationModeToBackend,
     onCollapseSidebar,
+    references,
   } = props;
 
   const queryClient = useQueryClient();
@@ -509,10 +517,28 @@ export function useChatV2(props: UseChatV2Props) {
         }
       }
 
+      // Merge static references (e.g. dashboard page) with dynamic mention references
+      const mentionRefs: MessageReference[] = (options?.mentions ?? []).map(
+        (m) => ({
+          refId: `${ReferenceType.Dashboard}-${m.id}`,
+          type: ReferenceType.Dashboard,
+          context: {
+            dashboardId: m.id,
+            dashboardVersion: m.version,
+            dashboardName: m.name,
+          },
+        }),
+      );
+      const allReferences =
+        mentionRefs.length > 0
+          ? [...(references ?? []), ...mentionRefs]
+          : references;
+
       sendMessage({
         conversationId,
         content,
         fileAttachments,
+        references: allReferences,
         command: options?.command
           ? {
               id: options.command.id,
@@ -543,6 +569,7 @@ export function useChatV2(props: UseChatV2Props) {
       clearFileAttachments,
       syncConversationModeToBackend,
       uploadPendingFiles,
+      references,
     ],
   );
 

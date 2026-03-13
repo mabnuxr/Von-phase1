@@ -1,13 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 
 interface UseResizablePaneOptions {
-  defaultWidth?: number;
-  minWidth?: number;
-  maxWidth?: number;
+  /** Default width as a percentage of viewport (0–100). */
+  defaultPercent?: number;
+  /** Minimum width as a percentage of viewport (0–100). */
+  minPercent?: number;
+  /** Maximum width as a percentage of viewport (0–100). */
+  maxPercent?: number;
 }
 
 interface UseResizablePaneReturn {
-  width: number;
+  /** Current width as a CSS percentage string (e.g. "30%"). */
+  widthCss: string;
   isResizing: boolean;
   handlePointerDown: (e: React.PointerEvent<HTMLElement>) => void;
   handlePointerMove: (e: React.PointerEvent<HTMLElement>) => void;
@@ -16,20 +20,18 @@ interface UseResizablePaneReturn {
 
 /**
  * Hook for drag-to-resize pane behavior using pointer capture.
- * Pointer capture directs all pointer events to the handle element,
- * avoiding document-level listeners entirely.
- *
+ * Stores width as a viewport percentage — no window access during SSR.
  * The pane resizes from the left edge (dragging left = wider).
  */
 export function useResizablePane({
-  defaultWidth = 380,
-  minWidth = 280,
-  maxWidth = 600,
+  defaultPercent = 30,
+  minPercent = 20,
+  maxPercent = 40,
 }: UseResizablePaneOptions = {}): UseResizablePaneReturn {
-  const [width, setWidth] = useState(defaultWidth);
+  const [percent, setPercent] = useState(defaultPercent);
   const [isResizing, setIsResizing] = useState(false);
   const startXRef = useRef(0);
-  const startWidthRef = useRef(0);
+  const startPercentRef = useRef(0);
 
   useEffect(() => {
     if (isResizing) {
@@ -44,23 +46,23 @@ export function useResizablePane({
     (e: React.PointerEvent<HTMLElement>) => {
       e.currentTarget.setPointerCapture(e.pointerId);
       startXRef.current = e.clientX;
-      startWidthRef.current = width;
+      startPercentRef.current = percent;
       setIsResizing(true);
       document.body.style.cursor = "ew-resize";
       document.body.style.userSelect = "none";
     },
-    [width],
+    [percent],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
       if (!isResizing) return;
       const deltaX = startXRef.current - e.clientX;
-      setWidth(
-        Math.min(maxWidth, Math.max(minWidth, startWidthRef.current + deltaX)),
-      );
+      const deltaPct = (deltaX / window.innerWidth) * 100;
+      const newPercent = startPercentRef.current + deltaPct;
+      setPercent(Math.min(maxPercent, Math.max(minPercent, newPercent)));
     },
-    [isResizing, minWidth, maxWidth],
+    [isResizing, minPercent, maxPercent],
   );
 
   const handlePointerUp = useCallback((e: React.PointerEvent<HTMLElement>) => {
@@ -71,7 +73,7 @@ export function useResizablePane({
   }, []);
 
   return {
-    width,
+    widthCss: `${percent}%`,
     isResizing,
     handlePointerDown,
     handlePointerMove,

@@ -1,5 +1,9 @@
 import { useCallback } from "react";
-import type { Command, CommandAttachment } from "@vonlabs/design-components";
+import type {
+  Command,
+  CommandAttachment,
+  ScheduleRecipient,
+} from "@vonlabs/design-components";
 import {
   useQuickCommandsList,
   useCreateQuickCommand,
@@ -7,7 +11,10 @@ import {
   useDeleteQuickCommand,
   useBookmarkQuickCommand,
 } from "./useQuickCommands";
-import { quickCommandsService } from "../services/quickCommandsService";
+import {
+  quickCommandsService,
+  scheduleToApiConfigs,
+} from "../services/quickCommandsService";
 import { useToast } from "./useToast";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
@@ -37,7 +44,10 @@ export function useCommandsPanel(userId?: string) {
 
   const handleSaveCommand = useCallback(
     async (
-      data: Pick<Command, "name" | "prompt" | "prefillText" | "sharingScope">,
+      data: Pick<
+        Command,
+        "name" | "prompt" | "prefillText" | "sharingScope" | "schedule"
+      >,
       editingId?: string,
       dataSources?: CommandAttachment[],
       commandId?: string,
@@ -63,6 +73,10 @@ export function useCommandsPanel(userId?: string) {
           s3Key: ds.s3Key!,
         }));
 
+      const scheduleConfigs = data.schedule?.enabled
+        ? scheduleToApiConfigs(data.schedule)
+        : undefined;
+
       try {
         if (editingId) {
           await updateCommand({
@@ -73,6 +87,8 @@ export function useCommandsPanel(userId?: string) {
               prefillText: data.prefillText || undefined,
               accessLevel,
               dataSources: apiDataSources,
+              triggerConfig: scheduleConfigs?.triggerConfig ?? null,
+              deliveryConfig: scheduleConfigs?.deliveryConfig ?? null,
             },
           });
           showToast({ message: "Command updated", variant: "success" });
@@ -84,6 +100,7 @@ export function useCommandsPanel(userId?: string) {
             prefillText: data.prefillText || undefined,
             accessLevel,
             dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
+            ...(scheduleConfigs ?? {}),
           });
           showToast({ message: "Command created", variant: "success" });
         }
@@ -182,6 +199,59 @@ export function useCommandsPanel(userId?: string) {
     [toggleBookmark, showToast],
   );
 
+  const handleSendTest = useCallback(
+    async (
+      data: Pick<Command, "name" | "prompt">,
+      dataSources: CommandAttachment[],
+      recipients: ScheduleRecipient[],
+    ) => {
+      const apiDataSources = dataSources
+        .filter((ds) => ds.s3Key)
+        .map((ds) => ({
+          fileId: ds.id,
+          fileName: ds.name,
+          mimeType: ds.type,
+          fileSize: ds.size,
+          extension: ds.extension,
+          category: ds.category as
+            | "document"
+            | "spreadsheet"
+            | "presentation"
+            | "text"
+            | "image",
+          s3Key: ds.s3Key!,
+        }));
+
+      try {
+        await quickCommandsService.trigger({
+          name: data.name,
+          prompt: data.prompt,
+          dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
+          deliveryConfig: {
+            type: "email",
+            recipients: recipients.map((r) => ({
+              id: r.email,
+              name: `${r.firstName} ${r.lastName}`.trim(),
+            })),
+          },
+        });
+        showToast({
+          message: "Test triggered — you'll receive it shortly",
+          variant: "success",
+        });
+      } catch (err) {
+        showToast({
+          message: getErrorMessage(
+            err,
+            "Failed to send test. Please try again.",
+          ),
+          variant: "error",
+        });
+      }
+    },
+    [showToast],
+  );
+
   return {
     commands,
     isLoadingCommands,
@@ -191,5 +261,6 @@ export function useCommandsPanel(userId?: string) {
     handleRequestFilePreviewUrl,
     handleDeleteCommand,
     handleToggleFavorite,
+    handleSendTest,
   };
 }

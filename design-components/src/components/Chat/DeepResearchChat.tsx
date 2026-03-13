@@ -7,7 +7,7 @@ import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
 import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import { MessageActions } from './MessageActions';
-import { DashboardPanel } from './DashboardPanel';
+import { DashboardArtifactCard } from './ArtifactCards';
 import type { Message } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
@@ -105,8 +105,10 @@ export interface DeepResearchChatProps {
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
-  /** Optional navigation callback for dashboard links — provide React Router's navigate for SPA navigation */
-  onNavigate?: (url: string) => void;
+  /** Callback when dashboard expand button is clicked (opens preview pane) */
+  onDashboardPreview?: () => void;
+  /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
+  onDashboardOpen?: () => void;
 }
 
 /**
@@ -138,7 +140,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onReject,
   onLike,
   onDislike,
-  onNavigate,
+  onDashboardPreview,
+  onDashboardOpen,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -257,7 +260,18 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                     isStreaming={false}
                     className="text-sm text-gray-700"
                   />
-                  <DashboardPanel dashboard={dashboard} onNavigate={onNavigate} />
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">
+                      The dashboard is currently saved as a <strong>draft</strong>. You can publish
+                      it to make it visible to your organization.
+                    </p>
+                    <DashboardArtifactCard
+                      title={dashboard.dashboard_name}
+                      onPreview={onDashboardPreview}
+                      onOpen={onDashboardOpen}
+                      onClick={onDashboardOpen}
+                    />
+                  </div>
                   <MessageActions
                     messageContent={message.v2FinalResponse}
                     messageId={message.messageId || message.id}
@@ -375,9 +389,20 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           completedAt: null,
                         }}
                       />
-                      {/* Dashboard Panel - shown when dashboard is created */}
+                      {/* Dashboard Card - shown when dashboard is created */}
                       {researchResults.isCompleted && dashboard && (
-                        <DashboardPanel dashboard={dashboard} onNavigate={onNavigate} />
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-600">
+                            The dashboard is currently saved as a <strong>draft</strong>. You can
+                            publish it to make it visible to your organization.
+                          </p>
+                          <DashboardArtifactCard
+                            title={dashboard.dashboard_name}
+                            onPreview={onDashboardPreview}
+                            onOpen={onDashboardOpen}
+                            onClick={onDashboardOpen}
+                          />
+                        </div>
                       )}
                       {/* Action buttons outside the card - using MessageActions for consistency */}
                       {researchResults.isCompleted && (

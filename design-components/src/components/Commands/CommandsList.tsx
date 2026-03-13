@@ -54,7 +54,9 @@ const CommandItem: React.FC<CommandItemProps> = ({
     onMouseEnter={onMouseEnter}
   >
     <div className="flex-1 min-w-0">
-      <div className="text-sm font-medium text-gray-900">{command.name}</div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm font-medium text-gray-900">{command.name}</span>
+      </div>
       <div className="text-xs text-gray-800/80 line-clamp-1">
         {getPromptPreview(command.prompt)}
       </div>

@@ -8,7 +8,7 @@
  */
 
 import { useMemo } from "react";
-import { Chat } from "@vonlabs/design-components";
+import { Chat, ChatSkeleton } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
@@ -17,6 +17,10 @@ import { useMessages } from "../hooks/useMessages";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import { useReferenceStack } from "../hooks/useReferenceStack";
+import type { ReferenceStackLayer } from "../hooks/useReferenceStack";
+import { ReferenceType } from "../types/conversation";
 import useChatStore from "../store/chatStore";
 import { useChatV2 } from "../hooks/useChatV2";
 import { config } from "../config";
@@ -24,7 +28,9 @@ import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 
 export interface AnalyticsChatContainerProps {
   conversationId: string;
+  dashboardId: string;
   dashboardTitle: string;
+  dashboardVersion: number;
 }
 
 /**
@@ -32,10 +38,13 @@ export interface AnalyticsChatContainerProps {
  */
 function AnalyticsChatInner({
   conversationId,
+  dashboardId,
   dashboardTitle,
+  dashboardVersion,
 }: AnalyticsChatContainerProps) {
   const { user } = useAppShell();
-  const { isSourcesEnabled } = useFeatureFlag();
+  const { isSourcesEnabled, isSlashCommandsEnabled, isFileUploadEnabled } =
+    useFeatureFlag();
 
   const { data: currentConversation } = useCurrentConversation(conversationId);
 
@@ -49,6 +58,7 @@ function AnalyticsChatInner({
     fetchNextPage: fetchNextMessagePage,
     hasNextPage: hasNextMessagePage,
     isFetchingNextPage: isFetchingNextMessagePage,
+    isLoading: isLoadingMessages,
     refetch: refetchMessages,
   } = useMessages(conversationId, MESSAGES_PAGE_LIMIT);
 
@@ -68,6 +78,41 @@ function AnalyticsChatInner({
     hasMore: !!hasNextMessagePage,
     isLoading: isFetchingNextMessagePage,
   });
+
+  const {
+    commands,
+    isLoadingCommands,
+    isSavingCommand,
+    handleSaveCommand,
+    handleUploadFile,
+    handleRequestFilePreviewUrl,
+    handleDeleteCommand,
+    handleToggleFavorite,
+  } = useCommandsPanel(user?.id);
+
+  // Reference stack: dashboard base layer (always present, not removable)
+  // Widget overlays can be pushed on top via refStack.push()
+  const dashboardBaseLayer: ReferenceStackLayer = useMemo(
+    () => ({
+      display: {
+        type: ReferenceType.Dashboard,
+        name: dashboardTitle,
+        id: dashboardId,
+      },
+      reference: {
+        refId: `dashboard-${dashboardId}`,
+        type: ReferenceType.Dashboard,
+        context: {
+          dashboardId,
+          dashboardVersion,
+          dashboardName: dashboardTitle,
+        },
+      },
+    }),
+    [dashboardId, dashboardTitle, dashboardVersion],
+  );
+
+  const refStack = useReferenceStack(dashboardBaseLayer);
 
   const chatV2 = useChatV2({
     conversationId,
@@ -90,14 +135,19 @@ function AnalyticsChatInner({
     canSubmit,
     onDisabledInteraction: () => {},
     salesforceInstanceUrl: undefined,
-    isSlashCommandsEnabled: false,
+    isSlashCommandsEnabled,
     isActionsEnabled: false,
     isDeepLinksEnabled: false,
     isSourcesEnabled,
-    isFileUploadEnabled: false,
+    isFileUploadEnabled,
     syncConversationModeToBackend: async () => {},
     onCollapseSidebar: () => {},
+    references: refStack.references,
   });
+
+  if (isLoadingMessages && conversationMessages.length === 0) {
+    return <ChatSkeleton messageCount={4} />;
+  }
 
   return (
     <Chat
@@ -125,6 +175,25 @@ function AnalyticsChatInner({
       onReject={chatV2.handleRejection}
       loadMoreRef={loadMoreMessagesRef}
       isFetchingMore={isFetchingNextMessagePage}
+      enableCommands={isSlashCommandsEnabled}
+      commands={commands}
+      isLoadingCommands={isLoadingCommands}
+      onSaveCommand={handleSaveCommand}
+      onDeleteCommand={handleDeleteCommand}
+      isSavingCommand={isSavingCommand}
+      isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+      onToggleFavorite={handleToggleFavorite}
+      onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
+      onUploadFile={handleUploadFile}
+      enableFileUpload={isFileUploadEnabled}
+      controlledAttachments={chatV2.fileAttachmentState}
+      onRemoveAttachment={chatV2.handleRemoveAttachment}
+      onFilesSelected={chatV2.handleFilesSelected}
+      onFileClick={chatV2.handleFileClick}
+      fileErrorMessage={chatV2.fileErrorMessage}
+      onDismissFileError={() => chatV2.setFileErrorMessage(null)}
+      referenceContext={refStack.activeContext}
+      onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     />
   );
 }
@@ -135,13 +204,17 @@ function AnalyticsChatInner({
  */
 export function AnalyticsChatContainer({
   conversationId,
+  dashboardId,
   dashboardTitle,
+  dashboardVersion,
 }: AnalyticsChatContainerProps) {
   return (
     <AnalyticsChatInner
       key={conversationId}
       conversationId={conversationId}
+      dashboardId={dashboardId}
       dashboardTitle={dashboardTitle}
+      dashboardVersion={dashboardVersion}
     />
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X as XIcon, Database as DatabaseIcon } from '@phosphor-icons/react';
-import { ReportTable } from '../../ReportTable';
+import { ReportTable, buildGridOptions } from '../../ReportTable';
 import type { ReportColumn, AIReasoningData } from '../../ReportTable/ReportTable';
 import { useHorizontalResize, useDynamicPageSize } from '../../ArtifactViewer/hooks';
 
@@ -236,14 +236,10 @@ export const DeepResearchDataTablesDrawer: React.FC<DeepResearchDataTablesDrawer
                   <TableSkeleton />
                 ) : activeTable ? (
                   <ReportTable
-                    columns={activeTable.columns}
-                    data={activeTable.data}
-                    pageSize={rowsPerPage}
-                    showPagination={true}
-                    aiReasoningKey="_aiReasoning"
-                    nameKey="name"
-                    showRowActions={false}
-                    frozenColumns={1}
+                    options={buildGridOptions(activeTable.columns, activeTable.data, {
+                      pageSize: rowsPerPage,
+                      showPagination: true,
+                    })}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center p-6">

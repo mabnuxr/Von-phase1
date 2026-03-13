@@ -76,6 +76,26 @@ export interface MessageCommand {
   dataSources?: CommandDataSource[];
 }
 
+import type { ReferenceType } from "./constants";
+export { ReferenceType } from "./constants";
+
+/**
+ * Dashboard reference context attached to a message.
+ */
+export interface DashboardReferenceContext {
+  dashboardId: string;
+  dashboardVersion: number;
+  dashboardName: string;
+}
+
+export interface MessageReference {
+  /** Frontend tracking ID (opaque, client-generated) */
+  refId: string;
+  /** Discriminator */
+  type: ReferenceType;
+  context: DashboardReferenceContext;
+}
+
 /**
  * Conversation phase from RUN_FINISHED event
  * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)

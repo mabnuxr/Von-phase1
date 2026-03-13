@@ -80,7 +80,7 @@ export interface ChatSidebarSimpleProps {
   avatarSrc?: string;
   avatarLabel?: string;
   onSettingsClick?: () => void;
-  onHelpClick?: () => void;
+
   onSignOutClick?: () => void;
 }
 
@@ -462,7 +462,6 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
   avatarSrc,
   avatarLabel,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
 }) => {
   const [searchValue, setSearchValue] = useState('');
@@ -787,13 +786,9 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
         <ProfilePopover
           isOpen={isProfileOpen}
           onClose={() => setIsProfileOpen(false)}
-          userName={userName}
           userEmail={userEmail}
-          avatarSrc={avatarSrc}
-          avatarLabel={avatarLabel}
           position={popoverPosition}
           onSettingsClick={onSettingsClick}
-          onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
         />
       </div>
@@ -955,13 +950,9 @@ export const ChatSidebarSimple: React.FC<ChatSidebarSimpleProps> = ({
       <ProfilePopover
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-        userName={userName}
         userEmail={userEmail}
-        avatarSrc={avatarSrc}
-        avatarLabel={avatarLabel}
         position={popoverPosition}
         onSettingsClick={onSettingsClick}
-        onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}
       />
 

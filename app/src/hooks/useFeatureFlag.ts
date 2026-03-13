@@ -18,6 +18,7 @@ export const FEATURE_FLAGS = {
   DISABLED_TENANTS: "disabledTenants",
   FILE_UPLOAD: "enableFileUpload",
   ARTIFACTS: "enableArtifacts",
+  SCHEDULED_COMMANDS: "enableScheduledCommands",
 } as const;
 
 /**
@@ -78,7 +79,7 @@ export function useFeatureFlag() {
     /**
      * Controls if we need to show new sidebar UI experience
      */
-    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
 
     /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
@@ -116,6 +117,12 @@ export function useFeatureFlag() {
      * Controls whether agent-generated artifact cards and preview panel are shown
      */
     isArtifactsEnabled: flags[FEATURE_FLAGS.ARTIFACTS] === true,
+
+    /**
+     * Controls whether scheduled commands (schedule section, recipients, send test) are enabled
+     */
+    isScheduledCommandsEnabled:
+      flags[FEATURE_FLAGS.SCHEDULED_COMMANDS] === true,
 
     /**
      * Raw flags object for advanced usage

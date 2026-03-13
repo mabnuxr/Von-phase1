@@ -2,10 +2,11 @@
  * Type definitions for Chat component with backend integration
  */
 
-import type { ConversationMode } from './StandardChatInput/types';
-import type { Command } from '../Commands/types';
+import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
+import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
+import type { MentionItem } from '../Mentions/types';
 
 /**
  * Additional options passed with the send message callback
@@ -15,6 +16,8 @@ export interface SendMessageOptions {
   agentMode?: ConversationMode;
   /** Selected command (when slash commands are enabled) */
   command?: Command;
+  /** Selected @ mentions (when mentions are enabled) */
+  mentions?: MentionItem[];
 }
 
 /**
@@ -1255,7 +1258,7 @@ export interface ChatProps {
    * `commandId`  — pre-generated ObjectId used for presigning; pass as `id` on create.
    */
   onSaveCommand?: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
     editingId?: string,
     dataSources?: import('../Commands/types').CommandAttachment[],
     commandId?: string
@@ -1277,6 +1280,16 @@ export interface ChatProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: ScheduleRecipient[]
+  ) => void;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)
@@ -1393,6 +1406,47 @@ export interface ChatProps {
    * Callback when files are selected via plus menu or drag-drop in controlled mode
    */
   onFilesSelected?: (files: File[]) => void;
+
+  /**
+   * Reference context shown above the input (e.g. dashboard/widget context)
+   */
+  referenceContext?: ReferenceContext;
+
+  /**
+   * Callback when the reference context is removed
+   */
+  onRemoveReference?: () => void;
+
+  // ============================================================================
+  // @ Mention Props
+  // ============================================================================
+
+  /**
+   * Enable @ mentions feature
+   * When enabled, typing '@' in the input will show a mentions overlay
+   * @default false
+   */
+  enableMentions?: boolean;
+
+  /**
+   * Available mention items (e.g. dashboards) for the @ overlay
+   */
+  mentionItems?: MentionItem[];
+
+  /**
+   * Loading state for mention items
+   */
+  isLoadingMentions?: boolean;
+
+  /**
+   * Called when a mention is selected from the @ overlay
+   */
+  onSelectMention?: (item: MentionItem) => void;
+
+  /**
+   * Called when the user first types "@" — use to lazy-load mention items
+   */
+  onMentionsActivated?: () => void;
 
   // ============================================================================
   // Deep Research Results Props (V2 only)

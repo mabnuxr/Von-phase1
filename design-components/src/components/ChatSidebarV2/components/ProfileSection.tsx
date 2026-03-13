@@ -14,7 +14,7 @@ export interface ProfileSectionProps {
   onAvatarClick: () => void;
   onCloseProfile: () => void;
   onSettingsClick?: () => void;
-  onHelpClick?: () => void;
+
   onSignOutClick?: () => void;
 }
 
@@ -37,7 +37,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   onAvatarClick,
   onCloseProfile,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
 }) => {
   if (!userName && !userEmail && !avatarLabel) {
@@ -80,13 +79,9 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       <ProfilePopover
         isOpen={isProfileOpen}
         onClose={onCloseProfile}
-        userName={userName}
         userEmail={userEmail}
-        avatarSrc={avatarSrc}
-        avatarLabel={avatarLabel}
         position={popoverPosition}
         onSettingsClick={onSettingsClick}
-        onHelpClick={onHelpClick}
         onSignOutClick={onSignOutClick}
       />
     </>

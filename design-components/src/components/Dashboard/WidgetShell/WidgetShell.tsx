@@ -6,10 +6,10 @@ import type { WidgetShellProps } from '../types';
  */
 const WidgetShell: React.FC<WidgetShellProps> = ({ title, subtitle, children }) => {
   return (
-    <div className="h-full bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col">
-      <div className="flex items-center px-3 py-2 border-b border-gray-100 shrink-0">
+    <div className="h-full bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col shadow-xs cursor-pointer hover:border-gray-200 transition-colors">
+      <div className="relative flex items-center px-3 py-2.5 border-b border-gray-100 shrink-0">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-gray-900 truncate">{title}</h3>
+          <h3 className="text-sm font-medium text-gray-900 truncate">{title}</h3>
           {subtitle && <p className="text-xs text-gray-500 mt-0.5 truncate">{subtitle}</p>}
         </div>
       </div>
