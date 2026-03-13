@@ -118,7 +118,11 @@ export function AppShell() {
           >
             {/* Left Pane - Sidebar */}
             <div
-              className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
+              className={`chat-sidebar-wrapper h-full flex flex-col min-h-0 transition-all duration-300 ${
+                isSidebarV2
+                  ? ""
+                  : "rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200"
+              }`}
               style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
             >
               {isSidebarV2 ? (

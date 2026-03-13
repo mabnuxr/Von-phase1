@@ -1,1 +1,5 @@
-export { getContextMenuItems, getFolderContextMenuItems } from './contextMenuItems';
+export {
+  getContextMenuItems,
+  getFolderContextMenuItems,
+  getDashboardContextMenuItems,
+} from './contextMenuItems';

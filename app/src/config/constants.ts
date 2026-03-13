@@ -78,6 +78,12 @@ export const DASHBOARD_LIST_PAGE_SIZE = 100 as const;
  */
 export const DASHBOARD_LIST_STALE_TIME = 300000 as const; // 5 minutes
 
+/**
+ * Page size for the sidebar dashboard listing.
+ * Uses "show more" pagination with small page size.
+ */
+export const SIDEBAR_DASHBOARD_PAGE_SIZE = 5 as const;
+
 // ============================================================================
 // OAuth & Integration Polling Constants
 // ============================================================================

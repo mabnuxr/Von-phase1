@@ -75,7 +75,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
 
   return (
     <div
-      className="group relative flex items-center justify-between gap-2.5 px-2 h-8 text-sm text-gray-800 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+      className="group relative flex items-center justify-between gap-2.5 px-2 h-8 text-sm text-gray-800 hover:text-gray-900 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors duration-150 cursor-pointer"
       onClick={isEditing ? undefined : onClick}
       onContextMenu={isEditing ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
