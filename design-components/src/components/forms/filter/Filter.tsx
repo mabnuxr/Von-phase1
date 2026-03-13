@@ -11,6 +11,7 @@ import {
 } from '@phosphor-icons/react';
 import { Dropdown } from '../dropdown';
 import { SecondaryButton } from '../buttons';
+import { useVisibilityToggle } from '../../../hooks';
 
 // ============================================================================
 // Von AI Logo Component (minimal SVG)
@@ -92,8 +93,12 @@ export interface FilterButtonProps {
   showAIPrompt?: boolean;
   aiPromptPlaceholder?: string;
   onAIPromptSubmit?: (prompt: string) => void;
+  /** Hide the leading funnel icon */
   hideIcon?: boolean;
+  /** When true, hides the AI prompt input and edit button — filters are view-only */
   readOnly?: boolean;
+  /** When true, hides title/subtitle/pre-applied label — shows only filter pills */
+  compact?: boolean;
 }
 
 // ============================================================================
@@ -481,7 +486,11 @@ interface FilterPopoverContentProps {
   showAIPrompt?: boolean;
   aiPromptPlaceholder?: string;
   onAIPromptSubmit?: (prompt: string) => void;
+  onClose: () => void;
+  /** When true, hides the AI prompt input and edit button — filters are view-only */
   readOnly?: boolean;
+  /** When true, hides title/subtitle/pre-applied label — shows only filter pills */
+  compact?: boolean;
 }
 
 const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
@@ -492,6 +501,7 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
   aiPromptPlaceholder = 'Describe what you want to see',
   onAIPromptSubmit,
   readOnly = false,
+  compact = false,
 }) => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -603,10 +613,12 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
   return (
     <div className="flex flex-col gap-3 p-3 min-w-[600px] max-w-[800px]">
       {/* Header */}
-      <div>
-        <p className="text-sm font-medium text-gray-900">Filter</p>
-        <p className="text-xs text-gray-500">Narrow down records in this view</p>
-      </div>
+      {!compact && (
+        <div>
+          <p className="text-sm font-medium text-gray-900">Filter</p>
+          <p className="text-xs text-gray-500">Narrow down records in this view</p>
+        </div>
+      )}
 
       {/* AI Prompt Input */}
       {showAIPrompt && !readOnly && (
@@ -635,19 +647,21 @@ const FilterPopoverContent: React.FC<FilterPopoverContentProps> = ({
       {/* Pre-applied filters preview (when not editing) */}
       {hasAppliedFilters && !isEditing && (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Pre-applied filters</span>
-            {!readOnly && (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                title="Edit filters"
-              >
-                <PencilSimpleIcon size={14} />
-              </button>
-            )}
-          </div>
+          {!compact && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Pre-applied filters</span>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="p-1 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  title="Edit filters"
+                >
+                  <PencilSimpleIcon size={14} />
+                </button>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-1.5 flex-wrap px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg">
             <span className="text-sm text-gray-500">Where</span>
             {filterParts.map((part, index) => (
@@ -757,8 +771,9 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
   onAIPromptSubmit,
   hideIcon = false,
   readOnly = false,
+  compact = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isVisible: isOpen, hide, toggleVisibility } = useVisibilityToggle();
   const containerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
@@ -797,18 +812,18 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        setIsOpen(false);
+        hide();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, hide]);
 
   return (
     <>
       <div ref={containerRef}>
-        <SecondaryButton onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-1.5">
+        <SecondaryButton onClick={toggleVisibility} className="flex items-center gap-1.5">
           {!hideIcon && <FunnelIcon size={14} />}
           <span>Filter</span>
           {activeFilterCount > 0 && (
@@ -838,7 +853,9 @@ export const FilterButton: React.FC<FilterButtonProps> = ({
                 showAIPrompt={showAIPrompt}
                 aiPromptPlaceholder={aiPromptPlaceholder}
                 onAIPromptSubmit={onAIPromptSubmit}
+                onClose={hide}
                 readOnly={readOnly}
+                compact={compact}
               />
             </motion.div>
           )}

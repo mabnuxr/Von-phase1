@@ -114,7 +114,7 @@ export function AppShell() {
 
           {/* Two-Pane Layout */}
           <div
-            className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
+            className={`flex flex-1 px-1.5 pb-1.5 gap-1 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-1.5" : ""}`}
           >
             {/* Left Pane - Sidebar */}
             <div

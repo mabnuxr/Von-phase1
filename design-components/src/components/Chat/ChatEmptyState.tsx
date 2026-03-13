@@ -13,6 +13,7 @@ import type { BuildMode } from './StandardChatInput/types';
 import type { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { Command } from '../Commands';
+import type { MentionItem } from '../Mentions';
 
 export interface ChatEmptyStateProps {
   /**
@@ -147,6 +148,16 @@ export interface ChatEmptyStateProps {
   ) => void;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
+  /** Enable @ mentions feature */
+  enableMentions?: boolean;
+  /** Available mention items for the @ overlay */
+  mentionItems?: MentionItem[];
+  /** Loading state for mention items */
+  isLoadingMentions?: boolean;
+  /** Called when a mention is selected from the @ overlay */
+  onSelectMention?: (item: MentionItem) => void;
+  /** Called when the user first types "@" — use to lazy-load mention items */
+  onMentionsActivated?: () => void;
 }
 
 /**
@@ -205,6 +216,11 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onRequestFilePreviewUrl,
   onUploadFile,
   availableAgentModes,
+  enableMentions,
+  mentionItems,
+  isLoadingMentions,
+  onSelectMention,
+  onMentionsActivated,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -419,6 +435,11 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
           availableAgentModes={availableAgentModes}
+          enableMentions={enableMentions}
+          mentionItems={mentionItems}
+          isLoadingMentions={isLoadingMentions}
+          onSelectMention={onSelectMention}
+          onMentionsActivated={onMentionsActivated}
         />
       </motion.div>
 

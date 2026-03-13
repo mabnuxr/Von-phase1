@@ -361,6 +361,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       availableAgentModes = [ConversationMode.Auto],
       // File upload
       enableFileUpload = false,
+      // Additional Tiptap extensions
+      additionalExtensions,
     },
     ref
   ) => {
@@ -396,6 +398,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
           const coords = view.coordsAtPos(view.state.selection.from);
           return { left: coords.left, top: coords.top, bottom: coords.bottom };
         },
+        getEditor: () => editorRef.current,
       }),
       []
     );
@@ -724,6 +727,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 addFiles(files);
                               }
                             }}
+                            additionalExtensions={additionalExtensions}
                           />
                           {caretOffset && ghostCommandName && (
                             <GhostCommandText text={ghostCommandName} offset={caretOffset} />
@@ -907,6 +911,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             addFiles(files);
                           }
                         }}
+                        additionalExtensions={additionalExtensions}
                       />
                       {caretOffset && ghostCommandName && (
                         <GhostCommandText text={ghostCommandName} offset={caretOffset} />

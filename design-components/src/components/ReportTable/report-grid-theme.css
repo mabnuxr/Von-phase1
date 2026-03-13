@@ -1,7 +1,29 @@
 /**
  * Custom theme overrides for Highcharts Grid Lite
- * to match the existing ReportTable visual style.
+ * to match the old TanStack ReportTable visual style.
  */
+
+/* Force light mode regardless of system preference */
+.report-grid-wrapper .hcg-container {
+  --hcg-background: #ffffff;
+  --hcg-color: #111827;
+  --ig-default-background: #ffffff;
+  --ig-default-color: #111827;
+  --highcharts-background-color: #ffffff;
+  --highcharts-neutral-color-100: #111827;
+  --hcg-row-hover-background: rgba(249, 250, 251, 0.5);
+  --hcg-row-even-background: #ffffff;
+  --hcg-cell-background: #ffffff;
+  --hcg-header-background: #f9fafb;
+  --hcg-border-color: #f3f4f6;
+  --hcg-row-border-color: #f3f4f6;
+  --hcg-button-hover-background: #f3f4f6;
+  --hcg-button-color: #374151;
+  --hcg-button-hover-color: #111827;
+  --hcg-pagination-button-selected-background: #111827;
+  --hcg-pagination-button-selected-color: #ffffff;
+  color-scheme: light;
+}
 
 /* Wrapper */
 .report-grid-wrapper .hcg-container {
@@ -9,6 +31,7 @@
   border: none;
   border-radius: 0.5rem;
   overflow: hidden;
+  background: #ffffff;
 }
 
 /* Header cells */
@@ -120,13 +143,24 @@
   opacity: 1;
 }
 
-/* Column resizer */
+/* Column resizer - match old 1px style */
 .report-grid-wrapper .hcg-column-resizer {
-  width: 3px;
+  width: 1px;
   background: transparent;
+  cursor: col-resize;
+  transform: translateX(50%);
 }
 .report-grid-wrapper .hcg-column-resizer:hover {
   background: #d1d5db;
+}
+.report-grid-wrapper .hcg-column-resizer:active {
+  background: #9ca3af;
+}
+
+/* Body rows */
+.report-grid-wrapper .hcg-table tbody tr {
+  background: #ffffff;
+  transition: background-color 0.15s;
 }
 
 /* Body cells */
@@ -135,6 +169,7 @@
   font-weight: 500;
   color: #111827;
   padding: 6px 12px;
+  background: #ffffff;
   border-bottom: 1px solid #f3f4f6;
   border-right: 1px solid #f3f4f6;
   white-space: nowrap;
@@ -143,14 +178,14 @@
   text-align: left !important;
 }
 
-/* Row hover */
-.report-grid-wrapper .hcg-table tr:hover td {
+/* Row hover - match old hover:bg-gray-50/50 */
+.report-grid-wrapper .hcg-table tbody tr:hover td {
   background: rgba(249, 250, 251, 0.5);
 }
 
-/* Even row striping - disable default to match old design */
+/* Even row striping - disable; keep white like old design */
 .report-grid-wrapper .hcg-row-even td {
-  background: transparent;
+  background: #ffffff;
 }
 .report-grid-wrapper .hcg-row-even:hover td {
   background: rgba(249, 250, 251, 0.5);
@@ -173,14 +208,24 @@
   padding: 4px 8px;
   min-width: 28px;
   height: 28px;
+  color: #374151;
   transition:
     background-color 0.15s,
     color 0.15s;
   cursor: pointer;
 }
 
-.report-grid-wrapper .hcg-pagination-nav-buttons-container button:hover {
+/* Inactive pagination buttons */
+.report-grid-wrapper .hcg-pagination-nav-buttons-container button:hover,
+.report-grid-wrapper .hcg-pagination-controls-container button:hover {
   background: #f3f4f6;
+}
+
+/* Active pagination page - match old bg-gray-900 text-white */
+.report-grid-wrapper .hcg-pagination-controls-container button[aria-current='page'],
+.report-grid-wrapper .hcg-pagination-controls-container button.hcg-pagination-active {
+  background: #111827;
+  color: #ffffff;
 }
 
 .report-grid-wrapper .hcg-pagination-info {
@@ -210,11 +255,7 @@
   font-size: 14px;
   color: #374151;
   padding: 48px 16px;
-}
-
-/* Hide pagination UI when rows are limited but controls aren't needed */
-.report-grid-no-pagination .hcg-pagination-wrapper {
-  display: none;
+  background: #ffffff;
 }
 
 /* Hide credits */

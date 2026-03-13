@@ -2,10 +2,11 @@
  * Type definitions for Chat component with backend integration
  */
 
-import type { ConversationMode } from './StandardChatInput/types';
+import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
 import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
+import type { MentionItem } from '../Mentions/types';
 
 /**
  * Additional options passed with the send message callback
@@ -15,6 +16,8 @@ export interface SendMessageOptions {
   agentMode?: ConversationMode;
   /** Selected command (when slash commands are enabled) */
   command?: Command;
+  /** Selected @ mentions (when mentions are enabled) */
+  mentions?: MentionItem[];
 }
 
 /**
@@ -1403,6 +1406,47 @@ export interface ChatProps {
    * Callback when files are selected via plus menu or drag-drop in controlled mode
    */
   onFilesSelected?: (files: File[]) => void;
+
+  /**
+   * Reference context shown above the input (e.g. dashboard/widget context)
+   */
+  referenceContext?: ReferenceContext;
+
+  /**
+   * Callback when the reference context is removed
+   */
+  onRemoveReference?: () => void;
+
+  // ============================================================================
+  // @ Mention Props
+  // ============================================================================
+
+  /**
+   * Enable @ mentions feature
+   * When enabled, typing '@' in the input will show a mentions overlay
+   * @default false
+   */
+  enableMentions?: boolean;
+
+  /**
+   * Available mention items (e.g. dashboards) for the @ overlay
+   */
+  mentionItems?: MentionItem[];
+
+  /**
+   * Loading state for mention items
+   */
+  isLoadingMentions?: boolean;
+
+  /**
+   * Called when a mention is selected from the @ overlay
+   */
+  onSelectMention?: (item: MentionItem) => void;
+
+  /**
+   * Called when the user first types "@" — use to lazy-load mention items
+   */
+  onMentionsActivated?: () => void;
 
   // ============================================================================
   // Deep Research Results Props (V2 only)

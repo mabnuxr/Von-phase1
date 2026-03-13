@@ -79,7 +79,7 @@ export function useFeatureFlag() {
     /**
      * Controls if we need to show new sidebar UI experience
      */
-    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2],
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
 
     /**
      * Controls whether the new TimelineThinkingProcess v2 component is used

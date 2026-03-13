@@ -11,20 +11,26 @@
  * on conversation switch (no stale state, no race conditions).
  */
 
-import { Profiler } from "react";
+import { Profiler, useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Chat,
   FilePreviewModal,
   ArtifactViewerPanel,
 } from "@vonlabs/design-components";
-import type { ConversationMode } from "@vonlabs/design-components";
+import { ConversationMode } from "@vonlabs/design-components";
+import type { MentionItem } from "@vonlabs/design-components";
+import { MentionItemType } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming, Conversation } from "../types/conversation";
 import type { User } from "../services";
 import { config } from "../config";
 import { useChatV2 } from "../hooks/useChatV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useDashboardPane } from "../hooks/useDashboardPane";
+import { useDashboardList } from "../hooks/useDashboardList";
 import { DeepResearchConversation } from "./DeepResearchConversation";
+import { DashboardPreviewPane } from "./DashboardPreviewPane";
 import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 import { reportRenderTiming } from "../lib/datadog";
@@ -90,7 +96,10 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
+    onCollapseSidebar,
   } = props;
+
+  const navigate = useNavigate();
 
   const chatV2 = useChatV2({
     conversationId: props.conversationId,
@@ -130,6 +139,46 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     handleSendTest,
   } = useCommandsPanel(user?.id);
 
+  // @ Mention: lazily fetch dashboard list only after user types "@"
+  const [mentionsActivated, setMentionsActivated] = useState(false);
+  const handleMentionsActivated = useCallback(() => {
+    setMentionsActivated(true);
+  }, []);
+  const { data: dashboardListData, isLoading: isLoadingMentions } =
+    useDashboardList(mentionsActivated);
+
+  const mentionItems: MentionItem[] = useMemo(
+    () =>
+      dashboardListData?.data.map((d) => ({
+        id: d.dashboard_id,
+        name: d.dashboard_name,
+        type: MentionItemType.Dashboard,
+        version: d.dashboard_version,
+      })) ?? [],
+    [dashboardListData],
+  );
+
+  // Dashboard preview pane state
+  const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
+    useDashboardPane();
+
+  // Dashboard arrow-right button: open artifact preview pane & collapse sidebar
+  const handleDashboardPreview = useCallback(() => {
+    const dashboardId = chatV2.dashboard?.dashboard_id;
+    if (dashboardId) {
+      openDashboardPane(dashboardId);
+      onCollapseSidebar();
+    }
+  }, [chatV2.dashboard?.dashboard_id, openDashboardPane, onCollapseSidebar]);
+
+  // Dashboard expand button: navigate to full dashboard page
+  const handleDashboardOpen = useCallback(() => {
+    const dashboardId = chatV2.dashboard?.dashboard_id;
+    if (dashboardId) {
+      navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
+    }
+  }, [chatV2.dashboard?.dashboard_id, conversationId, navigate]);
+
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
   );
@@ -156,43 +205,59 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
         /* Deep Research Mode */
-        <>
-          {banner}
-          {chatV2.writeBlocked && (
-            <div className="w-full max-w-4xl mx-auto mb-2 px-2">
-              <WriteBlockedBanner
-                writeBlocked={chatV2.writeBlocked}
-                onDismiss={chatV2.dismissWriteBlocked}
-              />
-            </div>
+        <div className="flex h-full w-full gap-1">
+          <div
+            className={`min-w-0 flex flex-col ${dashboardPaneState.isOpen ? "flex-shrink-0" : "flex-1"}`}
+            style={dashboardPaneState.isOpen ? { width: 480 } : undefined}
+          >
+            {banner}
+            {chatV2.writeBlocked && (
+              <div className="w-full max-w-4xl mx-auto mb-2 px-2">
+                <WriteBlockedBanner
+                  writeBlocked={chatV2.writeBlocked}
+                  onDismiss={chatV2.dismissWriteBlocked}
+                />
+              </div>
+            )}
+            <DeepResearchConversation
+              messages={chatV2.transformedMessages}
+              userName={user?.firstName || user?.name?.split(" ")[0]}
+              userEmail={user?.email}
+              conversationId={conversationId}
+              researchResults={chatV2.effectiveResearchResults ?? undefined}
+              isDeepResearchRunning={chatV2.isDeepResearchRunning}
+              dashboard={chatV2.dashboard ?? undefined}
+              lockedConversationMode={lockedConversationMode}
+              onSendMessage={chatV2.handleSendMessage}
+              onStopStreaming={chatV2.handleStopStreaming}
+              onArtifactClick={chatV2.handleArtifactClick}
+              onApprove={chatV2.handleApproval}
+              onReject={chatV2.handleRejection}
+              placeholder="Ask von anything"
+              disableSubmit={!chatV2.canSubmitFinal}
+              onInputWhileDisabled={onDisabledInteraction}
+              enableCommands={isSlashCommandsEnabled}
+              availableAgentModes={availableAgentModes}
+              fetchNextMessagePage={fetchNextMessagePage}
+              hasNextMessagePage={hasNextMessagePage}
+              isFetchingNextMessagePage={isFetchingNextMessagePage}
+              onDashboardPreview={handleDashboardPreview}
+              onDashboardOpen={handleDashboardOpen}
+            />
+          </div>
+
+          {/* Dashboard Preview Pane */}
+          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
+            <DashboardPreviewPane
+              dashboardId={dashboardPaneState.dashboardId}
+              conversationId={conversationId}
+              onClose={closeDashboardPane}
+            />
           )}
-          <DeepResearchConversation
-            messages={chatV2.transformedMessages}
-            userName={user?.firstName || user?.name?.split(" ")[0]}
-            userEmail={user?.email}
-            conversationId={conversationId}
-            researchResults={chatV2.effectiveResearchResults ?? undefined}
-            isDeepResearchRunning={chatV2.isDeepResearchRunning}
-            dashboard={chatV2.dashboard ?? undefined}
-            lockedConversationMode={lockedConversationMode}
-            onSendMessage={chatV2.handleSendMessage}
-            onStopStreaming={chatV2.handleStopStreaming}
-            onArtifactClick={chatV2.handleArtifactClick}
-            onApprove={chatV2.handleApproval}
-            onReject={chatV2.handleRejection}
-            placeholder="Ask von anything"
-            disableSubmit={!chatV2.canSubmitFinal}
-            onInputWhileDisabled={onDisabledInteraction}
-            enableCommands={isSlashCommandsEnabled}
-            availableAgentModes={availableAgentModes}
-            fetchNextMessagePage={fetchNextMessagePage}
-            hasNextMessagePage={hasNextMessagePage}
-            isFetchingNextMessagePage={isFetchingNextMessagePage}
-          />
-        </>
+        </div>
       ) : (
         /* Regular V2 Mode */
-        <div className="flex h-full w-full gap-2">
+        <div className="flex h-full w-full gap-1">
           <div className="flex-1 min-w-0">
             <Chat
               title="von AI"
@@ -275,6 +340,14 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               driveLoadingFileId={driveLoadingFileId}
               availableAgentModes={availableAgentModes}
               enableFileUpload={isFileUploadEnabled}
+              enableMentions={
+                availableAgentModes?.includes(
+                  ConversationMode.DashboardBuilder,
+                ) ?? false
+              }
+              mentionItems={mentionItems}
+              isLoadingMentions={isLoadingMentions}
+              onMentionsActivated={handleMentionsActivated}
             />
           </div>
 

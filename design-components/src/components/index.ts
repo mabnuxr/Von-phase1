@@ -104,8 +104,13 @@ export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
 export { ArtifactPane } from './Chat/ArtifactPane';
 export type { ArtifactPaneProps, ArtifactData } from './Chat/ArtifactPane';
 
-export { ArtifactCard } from './Chat';
-export type { ArtifactCardProps, FileArtifact, ArtifactType } from './Chat';
+export { FileArtifactCard, DashboardArtifactCard } from './Chat';
+export type {
+  FileArtifactCardProps,
+  DashboardArtifactCardProps,
+  FileArtifact,
+  ArtifactType,
+} from './Chat';
 
 export { ArtifactViewerPanel } from './Chat';
 export type { ArtifactViewerPanelProps } from './Chat';
@@ -173,10 +178,20 @@ export type {
   SendMessageOptions,
 } from './Chat';
 export { ConversationMode } from './Chat';
+export type { ReferenceContext } from './Chat';
 
 // ChatInputSelector - Selector component for different input variants
 export { ChatInputSelector } from './Chat';
 export type { ChatInputSelectorProps } from './Chat';
+
+// Mentions - @ mention system for referencing dashboards
+export { MentionsOverlay, MentionsList, MentionStrip, MentionItemType } from './Mentions';
+export type {
+  MentionItem,
+  MentionsOverlayProps,
+  MentionsListProps,
+  MentionStripProps,
+} from './Mentions';
 
 // Deep Research Chat - specialized chat UI for deep research mode
 export { DeepResearchChat, DeepResearchNotificationBar } from './Chat';
@@ -483,6 +498,12 @@ export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
 
 // ============================================================================
+// FILTER
+// ============================================================================
+export { FilterButton } from './forms/filter';
+export type { FilterButtonProps, FilterField, FilterCondition, FilterGroup } from './forms/filter';
+
+// ============================================================================
 // DASHBOARD (View-only dashboard display components)
 // ============================================================================
 export {
@@ -492,6 +513,12 @@ export {
   ChartWidget,
   CounterWidget,
   TextWidget,
+  DashboardLayout,
+  DashboardCustomizationProvider,
+  useDashboardCustomization,
+  chartThemes,
+  chartThemeIds,
+  multiSwatchColors,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -507,4 +534,7 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
+  DashboardCustomizationState,
+  ChartThemeId,
+  ChartThemePalette,
 } from './Dashboard';

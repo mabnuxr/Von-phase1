@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon } from '@phosphor-icons/react';
 import { SecondaryIconButton } from '../../forms/buttons';
 import { FilterButton, type FilterGroup } from '../../forms/filter';
 import { ReportTable, buildGridOptions, type ReportColumn } from '../../ReportTable';
-import { dashboardFilterFields } from './dashboardFilterConstants';
+import { dashboardFilterFields } from './dashboardFilterDefaults';
 
 export type { ReportColumn };
 
@@ -24,14 +24,6 @@ export const ViewReportBottomPanel: React.FC<ViewReportBottomPanelProps> = ({
   rows,
 }) => {
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([]);
-
-  const gridOptions = useMemo(
-    () =>
-      buildGridOptions(columns, rows, {
-        pageSize: 25,
-      }),
-    [columns, rows]
-  );
 
   return (
     <AnimatePresence>
@@ -53,7 +45,7 @@ export const ViewReportBottomPanel: React.FC<ViewReportBottomPanelProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute left-0 right-0 bottom-0 z-[101] bg-white rounded-t-xl border-t border-gray-200 shadow-xl flex flex-col overflow-hidden"
+            className="absolute left-0 right-0 bottom-0 z-[101] bg-white rounded-xl border-t border-gray-200 shadow-xl flex flex-col overflow-hidden"
             style={{ top: 56 }}
           >
             {/* Panel header */}
@@ -79,7 +71,12 @@ export const ViewReportBottomPanel: React.FC<ViewReportBottomPanelProps> = ({
             {/* Content: table */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
               <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-                <ReportTable options={gridOptions} hidePagination={rows.length <= 25} />
+                <ReportTable
+                  options={buildGridOptions(columns, rows, {
+                    pageSize: 25,
+                    showPagination: rows.length > 25,
+                  })}
+                />
               </div>
             </div>
           </motion.div>

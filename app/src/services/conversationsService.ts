@@ -8,6 +8,7 @@ import type {
   CreateConversationResponse,
   CreateMessageResponse,
   MessageCommand,
+  MessageReference,
 } from "../types/conversation";
 import type {
   ChatSidebarResponse,
@@ -153,6 +154,7 @@ class ConversationsService {
     messageType: "text" | "json" | "markdown" = "text",
     fileAttachments?: MessageFileAttachment[],
     command?: MessageCommand,
+    references?: MessageReference[],
   ): Promise<CreateMessageResponse> {
     const body: Record<string, unknown> = { content, messageType };
     if (fileAttachments?.length) {
@@ -160,6 +162,9 @@ class ConversationsService {
     }
     if (command) {
       body.command = command;
+    }
+    if (references?.length) {
+      body.references = references;
     }
     return apiClient.post<CreateMessageResponse>(
       `/api/v1/chat/conversations/${conversationId}/messages`,

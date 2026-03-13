@@ -88,11 +88,10 @@ export interface TextWidgetProps {
   config: TextWidgetConfig;
 }
 
-// ─── Table (placeholder) ─────────────────────────────────────────
+// ─── Table ──────────────────────────────────────────────────────
 
 export interface TableWidgetConfig {
-  columns: unknown[];
-  [key: string]: unknown;
+  gridOptions: Record<string, unknown>;
 }
 
 // ─── Widget Shell ────────────────────────────────────────────────

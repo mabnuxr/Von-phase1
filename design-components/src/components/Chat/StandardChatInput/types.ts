@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Editor, Extension } from '@tiptap/react';
 import type { FileAttachment } from '../FileAttachment/types';
 /**
  * Build mode for ask/build toggle
@@ -65,6 +66,8 @@ export interface StandardChatInputRef {
   focus: () => void;
   /** Returns the viewport coordinates of the current caret position */
   getCaretRect?: () => { left: number; top: number; bottom: number } | null;
+  /** Returns the underlying Tiptap editor instance */
+  getEditor?: () => Editor | null;
 }
 
 export interface StandardChatInputProps {
@@ -312,4 +315,9 @@ export interface StandardChatInputProps {
    * @default false
    */
   enableFileUpload?: boolean;
+
+  /**
+   * Extra Tiptap extensions to inject into the editor (e.g. mention chip).
+   */
+  additionalExtensions?: Extension[];
 }

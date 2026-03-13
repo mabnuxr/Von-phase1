@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { applyWidgetTheme } from "../utils/applyWidgetTheme";
+import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
   RefreshInfo,
@@ -31,12 +32,17 @@ interface RawApiWidget {
     suffix?: string;
   } | null;
   highcharts: Record<string, unknown> | null;
+  gridOptions: Record<string, unknown> | null;
 }
 
 interface RawApiDashboardResponse {
   id: string;
   title: string;
   description?: string;
+  status: string;
+  dashboard_version: number;
+  is_owner: boolean;
+  is_shared_with_tenant: boolean;
   gridConfig: Dashboard["gridConfig"];
   layout: Dashboard["layout"];
   widgets: Record<string, RawApiWidget>;
@@ -131,16 +137,16 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
     };
   }
 
-  // Table widget - provide empty columns array if not present
+  // Table widget - pass through gridOptions for ReportTable
   if (raw.type === "table") {
     return {
       id: raw.id,
       type: "table",
       title: raw.title,
       config: {
-        columns: [],
+        gridOptions: raw.gridOptions ?? {},
       },
-    } as WidgetConfig;
+    } as unknown as WidgetConfig;
   }
 
   // Fallback for unknown widget types
@@ -167,6 +173,10 @@ function adaptApiResponse(
         id: raw.id,
         title: raw.title,
         description: raw.description,
+        status: (raw.status as DashboardStatus) ?? DashboardStatus.Draft,
+        dashboardVersion: raw.dashboard_version ?? 1,
+        isOwner: raw.is_owner ?? false,
+        isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         gridConfig: raw.gridConfig,
         layout: raw.layout,
         widgets,

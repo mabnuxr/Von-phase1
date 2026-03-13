@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -46,7 +46,13 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   editorRef,
   onPasteFiles,
   onEscape,
+  additionalExtensions = [],
 }) => {
+  // Track whether changes originate from the editor (user typing) vs external
+  // content prop updates. This prevents the content sync effect from calling
+  // setContent after every keystroke, which would destroy suggestion plugin state.
+  const isInternalChangeRef = useRef(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -123,6 +129,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         transformPastedText: true,
         transformCopiedText: false,
       }),
+      ...additionalExtensions,
     ],
     content,
     editorProps: {
@@ -164,6 +171,18 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
           }
         }
 
+        // When a suggestion plugin (e.g. @mentions) is active, let it handle
+        // Enter/Arrow keys first — don't intercept for message submission.
+        if (['Enter', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+          const suggestionActive = view.state.plugins.some((plugin) => {
+            const state = plugin.getState(view.state);
+            return state && typeof state === 'object' && 'active' in state && state.active;
+          });
+          if (suggestionActive) {
+            return false; // Let plugins handle it
+          }
+        }
+
         // Handle Enter key for submission (Shift+Enter is handled by CustomListItem extension)
         if (event.key === 'Enter' && !event.shiftKey && onSubmit) {
           event.preventDefault();
@@ -200,7 +219,9 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
       },
     },
     onUpdate: ({ editor }) => {
-      // Output markdown instead of HTML for consistency with OrgContextEditor
+      // Mark that this change is internal (user typing) so the content sync
+      // effect doesn't call setContent and destroy suggestion plugin state.
+      isInternalChangeRef.current = true;
       const markdown = getMarkdown(editor);
       onChange(markdown);
     },
@@ -214,8 +235,13 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     }
   }, [editor, editorRef]);
 
-  // Update content when controlled value changes
+  // Update content when controlled value changes (external updates only).
+  // Skip when the change originated from user typing (onUpdate callback).
   useEffect(() => {
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
+      return;
+    }
     if (editor && content !== getMarkdown(editor)) {
       editor.commands.setContent(content);
     }

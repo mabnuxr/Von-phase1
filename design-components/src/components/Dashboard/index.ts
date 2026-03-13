@@ -7,6 +7,7 @@ export { WidgetErrorBoundary } from './WidgetErrorBoundary';
 export { ChartWidget } from './ChartWidget';
 export { CounterWidget } from './CounterWidget';
 export { TextWidget } from './TextWidget';
+export { TableWidget } from './TableWidget';
 
 export type {
   DashboardGridProps,
@@ -24,3 +25,20 @@ export type {
   TextWidgetConfig,
   TableWidgetConfig,
 } from './types';
+
+// ── DashboardLayout (Compound component) ────────────────────────────
+export { DashboardLayout } from './DashboardLayout';
+
+// ── DashboardCustomization (Theme provider) ─────────────────────────
+export {
+  DashboardCustomizationProvider,
+  useDashboardCustomization,
+  chartThemes,
+  chartThemeIds,
+  multiSwatchColors,
+} from './DashboardCustomization';
+export type {
+  DashboardCustomizationState,
+  ChartThemeId,
+  ChartThemePalette,
+} from './DashboardCustomization';

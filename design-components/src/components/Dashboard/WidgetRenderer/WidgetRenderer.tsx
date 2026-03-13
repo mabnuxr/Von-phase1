@@ -2,10 +2,12 @@ import { WidgetShell } from '../WidgetShell';
 import { ChartWidget } from '../ChartWidget';
 import { CounterWidget } from '../CounterWidget';
 import { TextWidget } from '../TextWidget';
+import { TableWidget } from '../TableWidget';
 import type {
   WidgetRendererProps,
   ChartWidgetConfig,
   CounterWidgetConfig,
+  TableWidgetConfig,
   TextWidgetConfig,
 } from '../types';
 
@@ -43,9 +45,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget }) => {
     case 'table':
       return (
         <WidgetShell title={widget.title} subtitle={widget.subtitle}>
-          <div className="flex items-center justify-center h-full text-sm text-gray-400">
-            Table widget coming soon
-          </div>
+          <TableWidget config={widget.config as TableWidgetConfig} />
         </WidgetShell>
       );
 

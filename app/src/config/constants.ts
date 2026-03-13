@@ -66,6 +66,18 @@ export const CONVERSATIONS_PAGE_LIMIT = 20 as const;
  */
 export const MESSAGES_PAGE_LIMIT = 10 as const;
 
+/**
+ * Page size when fetching the full dashboard list for @ mentions.
+ * Set high to fetch all dashboards in a single request for client-side fuzzy filtering.
+ */
+export const DASHBOARD_LIST_PAGE_SIZE = 100 as const;
+
+/**
+ * Stale time for the dashboard list query (used in @ mentions).
+ * Dashboards don't change frequently, so cache for 5 minutes.
+ */
+export const DASHBOARD_LIST_STALE_TIME = 300000 as const; // 5 minutes
+
 // ============================================================================
 // OAuth & Integration Polling Constants
 // ============================================================================

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChatTextIcon } from '@phosphor-icons/react';
 import { FilterButton } from '../../forms/filter';
 import type { FilterGroup, FilterField } from '../../forms/filter';
-import { dashboardFilterFields, preAppliedFilterGroups } from './dashboardFilterConstants';
+import { dashboardFilterFields, preAppliedFilterGroups } from './dashboardFilterDefaults';
 
 export interface DashboardFilterBarProps {
   fields?: FilterField[];

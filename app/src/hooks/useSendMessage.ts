@@ -5,6 +5,7 @@ import type {
   MessageWithStreaming,
   MessageFileAttachment,
   MessageCommand,
+  MessageReference,
 } from "../types/conversation";
 
 /**
@@ -15,6 +16,7 @@ export interface SendMessagePayload {
   content: string;
   fileAttachments?: MessageFileAttachment[];
   command?: MessageCommand;
+  references?: MessageReference[];
 }
 
 /**
@@ -67,6 +69,7 @@ export function useSendMessage() {
         "text",
         payload.fileAttachments,
         payload.command,
+        payload.references,
       );
     },
 

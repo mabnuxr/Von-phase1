@@ -1,0 +1,30 @@
+/* Make Highcharts Grid fill the full widget height */
+.table-widget-root {
+  overflow: hidden;
+}
+
+.table-widget-root .report-grid-wrapper,
+.table-widget-root .report-grid-wrapper > div,
+.table-widget-root .hcg-container {
+  height: 100%;
+}
+
+/* Fixed row heights so JS pageSize calculation is exact */
+.table-widget-root .hcg-table thead th {
+  height: 30px;
+  max-height: 30px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.table-widget-root .hcg-table tbody td {
+  height: 30px;
+  max-height: 30px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Hide rows-per-page selector — page size is auto-calculated from widget height */
+.table-widget-root .hcg-pagination-page-size {
+  display: none;
+}

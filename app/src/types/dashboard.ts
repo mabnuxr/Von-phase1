@@ -32,11 +32,22 @@ export interface ApiError {
 }
 
 // ─── Dashboard ───────────────────────────────────────────────────
+export const DashboardStatus = {
+  Draft: "draft",
+  Published: "published",
+} as const;
+
+export type DashboardStatus =
+  (typeof DashboardStatus)[keyof typeof DashboardStatus];
 
 export interface Dashboard {
   id: string;
   title: string;
   description?: string;
+  status: DashboardStatus;
+  dashboardVersion: number;
+  isOwner: boolean;
+  isSharedWithTenant: boolean;
   gridConfig: GridConfig;
   layout: LayoutItem[];
   widgets: Record<string, WidgetConfig>;
