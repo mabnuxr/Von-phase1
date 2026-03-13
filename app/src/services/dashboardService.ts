@@ -14,6 +14,7 @@ export interface DashboardListItem {
   status: "draft" | "published" | "archived";
   dashboard_version: number;
   is_owner: boolean;
+  is_shared_with_tenant: boolean;
   updated_at: string;
 }
 

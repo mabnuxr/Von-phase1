@@ -7,4 +7,7 @@ export type {
   ItemStatus,
   FolderItemsMap,
   FolderLoadingMap,
+  DashboardSidebarItem,
+  DashboardItemState,
+  DashboardItemVisibility,
 } from './ChatSidebarV2';
