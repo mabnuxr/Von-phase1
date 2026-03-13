@@ -422,7 +422,10 @@ const DashboardSection: React.FC<{
         footer={
           contextMenu.dashboard && (
             <div className="text-xs text-gray-700 flex flex-col gap-0.5">
-              <span>{contextMenu.dashboard.state === 'published' ? 'Published' : 'Draft'} · Edited {formatRelativeTime(contextMenu.dashboard.lastEdited)}</span>
+              <span>
+                {contextMenu.dashboard.state === 'published' ? 'Published' : 'Draft'} · Edited{' '}
+                {formatRelativeTime(contextMenu.dashboard.lastEdited)}
+              </span>
               <span>Saved · {formatRelativeTime(contextMenu.dashboard.lastSaved)}</span>
             </div>
           )

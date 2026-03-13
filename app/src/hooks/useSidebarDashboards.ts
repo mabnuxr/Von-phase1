@@ -21,9 +21,7 @@ export const sidebarDashboardKeys = {
  * Transform a DashboardListItem from the API into a DashboardSidebarItem
  * for the sidebar component.
  */
-function toDashboardSidebarItem(
-  item: DashboardListItem,
-): DashboardSidebarItem {
+function toDashboardSidebarItem(item: DashboardListItem): DashboardSidebarItem {
   return {
     id: item.dashboard_id,
     label: item.dashboard_name,
