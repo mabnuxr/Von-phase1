@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import type {
   DashboardListItem,
@@ -13,8 +13,8 @@ import {
 
 export const sidebarDashboardKeys = {
   all: ["sidebarDashboards"] as const,
-  list: (status: string, page: number, limit: number) =>
-    [...sidebarDashboardKeys.all, status, page, limit] as const,
+  list: (status: string, limit: number) =>
+    [...sidebarDashboardKeys.all, status, limit] as const,
 };
 
 /**
@@ -32,56 +32,49 @@ function toDashboardSidebarItem(item: DashboardListItem): DashboardSidebarItem {
   };
 }
 
+const STATUS = "draft,published";
+
 /**
  * Hook to fetch dashboards for the sidebar with "show more" pagination.
  *
- * Fetches draft + published dashboards with a page size of 5.
- * Supports "show more" by incrementing pages and accumulating results.
+ * Uses `useInfiniteQuery` so that:
+ * - Pages are fetched sequentially (no skipping).
+ * - All page data is subscribed — refetches of earlier pages trigger re-renders.
+ * - `fetchNextPage` is a no-op while a fetch is in flight (built-in guard).
  */
 export function useSidebarDashboards() {
-  const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const status = "draft,published";
-  const limit = SIDEBAR_DASHBOARD_PAGE_SIZE;
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useInfiniteQuery<DashboardListResponse>({
+      queryKey: sidebarDashboardKeys.list(STATUS, SIDEBAR_DASHBOARD_PAGE_SIZE),
+      queryFn: ({ pageParam }) =>
+        dashboardService.getDashboards(
+          STATUS,
+          pageParam as number,
+          SIDEBAR_DASHBOARD_PAGE_SIZE,
+        ),
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) =>
+        lastPage.pagination.has_next_page
+          ? lastPage.pagination.page + 1
+          : undefined,
+      staleTime: DASHBOARD_LIST_STALE_TIME,
+    });
 
-  // Fetch current page
-  const { data, isLoading } = useQuery<DashboardListResponse>({
-    queryKey: sidebarDashboardKeys.list(status, page, limit),
-    queryFn: () => dashboardService.getDashboards(status, page, limit),
-    staleTime: DASHBOARD_LIST_STALE_TIME,
-  });
-
-  // Accumulate all pages' data by reading from cache
-  const allDashboards = useMemo(() => {
-    const items: DashboardListItem[] = [];
-    for (let p = 1; p <= page; p++) {
-      const pageData = queryClient.getQueryData<DashboardListResponse>(
-        sidebarDashboardKeys.list(status, p, limit),
-      );
-      if (pageData?.data) {
-        items.push(...pageData.data);
-      }
-    }
-    return items;
-  }, [queryClient, page, status, limit, data]);
-
-  const dashboards: DashboardSidebarItem[] = useMemo(
-    () => allDashboards.map(toDashboardSidebarItem),
-    [allDashboards],
-  );
-
-  const hasNextPage = data?.pagination?.has_next_page ?? false;
+  const dashboards: DashboardSidebarItem[] = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page.data.map(toDashboardSidebarItem));
+  }, [data]);
 
   const loadMore = useCallback(() => {
-    if (hasNextPage) {
-      setPage((prev) => prev + 1);
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [hasNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
     dashboards,
     isLoading,
-    hasNextPage,
+    hasNextPage: hasNextPage ?? false,
     loadMore,
   };
 }
