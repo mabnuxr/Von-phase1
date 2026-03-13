@@ -12,6 +12,7 @@ import {
   AnalyticsError,
 } from "../components/Analytics";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
+import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { conversationsService } from "../services/conversationsService";
 
 const Analytics = () => {
@@ -57,6 +58,9 @@ const Analytics = () => {
     handlePointerUp,
   } = useResizablePane();
   const { collapseSidebar } = useAppShell();
+
+  // Subscribe to Pusher events for dashboard refresh notifications
+  useDashboardRefreshEvents(dashboardId);
 
   // Collapse left sidebar on mount
   useEffect(() => {
