@@ -91,14 +91,19 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRowRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const testSentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSendTest = useCallback(() => {
     if (recipients.length === 0) return;
     onSendTest?.();
     const count = recipients.length;
     setTestSentMessage(`Sent to ${count} recipient${count !== 1 ? 's' : ''}`);
-    setTimeout(() => setTestSentMessage(null), 3000);
+    clearTimeout(testSentTimerRef.current ?? 0);
+    testSentTimerRef.current = setTimeout(() => setTestSentMessage(null), 3000);
   }, [recipients, onSendTest]);
+
+  // Clear the send-test timer on unmount
+  useEffect(() => () => clearTimeout(testSentTimerRef.current ?? 0), []);
 
   // Update portal position when dropdown opens or search changes
   // Flips above the input when there isn't enough room below

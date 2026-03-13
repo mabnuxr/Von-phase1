@@ -133,7 +133,7 @@ const Conversation = () => {
   );
 
   // --- Agent Version & Mode ---
-  const isAgentV2 = true;
+  const isAgentV2 = currentConversation?.agentVersion === "v2";
 
   const lockedConversationMode: ConversationMode = useMemo(() => {
     return currentConversation?.mode || ConversationMode.Auto;
