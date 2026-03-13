@@ -143,7 +143,7 @@ export interface ChatEmptyStateProps {
   onSendTest?: (
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('../Commands/types').CommandAttachment[],
-    recipients: import('../Commands/types').ScheduleRecipient[],
+    recipients: import('../Commands/types').ScheduleRecipient[]
   ) => void;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];

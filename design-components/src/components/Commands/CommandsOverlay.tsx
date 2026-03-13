@@ -84,7 +84,7 @@ export interface CommandsOverlayProps {
   onSendTest?: (
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('./types').CommandAttachment[],
-    recipients: ScheduleRecipient[],
+    recipients: ScheduleRecipient[]
   ) => void;
 
   // ---------------------------------------------------------------------------

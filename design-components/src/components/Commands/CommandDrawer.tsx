@@ -66,7 +66,7 @@ export interface CommandDrawerProps {
   onSendTest?: (
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: CommandAttachment[],
-    recipients: import('./types').ScheduleRecipient[],
+    recipients: import('./types').ScheduleRecipient[]
   ) => void;
 }
 
@@ -126,7 +126,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     onSendTest(
       { name: form.name.trim(), prompt: form.prompt.trim() },
       dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
-      form.schedule.recipients,
+      form.schedule.recipients
     );
   }, [onSendTest, form.name, form.prompt, form.schedule.recipients, dataSources]);
 

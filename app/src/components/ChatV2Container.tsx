@@ -239,7 +239,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
               teamMembers={teamMembersForSchedule}
               currentUser={currentUserRecipient}
-              onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
+              onSendTest={
+                isScheduledCommandsEnabled ? handleSendTest : undefined
+              }
               onToggleFavorite={handleToggleFavorite}
               onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
               onUploadFile={handleUploadFile}

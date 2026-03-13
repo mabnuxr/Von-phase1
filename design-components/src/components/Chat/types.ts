@@ -1285,7 +1285,7 @@ export interface ChatProps {
   onSendTest?: (
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('../Commands/types').CommandAttachment[],
-    recipients: ScheduleRecipient[],
+    recipients: ScheduleRecipient[]
   ) => void;
 
   /**

@@ -226,8 +226,7 @@ export function useCommandsPanel(userId?: string) {
         await quickCommandsService.trigger({
           name: data.name,
           prompt: data.prompt,
-          dataSources:
-            apiDataSources.length > 0 ? apiDataSources : undefined,
+          dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
           deliveryConfig: {
             type: "email",
             recipients: recipients.map((r) => ({
@@ -236,7 +235,10 @@ export function useCommandsPanel(userId?: string) {
             })),
           },
         });
-        showToast({ message: "Test triggered — you'll receive it shortly", variant: "success" });
+        showToast({
+          message: "Test triggered — you'll receive it shortly",
+          variant: "success",
+        });
       } catch (err) {
         showToast({
           message: getErrorMessage(
