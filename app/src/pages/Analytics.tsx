@@ -108,13 +108,10 @@ const Analytics = () => {
     return () => {
       cancelled = true;
     };
-  }, [
-    conversationIdFromParams,
-    createdConversationId,
-    isCreatingConversation,
-    dashboard,
-    isChatOpen,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isCreatingConversation is intentionally
+    // omitted: including it causes the cleanup to cancel the in-flight request when the state update
+    // triggers a re-render. It's only used as a guard, not a trigger.
+  }, [conversationIdFromParams, createdConversationId, dashboard, isChatOpen]);
 
   if (isLoading) {
     return <AnalyticsSkeleton />;
