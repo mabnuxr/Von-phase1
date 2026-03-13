@@ -1281,6 +1281,12 @@ export interface ChatProps {
   teamMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: ScheduleRecipient[],
+  ) => void;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)

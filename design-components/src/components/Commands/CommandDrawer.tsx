@@ -8,9 +8,9 @@
  * Create mode: command name is editable.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { X, PaperclipIcon, UploadSimple, ArrowLeft } from '@phosphor-icons/react';
-import type { Command, CommandAttachment, ScheduleRecipient, CommandSchedule } from './types';
+import type { Command, CommandAttachment, ScheduleRecipient } from './types';
 import { FilesPreviewPanel } from '../FilesPreview';
 import { useFileDrop } from '../../hooks';
 import { Drawer } from '../Drawer';
@@ -62,6 +62,12 @@ export interface CommandDrawerProps {
   teamMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: CommandAttachment[],
+    recipients: import('./types').ScheduleRecipient[],
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +87,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   onBack,
   teamMembers,
   currentUser,
+  onSendTest,
 }) => {
   const { form, setForm, setField, commandId, isEditing, sharingLabel, setSchedule } =
     useCommandForm({
@@ -113,6 +120,15 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     onDrop: handleFilesSelected,
     disabled: readOnly,
   });
+
+  const handleSendTest = useCallback(() => {
+    if (!onSendTest || form.schedule.recipients.length === 0) return;
+    onSendTest(
+      { name: form.name.trim(), prompt: form.prompt.trim() },
+      dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
+      form.schedule.recipients,
+    );
+  }, [onSendTest, form.name, form.prompt, form.schedule.recipients, dataSources]);
 
   const handleSave = () => {
     onSave(
@@ -308,13 +324,16 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             </div>
           </Accordion>
 
-          {/* Schedule — collapsible */}
-          <ScheduleSection
-            schedule={form.schedule}
-            onScheduleChange={setSchedule}
-            teamMembers={teamMembers}
-            readOnly={readOnly}
-          />
+          {/* Schedule — collapsible (hidden when teamMembers is not provided) */}
+          {teamMembers && (
+            <ScheduleSection
+              schedule={form.schedule}
+              onScheduleChange={setSchedule}
+              teamMembers={teamMembers}
+              readOnly={readOnly}
+              onSendTest={handleSendTest}
+            />
+          )}
         </div>
 
         {/* Footer */}

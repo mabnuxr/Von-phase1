@@ -62,6 +62,7 @@ const Conversation = () => {
     isArtifactsEnabled,
     isGoogleDriveEnabled,
     isDeepResearchEnabled,
+    isScheduledCommandsEnabled,
   } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
@@ -132,7 +133,7 @@ const Conversation = () => {
   );
 
   // --- Agent Version & Mode ---
-  const isAgentV2 = currentConversation?.agentVersion === "v2";
+  const isAgentV2 = true;
 
   const lockedConversationMode: ConversationMode = useMemo(() => {
     return currentConversation?.mode || ConversationMode.Auto;
@@ -277,6 +278,7 @@ const Conversation = () => {
     isSourcesEnabled,
     isFileUploadEnabled,
     isArtifactsEnabled,
+    isScheduledCommandsEnabled,
     availableAgentModes,
     syncConversationModeToBackend,
     banner: chatBanner,

@@ -3,27 +3,19 @@
  * Self-contained module for slash command functionality
  */
 
+import type { Schedule, ScheduleFrequency, ScheduleDay } from '../SchedulePicker';
+import type { Recipient } from '../RecipientPicker';
+
 export type CommandCategory = 'Sales' | 'Research' | 'Analysis' | 'Custom';
 
 // ---------------------------------------------------------------------------
-// Schedule types
+// Schedule types — re-exported from general-purpose components
 // ---------------------------------------------------------------------------
 
-export type ScheduleFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
-export type ScheduleDay = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+export type { ScheduleFrequency, ScheduleDay };
+export type ScheduleRecipient = Recipient;
 
-export interface ScheduleRecipient {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-}
-
-export interface CommandSchedule {
-  enabled: boolean;
-  frequency: ScheduleFrequency;
-  time: string; // "09:00"
-  days: ScheduleDay[]; // for weekly/bi-weekly
+export interface CommandSchedule extends Schedule {
   recipients: ScheduleRecipient[];
 }
 
@@ -171,47 +163,24 @@ export const INTERNAL_DOC_FOLDERS = [
 ] as const;
 
 // ---------------------------------------------------------------------------
-// Schedule constants & helpers
+// Schedule constants & helpers — re-exported from SchedulePicker
 // ---------------------------------------------------------------------------
 
-export const SCHEDULE_FREQUENCIES: { value: ScheduleFrequency; label: string }[] = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'bi-weekly', label: 'Bi-weekly' },
-  { value: 'monthly', label: 'Monthly' },
-];
-
-export const SCHEDULE_DAYS: ScheduleDay[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-export const SCHEDULE_TIMES: { value: string; label: string }[] = Array.from(
-  { length: 15 },
-  (_, i) => {
-    const hour = i + 6; // 6 AM – 8 PM
-    const value = `${hour.toString().padStart(2, '0')}:00`;
-    const ampm = hour < 12 ? 'AM' : 'PM';
-    const display = hour === 12 ? 12 : hour > 12 ? hour - 12 : hour;
-    return { value, label: `${display}:00 ${ampm}` };
-  }
-);
+export {
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_DAYS,
+  SCHEDULE_TIMES,
+  formatScheduleBadge,
+} from '../SchedulePicker';
 
 export const DEFAULT_SCHEDULE: CommandSchedule = {
   enabled: false,
   frequency: 'weekly',
   time: '09:00',
   days: ['Mon'],
+  dayOfMonth: 1,
   recipients: [],
 };
-
-export function formatScheduleBadge(schedule: CommandSchedule): string {
-  const freq = SCHEDULE_FREQUENCIES.find((f) => f.value === schedule.frequency)?.label ?? schedule.frequency;
-  const timeLabel = SCHEDULE_TIMES.find((t) => t.value === schedule.time)?.label ?? schedule.time;
-  const parts = [freq];
-  if (schedule.frequency === 'weekly' || schedule.frequency === 'bi-weekly') {
-    parts.push(schedule.days.join(', '));
-  }
-  parts.push(timeLabel);
-  return parts.join(' · ');
-}
 
 // Default commands that come pre-loaded
 export const DEFAULT_COMMANDS: Command[] = [

@@ -80,6 +80,12 @@ export interface CommandsOverlayProps {
   teamMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('./types').CommandAttachment[],
+    recipients: ScheduleRecipient[],
+  ) => void;
 
   // ---------------------------------------------------------------------------
   // Legacy props — accepted for backwards compatibility with older consumers
@@ -137,6 +143,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onUploadFile,
   teamMembers,
   currentUser,
+  onSendTest,
   highlightedIndex = -1,
   onHoverIndex,
   slashRect,
@@ -256,6 +263,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         onBack={openedFromManage ? handleBackToManage : undefined}
         teamMembers={teamMembers}
         currentUser={currentUser}
+        onSendTest={onSendTest}
       />
 
       {/* Manage drawer */}

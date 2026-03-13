@@ -259,6 +259,30 @@ export { FileChip, FileTypeIcon, FileIconStack } from './FileChip';
 export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
 
 // ============================================================================
+// SCHEDULE PICKER (General-purpose recurring schedule configuration)
+// ============================================================================
+export { SchedulePicker } from './SchedulePicker';
+export type {
+  SchedulePickerProps,
+  Schedule,
+  ScheduleFrequency,
+  ScheduleDay,
+} from './SchedulePicker';
+export {
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_DAYS,
+  SCHEDULE_TIMES,
+  DEFAULT_SCHEDULE,
+  formatScheduleBadge,
+} from './SchedulePicker';
+
+// ============================================================================
+// RECIPIENT PICKER (General-purpose recipient/people selector)
+// ============================================================================
+export { RecipientPicker } from './RecipientPicker';
+export type { RecipientPickerProps, Recipient } from './RecipientPicker';
+
+// ============================================================================
 // COMMANDS (Self-contained slash commands feature)
 // ============================================================================
 export {
@@ -284,6 +308,8 @@ export {
 export type {
   Command,
   CommandAttachment,
+  CommandSchedule,
+  ScheduleRecipient,
   CommandsState,
   CommandChipProps,
   CommandDrawerProps,

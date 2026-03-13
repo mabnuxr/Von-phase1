@@ -41,6 +41,7 @@ export interface ChatV1ContainerProps {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
+  isScheduledCommandsEnabled: boolean;
   syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
@@ -61,6 +62,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isSlashCommandsEnabled,
     isActionsEnabled,
     isDeepLinksEnabled,
+    isScheduledCommandsEnabled,
     banner,
   } = props;
 
@@ -120,23 +122,30 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     handleRequestFilePreviewUrl,
     handleDeleteCommand,
     handleToggleFavorite,
+    handleSendTest,
   } = useCommandsPanel(user?.id);
 
-  const { data: teamMembersData } = useTeamMembers(user?.tenantId);
-  const teamMembersForSchedule = (teamMembersData ?? []).map((m) => ({
-    id: m.id,
-    email: m.email,
-    firstName: m.firstName,
-    lastName: m.lastName,
-  }));
-  const currentUserRecipient = user
-    ? {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
-        lastName: user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
-      }
+  const { data: teamMembersData } = useTeamMembers(
+    isScheduledCommandsEnabled ? user?.tenantId : undefined,
+  );
+  const teamMembersForSchedule = isScheduledCommandsEnabled
+    ? (teamMembersData ?? []).map((m) => ({
+        id: m.id,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
+      }))
     : undefined;
+  const currentUserRecipient =
+    isScheduledCommandsEnabled && user
+      ? {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+          lastName:
+            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+        }
+      : undefined;
 
   return (
     <Profiler id="ChatV1Container" onRender={reportRenderTiming}>
@@ -175,6 +184,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
         teamMembers={teamMembersForSchedule}
         currentUser={currentUserRecipient}
+        onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}

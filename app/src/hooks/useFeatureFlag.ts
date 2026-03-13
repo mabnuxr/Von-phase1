@@ -18,6 +18,7 @@ export const FEATURE_FLAGS = {
   DISABLED_TENANTS: "disabledTenants",
   FILE_UPLOAD: "enableFileUpload",
   ARTIFACTS: "enableArtifacts",
+  SCHEDULED_COMMANDS: "enableScheduledCommands",
 } as const;
 
 /**
@@ -116,6 +117,12 @@ export function useFeatureFlag() {
      * Controls whether agent-generated artifact cards and preview panel are shown
      */
     isArtifactsEnabled: flags[FEATURE_FLAGS.ARTIFACTS] === true,
+
+    /**
+     * Controls whether scheduled commands (schedule section, recipients, send test) are enabled
+     */
+    isScheduledCommandsEnabled:
+      flags[FEATURE_FLAGS.SCHEDULED_COMMANDS] === true,
 
     /**
      * Raw flags object for advanced usage

@@ -5,7 +5,14 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { X, MagnifyingGlass, Trash, BookmarkSimple, SortAscending, Clock } from '@phosphor-icons/react';
+import {
+  X,
+  MagnifyingGlass,
+  Trash,
+  BookmarkSimple,
+  SortAscending,
+  Clock,
+} from '@phosphor-icons/react';
 import { type Command, SORT_OPTIONS, formatScheduleBadge } from './types';
 import { Drawer } from '../Drawer';
 import { useCommandsFilter } from './useCommandsFilter';

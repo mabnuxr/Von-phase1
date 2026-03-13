@@ -114,6 +114,12 @@ export interface ChatInputSelectorProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: import('../Commands/types').ScheduleRecipient[],
+  ) => void;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
 }
@@ -167,6 +173,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      onSendTest,
       availableAgentModes,
     },
     ref
@@ -389,6 +396,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
+            onSendTest={onSendTest}
             highlightedIndex={highlightedIndex}
             onHoverIndex={setHighlightedIndex}
             slashRect={slashRect}

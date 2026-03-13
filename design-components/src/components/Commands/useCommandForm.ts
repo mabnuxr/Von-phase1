@@ -90,7 +90,10 @@ export function useCommandForm({
         if (schedule.enabled && !v.schedule.enabled && currentUser) {
           const alreadyIncluded = schedule.recipients.some((r) => r.id === currentUser.id);
           if (!alreadyIncluded) {
-            return { ...v, schedule: { ...schedule, recipients: [currentUser, ...schedule.recipients] } };
+            return {
+              ...v,
+              schedule: { ...schedule, recipients: [currentUser, ...schedule.recipients] },
+            };
           }
         }
         return { ...v, schedule };

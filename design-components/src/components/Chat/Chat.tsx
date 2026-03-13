@@ -73,6 +73,7 @@ export const Chat: React.FC<ChatProps> = ({
   isAdmin = false,
   teamMembers,
   currentUser,
+  onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -329,6 +330,7 @@ export const Chat: React.FC<ChatProps> = ({
             isAdmin={isAdmin}
             teamMembers={teamMembers}
             currentUser={currentUser}
+            onSendTest={onSendTest}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
@@ -434,6 +436,7 @@ export const Chat: React.FC<ChatProps> = ({
           isAdmin={isAdmin}
           teamMembers={teamMembers}
           currentUser={currentUser}
+          onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}
