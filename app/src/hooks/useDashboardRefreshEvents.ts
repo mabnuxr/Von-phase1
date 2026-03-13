@@ -41,22 +41,16 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         return;
       }
 
-      if (data.success) {
-        showToast({
-          message:
-            "Dashboard refresh complete! Your dashboard data has been updated.",
-          variant: "success",
-        });
+      showToast({
+        message: data.success
+          ? "Dashboard refresh complete! Your dashboard data has been updated."
+          : "Dashboard refresh failed. Please try again.",
+        variant: data.success ? "success" : "error",
+      });
 
-        queryClient.invalidateQueries({
-          queryKey: dashboardKeys.detail(dashboardId),
-        });
-      } else {
-        showToast({
-          message: "Dashboard refresh failed. Please try again.",
-          variant: "error",
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      });
     };
 
     userChannel.bind(
