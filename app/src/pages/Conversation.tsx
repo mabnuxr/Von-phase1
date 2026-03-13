@@ -62,6 +62,7 @@ const Conversation = () => {
     isArtifactsEnabled,
     isGoogleDriveEnabled,
     isDeepResearchEnabled,
+    isScheduledCommandsEnabled,
   } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
@@ -277,6 +278,7 @@ const Conversation = () => {
     isSourcesEnabled,
     isFileUploadEnabled,
     isArtifactsEnabled,
+    isScheduledCommandsEnabled,
     availableAgentModes,
     syncConversationModeToBackend,
     banner: chatBanner,

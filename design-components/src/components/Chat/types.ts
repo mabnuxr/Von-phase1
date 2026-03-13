@@ -3,7 +3,7 @@
  */
 
 import type { ConversationMode } from './StandardChatInput/types';
-import type { Command } from '../Commands/types';
+import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
 
@@ -1255,7 +1255,7 @@ export interface ChatProps {
    * `commandId`  — pre-generated ObjectId used for presigning; pass as `id` on create.
    */
   onSaveCommand?: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
     editingId?: string,
     dataSources?: import('../Commands/types').CommandAttachment[],
     commandId?: string
@@ -1277,6 +1277,16 @@ export interface ChatProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: ScheduleRecipient[]
+  ) => void;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)

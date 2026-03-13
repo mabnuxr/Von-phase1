@@ -4,9 +4,16 @@
  * Matches the CommandsList popover layout — flat list, favorites pinned at top.
  */
 
-import React, { useState } from 'react';
-import { X, MagnifyingGlass, Trash, BookmarkSimple, SortAscending } from '@phosphor-icons/react';
-import { type Command, SORT_OPTIONS } from './types';
+import React, { useState, useMemo } from 'react';
+import {
+  X,
+  MagnifyingGlass,
+  Trash,
+  BookmarkSimple,
+  SortAscending,
+  Clock,
+} from '@phosphor-icons/react';
+import { type Command, SORT_OPTIONS, formatScheduleBadge } from './types';
 import { Drawer } from '../Drawer';
 import { useCommandsFilter } from './useCommandsFilter';
 import { Tooltip } from '../Tooltip';
@@ -64,6 +71,7 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
   onToggleFavorite,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'scheduled'>('all');
 
   const {
     searchQuery,
@@ -75,6 +83,19 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
     currentSortLabel,
     orderedCommands,
   } = useCommandsFilter(commands);
+
+  const scheduledCount = useMemo(
+    () => commands.filter((c) => c.schedule?.enabled).length,
+    [commands]
+  );
+
+  const filteredByTab = useMemo(
+    () =>
+      activeTab === 'scheduled'
+        ? orderedCommands.filter((c) => c.schedule?.enabled)
+        : orderedCommands,
+    [activeTab, orderedCommands]
+  );
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose}>
@@ -152,6 +173,38 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
         </div>
       </div>
 
+      {/* All / Scheduled tabs */}
+      <div className="px-3 pt-2 pb-1 flex items-center">
+        <div className="inline-flex items-center bg-gray-100 rounded-xl p-0.5">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+              activeTab === 'all'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setActiveTab('scheduled')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+              activeTab === 'scheduled'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Clock size={12} />
+            Scheduled
+            {scheduledCount > 0 && (
+              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-200 text-gray-500 rounded-md">
+                {scheduledCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Commands list */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
         {isLoading ? (
@@ -175,12 +228,12 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
               </div>
             ))}
           </div>
-        ) : orderedCommands.length === 0 ? (
+        ) : filteredByTab.length === 0 ? (
           <div className="px-4 py-8 text-sm text-gray-500 text-center">
             No commands found{searchQuery ? ` for "${searchQuery}"` : ''}.
           </div>
         ) : (
-          orderedCommands.map((command) => (
+          filteredByTab.map((command) => (
             <div
               key={command.id}
               className="group flex items-start px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
@@ -196,6 +249,12 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
                   ) : (
                     <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
                       Private
+                    </span>
+                  )}
+                  {command.schedule?.enabled && (
+                    <span className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
+                      <Clock size={10} />
+                      {formatScheduleBadge(command.schedule)}
                     </span>
                   )}
                 </div>

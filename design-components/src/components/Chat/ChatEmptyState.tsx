@@ -135,6 +135,16 @@ export interface ChatEmptyStateProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: import('../Commands/types').ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: import('../Commands/types').ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: import('../Commands/types').ScheduleRecipient[]
+  ) => void;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
 }
@@ -188,6 +198,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onDeleteCommand,
   isSavingCommand,
   isAdmin = false,
+  teamMembers,
+  currentUser,
+  onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -377,6 +390,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
           isAdmin={isAdmin}
+          teamMembers={teamMembers}
+          currentUser={currentUser}
+          onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}

@@ -71,6 +71,9 @@ export const Chat: React.FC<ChatProps> = ({
   onDeleteCommand,
   isSavingCommand,
   isAdmin = false,
+  teamMembers,
+  currentUser,
+  onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -325,6 +328,9 @@ export const Chat: React.FC<ChatProps> = ({
             onDeleteCommand={onDeleteCommand}
             isSavingCommand={isSavingCommand}
             isAdmin={isAdmin}
+            teamMembers={teamMembers}
+            currentUser={currentUser}
+            onSendTest={onSendTest}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
@@ -428,6 +434,9 @@ export const Chat: React.FC<ChatProps> = ({
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
           isAdmin={isAdmin}
+          teamMembers={teamMembers}
+          currentUser={currentUser}
+          onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}

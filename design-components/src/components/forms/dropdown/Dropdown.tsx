@@ -78,11 +78,15 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const selectedOption = options.find((opt) => opt.value === value);
 
   // Calculate dropdown position for portal mode
+  // Flips above the trigger when there isn't enough room below
+  const MAX_MENU_H = 192; // matches max-h-48
   const updateDropdownPosition = useCallback(() => {
     if (usePortal && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const placeAbove = spaceBelow < MAX_MENU_H + 8 && rect.top > MAX_MENU_H;
       setDropdownPosition({
-        top: rect.bottom + 4,
+        top: placeAbove ? rect.top - MAX_MENU_H - 4 : rect.bottom + 4,
         left: rect.left,
         width: rect.width,
       });
@@ -95,6 +99,18 @@ export const Dropdown: React.FC<DropdownProps> = ({
       updateDropdownPosition();
     }
   }, [isOpen, usePortal, updateDropdownPosition]);
+
+  // Close portal dropdown on ancestor scroll so it doesn't float out of place
+  useEffect(() => {
+    if (!isOpen || !usePortal) return;
+    const handleScroll = (e: Event) => {
+      // Ignore scroll events originating from inside the dropdown list itself
+      if (listRef.current?.contains(e.target as Node)) return;
+      setIsOpen(false);
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isOpen, usePortal]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

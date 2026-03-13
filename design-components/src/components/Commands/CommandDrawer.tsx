@@ -8,9 +8,9 @@
  * Create mode: command name is editable.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { X, PaperclipIcon, UploadSimple, ArrowLeft } from '@phosphor-icons/react';
-import type { Command, CommandAttachment } from './types';
+import type { Command, CommandAttachment, ScheduleRecipient } from './types';
 import { FilesPreviewPanel } from '../FilesPreview';
 import { useFileDrop } from '../../hooks';
 import { Drawer } from '../Drawer';
@@ -18,6 +18,7 @@ import { Accordion } from '../Accordion';
 import { FileChip } from '../FileChip';
 import { useCommandForm } from './useCommandForm';
 import { useCommandDataSources } from './useCommandDataSources';
+import { ScheduleSection } from './ScheduleSection';
 
 // ---------------------------------------------------------------------------
 // Public interface
@@ -33,7 +34,7 @@ export interface CommandDrawerProps {
    *                 `id` when creating a new command so a single API call suffices.
    */
   onSave: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
     dataSources: CommandAttachment[],
     commandId: string
   ) => void;
@@ -57,6 +58,16 @@ export interface CommandDrawerProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** When provided, renders a back arrow in the header (e.g. when opened from the manage drawer) */
   onBack?: () => void;
+  /** Team members available as schedule recipients */
+  teamMembers?: ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: CommandAttachment[],
+    recipients: import('./types').ScheduleRecipient[]
+  ) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -74,11 +85,16 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   onUploadFile,
   onRequestFilePreviewUrl,
   onBack,
+  teamMembers,
+  currentUser,
+  onSendTest,
 }) => {
-  const { form, setForm, setField, commandId, isEditing, sharingLabel } = useCommandForm({
-    isOpen,
-    editingCommand,
-  });
+  const { form, setForm, setField, commandId, isEditing, sharingLabel, setSchedule } =
+    useCommandForm({
+      isOpen,
+      editingCommand,
+      currentUser,
+    });
 
   const {
     dataSources,
@@ -105,6 +121,15 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     disabled: readOnly,
   });
 
+  const handleSendTest = useCallback(() => {
+    if (!onSendTest || form.schedule.recipients.length === 0) return;
+    onSendTest(
+      { name: form.name.trim(), prompt: form.prompt.trim() },
+      dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
+      form.schedule.recipients
+    );
+  }, [onSendTest, form.name, form.prompt, form.schedule.recipients, dataSources]);
+
   const handleSave = () => {
     onSave(
       {
@@ -112,6 +137,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         prompt: form.prompt.trim(),
         prefillText: form.prefillText.trim() || undefined,
         sharingScope: form.sharingScope,
+        schedule: form.schedule.enabled ? form.schedule : undefined,
       },
       dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
       commandId
@@ -297,6 +323,17 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 ))}
             </div>
           </Accordion>
+
+          {/* Schedule — collapsible (hidden when teamMembers is not provided) */}
+          {teamMembers && (
+            <ScheduleSection
+              schedule={form.schedule}
+              onScheduleChange={setSchedule}
+              teamMembers={teamMembers}
+              readOnly={readOnly}
+              onSendTest={handleSendTest}
+            />
+          )}
         </div>
 
         {/* Footer */}
