@@ -1,22 +1,19 @@
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { ConversationMode } from '@vonlabs/design-components';
-import { useDashboardQuery, dashboardKeys } from '../hooks/useDashboardQuery';
-import { useAnalyticsTools } from '../hooks/useAnalyticsTools';
-import { useAppShell } from '../hooks/useAppShell';
-import { useVisibilityToggle } from '@vonlabs/design-components';
-import { useResizablePane } from '../hooks/useResizablePane';
-import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from '../components/Analytics';
-import { AnalyticsChatContainer } from '../components/AnalyticsChatContainer';
-import { useUserPusherChannel } from '../hooks/useUserPusherChannel';
-import { useUser } from '../hooks/useUser';
-import { useToast } from '../hooks/useToast';
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { ConversationMode } from "@vonlabs/design-components";
+import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
+import { useAppShell } from "../hooks/useAppShell";
+import { useVisibilityToggle } from "@vonlabs/design-components";
+import { useResizablePane } from "../hooks/useResizablePane";
 import {
-  UserChannelEvents,
-  type DashboardRefreshStartedEvent,
-  type DashboardRefreshCompletedEvent,
-} from '../types/userChannelEvents';
-import { conversationsService } from '../services/conversationsService';
+  AnalyticsView,
+  AnalyticsSkeleton,
+  AnalyticsError,
+} from "../components/Analytics";
+import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
+import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
+import { conversationsService } from "../services/conversationsService";
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>() as {
@@ -25,18 +22,30 @@ const Analytics = () => {
   const [searchParams] = useSearchParams();
 
   // Read conversationId from query params
-  const conversationIdFromParams = searchParams.get('conversationId');
+  const conversationIdFromParams = searchParams.get("conversationId");
 
   // State for auto-created conversation when none is provided
-  const [createdConversationId, setCreatedConversationId] = useState<string | null>(null);
+  const [createdConversationId, setCreatedConversationId] = useState<
+    string | null
+  >(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
-  const { isVisible: isChatOpen, show: openChat, hide: closeChat } = useVisibilityToggle();
+  const {
+    isVisible: isChatOpen,
+    show: openChat,
+    hide: closeChat,
+  } = useVisibilityToggle();
 
   const conversationId = conversationIdFromParams ?? createdConversationId;
 
   const { data, isLoading, error } = useDashboardQuery(dashboardId);
-  const { handleSave, savePhase, handleRevert, handleShare, sharePhase, handleRefresh } =
-    useAnalyticsTools(dashboardId);
+  const {
+    handleSave,
+    savePhase,
+    handleRevert,
+    handleShare,
+    sharePhase,
+    handleRefresh,
+  } = useAnalyticsTools(dashboardId);
 
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
@@ -50,82 +59,8 @@ const Analytics = () => {
   } = useResizablePane();
   const { collapseSidebar } = useAppShell();
 
-  // Pusher setup for dashboard refresh notifications
-  const queryClient = useQueryClient();
-  const { user } = useUser();
-  const { showToast } = useToast();
-  const { channel: userChannel } = useUserPusherChannel({
-    tenantId: user?.tenantId,
-    userId: user?.id,
-  });
-
-  // Track timeout for cleanup
-  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Subscribe to dashboard refresh events
-  useEffect(() => {
-    if (!userChannel) {
-      return;
-    }
-
-    const handleRefreshStarted = (data: DashboardRefreshStartedEvent) => {
-      // Only handle events for the currently viewed dashboard
-      if (data.dashboardId !== dashboardId) {
-        return;
-      }
-
-      showToast({
-        message:
-          'Dashboard refresh started, widgets will be refreshed automatically once its complete.',
-        variant: 'info',
-      });
-    };
-
-    const handleRefreshCompleted = (data: DashboardRefreshCompletedEvent) => {
-      // Only handle events for the currently viewed dashboard
-      if (data.dashboardId !== dashboardId) {
-        return;
-      }
-
-      if (data.success) {
-        showToast({
-          message: 'Dashboard refresh complete! Your dashboard data has been updated.',
-          variant: 'success',
-        });
-
-        // Clear any existing timeout before scheduling a new one
-        if (refreshTimeoutRef.current) {
-          clearTimeout(refreshTimeoutRef.current);
-        }
-
-        // Invalidate React Query cache to refetch dashboard data
-        refreshTimeoutRef.current = setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: dashboardKeys.detail(dashboardId),
-          });
-        }, 1000);
-      } else {
-        showToast({
-          message: 'Dashboard refresh failed. Please try again.',
-          variant: 'error',
-        });
-      }
-    };
-
-    userChannel.bind(UserChannelEvents.DASHBOARD_REFRESH_STARTED, handleRefreshStarted);
-    userChannel.bind(UserChannelEvents.DASHBOARD_REFRESH_COMPLETED, handleRefreshCompleted);
-
-    return () => {
-      // Clear any pending refresh timeout
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-        refreshTimeoutRef.current = null;
-      }
-
-      userChannel.unbind(UserChannelEvents.DASHBOARD_REFRESH_STARTED, handleRefreshStarted);
-      userChannel.unbind(UserChannelEvents.DASHBOARD_REFRESH_COMPLETED, handleRefreshCompleted);
-    };
-  }, [userChannel, showToast, dashboardId, queryClient]);
+  // Subscribe to Pusher events for dashboard refresh notifications
+  useDashboardRefreshEvents(dashboardId);
 
   // Collapse left sidebar on mount
   useEffect(() => {
@@ -153,14 +88,18 @@ const Analytics = () => {
     setIsCreatingConversation(true);
 
     conversationsService
-      .createConversation(dashboard.title, ConversationMode.DashboardBuilder, 'v2')
+      .createConversation(
+        dashboard.title,
+        ConversationMode.DashboardBuilder,
+        "v2",
+      )
       .then((res) => {
         if (!cancelled) {
           setCreatedConversationId(res.conversation.conversationId);
         }
       })
       .catch((err) => {
-        console.error('[Analytics] Failed to create conversation:', err);
+        console.error("[Analytics] Failed to create conversation:", err);
       })
       .finally(() => {
         if (!cancelled) setIsCreatingConversation(false);
@@ -208,9 +147,9 @@ const Analytics = () => {
         <div
           style={{
             width: chatPaneWidth,
-            transition: isResizing ? 'none' : 'width 0.3s ease',
+            transition: isResizing ? "none" : "width 0.3s ease",
             flexShrink: 0,
-            position: 'relative',
+            position: "relative",
           }}
         >
           {/* Resize handle */}
@@ -219,7 +158,7 @@ const Analytics = () => {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-indigo-500/30 transition-colors z-10 group touch-none"
-            style={{ marginLeft: '-3px' }}
+            style={{ marginLeft: "-3px" }}
           >
             <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
           </div>
@@ -236,9 +175,13 @@ const Analytics = () => {
           ) : (
             <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex items-center justify-center">
               {isCreatingConversation ? (
-                <p className="text-sm text-gray-400">Starting conversation...</p>
+                <p className="text-sm text-gray-400">
+                  Starting conversation...
+                </p>
               ) : (
-                <p className="text-sm text-gray-400">No conversation context available</p>
+                <p className="text-sm text-gray-400">
+                  No conversation context available
+                </p>
               )}
             </div>
           )}
