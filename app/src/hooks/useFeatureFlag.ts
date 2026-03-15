@@ -4,19 +4,25 @@ import { useFlags } from "launchdarkly-react-client-sdk";
  * Feature flag keys used in the application
  */
 export const FEATURE_FLAGS = {
+  /** @deprecated permanently enabled — kept for reference only */
   GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
+  /** @deprecated permanently enabled — kept for reference only */
   GOOGLE_DRIVE_INTEGRATION: "enableGoogleDrive",
   EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
+  /** @deprecated permanently enabled — kept for reference only */
   DEEP_LINKS: "enableDeepLinks",
   SIDE_BAR_V2: "sidebarV2",
   AGENT_V2: "agentsV2",
+  /** @deprecated permanently enabled — kept for reference only */
   USER_MEMORY: "enableUserMemory",
   DEEP_RESEARCH: "deepResearch",
   AGENT_V2_SOURCES: "agentSources",
   DISABLED_TENANTS: "disabledTenants",
+  /** @deprecated permanently enabled — kept for reference only */
   FILE_UPLOAD: "enableFileUpload",
+  /** @deprecated permanently enabled — kept for reference only */
   ARTIFACTS: "enableArtifacts",
   SCHEDULED_COMMANDS: "enableScheduledCommands",
 } as const;
@@ -43,16 +49,14 @@ export function useFeatureFlag() {
 
   return {
     /**
-     * Controls whether Google Calendar integration is visible
+     * Google Calendar integration — permanently enabled, no longer behind a feature flag
      */
-    isGoogleCalendarEnabled:
-      flags[FEATURE_FLAGS.GOOGLE_CALENDAR_INTEGRATION] === true,
+    isGoogleCalendarEnabled: true,
 
     /**
-     * Controls whether Google Drive integration is visible
+     * Google Drive integration — permanently enabled, no longer behind a feature flag
      */
-    isGoogleDriveEnabled:
-      flags[FEATURE_FLAGS.GOOGLE_DRIVE_INTEGRATION] === true,
+    isGoogleDriveEnabled: true,
 
     /**
      * Controls whether Email Categorization tab is visible
@@ -71,10 +75,9 @@ export function useFeatureFlag() {
     isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
 
     /**
-     * Controls whether Salesforce deep links are enabled
-     * (clickable record names in approval cards and query results)
+     * Salesforce deep links — permanently enabled, no longer behind a feature flag
      */
-    isDeepLinksEnabled: flags[FEATURE_FLAGS.DEEP_LINKS] === true,
+    isDeepLinksEnabled: true,
 
     /**
      * Controls if we need to show new sidebar UI experience
@@ -88,10 +91,9 @@ export function useFeatureFlag() {
     isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
 
     /**
-     * Controls whether user memory feature is enabled
-     * (personal memory segment for each user)
+     * User memory — permanently enabled, no longer behind a feature flag
      */
-    isUserMemoryEnabled: flags[FEATURE_FLAGS.USER_MEMORY] === true,
+    isUserMemoryEnabled: true,
 
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
@@ -109,14 +111,14 @@ export function useFeatureFlag() {
     isTenantDisabled: flags[FEATURE_FLAGS.DISABLED_TENANTS] === true,
 
     /**
-     * Controls whether file upload (plus menu) is enabled in chat
+     * File upload — permanently enabled, no longer behind a feature flag
      */
-    isFileUploadEnabled: flags[FEATURE_FLAGS.FILE_UPLOAD] === true,
+    isFileUploadEnabled: true,
 
     /**
-     * Controls whether agent-generated artifact cards and preview panel are shown
+     * Artifacts — permanently enabled, no longer behind a feature flag
      */
-    isArtifactsEnabled: flags[FEATURE_FLAGS.ARTIFACTS] === true,
+    isArtifactsEnabled: true,
 
     /**
      * Controls whether scheduled commands (schedule section, recipients, send test) are enabled
