@@ -51,7 +51,7 @@ export interface CommandsOverlayProps {
     editingId?: string,
     dataSources?: import('./types').CommandAttachment[],
     commandId?: string
-  ) => void;
+  ) => void | Promise<void>;
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand: (id: string) => void;
   /** Index of the keyboard-highlighted command in the filtered list */
@@ -200,14 +200,18 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   }, [manageDrawer, onCloseCommandsList]);
 
   const handleSave = useCallback(
-    (
+    async (
       data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
       dataSources: import('./types').CommandAttachment[],
       commandId: string
     ) => {
-      onSaveCommand(data, editingCommand?.id, dataSources, commandId);
-      formDrawer.hide();
-      setEditingCommand(null);
+      try {
+        await onSaveCommand(data, editingCommand?.id, dataSources, commandId);
+        formDrawer.hide();
+        setEditingCommand(null);
+      } catch {
+        // Save failed — keep drawer open so the user can retry
+      }
     },
     [editingCommand, formDrawer, onSaveCommand]
   );

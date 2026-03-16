@@ -85,21 +85,36 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   const inputRowRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Update portal position when dropdown opens or search changes
-  // Flips above the input when there isn't enough room below
+  // Keep dropdown flush with the input row.
+  // Uses a ResizeObserver so it repositions whenever the input row changes height
+  // (e.g. chip wrapping). For the "above" case we use `bottom` CSS anchoring so
+  // the dropdown sits directly above the input regardless of its own height.
   const MAX_DROPDOWN_H = 192; // matches max-h-48
+  const [placeAbove, setPlaceAbove] = React.useState(false);
+
+  const updatePosition = React.useCallback(() => {
+    if (!showDropdown || !inputRowRef.current) return;
+    const rect = inputRowRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const above = spaceBelow < MAX_DROPDOWN_H + 8 && rect.top > MAX_DROPDOWN_H;
+    setPlaceAbove(above);
+    setDropdownPos({
+      top: above ? rect.top - 2 : rect.bottom + 2,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [showDropdown]);
+
   useEffect(() => {
-    if (showDropdown && inputRowRef.current) {
-      const rect = inputRowRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const placeAbove = spaceBelow < MAX_DROPDOWN_H + 8 && rect.top > MAX_DROPDOWN_H;
-      setDropdownPos({
-        top: placeAbove ? rect.top - MAX_DROPDOWN_H - 4 : rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      });
-    }
-  }, [showDropdown, search, recipients.length]);
+    updatePosition();
+  }, [updatePosition, search, recipients.length]);
+
+  useEffect(() => {
+    if (!showDropdown || !inputRowRef.current) return;
+    const observer = new ResizeObserver(() => updatePosition());
+    observer.observe(inputRowRef.current);
+    return () => observer.disconnect();
+  }, [showDropdown, updatePosition]);
 
   // Close dropdown on ancestor scroll so the portal doesn't float out of place
   useEffect(() => {
@@ -129,7 +144,7 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   }, [showDropdown]);
 
   const addRecipient = (member: Recipient) => {
-    if (!recipients.some((r) => r.id === member.id)) {
+    if (!recipients.some((r) => r.email === member.email)) {
       onChange([...recipients, member]);
     }
     setSearch('');
@@ -141,7 +156,7 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   };
 
   const filteredMembers = availableRecipients.filter((m) => {
-    if (recipients.some((r) => r.id === m.id)) return false;
+    if (recipients.some((r) => r.email === m.email)) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -197,7 +212,9 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
               ref={dropdownRef}
               className="fixed z-[9999] bg-white border border-gray-100 rounded-lg shadow-lg max-h-48 overflow-y-auto py-1"
               style={{
-                top: dropdownPos.top,
+                ...(placeAbove
+                  ? { bottom: window.innerHeight - dropdownPos.top }
+                  : { top: dropdownPos.top }),
                 left: dropdownPos.left,
                 width: dropdownPos.width,
               }}

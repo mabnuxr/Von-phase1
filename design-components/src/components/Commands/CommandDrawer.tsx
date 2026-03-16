@@ -37,7 +37,7 @@ export interface CommandDrawerProps {
     data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
     dataSources: CommandAttachment[],
     commandId: string
-  ) => void;
+  ) => void | Promise<void>;
   /** Pre-populate the form when editing an existing command */
   editingCommand?: Command | null;
   /** Shows a spinner / disables the save button while the mutation is in-flight */
