@@ -1,13 +1,13 @@
 /**
- * Dashboard - Thin router that determines V1/V2 agent version
+ * Conversation - Thin router that determines V1/V2 agent version
  * and renders the appropriate container component.
  *
  * Responsibilities:
- * - URL routing and auth
  * - Conversation init, lookup, switching
- * - Feature flags, Salesforce connection
- * - Sidebar rendering
+ * - Salesforce connection
  * - Delegates all chat logic to ChatV1Container or ChatV2Container
+ *
+ * Layout (sidebar, auth, feature flags) is handled by AppShell.
  *
  * Key fix: `key={currentConversationId}` on containers forces clean
  * remount on conversation switch — all hooks cleanup, all refs reset,
@@ -17,50 +17,53 @@
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { TopBar, ChatSkeleton, Banner } from "@vonlabs/design-components";
-import type { AgentMode } from "@vonlabs/design-components";
+import { ChatSkeleton, Banner } from "@vonlabs/design-components";
+import { ConversationMode } from "@vonlabs/design-components";
 
 import {
-  authService,
   conversationsService,
   IntegrationType,
   AuthenticationStatus,
 } from "../services";
 import { useIntegrations } from "../hooks/useIntegrations";
 import useChatStore from "../store/chatStore";
-import { useUser } from "../hooks/useUser";
-import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useMessages } from "../hooks/useMessages";
 import { useConversationInit } from "../hooks/useConversationInit";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
+import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { useSidebarState } from "../hooks/useSidebarState";
-import { useNewChat } from "../hooks/useNewChat";
 import { useToast } from "../hooks/useToast";
 import { conversationKeys } from "../hooks/useConversations";
 import { chatSidebarKeys } from "../hooks/useChatSidebar";
-import { ChatSidebarV1Container } from "../components/ChatSidebarV1Container";
-import { ChatSidebarV2Container } from "../components/ChatSidebarV2Container";
 import { ChatV1Container } from "../components/ChatV1Container";
 import { ChatV2Container } from "../components/ChatV2Container";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
-import {
-  agentModeToConversationMode,
-  conversationModeToAgentMode,
-  DEFAULT_AGENT_MODE,
-} from "../lib/conversationModeUtils";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
 
-const Dashboard = () => {
+const Conversation = () => {
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
   }>();
-  useAuthCheck();
-  const { user, isConnectionError, refetch } = useUser();
+
+  // --- AppShell context (auth, user, sidebar, flags) ---
+  const { user, isCreatingChat, collapseSidebar } = useAppShell();
+  const {
+    isSlashCommandsEnabled,
+    isActionsEnabled,
+    isDeepLinksEnabled,
+    isSidebarV2,
+    isSourcesEnabled,
+    isTenantDisabled,
+    isFileUploadEnabled,
+    isArtifactsEnabled,
+    isGoogleDriveEnabled,
+    isDeepResearchEnabled,
+    isScheduledCommandsEnabled,
+  } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
   const currentConversationId = urlConversationId ?? null;
@@ -90,20 +93,6 @@ const Dashboard = () => {
     refetch: refetchMessages,
   } = useMessages(currentConversationId, MESSAGES_PAGE_LIMIT);
 
-  // --- Feature Flags ---
-  const {
-    isSlashCommandsEnabled,
-    isActionsEnabled,
-    isDeepLinksEnabled,
-    isSidebarV2,
-    isAgentV2: isAgentV2Flag,
-    isSourcesEnabled,
-    isTenantDisabled,
-    isFileUploadEnabled,
-    isArtifactsEnabled,
-    isGoogleDriveEnabled,
-  } = useFeatureFlag();
-
   // --- Salesforce ---
   const {
     isConnected: isSalesforceConnected,
@@ -119,10 +108,8 @@ const Dashboard = () => {
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
 
-  // --- Toast ---
   const { showToast } = useToast();
 
-  // --- Google Drive ---
   const { data: integrationsData } = useIntegrations();
   const isDriveConnected = useMemo(
     () =>
@@ -133,74 +120,67 @@ const Dashboard = () => {
       ) ?? false,
     [integrationsData],
   );
+
   const isDriveEnabled = isGoogleDriveEnabled;
   const driveTooltip = !isGoogleDriveEnabled
     ? "Open in Drive (Coming Soon)"
     : !isDriveConnected
       ? "Connect Google Drive"
       : "Open in Google Drive";
+
   const [driveLoadingFileId, setDriveLoadingFileId] = useState<string | null>(
     null,
   );
 
-  // --- Sidebar ---
-  const {
-    isCollapsed: isSidebarCollapsed,
-    toggleCollapse: toggleSidebar,
-    collapseSidebar,
-  } = useSidebarState();
-  const { handleNewChatClick, isCreatingChat } = useNewChat({
-    currentConversationId,
-    isSidebarV2,
-    isAgentV2Flag,
-  });
-
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";
 
-  const lockedAgentMode = useMemo(() => {
-    if (currentConversation?.mode) {
-      return conversationModeToAgentMode(currentConversation.mode);
-    }
-    return DEFAULT_AGENT_MODE;
+  const lockedConversationMode: ConversationMode = useMemo(() => {
+    return currentConversation?.mode || ConversationMode.Auto;
   }, [currentConversation]);
 
   const isAgentLocked = conversationMessages.length > 0;
 
   // --- Sync Agent Mode to Backend ---
   const queryClient = useQueryClient();
-  const syncAgentModeToBackend = useCallback(
-    async (agentMode: AgentMode) => {
+  const syncConversationModeToBackend = useCallback(
+    async (mode: ConversationMode) => {
       if (!currentConversationId) return;
 
-      if (agentMode !== DEFAULT_AGENT_MODE) {
+      if (mode !== ConversationMode.Auto) {
         try {
-          const backendMode = agentModeToConversationMode(agentMode);
           await conversationsService.updateConversationMode(
             currentConversationId,
-            backendMode,
+            mode,
           );
           queryClient.invalidateQueries({
             queryKey: isSidebarV2
               ? chatSidebarKeys.sidebar()
               : conversationKeys.lists(),
           });
+
+          // Refetch the specific conversation so currentConversation.mode updates
+          await queryClient.refetchQueries({
+            queryKey: ["conversation", currentConversationId],
+          });
           if (import.meta.env.DEV) {
             console.log(
-              "[Dashboard] Synced agent mode to backend:",
-              backendMode,
+              "[Conversation] Synced conversation mode to backend:",
+              mode,
             );
           }
         } catch (error) {
-          console.error("[Dashboard] Failed to sync agent mode:", error);
+          console.error(
+            "[Conversation] Failed to sync conversation mode:",
+            error,
+          );
         }
       }
     },
-    [currentConversationId, queryClient],
+    [currentConversationId, queryClient, isSidebarV2],
   );
 
   // --- UI State ---
-  const [showConnectionBanner, setShowConnectionBanner] = useState(false);
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
     useState(false);
@@ -221,62 +201,6 @@ const Dashboard = () => {
       resetShowMessagesFromIndex(urlConversationId);
     }
   }, [urlConversationId, resetShowMessagesFromIndex]);
-
-  // --- Connection Error ---
-  useEffect(() => {
-    if (isConnectionError) {
-      setShowConnectionBanner(true);
-    }
-  }, [isConnectionError]);
-
-  // --- Handlers ---
-  const handleRetry = async () => {
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Retrying connection...");
-    }
-    await refetch();
-  };
-
-  const handleSettingsClick = () => {
-    navigate("/settings");
-  };
-
-  const handleLogoutClick = async () => {
-    const { clearAllAuth } = await import("../lib/auth");
-
-    if (import.meta.env.DEV) {
-      console.log("[Dashboard] Logout clicked");
-    }
-
-    try {
-      const response = await authService.logout();
-      if (import.meta.env.DEV) {
-        console.log(
-          "[Dashboard] Backend logout successful, redirect URL:",
-          response.redirectUrl,
-        );
-      }
-
-      clearAllAuth();
-
-      if (response.redirectUrl) {
-        window.location.href = response.redirectUrl;
-      } else {
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Dashboard] No redirect URL provided, using default logout flow",
-          );
-        }
-        window.location.href = location.origin;
-      }
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("[Dashboard] Backend logout failed:", error);
-      }
-      clearAllAuth();
-      window.location.href = location.origin;
-    }
-  };
 
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {
@@ -327,6 +251,13 @@ const Dashboard = () => {
     />
   );
 
+  // --- Agent modes available in the plus menu ---
+  const availableAgentModes = useMemo(() => {
+    const modes: ConversationMode[] = [ConversationMode.Auto];
+    if (isDeepResearchEnabled) modes.push(ConversationMode.DashboardBuilder);
+    return modes;
+  }, [isDeepResearchEnabled]);
+
   // --- Shared container props ---
   const sharedContainerProps = {
     user,
@@ -336,7 +267,7 @@ const Dashboard = () => {
     hasNextMessagePage: !!hasNextMessagePage,
     isFetchingNextMessagePage,
     refetchMessages: refetchMessages as () => Promise<unknown>,
-    lockedAgentMode,
+    lockedConversationMode,
     isAgentLocked,
     canSubmit,
     onDisabledInteraction: handleDisabledInteraction,
@@ -347,7 +278,9 @@ const Dashboard = () => {
     isSourcesEnabled,
     isFileUploadEnabled,
     isArtifactsEnabled,
-    syncAgentModeToBackend,
+    isScheduledCommandsEnabled,
+    availableAgentModes,
+    syncConversationModeToBackend,
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,
     onGoogleDriveClick: handleGoogleDriveClick,
@@ -358,97 +291,35 @@ const Dashboard = () => {
   };
 
   return (
-    <Profiler id="dashboard" onRender={reportRenderTiming}>
-      <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
-        {/* Connection Error Banner */}
-        {showConnectionBanner && (
-          <Banner
-            variant="error"
-            message="Issue Connecting to Backend Services"
-            onClose={() => setShowConnectionBanner(false)}
-            action={{ label: "Retry", onClick: handleRetry }}
-            dismissible={true}
-          />
-        )}
+    <Profiler id="conversation" onRender={reportRenderTiming}>
+      {/* Initialization Error Banner */}
+      {initError && (
+        <Banner
+          variant="error"
+          message="Failed to load conversations"
+          onClose={() => {}}
+          dismissible={false}
+        />
+      )}
 
-        {/* Initialization Error Banner */}
-        {initError && (
-          <Banner
-            variant="error"
-            message="Failed to load conversations"
-            onClose={() => {}}
-            dismissible={false}
-          />
-        )}
-
-        {/* Full-width container */}
-        <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* TopBar (V1 sidebar only — V2 has its own header) */}
-          {!isSidebarV2 && (
-            <div className="bg-transparent">
-              <TopBar
-                onLogoClick={() => navigate("/chat")}
-                showMenu={false}
-                onNewChatClick={handleNewChatClick}
-              />
-            </div>
-          )}
-
-          {/* Two-Pane Layout */}
-          <div
-            className={`flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-3" : ""}`}
-          >
-            {/* Left Pane - Sidebar */}
-            <div
-              className="chat-sidebar-wrapper h-full flex flex-col min-h-0 rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200 transition-all duration-300"
-              style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
-            >
-              {isSidebarV2 ? (
-                <ChatSidebarV2Container
-                  currentConversationId={currentConversationId}
-                  user={user}
-                  onNewChatClick={handleNewChatClick}
-                  isCollapsed={isSidebarCollapsed}
-                  onToggleCollapse={toggleSidebar}
-                  onSettingsClick={handleSettingsClick}
-                  onLogoutClick={handleLogoutClick}
-                />
-              ) : (
-                <ChatSidebarV1Container
-                  currentConversationId={currentConversationId}
-                  user={user}
-                  isCollapsed={isSidebarCollapsed}
-                  onToggleCollapse={toggleSidebar}
-                  onSettingsClick={handleSettingsClick}
-                  onLogoutClick={handleLogoutClick}
-                />
-              )}
-            </div>
-
-            {/* Right Pane - Chat Container (keyed by conversationId for clean remount) */}
-            <div className="flex flex-1 min-w-0">
-              {isLoading ? (
-                <ChatSkeleton messageCount={4} />
-              ) : currentConversationId && isAgentV2 && currentConversation ? (
-                <ChatV2Container
-                  key={currentConversationId}
-                  conversationId={currentConversationId}
-                  currentConversation={currentConversation}
-                  {...sharedContainerProps}
-                />
-              ) : currentConversationId ? (
-                <ChatV1Container
-                  key={currentConversationId}
-                  conversationId={currentConversationId}
-                  {...sharedContainerProps}
-                />
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
+      {isLoading ? (
+        <ChatSkeleton messageCount={4} />
+      ) : currentConversationId && isAgentV2 && currentConversation ? (
+        <ChatV2Container
+          key={currentConversationId}
+          conversationId={currentConversationId}
+          currentConversation={currentConversation}
+          {...sharedContainerProps}
+        />
+      ) : currentConversationId ? (
+        <ChatV1Container
+          key={currentConversationId}
+          conversationId={currentConversationId}
+          {...sharedContainerProps}
+        />
+      ) : null}
     </Profiler>
   );
 };
 
-export default Dashboard;
+export default Conversation;

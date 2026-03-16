@@ -16,8 +16,9 @@ import type {
   ThinkingStep,
   DashboardPlan,
 } from '../../../components/Jan17Demo/FullScreenThinkingPlan';
-import { ChatPaneV2 } from '../../../components/Jan17Demo/ChatPaneV2';
-import type { ChatMessage, ReferenceContext } from '../../../components/Jan17Demo/ChatPaneV2';
+import { Chat } from '../../../components/Chat';
+import type { Message } from '../../../components/Chat/types';
+import type { ReferenceContext } from '../../../components/Chat/StandardChatInput/types';
 import { DashboardV2 } from '../../../components/Jan17Demo/DashboardV2';
 import type {
   KPICardData,
@@ -906,7 +907,7 @@ const DashboardV2Demo = () => {
 
   // Chat pane state
   const [isChatPaneCollapsed, setIsChatPaneCollapsed] = useState(true);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [chatPaneWidth, setChatPaneWidth] = useState(380);
   const chatPaneResizeRef = useRef<HTMLDivElement>(null);
   const isResizingChatPane = useRef(false);
@@ -966,7 +967,7 @@ const DashboardV2Demo = () => {
   } | null>(null);
 
   // Reference context state for Pane3
-  const [referenceContext, setReferenceContext] = useState<ReferenceContext>({
+  const [, setReferenceContext] = useState<ReferenceContext>({
     type: 'dashboard',
     name: 'Deals Closing This Quarter',
     id: 'dashboard-deals-q1',
@@ -1640,14 +1641,15 @@ const DashboardV2Demo = () => {
               <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
             </div>
           )}
-          <ChatPaneV2
-            conversationName="Build with Von"
+          <Chat
+            title="Build with Von"
             messages={chatMessages}
-            isCollapsed={isChatPaneCollapsed}
-            onToggleCollapse={() => setIsChatPaneCollapsed(!isChatPaneCollapsed)}
             placeholder="Make changes to this dashboard..."
-            referenceContext={referenceContext}
-            onSourcesClick={() => setShowTransparencyDrawer(true)}
+            variant="floating"
+            height="100%"
+            width="100%"
+            thinkingProcessVersion="v2"
+            useStandardInput
           />
         </div>
       )}

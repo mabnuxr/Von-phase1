@@ -10,9 +10,10 @@ import {
   type TemplateCategory,
 } from '../Templates';
 import type { BuildMode } from './StandardChatInput/types';
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { Command } from '../Commands';
+import type { MentionItem } from '../Mentions';
 
 export interface ChatEmptyStateProps {
   /**
@@ -93,11 +94,7 @@ export interface ChatEmptyStateProps {
   /**
    * The agent mode to display when locked (from backend)
    */
-  lockedAgentMode?: AgentMode;
-  /**
-   * Whether to show the plus menu button (with agents and upload options)
-   */
-  showPlusMenu?: boolean;
+  lockedConversationMode?: ConversationMode;
   /**
    * Controlled attachments from parent (wired to useFileUploadPipeline)
    */
@@ -139,6 +136,28 @@ export interface ChatEmptyStateProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: import('../Commands/types').ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: import('../Commands/types').ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: import('../Commands/types').ScheduleRecipient[]
+  ) => void;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
+  /** Enable @ mentions feature */
+  enableMentions?: boolean;
+  /** Available mention items for the @ overlay */
+  mentionItems?: MentionItem[];
+  /** Loading state for mention items */
+  isLoadingMentions?: boolean;
+  /** Called when a mention is selected from the @ overlay */
+  onSelectMention?: (item: MentionItem) => void;
+  /** Called when the user first types "@" — use to lazy-load mention items */
+  onMentionsActivated?: () => void;
 }
 
 /**
@@ -178,8 +197,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onModeChange,
   useStandardInput = false,
   isAgentLocked,
-  lockedAgentMode,
-  showPlusMenu,
+  lockedConversationMode,
   controlledAttachments,
   onRemoveAttachment,
   onFilesSelected,
@@ -191,9 +209,18 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onDeleteCommand,
   isSavingCommand,
   isAdmin = false,
+  teamMembers,
+  currentUser,
+  onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
+  availableAgentModes,
+  enableMentions,
+  mentionItems,
+  isLoadingMentions,
+  onSelectMention,
+  onMentionsActivated,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -379,6 +406,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
           isAdmin={isAdmin}
+          teamMembers={teamMembers}
+          currentUser={currentUser}
+          onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}
@@ -398,13 +428,18 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           mode={mode}
           onModeChange={onModeChange}
           isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
-          showPlusMenu={showPlusMenu}
+          lockedConversationMode={lockedConversationMode}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
+          availableAgentModes={availableAgentModes}
+          enableMentions={enableMentions}
+          mentionItems={mentionItems}
+          isLoadingMentions={isLoadingMentions}
+          onSelectMention={onSelectMention}
+          onMentionsActivated={onMentionsActivated}
         />
       </motion.div>
 

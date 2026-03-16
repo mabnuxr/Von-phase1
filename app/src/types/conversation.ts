@@ -1,11 +1,7 @@
-/**
- * Conversation mode values supported by the backend API
- * Maps to frontend AgentMode:
- *   - "auto" -> "auto"
- *   - "deep_research" -> "deep-research"
- *   - "dashboard_builder" -> "build-dashboard"
- */
-export type ConversationMode = "auto" | "deep_research" | "dashboard_builder";
+import type { ConversationMode } from "@vonlabs/design-components";
+
+// Re-export for consumers that import from this file
+export type { ConversationMode } from "@vonlabs/design-components";
 
 /**
  * Conversation entity from backend
@@ -80,6 +76,46 @@ export interface MessageCommand {
   dataSources?: CommandDataSource[];
 }
 
+import type { ReferenceType } from "./constants";
+export { ReferenceType } from "./constants";
+
+/**
+ * Dashboard reference context attached to a message.
+ */
+export interface DashboardReferenceContext {
+  dashboardId: string;
+  dashboardVersion: number;
+  dashboardName: string;
+}
+
+export interface MessageReference {
+  /** Frontend tracking ID (opaque, client-generated) */
+  refId: string;
+  /** Discriminator */
+  type: ReferenceType;
+  context: DashboardReferenceContext;
+}
+
+/**
+ * Conversation phase from RUN_FINISHED event
+ * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+ * - "ask": Normal conversation mode (hide approval buttons)
+ * - null/undefined: Normal conversation mode (hide approval buttons)
+ */
+export type ConversationPhase = "plan-proposed" | "ask" | null;
+
+/**
+ * Dashboard metadata from RUN_FINISHED event
+ * Sent by backend when a dashboard is created
+ */
+export interface DashboardMetadata {
+  dashboard_id: string;
+  dashboard_name: string;
+  dashboard_version: number;
+  panel_count: number;
+  query_count: number;
+}
+
 /**
  * Message entity from backend
  */
@@ -93,7 +129,13 @@ export interface Message {
   createdAt: string;
   createdBy: string | null;
   fileAttachments?: MessageFileAttachment[];
+  phase?: ConversationPhase;
   command?: MessageCommand;
+  /**
+   * Dashboard metadata from RUN_FINISHED event (assistant messages only)
+   * Present when a dashboard was created during this run
+   */
+  dashboard?: DashboardMetadata;
 }
 
 /**

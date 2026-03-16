@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import usePreferencesStore from "../store/preferencesStore";
 import { Input, Banner, SingleSelect } from "@vonlabs/design-components";
 import { useAddTeamMember, useRoles } from "../hooks/useTeam";
@@ -28,13 +28,16 @@ export function AddTeamMemberPane() {
   // Prepare role options for dropdown (members can only see "Member" role)
   const isAdmin = user?.roles?.includes("Admin") ?? false;
 
-  const roleOptions =
-    roles
-      ?.filter((role) => isAdmin || role.name !== "Admin")
-      .map((role) => ({
-        value: role.name,
-        label: role.displayName,
-      })) || [];
+  const roleOptions = useMemo(
+    () =>
+      roles
+        ?.filter((role) => isAdmin || role.name !== "Admin")
+        .map((role) => ({
+          value: role.name,
+          label: role.displayName,
+        })) ?? [],
+    [roles, isAdmin],
+  );
 
   // Reset form when panel opens
   useEffect(() => {
@@ -47,7 +50,7 @@ export function AddTeamMemberPane() {
       });
       setValidationErrors([]);
     }
-  }, [addingTeamMember, roles, user?.roles]);
+  }, [addingTeamMember, roles, user?.roles, roleOptions]);
 
   const handleClose = () => {
     setAddingTeamMember(false);

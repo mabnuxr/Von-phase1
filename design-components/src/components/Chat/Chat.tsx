@@ -8,6 +8,7 @@ import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
 import { useEscapeToStopStreaming } from './hooks/useEscapeToStopStreaming';
 import type { ChatProps, SendMessageOptions } from './types';
+import { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 
 // Export types from types.ts
@@ -70,6 +71,9 @@ export const Chat: React.FC<ChatProps> = ({
   onDeleteCommand,
   isSavingCommand,
   isAdmin = false,
+  teamMembers,
+  currentUser,
+  onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
@@ -84,9 +88,10 @@ export const Chat: React.FC<ChatProps> = ({
   useStandardInput = false,
   // Agent selection props
   isAgentLocked = false,
-  lockedAgentMode = 'auto',
-  // Plus menu visibility (defaults to false when not provided)
-  showPlusMenu = false,
+  lockedConversationMode = ConversationMode.Auto,
+  // Agent modes & file upload
+  availableAgentModes,
+  enableFileUpload = false,
   // Controlled attachment props
   controlledAttachments,
   onRemoveAttachment,
@@ -94,6 +99,15 @@ export const Chat: React.FC<ChatProps> = ({
   // File error props
   fileErrorMessage,
   onDismissFileError,
+  // Reference context
+  referenceContext,
+  onRemoveReference,
+  // @ Mention props
+  enableMentions = false,
+  mentionItems,
+  isLoadingMentions,
+  onSelectMention,
+  onMentionsActivated,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
@@ -323,6 +337,9 @@ export const Chat: React.FC<ChatProps> = ({
             onDeleteCommand={onDeleteCommand}
             isSavingCommand={isSavingCommand}
             isAdmin={isAdmin}
+            teamMembers={teamMembers}
+            currentUser={currentUser}
+            onSendTest={onSendTest}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
@@ -330,13 +347,19 @@ export const Chat: React.FC<ChatProps> = ({
             topBanner={topBanner}
             useStandardInput={useStandardInput}
             isAgentLocked={isAgentLocked}
-            lockedAgentMode={lockedAgentMode}
-            showPlusMenu={showPlusMenu}
+            lockedConversationMode={lockedConversationMode}
             controlledAttachments={controlledAttachments}
             onRemoveAttachment={onRemoveAttachment}
             onFilesSelected={onFilesSelected}
             fileErrorMessage={fileErrorMessage}
             onDismissFileError={onDismissFileError}
+            availableAgentModes={availableAgentModes}
+            enableFileUpload={enableFileUpload}
+            enableMentions={enableMentions}
+            mentionItems={mentionItems}
+            isLoadingMentions={isLoadingMentions}
+            onSelectMention={onSelectMention}
+            onMentionsActivated={onMentionsActivated}
           />
         ) : (
           /* Standard message rendering */
@@ -425,6 +448,9 @@ export const Chat: React.FC<ChatProps> = ({
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
           isAdmin={isAdmin}
+          teamMembers={teamMembers}
+          currentUser={currentUser}
+          onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}
@@ -438,13 +464,21 @@ export const Chat: React.FC<ChatProps> = ({
           onChange={setInputValue}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
-          showPlusMenu={showPlusMenu}
+          lockedConversationMode={lockedConversationMode}
           attachments={controlledAttachments}
           onRemoveAttachment={onRemoveAttachment}
           onFilesSelected={onFilesSelected}
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
+          availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
+          referenceContext={referenceContext}
+          onRemoveReference={onRemoveReference}
+          enableMentions={enableMentions}
+          mentionItems={mentionItems}
+          isLoadingMentions={isLoadingMentions}
+          onSelectMention={onSelectMention}
+          onMentionsActivated={onMentionsActivated}
         />
       )}
     </div>

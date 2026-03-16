@@ -2,19 +2,22 @@
  * Type definitions for Chat component with backend integration
  */
 
-import type { AgentMode } from './StandardChatInput/types';
-import type { Command } from '../Commands/types';
+import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
+import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
+import type { MentionItem } from '../Mentions/types';
 
 /**
  * Additional options passed with the send message callback
  */
 export interface SendMessageOptions {
   /** Selected agent mode for the message */
-  agentMode?: AgentMode;
+  agentMode?: ConversationMode;
   /** Selected command (when slash commands are enabled) */
   command?: Command;
+  /** Selected @ mentions (when mentions are enabled) */
+  mentions?: MentionItem[];
 }
 
 /**
@@ -174,6 +177,14 @@ export interface Message {
    * Whether the v2 final response is still streaming
    */
   v2FinalResponseStreaming?: boolean;
+  /**
+   * Conversation phase from RUN_FINISHED event (assistant messages only)
+   * Controls whether approval buttons are shown
+   * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+   * - "ask": Normal conversation mode (hide approval buttons)
+   * - null/undefined: Normal conversation mode (hide approval buttons)
+   */
+  phase?: 'plan-proposed' | 'ask' | null;
   /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.
@@ -385,6 +396,13 @@ export interface RunFinishedEvent {
     stopped_by_user?: boolean;
     error_occurred?: boolean;
     error_message?: string;
+    /**
+     * Conversation phase for approval button control (nested inside result)
+     * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
+     * - "ask": Normal conversation mode (hide approval buttons)
+     * - null/undefined: Normal conversation mode (hide approval buttons)
+     */
+    phase?: 'plan-proposed' | 'ask' | null;
   };
 }
 
@@ -1086,7 +1104,7 @@ export interface ChatProps {
    * Ref for infinite scroll trigger (load older messages)
    * Place this at the top of the messages container
    */
-  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+  loadMoreRef?: React.Ref<HTMLDivElement | null>;
 
   /**
    * Whether currently fetching older messages (for infinite scroll)
@@ -1240,7 +1258,7 @@ export interface ChatProps {
    * `commandId`  — pre-generated ObjectId used for presigning; pass as `id` on create.
    */
   onSaveCommand?: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
+    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
     editingId?: string,
     dataSources?: import('../Commands/types').CommandAttachment[],
     commandId?: string
@@ -1262,6 +1280,16 @@ export interface ChatProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: ScheduleRecipient;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: ScheduleRecipient[]
+  ) => void;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)
@@ -1344,7 +1372,7 @@ export interface ChatProps {
 
   /**
    * Whether agent selection is locked (e.g., after first message in conversation)
-   * When true, the agent selector will be disabled and show lockedAgentMode
+   * When true, the agent selector will be disabled and show lockedConversationMode
    * @default false
    */
   isAgentLocked?: boolean;
@@ -1354,13 +1382,14 @@ export interface ChatProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: 'auto' | 'build-dashboard' | 'deep-research';
+  lockedConversationMode?: ConversationMode;
 
   /**
-   * Whether to show the plus menu button (with agents and upload options)
-   * @default false
+   * Agent modes available for selection in the plus menu.
+   * When more than just "Auto" is provided, the Agents submenu is shown in the plus menu.
+   * @default [ConversationMode.Auto]
    */
-  showPlusMenu?: boolean;
+  availableAgentModes?: ConversationMode[];
 
   /**
    * Controlled file attachments for the chat input.
@@ -1377,6 +1406,47 @@ export interface ChatProps {
    * Callback when files are selected via plus menu or drag-drop in controlled mode
    */
   onFilesSelected?: (files: File[]) => void;
+
+  /**
+   * Reference context shown above the input (e.g. dashboard/widget context)
+   */
+  referenceContext?: ReferenceContext;
+
+  /**
+   * Callback when the reference context is removed
+   */
+  onRemoveReference?: () => void;
+
+  // ============================================================================
+  // @ Mention Props
+  // ============================================================================
+
+  /**
+   * Enable @ mentions feature
+   * When enabled, typing '@' in the input will show a mentions overlay
+   * @default false
+   */
+  enableMentions?: boolean;
+
+  /**
+   * Available mention items (e.g. dashboards) for the @ overlay
+   */
+  mentionItems?: MentionItem[];
+
+  /**
+   * Loading state for mention items
+   */
+  isLoadingMentions?: boolean;
+
+  /**
+   * Called when a mention is selected from the @ overlay
+   */
+  onSelectMention?: (item: MentionItem) => void;
+
+  /**
+   * Called when the user first types "@" — use to lazy-load mention items
+   */
+  onMentionsActivated?: () => void;
 
   // ============================================================================
   // Deep Research Results Props (V2 only)

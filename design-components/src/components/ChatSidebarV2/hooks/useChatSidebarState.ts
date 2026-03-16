@@ -173,12 +173,11 @@ export function useChatSidebarState({
     );
   }, [folders, folderItems, items]);
 
-  // Sorted folders: by displayOrder ASC (pinned=0 first), then alphabetical by label
+  // Sorted folders: pinned first, then alphabetical by label
   const sortedFolders = useMemo(() => {
     return [...folders].sort((a, b) => {
-      const orderA = a.displayOrder ?? 100;
-      const orderB = b.displayOrder ?? 100;
-      if (orderA !== orderB) return orderA - orderB;
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
       return a.label.localeCompare(b.label);
     });
   }, [folders]);

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GearIcon, SignOutIcon } from "@phosphor-icons/react";
+import { GearIcon, SignOutIcon, ArrowUpRight } from "@phosphor-icons/react";
 
 export interface AvatarMenuProps {
   /**
@@ -22,6 +22,11 @@ export interface AvatarMenuProps {
    * Callback when Logout is clicked
    */
   onLogoutClick?: () => void;
+
+  /**
+   * Hide the Settings menu item (e.g. when already on settings page)
+   */
+  hideSettings?: boolean;
 
   /**
    * Whether the menu is open
@@ -57,10 +62,10 @@ export interface AvatarMenuProps {
  * ```
  */
 export const AvatarMenu: React.FC<AvatarMenuProps> = ({
-  userName,
   userEmail,
   onSettingsClick,
   onLogoutClick,
+  hideSettings = false,
   isOpen,
   onClose,
   triggerRect,
@@ -119,29 +124,43 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
           }}
         >
           {/* User Info Section */}
-          {(userName || userEmail) && (
-            <div className="p-4 border-b border-black/8">
-              {userName && (
-                <div className="text-sm font-semibold text-gray-900 mb-1">
-                  {userName}
-                </div>
-              )}
-              {userEmail && (
-                <div className="text-xs text-gray-700">{userEmail}</div>
-              )}
+          {userEmail && (
+            <div className="px-4 py-3 border-b border-black/8">
+              <div className="text-sm text-gray-500 truncate">{userEmail}</div>
             </div>
           )}
 
           {/* Menu Items */}
           <div className="p-2">
-            <motion.button
+            {!hideSettings && (
+              <motion.button
+                className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"
+                onClick={() => handleItemClick(onSettingsClick)}
+                whileTap={{ scale: 0.98 }}
+              >
+                <GearIcon
+                  size={20}
+                  weight="regular"
+                  className="text-gray-700"
+                />
+                Settings
+              </motion.button>
+            )}
+
+            <a
+              href="https://docs.vonlabs.ai"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"
-              onClick={() => handleItemClick(onSettingsClick)}
-              whileTap={{ scale: 0.98 }}
+              onClick={onClose}
             >
-              <GearIcon size={20} weight="regular" className="text-gray-700" />
-              Settings
-            </motion.button>
+              <ArrowUpRight
+                size={20}
+                weight="regular"
+                className="text-gray-700"
+              />
+              Help docs
+            </a>
 
             <motion.button
               className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"

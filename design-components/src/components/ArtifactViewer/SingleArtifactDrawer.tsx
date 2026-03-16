@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   XIcon,
@@ -14,7 +14,7 @@ import { CallsTabContent, EmailsTabContent } from '../TransparencyDrawer/compone
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
 import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
 import type { MemoryResultData } from '../Chat/types';
-import { ReportTable } from '../ReportTable';
+import { ReportTable, buildGridOptions } from '../ReportTable';
 import type { ReportColumn } from '../ReportTable/ReportTable';
 
 // ============================================================================
@@ -276,6 +276,17 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   // Header icon based on view mode
   const HeaderIcon = isMemoryView ? BrainIcon : isCallsView ? PhoneIcon : DatabaseIcon;
 
+  // Memoize grid options for IQ view to avoid rebuilding on every render
+  const iqColumns = isIQView ? (props as IQViewProps).columns : undefined;
+  const iqData = isIQView ? (props as IQViewProps).data : undefined;
+  const iqGridOptions = useMemo(
+    () =>
+      iqColumns && iqData
+        ? buildGridOptions(iqColumns, iqData, { pageSize: 10, showPagination: true })
+        : null,
+    [iqColumns, iqData]
+  );
+
   // Render content based on view mode
   const renderContent = () => {
     if (isLoading) {
@@ -368,19 +379,10 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       return <CallsTabContent calls={calls} />;
     }
 
-    if (isIQView) {
-      const { columns, data } = props as IQViewProps;
+    if (isIQView && iqGridOptions) {
       return (
         <div className="flex-1 min-h-0 p-4 overflow-auto">
-          <ReportTable
-            columns={columns}
-            data={data}
-            pageSize={10}
-            showPagination={true}
-            aiReasoningKey="_aiReasoning"
-            showRowActions={false}
-            frozenColumns={1}
-          />
+          <ReportTable options={iqGridOptions} />
         </div>
       );
     }

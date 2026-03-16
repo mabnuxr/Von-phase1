@@ -46,7 +46,7 @@ export interface DeepResearchApprovalCardProps {
   metadata?: ResearchResultsMetadata | null;
 
   /**
-   * Primary action (e.g., "Run Full Analysis")
+   * Primary action (e.g., "Create Dashboard")
    */
   primaryAction: DeepResearchAction;
 

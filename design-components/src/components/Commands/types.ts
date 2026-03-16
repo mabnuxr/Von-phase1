@@ -3,7 +3,21 @@
  * Self-contained module for slash command functionality
  */
 
+import type { Schedule, ScheduleFrequency, ScheduleDay } from '../SchedulePicker';
+import type { Recipient } from '../RecipientPicker';
+
 export type CommandCategory = 'Sales' | 'Research' | 'Analysis' | 'Custom';
+
+// ---------------------------------------------------------------------------
+// Schedule types — re-exported from general-purpose components
+// ---------------------------------------------------------------------------
+
+export type { ScheduleFrequency, ScheduleDay };
+export type ScheduleRecipient = Recipient;
+
+export interface CommandSchedule extends Schedule {
+  recipients: ScheduleRecipient[];
+}
 
 export type DataSource = 'emails' | 'calls' | 'sfdc' | 'internal_docs';
 
@@ -94,6 +108,7 @@ export interface Command {
   /** Display name of the creator — populated for team-owned commands */
   creatorName?: string;
   actionType?: string;
+  schedule?: CommandSchedule;
 }
 
 export interface CommandsState {
@@ -146,6 +161,26 @@ export const INTERNAL_DOC_FOLDERS = [
   'Customer Research',
   'Marketing Materials',
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Schedule constants & helpers — re-exported from SchedulePicker
+// ---------------------------------------------------------------------------
+
+export {
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_DAYS,
+  SCHEDULE_TIMES,
+  formatScheduleBadge,
+} from '../SchedulePicker';
+
+export const DEFAULT_SCHEDULE: CommandSchedule = {
+  enabled: false,
+  frequency: 'weekly',
+  time: '09:00',
+  days: ['Mon'],
+  dayOfMonth: 1,
+  recipients: [],
+};
 
 // Default commands that come pre-loaded
 export const DEFAULT_COMMANDS: Command[] = [

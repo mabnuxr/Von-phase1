@@ -6,8 +6,8 @@ export type {
   AutoEditMode,
   PopoverIntent,
   ActivePopover,
-  AgentMode,
 } from './types';
+export { ConversationMode } from './types';
 
 // ModeSelector exports
 export { ModeSelector } from './ModeSelector';

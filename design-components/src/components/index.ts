@@ -104,8 +104,13 @@ export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
 export { ArtifactPane } from './Chat/ArtifactPane';
 export type { ArtifactPaneProps, ArtifactData } from './Chat/ArtifactPane';
 
-export { ArtifactCard } from './Chat';
-export type { ArtifactCardProps, FileArtifact, ArtifactType } from './Chat';
+export { FileArtifactCard, DashboardArtifactCard } from './Chat';
+export type {
+  FileArtifactCardProps,
+  DashboardArtifactCardProps,
+  FileArtifact,
+  ArtifactType,
+} from './Chat';
 
 export { ArtifactViewerPanel } from './Chat';
 export type { ArtifactViewerPanelProps } from './Chat';
@@ -170,13 +175,23 @@ export type {
   Message,
   MessageFileAttachment,
   FixedPosition,
-  AgentMode,
   SendMessageOptions,
 } from './Chat';
+export { ConversationMode } from './Chat';
+export type { ReferenceContext } from './Chat';
 
 // ChatInputSelector - Selector component for different input variants
 export { ChatInputSelector } from './Chat';
 export type { ChatInputSelectorProps } from './Chat';
+
+// Mentions - @ mention system for referencing dashboards
+export { MentionsOverlay, MentionsList, MentionStrip, MentionItemType } from './Mentions';
+export type {
+  MentionItem,
+  MentionsOverlayProps,
+  MentionsListProps,
+  MentionStripProps,
+} from './Mentions';
 
 // Deep Research Chat - specialized chat UI for deep research mode
 export { DeepResearchChat, DeepResearchNotificationBar } from './Chat';
@@ -192,6 +207,7 @@ export type {
   TableData,
   QueryInfo,
   MetricData,
+  RunFinishedEvent,
 } from './Chat/index';
 
 // Export approval utility functions
@@ -225,6 +241,9 @@ export type {
   ItemStatus,
   FolderItemsMap,
   FolderLoadingMap,
+  DashboardSidebarItem,
+  DashboardItemState,
+  DashboardItemVisibility,
 } from './ChatSidebarV2';
 
 // ============================================================================
@@ -258,6 +277,30 @@ export { FileChip, FileTypeIcon, FileIconStack } from './FileChip';
 export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
 
 // ============================================================================
+// SCHEDULE PICKER (General-purpose recurring schedule configuration)
+// ============================================================================
+export { SchedulePicker } from './SchedulePicker';
+export type {
+  SchedulePickerProps,
+  Schedule,
+  ScheduleFrequency,
+  ScheduleDay,
+} from './SchedulePicker';
+export {
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_DAYS,
+  SCHEDULE_TIMES,
+  DEFAULT_SCHEDULE,
+  formatScheduleBadge,
+} from './SchedulePicker';
+
+// ============================================================================
+// RECIPIENT PICKER (General-purpose recipient/people selector)
+// ============================================================================
+export { RecipientPicker } from './RecipientPicker';
+export type { RecipientPickerProps, Recipient } from './RecipientPicker';
+
+// ============================================================================
 // COMMANDS (Self-contained slash commands feature)
 // ============================================================================
 export {
@@ -283,6 +326,8 @@ export {
 export type {
   Command,
   CommandAttachment,
+  CommandSchedule,
+  ScheduleRecipient,
   CommandsState,
   CommandChipProps,
   CommandDrawerProps,
@@ -356,9 +401,15 @@ export { TiptapEditor, EditorToolbar } from './TiptapEditor';
 export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 
 // ============================================================================
-// REPORT TABLE (TanStack Table for data reports)
+// REPORT TABLE (Highcharts Grid Lite)
 // ============================================================================
-export { ReportTable } from './ReportTable';
+export {
+  ReportTable,
+  buildGridOptions,
+  rowsToDataTableColumns,
+  createCellFormatter,
+  formatValue,
+} from './ReportTable';
 export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
 
 // ============================================================================
@@ -448,3 +499,45 @@ export type { UseIsTruncatedReturn } from '../hooks';
 
 export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
+
+// ============================================================================
+// FILTER
+// ============================================================================
+export { FilterButton } from './forms/filter';
+export type { FilterButtonProps, FilterField, FilterCondition, FilterGroup } from './forms/filter';
+
+// ============================================================================
+// DASHBOARD (View-only dashboard display components)
+// ============================================================================
+export {
+  DashboardGrid,
+  WidgetShell,
+  WidgetRenderer,
+  ChartWidget,
+  CounterWidget,
+  TextWidget,
+  DashboardLayout,
+  DashboardCustomizationProvider,
+  useDashboardCustomization,
+  chartThemes,
+  chartThemeIds,
+  multiSwatchColors,
+} from './Dashboard';
+export type {
+  DashboardGridProps,
+  WidgetShellProps,
+  WidgetRendererProps,
+  ChartWidgetProps,
+  CounterWidgetProps,
+  TextWidgetProps,
+  WidgetConfig,
+  WidgetType,
+  GridConfig,
+  LayoutItem,
+  ChartWidgetConfig,
+  CounterWidgetConfig,
+  TextWidgetConfig,
+  DashboardCustomizationState,
+  ChartThemeId,
+  ChartThemePalette,
+} from './Dashboard';

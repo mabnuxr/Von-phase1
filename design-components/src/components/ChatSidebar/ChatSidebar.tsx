@@ -61,7 +61,7 @@ export interface ChatSidebarProps {
    * Ref for infinite scroll trigger element
    * Attach this to a div at the bottom of the list for infinite scroll
    */
-  loadMoreRef?: React.RefObject<HTMLDivElement | null>;
+  loadMoreRef?: React.Ref<HTMLDivElement | null>;
 
   /**
    * Whether currently fetching more items

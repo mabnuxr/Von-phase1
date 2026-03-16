@@ -10,7 +10,7 @@
 
 import { Profiler } from "react";
 import { Chat, FilePreviewModal } from "@vonlabs/design-components";
-import type { AgentMode } from "@vonlabs/design-components";
+import type { ConversationMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming } from "../types/conversation";
 import type { User } from "../services";
@@ -20,6 +20,7 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ArtifactPaneContainer } from "./ArtifactPaneContainer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import { useTeamMembers } from "../hooks/useTeam";
 
 export interface ChatV1ContainerProps {
   conversationId: string;
@@ -30,7 +31,7 @@ export interface ChatV1ContainerProps {
   hasNextMessagePage: boolean;
   isFetchingNextMessagePage: boolean;
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -40,7 +41,8 @@ export interface ChatV1ContainerProps {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  isScheduledCommandsEnabled: boolean;
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
 }
@@ -52,7 +54,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isFetchingNextMessagePage,
     fetchNextMessagePage,
     hasNextMessagePage,
-    lockedAgentMode,
+    lockedConversationMode,
     isAgentLocked,
     canSubmit,
     onDisabledInteraction,
@@ -60,7 +62,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isSlashCommandsEnabled,
     isActionsEnabled,
     isDeepLinksEnabled,
-    isFileUploadEnabled,
+    isScheduledCommandsEnabled,
     banner,
   } = props;
 
@@ -91,7 +93,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     user: props.user,
     conversationMessages: props.conversationMessages,
     refetchMessages: props.refetchMessages,
-    lockedAgentMode: props.lockedAgentMode,
+    lockedConversationMode: props.lockedConversationMode,
     isAgentLocked: props.isAgentLocked,
     canSubmit: props.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction,
@@ -102,7 +104,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isDeepLinksEnabled: props.isDeepLinksEnabled,
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
-    syncAgentModeToBackend: props.syncAgentModeToBackend,
+    syncConversationModeToBackend: props.syncConversationModeToBackend,
   });
 
   const loadMoreMessagesRef = useInfiniteScroll({
@@ -120,7 +122,30 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     handleRequestFilePreviewUrl,
     handleDeleteCommand,
     handleToggleFavorite,
+    handleSendTest,
   } = useCommandsPanel(user?.id);
+
+  const { data: teamMembersData } = useTeamMembers(
+    isScheduledCommandsEnabled ? user?.tenantId : undefined,
+  );
+  const teamMembersForSchedule = isScheduledCommandsEnabled
+    ? (teamMembersData ?? []).map((m) => ({
+        id: m.id,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
+      }))
+    : undefined;
+  const currentUserRecipient =
+    isScheduledCommandsEnabled && user
+      ? {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+          lastName:
+            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+        }
+      : undefined;
 
   return (
     <Profiler id="ChatV1Container" onRender={reportRenderTiming}>
@@ -157,6 +182,9 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
         isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+        teamMembers={teamMembersForSchedule}
+        currentUser={currentUserRecipient}
+        onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
@@ -166,8 +194,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         thinkingProcessVersion="v1"
         useStandardInput={false}
         isAgentLocked={isAgentLocked}
-        lockedAgentMode={lockedAgentMode}
-        showPlusMenu={isFileUploadEnabled}
+        lockedConversationMode={lockedConversationMode}
         controlledAttachments={fileAttachmentState}
         onRemoveAttachment={handleRemoveAttachment}
         onFilesSelected={handleFilesSelected}

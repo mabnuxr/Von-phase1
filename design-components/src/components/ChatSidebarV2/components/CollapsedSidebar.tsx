@@ -47,7 +47,7 @@ export interface CollapsedSidebarProps {
   onAvatarClick: () => void;
   onCloseProfile: () => void;
   onSettingsClick?: () => void;
-  onHelpClick?: () => void;
+
   onSignOutClick?: () => void;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
@@ -94,14 +94,13 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onAvatarClick,
   onCloseProfile,
   onSettingsClick,
-  onHelpClick,
   onSignOutClick,
   isNewChatActive = false,
   sortedFolders,
   itemsByFolder,
 }) => {
   return (
-    <div className="px-2 py-3 h-full w-full bg-transparent flex text-sm flex-col antialiased font-sf">
+    <div className="px-2 py-3 h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
       <div className="flex flex-col items-start pb-2 border-b border-gray-100 mb-2">
         <TertiaryIconButton
@@ -281,13 +280,9 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
         <ProfilePopover
           isOpen={isProfileOpen}
           onClose={onCloseProfile}
-          userName={userName}
           userEmail={userEmail}
-          avatarSrc={avatarSrc}
-          avatarLabel={avatarLabel}
           position={popoverPosition}
           onSettingsClick={onSettingsClick}
-          onHelpClick={onHelpClick}
           onSignOutClick={onSignOutClick}
         />
       )}

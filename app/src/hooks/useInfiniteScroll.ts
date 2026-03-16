@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { INFINITE_SCROLL_THRESHOLD } from "../config/constants";
 
 /**
@@ -16,7 +16,8 @@ interface UseInfiniteScrollOptions {
 /**
  * Hook for infinite scroll using Intersection Observer
  *
- * Automatically triggers onLoadMore when the ref element becomes visible
+ * Uses a callback ref so the observer is correctly attached whenever
+ * the sentinel element mounts (e.g. after a collapsed sidebar expands).
  *
  * @example
  * ```tsx
@@ -39,32 +40,32 @@ export function useInfiniteScroll({
   hasMore,
   isLoading,
 }: UseInfiniteScrollOptions) {
-  const observerRef = useRef<HTMLDivElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  useEffect(() => {
-    // Don't observe if no more items or currently loading
-    if (!hasMore || isLoading) return;
+  const callbackRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      // Disconnect previous observer
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Trigger load more when element is visible
-        if (entries[0].isIntersecting) {
-          onLoadMore();
-        }
-      },
-      { threshold: INFINITE_SCROLL_THRESHOLD },
-    );
+      // Don't observe if no node, no more items, or currently loading
+      if (!node || !hasMore || isLoading) return;
 
-    const currentRef = observerRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            onLoadMore();
+          }
+        },
+        { threshold: INFINITE_SCROLL_THRESHOLD },
+      );
 
-    // Cleanup observer on unmount or dependency change
-    return () => {
-      observer.disconnect();
-    };
-  }, [hasMore, isLoading, onLoadMore]);
+      observerRef.current.observe(node);
+    },
+    [hasMore, isLoading, onLoadMore],
+  );
 
-  return observerRef;
+  return callbackRef;
 }

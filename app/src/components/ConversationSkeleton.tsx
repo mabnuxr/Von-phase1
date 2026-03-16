@@ -1,10 +1,10 @@
 import { ChatSkeleton } from "@vonlabs/design-components";
 
 /**
- * Full-page skeleton that mimics the Dashboard layout.
+ * Full-page skeleton that mimics the Conversation layout.
  * Used as a loading state while the app initializes (e.g., LaunchDarkly).
  */
-export const DashboardSkeleton = () => {
+export const ConversationSkeleton = () => {
   return (
     <div className="h-screen bg-gray-100 flex flex-col overflow-hidden">
       {/* TopBar skeleton */}

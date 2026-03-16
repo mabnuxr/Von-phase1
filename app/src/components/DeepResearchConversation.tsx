@@ -11,7 +11,13 @@
  * This component is rendered instead of Chat when in deep research mode.
  */
 
-import React, { useCallback, useMemo, useState, useRef } from "react";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import {
   DeepResearchChat,
   DeepResearchNotificationBar,
@@ -20,6 +26,7 @@ import {
   useAutoScroll,
   ScrollToBottomButton,
 } from "@vonlabs/design-components";
+import { ConversationMode } from "@vonlabs/design-components";
 import type {
   Message,
   SendMessageOptions,
@@ -32,6 +39,7 @@ interface ChatInputSelectorRef {
 }
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
+import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 
 export interface ResearchResultsState {
@@ -68,6 +76,14 @@ export interface DeepResearchConversationProps {
   researchResults?: ResearchResultsState;
   /** Whether deep research is currently running */
   isDeepResearchRunning?: boolean;
+  /** Dashboard metadata (when dashboard is created) */
+  dashboard?: {
+    dashboard_id: string;
+    dashboard_name: string;
+    dashboard_version: number;
+    panel_count: number;
+    query_count: number;
+  };
   /** Callback when message is sent */
   onSendMessage?: (
     content: string,
@@ -95,12 +111,24 @@ export interface DeepResearchConversationProps {
   onInputWhileDisabled?: () => void;
   /** Whether slash commands are enabled */
   enableCommands?: boolean;
-  /** Whether to show the plus menu (file upload) */
-  showPlusMenu?: boolean;
   /** Callback when thumbs up is clicked */
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
+  /** The locked agent mode to display in the chat input */
+  lockedConversationMode?: ConversationMode;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
+  /** Callback to load older messages (infinite scroll) */
+  fetchNextMessagePage?: () => void;
+  /** Whether there are more messages to load */
+  hasNextMessagePage?: boolean;
+  /** Whether currently fetching older messages */
+  isFetchingNextMessagePage?: boolean;
+  /** Callback when dashboard expand button is clicked (opens preview pane) */
+  onDashboardPreview?: () => void;
+  /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
+  onDashboardOpen?: () => void;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -112,6 +140,7 @@ export const DeepResearchConversation: React.FC<
   conversationId,
   researchResults,
   isDeepResearchRunning = false,
+  dashboard,
   onSendMessage,
   onStopStreaming,
   onArtifactClick,
@@ -121,9 +150,15 @@ export const DeepResearchConversation: React.FC<
   disableSubmit = false,
   onInputWhileDisabled,
   enableCommands = false,
-  showPlusMenu = false,
   onLike,
   onDislike,
+  lockedConversationMode = ConversationMode.DashboardBuilder,
+  availableAgentModes,
+  fetchNextMessagePage,
+  hasNextMessagePage,
+  isFetchingNextMessagePage,
+  onDashboardPreview,
+  onDashboardOpen,
 }) => {
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
@@ -162,6 +197,14 @@ export const DeepResearchConversation: React.FC<
   // Can open drawers when either sample run or full analysis is complete
   const canOpenDrawers = isSampleRunComplete || isFullAnalysisComplete;
 
+  // Reset hasSkipped when a new plan is generated
+  // This ensures approval buttons show for the new plan after user rejects previous plan
+  useEffect(() => {
+    if (isSampleRunComplete && lastAssistantRunId) {
+      setHasSkipped(false);
+    }
+  }, [lastAssistantRunId, isSampleRunComplete]);
+
   // Fetch artifact summaries for both drawers when either sample run or full analysis completes
   const {
     dataTablesInfo: vonIqDataTablesInfo,
@@ -185,11 +228,10 @@ export const DeepResearchConversation: React.FC<
     enabled: canOpenDrawers,
   });
 
-  // Handle DataTablesCard click - opens DataTables drawer (during approval flow)
+  // Handle DataTablesCard click - opens Transparency drawer to show all artifacts
   const handleDataTablesClick = useCallback(() => {
     if (lastAssistantRunId && isSampleRunComplete) {
-      setDataTablesRunId(lastAssistantRunId);
-      setIsDataTablesOpen(true);
+      setIsTransparencyDrawerOpen(true);
     }
   }, [lastAssistantRunId, isSampleRunComplete]);
 
@@ -237,6 +279,13 @@ export const DeepResearchConversation: React.FC<
   const { containerRef, scrollToBottom, showScrollButton, onBeforeSend } =
     useAutoScroll([messages], isStreaming);
 
+  // Infinite scroll for loading older messages
+  const loadMoreMessagesRef = useInfiniteScroll({
+    onLoadMore: fetchNextMessagePage || (() => {}),
+    hasMore: !!hasNextMessagePage,
+    isLoading: !!isFetchingNextMessagePage,
+  });
+
   // Wrap onSendMessage to trigger scroll before sending
   const handleSendMessage = useCallback(
     (
@@ -257,6 +306,19 @@ export const DeepResearchConversation: React.FC<
         ref={containerRef}
         className="flex-1 overflow-y-auto flex flex-col bg-white settings-scrollbar"
       >
+        {/* Infinite scroll trigger at TOP (for loading older messages) */}
+        {loadMoreMessagesRef && (
+          <div ref={loadMoreMessagesRef} className="h-px" />
+        )}
+
+        {/* Loading indicator for older messages */}
+        {isFetchingNextMessagePage && (
+          <div className="text-center py-3 text-xs text-gray-500">
+            <span className="inline-block animate-spin">⟳</span> Loading older
+            messages...
+          </div>
+        )}
+
         <DeepResearchChat
           messages={messages}
           userName={userName}
@@ -265,6 +327,7 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
+          dashboard={dashboard ?? undefined}
           onSendMessage={(content) => handleSendMessage(content)}
           onSkip={handleSkip}
           hasSkipped={hasSkipped}
@@ -275,6 +338,8 @@ export const DeepResearchConversation: React.FC<
           onReject={onReject}
           onLike={onLike}
           onDislike={onDislike}
+          onDashboardPreview={onDashboardPreview}
+          onDashboardOpen={onDashboardOpen}
         />
 
         {/* Scroll to bottom button */}
@@ -303,8 +368,8 @@ export const DeepResearchConversation: React.FC<
           disableSubmit={disableSubmit}
           onDisabledInput={onInputWhileDisabled}
           isAgentLocked={true}
-          lockedAgentMode="deep-research"
-          showPlusMenu={showPlusMenu}
+          lockedConversationMode={lockedConversationMode}
+          availableAgentModes={availableAgentModes}
         />
       )}
 

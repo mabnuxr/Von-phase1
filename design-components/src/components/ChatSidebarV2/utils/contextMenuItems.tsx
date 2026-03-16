@@ -42,3 +42,20 @@ export function getFolderContextMenuItems(options: { isPinned?: boolean } = {}):
     { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' as const },
   ];
 }
+
+/**
+ * Get context menu items for dashboards (same actions as folders)
+ */
+export function getDashboardContextMenuItems(
+  options: { isPinned?: boolean } = {}
+): ContextMenuItem[] {
+  return [
+    {
+      id: 'pin',
+      label: options.isPinned ? 'Unpin' : 'Pin',
+      icon: options.isPinned ? <PushPinSimpleSlashIcon size={14} /> : <PushPinIcon size={14} />,
+    },
+    { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
+    { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' as const },
+  ];
+}

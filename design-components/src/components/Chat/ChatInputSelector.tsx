@@ -1,10 +1,18 @@
-import { forwardRef, useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from 'react';
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
-import type { BuildMode } from './StandardChatInput/types';
+import type { BuildMode, ReferenceContext } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
-import type { AgentMode } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
 import { CommandsOverlay } from '../Commands';
 import type { Command } from '../Commands';
@@ -16,10 +24,13 @@ export type { SendMessageOptions } from './types';
 // Re-export StandardChatInputRef as ChatInputSelectorRef for consumers
 export type ChatInputSelectorRef = StandardChatInputRef;
 
-import { getPlainText } from './utils/text';
+import { getPlainText, stripMentionHtml } from './utils/text';
 import { useCommandInputState } from './hooks/useCommandInputState';
 import { useCommandsKeyboardNav } from './hooks/useCommandsKeyboardNav';
+import { useMentions } from './hooks/useMentions';
 import { CommandNotificationBar } from './CommandNotificationBar';
+import { MentionsOverlay } from '../Mentions';
+import type { MentionItem } from '../Mentions';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -70,9 +81,7 @@ export interface ChatInputSelectorProps {
   /** Whether agent selection is locked (after first message) */
   isAgentLocked?: boolean;
   /** The agent mode to display when locked (from backend) */
-  lockedAgentMode?: AgentMode;
-  /** Whether to show the plus menu button (with agents and upload options) */
-  showPlusMenu?: boolean;
+  lockedConversationMode?: ConversationMode;
   /** Controlled file attachments (when provided, input uses controlled mode) */
   attachments?: FileAttachment[];
   /** Callback when a file is removed in controlled mode */
@@ -106,12 +115,43 @@ export interface ChatInputSelectorProps {
   isSavingCommand?: boolean;
   /** When true, the "Org-wide" sharing option is available in the command drawer */
   isAdmin?: boolean;
+  /** Team members available as schedule recipients */
+  teamMembers?: import('../Commands/types').ScheduleRecipient[];
+  /** Current user — auto-added as recipient when schedule is first enabled */
+  currentUser?: import('../Commands/types').ScheduleRecipient;
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /** Fetches a presigned download URL for a command's already-uploaded data source file */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when picked in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  onSendTest?: (
+    data: Pick<Command, 'name' | 'prompt'>,
+    dataSources: import('../Commands/types').CommandAttachment[],
+    recipients: import('../Commands/types').ScheduleRecipient[]
+  ) => void;
+  /** Agent modes available for selection in the plus menu */
+  availableAgentModes?: ConversationMode[];
+  /** Reference context shown above the input (dashboard/widget context) */
+  referenceContext?: ReferenceContext;
+  /** Callback when the reference context is removed */
+  onRemoveReference?: () => void;
+
+  // -------------------------------------------------------------------------
+  // @ Mention props
+  // -------------------------------------------------------------------------
+
+  /** Enable @ mentions feature */
+  enableMentions?: boolean;
+  /** Available mention items (e.g. dashboards) for the @ overlay */
+  mentionItems?: MentionItem[];
+  /** Loading state for mention items */
+  isLoadingMentions?: boolean;
+  /** Called when a mention is selected from the @ overlay */
+  onSelectMention?: (item: MentionItem) => void;
+  /** Called when the user first types "@" — use to lazy-load mention items */
+  onMentionsActivated?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -145,8 +185,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       mode,
       onModeChange,
       isAgentLocked,
-      lockedAgentMode,
-      showPlusMenu,
+      lockedConversationMode,
       attachments: controlledAttachments,
       onRemoveAttachment,
       onFilesSelected,
@@ -159,9 +198,21 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onDeleteCommand,
       isSavingCommand = false,
       isAdmin = false,
+      teamMembers,
+      currentUser,
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      onSendTest,
+      availableAgentModes,
+      referenceContext,
+      onRemoveReference,
+      // Mention props
+      enableMentions = false,
+      mentionItems = [],
+      isLoadingMentions = false,
+      onSelectMention: onSelectMentionProp,
+      onMentionsActivated,
     },
     ref
   ) => {
@@ -245,13 +296,43 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       [onDeleteCommand, selectedCommand, clearSelectedCommand]
     );
 
-    const buildCommandStrip = (command: Command) => (
-      <CommandStrip
-        command={command}
-        onRemove={clearSelectedCommand}
-        onRequestFilePreviewUrl={onRequestFilePreviewUrl}
-      />
+    // -----------------------------------------------------------------------
+    // @ Mention state — powered by Tiptap's suggestion plugin
+    // -----------------------------------------------------------------------
+    const {
+      mentionExtension,
+      suggestionState: mentionSuggestionState,
+      filteredItems: filteredMentionItems,
+      highlightedIndex: mentionHighlightedIndex,
+      setHighlightedIndex: setMentionHighlightedIndex,
+      handleSelectMention,
+      handleCloseMentionsList,
+      extractMentions,
+    } = useMentions({
+      enableMentions,
+      mentionItems,
+      isLoadingMentions,
+      onSelectMention: onSelectMentionProp,
+      onMentionsActivated,
+    });
+
+    // Build additionalExtensions array for TiptapEditor — stable reference
+    // to avoid unnecessary re-renders. mentionExtension is already memoized
+    // by useMentions, so this only changes when the extension itself changes.
+    const additionalExtensions = useMemo(
+      () => (mentionExtension ? [mentionExtension] : []),
+      [mentionExtension]
     );
+
+    // contextBar: only command strip (mentions are now inline chips)
+    const contextBar =
+      enableCommands && selectedCommand ? (
+        <CommandStrip
+          command={selectedCommand}
+          onRemove={clearSelectedCommand}
+          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+        />
+      ) : undefined;
 
     // -----------------------------------------------------------------------
     // Build props shared across all input variants
@@ -297,9 +378,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         droppedFiles={droppedFiles}
         onDroppedFilesProcessed={onDroppedFilesProcessed}
         autoFocus={autoFocus}
-        contextBar={
-          enableCommands && selectedCommand ? buildCommandStrip(selectedCommand) : undefined
-        }
+        contextBar={contextBar}
         onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
       />
     );
@@ -315,18 +394,19 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         mode,
         onModeChange,
         isAgentLocked,
-        lockedAgentMode,
-        showPlusMenu,
+        lockedConversationMode,
         attachments: controlledAttachments,
         onRemoveAttachment,
         onFilesSelected,
         fileErrorMessage,
         onDismissFileError,
+        referenceContext,
+        onRemoveReference,
       };
 
-      // Wrap onSend to handle command execution
+      // Wrap onSend to handle command execution + mention extraction
       const standardOnSend = onSend
-        ? (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+        ? (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => {
             if (selectedCommand) {
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
@@ -336,7 +416,16 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               if (fileCount > 0) setCommandNotificationFileCount(fileCount);
               return;
             }
-            onSend(message, attachments, { agentMode });
+            // Extract inline mention chips from the editor before it gets cleared
+            const editor = standardInputRef.current?.getEditor?.() ?? null;
+            const mentions = extractMentions(editor);
+            // When mention chips are present, the markdown contains raw HTML
+            // <span> tags. Strip them to plain @Label while preserving formatting.
+            const finalMessage = mentions.length > 0 ? stripMentionHtml(message) : message;
+            onSend(finalMessage, attachments, {
+              agentMode,
+              ...(mentions.length > 0 ? { mentions } : {}),
+            });
             dismissCommandsList();
           }
         : undefined;
@@ -348,10 +437,13 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           onSend={standardOnSend}
           enableCommands={enableCommands}
           ghostCommandName={ghostCommandName}
-          contextBar={selectedCommand ? buildCommandStrip(selectedCommand) : undefined}
+          contextBar={contextBar}
           onCloseCommandsList={
             enableCommands && showCommandsList ? handleCloseCommandsList : undefined
           }
+          availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
+          additionalExtensions={additionalExtensions}
         />
       );
     }
@@ -377,12 +469,27 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onDeleteCommand={handleDeleteCommand}
             isSaving={isSavingCommand}
             isAdmin={isAdmin}
+            teamMembers={teamMembers}
+            currentUser={currentUser}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
+            onSendTest={onSendTest}
             highlightedIndex={highlightedIndex}
             onHoverIndex={setHighlightedIndex}
             slashRect={slashRect}
+          />
+        )}
+        {enableMentions && (
+          <MentionsOverlay
+            showMentionsList={mentionSuggestionState.isOpen}
+            items={filteredMentionItems}
+            isLoading={isLoadingMentions}
+            onSelect={handleSelectMention}
+            onClose={handleCloseMentionsList}
+            highlightedIndex={mentionHighlightedIndex}
+            onHoverIndex={setMentionHighlightedIndex}
+            anchorRect={mentionSuggestionState.anchorRect}
           />
         )}
         {chatInput}

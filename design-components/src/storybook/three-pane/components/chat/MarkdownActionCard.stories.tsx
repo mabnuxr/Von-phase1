@@ -109,7 +109,7 @@ export const AnalysisRequest: Story = {
     variant: 'analysis-request',
     markdown: analysisRequestMarkdown,
     primaryAction: {
-      label: 'Run Full Analysis',
+      label: 'Create Dashboard',
       onClick: () => console.log('Running full analysis'),
     },
     secondaryAction: {

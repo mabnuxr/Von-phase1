@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Editor, Extension } from '@tiptap/react';
 import type { FileAttachment } from '../FileAttachment/types';
 /**
  * Build mode for ask/build toggle
@@ -47,9 +48,15 @@ export interface ActivePopover {
 }
 
 /**
- * Agent mode type for agent selection
+ * Conversation mode — determines which agent/workflow handles a conversation.
+ * Shared between frontend and backend.
  */
-export type AgentMode = 'auto' | 'build-dashboard' | 'deep-research';
+export const ConversationMode = {
+  Auto: 'auto',
+  DashboardBuilder: 'dashboard-builder',
+} as const;
+
+export type ConversationMode = (typeof ConversationMode)[keyof typeof ConversationMode];
 
 /**
  * Ref handle for StandardChatInput, exposing imperative methods
@@ -59,6 +66,8 @@ export interface StandardChatInputRef {
   focus: () => void;
   /** Returns the viewport coordinates of the current caret position */
   getCaretRect?: () => { left: number; top: number; bottom: number } | null;
+  /** Returns the underlying Tiptap editor instance */
+  getEditor?: () => Editor | null;
 }
 
 export interface StandardChatInputProps {
@@ -72,7 +81,7 @@ export interface StandardChatInputProps {
    * Callback when send/enter is pressed
    * Includes the selected agent mode for the message
    */
-  onSend?: (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => void;
+  onSend?: (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => void;
 
   /**
    * Callback when stop button is clicked during streaming
@@ -238,12 +247,6 @@ export interface StandardChatInputProps {
   hideDisclaimer?: boolean;
 
   /**
-   * Whether to show the plus menu button (with agents and upload options)
-   * @default false
-   */
-  showPlusMenu?: boolean;
-
-  /**
    * Callback when files are selected via plus menu or drag-drop in controlled mode.
    * Only fires when `attachments` prop is provided (controlled mode).
    * Parent is responsible for validation and state management.
@@ -256,7 +259,7 @@ export interface StandardChatInputProps {
 
   /**
    * Whether agent selection is locked (e.g., after first message in conversation)
-   * When true, the agent selector will be disabled and show lockedAgentMode
+   * When true, the agent selector will be disabled and show lockedConversationMode
    * @default false
    */
   isAgentLocked?: boolean;
@@ -266,7 +269,7 @@ export interface StandardChatInputProps {
    * Only used when isAgentLocked is true
    * @default 'auto'
    */
-  lockedAgentMode?: AgentMode;
+  lockedConversationMode?: ConversationMode;
 
   // ============================================================================
   // File Error Props
@@ -299,4 +302,22 @@ export interface StandardChatInputProps {
 
   /** Ghost command name shown as inline typeahead next to "/" */
   ghostCommandName?: string | null;
+
+  /**
+   * Agent modes available for selection in the plus menu.
+   * When more than just "Auto" is provided, the Agents submenu is shown.
+   * @default [ConversationMode.Auto]
+   */
+  availableAgentModes?: ConversationMode[];
+
+  /**
+   * Whether to show the Upload option in the plus menu.
+   * @default false
+   */
+  enableFileUpload?: boolean;
+
+  /**
+   * Extra Tiptap extensions to inject into the editor (e.g. mention chip).
+   */
+  additionalExtensions?: Extension[];
 }

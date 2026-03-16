@@ -12,16 +12,17 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
 import type {
-  AgentMode,
   SendMessageOptions,
   FileAttachment,
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 
+import { ConversationMode } from "@vonlabs/design-components";
+import { ReferenceType } from "../types/conversation";
 import type {
   MessageWithStreaming,
   Conversation,
-  ConversationMode,
+  MessageReference,
 } from "../types/conversation";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
@@ -50,7 +51,7 @@ export interface UseChatV2Props {
   currentConversation: Conversation;
   conversationMessages: MessageWithStreaming[];
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -60,8 +61,10 @@ export interface UseChatV2Props {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   onCollapseSidebar: () => void;
+  /** References (dashboard/widget context) to send with each message */
+  references?: MessageReference[];
 }
 
 export function useChatV2(props: UseChatV2Props) {
@@ -71,19 +74,26 @@ export function useChatV2(props: UseChatV2Props) {
     currentConversation,
     conversationMessages,
     refetchMessages,
-    lockedAgentMode,
-    isAgentLocked,
-    syncAgentModeToBackend,
+    lockedConversationMode,
+    syncConversationModeToBackend,
     onCollapseSidebar,
+    references,
   } = props;
 
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
 
-  const chatType: ConversationMode = currentConversation.mode || "auto";
+  const chatType: ConversationMode =
+    currentConversation.mode || ConversationMode.Auto;
+
+  // Deep research mode is active if:
+  // 1. Agent is locked to dashboard-builder (has messages), OR
+  // 2. Conversation mode is dashboard-builder (backend confirmed)
   const isDeepResearchMode =
-    lockedAgentMode === "deep-research" && isAgentLocked;
+    (lockedConversationMode === ConversationMode.DashboardBuilder ||
+      chatType === ConversationMode.DashboardBuilder) &&
+    conversationMessages.length > 0;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -384,6 +394,7 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
+        phase: v2Processor.phase,
       }),
     [
       conversationMessages,
@@ -397,6 +408,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
+      v2Processor.phase,
     ],
   );
 
@@ -406,12 +418,18 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   // Tool approval/rejection
+  const { resumeTimer, pauseTimerOnApprovalFailure } = v2Processor;
   const handleApproval = useCallback(
     async (toolCallId: string, runId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
-      await handleToolApproval(toolCallId, effectiveRunId, conversationId);
+      resumeTimer();
+      try {
+        await handleToolApproval(toolCallId, effectiveRunId, conversationId);
+      } catch {
+        pauseTimerOnApprovalFailure();
+      }
     },
-    [conversationId],
+    [conversationId, resumeTimer, pauseTimerOnApprovalFailure],
   );
 
   const handleRejection = useCallback(
@@ -485,7 +503,8 @@ export function useChatV2(props: UseChatV2Props) {
       const currentMessages =
         useChatStore.getState().messages[conversationId] || [];
       if (currentMessages.length === 0 && options?.agentMode) {
-        await syncAgentModeToBackend(options.agentMode);
+        // Update conversation mode before sending first message
+        await syncConversationModeToBackend(options.agentMode);
       }
 
       let fileAttachments;
@@ -498,10 +517,28 @@ export function useChatV2(props: UseChatV2Props) {
         }
       }
 
+      // Merge static references (e.g. dashboard page) with dynamic mention references
+      const mentionRefs: MessageReference[] = (options?.mentions ?? []).map(
+        (m) => ({
+          refId: `${ReferenceType.Dashboard}-${m.id}`,
+          type: ReferenceType.Dashboard,
+          context: {
+            dashboardId: m.id,
+            dashboardVersion: m.version,
+            dashboardName: m.name,
+          },
+        }),
+      );
+      const allReferences =
+        mentionRefs.length > 0
+          ? [...(references ?? []), ...mentionRefs]
+          : references;
+
       sendMessage({
         conversationId,
         content,
         fileAttachments,
+        references: allReferences,
         command: options?.command
           ? {
               id: options.command.id,
@@ -530,8 +567,9 @@ export function useChatV2(props: UseChatV2Props) {
       hasFileAttachments,
       sendMessage,
       clearFileAttachments,
-      syncAgentModeToBackend,
+      syncConversationModeToBackend,
       uploadPendingFiles,
+      references,
     ],
   );
 
@@ -551,6 +589,8 @@ export function useChatV2(props: UseChatV2Props) {
 
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
+    phase: v2Processor.phase,
+    dashboard: v2Processor.dashboard,
 
     // Messages
     transformedMessages,

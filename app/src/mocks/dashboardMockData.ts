@@ -67,7 +67,7 @@ export const mockConversations: Conversation[] = [
     userId: "user-123",
     tenantId: "tenant-456",
     title: "Deep Research: Churn Analysis",
-    mode: "deep_research",
+    mode: "auto",
     agentVersion: "v2",
     createdAt: "2024-01-13T08:00:00Z",
     createdBy: "user-123",
@@ -78,7 +78,7 @@ export const mockConversations: Conversation[] = [
     userId: "user-123",
     tenantId: "tenant-456",
     title: "Dashboard Builder: Sales Metrics",
-    mode: "dashboard_builder",
+    mode: "dashboard-builder",
     agentVersion: "v1",
     createdAt: "2024-01-12T11:00:00Z",
     createdBy: "user-123",
@@ -444,7 +444,7 @@ export const mockApprovalStep: TimelineStep = {
 
 export const mockDeepResearchApprovalStep: TimelineStep = {
   id: "step-dr-approval",
-  text: "Requesting approval to run full analysis",
+  text: "Requesting approval to create dashboard",
   status: "awaiting-approval",
   type: "approval",
   approval: {

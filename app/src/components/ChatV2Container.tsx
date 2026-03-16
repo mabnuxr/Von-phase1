@@ -11,24 +11,31 @@
  * on conversation switch (no stale state, no race conditions).
  */
 
-import { Profiler } from "react";
+import { Profiler, useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Chat,
   FilePreviewModal,
   ArtifactViewerPanel,
 } from "@vonlabs/design-components";
-import type { AgentMode } from "@vonlabs/design-components";
+import { ConversationMode } from "@vonlabs/design-components";
+import type { MentionItem } from "@vonlabs/design-components";
+import { MentionItemType } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming, Conversation } from "../types/conversation";
 import type { User } from "../services";
 import { config } from "../config";
 import { useChatV2 } from "../hooks/useChatV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
+import { useDashboardPane } from "../hooks/useDashboardPane";
+import { useDashboardList } from "../hooks/useDashboardList";
 import { DeepResearchConversation } from "./DeepResearchConversation";
+import { DashboardPreviewPane } from "./DashboardPreviewPane";
 import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
 
 export interface ChatV2ContainerProps {
@@ -41,7 +48,7 @@ export interface ChatV2ContainerProps {
   hasNextMessagePage: boolean;
   isFetchingNextMessagePage: boolean;
   refetchMessages: () => Promise<unknown>;
-  lockedAgentMode: AgentMode;
+  lockedConversationMode: ConversationMode;
   isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
@@ -52,7 +59,9 @@ export interface ChatV2ContainerProps {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   isArtifactsEnabled: boolean;
-  syncAgentModeToBackend: (mode: AgentMode) => Promise<void>;
+  isScheduledCommandsEnabled: boolean;
+  availableAgentModes?: ConversationMode[];
+  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
   onGoogleDriveClick?: (fileId: string) => void;
@@ -69,7 +78,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isFetchingNextMessagePage,
     fetchNextMessagePage,
     hasNextMessagePage,
-    lockedAgentMode,
+    lockedConversationMode,
     isAgentLocked,
     onDisabledInteraction,
     salesforceInstanceUrl,
@@ -77,15 +86,20 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isActionsEnabled,
     isDeepLinksEnabled,
     isSourcesEnabled,
-    isFileUploadEnabled,
     isArtifactsEnabled,
+    isFileUploadEnabled,
+    isScheduledCommandsEnabled,
+    availableAgentModes,
     banner,
     onGoogleDriveClick,
     isDriveEnabled,
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
+    onCollapseSidebar,
   } = props;
+
+  const navigate = useNavigate();
 
   const chatV2 = useChatV2({
     conversationId: props.conversationId,
@@ -93,7 +107,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     currentConversation: props.currentConversation,
     conversationMessages: props.conversationMessages,
     refetchMessages: props.refetchMessages,
-    lockedAgentMode: props.lockedAgentMode,
+    lockedConversationMode: props.lockedConversationMode,
     isAgentLocked: props.isAgentLocked,
     canSubmit: props.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction,
@@ -103,7 +117,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     isDeepLinksEnabled: props.isDeepLinksEnabled,
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
-    syncAgentModeToBackend: props.syncAgentModeToBackend,
+    syncConversationModeToBackend: props.syncConversationModeToBackend,
     onCollapseSidebar: props.onCollapseSidebar,
   });
 
@@ -122,44 +136,128 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     handleRequestFilePreviewUrl,
     handleDeleteCommand,
     handleToggleFavorite,
+    handleSendTest,
   } = useCommandsPanel(user?.id);
+
+  // @ Mention: lazily fetch dashboard list only after user types "@"
+  const [mentionsActivated, setMentionsActivated] = useState(false);
+  const handleMentionsActivated = useCallback(() => {
+    setMentionsActivated(true);
+  }, []);
+  const { data: dashboardListData, isLoading: isLoadingMentions } =
+    useDashboardList(mentionsActivated);
+
+  const mentionItems: MentionItem[] = useMemo(
+    () =>
+      dashboardListData?.data.map((d) => ({
+        id: d.dashboard_id,
+        name: d.dashboard_name,
+        type: MentionItemType.Dashboard,
+        version: d.dashboard_version,
+      })) ?? [],
+    [dashboardListData],
+  );
+
+  // Dashboard preview pane state
+  const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
+    useDashboardPane();
+
+  // Dashboard arrow-right button: open artifact preview pane & collapse sidebar
+  const handleDashboardPreview = useCallback(() => {
+    const dashboardId = chatV2.dashboard?.dashboard_id;
+    if (dashboardId) {
+      openDashboardPane(dashboardId);
+      onCollapseSidebar();
+    }
+  }, [chatV2.dashboard?.dashboard_id, openDashboardPane, onCollapseSidebar]);
+
+  // Dashboard expand button: navigate to full dashboard page
+  const handleDashboardOpen = useCallback(() => {
+    const dashboardId = chatV2.dashboard?.dashboard_id;
+    if (dashboardId) {
+      navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
+    }
+  }, [chatV2.dashboard?.dashboard_id, conversationId, navigate]);
+
+  const { data: teamMembersData } = useTeamMembers(
+    isScheduledCommandsEnabled ? user?.tenantId : undefined,
+  );
+  const teamMembersForSchedule = isScheduledCommandsEnabled
+    ? (teamMembersData ?? []).map((m) => ({
+        id: m.id,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
+      }))
+    : undefined;
+  const currentUserRecipient =
+    isScheduledCommandsEnabled && user
+      ? {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+          lastName:
+            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+        }
+      : undefined;
 
   return (
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
         /* Deep Research Mode */
-        <>
-          {banner}
-          {chatV2.writeBlocked && (
-            <div className="w-full max-w-4xl mx-auto mb-2 px-2">
-              <WriteBlockedBanner
-                writeBlocked={chatV2.writeBlocked}
-                onDismiss={chatV2.dismissWriteBlocked}
-              />
-            </div>
+        <div className="flex h-full w-full gap-1">
+          <div
+            className={`min-w-0 flex flex-col ${dashboardPaneState.isOpen ? "flex-shrink-0" : "flex-1"}`}
+            style={dashboardPaneState.isOpen ? { width: 480 } : undefined}
+          >
+            {banner}
+            {chatV2.writeBlocked && (
+              <div className="w-full max-w-4xl mx-auto mb-2 px-2">
+                <WriteBlockedBanner
+                  writeBlocked={chatV2.writeBlocked}
+                  onDismiss={chatV2.dismissWriteBlocked}
+                />
+              </div>
+            )}
+            <DeepResearchConversation
+              messages={chatV2.transformedMessages}
+              userName={user?.firstName || user?.name?.split(" ")[0]}
+              userEmail={user?.email}
+              conversationId={conversationId}
+              researchResults={chatV2.effectiveResearchResults ?? undefined}
+              isDeepResearchRunning={chatV2.isDeepResearchRunning}
+              dashboard={chatV2.dashboard ?? undefined}
+              lockedConversationMode={lockedConversationMode}
+              onSendMessage={chatV2.handleSendMessage}
+              onStopStreaming={chatV2.handleStopStreaming}
+              onArtifactClick={chatV2.handleArtifactClick}
+              onApprove={chatV2.handleApproval}
+              onReject={chatV2.handleRejection}
+              placeholder="Ask von anything"
+              disableSubmit={!chatV2.canSubmitFinal}
+              onInputWhileDisabled={onDisabledInteraction}
+              enableCommands={isSlashCommandsEnabled}
+              availableAgentModes={availableAgentModes}
+              fetchNextMessagePage={fetchNextMessagePage}
+              hasNextMessagePage={hasNextMessagePage}
+              isFetchingNextMessagePage={isFetchingNextMessagePage}
+              onDashboardPreview={handleDashboardPreview}
+              onDashboardOpen={handleDashboardOpen}
+            />
+          </div>
+
+          {/* Dashboard Preview Pane */}
+          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
+            <DashboardPreviewPane
+              dashboardId={dashboardPaneState.dashboardId}
+              conversationId={conversationId}
+              onClose={closeDashboardPane}
+            />
           )}
-          <DeepResearchConversation
-            messages={chatV2.transformedMessages}
-            userName={user?.firstName || user?.name?.split(" ")[0]}
-            userEmail={user?.email}
-            conversationId={conversationId}
-            researchResults={chatV2.effectiveResearchResults ?? undefined}
-            isDeepResearchRunning={chatV2.isDeepResearchRunning}
-            onSendMessage={chatV2.handleSendMessage}
-            onStopStreaming={chatV2.handleStopStreaming}
-            onArtifactClick={chatV2.handleArtifactClick}
-            onApprove={chatV2.handleApproval}
-            onReject={chatV2.handleRejection}
-            placeholder="Ask von anything"
-            disableSubmit={!chatV2.canSubmitFinal}
-            onInputWhileDisabled={onDisabledInteraction}
-            enableCommands={isSlashCommandsEnabled}
-            showPlusMenu={isFileUploadEnabled}
-          />
-        </>
+        </div>
       ) : (
         /* Regular V2 Mode */
-        <div className="flex h-full w-full gap-2">
+        <div className="flex h-full w-full gap-1">
           <div className="flex-1 min-w-0">
             <Chat
               title="von AI"
@@ -204,6 +302,11 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               onDeleteCommand={handleDeleteCommand}
               isSavingCommand={isSavingCommand}
               isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+              teamMembers={teamMembersForSchedule}
+              currentUser={currentUserRecipient}
+              onSendTest={
+                isScheduledCommandsEnabled ? handleSendTest : undefined
+              }
               onToggleFavorite={handleToggleFavorite}
               onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
               onUploadFile={handleUploadFile}
@@ -217,8 +320,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               thinkingProcessVersion="v2"
               useStandardInput={true}
               isAgentLocked={isAgentLocked}
-              lockedAgentMode={lockedAgentMode}
-              showPlusMenu={isFileUploadEnabled}
+              lockedConversationMode={lockedConversationMode}
               controlledAttachments={chatV2.fileAttachmentState}
               onRemoveAttachment={chatV2.handleRemoveAttachment}
               onFilesSelected={chatV2.handleFilesSelected}
@@ -236,6 +338,16 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              availableAgentModes={availableAgentModes}
+              enableFileUpload={isFileUploadEnabled}
+              enableMentions={
+                availableAgentModes?.includes(
+                  ConversationMode.DashboardBuilder,
+                ) ?? false
+              }
+              mentionItems={mentionItems}
+              isLoadingMentions={isLoadingMentions}
+              onMentionsActivated={handleMentionsActivated}
             />
           </div>
 

@@ -2,6 +2,7 @@
 import type {
   Message as ChatMessage,
   TimelineStep,
+  RunFinishedEvent,
 } from "@vonlabs/design-components";
 import type { ChatItem } from "@vonlabs/design-components";
 
@@ -185,6 +186,7 @@ export async function handleToolApproval(
     }
   } catch (error) {
     console.error("[Dashboard] Failed to send approval after retries:", error);
+    throw error;
   }
 }
 
@@ -234,6 +236,8 @@ export interface V2LiveData {
     string,
     import("../services/fileUploadService").FileMetadataResponse[]
   >;
+  /** Conversation phase for approval button control */
+  phase?: "plan-proposed" | "ask" | null;
 }
 
 /**
@@ -314,9 +318,23 @@ function transformMessagesForV2(
       (!hasV2TerminalData || !msgBelongsToCurrentV2Run);
 
     // Don't overlay V2 live data on already-persisted completed messages
-    // (they have their own events and should use the persisted path below)
+    // (they have their own events and should use the persisted path below).
+    // Exception: if V2 just finished tracking a run and this is the latest
+    // assistant message, keep using live data so the timer value (which
+    // correctly excludes approval wait) is shown instead of wall-clock elapsed
+    // from event timestamps. We can't compare msg.runId to v2LiveData.currentRunId
+    // because updateMessageId sets msg.runId to the backend message ID (not run_id).
+    const v2JustFinishedThisRun =
+      isLastAssistant &&
+      hasLiveV2Data &&
+      !isRunActive &&
+      !!v2LiveData.currentRunId;
     const shouldUsePersistedData =
-      !msg.isStreaming && !isRunActive && msg.events && msg.events.length > 0;
+      !msg.isStreaming &&
+      !isRunActive &&
+      msg.events &&
+      msg.events.length > 0 &&
+      !v2JustFinishedThisRun;
 
     if (
       isLastAssistant &&
@@ -332,6 +350,7 @@ function transformMessagesForV2(
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
+        phase: v2LiveData.phase,
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
@@ -369,6 +388,14 @@ function transformMessagesForV2(
         persistedStoppedByUser ||
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
+      // Extract phase from persisted events
+      const runFinishedEvent = msg.events.find(
+        (e) => e.event?.type === "RUN_FINISHED",
+      );
+      const persistedPhase = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedEvent).result?.phase ?? null)
+        : null;
+
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
       if (
@@ -387,6 +414,7 @@ function transformMessagesForV2(
         v2FinalResponse: finalResponse,
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
+        phase: persistedPhase,
         // Propagate persisted error from events
         ...(persistedRunErrorMessage
           ? {
@@ -510,6 +538,7 @@ export function transformConversationMessages(
     stoppedByUser: false,
     runErrorMessage: "",
     currentRunId: null,
+    phase: null,
   };
 
   return transformMessagesForV2(conversationMessages, liveData);

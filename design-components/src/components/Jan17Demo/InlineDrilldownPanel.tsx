@@ -12,7 +12,7 @@ import {
 } from '@phosphor-icons/react';
 import { TertiaryIconButton, GhostButton, PrimaryButton } from '../forms/buttons';
 import { Select } from '../forms/dropdown';
-import { ReportTable } from '../ReportTable';
+import { ReportTable, buildGridOptions } from '../ReportTable';
 import type { ReportColumn } from '../ReportTable/ReportTable';
 import { FilterButton, type FilterGroup, type FilterField } from '../forms/filter';
 
@@ -811,11 +811,10 @@ export const InlineDrilldownPanel: React.FC<InlineDrilldownPanelProps> = ({
         {/* Table - using ReportTable */}
         <div className="flex-1 overflow-hidden p-4">
           <ReportTable
-            columns={reportColumns}
-            data={rows as Record<string, unknown>[]}
-            pageSize={25}
-            showPagination={rows.length > 25}
-            nameKey="name"
+            options={buildGridOptions(reportColumns, rows as Record<string, unknown>[], {
+              pageSize: 25,
+              showPagination: rows.length > 25,
+            })}
           />
         </div>
 

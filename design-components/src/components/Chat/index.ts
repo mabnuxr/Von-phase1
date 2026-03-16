@@ -14,8 +14,9 @@ export type {
   ApiEndpoints,
 } from './types';
 
-// Export AgentMode type for agent selection locking
-export type { AgentMode } from './StandardChatInput/types';
+// Export ConversationMode and ReferenceContext for agent selection and context
+export { ConversationMode } from './StandardChatInput/types';
+export type { ReferenceContext } from './StandardChatInput/types';
 
 // Export ChatInputSelector types
 export { ChatInputSelector } from './ChatInputSelector';
@@ -48,8 +49,13 @@ export type { EngagingMessageProps } from './EngagingMessage';
 
 export { ArtifactPane } from './ArtifactPane';
 
-export { ArtifactCard } from './ArtifactCard';
-export type { ArtifactCardProps, FileArtifact, ArtifactType } from './ArtifactCard';
+export { FileArtifactCard, DashboardArtifactCard } from './ArtifactCards';
+export type {
+  FileArtifactCardProps,
+  DashboardArtifactCardProps,
+  FileArtifact,
+  ArtifactType,
+} from './ArtifactCards';
 
 export { ArtifactViewerPanel } from './ArtifactViewerPanel';
 export type { ArtifactViewerPanelProps } from './ArtifactViewerPanel';

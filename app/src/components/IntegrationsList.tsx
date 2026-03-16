@@ -104,7 +104,8 @@ const SCOPE_OPTIONS: {
   {
     value: "user_level_write",
     label: "Write with Personal Login",
-    description: "Read for all users, but updates require each user to connect their Salesforce",
+    description:
+      "Read for all users, but updates require each user to connect their Salesforce",
   },
   {
     value: "read_only",

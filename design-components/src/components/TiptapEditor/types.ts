@@ -1,4 +1,4 @@
-import type { Editor } from '@tiptap/react';
+import type { Editor, Extension } from '@tiptap/react';
 
 export interface TiptapEditorProps {
   /** Initial or controlled content (HTML string) */
@@ -17,6 +17,8 @@ export interface TiptapEditorProps {
   onPasteFiles?: (files: File[]) => void;
   /** Callback when Escape is pressed. Return true to consume the event. */
   onEscape?: () => boolean;
+  /** Extra Tiptap extensions to inject (e.g. mention chip) */
+  additionalExtensions?: Extension[];
 }
 
 export interface EditorToolbarProps {

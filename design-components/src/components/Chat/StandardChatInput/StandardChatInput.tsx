@@ -7,6 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   MicrophoneIcon,
@@ -14,25 +15,31 @@ import {
   Table,
   FileText,
   X,
+  XIcon,
+  CheckIcon,
   ChartLineIcon,
   HashIcon,
   DatabaseIcon,
+  RobotIcon,
+  CaretRightIcon,
+  UploadSimpleIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
 import { DragDropOverlay } from '../FileAttachment/DragDropOverlay';
+import { FileErrorToast } from '../FileAttachment/FileErrorToast';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Toggle as _Toggle } from '../../forms/toggle';
-import { SecondaryIconButton, RemoveButton } from '../../forms/buttons';
+import { SecondaryIconButton, RemoveButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } from './types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
 import { ChatInputPopover } from './ChatInputPopover';
-import { FileErrorToast } from '../FileAttachment/FileErrorToast';
+import { ConversationMode } from './types';
 
 /**
  * Get icon for reference type
@@ -82,8 +89,187 @@ function getReferenceLabel(type: ReferenceContext['type']) {
   }
 }
 
-// Re-export AgentMode type from types for external use
-export type { AgentMode } from './types';
+// Re-export ConversationMode from types for external use
+export { ConversationMode } from './types';
+
+/**
+ * Get agent mode display label and icon
+ */
+function getConversationModeDisplay(mode: ConversationMode) {
+  switch (mode) {
+    case ConversationMode.Auto:
+      return { label: 'Auto', icon: RobotIcon };
+    case ConversationMode.DashboardBuilder:
+      return { label: 'Dashboard Builder', icon: null }; // Uses green dot instead of icon
+  }
+}
+
+/**
+ * PlusButtonMenu - Plus button with context menu for agent modes
+ */
+interface PlusButtonMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onOpen: () => void;
+  onConversationModeChange: (mode: ConversationMode) => void;
+  onBuildDashboard?: () => void;
+  onUploadClick?: () => void;
+  selectedConversationMode: ConversationMode;
+  disabled?: boolean;
+  isAgentLocked?: boolean;
+  availableAgentModes: ConversationMode[];
+  enableFileUpload?: boolean;
+}
+
+const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
+  isOpen,
+  onClose,
+  onOpen,
+  onConversationModeChange,
+  onBuildDashboard,
+  onUploadClick,
+  selectedConversationMode,
+  disabled = false,
+  isAgentLocked = false,
+  availableAgentModes,
+  enableFileUpload = false,
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isAgentSubmenuOpen, setIsAgentSubmenuOpen] = useState(false);
+
+  const handleAgentSelect = (mode: ConversationMode) => {
+    onConversationModeChange(mode);
+    if (mode === ConversationMode.DashboardBuilder && onBuildDashboard) {
+      onBuildDashboard();
+    }
+    onClose();
+    setIsAgentSubmenuOpen(false);
+  };
+
+  const handleMenuClose = () => {
+    onClose();
+    setIsAgentSubmenuOpen(false);
+  };
+
+  return (
+    <div ref={containerRef} className="relative group/plusbtn">
+      <SecondaryIconButton
+        icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
+        onClick={onOpen}
+        disabled={disabled}
+        title=""
+        className="w-8.5 h-8.5 rounded-xl"
+      />
+      {/* Tooltip - shows on hover when disabled */}
+      {disabled && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/plusbtn:opacity-100 transition-opacity duration-150 pointer-events-none z-50">
+          Source and file upload. Coming soon
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+
+      {/* Main Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Click outside to close */}
+            <div className="fixed inset-0 z-40" onClick={handleMenuClose} />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.1 }}
+              className="absolute bottom-full left-0 mb-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
+            >
+              {/* Upload option */}
+              {enableFileUpload && (
+                <div className="py-0.5">
+                  <TransparentButton
+                    icon={<UploadSimpleIcon size={16} className="text-gray-800" />}
+                    onClick={() => {
+                      onUploadClick?.();
+                      onClose();
+                    }}
+                  >
+                    Upload
+                  </TransparentButton>
+                </div>
+              )}
+
+              {/* Agents submenu trigger — only when modes beyond Auto exist */}
+              {availableAgentModes.length > 1 && (
+                <>
+                  {/* Divider — only when Upload is also visible */}
+                  {enableFileUpload && <div className="my-0.5 border-t border-gray-100 mx-1" />}
+
+                  <div
+                    className="relative py-0.5"
+                    onMouseEnter={() => !isAgentLocked && setIsAgentSubmenuOpen(true)}
+                    onMouseLeave={() => setIsAgentSubmenuOpen(false)}
+                  >
+                    <TransparentButton
+                      icon={<RobotIcon size={16} className="text-gray-800" />}
+                      rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
+                      onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
+                    >
+                      Agents
+                    </TransparentButton>
+
+                    {/* Agents submenu */}
+                    <AnimatePresence>
+                      {isAgentSubmenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, x: -8 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, x: -8 }}
+                          transition={{ duration: 0.1 }}
+                          className="absolute left-full bottom-0 ml-1 w-48 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50"
+                        >
+                          <div className="py-0.5">
+                            {availableAgentModes.map((mode) => {
+                              const display = getConversationModeDisplay(mode);
+                              const ModeIcon = display.icon;
+                              return (
+                                <TransparentButton
+                                  key={mode}
+                                  icon={
+                                    ModeIcon ? (
+                                      <ModeIcon size={16} className="text-gray-500" />
+                                    ) : (
+                                      <RobotIcon size={16} className="text-gray-500" />
+                                    )
+                                  }
+                                  onClick={() => handleAgentSelect(mode)}
+                                  active={selectedConversationMode === mode}
+                                  rightContent={
+                                    selectedConversationMode === mode ? (
+                                      <CheckIcon
+                                        size={14}
+                                        weight="bold"
+                                        className="text-green-600"
+                                      />
+                                    ) : undefined
+                                  }
+                                >
+                                  {display.label}
+                                </TransparentButton>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 /**
  * StandardChatInput - A standardized chat input component
@@ -156,30 +342,36 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onPopoverPrimaryAction,
       onPopoverFeedback,
       // Agent props
-      // onBuildDashboard,
+      onBuildDashboard,
       // Disclaimer
       hideDisclaimer = false,
-      // Plus menu visibility (defaults to false when not provided, feature flag controls this)
-      showPlusMenu = false,
       // Agent selection props (for locking after first message)
-      // isAgentLocked = false,
-      // lockedAgentMode = 'auto',
-      // File error props
-      fileErrorMessage,
-      onDismissFileError,
+      isAgentLocked = false,
+      lockedConversationMode = ConversationMode.Auto,
       // Command chip
       contextBar,
       // Commands
       enableCommands = false,
       onCloseCommandsList,
       ghostCommandName,
+      // File error props
+      fileErrorMessage,
+      onDismissFileError,
+      // Agent modes
+      availableAgentModes = [ConversationMode.Auto],
+      // File upload
+      enableFileUpload = false,
+      // Additional Tiptap extensions
+      additionalExtensions,
     },
     ref
   ) => {
     const [internalMessage, setInternalMessage] = useState('');
-    // TODO: Uncomment when agent mode functionality is reimplemented
-    // const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
-    // const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>('auto');
+    const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
+    const [isAgentTagHovered, setIsAgentTagHovered] = useState(false);
+    const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(
+      ConversationMode.Auto
+    );
     const editorRef = useRef<Editor | null>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -206,6 +398,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
           const coords = view.coordsAtPos(view.state.selection.from);
           return { left: coords.left, top: coords.top, bottom: coords.bottom };
         },
+        getEditor: () => editorRef.current,
       }),
       []
     );
@@ -232,8 +425,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       caretCaptured.current = true;
     }, [ghostCommandName]);
 
-    // TODO: Uncomment when agent mode is reimplemented
-    // const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
+    // When locked, show the locked mode from backend; otherwise use internal state
+    const selectedConversationMode = isAgentLocked
+      ? lockedConversationMode
+      : internalConversationMode;
 
     // File upload hook for uncontrolled mode
     const {
@@ -257,6 +452,12 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const isAttachmentsControlled = controlledAttachments !== undefined;
     const attachments = isAttachmentsControlled ? controlledAttachments : internalAttachments;
     const hasAttachments = attachments.length > 0;
+
+    // Show the plus button when there is at least one action inside the popup
+    const hasAgentModes = availableAgentModes.length > 1;
+    const showPlusButton = hasAgentModes || enableFileUpload;
+    // Show the enhanced toolbar layout when plus button, commands, or attachments are present
+    const showPlusMenu = !!(hasAttachments || enableCommands || showPlusButton);
 
     // Handle dropped files from parent
     useEffect(() => {
@@ -304,7 +505,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
         // Send markdown directly
         const messageToSend = message.trim();
 
-        onSend(messageToSend, hasAttachments ? attachments : undefined, 'auto');
+        onSend(messageToSend, hasAttachments ? attachments : undefined, selectedConversationMode);
         if (isControlled) {
           onChange?.('');
         } else {
@@ -331,6 +532,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onChange,
       isAttachmentsControlled,
       clearFiles,
+      selectedConversationMode,
     ]);
 
     // handleKeyDown is now managed by TiptapEditor
@@ -383,32 +585,24 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       !disableSubmit &&
       !isStreaming;
 
-    // TODO: Uncomment when agent mode is reimplemented
-    // const handleAgentModeChange = useCallback(
-    //   (mode: AgentMode) => {
-    //     if (!isAgentLocked) {
-    //       setInternalAgentMode(mode);
-    //     }
-    //   },
-    //   [isAgentLocked]
-    // );
-    //
-    // const handleCancelAgentMode = useCallback(() => {
-    //   if (!isAgentLocked) {
-    //     setInternalAgentMode('auto');
-    //   }
-    // }, [isAgentLocked]);
-    //
-    // const getAgentModeDisplay = (mode: AgentMode) => {
-    //   switch (mode) {
-    //     case 'auto':
-    //       return { label: 'Auto', icon: RobotIcon };
-    //     case 'build-dashboard':
-    //       return { label: 'Build Dashboard', icon: ChartBarIcon };
-    //     case 'deep-research':
-    //       return { label: 'Deep Research', icon: null };
-    //   }
-    // };
+    const handlePlusButtonClick = useCallback(() => {
+      setIsPlusMenuOpen(true);
+    }, []);
+
+    const handleConversationModeChange = useCallback(
+      (mode: ConversationMode) => {
+        if (!isAgentLocked) {
+          setInternalConversationMode(mode);
+        }
+      },
+      [isAgentLocked]
+    );
+
+    const handleCancelConversationMode = useCallback(() => {
+      if (!isAgentLocked) {
+        setInternalConversationMode(ConversationMode.Auto);
+      }
+    }, [isAgentLocked]);
 
     return (
       <div className="bg-white antialiased font-sf px-2">
@@ -533,6 +727,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 addFiles(files);
                               }
                             }}
+                            additionalExtensions={additionalExtensions}
                           />
                           {caretOffset && ghostCommandName && (
                             <GhostCommandText text={ghostCommandName} offset={caretOffset} />
@@ -550,14 +745,22 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                     <div className="flex items-center justify-between px-3 pb-3">
                       {/* Left side - Plus button and Mode toggle */}
                       <div className="flex items-center gap-2">
-                        {/* Plus button - directly opens file picker */}
-                        <SecondaryIconButton
-                          icon={<PlusIcon size={16} weight="bold" className="text-gray-800" />}
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={disabled && !isStreaming}
-                          title="Upload file"
-                          className="w-8.5 h-8.5 rounded-xl shadow-xs border border-gray-200"
-                        />
+                        {/* Plus button - opens menu with agent and upload options */}
+                        {showPlusButton && (
+                          <PlusButtonMenu
+                            isOpen={isPlusMenuOpen}
+                            onClose={() => setIsPlusMenuOpen(false)}
+                            onOpen={handlePlusButtonClick}
+                            onConversationModeChange={handleConversationModeChange}
+                            onBuildDashboard={onBuildDashboard}
+                            onUploadClick={() => fileInputRef.current?.click()}
+                            selectedConversationMode={selectedConversationMode}
+                            disabled={disabled && !isStreaming}
+                            isAgentLocked={isAgentLocked}
+                            availableAgentModes={availableAgentModes}
+                            enableFileUpload={enableFileUpload}
+                          />
+                        )}
 
                         {/* Slash commands button */}
                         {enableCommands && (
@@ -577,53 +780,59 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                           />
                         )}
 
-                        {/* TODO: Uncomment when agent mode is reimplemented */}
-                        {/* <AnimatePresence>
-                        {selectedAgentMode !== 'auto' && (
-                          <motion.button
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.15 }}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
-                              selectedAgentMode === 'deep-research'
-                                ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                                : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
-                            }`}
-                            onClick={handleCancelAgentMode}
-                            onMouseEnter={() => setIsAgentTagHovered(true)}
-                            onMouseLeave={() => setIsAgentTagHovered(false)}
-                            title={
-                              isAgentLocked
-                                ? 'Agent locked for this conversation'
-                                : 'Click to reset to Auto mode'
-                            }
-                            disabled={isAgentLocked}
-                          >
-                            {isAgentTagHovered && !isAgentLocked ? (
-                              <XIcon
-                                size={14}
-                                weight="bold"
-                                className={
-                                  selectedAgentMode === 'deep-research'
-                                    ? 'text-green-600'
-                                    : 'text-gray-800'
-                                }
-                              />
-                            ) : selectedAgentMode === 'deep-research' ? (
-                              <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
-                            ) : (
-                              (() => {
-                                const AgentIcon = getAgentModeDisplay(selectedAgentMode).icon;
-                                return AgentIcon ? (
-                                  <AgentIcon size={14} weight="regular" className="text-gray-800" />
-                                ) : null;
-                              })()
-                            )}
-                            {getAgentModeDisplay(selectedAgentMode).label}
-                          </motion.button>
-                        )}
-                      </AnimatePresence> */}
+                        {/* Agent mode tag - shown when a specific agent mode is selected (not auto) */}
+                        <AnimatePresence>
+                          {selectedConversationMode !== ConversationMode.Auto && (
+                            <motion.button
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.15 }}
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl transition-colors cursor-pointer ${
+                                selectedConversationMode === ConversationMode.DashboardBuilder
+                                  ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                                  : 'text-gray-900 border border-gray-100 hover:bg-gray-50'
+                              }`}
+                              onClick={handleCancelConversationMode}
+                              onMouseEnter={() => setIsAgentTagHovered(true)}
+                              onMouseLeave={() => setIsAgentTagHovered(false)}
+                              title={
+                                isAgentLocked
+                                  ? 'Agent locked for this conversation'
+                                  : 'Click to reset to Auto mode'
+                              }
+                              disabled={isAgentLocked}
+                            >
+                              {isAgentTagHovered && !isAgentLocked ? (
+                                <XIcon
+                                  size={14}
+                                  weight="bold"
+                                  className={
+                                    selectedConversationMode === ConversationMode.DashboardBuilder
+                                      ? 'text-green-600'
+                                      : 'text-gray-800'
+                                  }
+                                />
+                              ) : selectedConversationMode === ConversationMode.DashboardBuilder ? (
+                                // Green dot indicator for Dashboard Builder
+                                <span className="w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-green-200" />
+                              ) : (
+                                (() => {
+                                  const AgentIcon =
+                                    getConversationModeDisplay(selectedConversationMode).icon;
+                                  return AgentIcon ? (
+                                    <AgentIcon
+                                      size={14}
+                                      weight="regular"
+                                      className="text-gray-800"
+                                    />
+                                  ) : null;
+                                })()
+                              )}
+                              {getConversationModeDisplay(selectedConversationMode).label}
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
 
                         {/* Mode selector - Auto edits: off/on/Plan Mode */}
                         {showModeSelector && onAutoEditModeChange && (
@@ -702,6 +911,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             addFiles(files);
                           }
                         }}
+                        additionalExtensions={additionalExtensions}
                       />
                       {caretOffset && ghostCommandName && (
                         <GhostCommandText text={ghostCommandName} offset={caretOffset} />

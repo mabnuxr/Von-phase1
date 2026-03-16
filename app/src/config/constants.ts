@@ -66,6 +66,24 @@ export const CONVERSATIONS_PAGE_LIMIT = 20 as const;
  */
 export const MESSAGES_PAGE_LIMIT = 10 as const;
 
+/**
+ * Page size when fetching the full dashboard list for @ mentions.
+ * Set high to fetch all dashboards in a single request for client-side fuzzy filtering.
+ */
+export const DASHBOARD_LIST_PAGE_SIZE = 100 as const;
+
+/**
+ * Stale time for the dashboard list query (used in @ mentions).
+ * Dashboards don't change frequently, so cache for 5 minutes.
+ */
+export const DASHBOARD_LIST_STALE_TIME = 300000 as const; // 5 minutes
+
+/**
+ * Page size for the sidebar dashboard listing.
+ * Uses "show more" pagination with small page size.
+ */
+export const SIDEBAR_DASHBOARD_PAGE_SIZE = 5 as const;
+
 // ============================================================================
 // OAuth & Integration Polling Constants
 // ============================================================================
@@ -146,10 +164,11 @@ export const RECONCILIATION_STALL_THRESHOLD_MS = 45000 as const; // 45 seconds
 export const RECONCILIATION_STALL_THRESHOLD_AUTO_MS = 10000 as const; // 10 seconds
 
 /**
- * Stall threshold for "deep_research" chat type.
- * Longer threshold since deep research has natural pauses (external data fetching).
+ * Stall threshold for "dashboard-builder" chat type.
+ * Longer threshold since dashboard builder mode has natural pauses (external data fetching).
  */
-export const RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS = 30000 as const; // 30 seconds
+export const RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS =
+  30000 as const; // 30 seconds
 
 /**
  * Health check interval in milliseconds.
@@ -275,7 +294,7 @@ export const QUERY_CONSTANTS = {
   PUSHER_PONG_TIMEOUT_S,
   RECONCILIATION_STALL_THRESHOLD_MS,
   RECONCILIATION_STALL_THRESHOLD_AUTO_MS,
-  RECONCILIATION_STALL_THRESHOLD_RESEARCH_MS,
+  RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
   PERMISSIONS_STALE_TIME,
   PERMISSIONS_GC_TIME,

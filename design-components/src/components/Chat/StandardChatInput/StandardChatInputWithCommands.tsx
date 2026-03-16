@@ -13,16 +13,14 @@ import type { FileAttachment } from '../FileAttachment/types';
 import { SecondaryIconButton } from '../../forms/buttons';
 import { SendIcon } from '../icons';
 
-import type { AgentMode } from './types';
-
-const DEFAULT_AGENT_MODE: AgentMode = 'auto';
+import { ConversationMode } from './types';
 
 export interface StandardChatInputWithCommandsProps extends Omit<StandardChatInputProps, 'onSend'> {
   onSend?: (
     message: string,
     attachments?: FileAttachment[],
     command?: Command,
-    agentMode?: AgentMode
+    agentMode?: ConversationMode
   ) => void;
   /** Optional: Salesforce fields for selection in command drawer */
   salesforceFields?: Array<{ name: string; label: string; type: string }>;
@@ -45,16 +43,19 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
   disableSubmit = false,
   onDisabledInput,
   isAgentLocked = false,
-  lockedAgentMode = 'auto',
-  showPlusMenu,
+  lockedConversationMode = ConversationMode.Auto,
   ...props
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Track agent mode at this level so it persists when switching to command mode
   // When locked, always use the locked mode from backend
-  const [internalAgentMode, setInternalAgentMode] = useState<AgentMode>(DEFAULT_AGENT_MODE);
-  const selectedAgentMode = isAgentLocked ? lockedAgentMode : internalAgentMode;
+  const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(
+    ConversationMode.Auto
+  );
+  const selectedConversationMode = isAgentLocked
+    ? lockedConversationMode
+    : internalConversationMode;
 
   const {
     commands,
@@ -82,10 +83,10 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
 
   // Wrapper for StandardChatInput's onSend that captures agentMode changes
   const handleStandardInputSend = useCallback(
-    (message: string, attachments?: FileAttachment[], agentMode?: AgentMode) => {
+    (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => {
       // Update our tracked agent mode if user changed it (and not locked)
       if (agentMode && !isAgentLocked) {
-        setInternalAgentMode(agentMode);
+        setInternalConversationMode(agentMode);
       }
       // Forward to useCommandsInput's handleSend with the agentMode
       handleSend(message, attachments, agentMode);
@@ -96,9 +97,9 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
   // Send with command - use the tracked agent mode
   const handleSendWithCommand = useCallback(
     (message: string) => {
-      handleSend(message, undefined, selectedAgentMode);
+      handleSend(message, undefined, selectedConversationMode);
     },
-    [handleSend, selectedAgentMode]
+    [handleSend, selectedConversationMode]
   );
 
   return (
@@ -225,8 +226,7 @@ export const StandardChatInputWithCommands: React.FC<StandardChatInputWithComman
           isStreaming={isStreaming}
           disableSubmit={disableSubmit}
           isAgentLocked={isAgentLocked}
-          lockedAgentMode={lockedAgentMode}
-          showPlusMenu={showPlusMenu}
+          lockedConversationMode={lockedConversationMode}
           onDisabledInput={onDisabledInput}
         />
       )}

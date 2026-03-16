@@ -6,6 +6,7 @@ import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import type { FolderItemsMap } from "../hooks/useChatSidebarV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useTitleAnimation } from "../hooks/useTitleAnimation";
+import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import type { User } from "../services";
 
@@ -78,6 +79,13 @@ export function ChatSidebarV2Container({
     removeItemFromFolder,
     unfiledConversations,
   } = useChatSidebarV2();
+
+  // Dashboard data for sidebar
+  const {
+    dashboards: sidebarDashboards,
+    hasNextPage: hasMoreDashboards,
+    loadMore: loadMoreDashboards,
+  } = useSidebarDashboards();
 
   // Title animation (shared with V1)
   const { animatedTitles } = useTitleAnimation({
@@ -182,6 +190,10 @@ export function ChatSidebarV2Container({
       onSignOutClick={onLogoutClick}
       onSettingsClick={onSettingsClick}
       isNewChatActive={isNewChatActive}
+      dashboards={sidebarDashboards}
+      hasMoreDashboards={hasMoreDashboards}
+      onLoadMoreDashboards={loadMoreDashboards}
+      onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
     />
   );
 }

@@ -10,3 +10,12 @@ export function getPlainText(value: string): string {
   }
   return value;
 }
+
+/**
+ * Strips mention chip HTML spans from markdown, replacing them with plain `@Label` text.
+ * This preserves markdown formatting (bold, links, lists) while converting mention nodes
+ * that tiptap-markdown serializes as raw `<span>` HTML into readable plain text.
+ */
+export function stripMentionHtml(markdown: string): string {
+  return markdown.replace(/<span[^>]*data-type="mention"[^>]*>@?([^<]*)<\/span>/g, '@$1');
+}

@@ -11,7 +11,7 @@ import { TiptapViewer } from '../TiptapEditor';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
-import { ArtifactCard, type FileArtifact } from './ArtifactCard';
+import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
 
@@ -666,7 +666,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
                     <div className="mt-3 space-y-2">
                       {artifacts.map((artifact) => (
-                        <ArtifactCard
+                        <FileArtifactCard
                           key={artifact.fileId}
                           artifact={artifact}
                           onOpen={

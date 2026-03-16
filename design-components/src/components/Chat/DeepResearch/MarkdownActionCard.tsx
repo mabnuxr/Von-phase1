@@ -75,7 +75,7 @@ export interface MarkdownActionCardProps {
   markdown: string;
 
   /**
-   * Primary action button (e.g., "Approve", "Run Full Analysis", "Update")
+   * Primary action button (e.g., "Approve", "Create Dashboard", "Update")
    * When not provided, the action buttons section is hidden
    */
   primaryAction?: ActionButton;
@@ -346,7 +346,7 @@ const CalendarEventRow: React.FC<CalendarEventRowProps> = ({ event, isExpanded, 
  * MarkdownActionCard - A card component that displays markdown content with action buttons
  *
  * Used for:
- * - Deep Research sample analysis with "Run Full Analysis" / "Skip" buttons
+ * - Deep Research sample analysis with "Create Dashboard" / "Skip" buttons
  * - Salesforce bulk operations approval
  * - Calendar events approval
  * - Plan approval workflows
