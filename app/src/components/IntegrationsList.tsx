@@ -555,9 +555,10 @@ export function IntegrationsList({
     const apps = getAllIntegrations();
     return apps.filter((app) => {
       if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
+      if (app.id === "zendesk" && !isZendeskEnabled) return false;
       return true;
     });
-  }, [isGoogleDriveEnabled]);
+  }, [isGoogleDriveEnabled, isZendeskEnabled]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {
@@ -574,12 +575,12 @@ export function IntegrationsList({
       });
       return {
         ...app,
-        disabled: app.disabled || (app.id === "zendesk" && !isZendeskEnabled),
+        disabled: app.disabled,
         connectedInstances,
         isConnected: connectedInstances.length > 0,
       };
     });
-  }, [allApps, integrations, isZendeskEnabled]);
+  }, [allApps, integrations]);
 
   // Group by category
   const byCategory = useMemo(() => {
