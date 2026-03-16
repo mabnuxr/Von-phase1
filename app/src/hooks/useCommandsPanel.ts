@@ -241,7 +241,7 @@ export function useCommandsPanel(userId?: string) {
         );
       }
     },
-    [showToast],
+    [],
   );
 
   return {
