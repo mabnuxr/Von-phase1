@@ -8,95 +8,17 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dropdown } from '../forms/dropdown/Dropdown';
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type ScheduleFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
-export type ScheduleDay = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
-
-export interface Schedule {
-  enabled: boolean;
-  frequency: ScheduleFrequency;
-  time: string; // "HH:mm"
-  days: ScheduleDay[]; // relevant for weekly / bi-weekly
-  dayOfMonth: number; // 1-31, relevant for monthly
-}
-
-export interface SchedulePickerProps {
-  schedule: Schedule;
-  onScheduleChange: (schedule: Schedule) => void;
-  readOnly?: boolean;
-  /** Label shown in the header */
-  label?: string;
-  /** Optional summary text shown next to the label when enabled */
-  summary?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-export const SCHEDULE_FREQUENCIES: { value: ScheduleFrequency; label: string }[] = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'bi-weekly', label: 'Bi-weekly' },
-  { value: 'monthly', label: 'Monthly' },
-];
-
-export const SCHEDULE_DAYS: ScheduleDay[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-export const SCHEDULE_TIMES: { value: string; label: string }[] = Array.from(
-  { length: 24 },
-  (_, i) => {
-    const value = `${i.toString().padStart(2, '0')}:00`;
-    const ampm = i < 12 ? 'AM' : 'PM';
-    const display = i === 0 ? 12 : i > 12 ? i - 12 : i;
-    return { value, label: `${display}:00 ${ampm}` };
-  }
-);
-
-export const SCHEDULE_DAYS_OF_MONTH: { value: string; label: string }[] = Array.from(
-  { length: 31 },
-  (_, i) => {
-    const day = i + 1;
-    const suffix =
-      day === 1 || day === 21 || day === 31
-        ? 'st'
-        : day === 2 || day === 22
-          ? 'nd'
-          : day === 3 || day === 23
-            ? 'rd'
-            : 'th';
-    return { value: String(day), label: `${day}${suffix}` };
-  }
-);
-
-export const DEFAULT_SCHEDULE: Schedule = {
-  enabled: false,
-  frequency: 'weekly',
-  time: '09:00',
-  days: ['Mon'],
-  dayOfMonth: 1,
-};
-
-export function formatScheduleBadge(schedule: Schedule): string {
-  const freq =
-    SCHEDULE_FREQUENCIES.find((f) => f.value === schedule.frequency)?.label ?? schedule.frequency;
-  const timeLabel = SCHEDULE_TIMES.find((t) => t.value === schedule.time)?.label ?? schedule.time;
-  const parts = [freq];
-  if (schedule.frequency === 'weekly' || schedule.frequency === 'bi-weekly') {
-    parts.push(schedule.days.join(', '));
-  } else if (schedule.frequency === 'monthly') {
-    const dayLabel =
-      SCHEDULE_DAYS_OF_MONTH.find((d) => d.value === String(schedule.dayOfMonth))?.label ??
-      `${schedule.dayOfMonth}`;
-    parts.push(dayLabel);
-  }
-  parts.push(timeLabel);
-  return parts.join(' · ');
-}
+import { MultiSelectDropdown } from '../forms/dropdown/MultiSelectDropdown';
+import {
+  SCHEDULE_FREQUENCIES,
+  SCHEDULE_DAYS,
+  SCHEDULE_TIMES,
+  SCHEDULE_DAYS_OF_MONTH,
+  SCHEDULE_TIMEZONES,
+  LOCAL_TIMEZONE,
+  formatScheduleBadge,
+} from './constants';
+import type { Schedule, ScheduleDay, ScheduleFrequency, SchedulePickerProps } from './constants';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -112,6 +34,19 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
   const update = (patch: Partial<Schedule>) => {
     onScheduleChange({ ...schedule, ...patch });
   };
+
+  // Ensure the user's current timezone (and any previously saved timezone) is always available
+  const timezoneOptions = React.useMemo(() => {
+    const base = [...SCHEDULE_TIMEZONES];
+    const values = new Set(base.map((t) => t.value));
+    for (const tz of [LOCAL_TIMEZONE, schedule.timezone]) {
+      if (tz && !values.has(tz)) {
+        base.push({ value: tz, label: tz });
+        values.add(tz);
+      }
+    }
+    return base;
+  }, [schedule.timezone]);
 
   const showDayOfWeek = schedule.frequency === 'weekly' || schedule.frequency === 'bi-weekly';
   const showDayOfMonth = schedule.frequency === 'monthly';
@@ -163,7 +98,7 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
                 usePortal
               />
 
-              {/* Time & Day — same row */}
+              {/* Time & Date — same row */}
               <div className="flex items-start gap-2">
                 <Dropdown
                   label="Time"
@@ -175,18 +110,6 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
                   className="flex-1"
                   usePortal
                 />
-                {showDayOfWeek && (
-                  <Dropdown
-                    label="Day"
-                    labelClassName="text-xs font-medium text-gray-800/80"
-                    options={SCHEDULE_DAYS.map((d) => ({ value: d, label: d }))}
-                    value={schedule.days[0]}
-                    onChange={(v) => update({ days: [v as ScheduleDay] })}
-                    disabled={readOnly}
-                    className="flex-1"
-                    usePortal
-                  />
-                )}
                 {showDayOfMonth && (
                   <Dropdown
                     label="Date"
@@ -200,6 +123,31 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
                   />
                 )}
               </div>
+
+              {/* Day-of-week multi-select dropdown */}
+              {showDayOfWeek && (
+                <MultiSelectDropdown
+                  label="Days"
+                  labelClassName="text-xs font-medium text-gray-800/80"
+                  options={SCHEDULE_DAYS.map((d) => ({ value: d, label: d }))}
+                  value={schedule.days}
+                  onChange={(days) => update({ days: days as ScheduleDay[] })}
+                  disabled={readOnly}
+                  min={1}
+                  usePortal
+                />
+              )}
+
+              {/* Timezone */}
+              <Dropdown
+                label="Timezone"
+                labelClassName="text-xs font-medium text-gray-800/80"
+                options={timezoneOptions}
+                value={schedule.timezone}
+                onChange={(v) => update({ timezone: v })}
+                disabled={readOnly}
+                usePortal
+              />
             </div>
           </motion.div>
         )}

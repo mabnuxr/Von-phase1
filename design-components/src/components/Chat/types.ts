@@ -1289,7 +1289,7 @@ export interface ChatProps {
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('../Commands/types').CommandAttachment[],
     recipients: ScheduleRecipient[]
-  ) => void;
+  ) => Promise<void>;
 
   /**
    * Enable additional actions menu (three dots with convert to dashboard, etc.)

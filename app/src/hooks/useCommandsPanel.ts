@@ -235,21 +235,13 @@ export function useCommandsPanel(userId?: string) {
             })),
           },
         });
-        showToast({
-          message: "Test triggered — you'll receive it shortly",
-          variant: "success",
-        });
       } catch (err) {
-        showToast({
-          message: getErrorMessage(
-            err,
-            "Failed to send test. Please try again.",
-          ),
-          variant: "error",
-        });
+        throw new Error(
+          getErrorMessage(err, "Failed to send test. Please try again."),
+        );
       }
     },
-    [showToast],
+    [],
   );
 
   return {

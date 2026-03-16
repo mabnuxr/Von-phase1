@@ -250,7 +250,8 @@ export function scheduleToApiConfigs(schedule: CommandSchedule): {
         time: schedule.time,
         days: schedule.days,
         dayOfMonth: schedule.dayOfMonth,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone:
+          schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
     },
     deliveryConfig: {
@@ -270,13 +271,15 @@ export function apiConfigsToSchedule(
   triggerConfig: TriggerConfig,
   deliveryConfig: DeliveryConfig,
 ): CommandSchedule {
-  const { frequency, time, days, dayOfMonth } = triggerConfig.scheduleConfig;
+  const { frequency, time, days, dayOfMonth, timezone } =
+    triggerConfig.scheduleConfig;
   return {
     enabled: true,
     frequency,
     time,
     days,
     dayOfMonth,
+    timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     recipients: deliveryConfig.recipients.map((r) => {
       const name = r.name ?? "";
       const [firstName = "", ...rest] = name.split(" ");

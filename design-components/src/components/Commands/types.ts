@@ -179,6 +179,7 @@ export const DEFAULT_SCHEDULE: CommandSchedule = {
   time: '09:00',
   days: ['Mon'],
   dayOfMonth: 1,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   recipients: [],
 };
 

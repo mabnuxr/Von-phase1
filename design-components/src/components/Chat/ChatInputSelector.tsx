@@ -130,7 +130,7 @@ export interface ChatInputSelectorProps {
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('../Commands/types').CommandAttachment[],
     recipients: import('../Commands/types').ScheduleRecipient[]
-  ) => void;
+  ) => Promise<void>;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
   /** Reference context shown above the input (dashboard/widget context) */
