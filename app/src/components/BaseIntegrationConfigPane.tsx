@@ -86,6 +86,11 @@ export function BaseIntegrationConfigPane({
   const [clariUsername, setClariUsername] = useState("");
   const [clariPassword, setClariPassword] = useState("");
 
+  // Zendesk API token configuration state
+  const [zendeskSubdomain, setZendeskSubdomain] = useState("");
+  const [zendeskEmail, setZendeskEmail] = useState("");
+  const [zendeskApiToken, setZendeskApiToken] = useState("");
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -166,6 +171,20 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "zendesk") {
+      if (!zendeskSubdomain) {
+        errors.push("Subdomain is required");
+      }
+      if (!hasExistingCredentials) {
+        if (!zendeskEmail) {
+          errors.push("Email is required");
+        }
+        if (!zendeskApiToken) {
+          errors.push("API Token is required");
+        }
+      }
+    }
+
     // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -186,6 +205,10 @@ export function BaseIntegrationConfigPane({
       if (integrationId === "gong") {
         // Store instance URL in config (not sensitive) - standardized with Salesforce
         config.instance_url = gongApiBaseUrl;
+      }
+
+      if (integrationId === "zendesk") {
+        config.instance_url = zendeskSubdomain;
       }
 
       if (isEditMode && editData?.id) {
@@ -230,6 +253,13 @@ export function BaseIntegrationConfigPane({
           if (clariPassword) {
             updateData.accessSecret = clariPassword;
           }
+        } else if (integrationId === "zendesk") {
+          if (zendeskEmail) {
+            updateData.accessKey = zendeskEmail;
+          }
+          if (zendeskApiToken) {
+            updateData.accessSecret = zendeskApiToken;
+          }
         }
 
         // Update existing integration
@@ -251,8 +281,15 @@ export function BaseIntegrationConfigPane({
               ? gongAccessKey
               : integrationId === "fathom"
                 ? fathomApiKey
+                : integrationId === "zendesk"
+                  ? zendeskEmail
+                  : undefined,
+          accessSecret:
+            integrationId === "gong"
+              ? gongAccessSecret
+              : integrationId === "zendesk"
+                ? zendeskApiToken
                 : undefined,
-          accessSecret: integrationId === "gong" ? gongAccessSecret : undefined,
           // Semantic credentials for Basic Auth and specific integrations
           username: integrationId === "chorus" ? chorusUsername : undefined,
           password:
@@ -287,6 +324,10 @@ export function BaseIntegrationConfigPane({
         if (integrationId === "claricopilot") {
           setClariUsername("");
           setClariPassword("");
+        }
+        if (integrationId === "zendesk") {
+          setZendeskEmail("");
+          setZendeskApiToken("");
         }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
@@ -685,6 +726,76 @@ export function BaseIntegrationConfigPane({
                         color: #9ca3af;
                       }
                     `}</style>
+                </>
+              )}
+
+              {/* Zendesk-specific fields */}
+              {integrationId === "zendesk" && (
+                <>
+                  {/* Subdomain */}
+                  <div className="zendesk-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Subdomain"
+                      value={zendeskSubdomain}
+                      onChange={(e) => setZendeskSubdomain(e.target.value)}
+                      placeholder="yourcompany"
+                      helperText="Your Zendesk subdomain (e.g. yourcompany from yourcompany.zendesk.com)"
+                      required
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="zendesk-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Email"
+                      value={zendeskEmail}
+                      onChange={(e) => setZendeskEmail(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "you@yourcompany.com"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing email"
+                          : "Your Zendesk account email"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* API Token */}
+                  <div className="zendesk-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Token"
+                      value={zendeskApiToken}
+                      onChange={(e) => setZendeskApiToken(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Zendesk API token"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API token"
+                          : "Your Zendesk API token"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                    .zendesk-input-wrapper input::placeholder {
+                      font-size: 13px;
+                      color: #9ca3af;
+                    }
+                  `}</style>
                 </>
               )}
 
