@@ -51,6 +51,18 @@ export interface MessageFileAttachment {
   previewUrl?: string;
 }
 
+/**
+ * Dashboard metadata from a RUN_FINISHED event result
+ * Present only when a dashboard was created/updated during that run
+ */
+export interface DashboardMetadata {
+  dashboard_id: string;
+  dashboard_name: string;
+  dashboard_version: number;
+  panel_count: number;
+  query_count: number;
+}
+
 export interface Message {
   id: string;
   type: 'user' | 'assistant';
@@ -185,6 +197,12 @@ export interface Message {
    * - null/undefined: Normal conversation mode (hide approval buttons)
    */
   phase?: 'plan-proposed' | 'ask' | null;
+  /**
+   * Dashboard metadata from RUN_FINISHED event (assistant messages only)
+   * Only present when a dashboard was created during this specific run.
+   * Use this (not a global prop) to conditionally render the DashboardArtifactCard.
+   */
+  dashboard?: DashboardMetadata | null;
   /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.

@@ -395,6 +395,7 @@ export function useChatV2(props: UseChatV2Props) {
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
         phase: v2Processor.phase,
+        dashboard: v2Processor.dashboard,
       }),
     [
       conversationMessages,
@@ -409,6 +410,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.currentRunId,
       agentArtifactsByRunId,
       v2Processor.phase,
+      v2Processor.dashboard,
     ],
   );
 

@@ -10,7 +10,7 @@ import type { ChatItem } from "@vonlabs/design-components";
 import { conversationsService } from "../services/conversationsService";
 
 // App types
-import type { MessageWithStreaming, Conversation } from "../types/conversation";
+import type { MessageWithStreaming, Conversation, DashboardMetadata } from "../types/conversation";
 
 // Existing utilities
 import { replayAguiEvents } from "../utils/replayAguiEvents";
@@ -238,6 +238,8 @@ export interface V2LiveData {
   >;
   /** Conversation phase for approval button control */
   phase?: "plan-proposed" | "ask" | null;
+  /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
+  dashboard?: DashboardMetadata | null;
 }
 
 /**
@@ -351,6 +353,7 @@ function transformMessagesForV2(
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
         phase: v2LiveData.phase,
+        dashboard: v2LiveData.dashboard ?? null,
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
@@ -388,13 +391,15 @@ function transformMessagesForV2(
         persistedStoppedByUser ||
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
-      // Extract phase from persisted events
+      // Extract phase and dashboard from persisted events
       const runFinishedEvent = msg.events.find(
         (e) => e.event?.type === "RUN_FINISHED",
       );
-      const persistedPhase = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedEvent).result?.phase ?? null)
+      const runFinishedResult = runFinishedEvent
+        ? (runFinishedEvent.event as RunFinishedEvent & { result: { phase?: string | null; dashboard?: DashboardMetadata | null } }).result
         : null;
+      const persistedPhase = runFinishedResult?.phase as "plan-proposed" | "ask" | null ?? null;
+      const persistedDashboard = runFinishedResult?.dashboard ?? null;
 
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
@@ -415,6 +420,7 @@ function transformMessagesForV2(
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
+        dashboard: persistedDashboard,
         // Propagate persisted error from events
         ...(persistedRunErrorMessage
           ? {

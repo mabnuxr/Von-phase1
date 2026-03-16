@@ -140,7 +140,6 @@ export const DeepResearchConversation: React.FC<
   conversationId,
   researchResults,
   isDeepResearchRunning = false,
-  dashboard,
   onSendMessage,
   onStopStreaming,
   onArtifactClick,
@@ -327,7 +326,6 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
-          dashboard={dashboard ?? undefined}
           onSendMessage={(content) => handleSendMessage(content)}
           onSkip={handleSkip}
           hasSkipped={hasSkipped}
