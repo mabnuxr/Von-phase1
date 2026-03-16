@@ -548,16 +548,15 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const { isGoogleDriveEnabled, isGmailEnabled } = useFeatureFlag();
+  const { isGoogleDriveEnabled } = useFeatureFlag();
 
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
     return apps.filter((app) => {
       if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
-      if (app.id === "gmail" && !isGmailEnabled) return true;
       return true;
     });
-  }, [isGoogleDriveEnabled, isGmailEnabled]);
+  }, [isGoogleDriveEnabled]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {

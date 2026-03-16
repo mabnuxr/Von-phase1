@@ -226,16 +226,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     category: "Customer Support",
     disabled: true,
   },
-  // Email integrations
-  gmail: {
-    id: "gmail",
-    name: "Gmail",
-    description:
-      "Read and analyze your emails to surface deal insights and buyer signals",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gmail.svg",
-    category: "Other",
-  },
 } as const;
 
 /**
@@ -274,7 +264,6 @@ export function getIntegrationLogoPath(type: string): string {
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
     PYLON: "pylon",
-    GMAIL: "gmail",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -314,7 +303,6 @@ export function getBackendIntegrationType(integrationId: string): string {
     databricks: "DATABRICKS",
     zendesk: "ZENDESK",
     pylon: "PYLON",
-    gmail: "GMAIL",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -348,7 +336,6 @@ export function getFrontendIntegrationId(backendType: string): string {
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
     PYLON: "pylon",
-    GMAIL: "gmail",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -383,7 +370,6 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
     PYLON: "pylon",
-    GMAIL: "gmail",
   };
 
   const integrationId =
@@ -428,7 +414,6 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   databricks: ["user"],
   zendesk: ["user"],
   pylon: ["user"],
-  gmail: ["user"],
 };
 
 /**
