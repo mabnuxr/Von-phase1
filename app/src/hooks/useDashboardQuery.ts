@@ -251,11 +251,11 @@ export function useDashboardQuery(dashboardId: string | undefined) {
 
         // Extract default filter values
         const activeFilters: Record<string, unknown> = {};
-        dashboard.filters?.forEach((filter) => {
-          if (filter.defaultValue !== undefined) {
-            activeFilters[filter.id] = filter.defaultValue;
-          }
-        });
+        // dashboard.filters?.forEach((filter) => {
+        //   if (filter.defaultValue !== undefined) {
+        //     activeFilters[filter.id] = filter.defaultValue;
+        //   }
+        // });
 
         return { dashboard, refreshInfo, activeFilters };
       } catch (error) {
