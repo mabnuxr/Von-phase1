@@ -90,6 +90,7 @@ export function BaseIntegrationConfigPane({
   const [zendeskSubdomain, setZendeskSubdomain] = useState(
     editData?.instanceUrl || "",
   );
+  const [zendeskSubdomainError, setZendeskSubdomainError] = useState("");
   const [zendeskEmail, setZendeskEmail] = useState("");
   const [zendeskApiToken, setZendeskApiToken] = useState("");
 
@@ -176,6 +177,8 @@ export function BaseIntegrationConfigPane({
     if (integrationId === "zendesk") {
       if (!zendeskSubdomain) {
         errors.push("Subdomain is required");
+      } else if (/^https?:\/\//i.test(zendeskSubdomain)) {
+        errors.push("Subdomain should not include http:// or https://");
       }
       if (!hasExistingCredentials) {
         if (!zendeskEmail) {
@@ -740,9 +743,21 @@ export function BaseIntegrationConfigPane({
                       type="text"
                       label="Subdomain"
                       value={zendeskSubdomain}
-                      onChange={(e) => setZendeskSubdomain(e.target.value)}
-                      placeholder="yourcompany"
-                      helperText="Your Zendesk subdomain (e.g. yourcompany from yourcompany.zendesk.com)"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setZendeskSubdomain(value);
+                        if (/^https?:\/\//i.test(value)) {
+                          setZendeskSubdomainError(
+                            "Please enter the subdomain without http:// or https://",
+                          );
+                        } else {
+                          setZendeskSubdomainError("");
+                        }
+                      }}
+                      placeholder="yourcompany.zendesk.com"
+                      helperText="Your Zendesk subdomain (e.g. yourcompany.zendesk.com)"
+                      error={!!zendeskSubdomainError}
+                      errorMessage={zendeskSubdomainError}
                       required
                       fullWidth
                     />
@@ -791,15 +806,6 @@ export function BaseIntegrationConfigPane({
                       fullWidth
                     />
                   </div>
-
-                  <a
-                    href="https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                  >
-                    Generating a new API token
-                  </a>
 
                   <style>{`
                     .zendesk-input-wrapper input::placeholder {
@@ -885,21 +891,26 @@ export function BaseIntegrationConfigPane({
           </div>
 
           {/* Help & Security Notice - shown for API key integrations */}
-          {(integrationId === "gong" || integrationId === "fathom") && (
+          {(integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <a
                   href={
                     integrationId === "gong"
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
-                      : "https://developers.fathom.ai/quickstart"
+                      : integrationId === "zendesk"
+                        ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
+                        : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700 underline"
                 >
-                  How to generate{" "}
-                  {integrationId === "gong" ? "API credentials" : "an API key"}
+                  {integrationId === "gong"
+                    ? "How to generate API credentials"
+                    : integrationId === "zendesk"
+                      ? "Generating a new API token"
+                      : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -923,7 +934,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button
