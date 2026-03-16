@@ -162,22 +162,22 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
 
-  // Dashboard arrow-right button: open artifact preview pane & collapse sidebar
-  const handleDashboardPreview = useCallback(() => {
-    const dashboardId = chatV2.dashboard?.dashboard_id;
-    if (dashboardId) {
+  // Dashboard preview button: open artifact preview pane & collapse sidebar
+  const handleDashboardPreview = useCallback(
+    (dashboardId: string) => {
       openDashboardPane(dashboardId);
       onCollapseSidebar();
-    }
-  }, [chatV2.dashboard?.dashboard_id, openDashboardPane, onCollapseSidebar]);
+    },
+    [openDashboardPane, onCollapseSidebar],
+  );
 
-  // Dashboard expand button: navigate to full dashboard page
-  const handleDashboardOpen = useCallback(() => {
-    const dashboardId = chatV2.dashboard?.dashboard_id;
-    if (dashboardId) {
+  // Dashboard open button: navigate to full dashboard page
+  const handleDashboardOpen = useCallback(
+    (dashboardId: string) => {
       navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-    }
-  }, [chatV2.dashboard?.dashboard_id, conversationId, navigate]);
+    },
+    [conversationId, navigate],
+  );
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,

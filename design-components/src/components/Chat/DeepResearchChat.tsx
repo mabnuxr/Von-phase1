@@ -96,9 +96,9 @@ export interface DeepResearchChatProps {
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
-  onDashboardPreview?: () => void;
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
   /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: () => void;
+  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
 }
 
 /**
@@ -261,9 +261,33 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                     </p>
                     <DashboardArtifactCard
                       title={message.dashboard.dashboard_name}
-                      onPreview={onDashboardPreview}
-                      onOpen={onDashboardOpen}
-                      onClick={onDashboardOpen}
+                      onPreview={
+                        onDashboardPreview
+                          ? () =>
+                              onDashboardPreview(
+                                message.dashboard!.dashboard_id,
+                                message.dashboard!.dashboard_version
+                              )
+                          : undefined
+                      }
+                      onOpen={
+                        onDashboardOpen
+                          ? () =>
+                              onDashboardOpen(
+                                message.dashboard!.dashboard_id,
+                                message.dashboard!.dashboard_version
+                              )
+                          : undefined
+                      }
+                      onClick={
+                        onDashboardPreview
+                          ? () =>
+                              onDashboardPreview(
+                                message.dashboard!.dashboard_id,
+                                message.dashboard!.dashboard_version
+                              )
+                          : undefined
+                      }
                     />
                   </div>
                   <MessageActions
@@ -392,9 +416,33 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           </p>
                           <DashboardArtifactCard
                             title={message.dashboard.dashboard_name}
-                            onPreview={onDashboardPreview}
-                            onOpen={onDashboardOpen}
-                            onClick={onDashboardOpen}
+                            onPreview={
+                              onDashboardPreview
+                                ? () =>
+                                    onDashboardPreview(
+                                      message.dashboard!.dashboard_id,
+                                      message.dashboard!.dashboard_version
+                                    )
+                                : undefined
+                            }
+                            onOpen={
+                              onDashboardOpen
+                                ? () =>
+                                    onDashboardOpen(
+                                      message.dashboard!.dashboard_id,
+                                      message.dashboard!.dashboard_version
+                                    )
+                                : undefined
+                            }
+                            onClick={
+                              onDashboardOpen
+                                ? () =>
+                                    onDashboardOpen(
+                                      message.dashboard!.dashboard_id,
+                                      message.dashboard!.dashboard_version
+                                    )
+                                : undefined
+                            }
                           />
                         </div>
                       )}

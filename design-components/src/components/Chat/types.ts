@@ -1500,4 +1500,11 @@ export interface ChatProps {
     processedRecords?: number;
     totalRecords?: number;
   };
+
+  /**
+   * Optional children — use <Chat.EmptyState> to provide a custom empty state
+   * that replaces the default ChatEmptyState when messages is empty.
+   * The bottom input is always shown when a Chat.EmptyState child is present.
+   */
+  children?: React.ReactNode;
 }

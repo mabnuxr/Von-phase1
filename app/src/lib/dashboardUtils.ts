@@ -10,7 +10,11 @@ import type { ChatItem } from "@vonlabs/design-components";
 import { conversationsService } from "../services/conversationsService";
 
 // App types
-import type { MessageWithStreaming, Conversation, DashboardMetadata } from "../types/conversation";
+import type {
+  MessageWithStreaming,
+  Conversation,
+  DashboardMetadata,
+} from "../types/conversation";
 
 // Existing utilities
 import { replayAguiEvents } from "../utils/replayAguiEvents";
@@ -392,13 +396,21 @@ function transformMessagesForV2(
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
       // Extract phase and dashboard from persisted events
-      const runFinishedEvent = [...msg.events].reverse().find(
-        (e) => e.event?.type === "RUN_FINISHED",
-      );
+      const runFinishedEvent = [...msg.events]
+        .reverse()
+        .find((e) => e.event?.type === "RUN_FINISHED");
       const runFinishedResult = runFinishedEvent
-        ? (runFinishedEvent.event as RunFinishedEvent & { result: { phase?: string | null; dashboard?: DashboardMetadata | null } }).result
+        ? (
+            runFinishedEvent.event as RunFinishedEvent & {
+              result: {
+                phase?: string | null;
+                dashboard?: DashboardMetadata | null;
+              };
+            }
+          ).result
         : null;
-      const persistedPhase = runFinishedResult?.phase as "plan-proposed" | "ask" | null ?? null;
+      const persistedPhase =
+        (runFinishedResult?.phase as "plan-proposed" | "ask" | null) ?? null;
       const persistedDashboard = runFinishedResult?.dashboard ?? null;
 
       // Extract persisted research results; prefer the latest completed run when no live data

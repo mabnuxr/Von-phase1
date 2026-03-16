@@ -13,6 +13,7 @@ import { Chat, ChatSkeleton } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 import { dashboardKeys } from "../hooks/useDashboardQuery";
 
+import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useMessages } from "../hooks/useMessages";
@@ -210,7 +211,11 @@ function AnalyticsChatInner({
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
-    />
+    >
+      <Chat.EmptyState>
+        <AnalyticsChatEmptyState />
+      </Chat.EmptyState>
+    </Chat>
   );
 }
 

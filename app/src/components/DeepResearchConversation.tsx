@@ -126,9 +126,9 @@ export interface DeepResearchConversationProps {
   /** Whether currently fetching older messages */
   isFetchingNextMessagePage?: boolean;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
-  onDashboardPreview?: () => void;
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
   /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: () => void;
+  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
 }
 
 export const DeepResearchConversation: React.FC<
