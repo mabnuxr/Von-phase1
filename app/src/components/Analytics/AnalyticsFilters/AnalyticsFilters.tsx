@@ -13,7 +13,7 @@ interface AnalyticsFiltersProps {
 
 /** Map our DashboardFilter[] to FilterField[] for the FilterButton. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function toFilterFields(filters: DashboardFilter[]): FilterField[] {
+function toFilterFields(_filters: DashboardFilter[]): FilterField[] {
   return [];
   // return filters.map((f) => ({
   //   value: f.field,
@@ -26,8 +26,8 @@ function toFilterFields(filters: DashboardFilter[]): FilterField[] {
 
 /** Convert activeFilters into a FilterGroup[] that the FilterButton can display. */
 function toFilterGroups( // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  filters: DashboardFilter[], // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  activeFilters: Record<string, unknown>,
+  _filters: DashboardFilter[], // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _activeFilters: Record<string, unknown>,
 ): FilterGroup[] {
   return [];
   // const conditions = filters
