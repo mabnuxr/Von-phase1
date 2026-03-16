@@ -792,6 +792,15 @@ export function BaseIntegrationConfigPane({
                     />
                   </div>
 
+                  <a
+                    href="https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Generating a new API token
+                  </a>
+
                   <style>{`
                     .zendesk-input-wrapper input::placeholder {
                       font-size: 13px;

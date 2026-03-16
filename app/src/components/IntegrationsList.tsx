@@ -549,7 +549,7 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const { isGoogleDriveEnabled } = useFeatureFlag();
+  const { isGoogleDriveEnabled, isZendeskEnabled } = useFeatureFlag();
 
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
@@ -574,11 +574,12 @@ export function IntegrationsList({
       });
       return {
         ...app,
+        disabled: app.disabled || (app.id === "zendesk" && !isZendeskEnabled),
         connectedInstances,
         isConnected: connectedInstances.length > 0,
       };
     });
-  }, [allApps, integrations]);
+  }, [allApps, integrations, isZendeskEnabled]);
 
   // Group by category
   const byCategory = useMemo(() => {
