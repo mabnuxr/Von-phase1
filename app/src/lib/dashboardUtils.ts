@@ -321,6 +321,7 @@ function transformMessagesForV2(
     const isStaleV2Data =
       msg.isStreaming &&
       !isRunActive &&
+      !v2LiveData.stoppedByUser &&
       (!hasV2TerminalData || !msgBelongsToCurrentV2Run);
 
     // Don't overlay V2 live data on already-persisted completed messages

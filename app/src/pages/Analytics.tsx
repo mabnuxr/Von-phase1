@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
@@ -24,18 +25,34 @@ const Analytics = () => {
   // Read conversationId from query params
   const conversationIdFromParams = searchParams.get("conversationId");
 
-  // State for auto-created conversation when none is provided
-  const [createdConversationId, setCreatedConversationId] = useState<
-    string | null
-  >(null);
-  const isCreatingConversationRef = useRef(false);
+  const {
+    mutate: createConversation,
+    reset: resetConversation,
+    isPending: isCreatingConversation,
+    isError: conversationCreateFailed,
+    data: createdConversationData,
+  } = useMutation({
+    mutationFn: (title: string) =>
+      conversationsService.createConversation(
+        title,
+        ConversationMode.DashboardBuilder,
+        "v2",
+      ),
+    onError: (err) => {
+      console.error("[Analytics] Failed to create conversation:", err);
+    },
+  });
+
   const {
     isVisible: isChatOpen,
     show: openChat,
     hide: closeChat,
   } = useVisibilityToggle();
 
-  const conversationId = conversationIdFromParams ?? createdConversationId;
+  const conversationId =
+    conversationIdFromParams ??
+    createdConversationData?.conversation.conversationId ??
+    null;
 
   const { data, isLoading, error } = useDashboardQuery(dashboardId);
   const {
@@ -67,49 +84,33 @@ const Analytics = () => {
     collapseSidebar();
   }, [collapseSidebar]);
 
-  // Reset auto-created conversation when navigating to a different dashboard
+  // Reset mutation state when navigating to a different dashboard
   useEffect(() => {
-    setCreatedConversationId(null);
-    isCreatingConversationRef.current = false;
-  }, [dashboardId]);
+    resetConversation();
+  }, [dashboardId, resetConversation]);
 
   // Auto-create a DashboardBuilder conversation when no conversationId is provided
   useEffect(() => {
     if (
       conversationIdFromParams ||
-      createdConversationId ||
-      isCreatingConversationRef.current ||
+      createdConversationData ||
+      isCreatingConversation ||
+      conversationCreateFailed ||
       !dashboard ||
       !isChatOpen
     )
       return;
 
-    let cancelled = false;
-    isCreatingConversationRef.current = true;
-
-    conversationsService
-      .createConversation(
-        dashboard.title,
-        ConversationMode.DashboardBuilder,
-        "v2",
-      )
-      .then((res) => {
-        if (!cancelled) {
-          setCreatedConversationId(res.conversation.conversationId);
-        }
-      })
-      .catch((err) => {
-        console.error("[Analytics] Failed to create conversation:", err);
-      })
-      .finally(() => {
-        isCreatingConversationRef.current = false;
-      });
-
-    return () => {
-      cancelled = true;
-      isCreatingConversationRef.current = false;
-    };
-  }, [conversationIdFromParams, createdConversationId, dashboard, isChatOpen]);
+    createConversation(dashboard.title);
+  }, [
+    conversationIdFromParams,
+    createdConversationData,
+    isCreatingConversation,
+    conversationCreateFailed,
+    dashboard,
+    isChatOpen,
+    createConversation,
+  ]);
 
   if (isLoading) {
     return <AnalyticsSkeleton />;
@@ -166,6 +167,18 @@ const Analytics = () => {
                 dashboardTitle={dashboard.title}
                 dashboardVersion={dashboard.dashboardVersion}
               />
+            </div>
+          ) : conversationCreateFailed ? (
+            <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex flex-col items-center justify-center gap-3">
+              <p className="text-sm text-gray-500">
+                Failed to start conversation.
+              </p>
+              <button
+                className="text-sm text-indigo-600 hover:text-indigo-700 underline"
+                onClick={resetConversation}
+              >
+                Try again
+              </button>
             </div>
           ) : (
             <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex items-center justify-center">
