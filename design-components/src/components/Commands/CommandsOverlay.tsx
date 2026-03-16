@@ -80,12 +80,12 @@ export interface CommandsOverlayProps {
   teamMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
-  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  /** Called when the user sends a test from the modal. Receives current form data. Should return a promise. */
   onSendTest?: (
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('./types').CommandAttachment[],
     recipients: ScheduleRecipient[]
-  ) => void;
+  ) => Promise<void>;
 
   // ---------------------------------------------------------------------------
   // Legacy props — accepted for backwards compatibility with older consumers

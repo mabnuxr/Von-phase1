@@ -145,7 +145,7 @@ export interface ChatEmptyStateProps {
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: import('../Commands/types').CommandAttachment[],
     recipients: import('../Commands/types').ScheduleRecipient[]
-  ) => void;
+  ) => Promise<void>;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
   /** Enable @ mentions feature */

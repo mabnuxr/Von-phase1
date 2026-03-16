@@ -62,12 +62,12 @@ export interface CommandDrawerProps {
   teamMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
-  /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */
+  /** Called when the user sends a test from the modal. Receives current form data. Should return a promise. */
   onSendTest?: (
     data: Pick<Command, 'name' | 'prompt'>,
     dataSources: CommandAttachment[],
     recipients: import('./types').ScheduleRecipient[]
-  ) => void;
+  ) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,14 +121,19 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     disabled: readOnly,
   });
 
-  const handleSendTest = useCallback(() => {
-    if (!onSendTest || form.schedule.recipients.length === 0) return;
-    onSendTest(
-      { name: form.name.trim(), prompt: form.prompt.trim() },
-      dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
-      form.schedule.recipients
-    );
-  }, [onSendTest, form.name, form.prompt, form.schedule.recipients, dataSources]);
+  const handleSendTest = useCallback(
+    (recipients: ScheduleRecipient[]) => {
+      if (!onSendTest) return Promise.resolve();
+      return onSendTest(
+        { name: form.name.trim(), prompt: form.prompt.trim() },
+        dataSources.filter(
+          (ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)
+        ),
+        recipients
+      );
+    },
+    [onSendTest, form.name, form.prompt, dataSources]
+  );
 
   const handleSave = () => {
     onSave(

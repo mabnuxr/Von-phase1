@@ -8,6 +8,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Dropdown } from '../forms/dropdown/Dropdown';
+import { MultiSelectDropdown } from '../forms/dropdown/MultiSelectDropdown';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +23,7 @@ export interface Schedule {
   time: string; // "HH:mm"
   days: ScheduleDay[]; // relevant for weekly / bi-weekly
   dayOfMonth: number; // 1-31, relevant for monthly
+  timezone: string; // IANA timezone, e.g. "America/New_York"
 }
 
 export interface SchedulePickerProps {
@@ -73,12 +75,36 @@ export const SCHEDULE_DAYS_OF_MONTH: { value: string; label: string }[] = Array.
   }
 );
 
+export const SCHEDULE_TIMEZONES: { value: string; label: string }[] = [
+  { value: 'Pacific/Honolulu', label: '(GMT-10:00) Hawaii' },
+  { value: 'America/Anchorage', label: '(GMT-09:00) Alaska' },
+  { value: 'America/Los_Angeles', label: '(GMT-08:00) Pacific Time' },
+  { value: 'America/Denver', label: '(GMT-07:00) Mountain Time' },
+  { value: 'America/Chicago', label: '(GMT-06:00) Central Time' },
+  { value: 'America/New_York', label: '(GMT-05:00) Eastern Time' },
+  { value: 'America/Sao_Paulo', label: '(GMT-03:00) São Paulo' },
+  { value: 'Atlantic/Reykjavik', label: '(GMT+00:00) Reykjavik' },
+  { value: 'Europe/London', label: '(GMT+00:00) London' },
+  { value: 'Europe/Paris', label: '(GMT+01:00) Paris' },
+  { value: 'Europe/Berlin', label: '(GMT+01:00) Berlin' },
+  { value: 'Europe/Helsinki', label: '(GMT+02:00) Helsinki' },
+  { value: 'Asia/Dubai', label: '(GMT+04:00) Dubai' },
+  { value: 'Asia/Kolkata', label: '(GMT+05:30) India (IST)' },
+  { value: 'Asia/Singapore', label: '(GMT+08:00) Singapore' },
+  { value: 'Asia/Tokyo', label: '(GMT+09:00) Tokyo' },
+  { value: 'Australia/Sydney', label: '(GMT+11:00) Sydney' },
+  { value: 'Pacific/Auckland', label: '(GMT+12:00) Auckland' },
+];
+
+const LOCAL_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export const DEFAULT_SCHEDULE: Schedule = {
   enabled: false,
   frequency: 'weekly',
   time: '09:00',
   days: ['Mon'],
   dayOfMonth: 1,
+  timezone: LOCAL_TIMEZONE,
 };
 
 export function formatScheduleBadge(schedule: Schedule): string {
@@ -112,6 +138,19 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
   const update = (patch: Partial<Schedule>) => {
     onScheduleChange({ ...schedule, ...patch });
   };
+
+  // Ensure the user's current timezone (and any previously saved timezone) is always available
+  const timezoneOptions = React.useMemo(() => {
+    const base = [...SCHEDULE_TIMEZONES];
+    const values = new Set(base.map((t) => t.value));
+    for (const tz of [LOCAL_TIMEZONE, schedule.timezone]) {
+      if (tz && !values.has(tz)) {
+        base.push({ value: tz, label: tz });
+        values.add(tz);
+      }
+    }
+    return base;
+  }, [schedule.timezone]);
 
   const showDayOfWeek = schedule.frequency === 'weekly' || schedule.frequency === 'bi-weekly';
   const showDayOfMonth = schedule.frequency === 'monthly';
@@ -163,7 +202,7 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
                 usePortal
               />
 
-              {/* Time & Day — same row */}
+              {/* Time & Date — same row */}
               <div className="flex items-start gap-2">
                 <Dropdown
                   label="Time"
@@ -175,18 +214,6 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
                   className="flex-1"
                   usePortal
                 />
-                {showDayOfWeek && (
-                  <Dropdown
-                    label="Day"
-                    labelClassName="text-xs font-medium text-gray-800/80"
-                    options={SCHEDULE_DAYS.map((d) => ({ value: d, label: d }))}
-                    value={schedule.days[0]}
-                    onChange={(v) => update({ days: [v as ScheduleDay] })}
-                    disabled={readOnly}
-                    className="flex-1"
-                    usePortal
-                  />
-                )}
                 {showDayOfMonth && (
                   <Dropdown
                     label="Date"
@@ -200,6 +227,31 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
                   />
                 )}
               </div>
+
+              {/* Day-of-week multi-select dropdown */}
+              {showDayOfWeek && (
+                <MultiSelectDropdown
+                  label="Days"
+                  labelClassName="text-xs font-medium text-gray-800/80"
+                  options={SCHEDULE_DAYS.map((d) => ({ value: d, label: d }))}
+                  value={schedule.days}
+                  onChange={(days) => update({ days: days as ScheduleDay[] })}
+                  disabled={readOnly}
+                  min={1}
+                  usePortal
+                />
+              )}
+
+              {/* Timezone */}
+              <Dropdown
+                label="Timezone"
+                labelClassName="text-xs font-medium text-gray-800/80"
+                options={timezoneOptions}
+                value={schedule.timezone}
+                onChange={(v) => update({ timezone: v })}
+                disabled={readOnly}
+                usePortal
+              />
             </div>
           </motion.div>
         )}

@@ -4,9 +4,9 @@
  * General-purpose component that can be embedded in any form.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { MagnifyingGlass, X, PaperPlaneTilt, CheckCircle } from '@phosphor-icons/react';
+import { MagnifyingGlass, X } from '@phosphor-icons/react';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,10 +26,6 @@ export interface RecipientPickerProps {
   onChange: (recipients: Recipient[]) => void;
   /** Pool of available people to pick from */
   availableRecipients?: Recipient[];
-  /** When true, show "Send test" button and fire onSendTest */
-  showSendTest?: boolean;
-  /** Called when the user clicks "Send test" */
-  onSendTest?: () => void;
   /** Prevent any interaction */
   readOnly?: boolean;
   /** Label displayed above the picker */
@@ -78,36 +74,20 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   recipients,
   onChange,
   availableRecipients = [],
-  showSendTest = false,
-  onSendTest,
   readOnly = false,
   label = 'Recipients',
   placeholder = 'Search team members...',
 }) => {
   const [search, setSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const [testSentMessage, setTestSentMessage] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRowRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const testSentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleSendTest = useCallback(() => {
-    if (recipients.length === 0) return;
-    onSendTest?.();
-    const count = recipients.length;
-    setTestSentMessage(`Sent to ${count} recipient${count !== 1 ? 's' : ''}`);
-    clearTimeout(testSentTimerRef.current ?? 0);
-    testSentTimerRef.current = setTimeout(() => setTestSentMessage(null), 3000);
-  }, [recipients, onSendTest]);
-
-  // Clear the send-test timer on unmount
-  useEffect(() => () => clearTimeout(testSentTimerRef.current ?? 0), []);
 
   // Update portal position when dropdown opens or search changes
   // Flips above the input when there isn't enough room below
-  const MAX_DROPDOWN_H = 112; // matches max-h-28
+  const MAX_DROPDOWN_H = 192; // matches max-h-48
   useEffect(() => {
     if (showDropdown && inputRowRef.current) {
       const rect = inputRowRef.current.getBoundingClientRect();
@@ -173,27 +153,8 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="mb-1.5">
         <label className="text-xs font-medium text-gray-800/80">{label}</label>
-        {showSendTest && !readOnly && recipients.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            {testSentMessage ? (
-              <span className="inline-flex items-center gap-1 text-[11px] text-green-600 animate-fade-in">
-                <CheckCircle size={12} weight="fill" />
-                {testSentMessage}
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSendTest}
-                className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-              >
-                <PaperPlaneTilt size={11} />
-                Send test
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       <div ref={containerRef} className="relative">
@@ -234,7 +195,7 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
           createPortal(
             <div
               ref={dropdownRef}
-              className="fixed z-[9999] bg-white border border-gray-100 rounded-lg shadow-lg max-h-28 overflow-y-auto py-1"
+              className="fixed z-[9999] bg-white border border-gray-100 rounded-lg shadow-lg max-h-48 overflow-y-auto py-1"
               style={{
                 top: dropdownPos.top,
                 left: dropdownPos.left,
