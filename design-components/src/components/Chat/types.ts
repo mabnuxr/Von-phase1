@@ -1262,7 +1262,7 @@ export interface ChatProps {
     editingId?: string,
     dataSources?: import('../Commands/types').CommandAttachment[],
     commandId?: string
-  ) => void;
+  ) => void | Promise<void>;
 
   /** Called when a command is deleted from the manage drawer */
   onDeleteCommand?: (id: string) => void;

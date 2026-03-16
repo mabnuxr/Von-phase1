@@ -123,7 +123,7 @@ export interface ChatEmptyStateProps {
   onSaveCommand?: (
     data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope'>,
     editingId?: string
-  ) => void;
+  ) => void | Promise<void>;
   /** Called when a command is deleted */
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
