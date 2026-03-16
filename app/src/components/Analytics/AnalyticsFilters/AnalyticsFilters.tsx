@@ -13,13 +13,14 @@ interface AnalyticsFiltersProps {
 
 /** Map our DashboardFilter[] to FilterField[] for the FilterButton. */
 function toFilterFields(filters: DashboardFilter[]): FilterField[] {
-  return filters.map((f) => ({
-    value: f.field,
-    label: f.label,
-    type:
-      f.type === "date-range" ? "date" : f.type === "range" ? "number" : "text",
-    options: f.options?.map((o) => ({ value: o.value, label: o.label })),
-  }));
+  return [];
+  // return filters.map((f) => ({
+  //   value: f.field,
+  //   label: f.label,
+  //   type:
+  //     f.type === "date-range" ? "date" : f.type === "range" ? "number" : "text",
+  //   options: f.options?.map((o) => ({ value: o.value, label: o.label })),
+  // }));
 }
 
 /** Convert activeFilters into a FilterGroup[] that the FilterButton can display. */
@@ -27,20 +28,21 @@ function toFilterGroups(
   filters: DashboardFilter[],
   activeFilters: Record<string, unknown>,
 ): FilterGroup[] {
-  const conditions = filters
-    .filter(
-      (f) => activeFilters[f.id] !== undefined && activeFilters[f.id] !== null,
-    )
-    .map((f) => ({
-      id: f.id,
-      field: f.field,
-      operator: "equals",
-      value: String(activeFilters[f.id]),
-    }));
+  return [];
+  // const conditions = filters
+  //   .filter(
+  //     (f) => activeFilters[f.id] !== undefined && activeFilters[f.id] !== null,
+  //   )
+  //   .map((f) => ({
+  //     id: f.id,
+  //     field: f.field,
+  //     operator: "equals",
+  //     value: String(activeFilters[f.id]),
+  //   }));
 
-  if (conditions.length === 0) return [];
+  // if (conditions.length === 0) return [];
 
-  return [{ id: "active", connector: "and" as const, conditions }];
+  // return [{ id: "active", connector: "and" as const, conditions }];
 }
 
 /**
