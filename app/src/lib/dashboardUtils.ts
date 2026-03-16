@@ -392,7 +392,7 @@ function transformMessagesForV2(
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
       // Extract phase and dashboard from persisted events
-      const runFinishedEvent = msg.events.find(
+      const runFinishedEvent = [...msg.events].reverse().find(
         (e) => e.event?.type === "RUN_FINISHED",
       );
       const runFinishedResult = runFinishedEvent

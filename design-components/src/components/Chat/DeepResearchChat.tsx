@@ -8,7 +8,7 @@ import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import { MessageActions } from './MessageActions';
 import { DashboardArtifactCard } from './ArtifactCards';
-import type { Message, DashboardMetadata } from './types';
+import type { Message } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
 /**
