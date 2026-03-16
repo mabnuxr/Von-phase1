@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
@@ -28,7 +28,7 @@ const Analytics = () => {
   const [createdConversationId, setCreatedConversationId] = useState<
     string | null
   >(null);
-  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const isCreatingConversationRef = useRef(false);
   const {
     isVisible: isChatOpen,
     show: openChat,
@@ -70,7 +70,7 @@ const Analytics = () => {
   // Reset auto-created conversation when navigating to a different dashboard
   useEffect(() => {
     setCreatedConversationId(null);
-    setIsCreatingConversation(false);
+    isCreatingConversationRef.current = false;
   }, [dashboardId]);
 
   // Auto-create a DashboardBuilder conversation when no conversationId is provided
@@ -78,14 +78,14 @@ const Analytics = () => {
     if (
       conversationIdFromParams ||
       createdConversationId ||
-      isCreatingConversation ||
+      isCreatingConversationRef.current ||
       !dashboard ||
       !isChatOpen
     )
       return;
 
     let cancelled = false;
-    setIsCreatingConversation(true);
+    isCreatingConversationRef.current = true;
 
     conversationsService
       .createConversation(
@@ -102,15 +102,13 @@ const Analytics = () => {
         console.error("[Analytics] Failed to create conversation:", err);
       })
       .finally(() => {
-        if (!cancelled) setIsCreatingConversation(false);
+        isCreatingConversationRef.current = false;
       });
 
     return () => {
       cancelled = true;
+      isCreatingConversationRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isCreatingConversation is intentionally
-    // omitted: including it causes the cleanup to cancel the in-flight request when the state update
-    // triggers a re-render. It's only used as a guard, not a trigger.
   }, [conversationIdFromParams, createdConversationId, dashboard, isChatOpen]);
 
   if (isLoading) {
@@ -171,15 +169,7 @@ const Analytics = () => {
             </div>
           ) : (
             <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex items-center justify-center">
-              {isCreatingConversation ? (
-                <p className="text-sm text-gray-400">
-                  Starting conversation...
-                </p>
-              ) : (
-                <p className="text-sm text-gray-400">
-                  No conversation context available
-                </p>
-              )}
+              <p className="text-sm text-gray-400">Starting conversation...</p>
             </div>
           )}
         </div>

@@ -280,9 +280,9 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           : undefined
                       }
                       onClick={
-                        onDashboardPreview
+                        onDashboardOpen
                           ? () =>
-                              onDashboardPreview(
+                              onDashboardOpen(
                                 message.dashboard!.dashboard_id,
                                 message.dashboard!.dashboard_version
                               )
