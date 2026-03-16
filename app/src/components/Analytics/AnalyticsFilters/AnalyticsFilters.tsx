@@ -12,7 +12,7 @@ interface AnalyticsFiltersProps {
 }
 
 /** Map our DashboardFilter[] to FilterField[] for the FilterButton. */
-function toFilterFields(filters: DashboardFilter[]): FilterField[] {
+function toFilterFields(_filters: DashboardFilter[]): FilterField[] {
   return [];
   // return filters.map((f) => ({
   //   value: f.field,
@@ -25,8 +25,8 @@ function toFilterFields(filters: DashboardFilter[]): FilterField[] {
 
 /** Convert activeFilters into a FilterGroup[] that the FilterButton can display. */
 function toFilterGroups(
-  filters: DashboardFilter[],
-  activeFilters: Record<string, unknown>,
+  _filters: DashboardFilter[],
+  _activeFilters: Record<string, unknown>,
 ): FilterGroup[] {
   return [];
   // const conditions = filters
