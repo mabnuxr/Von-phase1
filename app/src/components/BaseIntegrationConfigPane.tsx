@@ -87,7 +87,7 @@ export function BaseIntegrationConfigPane({
   const [clariPassword, setClariPassword] = useState("");
 
   // Zendesk API token configuration state
-  const [zendeskSubdomain, setZendeskSubdomain] = useState("");
+  const [zendeskSubdomain, setZendeskSubdomain] = useState(editData?.instanceUrl || "");
   const [zendeskEmail, setZendeskEmail] = useState("");
   const [zendeskApiToken, setZendeskApiToken] = useState("");
 
