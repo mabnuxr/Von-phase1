@@ -196,7 +196,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Snowflake.svg",
     category: "Data Warehouse",
-    disabled: true,
   },
   databricks: {
     id: "databricks",
@@ -396,6 +395,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   chorus: ["tenant"],
   claricopilot: ["tenant"],
   attention: ["tenant"],
+  zendesk: ["tenant"],
 
   // Personal integrations - user-level only
   hubspot: ["user"],
@@ -411,7 +411,6 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   salesloft: ["user"],
   snowflake: ["user"],
   databricks: ["user"],
-  zendesk: ["user"],
   pylon: ["user"],
 };
 

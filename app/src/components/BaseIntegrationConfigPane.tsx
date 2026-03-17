@@ -94,6 +94,12 @@ export function BaseIntegrationConfigPane({
   const [zendeskEmail, setZendeskEmail] = useState("");
   const [zendeskApiToken, setZendeskApiToken] = useState("");
 
+  // Snowflake key-pair configuration state
+  const [snowflakeDomain, setSnowflakeDomain] = useState("");
+  const [snowflakeAccountId, setSnowflakeAccountId] = useState("");
+  const [snowflakeUsername, setSnowflakeUsername] = useState("");
+  const [snowflakePrivateKey, setSnowflakePrivateKey] = useState("");
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -190,6 +196,23 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "snowflake") {
+      if (!hasExistingCredentials) {
+        if (!snowflakeDomain) {
+          errors.push("Snowflake Domain is required");
+        }
+        if (!snowflakeAccountId) {
+          errors.push("Account ID is required");
+        }
+        if (!snowflakeUsername) {
+          errors.push("Username is required");
+        }
+        if (!snowflakePrivateKey) {
+          errors.push("Private Key is required");
+        }
+      }
+    }
+
     // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -265,6 +288,20 @@ export function BaseIntegrationConfigPane({
           if (zendeskApiToken) {
             updateData.accessSecret = zendeskApiToken;
           }
+        } else if (integrationId === "snowflake") {
+          if (snowflakeDomain) {
+            updateData.accessKey = snowflakeDomain;
+          }
+          if (snowflakePrivateKey) {
+            updateData.accessSecret = snowflakePrivateKey;
+          }
+          if (snowflakeUsername) {
+            (updateData as Record<string, unknown>).username =
+              snowflakeUsername;
+          }
+          if (snowflakeAccountId) {
+            (updateData as Record<string, unknown>).apiKey = snowflakeAccountId;
+          }
         }
 
         // Update existing integration
@@ -280,7 +317,7 @@ export function BaseIntegrationConfigPane({
           type: getBackendIntegrationType(integrationId) as IntegrationType,
           accessLevel,
           config,
-          // Generic API credentials (Gong, Fathom)
+          // Generic API credentials (Gong, Fathom, Snowflake)
           accessKey:
             integrationId === "gong"
               ? gongAccessKey
@@ -288,15 +325,24 @@ export function BaseIntegrationConfigPane({
                 ? fathomApiKey
                 : integrationId === "zendesk"
                   ? zendeskEmail
-                  : undefined,
+                  : integrationId === "snowflake"
+                    ? snowflakeDomain
+                    : undefined,
           accessSecret:
             integrationId === "gong"
               ? gongAccessSecret
               : integrationId === "zendesk"
                 ? zendeskApiToken
-                : undefined,
+                : integrationId === "snowflake"
+                  ? snowflakePrivateKey
+                  : undefined,
           // Semantic credentials for Basic Auth and specific integrations
-          username: integrationId === "chorus" ? chorusUsername : undefined,
+          username:
+            integrationId === "chorus"
+              ? chorusUsername
+              : integrationId === "snowflake"
+                ? snowflakeUsername
+                : undefined,
           password:
             integrationId === "chorus"
               ? chorusPassword
@@ -308,7 +354,9 @@ export function BaseIntegrationConfigPane({
               ? attentionApiKey
               : integrationId === "claricopilot"
                 ? clariUsername
-                : undefined,
+                : integrationId === "snowflake"
+                  ? snowflakeAccountId
+                  : undefined,
         });
 
         // Clear sensitive credentials from state after creation
@@ -333,6 +381,12 @@ export function BaseIntegrationConfigPane({
         if (integrationId === "zendesk") {
           setZendeskEmail("");
           setZendeskApiToken("");
+        }
+        if (integrationId === "snowflake") {
+          setSnowflakeDomain("");
+          setSnowflakeAccountId("");
+          setSnowflakeUsername("");
+          setSnowflakePrivateKey("");
         }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
@@ -871,6 +925,111 @@ export function BaseIntegrationConfigPane({
                     `}</style>
                 </>
               )}
+
+              {/* Snowflake-specific fields */}
+              {integrationId === "snowflake" && (
+                <>
+                  {/* Snowflake Domain */}
+                  <div className="snowflake-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Snowflake Domain"
+                      value={snowflakeDomain}
+                      onChange={(e) => setSnowflakeDomain(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "e.g. myorg-myaccount.snowflakecomputing.com"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing value"
+                          : "Your Snowflake account URL (from browser address bar)"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Account ID */}
+                  <div className="snowflake-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Account ID"
+                      value={snowflakeAccountId}
+                      onChange={(e) => setSnowflakeAccountId(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "e.g. GUDBKFU-PIB99761"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing value"
+                          : "Your Snowflake account identifier (orgname-accountname)"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Username */}
+                  <div className="snowflake-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Username"
+                      value={snowflakeUsername}
+                      onChange={(e) => setSnowflakeUsername(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Snowflake username"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing username"
+                          : "Your Snowflake user for key-pair authentication"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Private Key */}
+                  <div className="snowflake-input-wrapper">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                      Private Key{" "}
+                      {!hasExistingCredentials && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </label>
+                    <textarea
+                      value={snowflakePrivateKey}
+                      onChange={(e) => setSnowflakePrivateKey(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Paste your RSA private key (PEM format)"
+                      }
+                      rows={6}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none font-mono"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {hasExistingCredentials
+                        ? "Leave empty to keep existing private key"
+                        : "RSA private key in PEM format (begins with -----BEGIN PRIVATE KEY-----)"}
+                    </p>
+                  </div>
+
+                  <style>{`
+                      .snowflake-input-wrapper input::placeholder,
+                      .snowflake-input-wrapper textarea::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
             </div>
 
             {/* Validation Errors Banner */}
@@ -890,10 +1049,11 @@ export function BaseIntegrationConfigPane({
             )}
           </div>
 
-          {/* Help & Security Notice - shown for API key integrations */}
+          {/* Help & Security Notice - shown for credential-based integrations */}
           {(integrationId === "gong" ||
             integrationId === "fathom" ||
-            integrationId === "zendesk") && (
+            integrationId === "zendesk" ||
+            integrationId === "snowflake") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <a
@@ -902,7 +1062,9 @@ export function BaseIntegrationConfigPane({
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
                       : integrationId === "zendesk"
                         ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
-                        : "https://developers.fathom.ai/quickstart"
+                        : integrationId === "snowflake"
+                          ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
+                          : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -912,7 +1074,9 @@ export function BaseIntegrationConfigPane({
                     ? "How to generate API credentials"
                     : integrationId === "zendesk"
                       ? "Generating a new API token"
-                      : "How to generate an API key"}
+                      : integrationId === "snowflake"
+                        ? "How to generate a key pair"
+                        : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -936,7 +1100,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" || integrationId === "snowflake" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button
