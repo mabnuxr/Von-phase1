@@ -84,8 +84,8 @@ export interface LayoutItem {
 export type WidgetType = "chart" | "counter" | "table" | "text";
 
 // Single source of truth lives in design-components
-export type { CounterWidgetConfig } from "@vonlabs/design-components";
 import type { CounterWidgetConfig } from "@vonlabs/design-components";
+export type { CounterWidgetConfig };
 
 export interface WidgetConfig {
   id: string;
