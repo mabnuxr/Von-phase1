@@ -11,6 +11,7 @@ export const IntegrationType = {
   GOOGLE_CALENDAR: "GOOGLE_CALENDAR",
   GOOGLE_DRIVE: "GOOGLE_DRIVE",
   ZOOM: "ZOOM",
+  SNOWFLAKE: "SNOWFLAKE",
 } as const;
 
 export type IntegrationType =

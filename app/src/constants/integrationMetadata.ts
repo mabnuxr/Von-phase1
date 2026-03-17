@@ -196,7 +196,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Snowflake.svg",
     category: "Data Warehouse",
-    disabled: true,
   },
   databricks: {
     id: "databricks",
