@@ -665,38 +665,41 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* File artifact cards (agent-generated documents) */}
                   {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
                     <div className="mt-3 space-y-2">
-                      {artifacts.map((artifact) => (
-                        <FileArtifactCard
-                          key={artifact.fileId}
-                          artifact={artifact}
-                          onOpen={
-                            onFileArtifactClick
-                              ? () =>
-                                  onFileArtifactClick(
-                                    artifact.fileId,
-                                    artifact.fileName,
-                                    artifact.artifactType,
-                                    artifact.mimeType,
-                                    artifact.pdfPreview?.id
-                                  )
-                              : undefined
-                          }
-                          onDownload={
-                            onArtifactDownload
-                              ? () => onArtifactDownload(artifact.fileId)
-                              : undefined
-                          }
-                          onGoogleDriveClick={
-                            onGoogleDriveClick
-                              ? () => onGoogleDriveClick(artifact.fileId)
-                              : undefined
-                          }
-                          isDriveEnabled={isDriveEnabled}
-                          isDriveConnected={isDriveConnected}
-                          driveTooltip={driveTooltip}
-                          isDriveLoading={driveLoadingFileId === artifact.fileId}
-                        />
-                      ))}
+                      {artifacts.map((artifact) => {
+                        const handleOpen = onFileArtifactClick
+                          ? () =>
+                              onFileArtifactClick(
+                                artifact.fileId,
+                                artifact.fileName,
+                                artifact.artifactType,
+                                artifact.mimeType,
+                                artifact.pdfPreview?.id
+                              )
+                          : undefined;
+
+                        return (
+                          <FileArtifactCard
+                            key={artifact.fileId}
+                            artifact={artifact}
+                            onClick={handleOpen}
+                            onOpen={handleOpen}
+                            onDownload={
+                              onArtifactDownload
+                                ? () => onArtifactDownload(artifact.fileId)
+                                : undefined
+                            }
+                            onGoogleDriveClick={
+                              onGoogleDriveClick
+                                ? () => onGoogleDriveClick(artifact.fileId)
+                                : undefined
+                            }
+                            isDriveEnabled={isDriveEnabled}
+                            isDriveConnected={isDriveConnected}
+                            driveTooltip={driveTooltip}
+                            isDriveLoading={driveLoadingFileId === artifact.fileId}
+                          />
+                        );
+                      })}
                     </div>
                   )}
 
