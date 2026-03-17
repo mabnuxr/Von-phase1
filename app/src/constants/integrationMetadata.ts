@@ -395,6 +395,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   chorus: ["tenant"],
   claricopilot: ["tenant"],
   attention: ["tenant"],
+  zendesk: ["tenant"],
 
   // Personal integrations - user-level only
   hubspot: ["user"],
@@ -410,7 +411,6 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   salesloft: ["user"],
   snowflake: ["user"],
   databricks: ["user"],
-  zendesk: ["user"],
   pylon: ["user"],
 };
 
