@@ -11,7 +11,6 @@ import {
   PresentationChartIcon,
   TableIcon,
   ArrowRightIcon,
-  ArrowsOutIcon,
   SpinnerGapIcon,
   ArrowSquareOutIcon,
 } from '@phosphor-icons/react';
@@ -50,8 +49,8 @@ const DEFAULT_FILE_CONFIG = {
 
 export interface FileArtifactCardProps {
   artifact: FileArtifact;
+  onClick?: () => void;
   onOpen?: () => void;
-  onPreview?: () => void;
   onDownload?: () => void;
   onGoogleDriveClick?: () => void;
   isDriveEnabled?: boolean;
@@ -62,8 +61,8 @@ export interface FileArtifactCardProps {
 
 export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
   artifact,
+  onClick,
   onOpen,
-  onPreview,
   onDownload,
   onGoogleDriveClick,
   isDriveEnabled,
@@ -79,6 +78,7 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
       title={artifact.fileName}
       description={config.label}
       isPending={artifact.isPending}
+      onClick={onClick}
     >
       <BaseArtifactCard.Icon>{config.icon}</BaseArtifactCard.Icon>
 
@@ -159,13 +159,6 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
         {onDownload && (
           <ActionButton onClick={onDownload} title="Download">
             <DownloadSimpleIcon size={16} weight="regular" />
-          </ActionButton>
-        )}
-
-        {/* Preview (expand) */}
-        {onPreview && (
-          <ActionButton onClick={onPreview} title="Preview full screen">
-            <ArrowsOutIcon size={16} weight="regular" />
           </ActionButton>
         )}
 
