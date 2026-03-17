@@ -947,6 +947,7 @@ const KPICard: React.FC<KPICardProps> = ({
         <div className="flex items-center gap-1 mt-1">
           {cmpVal > 0 && <ArrowUpIcon size={12} className={COLOR_CLASS[comparisonColor]} />}
           {cmpVal < 0 && <ArrowDownIcon size={12} className={COLOR_CLASS[comparisonColor]} />}
+          {cmpVal === 0 && <span className="text-gray-500">—</span>}
           <span className={`text-xs font-medium ${COLOR_CLASS[comparisonColor]}`}>
             {comparisonText}
           </span>
