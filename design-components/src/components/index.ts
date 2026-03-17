@@ -292,6 +292,7 @@ export {
   SCHEDULE_TIMES,
   DEFAULT_SCHEDULE,
   formatScheduleBadge,
+  normalizeFrequency,
 } from './SchedulePicker';
 
 // ============================================================================

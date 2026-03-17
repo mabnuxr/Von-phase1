@@ -99,6 +99,15 @@ export const DEFAULT_SCHEDULE: Schedule = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Normalise a frequency string from the API so legacy values (e.g. "bi-weekly")
+ * are mapped to the canonical ScheduleFrequency literals the UI expects.
+ */
+export function normalizeFrequency(raw: string): ScheduleFrequency {
+  if (raw === 'bi-weekly') return 'biweekly';
+  return raw as ScheduleFrequency;
+}
+
 export function formatScheduleBadge(schedule: Schedule): string {
   const freq =
     SCHEDULE_FREQUENCIES.find((f) => f.value === schedule.frequency)?.label ?? schedule.frequency;

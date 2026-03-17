@@ -4,6 +4,7 @@ import type {
   ScheduleDay,
   ScheduleFrequency,
 } from "@vonlabs/design-components";
+import { normalizeFrequency } from "@vonlabs/design-components";
 import { apiClient } from "./apiClient";
 
 /** Shape the backend expects when creating/updating a command's data sources */
@@ -62,8 +63,8 @@ export interface QuickCommandListResponse {
 export interface ScheduleConfig {
   frequency: ScheduleFrequency;
   time: string; // "HH:mm"
-  days: ScheduleDay[]; // for weekly / biweekly
-  dayOfMonth: number; // 1-31, for monthly
+  days?: ScheduleDay[]; // for weekly / biweekly
+  dayOfMonth?: number; // 1-31, for monthly
   timezone: string; // IANA timezone, e.g. "America/New_York"
 }
 
@@ -242,25 +243,23 @@ export function scheduleToApiConfigs(schedule: CommandSchedule): {
   triggerConfig: TriggerConfig;
   deliveryConfig: DeliveryConfig;
 } {
-  const base: ScheduleConfig = {
+  const scheduleConfig: ScheduleConfig = {
     frequency: schedule.frequency,
     time: schedule.time,
-    days: [],
-    dayOfMonth: 1,
     timezone:
       schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
 
   if (schedule.frequency === "weekly" || schedule.frequency === "biweekly") {
-    base.days = schedule.days;
+    scheduleConfig.days = schedule.days;
   } else if (schedule.frequency === "monthly") {
-    base.dayOfMonth = schedule.dayOfMonth;
+    scheduleConfig.dayOfMonth = schedule.dayOfMonth;
   }
 
   return {
     triggerConfig: {
       type: "schedule",
-      scheduleConfig: base,
+      scheduleConfig,
     },
     deliveryConfig: {
       type: "email",
@@ -279,14 +278,15 @@ export function apiConfigsToSchedule(
   triggerConfig: TriggerConfig,
   deliveryConfig: DeliveryConfig,
 ): CommandSchedule {
-  const { frequency, time, days, dayOfMonth, timezone } =
+  const { frequency: rawFrequency, time, days, dayOfMonth, timezone } =
     triggerConfig.scheduleConfig;
+  const frequency = normalizeFrequency(rawFrequency);
   return {
     enabled: true,
     frequency,
     time,
-    days,
-    dayOfMonth,
+    days: days ?? [],
+    dayOfMonth: dayOfMonth ?? 1,
     timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     recipients: deliveryConfig.recipients.map((r) => {
       const name = r.name ?? "";
