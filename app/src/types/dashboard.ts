@@ -202,28 +202,28 @@ export type SeriesDataPoint =
 // ─── Counter Widget ──────────────────────────────────────────────
 
 export interface CounterWidgetConfig {
-  value: string | number;
-  format: "number" | "currency" | "percentage";
-  prefix?: string;
-  suffix?: string;
-  decimals?: number;
-  trend?: {
-    value: number;
-    direction: "up" | "down" | "neutral";
-    sentiment: "positive" | "negative" | "neutral";
-    label?: string;
-    /** Unit suffix shown after the trend value (e.g. '%', 'pts'). Defaults to no suffix. */
-    unit?: string;
-  };
+  value: number | null;
+  format: string | null;
+  prefix?: string | null;
+  suffix?: string | null;
+  comparison?: {
+    value: number | null;
+    format: string | null;
+    suffix?: string | null;
+    label?: string | null;
+    positive_is_good: boolean;
+  } | null;
+  target?: {
+    value: number | null;
+    format: string | null;
+    label: string;
+  } | null;
   sparkline?: {
     data: number[];
     type: "line" | "bar";
   };
-  /** Progress value as a percentage (0-100) for horizontal progress bar */
-  progress?: number;
-  /** Target/goal value to display alongside progress */
-  target?: string;
   accentColor?: string;
+  query_failed?: boolean;
 }
 
 // ─── Table Widget (defined but not rendered yet) ─────────────────

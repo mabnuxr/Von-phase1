@@ -91,17 +91,6 @@ export function generateKPICards(): KPICardData[] {
   const kpis = computeKPIsFromData();
   const opportunities = getOpportunityData();
 
-  // Format currency
-  const formatCurrency = (value: number): string => {
-    if (value >= 1000000) {
-      return `$${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
-      return `$${(value / 1000).toFixed(1)}K`;
-    }
-    return `$${value.toFixed(0)}`;
-  };
-
   // Calculate additional metrics for more KPIs
   const openDeals = opportunities.filter(
     (opp) => opp.stage !== 'Closed Won' && opp.stage !== 'Closed Lost'
@@ -110,74 +99,145 @@ export function generateKPICards(): KPICardData[] {
   const avgCycleTime = 45; // days - would be calculated from actual data in production
 
   // Define realistic targets with varied completion rates
-  // Mix of: exceeding (100%+), on track (70-90%), struggling (40-60%), behind (<40%)
-  const revenueTarget = kpis.totalRevenue * 1.35; // Target significantly higher = ~74% progress
-  const dealsTarget = Math.round(kpis.dealsWon * 1.85); // Target much higher = ~54% progress (struggling)
-  const avgDealTarget = kpis.avgDealSize * 0.85; // Target lower = ~118% (exceeding)
-  const winRateTarget = 48; // Target 48%, actual ~53% = ~110% (exceeding)
-  const pipelineTarget = kpis.pipelineValue * 1.55; // Target higher = ~65% (mid-range)
-  const cycleTimeTarget = 32; // Target 32 days, actual 45 = ~71% (on track but needs work)
+  const revenueTarget = kpis.totalRevenue * 1.35;
+  const dealsTarget = Math.round(kpis.dealsWon * 1.85);
+  const avgDealTarget = kpis.avgDealSize * 0.85;
+  const winRateTarget = 48;
+  const pipelineTarget = kpis.pipelineValue * 1.55;
+  const cycleTimeTarget = 32;
 
   return [
     {
       id: 'kpi-total-revenue',
       title: 'Total Revenue (Closed Won)',
-      value: formatCurrency(kpis.totalRevenue),
-      change: '-26.1%',
-      changeDirection: 'down',
-      subtitle: 'vs target',
-      progress: Math.round((kpis.totalRevenue / revenueTarget) * 100), // ~74%
-      target: formatCurrency(revenueTarget),
+      kpi: {
+        value: kpis.totalRevenue,
+        format: ',.0f',
+        prefix: '$',
+        suffix: null,
+        comparison: {
+          value: -26.1,
+          format: '.1f',
+          suffix: '%',
+          label: 'vs target',
+          positive_is_good: true,
+        },
+        target: {
+          value: revenueTarget,
+          format: ',.0f',
+          label: 'Target',
+        },
+      },
     },
     {
       id: 'kpi-deals-closed',
       title: 'Deals Won',
-      value: kpis.dealsWon.toString(),
-      change: '-46.0%',
-      changeDirection: 'down',
-      subtitle: `of ${kpis.totalDeals} total opportunities`,
-      progress: Math.round((kpis.dealsWon / dealsTarget) * 100), // ~54% (struggling)
-      target: dealsTarget.toString(),
+      kpi: {
+        value: kpis.dealsWon,
+        format: ',.0f',
+        prefix: null,
+        suffix: null,
+        comparison: {
+          value: -46.0,
+          format: '.1f',
+          suffix: '%',
+          label: `of ${kpis.totalDeals} total opportunities`,
+          positive_is_good: true,
+        },
+        target: {
+          value: dealsTarget,
+          format: ',.0f',
+          label: 'Target',
+        },
+      },
     },
     {
       id: 'kpi-avg-deal',
       title: 'Average Deal Size',
-      value: formatCurrency(kpis.avgDealSize),
-      change: '+17.6%',
-      changeDirection: 'up',
-      subtitle: 'per closed deal',
-      progress: Math.min(Math.round((kpis.avgDealSize / avgDealTarget) * 100), 118), // ~118% (exceeding)
-      target: formatCurrency(avgDealTarget),
+      kpi: {
+        value: kpis.avgDealSize,
+        format: ',.0f',
+        prefix: '$',
+        suffix: null,
+        comparison: {
+          value: 17.6,
+          format: '.1f',
+          suffix: '%',
+          label: 'per closed deal',
+          positive_is_good: true,
+        },
+        target: {
+          value: avgDealTarget,
+          format: ',.0f',
+          label: 'Target',
+        },
+      },
     },
     {
       id: 'kpi-win-rate',
       title: 'Win Rate',
-      value: `${kpis.winRate.toFixed(1)}%`,
-      change: '+5.0pp',
-      changeDirection: 'up',
-      subtitle: 'closed won / total closed',
-      progress: Math.min(Math.round((kpis.winRate / winRateTarget) * 100), 110), // ~110% (exceeding)
-      target: `${winRateTarget}%`,
+      kpi: {
+        value: kpis.winRate,
+        format: '.1f',
+        prefix: null,
+        suffix: '%',
+        comparison: {
+          value: 5.0,
+          format: '.1f',
+          suffix: 'pp',
+          label: 'closed won / total closed',
+          positive_is_good: true,
+        },
+        target: {
+          value: winRateTarget,
+          format: '.0f',
+          label: 'Target',
+        },
+      },
     },
     {
       id: 'kpi-pipeline-value',
       title: 'Pipeline Value',
-      value: formatCurrency(kpis.pipelineValue),
-      change: '-35.5%',
-      changeDirection: 'down',
-      subtitle: `${openDeals.length} open opportunities`,
-      progress: Math.round((kpis.pipelineValue / pipelineTarget) * 100), // ~65% (mid-range)
-      target: formatCurrency(pipelineTarget),
+      kpi: {
+        value: kpis.pipelineValue,
+        format: ',.0f',
+        prefix: '$',
+        suffix: null,
+        comparison: {
+          value: -35.5,
+          format: '.1f',
+          suffix: '%',
+          label: `${openDeals.length} open opportunities`,
+          positive_is_good: true,
+        },
+        target: {
+          value: pipelineTarget,
+          format: ',.0f',
+          label: 'Target',
+        },
+      },
     },
     {
       id: 'kpi-cycle-time',
       title: 'Avg Sales Cycle',
-      value: `${avgCycleTime} days`,
-      change: '+40.6%',
-      changeDirection: 'down', // Higher cycle time is bad
-      subtitle: `${highValueDeals.length} high-value deals in pipeline`,
-      progress: Math.round((cycleTimeTarget / avgCycleTime) * 100), // ~71% (inverted - lower is better)
-      target: `${cycleTimeTarget} days`,
+      kpi: {
+        value: avgCycleTime,
+        format: ',.0f',
+        prefix: null,
+        suffix: ' days',
+        comparison: {
+          value: 40.6,
+          format: '.1f',
+          suffix: '%',
+          label: `${highValueDeals.length} high-value deals in pipeline`,
+          positive_is_good: false, // Higher cycle time is bad
+        },
+        target: {
+          value: cycleTimeTarget,
+          format: ',.0f',
+          label: 'Target',
+        },
+      },
     },
   ];
 }

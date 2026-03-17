@@ -4,39 +4,7 @@ import HighchartsReact from 'highcharts-react-official';
 import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 import { useDashboardCustomization } from '../DashboardCustomization';
-
-function formatValue(
-  value: string | number | null,
-  format: string,
-  prefix?: string,
-  suffix?: string,
-  decimals?: number
-): string {
-  if (value == null) return '—';
-  if (typeof value === 'string') return `${prefix ?? ''}${value}${suffix ?? ''}`;
-
-  let formatted: string;
-  const dec = decimals ?? 0;
-
-  switch (format) {
-    case 'currency': {
-      if (value >= 1_000_000) formatted = `${(value / 1_000_000).toFixed(1)}M`;
-      else if (value >= 1_000) formatted = `${(value / 1_000).toFixed(0)}K`;
-      else formatted = value.toFixed(dec);
-      break;
-    }
-    case 'percentage':
-      formatted = value.toFixed(dec);
-      break;
-    default:
-      formatted = value.toLocaleString(undefined, {
-        minimumFractionDigits: dec,
-        maximumFractionDigits: dec,
-      });
-  }
-
-  return `${prefix ?? ''}${formatted}${suffix ?? ''}`;
-}
+import { formatKpiDisplay, computeProgress, getComparisonColor } from '../../../utils/formatKpiValue';
 
 const DEFAULT_ACCENT = '#8039e9';
 
@@ -117,52 +85,71 @@ const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: 
 
 /**
  * Counter / KPI metric widget.
- * Matches storybook KPICard design: inline title, value, change badge,
- * optional progress bar with target, and optional sparkline.
+ * Renders a primary value with d3-format pattern, comparison delta
+ * with positive_is_good semantics, target progress bar, and optional sparkline.
  */
+const COMPARISON_COLOR_CLASS = {
+  good: 'text-emerald-600',
+  bad: 'text-red-600',
+  neutral: 'text-gray-500',
+} as const;
+
 const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }) => {
-  const { value, format, prefix, suffix, decimals, trend, sparkline, progress, target } = config;
-  const displayValue = formatValue(value, format, prefix, suffix, decimals);
+  const { value, format, prefix, suffix, comparison, target, sparkline, query_failed } = config;
   const primaryColor = useThemePrimary();
+
+  const isError = query_failed || value === null;
+  const displayValue = isError ? '—' : formatKpiDisplay(value, format, prefix, suffix);
+
+  const cmpVal = comparison?.value ?? null;
+  const hasComparison = !isError && comparison != null && cmpVal !== null;
+  const comparisonColor = hasComparison
+    ? getComparisonColor(cmpVal, comparison.positive_is_good)
+    : 'neutral';
+  const comparisonText = hasComparison
+    ? `${cmpVal > 0 ? '+' : ''}${formatKpiDisplay(cmpVal, comparison.format, null, comparison.suffix, false)}`
+    : undefined;
+
+  const progress = !isError && target ? computeProgress(value, target.value) : undefined;
+  const targetDisplay =
+    target && target.value !== null
+      ? formatKpiDisplay(target.value, target.format, prefix)
+      : undefined;
+
+  // Theme-aware color: "good" uses primaryColor if set, otherwise emerald
+  const arrowClassName = comparisonColor === 'good' && primaryColor
+    ? '' : COMPARISON_COLOR_CLASS[comparisonColor];
+  const arrowStyle = comparisonColor === 'good' && primaryColor
+    ? { color: primaryColor } : undefined;
+  const textClassName = comparisonColor === 'good' && primaryColor
+    ? 'text-xs font-medium' : `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
+  const textStyle = comparisonColor === 'good' && primaryColor
+    ? { color: primaryColor } : undefined;
 
   return (
     <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
       {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
       {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 
-      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
+      <p className={`text-2xl font-semibold tabular-nums truncate ${isError ? 'text-gray-400' : 'text-gray-900'}`}>
+        {displayValue}
+      </p>
 
-      {trend && (
+      {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
-          {trend.direction === 'up' && (
-            <ArrowUp
-              size={12}
-              weight="bold"
-              style={primaryColor ? { color: primaryColor } : undefined}
-              className={primaryColor ? '' : 'text-emerald-600'}
-            />
+          {cmpVal > 0 && (
+            <ArrowUp size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
           )}
-          {trend.direction === 'down' && (
-            <ArrowDown size={12} weight="bold" className="text-gray-400" />
+          {cmpVal < 0 && (
+            <ArrowDown size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
           )}
-          {trend.direction === 'neutral' && (
+          {cmpVal === 0 && (
             <Minus size={12} weight="bold" className="text-gray-500" />
           )}
-          <span
-            className={`text-xs font-medium ${
-              trend.direction === 'up'
-                ? ''
-                : trend.direction === 'down'
-                  ? 'text-gray-400'
-                  : 'text-gray-500'
-            }`}
-            style={trend.direction === 'up' && primaryColor ? { color: primaryColor } : undefined}
-          >
-            {trend.direction === 'up' ? '+' : ''}
-            {trend.value}
-            {trend.unit ?? ''}
+          <span className={textClassName} style={textStyle}>
+            {comparisonText}
           </span>
-          {trend.label && <span className="text-xs text-gray-700">{trend.label}</span>}
+          {comparison.label && <span className="text-xs text-gray-700">{comparison.label}</span>}
         </div>
       )}
 
@@ -170,7 +157,11 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
         <div className="mt-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] text-gray-700">Progress</span>
-            {target && <span className="text-[10px] text-gray-700">Target: {target}</span>}
+            {targetDisplay && target && (
+              <span className="text-[10px] text-gray-700">
+                {target.label}: {targetDisplay}
+              </span>
+            )}
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
