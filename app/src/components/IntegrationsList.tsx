@@ -549,7 +549,8 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const { isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled } = useFeatureFlag();
+  const { isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled } =
+    useFeatureFlag();
 
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
