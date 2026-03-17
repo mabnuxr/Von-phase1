@@ -86,6 +86,14 @@ export function BaseIntegrationConfigPane({
   const [clariUsername, setClariUsername] = useState("");
   const [clariPassword, setClariPassword] = useState("");
 
+  // Zendesk API token configuration state
+  const [zendeskSubdomain, setZendeskSubdomain] = useState(
+    editData?.instanceUrl || "",
+  );
+  const [zendeskSubdomainError, setZendeskSubdomainError] = useState("");
+  const [zendeskEmail, setZendeskEmail] = useState("");
+  const [zendeskApiToken, setZendeskApiToken] = useState("");
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -166,6 +174,22 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "zendesk") {
+      if (!zendeskSubdomain) {
+        errors.push("Subdomain is required");
+      } else if (/^https?:\/\//i.test(zendeskSubdomain)) {
+        errors.push("Subdomain should not include http:// or https://");
+      }
+      if (!hasExistingCredentials) {
+        if (!zendeskEmail) {
+          errors.push("Email is required");
+        }
+        if (!zendeskApiToken) {
+          errors.push("API Token is required");
+        }
+      }
+    }
+
     // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -186,6 +210,10 @@ export function BaseIntegrationConfigPane({
       if (integrationId === "gong") {
         // Store instance URL in config (not sensitive) - standardized with Salesforce
         config.instance_url = gongApiBaseUrl;
+      }
+
+      if (integrationId === "zendesk") {
+        config.instance_url = zendeskSubdomain;
       }
 
       if (isEditMode && editData?.id) {
@@ -230,6 +258,13 @@ export function BaseIntegrationConfigPane({
           if (clariPassword) {
             updateData.accessSecret = clariPassword;
           }
+        } else if (integrationId === "zendesk") {
+          if (zendeskEmail) {
+            updateData.accessKey = zendeskEmail;
+          }
+          if (zendeskApiToken) {
+            updateData.accessSecret = zendeskApiToken;
+          }
         }
 
         // Update existing integration
@@ -251,8 +286,15 @@ export function BaseIntegrationConfigPane({
               ? gongAccessKey
               : integrationId === "fathom"
                 ? fathomApiKey
+                : integrationId === "zendesk"
+                  ? zendeskEmail
+                  : undefined,
+          accessSecret:
+            integrationId === "gong"
+              ? gongAccessSecret
+              : integrationId === "zendesk"
+                ? zendeskApiToken
                 : undefined,
-          accessSecret: integrationId === "gong" ? gongAccessSecret : undefined,
           // Semantic credentials for Basic Auth and specific integrations
           username: integrationId === "chorus" ? chorusUsername : undefined,
           password:
@@ -287,6 +329,10 @@ export function BaseIntegrationConfigPane({
         if (integrationId === "claricopilot") {
           setClariUsername("");
           setClariPassword("");
+        }
+        if (integrationId === "zendesk") {
+          setZendeskEmail("");
+          setZendeskApiToken("");
         }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
@@ -688,6 +734,88 @@ export function BaseIntegrationConfigPane({
                 </>
               )}
 
+              {/* Zendesk-specific fields */}
+              {integrationId === "zendesk" && (
+                <>
+                  {/* Subdomain */}
+                  <div className="zendesk-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Subdomain"
+                      value={zendeskSubdomain}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setZendeskSubdomain(value);
+                        if (/^https?:\/\//i.test(value)) {
+                          setZendeskSubdomainError(
+                            "Please enter the subdomain without http:// or https://",
+                          );
+                        } else {
+                          setZendeskSubdomainError("");
+                        }
+                      }}
+                      placeholder="yourcompany.zendesk.com"
+                      helperText="Your Zendesk subdomain (e.g. yourcompany.zendesk.com)"
+                      error={!!zendeskSubdomainError}
+                      errorMessage={zendeskSubdomainError}
+                      required
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="zendesk-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Email"
+                      value={zendeskEmail}
+                      onChange={(e) => setZendeskEmail(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "you@yourcompany.com"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing email"
+                          : "Your Zendesk account email"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* API Token */}
+                  <div className="zendesk-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Token"
+                      value={zendeskApiToken}
+                      onChange={(e) => setZendeskApiToken(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Zendesk API token"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API token"
+                          : "Your Zendesk API token"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                    .zendesk-input-wrapper input::placeholder {
+                      font-size: 13px;
+                      color: #9ca3af;
+                    }
+                  `}</style>
+                </>
+              )}
+
               {/* Clari Co-pilot-specific fields */}
               {integrationId === "claricopilot" && (
                 <>
@@ -763,21 +891,26 @@ export function BaseIntegrationConfigPane({
           </div>
 
           {/* Help & Security Notice - shown for API key integrations */}
-          {(integrationId === "gong" || integrationId === "fathom") && (
+          {(integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <a
                   href={
                     integrationId === "gong"
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
-                      : "https://developers.fathom.ai/quickstart"
+                      : integrationId === "zendesk"
+                        ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
+                        : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700 underline"
                 >
-                  How to generate{" "}
-                  {integrationId === "gong" ? "API credentials" : "an API key"}
+                  {integrationId === "gong"
+                    ? "How to generate API credentials"
+                    : integrationId === "zendesk"
+                      ? "Generating a new API token"
+                      : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -801,7 +934,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button

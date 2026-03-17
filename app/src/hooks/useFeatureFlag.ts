@@ -25,6 +25,7 @@ export const FEATURE_FLAGS = {
   /** @deprecated permanently enabled — kept for reference only */
   ARTIFACTS: "enableArtifacts",
   SCHEDULED_COMMANDS: "enableScheduledCommands",
+  ZENDESK_INTEGRATION: "enableZendesk",
 } as const;
 
 /**
@@ -125,6 +126,11 @@ export function useFeatureFlag() {
      */
     isScheduledCommandsEnabled:
       flags[FEATURE_FLAGS.SCHEDULED_COMMANDS] === true,
+
+    /**
+     * Controls whether Zendesk integration is visible
+     */
+    isZendeskEnabled: flags[FEATURE_FLAGS.ZENDESK_INTEGRATION] === true,
 
     /**
      * Raw flags object for advanced usage
