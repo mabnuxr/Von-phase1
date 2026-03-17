@@ -4,7 +4,11 @@ import HighchartsReact from 'highcharts-react-official';
 import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 import { useDashboardCustomization } from '../DashboardCustomization';
-import { formatKpiDisplay, computeProgress, getComparisonColor } from '../../../utils/formatKpiValue';
+import {
+  formatKpiDisplay,
+  computeProgress,
+  getComparisonColor,
+} from '../../../utils/formatKpiValue';
 
 const DEFAULT_ACCENT = '#8039e9';
 
@@ -116,23 +120,23 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
       : undefined;
 
   // Theme-aware color: "good" uses primaryColor if set, otherwise emerald
-  const arrowClassName = comparisonColor === 'good' && primaryColor
-    ? '' : COMPARISON_COLOR_CLASS[comparisonColor];
-  const arrowStyle = comparisonColor === 'good' && primaryColor
-    ? { color: primaryColor } : undefined;
-  const textClassName = comparisonColor === 'good' && primaryColor
-    ? 'text-xs font-medium' : `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
-  const textStyle = comparisonColor === 'good' && primaryColor
-    ? { color: primaryColor } : undefined;
+  const arrowClassName =
+    comparisonColor === 'good' && primaryColor ? '' : COMPARISON_COLOR_CLASS[comparisonColor];
+  const arrowStyle =
+    comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
+  const textClassName =
+    comparisonColor === 'good' && primaryColor
+      ? 'text-xs font-medium'
+      : `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
+  const textStyle =
+    comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
 
   return (
     <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
       {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
       {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 
-      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">
-        {displayValue}
-      </p>
+      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
 
       {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
@@ -142,9 +146,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
           {cmpVal < 0 && (
             <ArrowDown size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
           )}
-          {cmpVal === 0 && (
-            <Minus size={12} weight="bold" className="text-gray-500" />
-          )}
+          {cmpVal === 0 && <Minus size={12} weight="bold" className="text-gray-500" />}
           <span className={textClassName} style={textStyle}>
             {comparisonText}
           </span>

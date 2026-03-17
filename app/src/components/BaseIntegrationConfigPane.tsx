@@ -891,7 +891,9 @@ export function BaseIntegrationConfigPane({
           </div>
 
           {/* Help & Security Notice - shown for API key integrations */}
-          {(integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk") && (
+          {(integrationId === "gong" ||
+            integrationId === "fathom" ||
+            integrationId === "zendesk") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <a

@@ -888,7 +888,8 @@ const KPICard: React.FC<KPICardProps> = ({
     : undefined;
 
   const target = kpi.target;
-  const progress = !isError && target ? computeProgress(kpi.value, target.value, target.inverted) : undefined;
+  const progress =
+    !isError && target ? computeProgress(kpi.value, target.value, target.inverted) : undefined;
   const targetDisplay =
     target && target.value !== null
       ? formatKpiDisplay(target.value, target.format, kpi.prefix, kpi.suffix)
@@ -936,7 +937,9 @@ const KPICard: React.FC<KPICardProps> = ({
       </AnimatePresence>
 
       <p className="text-xs text-gray-500 mb-1">{data.title}</p>
-      <p className={`text-2xl font-semibold tabular-nums ${isError ? 'text-gray-400' : 'text-gray-900'}`}>
+      <p
+        className={`text-2xl font-semibold tabular-nums ${isError ? 'text-gray-400' : 'text-gray-900'}`}
+      >
         {displayValue}
       </p>
 
@@ -979,9 +982,7 @@ const KPICard: React.FC<KPICardProps> = ({
             />
           </div>
           <div className="flex items-center justify-end mt-0.5">
-            <span className="text-[10px] font-medium text-gray-600">
-              {Math.round(progress)}%
-            </span>
+            <span className="text-[10px] font-medium text-gray-600">{Math.round(progress)}%</span>
           </div>
         </div>
       )}

@@ -139,15 +139,14 @@ export function formatKpiDisplay(
   format: string | null,
   prefix?: string | null,
   suffix?: string | null,
-  abbreviate = true,
+  abbreviate = true
 ): string {
   if (value === null) return '—';
 
   let formatted: string;
 
-  const shouldAbbreviate = abbreviate
-    && isCurrencyPrefix(prefix)
-    && (format === null || !format.includes('%'));
+  const shouldAbbreviate =
+    abbreviate && isCurrencyPrefix(prefix) && (format === null || !format.includes('%'));
 
   if (shouldAbbreviate) {
     const precisionMatch = format?.match(/\.(\d+)/);
@@ -169,7 +168,7 @@ export function formatKpiDisplay(
 export function computeProgress(
   value: number | null,
   targetValue: number | null,
-  inverted?: boolean,
+  inverted?: boolean
 ): number | undefined {
   if (value === null || targetValue === null || targetValue === 0) {
     return undefined;
@@ -192,7 +191,7 @@ export function computeProgress(
  */
 export function getComparisonColor(
   comparisonValue: number | null,
-  positiveIsGood: boolean,
+  positiveIsGood: boolean
 ): 'good' | 'bad' | 'neutral' {
   if (comparisonValue === null || comparisonValue === 0) return 'neutral';
   const isPositive = comparisonValue > 0;
