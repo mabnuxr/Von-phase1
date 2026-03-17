@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
@@ -25,19 +25,31 @@ const Analytics = () => {
   // Read conversationId from query params
   const conversationIdFromParams = searchParams.get("conversationId");
 
+  // Tracks the dashboardId at the time each mutation fires so onSuccess can
+  // discard results that belong to a dashboard the user has already left.
+  const currentDashboardIdRef = useRef(dashboardId);
+  currentDashboardIdRef.current = dashboardId;
+
+  const [createdConversationId, setCreatedConversationId] = useState<
+    string | null
+  >(null);
+
   const {
     mutate: createConversation,
     reset: resetConversation,
     isPending: isCreatingConversation,
     isError: conversationCreateFailed,
-    data: createdConversationData,
   } = useMutation({
-    mutationFn: (title: string) =>
+    mutationFn: ({ title, forDashboardId }: { title: string; forDashboardId: string }) =>
       conversationsService.createConversation(
         title,
         ConversationMode.DashboardBuilder,
         "v2",
-      ),
+      ).then((res) => ({ res, forDashboardId })),
+    onSuccess: ({ res, forDashboardId }) => {
+      if (forDashboardId !== currentDashboardIdRef.current) return;
+      setCreatedConversationId(res.conversation.conversationId);
+    },
     onError: (err) => {
       console.error("[Analytics] Failed to create conversation:", err);
     },
@@ -49,10 +61,7 @@ const Analytics = () => {
     hide: closeChat,
   } = useVisibilityToggle();
 
-  const conversationId =
-    conversationIdFromParams ??
-    createdConversationData?.conversation.conversationId ??
-    null;
+  const conversationId = conversationIdFromParams ?? createdConversationId;
 
   const { data, isLoading, error } = useDashboardQuery(dashboardId);
   const {
@@ -86,6 +95,7 @@ const Analytics = () => {
 
   // Reset mutation state when navigating to a different dashboard
   useEffect(() => {
+    setCreatedConversationId(null);
     resetConversation();
   }, [dashboardId, resetConversation]);
 
@@ -93,7 +103,7 @@ const Analytics = () => {
   useEffect(() => {
     if (
       conversationIdFromParams ||
-      createdConversationData ||
+      createdConversationId ||
       isCreatingConversation ||
       conversationCreateFailed ||
       !dashboard ||
@@ -101,13 +111,14 @@ const Analytics = () => {
     )
       return;
 
-    createConversation(dashboard.title);
+    createConversation({ title: dashboard.title, forDashboardId: dashboardId });
   }, [
     conversationIdFromParams,
-    createdConversationData,
+    createdConversationId,
     isCreatingConversation,
     conversationCreateFailed,
     dashboard,
+    dashboardId,
     isChatOpen,
     createConversation,
   ]);
