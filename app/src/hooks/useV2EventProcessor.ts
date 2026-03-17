@@ -551,10 +551,7 @@ export function useV2EventProcessor(
           const targetMsg = messages
             .slice()
             .reverse()
-            .find(
-              (m) =>
-                m.role === "assistant" && m.runId === run_id,
-            );
+            .find((m) => m.role === "assistant" && m.runId === run_id);
           if (targetMsg) {
             useChatStore
               .getState()
