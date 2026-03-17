@@ -40,12 +40,16 @@ const Analytics = () => {
     isPending: isCreatingConversation,
     isError: conversationCreateFailed,
   } = useMutation({
-    mutationFn: ({ title, forDashboardId }: { title: string; forDashboardId: string }) =>
-      conversationsService.createConversation(
-        title,
-        ConversationMode.DashboardBuilder,
-        "v2",
-      ).then((res) => ({ res, forDashboardId })),
+    mutationFn: ({
+      title,
+      forDashboardId,
+    }: {
+      title: string;
+      forDashboardId: string;
+    }) =>
+      conversationsService
+        .createConversation(title, ConversationMode.DashboardBuilder, "v2")
+        .then((res) => ({ res, forDashboardId })),
     onSuccess: ({ res, forDashboardId }) => {
       if (forDashboardId !== currentDashboardIdRef.current) return;
       setCreatedConversationId(res.conversation.conversationId);

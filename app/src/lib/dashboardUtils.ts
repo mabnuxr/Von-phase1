@@ -18,6 +18,7 @@ import type {
 
 // Existing utilities
 import { replayAguiEvents } from "../utils/replayAguiEvents";
+import { findLast } from "../utils/findLast";
 import { getDisplayTitle } from "./conversationUtils";
 import {
   transformAguiToTimelineSteps,
@@ -321,8 +322,9 @@ function transformMessagesForV2(
     const isStaleV2Data =
       msg.isStreaming &&
       !isRunActive &&
-      !v2LiveData.stoppedByUser &&
-      (!hasV2TerminalData || !msgBelongsToCurrentV2Run);
+      (!hasV2TerminalData ||
+        (!msgBelongsToCurrentV2Run &&
+          !(v2LiveData.stoppedByUser && msg.runId)));
 
     // Don't overlay V2 live data on already-persisted completed messages
     // (they have their own events and should use the persisted path below).
@@ -397,9 +399,10 @@ function transformMessagesForV2(
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
       // Extract phase and dashboard from persisted events
-      const runFinishedEvent = [...msg.events]
-        .reverse()
-        .find((e) => e.event?.type === "RUN_FINISHED");
+      const runFinishedEvent = findLast(
+        msg.events,
+        (e) => e.event?.type === "RUN_FINISHED",
+      );
       const runFinishedResult = runFinishedEvent
         ? (
             runFinishedEvent.event as RunFinishedEvent & {
