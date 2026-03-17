@@ -60,7 +60,11 @@ interface ChatState {
     events?: AguiEventWrapper[],
   ) => void;
   markMessageTimeout: (conversationId: string, messageId: string) => void;
-  markMessageExpired: (conversationId: string, messageId: string, message?: string) => void;
+  markMessageExpired: (
+    conversationId: string,
+    messageId: string,
+    message?: string,
+  ) => void;
 
   // Message filtering state for ChatGPT-style visual clearing
   // Stored in Zustand for synchronous updates with message additions
@@ -358,8 +362,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
                   ...msg,
                   isStreaming: false,
                   status: "expired" as const,
-                  errorMessage:
-                    message || "Approval request has expired",
+                  errorMessage: message || "Approval request has expired",
                 }
               : msg,
           ),

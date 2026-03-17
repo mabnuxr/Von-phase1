@@ -25,7 +25,13 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
   className = '',
 }) => {
   // Don't show badge for normal states or timeout (timeout is internal recovery, not user-facing)
-  if (!status || status === 'created' || status === 'completed' || status === 'timeout' || status === 'expired') {
+  if (
+    !status ||
+    status === 'created' ||
+    status === 'completed' ||
+    status === 'timeout' ||
+    status === 'expired'
+  ) {
     return null;
   }
 

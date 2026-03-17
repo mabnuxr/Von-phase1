@@ -11,7 +11,13 @@ import type { MentionItem } from '../Mentions/types';
 /**
  * Shared message status type used across Chat components
  */
-export type MessageStatus = 'created' | 'streaming' | 'completed' | 'failed' | 'timeout' | 'expired';
+export type MessageStatus =
+  | 'created'
+  | 'streaming'
+  | 'completed'
+  | 'failed'
+  | 'timeout'
+  | 'expired';
 
 /**
  * Additional options passed with the send message callback

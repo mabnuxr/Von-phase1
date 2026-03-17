@@ -15,26 +15,30 @@
  * Does NOT manage Pusher connection (receives channel) or reconciliation (separate hook).
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRunTimerController } from './useRunTimerController';
-import { useLatestRef } from './useLatestRef';
-import { flushSync } from 'react-dom';
-import type { Channel } from 'pusher-js';
-import type { AguiEventWrapper, TimelineStep, RunFinishedEvent } from '@vonlabs/design-components';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRunTimerController } from "./useRunTimerController";
+import { useLatestRef } from "./useLatestRef";
+import { flushSync } from "react-dom";
+import type { Channel } from "pusher-js";
+import type {
+  AguiEventWrapper,
+  TimelineStep,
+  RunFinishedEvent,
+} from "@vonlabs/design-components";
 
 /** RUN_FINISHED result extended with the optional dashboard field the backend emits. */
-type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, 'result'> & {
-  result: RunFinishedEvent['result'] & { dashboard?: DashboardMetadata | null };
+type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, "result"> & {
+  result: RunFinishedEvent["result"] & { dashboard?: DashboardMetadata | null };
 };
-import type { DashboardMetadata } from '../types/conversation';
+import type { DashboardMetadata } from "../types/conversation";
 
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
   type ResearchResultsState,
-} from '../utils/transformAguiToTimelineSteps';
-import { conversationsService } from '../services/conversationsService';
-import useChatStore from '../store/chatStore';
+} from "../utils/transformAguiToTimelineSteps";
+import { conversationsService } from "../services/conversationsService";
+import useChatStore from "../store/chatStore";
 
 /** Check if a sorted event array has missing sequences (gaps or doesn't start at 0/1). */
 function hasSequenceGaps(events: AguiEventWrapper[]): boolean {
@@ -49,7 +53,9 @@ function hasSequenceGaps(events: AguiEventWrapper[]): boolean {
 /** Merge multiple event arrays, dedup by sequence number, return sorted.
  *  Later arrays overwrite earlier ones for the same sequence, so pass
  *  backend (stale) arrays first and Pusher (live) arrays last. */
-function mergeAndDedup(...eventArrays: (AguiEventWrapper[] | undefined)[]): AguiEventWrapper[] {
+function mergeAndDedup(
+  ...eventArrays: (AguiEventWrapper[] | undefined)[]
+): AguiEventWrapper[] {
   const mergedMap = new Map<number, AguiEventWrapper>();
 
   for (const arr of eventArrays) {
@@ -63,21 +69,21 @@ function mergeAndDedup(...eventArrays: (AguiEventWrapper[] | undefined)[]): Agui
 }
 
 const AGUI_EVENTS = [
-  'agent.run_started',
-  'agent.step_started',
-  'agent.text_message_start',
-  'agent.text_message_content',
-  'agent.text_message_end',
-  'agent.tool_call_start',
-  'agent.tool_call_args',
-  'agent.tool_call_end',
-  'agent.tool_call_result',
-  'agent.step_finished',
-  'agent.run_finished',
-  'agent.run_error',
-  'agent.research_results_start',
-  'agent.research_results_content',
-  'agent.research_results_end',
+  "agent.run_started",
+  "agent.step_started",
+  "agent.text_message_start",
+  "agent.text_message_content",
+  "agent.text_message_end",
+  "agent.tool_call_start",
+  "agent.tool_call_args",
+  "agent.tool_call_end",
+  "agent.tool_call_result",
+  "agent.step_finished",
+  "agent.run_finished",
+  "agent.run_error",
+  "agent.research_results_start",
+  "agent.research_results_content",
+  "agent.research_results_end",
 ] as const;
 
 export interface UseV2EventProcessorReturn {
@@ -92,7 +98,7 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
-  phase: 'plan-proposed' | 'ask' | null;
+  phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
   markStopped: () => void;
   markTimedOut: () => void;
@@ -109,7 +115,7 @@ export interface UseV2EventProcessorReturn {
   // Allow reconciliation to update state
   applyTransformResult: (
     result: ReturnType<typeof transformAguiToTimelineSteps>,
-    runId: string
+    runId: string,
   ) => void;
   handleRunFinished: (runId: string, elapsedTime: number) => void;
 }
@@ -117,7 +123,7 @@ export interface UseV2EventProcessorReturn {
 const INITIAL_RESEARCH_RESULTS: ResearchResultsState = {
   isStreaming: false,
   isCompleted: false,
-  content: '',
+  content: "",
   metadata: null,
   messageId: null,
 };
@@ -126,7 +132,7 @@ export function useV2EventProcessor(
   channel: Channel | null,
   conversationId: string | null,
   initialRunEvents?: AguiEventWrapper[],
-  onRunComplete?: () => void
+  onRunComplete?: () => void,
 ): UseV2EventProcessorReturn {
   const {
     elapsedTime: timerElapsedTime,
@@ -147,15 +153,17 @@ export function useV2EventProcessor(
   const [timelineSteps, setTimelineSteps] = useState<TimelineStep[]>([]);
   const [isThinking, setIsThinking] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [finalResponse, setFinalResponse] = useState('');
-  const [isFinalResponseStreaming, setIsFinalResponseStreaming] = useState(false);
+  const [finalResponse, setFinalResponse] = useState("");
+  const [isFinalResponseStreaming, setIsFinalResponseStreaming] =
+    useState(false);
   const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
-  const [researchResults, setResearchResults] =
-    useState<ResearchResultsState>(INITIAL_RESEARCH_RESULTS);
+  const [researchResults, setResearchResults] = useState<ResearchResultsState>(
+    INITIAL_RESEARCH_RESULTS,
+  );
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
-  const [runErrorMessage, setRunErrorMessage] = useState('');
-  const [phase, setPhase] = useState<'plan-proposed' | 'ask' | null>(null);
+  const [runErrorMessage, setRunErrorMessage] = useState("");
+  const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
@@ -179,9 +187,9 @@ export function useV2EventProcessor(
       result: ReturnType<typeof transformAguiToTimelineSteps>,
       runId: string,
       options?: {
-        phase?: 'plan-proposed' | 'ask' | null;
+        phase?: "plan-proposed" | "ask" | null;
         dashboard?: DashboardMetadata | null;
-      }
+      },
     ) => {
       flushSync(() => {
         setTimelineSteps(result.steps);
@@ -202,7 +210,7 @@ export function useV2EventProcessor(
         }
       });
     },
-    []
+    [],
   );
 
   // Shared logic for terminating the active run (stopped by user, timed out, etc.)
@@ -232,11 +240,11 @@ export function useV2EventProcessor(
         // Mark any in-progress/pending/awaiting-approval steps as complete (run is terminated)
         for (const step of steps) {
           if (
-            step.status === 'in-progress' ||
-            step.status === 'pending' ||
-            step.status === 'awaiting-approval'
+            step.status === "in-progress" ||
+            step.status === "pending" ||
+            step.status === "awaiting-approval"
           ) {
-            step.status = 'complete';
+            step.status = "complete";
           }
         }
 
@@ -256,7 +264,7 @@ export function useV2EventProcessor(
           setIsThinking(false);
           setIsFinalResponseStreaming(false);
           setStoppedByUser(options.stoppedByUser);
-          setRunErrorMessage(options.errorMessage ?? '');
+          setRunErrorMessage(options.errorMessage ?? "");
           setTimelineSteps([]);
         });
       }
@@ -266,12 +274,12 @@ export function useV2EventProcessor(
       lastEventTimeRef.current = 0;
       onRunComplete?.();
     },
-    [timerOnRunTerminated, onRunComplete]
+    [timerOnRunTerminated, onRunComplete],
   );
 
   const markStopped = useCallback(() => {
     if (import.meta.env.DEV) {
-      console.log('[useV2EventProcessor] Streaming marked as stopped');
+      console.log("[useV2EventProcessor] Streaming marked as stopped");
     }
     pendingStopRef.current = true;
     terminateRun({ stoppedByUser: true });
@@ -295,34 +303,37 @@ export function useV2EventProcessor(
       setIsThinking(false);
       setIsFinalResponseStreaming(false);
     });
-    timer.stop();
+    timerOnRunTerminated(true);
     lastEventTimeRef.current = 0;
-  }, [timer.stop]);
+  }, [timerOnRunTerminated]);
 
   const markTimedOut = useCallback(() => {
     if (import.meta.env.DEV) {
-      console.log('[useV2EventProcessor] Run timed out — no new events received');
+      console.log(
+        "[useV2EventProcessor] Run timed out — no new events received",
+      );
     }
 
     // Persist timeout status in chatStore so the message shows the error banner
     // and doesn't resurrect as "streaming" after a page refresh
-    const messages = useChatStore.getState().messages[conversationId ?? ''] || [];
+    const messages =
+      useChatStore.getState().messages[conversationId ?? ""] || [];
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i];
-      if (m.role === 'assistant' && m.isStreaming) {
-        useChatStore.getState().markMessageTimeout(conversationId ?? '', m.id);
+      if (m.role === "assistant" && m.isStreaming) {
+        useChatStore.getState().markMessageTimeout(conversationId ?? "", m.id);
         break;
       }
     }
 
-    terminateRun({ stoppedByUser: false, errorMessage: 'Request timed out' });
+    terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
   }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
     (runId: string, elapsed: number) => {
       timerOnReconciliationFinished(runId, elapsed);
     },
-    [timerOnReconciliationFinished]
+    [timerOnReconciliationFinished],
   );
 
   // Shared gap-fill: fetch events from the backend API and merge into the
@@ -346,13 +357,13 @@ export function useV2EventProcessor(
           const response = await conversationsService.getConversationMessages(
             capturedConversationId,
             1,
-            5
+            5,
           );
 
           let latestMsg;
           for (let i = response.data.length - 1; i >= 0; i--) {
             const m = response.data[i];
-            if (m.role === 'assistant' && m.events && m.events.length > 0) {
+            if (m.role === "assistant" && m.events && m.events.length > 0) {
               latestMsg = m;
               break;
             }
@@ -374,7 +385,7 @@ export function useV2EventProcessor(
           if (import.meta.env.DEV) {
             console.log(
               `[useV2EventProcessor] ${label} complete:`,
-              `before=${currentEvents.length}, after=${filledEvents.length}`
+              `before=${currentEvents.length}, after=${filledEvents.length}`,
             );
           }
         } catch (err) {
@@ -382,14 +393,15 @@ export function useV2EventProcessor(
         }
       }, delayMs);
     },
-    [conversationId, applyTransformResult]
+    [conversationId, applyTransformResult],
   );
 
   // AGUI event handler
   const handleAguiEvent = useCallback(
     () => (data: string | AguiEventWrapper) => {
       try {
-        const wrapper: AguiEventWrapper = typeof data === 'string' ? JSON.parse(data) : data;
+        const wrapper: AguiEventWrapper =
+          typeof data === "string" ? JSON.parse(data) : data;
         const { run_id, sequence } = wrapper;
         const eventType = wrapper.event?.type;
 
@@ -401,8 +413,8 @@ export function useV2EventProcessor(
           finishedRunsRef.current.add(run_id);
           if (import.meta.env.DEV) {
             console.log(
-              '[useV2EventProcessor] Swallowed late event for pre-emptively stopped run:',
-              run_id
+              "[useV2EventProcessor] Swallowed late event for pre-emptively stopped run:",
+              run_id,
             );
           }
           return;
@@ -413,7 +425,7 @@ export function useV2EventProcessor(
           const finishedRunEvents = eventsRef.current.get(run_id);
           if (finishedRunEvents) {
             const exists = finishedRunEvents.some(
-              (e) => e.run_id === run_id && e.sequence === sequence
+              (e) => e.run_id === run_id && e.sequence === sequence,
             );
             if (!exists) {
               finishedRunEvents.push(wrapper);
@@ -422,8 +434,8 @@ export function useV2EventProcessor(
           }
           if (import.meta.env.DEV) {
             console.log(
-              '[useV2EventProcessor] Accumulated late event for finished run:',
-              eventType
+              "[useV2EventProcessor] Accumulated late event for finished run:",
+              eventType,
             );
           }
           return;
@@ -442,17 +454,18 @@ export function useV2EventProcessor(
           // If no run is being tracked yet, or the previously tracked run
           // already finished, this is a brand-new run (not a reconnect).
           const previousRunId = currentRunIdForHandlerRef.current;
-          const isNewRun = !previousRunId || finishedRunsRef.current.has(previousRunId);
+          const isNewRun =
+            !previousRunId || finishedRunsRef.current.has(previousRunId);
           if (isNewRun) {
             currentRunIdForHandlerRef.current = run_id;
             flushSync(() => {
               setTimelineSteps([]);
-              setFinalResponse('');
+              setFinalResponse("");
               setIsFinalResponseStreaming(false);
               setIsAwaitingApproval(false);
               setStoppedByUser(false);
               setCurrentRunId(run_id);
-              setRunErrorMessage('');
+              setRunErrorMessage("");
               setDashboard(null);
               setPhase(null);
             });
@@ -467,7 +480,9 @@ export function useV2EventProcessor(
         }
 
         // Deduplicate by sequence
-        const exists = runEvents.some((e) => e.run_id === run_id && e.sequence === sequence);
+        const exists = runEvents.some(
+          (e) => e.run_id === run_id && e.sequence === sequence,
+        );
         if (exists) return;
 
         // Append and sort
@@ -482,12 +497,14 @@ export function useV2EventProcessor(
 
         // Extract phase and dashboard from RUN_FINISHED event
         const runFinishedPhase =
-          eventType === 'RUN_FINISHED'
-            ? ((wrapper.event as RunFinishedEventWithDashboard).result?.phase ?? null)
+          eventType === "RUN_FINISHED"
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result?.phase ??
+              null)
             : undefined;
         const runFinishedDashboard =
-          eventType === 'RUN_FINISHED'
-            ? ((wrapper.event as RunFinishedEventWithDashboard).result?.dashboard ?? null)
+          eventType === "RUN_FINISHED"
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+                ?.dashboard ?? null)
             : undefined;
 
         // Update state synchronously
@@ -510,8 +527,8 @@ export function useV2EventProcessor(
           if (runFinishedDashboard !== undefined) {
             if (import.meta.env.DEV) {
               console.log(
-                '[useV2EventProcessor] Dashboard metadata received:',
-                runFinishedDashboard
+                "[useV2EventProcessor] Dashboard metadata received:",
+                runFinishedDashboard,
               );
             }
             setDashboard(runFinishedDashboard);
@@ -521,34 +538,19 @@ export function useV2EventProcessor(
         // Mark message as expired in chatStore when approval expires
         if (result.isExpiredApproval) {
           // Extract the expired message from the step that has expired status
-          const expiredStep = result.steps.find((s) => (s.status as string) === 'expired');
+          const expiredStep = result.steps.find(
+            (s) => (s.status as string) === "expired",
+          );
           const expiredMessage = expiredStep?.errorMessage;
 
-          const messages = useChatStore.getState().messages[conversationId ?? ''] || [];
+          const messages =
+            useChatStore.getState().messages[conversationId ?? ""] || [];
           for (let i = messages.length - 1; i >= 0; i--) {
             const m = messages[i];
-            if (m.role === 'assistant' && m.isStreaming) {
+            if (m.role === "assistant" && m.isStreaming) {
               useChatStore
                 .getState()
-                .markMessageExpired(conversationId ?? '', m.id, expiredMessage);
-              break;
-            }
-          }
-        }
-
-        // Mark message as expired in chatStore when approval expires
-        if (result.isExpiredApproval) {
-          // Extract the expired message from the step that has expired status
-          const expiredStep = result.steps.find((s) => (s.status as string) === 'expired');
-          const expiredMessage = expiredStep?.errorMessage;
-
-          const messages = useChatStore.getState().messages[conversationId ?? ''] || [];
-          for (let i = messages.length - 1; i >= 0; i--) {
-            const m = messages[i];
-            if (m.role === 'assistant' && m.isStreaming) {
-              useChatStore
-                .getState()
-                .markMessageExpired(conversationId ?? '', m.id, expiredMessage);
+                .markMessageExpired(conversationId ?? "", m.id, expiredMessage);
               break;
             }
           }
@@ -566,24 +568,33 @@ export function useV2EventProcessor(
         // O(1) check — avoids iterating the full array on every event.
         if (
           runEvents.length > 1 &&
-          runEvents[runEvents.length - 1].sequence - runEvents[0].sequence + 1 > runEvents.length
+          runEvents[runEvents.length - 1].sequence - runEvents[0].sequence + 1 >
+            runEvents.length
         ) {
           if (import.meta.env.DEV) {
-            console.log('[useV2EventProcessor] Mid-stream gap detected, scheduling gap-fill');
+            console.log(
+              "[useV2EventProcessor] Mid-stream gap detected, scheduling gap-fill",
+            );
           }
-          scheduleGapFill(run_id, 2000, 'Mid-stream gap-fill');
+          scheduleGapFill(run_id, 2000, "Mid-stream gap-fill");
         }
 
         // Handle run completion
         const isTransitionalFinish =
-          result.hadApprovalPause && !result.finalResponse && !result.stoppedByUser;
-        if (!result.isThinking && !isTransitionalFinish && !finishedRunsRef.current.has(run_id)) {
+          result.hadApprovalPause &&
+          !result.finalResponse &&
+          !result.stoppedByUser;
+        if (
+          !result.isThinking &&
+          !isTransitionalFinish &&
+          !finishedRunsRef.current.has(run_id)
+        ) {
           finishedRunsRef.current.add(run_id);
           timerOnRunCompleted(run_id);
           onRunComplete?.();
         }
       } catch (error) {
-        console.error('[useV2EventProcessor] Error handling event:', error);
+        console.error("[useV2EventProcessor] Error handling event:", error);
       }
     },
     [
@@ -594,7 +605,7 @@ export function useV2EventProcessor(
       timerOnRunCompleted,
       onRunComplete,
       scheduleGapFill,
-    ]
+    ],
   );
 
   // Seed/reconcile from initialRunEvents on mount or when backend events arrive.
@@ -622,12 +633,16 @@ export function useV2EventProcessor(
     const result = transformAguiToTimelineSteps(mergedEvents);
 
     // Extract phase and dashboard from seeded events (for page refresh)
-    const runFinishedEvent = mergedEvents.find((e) => e.event?.type === 'RUN_FINISHED');
+    const runFinishedEvent = mergedEvents.find(
+      (e) => e.event?.type === "RUN_FINISHED",
+    );
     const seededPhase = runFinishedEvent
-      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result?.phase ?? null)
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.phase ?? null)
       : null;
     const seededDashboard = runFinishedEvent
-      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result?.dashboard ?? null)
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.dashboard ?? null)
       : null;
 
     eventsRef.current.set(runId, mergedEvents);
@@ -689,15 +704,15 @@ export function useV2EventProcessor(
 
     if (import.meta.env.DEV) {
       console.log(
-        '[useV2EventProcessor] Seeded events for run:',
+        "[useV2EventProcessor] Seeded events for run:",
         runId,
-        'count:',
+        "count:",
         mergedEvents.length,
         existingPusherEvents
           ? `(merged ${initialRunEvents.length} backend + ${existingPusherEvents.length} Pusher)`
-          : '(backend only)',
-        'isThinking:',
-        result.isThinking
+          : "(backend only)",
+        "isThinking:",
+        result.isThinking,
       );
     }
 
@@ -707,12 +722,12 @@ export function useV2EventProcessor(
       if (import.meta.env.DEV) {
         const sequences = mergedEvents.map((e) => e.sequence);
         console.log(
-          '[useV2EventProcessor] Sequence gaps detected in merged events:',
+          "[useV2EventProcessor] Sequence gaps detected in merged events:",
           `sequences=[${sequences[0]}..${sequences[sequences.length - 1]}],`,
-          `count=${mergedEvents.length} — scheduling reconciliation`
+          `count=${mergedEvents.length} — scheduling reconciliation`,
         );
       }
-      scheduleGapFill(runId, 1500, 'Reconciliation');
+      scheduleGapFill(runId, 1500, "Reconciliation");
     }
   }, [
     initialRunEvents,
