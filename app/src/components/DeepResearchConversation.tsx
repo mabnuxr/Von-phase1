@@ -126,9 +126,9 @@ export interface DeepResearchConversationProps {
   /** Whether currently fetching older messages */
   isFetchingNextMessagePage?: boolean;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
-  onDashboardPreview?: () => void;
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
   /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: () => void;
+  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -140,7 +140,6 @@ export const DeepResearchConversation: React.FC<
   conversationId,
   researchResults,
   isDeepResearchRunning = false,
-  dashboard,
   onSendMessage,
   onStopStreaming,
   onArtifactClick,
@@ -327,7 +326,6 @@ export const DeepResearchConversation: React.FC<
           isDeepResearchRunning={isDeepResearchRunning}
           dataTablesInfo={vonIqDataTablesInfo ?? undefined}
           isDataTablesLoading={isArtifactsLoading}
-          dashboard={dashboard ?? undefined}
           onSendMessage={(content) => handleSendMessage(content)}
           onSkip={handleSkip}
           hasSkipped={hasSkipped}

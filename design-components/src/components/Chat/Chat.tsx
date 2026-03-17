@@ -25,11 +25,14 @@ export type {
   SendMessageOptions,
 } from './types';
 
+/** Slot component for providing a custom empty state via <Chat.EmptyState> */
+const EmptyStateSlot: React.FC<{ children: React.ReactNode }> = () => null;
+
 /**
  * Chat component - pure rendering component
  * Receives messages as props and handles UI interactions
  */
-export const Chat: React.FC<ChatProps> = ({
+export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } = ({
   userName,
   userEmail,
   messages: controlledMessages,
@@ -108,9 +111,19 @@ export const Chat: React.FC<ChatProps> = ({
   isLoadingMentions,
   onSelectMention,
   onMentionsActivated,
+  children,
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
+
+  // Extract custom empty state from Chat.EmptyState child (compound component pattern)
+  let customEmptyState: React.ReactNode = null;
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child) && child.type === EmptyStateSlot) {
+      customEmptyState = (child.props as { children: React.ReactNode }).children;
+    }
+  });
+  const hasCustomEmptyState = customEmptyState !== null;
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -324,43 +337,47 @@ export const Chat: React.FC<ChatProps> = ({
 
         {/* Messages or Empty State */}
         {messages.length === 0 ? (
-          <ChatEmptyState
-            userName={userName}
-            placeholder={placeholder}
-            onSendMessage={handleSendMessage}
-            disabled={examplePromptsDisabled}
-            onDisabledClick={onExamplePromptDisabledClick}
-            enableCommands={enableCommands}
-            commands={commands}
-            isLoadingCommands={isLoadingCommands}
-            onSaveCommand={onSaveCommand}
-            onDeleteCommand={onDeleteCommand}
-            isSavingCommand={isSavingCommand}
-            isAdmin={isAdmin}
-            teamMembers={teamMembers}
-            currentUser={currentUser}
-            onSendTest={onSendTest}
-            onToggleFavorite={onToggleFavorite}
-            onRequestFilePreviewUrl={onRequestFilePreviewUrl}
-            onUploadFile={onUploadFile}
-            banner={banner}
-            topBanner={topBanner}
-            useStandardInput={useStandardInput}
-            isAgentLocked={isAgentLocked}
-            lockedConversationMode={lockedConversationMode}
-            controlledAttachments={controlledAttachments}
-            onRemoveAttachment={onRemoveAttachment}
-            onFilesSelected={onFilesSelected}
-            fileErrorMessage={fileErrorMessage}
-            onDismissFileError={onDismissFileError}
-            availableAgentModes={availableAgentModes}
-            enableFileUpload={enableFileUpload}
-            enableMentions={enableMentions}
-            mentionItems={mentionItems}
-            isLoadingMentions={isLoadingMentions}
-            onSelectMention={onSelectMention}
-            onMentionsActivated={onMentionsActivated}
-          />
+          hasCustomEmptyState ? (
+            <div className="flex flex-col h-full">{customEmptyState}</div>
+          ) : (
+            <ChatEmptyState
+              userName={userName}
+              placeholder={placeholder}
+              onSendMessage={handleSendMessage}
+              disabled={examplePromptsDisabled}
+              onDisabledClick={onExamplePromptDisabledClick}
+              enableCommands={enableCommands}
+              commands={commands}
+              isLoadingCommands={isLoadingCommands}
+              onSaveCommand={onSaveCommand}
+              onDeleteCommand={onDeleteCommand}
+              isSavingCommand={isSavingCommand}
+              isAdmin={isAdmin}
+              teamMembers={teamMembers}
+              currentUser={currentUser}
+              onSendTest={onSendTest}
+              onToggleFavorite={onToggleFavorite}
+              onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+              onUploadFile={onUploadFile}
+              banner={banner}
+              topBanner={topBanner}
+              useStandardInput={useStandardInput}
+              isAgentLocked={isAgentLocked}
+              lockedConversationMode={lockedConversationMode}
+              controlledAttachments={controlledAttachments}
+              onRemoveAttachment={onRemoveAttachment}
+              onFilesSelected={onFilesSelected}
+              fileErrorMessage={fileErrorMessage}
+              onDismissFileError={onDismissFileError}
+              availableAgentModes={availableAgentModes}
+              enableFileUpload={enableFileUpload}
+              enableMentions={enableMentions}
+              mentionItems={mentionItems}
+              isLoadingMentions={isLoadingMentions}
+              onSelectMention={onSelectMention}
+              onMentionsActivated={onMentionsActivated}
+            />
+          )
         ) : (
           /* Standard message rendering */
           <div className="flex flex-col">
@@ -437,8 +454,8 @@ export const Chat: React.FC<ChatProps> = ({
         <div className="w-full max-w-4xl mx-auto mb-2 px-2">{banner}</div>
       )}
 
-      {/* Only show bottom input when there are messages (not in empty state) */}
-      {messages.length > 0 && (
+      {/* Only show bottom input when there are messages (not in empty state), or always when a custom empty state is provided */}
+      {(messages.length > 0 || hasCustomEmptyState) && (
         <ChatInputSelector
           useStandardInput={useStandardInput}
           enableCommands={enableCommands}
@@ -484,5 +501,7 @@ export const Chat: React.FC<ChatProps> = ({
     </div>
   );
 };
+
+Chat.EmptyState = EmptyStateSlot;
 
 export default Chat;

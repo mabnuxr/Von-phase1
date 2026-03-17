@@ -176,6 +176,7 @@ export type {
   MessageFileAttachment,
   FixedPosition,
   SendMessageOptions,
+  DashboardMetadata,
 } from './Chat';
 export { ConversationMode } from './Chat';
 export type { ReferenceContext } from './Chat';

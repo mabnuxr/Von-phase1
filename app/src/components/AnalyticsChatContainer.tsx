@@ -7,10 +7,13 @@
  * Mounted with key={conversationId} to ensure clean remount if conversation changes.
  */
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Chat, ChatSkeleton } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
+import { dashboardKeys } from "../hooks/useDashboardQuery";
 
+import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useMessages } from "../hooks/useMessages";
@@ -114,6 +117,8 @@ function AnalyticsChatInner({
 
   const refStack = useReferenceStack(dashboardBaseLayer);
 
+  const queryClient = useQueryClient();
+
   const chatV2 = useChatV2({
     conversationId,
     user,
@@ -144,6 +149,18 @@ function AnalyticsChatInner({
     onCollapseSidebar: () => {},
     references: refStack.references,
   });
+
+  // Invalidate dashboard query when a RUN_FINISHED event produces a newer dashboard version
+  useEffect(() => {
+    if (
+      chatV2.dashboard &&
+      chatV2.dashboard.dashboard_version !== dashboardVersion
+    ) {
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      });
+    }
+  }, [chatV2.dashboard, dashboardId, dashboardVersion, queryClient]);
 
   if (isLoadingMessages && conversationMessages.length === 0) {
     return <ChatSkeleton messageCount={4} />;
@@ -194,7 +211,11 @@ function AnalyticsChatInner({
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
-    />
+    >
+      <Chat.EmptyState>
+        <AnalyticsChatEmptyState />
+      </Chat.EmptyState>
+    </Chat>
   );
 }
 

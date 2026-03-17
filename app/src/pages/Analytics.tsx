@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
@@ -24,11 +25,40 @@ const Analytics = () => {
   // Read conversationId from query params
   const conversationIdFromParams = searchParams.get("conversationId");
 
-  // State for auto-created conversation when none is provided
+  // Tracks the dashboardId at the time each mutation fires so onSuccess can
+  // discard results that belong to a dashboard the user has already left.
+  const currentDashboardIdRef = useRef(dashboardId);
+  currentDashboardIdRef.current = dashboardId;
+
   const [createdConversationId, setCreatedConversationId] = useState<
     string | null
   >(null);
-  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+
+  const {
+    mutate: createConversation,
+    reset: resetConversation,
+    isPending: isCreatingConversation,
+    isError: conversationCreateFailed,
+  } = useMutation({
+    mutationFn: ({
+      title,
+      forDashboardId,
+    }: {
+      title: string;
+      forDashboardId: string;
+    }) =>
+      conversationsService
+        .createConversation(title, ConversationMode.DashboardBuilder, "v2")
+        .then((res) => ({ res, forDashboardId })),
+    onSuccess: ({ res, forDashboardId }) => {
+      if (forDashboardId !== currentDashboardIdRef.current) return;
+      setCreatedConversationId(res.conversation.conversationId);
+    },
+    onError: (err) => {
+      console.error("[Analytics] Failed to create conversation:", err);
+    },
+  });
+
   const {
     isVisible: isChatOpen,
     show: openChat,
@@ -67,11 +97,11 @@ const Analytics = () => {
     collapseSidebar();
   }, [collapseSidebar]);
 
-  // Reset auto-created conversation when navigating to a different dashboard
+  // Reset mutation state when navigating to a different dashboard
   useEffect(() => {
     setCreatedConversationId(null);
-    setIsCreatingConversation(false);
-  }, [dashboardId]);
+    resetConversation();
+  }, [dashboardId, resetConversation]);
 
   // Auto-create a DashboardBuilder conversation when no conversationId is provided
   useEffect(() => {
@@ -79,39 +109,23 @@ const Analytics = () => {
       conversationIdFromParams ||
       createdConversationId ||
       isCreatingConversation ||
+      conversationCreateFailed ||
       !dashboard ||
       !isChatOpen
     )
       return;
 
-    let cancelled = false;
-    setIsCreatingConversation(true);
-
-    conversationsService
-      .createConversation(
-        dashboard.title,
-        ConversationMode.DashboardBuilder,
-        "v2",
-      )
-      .then((res) => {
-        if (!cancelled) {
-          setCreatedConversationId(res.conversation.conversationId);
-        }
-      })
-      .catch((err) => {
-        console.error("[Analytics] Failed to create conversation:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setIsCreatingConversation(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isCreatingConversation is intentionally
-    // omitted: including it causes the cleanup to cancel the in-flight request when the state update
-    // triggers a re-render. It's only used as a guard, not a trigger.
-  }, [conversationIdFromParams, createdConversationId, dashboard, isChatOpen]);
+    createConversation({ title: dashboard.title, forDashboardId: dashboardId });
+  }, [
+    conversationIdFromParams,
+    createdConversationId,
+    isCreatingConversation,
+    conversationCreateFailed,
+    dashboard,
+    dashboardId,
+    isChatOpen,
+    createConversation,
+  ]);
 
   if (isLoading) {
     return <AnalyticsSkeleton />;
@@ -169,17 +183,21 @@ const Analytics = () => {
                 dashboardVersion={dashboard.dashboardVersion}
               />
             </div>
+          ) : conversationCreateFailed ? (
+            <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex flex-col items-center justify-center gap-3">
+              <p className="text-sm text-gray-500">
+                Failed to start conversation.
+              </p>
+              <button
+                className="text-sm text-indigo-600 hover:text-indigo-700 underline"
+                onClick={resetConversation}
+              >
+                Try again
+              </button>
+            </div>
           ) : (
             <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex items-center justify-center">
-              {isCreatingConversation ? (
-                <p className="text-sm text-gray-400">
-                  Starting conversation...
-                </p>
-              ) : (
-                <p className="text-sm text-gray-400">
-                  No conversation context available
-                </p>
-              )}
+              <p className="text-sm text-gray-400">Starting conversation...</p>
             </div>
           )}
         </div>

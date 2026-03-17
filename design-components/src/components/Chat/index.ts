@@ -12,6 +12,7 @@ export type {
   DashboardComponent,
   DashboardArtifact,
   ApiEndpoints,
+  DashboardMetadata,
 } from './types';
 
 // Export ConversationMode and ReferenceContext for agent selection and context

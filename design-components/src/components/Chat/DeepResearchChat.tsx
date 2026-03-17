@@ -45,14 +45,6 @@ const VonLogoAvatar: React.FC = () => (
   </div>
 );
 
-export interface DashboardMetadata {
-  dashboard_id: string;
-  dashboard_name: string;
-  dashboard_version: number;
-  panel_count: number;
-  query_count: number;
-}
-
 export interface DeepResearchChatProps {
   /** Messages to display */
   messages: Message[];
@@ -78,8 +70,6 @@ export interface DeepResearchChatProps {
   };
   /** Whether data tables info is loading */
   isDataTablesLoading?: boolean;
-  /** Dashboard metadata (when dashboard is created) */
-  dashboard?: DashboardMetadata;
   /** Callback when send message is triggered */
   onSendMessage?: (content: string) => void;
   /** Callback when skip button is clicked (should focus input without sending message) */
@@ -106,9 +96,9 @@ export interface DeepResearchChatProps {
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
-  onDashboardPreview?: () => void;
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
   /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: () => void;
+  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
 }
 
 /**
@@ -129,7 +119,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   isDeepResearchRunning,
   dataTablesInfo,
   isDataTablesLoading = false,
-  dashboard,
   onSendMessage,
   onSkip,
   hasSkipped = false,
@@ -225,13 +214,18 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           return false;
         })();
 
-        // Special rendering for last assistant message with dashboard (no research results)
+        // Show dashboard card for any message where a dashboard was created.
+        // message.dashboard is populated exclusively from RUN_FINISHED event.result.dashboard,
+        // so this is truthy only when the backend explicitly reported a dashboard was created
+        // for that specific run. Works for both the current message and historical messages.
+        // Skip this path for approval messages and the last message when research results
+        // are active (those have their own rendering with an inline dashboard card).
         if (
-          isLastAssistant &&
-          !showResearchResults &&
-          dashboard &&
+          message.dashboard &&
           message.v2FinalResponse &&
-          !message.isStreaming
+          !message.isStreaming &&
+          !isApprovalMessage &&
+          !(isLastAssistant && showResearchResults)
         ) {
           return (
             <div key={message.id} className="max-w-4xl mx-auto w-full">
@@ -266,10 +260,34 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       it to make it visible to your organization.
                     </p>
                     <DashboardArtifactCard
-                      title={dashboard.dashboard_name}
-                      onPreview={onDashboardPreview}
-                      onOpen={onDashboardOpen}
-                      onClick={onDashboardOpen}
+                      title={message.dashboard.dashboard_name}
+                      onPreview={
+                        onDashboardPreview
+                          ? () =>
+                              onDashboardPreview(
+                                message.dashboard!.dashboard_id,
+                                message.dashboard!.dashboard_version
+                              )
+                          : undefined
+                      }
+                      onOpen={
+                        onDashboardOpen
+                          ? () =>
+                              onDashboardOpen(
+                                message.dashboard!.dashboard_id,
+                                message.dashboard!.dashboard_version
+                              )
+                          : undefined
+                      }
+                      onClick={
+                        onDashboardOpen
+                          ? () =>
+                              onDashboardOpen(
+                                message.dashboard!.dashboard_id,
+                                message.dashboard!.dashboard_version
+                              )
+                          : undefined
+                      }
                     />
                   </div>
                   <MessageActions
@@ -389,18 +407,42 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           completedAt: null,
                         }}
                       />
-                      {/* Dashboard Card - shown when dashboard is created */}
-                      {researchResults.isCompleted && dashboard && (
+                      {/* Dashboard Card - shown only when RUN_FINISHED reported a dashboard */}
+                      {researchResults.isCompleted && message.dashboard && (
                         <div className="space-y-2">
                           <p className="text-sm text-gray-600">
                             The dashboard is currently saved as a <strong>draft</strong>. You can
                             publish it to make it visible to your organization.
                           </p>
                           <DashboardArtifactCard
-                            title={dashboard.dashboard_name}
-                            onPreview={onDashboardPreview}
-                            onOpen={onDashboardOpen}
-                            onClick={onDashboardOpen}
+                            title={message.dashboard.dashboard_name}
+                            onPreview={
+                              onDashboardPreview
+                                ? () =>
+                                    onDashboardPreview(
+                                      message.dashboard!.dashboard_id,
+                                      message.dashboard!.dashboard_version
+                                    )
+                                : undefined
+                            }
+                            onOpen={
+                              onDashboardOpen
+                                ? () =>
+                                    onDashboardOpen(
+                                      message.dashboard!.dashboard_id,
+                                      message.dashboard!.dashboard_version
+                                    )
+                                : undefined
+                            }
+                            onClick={
+                              onDashboardOpen
+                                ? () =>
+                                    onDashboardOpen(
+                                      message.dashboard!.dashboard_id,
+                                      message.dashboard!.dashboard_version
+                                    )
+                                : undefined
+                            }
                           />
                         </div>
                       )}
