@@ -601,8 +601,11 @@ export function transformAguiToTimelineSteps(
         }
 
         if (step) {
-          // Only mark complete if not awaiting approval
-          if (step.status !== "awaiting-approval") {
+          // Only mark complete if not awaiting approval or expired
+          if (
+            step.status !== "awaiting-approval" &&
+            (step.status as string) !== "expired"
+          ) {
             step.status = "complete" as StepStatus;
           }
         }

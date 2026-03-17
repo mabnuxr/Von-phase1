@@ -290,11 +290,13 @@ export function useV2EventProcessor(
   }, []);
 
   const invalidateApproval = useCallback(() => {
-    // Mark all active runs as finished so their events are no longer processed
+    // Mark all active runs as finished so their events are no longer processed,
+    // and clear their event arrays to prevent memory leaks
     for (const [runId] of eventsRef.current) {
       if (!finishedRunsRef.current.has(runId)) {
         finishedRunsRef.current.add(runId);
       }
+      eventsRef.current.delete(runId);
     }
     // Reset live state synchronously so subsequent reads (e.g. forceCompleteStreamingMessages)
     // see the updated values within the same call stack
@@ -545,14 +547,22 @@ export function useV2EventProcessor(
 
           const messages =
             useChatStore.getState().messages[conversationId ?? ""] || [];
-          for (let i = messages.length - 1; i >= 0; i--) {
-            const m = messages[i];
-            if (m.role === "assistant" && m.isStreaming) {
-              useChatStore
-                .getState()
-                .markMessageExpired(conversationId ?? "", m.id, expiredMessage);
-              break;
-            }
+          // Match by run_id to find the correct message when multiple runs are active
+          const targetMsg = messages
+            .slice()
+            .reverse()
+            .find(
+              (m) =>
+                m.role === "assistant" && m.runId === run_id,
+            );
+          if (targetMsg) {
+            useChatStore
+              .getState()
+              .markMessageExpired(
+                conversationId ?? "",
+                targetMsg.id,
+                expiredMessage,
+              );
           }
         }
 
