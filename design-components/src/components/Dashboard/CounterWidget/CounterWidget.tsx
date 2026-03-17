@@ -113,7 +113,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
   const progress = !isError && target ? computeProgress(value, target.value) : undefined;
   const targetDisplay =
     target && target.value !== null
-      ? formatKpiDisplay(target.value, target.format, prefix)
+      ? formatKpiDisplay(target.value, target.format, prefix, suffix)
       : undefined;
 
   // Theme-aware color: "good" uses primaryColor if set, otherwise emerald
