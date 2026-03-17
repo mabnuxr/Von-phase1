@@ -236,6 +236,7 @@ export function generateKPICards(): KPICardData[] {
           value: cycleTimeTarget,
           format: ',.0f',
           label: 'Target',
+          inverted: true,
         },
       },
     },

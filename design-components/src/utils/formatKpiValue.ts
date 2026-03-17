@@ -170,9 +170,14 @@ export function formatKpiDisplay(
 export function computeProgress(
   value: number | null,
   targetValue: number | null,
+  inverted?: boolean,
 ): number | undefined {
   if (value === null || targetValue === null || targetValue === 0) {
     return undefined;
+  }
+  if (inverted) {
+    if (value === 0) return undefined;
+    return (targetValue / value) * 100;
   }
   return (value / targetValue) * 100;
 }

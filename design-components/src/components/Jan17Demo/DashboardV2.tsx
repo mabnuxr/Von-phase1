@@ -74,6 +74,7 @@ export interface KPICardData {
       value: number | null;
       format: string | null;
       label: string;
+      inverted?: boolean;
     } | null;
   };
   query_failed?: boolean;
@@ -887,7 +888,7 @@ const KPICard: React.FC<KPICardProps> = ({
     : undefined;
 
   const target = kpi.target;
-  const progress = !isError && target ? computeProgress(kpi.value, target.value) : undefined;
+  const progress = !isError && target ? computeProgress(kpi.value, target.value, target.inverted) : undefined;
   const targetDisplay =
     target && target.value !== null
       ? formatKpiDisplay(target.value, target.format, kpi.prefix, kpi.suffix)

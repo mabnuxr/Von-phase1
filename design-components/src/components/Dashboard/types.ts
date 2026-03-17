@@ -62,6 +62,7 @@ export interface CounterWidgetConfig {
     value: number | null;
     format: string | null;
     label: string;
+    inverted?: boolean;
   } | null;
   sparkline?: {
     data: number[];

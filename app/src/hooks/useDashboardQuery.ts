@@ -42,6 +42,7 @@ interface RawApiWidget {
       value: number | null;
       format: string | null;
       label: string;
+      inverted?: boolean;
     } | null;
   } | null;
   highcharts: Record<string, unknown> | null;

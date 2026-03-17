@@ -109,7 +109,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
     ? `${cmpVal > 0 ? '+' : ''}${formatKpiDisplay(cmpVal, comparison.format, null, comparison.suffix, false)}`
     : undefined;
 
-  const progress = target ? computeProgress(value, target.value) : undefined;
+  const progress = target ? computeProgress(value, target.value, target.inverted) : undefined;
   const targetDisplay =
     target && target.value !== null
       ? formatKpiDisplay(target.value, target.format, prefix, suffix)
