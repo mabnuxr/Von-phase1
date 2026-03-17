@@ -147,11 +147,10 @@ export function formatKpiDisplay(
 
   const shouldAbbreviate = abbreviate
     && isCurrencyPrefix(prefix)
-    && format !== null
-    && !format.includes('%');
+    && (format === null || !format.includes('%'));
 
   if (shouldAbbreviate) {
-    const precisionMatch = format!.match(/\.(\d+)/);
+    const precisionMatch = format?.match(/\.(\d+)/);
     const decimals = precisionMatch ? parseInt(precisionMatch[1], 10) : 0;
     formatted = abbreviateNumber(value, decimals);
   } else {
