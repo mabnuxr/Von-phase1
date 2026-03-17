@@ -890,7 +890,7 @@ const KPICard: React.FC<KPICardProps> = ({
   const progress = !isError && target ? computeProgress(kpi.value, target.value) : undefined;
   const targetDisplay =
     target && target.value !== null
-      ? formatKpiDisplay(target.value, target.format, kpi.prefix)
+      ? formatKpiDisplay(target.value, target.format, kpi.prefix, kpi.suffix)
       : undefined;
 
   return (
