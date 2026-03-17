@@ -212,7 +212,7 @@ function SalesforceScopeMenu({
                         <Check
                           size={14}
                           weight="bold"
-                          className="text-green-600 flex-shrink-0"
+                          className="text-green-600 shrink-0"
                         />
                       )}
                     </div>
@@ -491,7 +491,7 @@ function IntegrationItem({
           }
         />
         {canConnectPersonal && !isOwner && (
-          <div className="pl-[72px] pr-4 py-[5px] bg-white border-t border-gray-100 flex items-center">
+          <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
             <button
               onClick={() => onConnect(item.id, "user")}
               className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
@@ -549,16 +549,18 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const { isGoogleDriveEnabled, isZendeskEnabled } = useFeatureFlag();
+  const { isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled } =
+    useFeatureFlag();
 
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
     return apps.filter((app) => {
       if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
       if (app.id === "zendesk" && !isZendeskEnabled) return false;
+      if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
       return true;
     });
-  }, [isGoogleDriveEnabled, isZendeskEnabled]);
+  }, [isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {

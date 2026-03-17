@@ -26,6 +26,7 @@ export const FEATURE_FLAGS = {
   ARTIFACTS: "enableArtifacts",
   SCHEDULED_COMMANDS: "enableScheduledCommands",
   ZENDESK_INTEGRATION: "enableZendesk",
+  SNOWFLAKE: "enableSnowflake",
 } as const;
 
 /**
@@ -131,6 +132,11 @@ export function useFeatureFlag() {
      * Controls whether Zendesk integration is visible
      */
     isZendeskEnabled: flags[FEATURE_FLAGS.ZENDESK_INTEGRATION] === true,
+
+    /**
+     * Controls whether Snowflake integration is visible
+     */
+    isSnowflakeEnabled: flags[FEATURE_FLAGS.SNOWFLAKE] === true,
 
     /**
      * Raw flags object for advanced usage
