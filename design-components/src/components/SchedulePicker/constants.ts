@@ -2,14 +2,14 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type ScheduleFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+export type ScheduleFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 export type ScheduleDay = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 
 export interface Schedule {
   enabled: boolean;
   frequency: ScheduleFrequency;
   time: string; // "HH:mm"
-  days: ScheduleDay[]; // relevant for weekly / bi-weekly
+  days: ScheduleDay[]; // relevant for weekly / biweekly
   dayOfMonth: number; // 1-31, relevant for monthly
   timezone: string; // IANA timezone, e.g. "America/New_York"
 }
@@ -31,7 +31,7 @@ export interface SchedulePickerProps {
 export const SCHEDULE_FREQUENCIES: { value: ScheduleFrequency; label: string }[] = [
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
-  { value: 'bi-weekly', label: 'Bi-weekly' },
+  { value: 'biweekly', label: 'Bi-weekly' },
   { value: 'monthly', label: 'Monthly' },
 ];
 
@@ -104,7 +104,7 @@ export function formatScheduleBadge(schedule: Schedule): string {
     SCHEDULE_FREQUENCIES.find((f) => f.value === schedule.frequency)?.label ?? schedule.frequency;
   const timeLabel = SCHEDULE_TIMES.find((t) => t.value === schedule.time)?.label ?? schedule.time;
   const parts = [freq];
-  if (schedule.frequency === 'weekly' || schedule.frequency === 'bi-weekly') {
+  if (schedule.frequency === 'weekly' || schedule.frequency === 'biweekly') {
     parts.push(schedule.days.join(', '));
   } else if (schedule.frequency === 'monthly') {
     const dayLabel =

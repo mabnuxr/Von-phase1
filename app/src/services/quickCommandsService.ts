@@ -62,7 +62,7 @@ export interface QuickCommandListResponse {
 export interface ScheduleConfig {
   frequency: ScheduleFrequency;
   time: string; // "HH:mm"
-  days: ScheduleDay[]; // for weekly / bi-weekly
+  days: ScheduleDay[]; // for weekly / biweekly
   dayOfMonth: number; // 1-31, for monthly
   timezone: string; // IANA timezone, e.g. "America/New_York"
 }
@@ -242,17 +242,25 @@ export function scheduleToApiConfigs(schedule: CommandSchedule): {
   triggerConfig: TriggerConfig;
   deliveryConfig: DeliveryConfig;
 } {
+  const base: ScheduleConfig = {
+    frequency: schedule.frequency,
+    time: schedule.time,
+    days: [],
+    dayOfMonth: 1,
+    timezone:
+      schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+  };
+
+  if (schedule.frequency === "weekly" || schedule.frequency === "biweekly") {
+    base.days = schedule.days;
+  } else if (schedule.frequency === "monthly") {
+    base.dayOfMonth = schedule.dayOfMonth;
+  }
+
   return {
     triggerConfig: {
       type: "schedule",
-      scheduleConfig: {
-        frequency: schedule.frequency,
-        time: schedule.time,
-        days: schedule.days,
-        dayOfMonth: schedule.dayOfMonth,
-        timezone:
-          schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
+      scheduleConfig: base,
     },
     deliveryConfig: {
       type: "email",
