@@ -443,13 +443,6 @@ function transformMessagesForV2(
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
         dashboard: persistedDashboard,
-        // Propagate persisted error from events
-        ...(persistedRunErrorMessage
-          ? {
-              status: "failed" as const,
-              errorMessage: persistedRunErrorMessage,
-            }
-          : {}),
         // Propagate persisted error or expired status from events
         ...(persistedIsExpiredApproval
           ? {
