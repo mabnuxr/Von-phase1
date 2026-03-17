@@ -340,6 +340,8 @@ export interface CompactApprovalCardProps {
   onReject: () => void;
   isApproved?: boolean;
   isRejected?: boolean;
+  /** Whether the approval was invalidated (user sent new message without approving) */
+  isExpired?: boolean;
   /** Whether the card should be expanded by default (defaults to true) */
   defaultExpanded?: boolean;
   /** Whether to hide individual approve/reject buttons (used in bulk approval context) */

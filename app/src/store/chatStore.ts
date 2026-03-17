@@ -4,6 +4,7 @@ import type {
   MessageWithStreaming,
   AguiEventWrapper,
 } from "../types/conversation";
+import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from "../utils/transformAguiToTimelineSteps";
 
 interface ChatState {
   // UI state
@@ -362,7 +363,7 @@ const useChatStoreBase = create<ChatState>((set) => ({
                   ...msg,
                   isStreaming: false,
                   status: "expired" as const,
-                  errorMessage: message || "Approval request has expired",
+                  errorMessage: message || DEFAULT_EXPIRED_APPROVAL_MESSAGE,
                 }
               : msg,
           ),

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { CheckCircleIcon, XCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, XCircleIcon, WarningCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { CompactApprovalCardProps, ApprovalFieldType, FieldChange } from '../types';
 import { useVisibilityToggle } from '../../../hooks/useVisibilityToggle';
 
@@ -244,6 +244,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     onReject,
     isApproved,
     isRejected,
+    isExpired,
     defaultExpanded = true,
     hideActions = false,
   }) => {
@@ -294,6 +295,49 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     }, [approval.operation, displayChanges]);
 
     const hasExpandableContent = displayChanges.length > 0;
+
+    // Expired/invalidated state - approval was never resolved (user sent a new message)
+    if (isExpired) {
+      return (
+        <div className="mt-2 bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden min-w-0">
+          <button
+            onClick={hasExpandableContent ? toggleExpanded : undefined}
+            className={`w-full px-3 py-2 flex items-center justify-between transition-colors ${hasExpandableContent ? 'hover:bg-gray-50/50 cursor-pointer' : 'cursor-default'}`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {hasExpandableContent &&
+                (isExpanded ? (
+                  <CaretDownIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
+                ) : (
+                  <CaretRightIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
+                ))}
+              <WarningCircleIcon size={14} weight="fill" className="text-amber-500 shrink-0" />
+              {approval.recordUrl ? (
+                <a
+                  href={approval.recordUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-sm text-gray-900 truncate hover:text-indigo-600 hover:underline transition-colors"
+                >
+                  {approval.recordName || approval.label || 'Record'}
+                </a>
+              ) : (
+                <span className="text-sm text-gray-900 truncate">
+                  {approval.recordName || approval.label || 'Record'}
+                </span>
+              )}
+            </div>
+            <span className="text-xs shrink-0 ml-2 text-amber-600">
+              Invalid
+            </span>
+          </button>
+          {isExpanded && displayChanges.length > 0 && (
+            <ChangesTable displayChanges={displayChanges} layout={changesLayout} />
+          )}
+        </div>
+      );
+    }
 
     // Completed state - collapsible card that can expand to show details
     if (isApproved || isRejected) {

@@ -290,13 +290,11 @@ export function useV2EventProcessor(
   }, []);
 
   const invalidateApproval = useCallback(() => {
-    // Mark all active runs as finished so their events are no longer processed,
-    // and clear their event arrays to prevent memory leaks
+    // Mark all active runs as finished so their events are no longer processed
     for (const [runId] of eventsRef.current) {
       if (!finishedRunsRef.current.has(runId)) {
         finishedRunsRef.current.add(runId);
       }
-      eventsRef.current.delete(runId);
     }
     // Reset live state synchronously so subsequent reads (e.g. forceCompleteStreamingMessages)
     // see the updated values within the same call stack

@@ -23,6 +23,7 @@ import { getDisplayTitle } from "./conversationUtils";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
+  DEFAULT_EXPIRED_APPROVAL_MESSAGE,
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 
@@ -388,13 +389,14 @@ function transformMessagesForV2(
       // For persisted (non-streaming) messages, ensure any remaining in-progress
       // steps are marked complete. This handles cases where events were persisted
       // before a RUN_FINISHED event (e.g., stopped runs without a final event).
+      // Steps still in "awaiting-approval" were never resolved (the user sent a
+      // new message or the approval expired) — mark them as expired so the card
+      // does not misleadingly show "Approved".
       for (const step of usableSteps) {
-        if (
-          step.status === "in-progress" ||
-          step.status === "pending" ||
-          step.status === "awaiting-approval"
-        ) {
+        if (step.status === "in-progress" || step.status === "pending") {
           step.status = "complete";
+        } else if (step.status === "awaiting-approval") {
+          step.status = "expired";
         }
       }
 
@@ -443,13 +445,16 @@ function transformMessagesForV2(
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
         dashboard: persistedDashboard,
-        // Propagate persisted error or expired status from events
-        ...(persistedIsExpiredApproval
+        // Propagate persisted error or expired status from events.
+        // Also detect approvals that were never resolved (awaiting-approval
+        // steps force-marked as expired in the post-processing loop above).
+        ...(persistedIsExpiredApproval ||
+        usableSteps.some((s) => s.status === "expired" && s.approval)
           ? {
               status: "expired" as const,
               errorMessage:
-                steps.find((s) => (s.status as string) === "expired")
-                  ?.errorMessage || "Approval request has expired",
+                steps.find((s) => s.status === "expired")
+                  ?.errorMessage || DEFAULT_EXPIRED_APPROVAL_MESSAGE,
             }
           : persistedRunErrorMessage
             ? {
