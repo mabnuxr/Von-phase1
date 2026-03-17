@@ -76,15 +76,8 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
       id: raw.id,
       type: "counter",
       title: raw.title,
-      config: {
-        value: raw.kpi.value,
-        format: raw.kpi.format,
-        prefix: raw.kpi.prefix,
-        suffix: raw.kpi.suffix,
-        comparison: raw.kpi.comparison,
-        target: raw.kpi.target,
-        query_failed: raw.query_failed,
-      },
+      config: raw.kpi,
+      query_failed: raw.query_failed,
     };
   }
 

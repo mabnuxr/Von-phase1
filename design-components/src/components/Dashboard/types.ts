@@ -30,6 +30,7 @@ export interface WidgetConfig {
   title: string;
   subtitle?: string;
   config: ChartWidgetConfig | CounterWidgetConfig | TableWidgetConfig | TextWidgetConfig;
+  query_failed?: boolean;
 }
 
 // ─── Chart ───────────────────────────────────────────────────────
@@ -67,7 +68,6 @@ export interface CounterWidgetConfig {
     type: 'line' | 'bar';
   };
   accentColor?: string;
-  query_failed?: boolean;
 }
 
 export interface CounterWidgetProps {

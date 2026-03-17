@@ -83,6 +83,10 @@ export interface LayoutItem {
 
 export type WidgetType = "chart" | "counter" | "table" | "text";
 
+// Single source of truth lives in design-components
+export type { CounterWidgetConfig } from "@vonlabs/design-components";
+import type { CounterWidgetConfig } from "@vonlabs/design-components";
+
 export interface WidgetConfig {
   id: string;
   type: WidgetType;
@@ -93,6 +97,7 @@ export interface WidgetConfig {
     | CounterWidgetConfig
     | TableWidgetConfig
     | TextWidgetConfig;
+  query_failed?: boolean;
 }
 
 // ─── Chart Widget ────────────────────────────────────────────────
@@ -198,33 +203,6 @@ export type SeriesDataPoint =
   | [string, number]
   | { name: string; y: number; color?: string; drilldown?: string }
   | { x: number; x2: number; y: number; color?: string };
-
-// ─── Counter Widget ──────────────────────────────────────────────
-
-export interface CounterWidgetConfig {
-  value: number | null;
-  format: string | null;
-  prefix?: string | null;
-  suffix?: string | null;
-  comparison?: {
-    value: number | null;
-    format: string | null;
-    suffix?: string | null;
-    label?: string | null;
-    positive_is_good: boolean;
-  } | null;
-  target?: {
-    value: number | null;
-    format: string | null;
-    label: string;
-  } | null;
-  sparkline?: {
-    data: number[];
-    type: "line" | "bar";
-  };
-  accentColor?: string;
-  query_failed?: boolean;
-}
 
 // ─── Table Widget (defined but not rendered yet) ─────────────────
 

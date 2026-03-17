@@ -95,14 +95,13 @@ const COMPARISON_COLOR_CLASS = {
 } as const;
 
 const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }) => {
-  const { value, format, prefix, suffix, comparison, target, sparkline, query_failed } = config;
+  const { value, format, prefix, suffix, comparison, target, sparkline } = config;
   const primaryColor = useThemePrimary();
 
-  const isError = query_failed || value === null;
-  const displayValue = isError ? '—' : formatKpiDisplay(value, format, prefix, suffix);
+  const displayValue = formatKpiDisplay(value, format, prefix, suffix);
 
   const cmpVal = comparison?.value ?? null;
-  const hasComparison = !isError && comparison != null && cmpVal !== null;
+  const hasComparison = comparison != null && cmpVal !== null;
   const comparisonColor = hasComparison
     ? getComparisonColor(cmpVal, comparison.positive_is_good)
     : 'neutral';
@@ -110,7 +109,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
     ? `${cmpVal > 0 ? '+' : ''}${formatKpiDisplay(cmpVal, comparison.format, null, comparison.suffix, false)}`
     : undefined;
 
-  const progress = !isError && target ? computeProgress(value, target.value) : undefined;
+  const progress = target ? computeProgress(value, target.value) : undefined;
   const targetDisplay =
     target && target.value !== null
       ? formatKpiDisplay(target.value, target.format, prefix, suffix)
@@ -131,7 +130,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
       {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
       {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 
-      <p className={`text-2xl font-semibold tabular-nums truncate ${isError ? 'text-gray-400' : 'text-gray-900'}`}>
+      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">
         {displayValue}
       </p>
 
