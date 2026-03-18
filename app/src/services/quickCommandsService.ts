@@ -278,8 +278,13 @@ export function apiConfigsToSchedule(
   triggerConfig: TriggerConfig,
   deliveryConfig: DeliveryConfig,
 ): CommandSchedule {
-  const { frequency: rawFrequency, time, days, dayOfMonth, timezone } =
-    triggerConfig.scheduleConfig;
+  const {
+    frequency: rawFrequency,
+    time,
+    days,
+    dayOfMonth,
+    timezone,
+  } = triggerConfig.scheduleConfig;
   const frequency = normalizeFrequency(rawFrequency);
   return {
     enabled: true,
