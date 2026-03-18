@@ -27,12 +27,27 @@ interface RawApiWidget {
   query_ref: string;
   layout: { x: number; y: number; w: number; h: number };
   kpi: {
-    value: string | number | number[];
-    format?: string;
-    suffix?: string;
+    value: number | null;
+    format: string | null;
+    prefix?: string | null;
+    suffix?: string | null;
+    comparison: {
+      value: number | null;
+      format: string | null;
+      suffix?: string | null;
+      label?: string | null;
+      positive_is_good: boolean;
+    };
+    target: {
+      value: number | null;
+      format: string | null;
+      label: string;
+      inverted?: boolean;
+    } | null;
   } | null;
   highcharts: Record<string, unknown> | null;
   gridOptions: Record<string, unknown> | null;
+  query_failed?: boolean;
 }
 
 interface RawApiDashboardResponse {
@@ -56,53 +71,14 @@ interface RawApiDashboardResponse {
 
 // ─── API Response Adapter ───────────────────────────────────────
 
-function parseKpiFormat(format: string) {
-  let fmt: "number" | "currency" | "percentage" = "number";
-  let prefix: string | undefined;
-  let suffix: string | undefined;
-
-  if (format.includes("$")) {
-    fmt = "currency";
-    prefix = "$";
-  } else if (format.includes("%")) {
-    fmt = "percentage";
-    suffix = "%";
-  }
-
-  const decimalMatch = format.match(/\.(\d+)/);
-  const decimals = decimalMatch ? decimalMatch[1].length : 0;
-
-  return { format: fmt, prefix, suffix, decimals };
-}
-
 function adaptWidget(raw: RawApiWidget): WidgetConfig {
   if (raw.type === "kpi" && raw.kpi) {
-    const { format, prefix, suffix, decimals } = raw.kpi.format
-      ? parseKpiFormat(raw.kpi.format)
-      : {
-          format: "number" as const,
-          prefix: undefined,
-          suffix: undefined,
-          decimals: 0,
-        };
-    // Handle string, number, and array formats for KPI value
-    const value = Array.isArray(raw.kpi.value)
-      ? (raw.kpi.value[0] ?? 0)
-      : raw.kpi.value;
-    // Use API suffix if provided, otherwise use parsed suffix
-    const finalSuffix = raw.kpi.suffix ?? suffix;
-
     return {
       id: raw.id,
       type: "counter",
       title: raw.title,
-      config: {
-        value,
-        format,
-        ...(prefix && { prefix }),
-        ...(finalSuffix && { suffix: finalSuffix }),
-        decimals,
-      },
+      config: raw.kpi,
+      query_failed: raw.query_failed,
     };
   }
 
