@@ -303,51 +303,21 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
 
     const hasExpandableContent = displayChanges.length > 0;
 
-    // Expired/invalidated state - approval was never resolved (user sent a new message)
-    if (isExpired) {
-      return (
-        <div className="mt-2 bg-white rounded-xl border border-amber-200 shadow-xs overflow-hidden min-w-0">
-          <button
-            onClick={hasExpandableContent ? toggleExpanded : undefined}
-            className={`w-full px-3 py-2 flex items-center justify-between transition-colors ${hasExpandableContent ? 'hover:bg-gray-50/50 cursor-pointer' : 'cursor-default'}`}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              {hasExpandableContent &&
-                (isExpanded ? (
-                  <CaretDownIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
-                ) : (
-                  <CaretRightIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
-                ))}
-              <WarningCircleIcon size={14} weight="fill" className="text-amber-500 shrink-0" />
-              {approval.recordUrl ? (
-                <a
-                  href={approval.recordUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-sm text-gray-900 truncate hover:text-indigo-600 hover:underline transition-colors"
-                >
-                  {approval.recordName || approval.label || 'Record'}
-                </a>
-              ) : (
-                <span className="text-sm text-gray-900 truncate">
-                  {approval.recordName || approval.label || 'Record'}
-                </span>
-              )}
-            </div>
-            <span className="text-xs shrink-0 ml-2 text-amber-600">Invalid</span>
-          </button>
-          {isExpanded && displayChanges.length > 0 && (
-            <ChangesTable displayChanges={displayChanges} layout={changesLayout} />
-          )}
-        </div>
-      );
-    }
+    // Expired/invalidated or error state
+    if (isExpired || isError) {
+      const variant = isError
+        ? { border: 'border-red-200', icon: 'text-red-400', label: 'text-red-500', text: 'Failed' }
+        : {
+            border: 'border-amber-200',
+            icon: 'text-amber-500',
+            label: 'text-amber-600',
+            text: 'Invalid',
+          };
 
-    // Error state - tool validation or system error (not a user rejection)
-    if (isError) {
       return (
-        <div className="mt-2 bg-white rounded-xl border border-red-200 shadow-xs overflow-hidden min-w-0">
+        <div
+          className={`mt-2 bg-white rounded-xl border ${variant.border} shadow-xs overflow-hidden min-w-0`}
+        >
           <button
             onClick={hasExpandableContent ? toggleExpanded : undefined}
             className={`w-full px-3 py-2 flex items-center justify-between transition-colors ${hasExpandableContent ? 'hover:bg-gray-50/50 cursor-pointer' : 'cursor-default'}`}
@@ -359,7 +329,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
                 ) : (
                   <CaretRightIcon size={14} weight="bold" className="text-gray-500 shrink-0" />
                 ))}
-              <WarningCircleIcon size={14} weight="fill" className="text-red-400 shrink-0" />
+              <WarningCircleIcon size={14} weight="fill" className={`${variant.icon} shrink-0`} />
               {approval.recordUrl ? (
                 <a
                   href={approval.recordUrl}
@@ -376,7 +346,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
                 </span>
               )}
             </div>
-            <span className="text-xs shrink-0 ml-2 text-red-500">Failed</span>
+            <span className={`text-xs shrink-0 ml-2 ${variant.label}`}>{variant.text}</span>
           </button>
           {isExpanded && displayChanges.length > 0 && (
             <ChangesTable displayChanges={displayChanges} layout={changesLayout} />

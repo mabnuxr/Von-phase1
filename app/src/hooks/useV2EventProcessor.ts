@@ -23,7 +23,6 @@ import type { Channel } from "pusher-js";
 import type {
   AguiEventWrapper,
   TimelineStep,
-  StepStatus,
   RunFinishedEvent,
 } from "@vonlabs/design-components";
 
@@ -245,7 +244,7 @@ export function useV2EventProcessor(
           if (step.status === "in-progress" || step.status === "pending") {
             step.status = "complete";
           } else if (step.status === "awaiting-approval") {
-            step.status = "expired" as typeof step.status;
+            step.status = "expired";
           }
         }
 
@@ -325,8 +324,8 @@ export function useV2EventProcessor(
     flushSync(() => {
       setTimelineSteps((prev) =>
         prev.map((step) =>
-          step.status === ("awaiting-approval" as StepStatus)
-            ? { ...step, status: "expired" as StepStatus }
+          step.status === "awaiting-approval"
+            ? { ...step, status: "expired" as const }
             : step,
         ),
       );
@@ -569,9 +568,7 @@ export function useV2EventProcessor(
         // Mark message as expired in chatStore when approval expires
         if (result.isExpiredApproval) {
           // Extract the expired message from the step that has expired status
-          const expiredStep = result.steps.find(
-            (s) => (s.status as string) === "expired",
-          );
+          const expiredStep = result.steps.find((s) => s.status === "expired");
           const expiredMessage = expiredStep?.errorMessage;
 
           const messages =

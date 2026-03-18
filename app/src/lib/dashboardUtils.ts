@@ -452,7 +452,7 @@ function transformMessagesForV2(
         // Also detect approvals that were never resolved (awaiting-approval
         // steps force-marked as expired in the post-processing loop above).
         ...(persistedIsExpiredApproval ||
-        usableSteps.some((s) => s.status === "expired" && s.approval)
+        steps.some((s) => s.status === "expired" && s.approval)
           ? {
               status: "expired" as const,
               errorMessage:
