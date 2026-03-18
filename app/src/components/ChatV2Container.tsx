@@ -69,6 +69,9 @@ export interface ChatV2ContainerProps {
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
+  onOpenGmailDraft?: (draftId: string, gmailUrl?: string) => void;
+  isGmailEnabled?: boolean;
+  isGmailConnected?: boolean;
 }
 
 export function ChatV2Container(props: ChatV2ContainerProps) {
@@ -97,6 +100,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     driveTooltip,
     driveLoadingFileId,
     onCollapseSidebar,
+    onOpenGmailDraft,
+    isGmailEnabled,
+    isGmailConnected,
   } = props;
 
   const navigate = useNavigate();
@@ -338,6 +344,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              onOpenGmailDraft={onOpenGmailDraft}
+              isGmailEnabled={isGmailEnabled}
+              isGmailConnected={isGmailConnected}
               availableAgentModes={availableAgentModes}
               enableFileUpload={isFileUploadEnabled}
               enableMentions={

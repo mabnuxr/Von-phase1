@@ -136,6 +136,16 @@ export interface Message {
    * Present when a dashboard was created during this run
    */
   dashboard?: DashboardMetadata;
+  /**
+   * Gmail draft data (assistant messages only)
+   * Present when the agent created a Gmail draft during this run
+   */
+  emailDraft?: {
+    subject: string;
+    body: string;
+    to?: string;
+    gmailUrl?: string;
+  };
 }
 
 /**

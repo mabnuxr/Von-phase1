@@ -63,6 +63,7 @@ const Conversation = () => {
     isGoogleDriveEnabled,
     isDeepResearchEnabled,
     isScheduledCommandsEnabled,
+    isGmailEnabled,
   } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
@@ -116,6 +117,16 @@ const Conversation = () => {
       integrationsData?.integrations.some(
         (i) =>
           i.type === IntegrationType.GOOGLE_DRIVE &&
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+      ) ?? false,
+    [integrationsData],
+  );
+
+  const isGmailConnected = useMemo(
+    () =>
+      integrationsData?.integrations.some(
+        (i) =>
+          i.type === IntegrationType.GMAIL &&
           i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
       ) ?? false,
     [integrationsData],
@@ -236,6 +247,20 @@ const Conversation = () => {
     [currentConversationId, isDriveConnected, navigate, showToast],
   );
 
+  // --- Gmail Draft Open ---
+  const handleOpenGmailDraft = useCallback(
+    (_draftId: string, gmailUrl?: string) => {
+      if (!isGmailConnected) {
+        navigate("/settings?tab=integrations");
+        return;
+      }
+      if (gmailUrl) {
+        window.open(gmailUrl, "_blank");
+      }
+    },
+    [isGmailConnected, navigate],
+  );
+
   // --- Banner ---
   const chatBanner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
@@ -288,6 +313,9 @@ const Conversation = () => {
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
+    onOpenGmailDraft: handleOpenGmailDraft,
+    isGmailEnabled,
+    isGmailConnected,
   };
 
   return (

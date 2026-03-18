@@ -27,6 +27,7 @@ export const FEATURE_FLAGS = {
   SCHEDULED_COMMANDS: "enableScheduledCommands",
   ZENDESK_INTEGRATION: "enableZendesk",
   SNOWFLAKE: "enableSnowflake",
+  GMAIL: "enableGmail",
 } as const;
 
 /**
@@ -137,6 +138,11 @@ export function useFeatureFlag() {
      * Controls whether Snowflake integration is visible
      */
     isSnowflakeEnabled: flags[FEATURE_FLAGS.SNOWFLAKE] === true,
+
+    /**
+     * Controls whether Gmail integration is visible
+     */
+    isGmailEnabled: flags[FEATURE_FLAGS.GMAIL] === true,
 
     /**
      * Raw flags object for advanced usage

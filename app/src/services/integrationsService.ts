@@ -10,6 +10,7 @@ export const IntegrationType = {
   FATHOM: "FATHOM",
   GOOGLE_CALENDAR: "GOOGLE_CALENDAR",
   GOOGLE_DRIVE: "GOOGLE_DRIVE",
+  GMAIL: "GMAIL",
   ZOOM: "ZOOM",
   SNOWFLAKE: "SNOWFLAKE",
 } as const;

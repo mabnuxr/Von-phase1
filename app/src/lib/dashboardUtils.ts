@@ -25,6 +25,7 @@ import {
   getElapsedTimeFromEvents,
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
+import { parseEmailDraftFromContent } from "./emailUtils";
 
 /**
  * Transform backend MessageWithStreaming to Chat component Message format
@@ -56,6 +57,17 @@ export function transformMessagesToChatFormat(
         toolCalls = replayedData.toolCalls;
         stoppedByUser = replayedData.stoppedByUser ?? stoppedByUser;
       }
+    }
+
+    // Parse email draft from content (frontend-only, no backend required)
+    const emailDraftResult =
+      !streamingMsg.emailDraft && streamingMsg.role === "assistant"
+        ? parseEmailDraftFromContent(content ?? streamingMsg.messageContent, streamingMsg.id)
+        : null;
+
+    // If a draft was parsed, replace displayed content with just the pre-draft text
+    if (emailDraftResult) {
+      content = emailDraftResult.preText;
     }
 
     return {
@@ -112,6 +124,20 @@ export function transformMessagesToChatFormat(
             })),
           }
         : undefined,
+      // Email draft: prefer explicit backend field, fall back to content parsing
+      emailDraftArtifacts: emailDraftResult
+        ? [emailDraftResult.artifact]
+        : streamingMsg.emailDraft
+          ? [
+              {
+                draftId: streamingMsg.id,
+                subject: streamingMsg.emailDraft.subject,
+                body: streamingMsg.emailDraft.body,
+                to: streamingMsg.emailDraft.to,
+                gmailUrl: streamingMsg.emailDraft.gmailUrl,
+              },
+            ]
+          : undefined,
     } as ChatMessage;
   });
 }
@@ -563,5 +589,15 @@ export function transformConversationMessages(
     phase: null,
   };
 
-  return transformMessagesForV2(conversationMessages, liveData);
+  const result = transformMessagesForV2(conversationMessages, liveData);
+
+  // Strip email draft text from v2FinalResponse for messages that have emailDraftArtifacts
+  result.messages = result.messages.map((msg) => {
+    if (!msg.emailDraftArtifacts?.length || !msg.v2FinalResponse) return msg;
+    const parsed = parseEmailDraftFromContent(msg.v2FinalResponse, msg.id);
+    if (!parsed) return msg;
+    return { ...msg, v2FinalResponse: parsed.preText };
+  });
+
+  return result;
 }

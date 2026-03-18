@@ -549,7 +549,7 @@ export function IntegrationsList({
   onConnect,
   onDelete,
 }: IntegrationsListProps) {
-  const { isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled } =
+  const { isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled, isGmailEnabled } =
     useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -558,9 +558,10 @@ export function IntegrationsList({
       if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
       if (app.id === "zendesk" && !isZendeskEnabled) return false;
       if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
+      if (app.id === "gmail" && !isGmailEnabled) return false;
       return true;
     });
-  }, [isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled]);
+  }, [isGoogleDriveEnabled, isZendeskEnabled, isSnowflakeEnabled, isGmailEnabled]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {

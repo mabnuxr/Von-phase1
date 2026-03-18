@@ -11,7 +11,7 @@ import { TiptapViewer } from '../TiptapEditor';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment } from './types';
-import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
+import { FileArtifactCard, GmailDraftCard, type FileArtifact, type EmailDraftArtifact } from './ArtifactCards';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
 
@@ -305,6 +305,26 @@ export interface ChatMessageProps {
   driveLoadingFileId?: string | null;
 
   /**
+   * Gmail draft artifacts associated with this message
+   */
+  emailDraftArtifacts?: EmailDraftArtifact[];
+
+  /**
+   * Callback when user clicks "Open in Gmail" on a draft card
+   */
+  onOpenGmailDraft?: (draftId: string, gmailUrl?: string) => void;
+
+  /**
+   * Whether Gmail integration is enabled (feature flag)
+   */
+  isGmailEnabled?: boolean;
+
+  /**
+   * Whether Gmail is connected (user has authenticated)
+   */
+  isGmailConnected?: boolean;
+
+  /**
    * Quick command used for this user message (shows expandable chip)
    */
   command?: Command;
@@ -354,6 +374,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
+  // Gmail draft artifacts
+  emailDraftArtifacts,
+  onOpenGmailDraft,
+  isGmailEnabled,
+  isGmailConnected,
   command,
   onRequestFilePreviewUrl,
 }) => {
@@ -700,6 +725,25 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           />
                         );
                       })}
+                    </div>
+                  )}
+
+                  {/* Gmail draft artifact cards */}
+                  {!isUser && isGmailEnabled && emailDraftArtifacts && emailDraftArtifacts.length > 0 && !isStreaming && (
+                    <div className="mt-3 space-y-2">
+                      {emailDraftArtifacts.map((draft) => (
+                        <GmailDraftCard
+                          key={draft.draftId}
+                          artifact={draft}
+                          onOpenInGmail={
+                            onOpenGmailDraft
+                              ? () => onOpenGmailDraft(draft.draftId, draft.gmailUrl)
+                              : undefined
+                          }
+                          isGmailEnabled={isGmailEnabled}
+                          isGmailConnected={isGmailConnected}
+                        />
+                      ))}
                     </div>
                   )}
 

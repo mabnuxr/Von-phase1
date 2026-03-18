@@ -162,6 +162,17 @@ export interface Message {
     pdfPreview?: { id: string; fileName: string };
   }>;
   /**
+   * Gmail draft artifacts associated with this message
+   */
+  emailDraftArtifacts?: Array<{
+    draftId: string;
+    subject: string;
+    body: string;
+    to?: string;
+    gmailUrl?: string;
+    isPending?: boolean;
+  }>;
+  /**
    * Whether the response was stopped by user
    */
   stoppedByUser?: boolean;
@@ -1203,6 +1214,21 @@ export interface ChatProps {
    * Callback when a file attachment pill is clicked (for preview/download)
    */
   onFileClick?: (attachment: MessageFileAttachment) => void;
+
+  /**
+   * Callback when user clicks "Open in Gmail" on an email draft card
+   */
+  onOpenGmailDraft?: (draftId: string, gmailUrl?: string) => void;
+
+  /**
+   * Whether Gmail integration is enabled (feature flag is on)
+   */
+  isGmailEnabled?: boolean;
+
+  /**
+   * Whether Gmail is connected (user has authenticated)
+   */
+  isGmailConnected?: boolean;
 
   /**
    * Banner element to show above the chat input

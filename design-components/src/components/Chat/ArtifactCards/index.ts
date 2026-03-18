@@ -9,5 +9,8 @@ export type { FileArtifactCardProps } from './FileArtifactCard';
 export { DashboardArtifactCard } from './DashboardArtifactCard';
 export type { DashboardArtifactCardProps } from './DashboardArtifactCard';
 
+export { GmailDraftCard } from './GmailDraftCard';
+export type { GmailDraftCardProps } from './GmailDraftCard';
+
 // Shared types
-export type { ArtifactType, FileArtifact } from './types';
+export type { ArtifactType, FileArtifact, EmailDraftArtifact } from './types';
