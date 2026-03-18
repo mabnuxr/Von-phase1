@@ -998,6 +998,21 @@ export function transformAguiToTimelineSteps(
                     step.rejectionReason =
                       result.message || "Operation rejected by user";
                     toolCallResultMap.delete(toolId);
+                  } else if (
+                    result.success === false &&
+                    result.retry === true
+                  ) {
+                    // Validation error — agent sent bad args, will retry.
+                    // Remove the step and clean up maps so the retry creates fresh state.
+                    toolCallToStepMap.delete(toolId);
+                    toolCallToStepDirectMap.delete(toolId);
+                    toolCallResultMap.delete(toolId);
+                    for (let i = steps.length - 1; i >= 0; i--) {
+                      if (steps[i] === step) {
+                        removeTrailingColonFromPreviousStep(steps, i);
+                        steps.splice(i, 1);
+                      }
+                    }
                   } else if (result.success === false || result.error) {
                     // System error - use 'error' status and store error message
                     step.status = "error" as StepStatus;
@@ -1099,6 +1114,19 @@ export function transformAguiToTimelineSteps(
                     step.status = "rejected" as StepStatus;
                     step.rejectionReason =
                       result.message || "Operation rejected by user";
+                  } else if (
+                    result.success === false &&
+                    result.retry === true
+                  ) {
+                    // Validation error — agent sent bad args, will retry.
+                    toolCallToStepMap.delete(toolId);
+                    toolCallToStepDirectMap.delete(toolId);
+                    for (let i = steps.length - 1; i >= 0; i--) {
+                      if (steps[i] === step) {
+                        removeTrailingColonFromPreviousStep(steps, i);
+                        steps.splice(i, 1);
+                      }
+                    }
                   } else if (result.success === false || result.error) {
                     // Fallback for execution errors (not approval decisions)
                     step.status = "error" as StepStatus;
