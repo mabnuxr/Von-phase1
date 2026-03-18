@@ -4,6 +4,7 @@ import { teamService } from "../services";
 import type {
   TeamMember,
   AddTeamMemberRequest,
+  UpdateMemberRequest,
   UpdateMemberPermissionsRequest,
 } from "../services/teamService";
 
@@ -184,6 +185,39 @@ export function useRemoveTeamMember(tenantId: string | undefined) {
     onSuccess: () => {
       if (!tenantId) return;
       queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+    },
+  });
+}
+
+/**
+ * Update a team member's details (name, role) - admin only
+ *
+ * @param tenantId - Current tenant ID from user context
+ */
+export function useUpdateMember(tenantId: string | undefined) {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      data,
+    }: {
+      userId: string;
+      data: UpdateMemberRequest;
+    }) => teamService.updateMember(userId, data),
+
+    onSuccess: () => {
+      if (!tenantId) return;
+      queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      showToast({
+        message: "Team member updated successfully",
+        variant: "success",
+      });
+    },
+
+    onError: (err) => {
+      console.error("[useUpdateMember] Failed to update member:", err);
     },
   });
 }
