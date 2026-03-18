@@ -448,11 +448,11 @@ function transformMessagesForV2(
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
         dashboard: persistedDashboard,
-        // Propagate persisted error or expired status from events.
-        // Also detect approvals that were never resolved (awaiting-approval
-        // steps force-marked as expired in the post-processing loop above).
-        ...(persistedIsExpiredApproval ||
-        steps.some((s) => s.status === "expired" && s.approval)
+        // Propagate persisted expired or error status from events.
+        // persistedIsExpiredApproval is authoritative — the post-processing
+        // loop only marks steps as expired when this flag is true, so no
+        // secondary scan is needed.
+        ...(persistedIsExpiredApproval
           ? {
               status: "expired" as const,
               errorMessage:
