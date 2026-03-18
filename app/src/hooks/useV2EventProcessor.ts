@@ -237,14 +237,14 @@ export function useV2EventProcessor(
           runErrorMessage: errorMsg,
         } = transformAguiToTimelineSteps(activeRunEvents);
 
-        // Mark any in-progress/pending/awaiting-approval steps as complete (run is terminated)
+        // Mark any in-progress/pending steps as complete (run is terminated).
+        // Steps still awaiting approval were never resolved — mark as expired
+        // so the card shows "Invalid" instead of "Approved".
         for (const step of steps) {
-          if (
-            step.status === "in-progress" ||
-            step.status === "pending" ||
-            step.status === "awaiting-approval"
-          ) {
+          if (step.status === "in-progress" || step.status === "pending") {
             step.status = "complete";
+          } else if (step.status === "awaiting-approval") {
+            step.status = "expired" as typeof step.status;
           }
         }
 
