@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
+  DEFAULT_EXPIRED_APPROVAL_MESSAGE,
 } from "../transformAguiToTimelineSteps";
 import * as fixtures from "./fixtures/aguiEventBuilders";
 
@@ -2381,6 +2382,332 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       // Tool name "custom_approval_tool" is not SF or calendar
       // So early detection doesn't set it as approval; only detectApprovalFromArgs does
       expect(step?.approval?.approvalType).toBe("generic");
+    });
+  });
+});
+
+// ── Scenarios added for recent fixes ─────────────────────────────────────
+
+describe("transformAguiToTimelineSteps — recent fix coverage", () => {
+  // Helper: builds a pending SF approval base that ends with intermediate RUN_FINISHED
+  function approvalPendingBase(
+    toolCallId = "tc-fix",
+    toolName = "request_salesforce_approval",
+  ) {
+    return [
+      fixtures.runStarted(0),
+      fixtures.stepStarted(1, 1, "Updating"),
+      fixtures.toolCallStart(2, toolCallId, toolName, { stepNumber: 1 }),
+      fixtures.toolCallArgs(
+        3,
+        toolCallId,
+        JSON.stringify({
+          summary: "Update record",
+          operations: [
+            {
+              operation: "update",
+              sobject_type: "Opportunity",
+              record_name: "Deal",
+              record_id: "006fix",
+              changes: [{ field: "Stage", before: "A", after: "B" }],
+            },
+          ],
+        }),
+        { stepNumber: 1 },
+      ),
+      fixtures.toolCallEnd(4, toolCallId, { stepNumber: 1 }),
+      fixtures.runFinished(5), // intermediate — sets sawRunFinishedWithPendingApproval
+    ];
+  }
+
+  // ── Expired before approved (priority ordering) ────────────────────────
+
+  describe("expired status takes priority over approved", () => {
+    it("treats a malformed response with both approved:true and status:expired as expired (chunked)", () => {
+      const events = [
+        ...approvalPendingBase(),
+        // Chunked result with both fields
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({
+            approved: true,
+            status: "expired",
+            message: "Session expired",
+          }),
+          { stepNumber: 1 },
+        ),
+        fixtures.stepFinished(7, 1, "Updating"),
+        fixtures.runFinished(8),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      const step = result.steps.find((s) => s.approval);
+      expect(step?.status).toBe("expired");
+      expect(step?.errorMessage).toBe("Session expired");
+    });
+
+    it("treats a malformed response with both approved:true and status:expired as expired (non-chunked)", () => {
+      const events = [
+        ...approvalPendingBase(),
+        // Non-chunked result arrives as full content (no isDelta)
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({ approved: true, status: "expired" }),
+          { stepNumber: 1 },
+        ),
+        fixtures.stepFinished(7, 1, "Updating"),
+        fixtures.runFinished(8),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      const step = result.steps.find((s) => s.approval);
+      expect(step?.status).toBe("expired");
+      expect(step?.errorMessage).toBe(DEFAULT_EXPIRED_APPROVAL_MESSAGE);
+    });
+  });
+
+  // ── hadApprovalPause cleared after backend-initiated expiry ────────────
+
+  describe("hadApprovalPause cleared after expiry", () => {
+    it("clears hadApprovalPause when TOOL_CALL_RESULT expires the approval before final RUN_FINISHED", () => {
+      const events = [
+        ...approvalPendingBase(),
+        // Backend sends expired result — resolves the pending approval
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({ status: "expired", message: "Timed out" }),
+          { stepNumber: 1 },
+        ),
+        fixtures.stepFinished(7, 1, "Updating"),
+        // Final RUN_FINISHED — should NOT be treated as transitional
+        fixtures.runFinished(8),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      expect(result.hadApprovalPause).toBe(false);
+      expect(result.isThinking).toBe(false);
+      expect(result.isExpiredApproval).toBe(true);
+    });
+
+    it("keeps hadApprovalPause true when approval is still pending at final RUN_FINISHED", () => {
+      // Only the intermediate RUN_FINISHED, no resolution
+      const events = approvalPendingBase();
+      const result = transformAguiToTimelineSteps(events);
+      expect(result.hadApprovalPause).toBe(true);
+      expect(result.isAwaitingApproval).toBe(true);
+    });
+  });
+
+  // ── isExpiredApproval flag ─────────────────────────────────────────────
+
+  describe("isExpiredApproval flag", () => {
+    it("is true when a step has expired status", () => {
+      const events = [
+        ...approvalPendingBase(),
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({ status: "expired" }),
+          { stepNumber: 1 },
+        ),
+        fixtures.stepFinished(7, 1, "Updating"),
+        fixtures.runFinished(8),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      expect(result.isExpiredApproval).toBe(true);
+    });
+
+    it("is false when approval is approved normally", () => {
+      const events = fixtures.salesforceApprovalApproved();
+      const result = transformAguiToTimelineSteps(events);
+      expect(result.isExpiredApproval).toBe(false);
+    });
+
+    it("is false when approval is rejected", () => {
+      const events = fixtures.salesforceApprovalRejected();
+      const result = transformAguiToTimelineSteps(events);
+      expect(result.isExpiredApproval).toBe(false);
+    });
+  });
+
+  // ── getExpiredApprovalFields helper (via integration) ──────────────────
+
+  describe("expired approval fields", () => {
+    it("sets default errorMessage when result has no message", () => {
+      const events = [
+        ...approvalPendingBase(),
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({ status: "expired" }),
+          { stepNumber: 1 },
+        ),
+        fixtures.stepFinished(7, 1, "Updating"),
+        fixtures.runFinished(8),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      const step = result.steps.find((s) => s.status === "expired");
+      expect(step?.errorMessage).toBe(DEFAULT_EXPIRED_APPROVAL_MESSAGE);
+    });
+
+    it("uses custom message from result when provided", () => {
+      const events = [
+        ...approvalPendingBase(),
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({
+            status: "expired",
+            message: "Custom expiry reason",
+          }),
+          { stepNumber: 1 },
+        ),
+        fixtures.stepFinished(7, 1, "Updating"),
+        fixtures.runFinished(8),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      const step = result.steps.find((s) => s.status === "expired");
+      expect(step?.errorMessage).toBe("Custom expiry reason");
+    });
+  });
+
+  // ── Retry step removal cleans up map entries ───────────────────────────
+
+  describe("retry step removal", () => {
+    it("removes step and cleans up when finalization encounters retry:true", () => {
+      // Build events where the approval tool result has retry:true
+      // (validation error — agent sent bad args). The result is only
+      // accumulated; it's resolved in the finalization loop.
+      const events = [
+        ...approvalPendingBase(),
+        // Chunked retry result — accumulated during streaming, resolved in finalization
+        fixtures.toolCallResult(
+          6,
+          "tc-fix",
+          JSON.stringify({ success: false, retry: true }),
+          { stepNumber: 1, isDelta: true },
+        ),
+        fixtures.runFinished(7),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      // The approval step should be removed entirely
+      const approvalStep = result.steps.find((s) => s.approval);
+      expect(approvalStep).toBeUndefined();
+    });
+
+    it("does not leave orphaned steps after retry removal", () => {
+      const events = [
+        fixtures.runStarted(0),
+        fixtures.stepStarted(1, 1, "Preparing:"),
+        fixtures.toolCallStart(2, "tc-retry", "request_salesforce_approval", {
+          stepNumber: 1,
+        }),
+        fixtures.toolCallArgs(
+          3,
+          "tc-retry",
+          JSON.stringify({
+            summary: "Bad args",
+            operations: [
+              {
+                operation: "update",
+                sobject_type: "Account",
+                record_name: "Test",
+                record_id: "001retry",
+                changes: [{ field: "Name", before: "Old", after: "New" }],
+              },
+            ],
+          }),
+          { stepNumber: 1 },
+        ),
+        fixtures.toolCallEnd(4, "tc-retry", { stepNumber: 1 }),
+        fixtures.runFinished(5), // intermediate
+        fixtures.toolCallResult(
+          6,
+          "tc-retry",
+          JSON.stringify({ success: false, retry: true }),
+          { stepNumber: 1, isDelta: true },
+        ),
+        // Agent retries with a new tool call
+        fixtures.stepStarted(7, 2, "Retrying"),
+        fixtures.toolCallStart(8, "tc-retry-2", "request_salesforce_approval", {
+          stepNumber: 2,
+        }),
+        fixtures.toolCallArgs(
+          9,
+          "tc-retry-2",
+          JSON.stringify({
+            summary: "Correct args",
+            operations: [
+              {
+                operation: "update",
+                sobject_type: "Account",
+                record_name: "Test",
+                record_id: "001retry",
+                changes: [{ field: "Name", before: "Old", after: "New" }],
+              },
+            ],
+          }),
+          { stepNumber: 2 },
+        ),
+        fixtures.toolCallEnd(10, "tc-retry-2", { stepNumber: 2 }),
+        fixtures.runFinished(11), // intermediate for new approval
+        fixtures.toolCallResult(
+          12,
+          "tc-retry-2",
+          JSON.stringify({ approved: true }),
+          { stepNumber: 2 },
+        ),
+        fixtures.stepFinished(13, 2, "Retrying"),
+        fixtures.runFinished(14),
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      // Original retry step should be gone, only the successful retry remains
+      const approvalSteps = result.steps.filter((s) => s.approval);
+      expect(approvalSteps).toHaveLength(1);
+      expect(approvalSteps[0].status).toBe("complete");
+    });
+  });
+
+  // ── sawRunFinishedWithPendingApproval only clears on approval-resolving events ─
+
+  describe("sawRunFinishedWithPendingApproval scoping", () => {
+    it("does not clear hadApprovalPause when a non-approval TOOL_CALL_RESULT arrives", () => {
+      // Intermediate RUN_FINISHED with pending approval, then a non-approval
+      // tool result arrives (for a different tool) — the flag should NOT clear
+      // because the approval step is still awaiting-approval.
+      const events = [
+        fixtures.runStarted(0),
+        fixtures.stepStarted(1, 1, "Step with approval"),
+        fixtures.toolCallStart(2, "tc-appr", "request_salesforce_approval", {
+          stepNumber: 1,
+        }),
+        fixtures.toolCallArgs(
+          3,
+          "tc-appr",
+          JSON.stringify({
+            summary: "Update",
+            operations: [
+              {
+                operation: "update",
+                sobject_type: "Account",
+                record_name: "Test",
+                record_id: "001x",
+                changes: [{ field: "Name", before: "A", after: "B" }],
+              },
+            ],
+          }),
+          { stepNumber: 1 },
+        ),
+        fixtures.toolCallEnd(4, "tc-appr", { stepNumber: 1 }),
+        fixtures.runFinished(5), // intermediate
+        // A non-approval tool result arrives (e.g., leftover from previous step)
+        fixtures.toolCallResult(6, "tc-other", '{"success":true}'),
+        // No final RUN_FINISHED yet
+      ];
+      const result = transformAguiToTimelineSteps(events);
+      // Approval is still pending, flag should still be true
+      expect(result.hadApprovalPause).toBe(true);
+      expect(result.isAwaitingApproval).toBe(true);
     });
   });
 });
