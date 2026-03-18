@@ -206,6 +206,8 @@ export const StepRow = React.memo<StepRowProps>(
                         isRejected={
                           isLocallyRejected || step.status === 'rejected' || !!step.rejectionReason
                         }
+                        isExpired={step.status === 'expired'}
+                        isError={step.status === 'error' && !step.rejectionReason}
                       />
                     ) : (
                       <CompactApprovalCard

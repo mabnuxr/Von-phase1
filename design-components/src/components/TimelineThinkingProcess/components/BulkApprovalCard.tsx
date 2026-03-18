@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircleIcon, XCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, XCircleIcon, WarningCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { ApprovalData, BulkApprovalRecord } from '../types';
 import { CompactApprovalCard } from './CompactApprovalCard';
 
@@ -92,6 +92,10 @@ export interface BulkApprovalCardProps {
   isApproved?: boolean;
   /** Whether the entire bulk operation was rejected (from backend state on reload) */
   isRejected?: boolean;
+  /** Whether the approval was invalidated (user sent new message without approving) */
+  isExpired?: boolean;
+  /** Whether the approval tool encountered a system/validation error */
+  isError?: boolean;
 }
 
 /**
@@ -113,6 +117,8 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     rejectedRecordIds = new Set(),
     isApproved = false,
     isRejected = false,
+    isExpired = false,
+    isError = false,
   }) => {
     const records = useMemo(() => approval.bulkRecords || [], [approval.bulkRecords]);
 
@@ -134,6 +140,26 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
       setBulkAction('rejected');
       onRejectAll();
     };
+
+    // Expired/error state — approval was never resolved
+    if (isExpired || isError) {
+      const borderColor = isError ? 'border-red-200' : 'border-amber-200';
+      const iconColor = isError ? 'text-red-400' : 'text-amber-500';
+      const labelColor = isError ? 'text-red-500' : 'text-amber-600';
+      const labelText = isError ? 'Failed' : 'Invalid';
+
+      return (
+        <div className={`mt-2 bg-white rounded-xl border ${borderColor} shadow-xs overflow-hidden min-w-0`}>
+          <div className="w-full px-3 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <WarningCircleIcon size={14} weight="fill" className={`${iconColor} shrink-0`} />
+              <span className="text-sm text-gray-900 truncate">{approval.label}</span>
+            </div>
+            <span className={`text-xs shrink-0 ml-2 ${labelColor}`}>{labelText}</span>
+          </div>
+        </div>
+      );
+    }
 
     // Show completed state when bulk action was taken locally OR from backend (on reload)
     if (bulkAction || isApproved || isRejected) {

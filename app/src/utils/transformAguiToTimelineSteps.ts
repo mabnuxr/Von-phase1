@@ -79,6 +79,19 @@ function getApprovalType(
 }
 
 /**
+ * Derive the fields for an expired approval from a tool result.
+ */
+function getExpiredApprovalFields(result: { message?: string }): {
+  status: StepStatus;
+  errorMessage: string;
+} {
+  return {
+    status: "expired" as StepStatus,
+    errorMessage: result.message || DEFAULT_EXPIRED_APPROVAL_MESSAGE,
+  };
+}
+
+/**
  * Maps tool names to source types for the timeline visualization
  */
 const TOOL_SOURCE_MAP: Record<string, SourceType> = {
@@ -974,10 +987,7 @@ export function transformAguiToTimelineSteps(
                     step.status = "complete" as StepStatus;
                     toolCallResultMap.delete(toolId);
                   } else if (result.status === "expired") {
-                    // Approval request expired
-                    step.status = "expired";
-                    step.errorMessage =
-                      result.message || DEFAULT_EXPIRED_APPROVAL_MESSAGE;
+                    Object.assign(step, getExpiredApprovalFields(result));
                     toolCallResultMap.delete(toolId);
                   } else if (result.approved === false) {
                     // User rejected - use 'rejected' status and store reason
@@ -1079,10 +1089,7 @@ export function transformAguiToTimelineSteps(
                   if (result.approved === true) {
                     step.status = "complete" as StepStatus;
                   } else if (result.status === "expired") {
-                    // Approval request expired
-                    step.status = "expired";
-                    step.errorMessage =
-                      result.message || DEFAULT_EXPIRED_APPROVAL_MESSAGE;
+                    Object.assign(step, getExpiredApprovalFields(result));
                   } else if (result.approved === false) {
                     // User rejected - use 'rejected' status and store reason
                     step.status = "rejected" as StepStatus;
@@ -1320,6 +1327,9 @@ export function transformAguiToTimelineSteps(
           if (step.status === "awaiting-approval") {
             if (result.success === false && result.retry === true) {
               // Validation error — agent sent bad args, will retry.
+              // Clean up map entries so future results don't attach to the removed step.
+              toolCallToStepMap.delete(toolId);
+              toolCallToStepDirectMap.delete(toolId);
               const stepIndex = steps.indexOf(step);
               if (stepIndex !== -1) {
                 removeTrailingColonFromPreviousStep(steps, stepIndex);
@@ -1328,10 +1338,7 @@ export function transformAguiToTimelineSteps(
             } else if (result.approved === true) {
               step.status = "complete" as StepStatus;
             } else if (result.status === "expired") {
-              // Approval request expired
-              step.status = "expired";
-              step.errorMessage =
-                result.message || DEFAULT_EXPIRED_APPROVAL_MESSAGE;
+              Object.assign(step, getExpiredApprovalFields(result));
             } else if (result.approved === false) {
               // User rejected - use 'rejected' status and store reason
               step.status = "rejected" as StepStatus;

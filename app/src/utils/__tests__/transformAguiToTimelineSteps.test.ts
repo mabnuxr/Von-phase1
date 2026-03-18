@@ -393,23 +393,21 @@ describe("transformAguiToTimelineSteps", () => {
         const events = fixtures.salesforceApprovalRejected();
         const result = transformAguiToTimelineSteps(events);
         expect(result.isAwaitingApproval).toBe(false);
-        // STEP_FINISHED after rejection overwrites status to "complete",
-        // but rejectionReason is preserved on the step
+        // STEP_FINISHED after rejection preserves "rejected" status
         const approvalStep = result.steps.find((s) => s.rejectionReason);
         expect(approvalStep).toBeDefined();
         expect(approvalStep!.rejectionReason).toBe("User declined");
-        expect(approvalStep!.status).toBe("complete");
+        expect(approvalStep!.status).toBe("rejected");
       });
 
       it("handles approval with system error", () => {
         const events = fixtures.approvalWithSystemError();
         const result = transformAguiToTimelineSteps(events);
-        // STEP_FINISHED after error overwrites status to "complete",
-        // but errorMessage is preserved on the step
+        // STEP_FINISHED after error preserves "error" status
         const stepWithError = result.steps.find((s) => s.errorMessage);
         expect(stepWithError).toBeDefined();
         expect(stepWithError!.errorMessage).toBe("API timeout");
-        expect(stepWithError!.status).toBe("complete");
+        expect(stepWithError!.status).toBe("error");
       });
 
       it("detects bulk SF approval with multiple operations", () => {
