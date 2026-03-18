@@ -180,6 +180,10 @@ export function useV2EventProcessor(
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
   const pendingStopRef = useRef(false);
+  // Ref mirror of timelineSteps for immediate reads after flushSync (where the
+  // closure-captured state variable would still be stale).
+  const timelineStepsRef = useRef(timelineSteps);
+  timelineStepsRef.current = timelineSteps;
 
   // Apply a transform result to state (used by both event handler and reconciliation)
   const applyTransformResult = useCallback(
@@ -317,18 +321,22 @@ export function useV2EventProcessor(
       }
     }
 
-    // Reset live state synchronously so subsequent reads (e.g. forceCompleteStreamingMessages)
-    // see the updated values within the same call stack.
-    // Functional updater ensures we read React's latest committed state, avoiding races
-    // if another state update was queued between reading the ref and flushing.
+    // Reset live state synchronously so React commits the update before this
+    // function returns.  The functional updater reads React's latest committed
+    // state (avoiding races with queued updates).  Note: `flushSync` guarantees
+    // the DOM is updated, but the `timelineSteps` state variable captured by
+    // the enclosing closure is NOT updated until the next render — any code that
+    // needs the new steps immediately after this call must read via the ref.
     flushSync(() => {
-      setTimelineSteps((prev) =>
-        prev.map((step) =>
+      setTimelineSteps((prev) => {
+        const next = prev.map((step) =>
           step.status === "awaiting-approval"
             ? { ...step, status: "expired" as const }
             : step,
-        ),
-      );
+        );
+        timelineStepsRef.current = next;
+        return next;
+      });
       setIsAwaitingApproval(false);
       setIsThinking(false);
       setIsFinalResponseStreaming(false);

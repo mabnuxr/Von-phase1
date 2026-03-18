@@ -1298,12 +1298,15 @@ export function transformAguiToTimelineSteps(
       }
     }
 
-    // After processing each event, check if a previously-pending approval has been
-    // resolved (e.g., by a TOOL_CALL_RESULT with status: "expired").  If no steps
-    // are still awaiting approval, the intermediate-finish flag is no longer valid
-    // and should be cleared so the next RUN_FINISHED is treated as final.
+    // After processing events that can resolve an approval (TOOL_CALL_RESULT or
+    // STEP_FINISHED), check if all approvals have been resolved.  If so, clear the
+    // intermediate-finish flag so the next RUN_FINISHED is treated as final.
+    // Only check after these specific event types to avoid incorrectly clearing the
+    // flag when unrelated events (e.g., non-approval TOOL_CALL_RESULT) arrive
+    // between the intermediate RUN_FINISHED and the approval resolution.
     if (
       sawRunFinishedWithPendingApproval &&
+      (event.type === "TOOL_CALL_RESULT" || event.type === "STEP_FINISHED") &&
       !steps.some((s) => s.status === "awaiting-approval")
     ) {
       sawRunFinishedWithPendingApproval = false;
