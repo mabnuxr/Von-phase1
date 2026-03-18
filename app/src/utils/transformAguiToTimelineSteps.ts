@@ -18,10 +18,11 @@ import type {
 import {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
+  DEFAULT_EXPIRED_APPROVAL_MESSAGE,
 } from "@vonlabs/design-components";
 
-/** Default message shown when an approval request has expired or was invalidated. */
-export const DEFAULT_EXPIRED_APPROVAL_MESSAGE = "Approval request has expired";
+// Re-export so existing consumers in app/ don't break
+export { DEFAULT_EXPIRED_APPROVAL_MESSAGE };
 
 /**
  * Research results state for Deep Research workflow
@@ -1296,6 +1297,17 @@ export function transformAguiToTimelineSteps(
         break;
       }
     }
+
+    // After processing each event, check if a previously-pending approval has been
+    // resolved (e.g., by a TOOL_CALL_RESULT with status: "expired").  If no steps
+    // are still awaiting approval, the intermediate-finish flag is no longer valid
+    // and should be cleared so the next RUN_FINISHED is treated as final.
+    if (
+      sawRunFinishedWithPendingApproval &&
+      !steps.some((s) => s.status === "awaiting-approval")
+    ) {
+      sawRunFinishedWithPendingApproval = false;
+    }
   }
 
   // Check if there's a pending approval step (for UI to show appropriate state)
@@ -1330,10 +1342,14 @@ export function transformAguiToTimelineSteps(
               // Clean up map entries so future results don't attach to the removed step.
               toolCallToStepMap.delete(toolId);
               toolCallToStepDirectMap.delete(toolId);
-              const stepIndex = steps.indexOf(step);
-              if (stepIndex !== -1) {
-                removeTrailingColonFromPreviousStep(steps, stepIndex);
-                steps.splice(stepIndex, 1);
+              // Iterate backwards to safely remove all steps matching this toolId
+              // (handles edge cases where duplicate TOOL_CALL_START events
+              // bypassed the deduplication guard).
+              for (let i = steps.length - 1; i >= 0; i--) {
+                if (steps[i] === step) {
+                  removeTrailingColonFromPreviousStep(steps, i);
+                  steps.splice(i, 1);
+                }
               }
             } else if (result.approved === true) {
               step.status = "complete" as StepStatus;

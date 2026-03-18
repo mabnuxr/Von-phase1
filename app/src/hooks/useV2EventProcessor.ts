@@ -181,8 +181,6 @@ export function useV2EventProcessor(
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
   const pendingStopRef = useRef(false);
-  const timelineStepsRef = useRef(timelineSteps);
-  timelineStepsRef.current = timelineSteps;
 
   // Apply a transform result to state (used by both event handler and reconciliation)
   const applyTransformResult = useCallback(
@@ -293,31 +291,52 @@ export function useV2EventProcessor(
   }, []);
 
   const invalidateApproval = useCallback(() => {
-    // Mark all active runs as finished so their events are no longer processed
+    // Collect active run IDs before marking them finished
+    const invalidatedRunIds: string[] = [];
     for (const [runId] of eventsRef.current) {
       if (!finishedRunsRef.current.has(runId)) {
         finishedRunsRef.current.add(runId);
+        invalidatedRunIds.push(runId);
       }
     }
-    // Mark any awaiting-approval steps as expired before flushing state,
-    // so downstream consumers (e.g. dashboardUtils) don't have to reconcile stale statuses.
-    // Shallow-copy changed steps to avoid mutating objects that React components may still reference.
-    const updatedSteps = timelineStepsRef.current.map((step) =>
-      step.status === ("awaiting-approval" as StepStatus)
-        ? { ...step, status: "expired" as StepStatus }
-        : step,
-    );
+
+    // Persist expired status in chatStore so the message shows the expired banner
+    // and doesn't resurrect as "awaiting-approval" after a page refresh.
+    if (invalidatedRunIds.length > 0) {
+      const messages =
+        useChatStore.getState().messages[conversationId ?? ""] || [];
+      for (const runId of invalidatedRunIds) {
+        const targetMsg = messages
+          .slice()
+          .reverse()
+          .find((m) => m.role === "assistant" && m.runId === runId);
+        if (targetMsg) {
+          useChatStore
+            .getState()
+            .markMessageExpired(conversationId ?? "", targetMsg.id);
+        }
+      }
+    }
+
     // Reset live state synchronously so subsequent reads (e.g. forceCompleteStreamingMessages)
-    // see the updated values within the same call stack
+    // see the updated values within the same call stack.
+    // Functional updater ensures we read React's latest committed state, avoiding races
+    // if another state update was queued between reading the ref and flushing.
     flushSync(() => {
-      setTimelineSteps(updatedSteps);
+      setTimelineSteps((prev) =>
+        prev.map((step) =>
+          step.status === ("awaiting-approval" as StepStatus)
+            ? { ...step, status: "expired" as StepStatus }
+            : step,
+        ),
+      );
       setIsAwaitingApproval(false);
       setIsThinking(false);
       setIsFinalResponseStreaming(false);
     });
     timerOnRunTerminated(true);
     lastEventTimeRef.current = 0;
-  }, [timerOnRunTerminated]);
+  }, [conversationId, timerOnRunTerminated]);
 
   const markTimedOut = useCallback(() => {
     if (import.meta.env.DEV) {

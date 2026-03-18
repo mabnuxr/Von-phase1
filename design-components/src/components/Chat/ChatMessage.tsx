@@ -14,6 +14,7 @@ import type { MessageFileAttachment, MessageStatus } from './types';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
+import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
 
 /**
  * Get user initials from name or email
@@ -737,7 +738,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         <InfoIcon size={20} className="text-gray-500" />
                       </div>
                       <span className="text-sm text-gray-800 leading-relaxed flex-1">
-                        {errorMessage || 'Approval request has expired'}
+                        {errorMessage || DEFAULT_EXPIRED_APPROVAL_MESSAGE}
                       </span>
                     </div>
                   )}
