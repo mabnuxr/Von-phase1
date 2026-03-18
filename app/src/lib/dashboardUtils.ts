@@ -453,8 +453,8 @@ function transformMessagesForV2(
           ? {
               status: "expired" as const,
               errorMessage:
-                steps.find((s) => s.status === "expired")
-                  ?.errorMessage || DEFAULT_EXPIRED_APPROVAL_MESSAGE,
+                steps.find((s) => s.status === "expired")?.errorMessage ||
+                DEFAULT_EXPIRED_APPROVAL_MESSAGE,
             }
           : persistedRunErrorMessage
             ? {

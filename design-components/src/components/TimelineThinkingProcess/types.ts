@@ -342,6 +342,8 @@ export interface CompactApprovalCardProps {
   isRejected?: boolean;
   /** Whether the approval was invalidated (user sent new message without approving) */
   isExpired?: boolean;
+  /** Whether the approval tool encountered a system/validation error (not a user rejection) */
+  isError?: boolean;
   /** Whether the card should be expanded by default (defaults to true) */
   defaultExpanded?: boolean;
   /** Whether to hide individual approve/reject buttons (used in bulk approval context) */

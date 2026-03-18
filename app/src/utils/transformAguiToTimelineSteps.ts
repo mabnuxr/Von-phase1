@@ -604,11 +604,16 @@ export function transformAguiToTimelineSteps(
         }
 
         if (step) {
-          // Only mark complete if not awaiting approval or expired
-          if (
-            step.status !== "awaiting-approval" &&
-            step.status !== "expired"
-          ) {
+          // Only mark complete if the step hasn't already reached a
+          // terminal/resolved status. STEP_FINISHED can arrive after a
+          // TOOL_CALL_RESULT that set error, rejected, or expired — those
+          // must not be overwritten to "complete".
+          const preserveStatus =
+            step.status === "awaiting-approval" ||
+            step.status === "expired" ||
+            step.status === "error" ||
+            step.status === "rejected";
+          if (!preserveStatus) {
             step.status = "complete" as StepStatus;
           }
         }
@@ -1313,7 +1318,14 @@ export function transformAguiToTimelineSteps(
 
           // Handle approval results
           if (step.status === "awaiting-approval") {
-            if (result.approved === true) {
+            if (result.success === false && result.retry === true) {
+              // Validation error — agent sent bad args, will retry.
+              const stepIndex = steps.indexOf(step);
+              if (stepIndex !== -1) {
+                removeTrailingColonFromPreviousStep(steps, stepIndex);
+                steps.splice(stepIndex, 1);
+              }
+            } else if (result.approved === true) {
               step.status = "complete" as StepStatus;
             } else if (result.status === "expired") {
               // Approval request expired

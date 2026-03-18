@@ -204,10 +204,7 @@ export const StepRow = React.memo<StepRowProps>(
                           !step.rejectionReason
                         }
                         isRejected={
-                          isLocallyRejected ||
-                          step.status === 'error' ||
-                          step.status === 'rejected' ||
-                          !!step.rejectionReason
+                          isLocallyRejected || step.status === 'rejected' || !!step.rejectionReason
                         }
                       />
                     ) : (
@@ -223,12 +220,10 @@ export const StepRow = React.memo<StepRowProps>(
                           !step.rejectionReason
                         }
                         isRejected={
-                          isLocallyRejected ||
-                          step.status === 'error' ||
-                          step.status === 'rejected' ||
-                          !!step.rejectionReason
+                          isLocallyRejected || step.status === 'rejected' || !!step.rejectionReason
                         }
                         isExpired={step.status === 'expired'}
+                        isError={step.status === 'error' && !step.rejectionReason}
                         defaultExpanded={defaultApprovalExpanded}
                       />
                     ))}
