@@ -23,6 +23,7 @@ import type { Channel } from "pusher-js";
 import type {
   AguiEventWrapper,
   TimelineStep,
+  StepStatus,
   RunFinishedEvent,
 } from "@vonlabs/design-components";
 
@@ -180,6 +181,8 @@ export function useV2EventProcessor(
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
   const pendingStopRef = useRef(false);
+  const timelineStepsRef = useRef(timelineSteps);
+  timelineStepsRef.current = timelineSteps;
 
   // Apply a transform result to state (used by both event handler and reconciliation)
   const applyTransformResult = useCallback(
@@ -296,9 +299,17 @@ export function useV2EventProcessor(
         finishedRunsRef.current.add(runId);
       }
     }
+    // Mark any awaiting-approval steps as expired before flushing state,
+    // so downstream consumers (e.g. dashboardUtils) don't have to reconcile stale statuses.
+    for (const step of timelineStepsRef.current) {
+      if (step.status === ("awaiting-approval" as StepStatus)) {
+        step.status = "expired" as StepStatus;
+      }
+    }
     // Reset live state synchronously so subsequent reads (e.g. forceCompleteStreamingMessages)
     // see the updated values within the same call stack
     flushSync(() => {
+      setTimelineSteps([...timelineStepsRef.current]);
       setIsAwaitingApproval(false);
       setIsThinking(false);
       setIsFinalResponseStreaming(false);
