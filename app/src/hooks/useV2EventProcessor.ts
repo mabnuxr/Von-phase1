@@ -301,15 +301,16 @@ export function useV2EventProcessor(
     }
     // Mark any awaiting-approval steps as expired before flushing state,
     // so downstream consumers (e.g. dashboardUtils) don't have to reconcile stale statuses.
-    for (const step of timelineStepsRef.current) {
-      if (step.status === ("awaiting-approval" as StepStatus)) {
-        step.status = "expired" as StepStatus;
-      }
-    }
+    // Shallow-copy changed steps to avoid mutating objects that React components may still reference.
+    const updatedSteps = timelineStepsRef.current.map((step) =>
+      step.status === ("awaiting-approval" as StepStatus)
+        ? { ...step, status: "expired" as StepStatus }
+        : step,
+    );
     // Reset live state synchronously so subsequent reads (e.g. forceCompleteStreamingMessages)
     // see the updated values within the same call stack
     flushSync(() => {
-      setTimelineSteps([...timelineStepsRef.current]);
+      setTimelineSteps(updatedSteps);
       setIsAwaitingApproval(false);
       setIsThinking(false);
       setIsFinalResponseStreaming(false);
