@@ -1,5 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircleIcon, XCircleIcon, WarningCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  WarningCircleIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+} from '@phosphor-icons/react';
 import type { ApprovalData, BulkApprovalRecord } from '../types';
 import { CompactApprovalCard } from './CompactApprovalCard';
 
@@ -149,7 +155,9 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
       const labelText = isError ? 'Failed' : 'Invalid';
 
       return (
-        <div className={`mt-2 bg-white rounded-xl border ${borderColor} shadow-xs overflow-hidden min-w-0`}>
+        <div
+          className={`mt-2 bg-white rounded-xl border ${borderColor} shadow-xs overflow-hidden min-w-0`}
+        >
           <div className="w-full px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <WarningCircleIcon size={14} weight="fill" className={`${iconColor} shrink-0`} />
