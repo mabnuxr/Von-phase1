@@ -395,7 +395,10 @@ function transformMessagesForV2(
       for (const step of usableSteps) {
         if (step.status === "in-progress" || step.status === "pending") {
           step.status = "complete";
-        } else if (step.status === "awaiting-approval") {
+        } else if (
+          persistedIsExpiredApproval &&
+          step.status === "awaiting-approval"
+        ) {
           step.status = "expired";
         }
       }
