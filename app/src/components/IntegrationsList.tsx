@@ -390,6 +390,11 @@ function IntegrationItem({
       ? "Removes both workspace and personal connections"
       : "Removes personal connection";
 
+    // During auth, always allow cancellation regardless of scope permissions
+    const deleteHandler = personalPerms?.delete
+      ? () => onDelete(personal.id, connectionType)
+      : undefined;
+
     return (
       <IntegrationCard
         name={workspace.name}
@@ -399,25 +404,23 @@ function IntegrationItem({
         modifiedBy={modifiedBy}
         instanceUrl={instanceUrl}
         onDelete={
-          canEditScope
-            ? undefined
-            : personalPerms?.delete
-              ? () => onDelete(personal.id, connectionType)
-              : undefined
+          isLoading ? deleteHandler : canEditScope ? undefined : deleteHandler
         }
-        canDelete={canEditScope ? false : (personalPerms?.delete ?? false)}
+        canDelete={
+          isLoading
+            ? (personalPerms?.delete ?? false)
+            : canEditScope
+              ? false
+              : (personalPerms?.delete ?? false)
+        }
         disabled={!!isLoading}
         loadingText={isLoading ? "Authenticating" : undefined}
         deleteTooltip={deleteTooltip}
         actionSlot={
-          canEditScope ? (
+          canEditScope && !isLoading ? (
             <SalesforceScopeMenu
               currentScope={currentScope}
-              onDelete={
-                personalPerms?.delete
-                  ? () => onDelete(personal.id, connectionType)
-                  : undefined
-              }
+              onDelete={deleteHandler}
             />
           ) : undefined
         }
@@ -472,8 +475,20 @@ function IntegrationItem({
           chips={chips}
           modifiedBy={modifiedBy}
           instanceUrl={instanceUrl}
-          onDelete={canEditScope ? undefined : handleWorkspaceDelete}
-          canDelete={canEditScope ? false : (workspacePerms?.delete ?? false)}
+          onDelete={
+            workspaceIsLoading
+              ? handleWorkspaceDelete
+              : canEditScope
+                ? undefined
+                : handleWorkspaceDelete
+          }
+          canDelete={
+            workspaceIsLoading
+              ? (workspacePerms?.delete ?? false)
+              : canEditScope
+                ? false
+                : (workspacePerms?.delete ?? false)
+          }
           disabled={!!workspaceIsLoading}
           loadingText={workspaceIsLoading ? "Authenticating" : undefined}
           deleteTooltip={
@@ -482,7 +497,7 @@ function IntegrationItem({
               : "Removes workspace connection"
           }
           actionSlot={
-            canEditScope ? (
+            canEditScope && !workspaceIsLoading ? (
               <SalesforceScopeMenu
                 currentScope={currentScope}
                 onDelete={handleWorkspaceDelete}

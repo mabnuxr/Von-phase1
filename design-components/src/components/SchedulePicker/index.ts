@@ -11,4 +11,5 @@ export {
   LOCAL_TIMEZONE,
   DEFAULT_SCHEDULE,
   formatScheduleBadge,
+  normalizeFrequency,
 } from './constants';

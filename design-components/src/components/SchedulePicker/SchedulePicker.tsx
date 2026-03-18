@@ -48,7 +48,7 @@ export const SchedulePicker: React.FC<SchedulePickerProps> = ({
     return base;
   }, [schedule.timezone]);
 
-  const showDayOfWeek = schedule.frequency === 'weekly' || schedule.frequency === 'bi-weekly';
+  const showDayOfWeek = schedule.frequency === 'weekly' || schedule.frequency === 'biweekly';
   const showDayOfMonth = schedule.frequency === 'monthly';
   const summaryText = summary ?? (schedule.enabled ? formatScheduleBadge(schedule) : undefined);
 
