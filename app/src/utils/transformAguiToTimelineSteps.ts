@@ -983,12 +983,14 @@ export function transformAguiToTimelineSteps(
 
                 // Parse and update step (same logic as content handling)
                 if (step.status === "awaiting-approval") {
-                  // Handle approval results
-                  if (result.approved === true) {
-                    step.status = "complete" as StepStatus;
-                    toolCallResultMap.delete(toolId);
-                  } else if (result.status === "expired") {
+                  // Handle approval results — check expired first so a malformed
+                  // response with both approved:true and status:"expired" is
+                  // treated as expired (the more restrictive outcome).
+                  if (result.status === "expired") {
                     Object.assign(step, getExpiredApprovalFields(result));
+                    toolCallResultMap.delete(toolId);
+                  } else if (result.approved === true) {
+                    step.status = "complete" as StepStatus;
                     toolCallResultMap.delete(toolId);
                   } else if (result.approved === false) {
                     // User rejected - use 'rejected' status and store reason
@@ -1086,11 +1088,12 @@ export function transformAguiToTimelineSteps(
                 try {
                   const result = JSON.parse(event.content);
 
-                  // Trust backend's explicit approval status
-                  if (result.approved === true) {
-                    step.status = "complete" as StepStatus;
-                  } else if (result.status === "expired") {
+                  // Check expired before approved so a malformed response
+                  // with both fields is treated as expired.
+                  if (result.status === "expired") {
                     Object.assign(step, getExpiredApprovalFields(result));
+                  } else if (result.approved === true) {
+                    step.status = "complete" as StepStatus;
                   } else if (result.approved === false) {
                     // User rejected - use 'rejected' status and store reason
                     step.status = "rejected" as StepStatus;
@@ -1354,10 +1357,10 @@ export function transformAguiToTimelineSteps(
                   steps.splice(i, 1);
                 }
               }
-            } else if (result.approved === true) {
-              step.status = "complete" as StepStatus;
             } else if (result.status === "expired") {
               Object.assign(step, getExpiredApprovalFields(result));
+            } else if (result.approved === true) {
+              step.status = "complete" as StepStatus;
             } else if (result.approved === false) {
               // User rejected - use 'rejected' status and store reason
               step.status = "rejected" as StepStatus;

@@ -21,6 +21,9 @@ export type {
   BulkOperation,
 } from "../../../../design-components/src/components/TimelineThinkingProcess/types";
 
+// Constants
+export { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from "../../../../design-components/src/utils/constants";
+
 // Functions
 export {
   isApprovalTool,
