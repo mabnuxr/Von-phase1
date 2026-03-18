@@ -204,10 +204,12 @@ export const StepRow = React.memo<StepRowProps>(
                           !step.rejectionReason
                         }
                         isRejected={
-                          isLocallyRejected || step.status === 'rejected' || !!step.rejectionReason
+                          isLocallyRejected ||
+                          step.status === 'rejected' ||
+                          (!!step.rejectionReason && step.status !== 'error')
                         }
                         isExpired={step.status === 'expired'}
-                        isError={step.status === 'error' && !step.rejectionReason}
+                        isError={step.status === 'error'}
                       />
                     ) : (
                       <CompactApprovalCard
@@ -222,10 +224,12 @@ export const StepRow = React.memo<StepRowProps>(
                           !step.rejectionReason
                         }
                         isRejected={
-                          isLocallyRejected || step.status === 'rejected' || !!step.rejectionReason
+                          isLocallyRejected ||
+                          step.status === 'rejected' ||
+                          (!!step.rejectionReason && step.status !== 'error')
                         }
                         isExpired={step.status === 'expired'}
-                        isError={step.status === 'error' && !step.rejectionReason}
+                        isError={step.status === 'error'}
                         defaultExpanded={defaultApprovalExpanded}
                       />
                     ))}
