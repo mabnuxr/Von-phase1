@@ -236,13 +236,12 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   }, [editor, editorRef]);
 
   // Update content when controlled value changes (external updates only).
-  // Skip when the change originated from user typing (onUpdate callback).
+  // Reset the internal-change flag so it doesn't block future external updates,
+  // then sync the editor only when the prop differs from what it already shows.
   useEffect(() => {
-    if (isInternalChangeRef.current) {
-      isInternalChangeRef.current = false;
-      return;
-    }
-    if (editor && content !== getMarkdown(editor)) {
+    if (!editor) return;
+    isInternalChangeRef.current = false;
+    if (content !== getMarkdown(editor)) {
       editor.commands.setContent(content);
     }
   }, [content, editor]);

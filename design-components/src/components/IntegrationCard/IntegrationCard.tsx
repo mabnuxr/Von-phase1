@@ -174,8 +174,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   return (
     <div
       className={`
-        flex items-center justify-between px-4 py-4 bg-white antialiased 
-        ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-default'}
+        flex items-center justify-between px-4 py-4 bg-white antialiased
+        ${disabled && !isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-default'}
       `}
     >
       {/* Left side - Icon and Info */}
