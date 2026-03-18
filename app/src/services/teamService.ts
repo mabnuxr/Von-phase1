@@ -112,6 +112,19 @@ export class TeamService {
   }
 
   /**
+   * Update a team member's details (name, role)
+   */
+  async updateMember(
+    userId: string,
+    data: UpdateMemberRequest,
+  ): Promise<UpdateMemberResponse> {
+    return apiClient.patch<UpdateMemberResponse>(
+      `/api/v1/team/members/${userId}`,
+      data,
+    );
+  }
+
+  /**
    * Update per-user permissions (admin only)
    */
   async updateMemberPermissions(
@@ -123,6 +136,20 @@ export class TeamService {
       permissions,
     );
   }
+}
+
+export interface UpdateMemberRequest {
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+}
+
+export interface UpdateMemberResponse {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  message: string;
 }
 
 export interface UpdateMemberPermissionsRequest {

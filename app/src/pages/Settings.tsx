@@ -20,6 +20,7 @@ import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
+import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -198,6 +199,9 @@ const Settings = () => {
 
         {/* Add Team Member Pane - Global */}
         <AddTeamMemberPane />
+
+        {/* Edit Team Member Pane - Global */}
+        <EditTeamMemberPane />
 
         {/* Avatar Menu Dropdown */}
         <AvatarMenu
