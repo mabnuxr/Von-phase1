@@ -395,10 +395,13 @@ function transformMessagesForV2(
       for (const step of usableSteps) {
         if (step.status === "in-progress" || step.status === "pending") {
           step.status = "complete";
-        } else if (
-          persistedIsExpiredApproval &&
-          step.status === "awaiting-approval"
-        ) {
+        } else if (step.status === "awaiting-approval") {
+          // A completed (non-streaming) message should never have actionable
+          // pending approvals.  If the step is still awaiting-approval the
+          // approval was never resolved — the user sent a new message, the
+          // page was refreshed, or the backend expired it without an explicit
+          // TOOL_CALL_RESULT.  Mark it expired unconditionally so approve/
+          // reject buttons don't reappear for a superseded run.
           step.status = "expired";
         }
       }
@@ -448,11 +451,13 @@ function transformMessagesForV2(
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
         dashboard: persistedDashboard,
-        // Propagate persisted expired or error status from events.
-        // persistedIsExpiredApproval is authoritative — the post-processing
-        // loop only marks steps as expired when this flag is true, so no
-        // secondary scan is needed.
-        ...(persistedIsExpiredApproval
+        // Propagate expired or error status.  Check both the transform flag
+        // (backend sent an explicit expired result) and the post-processed
+        // steps (awaiting-approval unconditionally marked expired above, e.g.
+        // when the user sent a new message and no expired TOOL_CALL_RESULT
+        // exists in the persisted events).
+        ...(persistedIsExpiredApproval ||
+        usableSteps.some((s) => s.status === "expired" && s.approval)
           ? {
               status: "expired" as const,
               errorMessage:

@@ -294,12 +294,10 @@ export function useV2EventProcessor(
   }, []);
 
   const invalidateApproval = useCallback(() => {
-    // Collect active run IDs before marking them finished
-    const invalidatedRunIds: string[] = [];
+    // Mark all active runs as finished so their events are no longer processed
     for (const [runId] of eventsRef.current) {
       if (!finishedRunsRef.current.has(runId)) {
         finishedRunsRef.current.add(runId);
-        invalidatedRunIds.push(runId);
       }
     }
 
@@ -327,34 +325,18 @@ export function useV2EventProcessor(
     lastEventTimeRef.current = 0;
 
     // Trigger event persistence: onRunComplete calls forceCompleteMessage which
-    // persists events from eventsRef into the chatStore message (while
-    // msg.isStreaming is still true).  This must happen BEFORE markMessageExpired
-    // which sets isStreaming=false and would prevent forceCompleteMessage from
-    // finding the message.
+    // persists events from eventsRef into the chatStore message, then
+    // refetchMessages() replaces the optimistic message with the server's
+    // version.  dashboardUtils post-processing unconditionally marks any
+    // remaining awaiting-approval steps as expired for non-streaming messages,
+    // and propagates the expired status to the message level — so no
+    // separate markMessageExpired call is needed here.
     try {
       onRunComplete?.();
     } catch (err) {
       console.error("[invalidateApproval] onRunComplete failed:", err);
     }
-
-    // Now mark the messages as expired so the UI shows the expired banner and
-    // page refresh reconstructs the correct state from persisted events.
-    if (invalidatedRunIds.length > 0) {
-      const messages =
-        useChatStore.getState().messages[conversationId ?? ""] || [];
-      for (const runId of invalidatedRunIds) {
-        const targetMsg = messages
-          .slice()
-          .reverse()
-          .find((m) => m.role === "assistant" && m.runId === runId);
-        if (targetMsg) {
-          useChatStore
-            .getState()
-            .markMessageExpired(conversationId ?? "", targetMsg.id);
-        }
-      }
-    }
-  }, [conversationId, timerOnRunTerminated, onRunComplete]);
+  }, [timerOnRunTerminated, onRunComplete]);
 
   const markTimedOut = useCallback(() => {
     if (import.meta.env.DEV) {
