@@ -223,6 +223,11 @@ export function researchResultsEnd(seq: number): AguiEventWrapper {
   return wrap(seq, { type: "RESEARCH_RESULTS_END" });
 }
 
+/** Compute the next sequence number after a list of events. */
+export function nextSeqAfter(events: AguiEventWrapper[]): number {
+  return Math.max(...events.map((e) => e.sequence)) + 1;
+}
+
 // ── Preset event sequences (common scenarios) ──
 
 /** Minimal complete run: RUN_STARTED → STEP_STARTED → TEXT_MESSAGE → RUN_FINISHED */
@@ -313,37 +318,41 @@ export function salesforceApprovalPending(): AguiEventWrapper[] {
 
 /** Salesforce approval flow completed (approved) */
 export function salesforceApprovalApproved(): AguiEventWrapper[] {
+  const pending = salesforceApprovalPending();
+  let s = nextSeqAfter(pending);
   return [
-    ...salesforceApprovalPending(),
+    ...pending,
     // After user approves, new events arrive
-    toolCallResult(6, "tc-approval", JSON.stringify({ approved: true }), {
+    toolCallResult(s++, "tc-approval", JSON.stringify({ approved: true }), {
       stepNumber: 1,
     }),
-    stepFinished(7, 1, "Updating Opportunity"),
-    textMessageStart(8, "final-1", { isFinalResponse: true }),
-    textMessageContent(9, "final-1", "Done!", { isFinalResponse: true }),
-    textMessageEnd(10, "final-1", { isFinalResponse: true }),
-    runFinished(11),
+    stepFinished(s++, 1, "Updating Opportunity"),
+    textMessageStart(s++, "final-1", { isFinalResponse: true }),
+    textMessageContent(s++, "final-1", "Done!", { isFinalResponse: true }),
+    textMessageEnd(s++, "final-1", { isFinalResponse: true }),
+    runFinished(s++),
   ];
 }
 
 /** Salesforce approval flow completed (rejected) */
 export function salesforceApprovalRejected(): AguiEventWrapper[] {
+  const pending = salesforceApprovalPending();
+  let s = nextSeqAfter(pending);
   return [
-    ...salesforceApprovalPending(),
+    ...pending,
     toolCallResult(
-      6,
+      s++,
       "tc-approval",
       JSON.stringify({ approved: false, message: "User declined" }),
       { stepNumber: 1 },
     ),
-    stepFinished(7, 1, "Updating Opportunity"),
-    textMessageStart(8, "final-1", { isFinalResponse: true }),
-    textMessageContent(9, "final-1", "Operation rejected.", {
+    stepFinished(s++, 1, "Updating Opportunity"),
+    textMessageStart(s++, "final-1", { isFinalResponse: true }),
+    textMessageContent(s++, "final-1", "Operation rejected.", {
       isFinalResponse: true,
     }),
-    textMessageEnd(10, "final-1", { isFinalResponse: true }),
-    runFinished(11),
+    textMessageEnd(s++, "final-1", { isFinalResponse: true }),
+    runFinished(s++),
   ];
 }
 
@@ -764,20 +773,22 @@ export function interleavedTextAndTools(): AguiEventWrapper[] {
 
 /** Approval resumed after approve → continues with more events */
 export function approvalResumedAfterApprove(): AguiEventWrapper[] {
+  const pending = salesforceApprovalPending();
+  let s = nextSeqAfter(pending);
   return [
-    ...salesforceApprovalPending(),
+    ...pending,
     // Run resumes with new processing events after approval
-    stepStarted(6, 2, "Executing update"),
-    toolCallResult(7, "tc-approval", JSON.stringify({ approved: true }), {
+    stepStarted(s++, 2, "Executing update"),
+    toolCallResult(s++, "tc-approval", JSON.stringify({ approved: true }), {
       stepNumber: 1,
     }),
-    stepFinished(8, 2, "Executing update"),
-    textMessageStart(9, "final-1", { isFinalResponse: true }),
-    textMessageContent(10, "final-1", "Update completed successfully.", {
+    stepFinished(s++, 2, "Executing update"),
+    textMessageStart(s++, "final-1", { isFinalResponse: true }),
+    textMessageContent(s++, "final-1", "Update completed successfully.", {
       isFinalResponse: true,
     }),
-    textMessageEnd(11, "final-1", { isFinalResponse: true }),
-    runFinished(12),
+    textMessageEnd(s++, "final-1", { isFinalResponse: true }),
+    runFinished(s++),
   ];
 }
 
@@ -804,16 +815,18 @@ export function runWithFailedArtifact(): AguiEventWrapper[] {
 
 /** Approval with error result (success: false) */
 export function approvalWithSystemError(): AguiEventWrapper[] {
+  const pending = salesforceApprovalPending();
+  let s = nextSeqAfter(pending);
   return [
-    ...salesforceApprovalPending(),
+    ...pending,
     toolCallResult(
-      6,
+      s++,
       "tc-approval",
       JSON.stringify({ success: false, error: "API timeout" }),
       { stepNumber: 1 },
     ),
-    stepFinished(7, 1, "Updating Opportunity"),
-    runFinished(8),
+    stepFinished(s++, 1, "Updating Opportunity"),
+    runFinished(s++),
   ];
 }
 
