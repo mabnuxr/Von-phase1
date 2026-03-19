@@ -409,7 +409,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   intercom: ["user"],
   outreach: ["user"],
   salesloft: ["user"],
-  snowflake: ["user"],
+  snowflake: ["tenant"],
   databricks: ["user"],
   pylon: ["user"],
 };
