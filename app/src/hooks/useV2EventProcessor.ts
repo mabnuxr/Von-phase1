@@ -309,11 +309,15 @@ export function useV2EventProcessor(
     // needs the new steps immediately after this call must read via the ref.
     flushSync(() => {
       setTimelineSteps((prev) => {
-        const next = prev.map((step) =>
-          step.status === "awaiting-approval"
-            ? { ...step, status: "expired" as const }
-            : step,
-        );
+        const next = prev.map((step) => {
+          if (step.status === "awaiting-approval") {
+            return { ...step, status: "expired" as const };
+          }
+          if (step.status === "in-progress" || step.status === "pending") {
+            return { ...step, status: "complete" as const };
+          }
+          return step;
+        });
         timelineStepsRef.current = next;
         return next;
       });
