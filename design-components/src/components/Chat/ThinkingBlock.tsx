@@ -4,7 +4,7 @@ import { Streamdown } from 'streamdown';
 import { ChainOfThoughtTimeline } from './ChainOfThoughtTimeline';
 import { SalesforceLink } from './SalesforceLink';
 import { EngagingMessage } from './EngagingMessage';
-import type { StepMessage } from './types';
+import type { StepMessage, MessageStatus } from './types';
 
 // Extract CSS animation to global scope to prevent re-creation on every render
 // This fixes animation freeze issues after multiple page refreshes
@@ -60,7 +60,7 @@ export interface ThinkingBlockProps {
    * Message status - used to determine when to collapse
    * Block auto-collapses when status becomes 'completed'
    */
-  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
+  status?: MessageStatus;
 
   /**
    * Step messages to render with chain-of-thought timeline

@@ -91,6 +91,7 @@ export const StepRow = React.memo<StepRowProps>(
     // Backend status (error) takes precedence over local optimistic state
     const effectiveStatus = useMemo(() => {
       if (step.status === 'error') return 'error';
+      if (step.status === 'expired') return 'expired';
       if (isLocallyApproved) return 'complete';
       if (isLocallyRejected) return 'error';
       return step.status;
@@ -199,14 +200,16 @@ export const StepRow = React.memo<StepRowProps>(
                           (isLocallyApproved || step.status === 'complete') &&
                           step.status !== 'error' &&
                           step.status !== 'rejected' &&
+                          step.status !== 'expired' &&
                           !step.rejectionReason
                         }
                         isRejected={
                           isLocallyRejected ||
-                          step.status === 'error' ||
                           step.status === 'rejected' ||
-                          !!step.rejectionReason
+                          (!!step.rejectionReason && step.status !== 'error')
                         }
+                        isExpired={step.status === 'expired'}
+                        isError={step.status === 'error'}
                       />
                     ) : (
                       <CompactApprovalCard
@@ -217,14 +220,16 @@ export const StepRow = React.memo<StepRowProps>(
                           (isLocallyApproved || step.status === 'complete') &&
                           step.status !== 'error' &&
                           step.status !== 'rejected' &&
+                          step.status !== 'expired' &&
                           !step.rejectionReason
                         }
                         isRejected={
                           isLocallyRejected ||
-                          step.status === 'error' ||
                           step.status === 'rejected' ||
-                          !!step.rejectionReason
+                          (!!step.rejectionReason && step.status !== 'error')
                         }
+                        isExpired={step.status === 'expired'}
+                        isError={step.status === 'error'}
                         defaultExpanded={defaultApprovalExpanded}
                       />
                     ))}

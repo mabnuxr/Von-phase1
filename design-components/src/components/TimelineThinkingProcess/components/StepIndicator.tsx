@@ -22,7 +22,7 @@ import type { StepIndicatorProps } from '../types';
  * - complete: accordion caret (clickable to expand/collapse)
  * - awaiting-approval: spinning loader in gray circle
  * - warning: exclamation mark in gray circle
- * - error: X icon in gray circle
+ * - error/rejected: X icon in gray circle
  * - pending: empty circle
  *
  * Used consistently across StepRow, CollapsedStepRow, and sub-steps.
@@ -78,7 +78,7 @@ export const StepIndicator = React.memo<StepIndicatorProps>(
         </motion.div>
       );
     }
-    if (status === 'warning') {
+    if (status === 'warning' || status === 'expired') {
       // Exclamation mark inside gray bordered circle
       return (
         <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50 border border-gray-100">
@@ -86,7 +86,7 @@ export const StepIndicator = React.memo<StepIndicatorProps>(
         </div>
       );
     }
-    if (status === 'error') {
+    if (status === 'error' || status === 'rejected') {
       // Simple X icon inside gray bordered circle
       return (
         <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50 border border-gray-100">
