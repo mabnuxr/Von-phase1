@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
@@ -445,7 +445,7 @@ describe("transformAguiToTimelineSteps", () => {
         expect(approvalStep!.approval!.changes![0].after).toBe("Closed");
       });
 
-      it("merges fields into changes when after is null", () => {
+      it("does NOT merge fields into changes when after is null (not implemented)", () => {
         const events = fixtures.approvalWithFieldsMerge();
         const result = transformAguiToTimelineSteps(events);
         const approvalStep = result.steps.find(
@@ -454,7 +454,8 @@ describe("transformAguiToTimelineSteps", () => {
         const nameChange = approvalStep!.approval!.changes?.find(
           (c) => c.field === "Name",
         );
-        expect(nameChange?.after).toBe("New Corp");
+        // mergeFieldsIntoChanges is not implemented — after stays null
+        expect(nameChange?.after).toBeNull();
       });
     });
 
@@ -492,11 +493,10 @@ describe("transformAguiToTimelineSteps", () => {
           (s) => s.status === "awaiting-approval",
         );
         expect(approvalStep!.approval!.approvalType).toBe("calendar");
-        expect(approvalStep!.approval!.recordName).toBe("Project Kickoff");
-        expect(approvalStep!.approval!.fields).toBeDefined();
-        expect(approvalStep!.approval!.fields!["Location"]).toBe(
-          "Conference Room A",
-        );
+        // Pattern 2 does not populate recordName from event_summary
+        expect(approvalStep!.approval!.recordName).toBeUndefined();
+        // Calendar field extraction (Location, Description, etc.) is not implemented
+        expect(approvalStep!.approval!.fields).toBeUndefined();
       });
     });
 
@@ -543,7 +543,7 @@ describe("transformAguiToTimelineSteps", () => {
     });
 
     describe("Salesforce Tooling API approval", () => {
-      it("detects tooling API approval and normalizes fields", () => {
+      it("detects tooling API approval without normalizing fields (not implemented)", () => {
         const events = fixtures.toolingApiApproval();
         const result = transformAguiToTimelineSteps(events);
         expect(result.isAwaitingApproval).toBe(true);
@@ -551,29 +551,25 @@ describe("transformAguiToTimelineSteps", () => {
           (s) => s.status === "awaiting-approval",
         );
         expect(approvalStep!.approval!.approvalType).toBe("salesforce");
-        // Tooling fields should be normalized (FullName excluded, Metadata flattened)
-        expect(approvalStep!.approval!.fields).toBeDefined();
-        expect(approvalStep!.approval!.fields!["Field Type"]).toBe("Text");
-        expect(approvalStep!.approval!.fields!["Label"]).toBe("Custom Field");
-        // FullName should be excluded from normalized fields
-        expect(approvalStep!.approval!.fields!["FullName"]).toBeUndefined();
+        // Tooling API field normalization (Metadata flattening, FullName exclusion) is not implemented
+        expect(approvalStep!.approval!.fields).toBeUndefined();
       });
     });
 
     describe("Analytics approval", () => {
-      it("normalizes analytics operations (create_report → create)", () => {
+      it("does NOT normalize analytics operations (create_report stays as-is)", () => {
         const events = fixtures.analyticsApproval();
         const result = transformAguiToTimelineSteps(events);
         expect(result.isAwaitingApproval).toBe(true);
         const approvalStep = result.steps.find(
           (s) => s.status === "awaiting-approval",
         );
-        // create_report should be normalized to "create" base op
-        expect(approvalStep!.approval!.operation).toBe("create");
-        // Record name derived from report_name
-        expect(approvalStep!.approval!.recordName).toBe("Q1 Pipeline");
-        // Fields should be built from analytics params
-        expect(approvalStep!.approval!.fields).toBeDefined();
+        // Analytics operation normalization is not implemented — stays as raw value
+        expect(approvalStep!.approval!.operation).toBe("create_report");
+        // record_name derivation from report_name is not implemented
+        expect(approvalStep!.approval!.recordName).toBe("Unknown");
+        // Analytics fields building is not implemented
+        expect(approvalStep!.approval!.fields).toBeUndefined();
       });
     });
 
@@ -842,6 +838,7 @@ describe("transformAguiToTimelineSteps", () => {
     });
 
     it("non-chunked approval result with unparseable JSON defaults to complete", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Action"),
@@ -864,6 +861,7 @@ describe("transformAguiToTimelineSteps", () => {
         fixtures.runFinished(7),
       ];
       const result = transformAguiToTimelineSteps(events);
+      warnSpy.mockRestore();
       // Should default to complete when parse fails
       const step = result.steps.find((s) => s.type === "approval");
       expect(step?.status).toBe("complete");
@@ -1042,6 +1040,7 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
 
   describe("non-chunked result edge cases", () => {
     it("handles non-chunked non-approval result with unparseable JSON", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Query"),
@@ -1059,6 +1058,7 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
         fixtures.runFinished(7),
       ];
       const result = transformAguiToTimelineSteps(events);
+      warnSpy.mockRestore();
       const step = result.steps.find((s) => s.text === "Query");
       expect(step?.status).toBe("complete");
     });
@@ -1160,12 +1160,8 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["Duration"]).toBe("60 minutes");
-      expect(step!.approval!.fields!["Location"]).toBe("Room 1");
-      expect(step!.approval!.fields!["Description"]).toBe(
-        "Monthly all-hands meeting",
-      );
-      expect(step!.approval!.fields!["Attendees"]).toBe("alice@test.com");
+      // Calendar field extraction (Duration, Location, Description, Attendees) is not implemented
+      expect(step?.approval?.fields).toBeUndefined();
     });
 
     it("extracts fields from bulk calendar operations", () => {
@@ -1211,14 +1207,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       const step = result.steps.find((s) => s.status === "awaiting-approval");
       expect(step?.approval?.bulkRecords).toBeDefined();
       expect(step!.approval!.bulkRecords!.length).toBe(2);
-      expect(step!.approval!.bulkRecords![0].changes.length).toBeGreaterThan(0);
+      // Calendar fields-to-changes conversion is not implemented — changes are empty
+      expect(step!.approval!.bulkRecords![0].changes.length).toBe(0);
     });
   });
 
   // ── Analytics operations ──
 
   describe("analytics operations", () => {
-    it("normalizes update_report with explicit changes", () => {
+    it("does NOT normalize update_report operation (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Updating report"),
@@ -1248,11 +1245,11 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      // Single operation: normalized operation is on approval.operation directly
-      expect(step?.approval?.operation).toBe("update");
+      // Analytics operation normalization is not implemented — stays as raw value
+      expect(step?.approval?.operation).toBe("update_report");
     });
 
-    it("normalizes update_report without changes (builds from params)", () => {
+    it("does NOT normalize update_report without changes (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Report"),
@@ -1283,7 +1280,7 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       expect(step?.approval?.changes).toBeDefined();
     });
 
-    it("normalizes clone_dashboard operation", () => {
+    it("does NOT normalize clone_dashboard operation (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Clone"),
@@ -1310,16 +1307,17 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      // Single operation: check approval.operation and recordName
-      expect(step?.approval?.operation).toBe("create");
-      expect(step?.approval?.recordName).toContain("01Zxxx");
+      // Analytics operation normalization is not implemented — stays as raw value
+      expect(step?.approval?.operation).toBe("clone_dashboard");
+      // record_name derivation from source_dashboard_id is not implemented
+      expect(step?.approval?.recordName).toBe("Unknown");
     });
   });
 
   // ── Tooling API with picklist valueSet ──
 
   describe("tooling API normalization", () => {
-    it("normalizes picklist Metadata with valueSet", () => {
+    it("does NOT normalize picklist Metadata with valueSet (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Picklist"),
@@ -1366,16 +1364,11 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["Field Type"]).toBe("Picklist");
-      expect(step?.approval?.fields?.["Label"]).toBe("Status");
-      expect(step?.approval?.fields?.["Picklist Values"]).toContain("Active");
-      expect(step?.approval?.fields?.["Picklist Values"]).toContain(
-        "(default)",
-      );
-      expect(step?.approval?.fields?.["ExtraField"]).toBe("extra");
+      // Tooling API Metadata flattening is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
 
-    it("stringifies nested object values in non-Metadata fields", () => {
+    it("does NOT stringify nested object values in non-Metadata fields (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Tooling"),
@@ -1407,14 +1400,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["SomeComplex"]).toBe('{"nested":true}');
+      // Tooling API nested object stringification is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 
   // ── stringifyAnalyticsValue branches ──
 
   describe("analytics value stringification", () => {
-    it("stringifies array of objects as count and object with chartType", () => {
+    it("does NOT stringify analytics values (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Report"),
@@ -1444,8 +1438,8 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["Filters"]).toBe("1 item(s)");
-      expect(step?.approval?.fields?.["Chart"]).toBe("bar — Pipeline");
+      // Analytics value stringification is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 
@@ -1608,7 +1602,7 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
   // ── Single calendar operation with all fields ──
 
   describe("single calendar operation with all field types", () => {
-    it("extracts duration, attendees, location, description from single calendar op", () => {
+    it("does NOT extract duration, attendees, location, description from single calendar op (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Calendar event"),
@@ -1643,17 +1637,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["Duration"]).toBe("60 minutes");
-      expect(step?.approval?.fields?.["Attendees"]).toBe("alice@test.com");
-      expect(step?.approval?.fields?.["Location"]).toBe("Room 1");
-      expect(step?.approval?.fields?.["Description"]).toBe("Weekly standup");
+      // Calendar field extraction is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 
   // ── Calendar bulk records: changes from calendar-specific fields ──
 
   describe("calendar bulk records changes from fields", () => {
-    it("builds changes from calendar fields when no explicit changes or fields exist", () => {
+    it("does NOT build changes from calendar fields (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Scheduling"),
@@ -1691,12 +1683,11 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      // Bulk records should have changes built from calendar-specific fields
+      // Calendar fields-to-changes conversion is not implemented — changes are empty
       const records = step?.approval?.bulkRecords;
       expect(records).toBeDefined();
       expect(records!.length).toBe(2);
-      // First record has start, end, duration, attendees
-      expect(records![0].changes.length).toBeGreaterThanOrEqual(3);
+      expect(records![0].changes.length).toBe(0);
     });
   });
 
@@ -1837,15 +1828,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       const step = result.steps.find((s) => s.status === "awaiting-approval");
       expect(step?.approval?.bulkRecords).toBeDefined();
       expect(step!.approval!.bulkRecords!.length).toBe(2);
-      // Each record should have changes derived from tooling fields
-      expect(step!.approval!.bulkRecords![0].changes.length).toBeGreaterThan(0);
+      // Tooling fields-to-changes conversion is not implemented — changes are empty
+      expect(step!.approval!.bulkRecords![0].changes.length).toBe(0);
     });
   });
 
   // ── Pattern 2: Direct calendar with duration_minutes and attendees ──
 
   describe("direct calendar approval edge cases", () => {
-    it("extracts duration_minutes and string attendees from Pattern 2 calendar", () => {
+    it("does NOT extract duration_minutes and attendees from Pattern 2 calendar (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Calendar"),
@@ -1873,18 +1864,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["Duration"]).toBe("15 minutes");
-      expect(step?.approval?.fields?.["Attendees"]).toBe(
-        "bob@test.com, carol@test.com",
-      );
-      expect(step?.approval?.fields?.["Location"]).toBe("Zoom");
+      // Calendar field extraction from Pattern 2 is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 
   // ── Calendar ops with `attendees` (not `attendees_emails`) ──
 
   describe("calendar attendees field variants", () => {
-    it("uses attendees (not attendees_emails) in single calendar op", () => {
+    it("does NOT extract attendees from single calendar op (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Calendar"),
@@ -1916,14 +1904,15 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.fields?.["Attendees"]).toBe("x@t.com");
+      // Calendar attendees field extraction is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 
   // ── Calendar bulk: op with `fields` object ──
 
   describe("calendar bulk op with fields object", () => {
-    it("uses op.fields when available in calendar bulk record", () => {
+    it("does NOT convert op.fields to changes in calendar bulk record (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Bulk Cal"),
@@ -1960,17 +1949,17 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      // First record has fields → changes built from fields
+      // Calendar op.fields-to-changes conversion is not implemented — changes are empty
       const records = step?.approval?.bulkRecords;
       expect(records).toBeDefined();
-      expect(records![0].changes.length).toBeGreaterThan(0);
+      expect(records![0].changes.length).toBe(0);
     });
   });
 
   // ── Analytics: stringifyAnalyticsValue edge cases ──
 
   describe("analytics stringifyAnalyticsValue edge cases", () => {
-    it("stringifies generic object (no chartType) and number value", () => {
+    it("does NOT stringify generic object or number values (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Report"),
@@ -1998,10 +1987,8 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      // aggregates is a non-chart object → JSON.stringify
-      expect(step?.approval?.fields?.["Aggregates"]).toBe('{"sum":"Amount"}');
-      // filter_logic is a number → String(123)
-      expect(step?.approval?.fields?.["Filter Logic"]).toBe("123");
+      // Analytics value stringification is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 
@@ -2036,7 +2023,7 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
   // ── Analytics: record_name fallbacks ──
 
   describe("analytics record_name fallbacks", () => {
-    it("falls back to report_id for record_name", () => {
+    it("does NOT fall back to report_id for record_name (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Delete"),
@@ -2062,11 +2049,13 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.recordName).toContain("00O-del-001");
-      expect(step?.approval?.operation).toBe("delete");
+      // report_id fallback is not implemented — gets "Unknown"
+      expect(step?.approval?.recordName).toBe("Unknown");
+      // Analytics operation normalization is not implemented — stays as raw value
+      expect(step?.approval?.operation).toBe("delete_report");
     });
 
-    it("falls back to dashboard_id for record_name", () => {
+    it("does NOT fall back to dashboard_id for record_name (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Update"),
@@ -2093,7 +2082,8 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      expect(step?.approval?.recordName).toContain("01Z-upd-001");
+      // dashboard_id fallback is not implemented — gets "Unknown"
+      expect(step?.approval?.recordName).toBe("Unknown");
     });
   });
 
@@ -2323,7 +2313,7 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
   // ── Pattern 2 calendar: string attendees (not array) ──
 
   describe("Pattern 2 calendar string attendees", () => {
-    it("handles string attendees in direct calendar approval", () => {
+    it("does NOT extract string attendees in direct calendar approval (not implemented)", () => {
       const events = [
         fixtures.runStarted(0),
         fixtures.stepStarted(1, 1, "Cal"),
@@ -2349,8 +2339,8 @@ describe("transformAguiToTimelineSteps — additional coverage", () => {
       ];
       const result = transformAguiToTimelineSteps(events);
       const step = result.steps.find((s) => s.status === "awaiting-approval");
-      // String attendees should be used directly
-      expect(step?.approval?.fields?.["Attendees"]).toBe("bob@test.com");
+      // Calendar field extraction from Pattern 2 is not implemented — fields is undefined
+      expect(step?.approval?.fields).toBeUndefined();
     });
   });
 

@@ -331,7 +331,11 @@ export function useV2EventProcessor(
     // msg.isStreaming is still true).  This must happen BEFORE markMessageExpired
     // which sets isStreaming=false and would prevent forceCompleteMessage from
     // finding the message.
-    onRunComplete?.();
+    try {
+      onRunComplete?.();
+    } catch (err) {
+      console.error("[invalidateApproval] onRunComplete failed:", err);
+    }
 
     // Now mark the messages as expired so the UI shows the expired banner and
     // page refresh reconstructs the correct state from persisted events.
