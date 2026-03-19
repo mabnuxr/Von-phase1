@@ -93,6 +93,67 @@ function getExpiredApprovalFields(result: { message?: string }): {
 }
 
 /**
+ * Remove a retried step from all tracking structures so the agent's
+ * next attempt creates fresh state.  Cleans up:
+ * - toolCallToStepMap / toolCallToStepDirectMap / toolCallResultMap (by toolId)
+ * - stepNumberMap / stepNameMap (by step reference)
+ * - currentStep / currentStepNumber (if they point to the removed step)
+ * - the step itself from the `steps` array (backwards iteration for safety)
+ */
+function removeRetriedStep(
+  step: TimelineStep,
+  toolId: string,
+  steps: TimelineStep[],
+  maps: {
+    toolCallToStepMap: Map<string, number>;
+    toolCallToStepDirectMap: Map<string, TimelineStep>;
+    toolCallResultMap: Map<string, string>;
+    stepNumberMap: Map<number, TimelineStep>;
+    stepNameMap: Map<string, TimelineStep>;
+  },
+  currentRefs: {
+    currentStep: TimelineStep | null;
+    currentStepNumber: number | null;
+  },
+): { currentStep: TimelineStep | null; currentStepNumber: number | null } {
+  // Tool-call maps
+  maps.toolCallToStepMap.delete(toolId);
+  maps.toolCallToStepDirectMap.delete(toolId);
+  maps.toolCallResultMap.delete(toolId);
+
+  // Step-number and step-name maps (keyed by number/name, valued by step reference)
+  for (const [num, s] of maps.stepNumberMap) {
+    if (s === step) {
+      maps.stepNumberMap.delete(num);
+      break;
+    }
+  }
+  for (const [name, s] of maps.stepNameMap) {
+    if (s === step) {
+      maps.stepNameMap.delete(name);
+      break;
+    }
+  }
+
+  // Current-step refs
+  let { currentStep, currentStepNumber } = currentRefs;
+  if (currentStep === step) {
+    currentStep = null;
+    currentStepNumber = null;
+  }
+
+  // Remove from steps array (backwards to handle potential duplicates)
+  for (let i = steps.length - 1; i >= 0; i--) {
+    if (steps[i] === step) {
+      removeTrailingColonFromPreviousStep(steps, i);
+      steps.splice(i, 1);
+    }
+  }
+
+  return { currentStep, currentStepNumber };
+}
+
+/**
  * Maps tool names to source types for the timeline visualization
  */
 const TOOL_SOURCE_MAP: Record<string, SourceType> = {
@@ -1002,17 +1063,19 @@ export function transformAguiToTimelineSteps(
                     result.success === false &&
                     result.retry === true
                   ) {
-                    // Validation error — agent sent bad args, will retry.
-                    // Remove the step and clean up maps so the retry creates fresh state.
-                    toolCallToStepMap.delete(toolId);
-                    toolCallToStepDirectMap.delete(toolId);
-                    toolCallResultMap.delete(toolId);
-                    for (let i = steps.length - 1; i >= 0; i--) {
-                      if (steps[i] === step) {
-                        removeTrailingColonFromPreviousStep(steps, i);
-                        steps.splice(i, 1);
-                      }
-                    }
+                    ({ currentStep, currentStepNumber } = removeRetriedStep(
+                      step,
+                      toolId,
+                      steps,
+                      {
+                        toolCallToStepMap,
+                        toolCallToStepDirectMap,
+                        toolCallResultMap,
+                        stepNumberMap,
+                        stepNameMap,
+                      },
+                      { currentStep, currentStepNumber },
+                    ));
                   } else if (result.success === false || result.error) {
                     // System error - use 'error' status and store error message
                     step.status = "error" as StepStatus;
@@ -1118,15 +1181,19 @@ export function transformAguiToTimelineSteps(
                     result.success === false &&
                     result.retry === true
                   ) {
-                    // Validation error — agent sent bad args, will retry.
-                    toolCallToStepMap.delete(toolId);
-                    toolCallToStepDirectMap.delete(toolId);
-                    for (let i = steps.length - 1; i >= 0; i--) {
-                      if (steps[i] === step) {
-                        removeTrailingColonFromPreviousStep(steps, i);
-                        steps.splice(i, 1);
-                      }
-                    }
+                    ({ currentStep, currentStepNumber } = removeRetriedStep(
+                      step,
+                      toolId,
+                      steps,
+                      {
+                        toolCallToStepMap,
+                        toolCallToStepDirectMap,
+                        toolCallResultMap,
+                        stepNumberMap,
+                        stepNameMap,
+                      },
+                      { currentStep, currentStepNumber },
+                    ));
                   } else if (result.success === false || result.error) {
                     // Fallback for execution errors (not approval decisions)
                     step.status = "error" as StepStatus;
@@ -1373,18 +1440,19 @@ export function transformAguiToTimelineSteps(
           if (step.status === "awaiting-approval") {
             if (result.success === false && result.retry === true) {
               // Validation error — agent sent bad args, will retry.
-              // Clean up map entries so future results don't attach to the removed step.
-              toolCallToStepMap.delete(toolId);
-              toolCallToStepDirectMap.delete(toolId);
-              // Iterate backwards to safely remove all steps matching this toolId
-              // (handles edge cases where duplicate TOOL_CALL_START events
-              // bypassed the deduplication guard).
-              for (let i = steps.length - 1; i >= 0; i--) {
-                if (steps[i] === step) {
-                  removeTrailingColonFromPreviousStep(steps, i);
-                  steps.splice(i, 1);
-                }
-              }
+              ({ currentStep, currentStepNumber } = removeRetriedStep(
+                step,
+                toolId,
+                steps,
+                {
+                  toolCallToStepMap,
+                  toolCallToStepDirectMap,
+                  toolCallResultMap,
+                  stepNumberMap,
+                  stepNameMap,
+                },
+                { currentStep, currentStepNumber },
+              ));
             } else if (result.status === "expired") {
               Object.assign(step, getExpiredApprovalFields(result));
             } else if (result.approved === true) {
