@@ -17,6 +17,12 @@ export interface SendMessagePayload {
   fileAttachments?: MessageFileAttachment[];
   command?: MessageCommand;
   references?: MessageReference[];
+  /**
+   * When provided, chatStore has already been seeded by the caller with these
+   * message IDs. onMutate skips the chatStore operations and simply returns
+   * the IDs so that onSuccess / onError can still update / roll back correctly.
+   */
+  preSeededOptimisticIds?: { userId: string; assistantId: string };
 }
 
 /**
@@ -78,6 +84,17 @@ export function useSendMessage() {
       payload: SendMessagePayload,
     ): Promise<MutationContext | undefined> => {
       const conversationId = payload.conversationId;
+
+      // When the caller pre-seeded chatStore (e.g. useCreateAndSendMessage),
+      // skip the chatStore operations here to avoid duplicates. Just return
+      // the IDs so onSuccess / onError can update / roll back correctly.
+      if (payload.preSeededOptimisticIds) {
+        return {
+          optimisticId: payload.preSeededOptimisticIds.userId,
+          optimisticAssistantId: payload.preSeededOptimisticIds.assistantId,
+          conversationId,
+        };
+      }
 
       // FIX: Set showMessagesFromIndex BEFORE adding optimistic messages
       // This ensures the index update and message addition happen synchronously,

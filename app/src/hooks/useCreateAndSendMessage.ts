@@ -21,7 +21,11 @@ import { useCreateConversation, conversationKeys } from "./useConversations";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { useSendMessage } from "./useSendMessage";
 import { transformConversationMessages } from "../lib/dashboardUtils";
-import type { MessageWithStreaming, MessageReference } from "../types/conversation";
+import type {
+  MessageWithStreaming,
+  MessageReference,
+} from "../types/conversation";
+import useChatStore from "../store/chatStore";
 
 export interface UseCreateAndSendMessageOptions {
   /**
@@ -89,7 +93,9 @@ export function useCreateAndSendMessage({
   const { mutate: sendMessage } = useSendMessage();
 
   const [isCreating, setIsCreating] = useState(false);
-  const [pendingMessages, setPendingMessages] = useState<MessageWithStreaming[] | null>(null);
+  const [pendingMessages, setPendingMessages] = useState<
+    MessageWithStreaming[] | null
+  >(null);
 
   const transformedMessages = useMemo(() => {
     if (!pendingMessages) return [];
@@ -136,10 +142,15 @@ export function useCreateAndSendMessage({
 
       try {
         // Resolve conversation mode
-        const mode: ConversationMode | undefined = fixedMode
-          ?? ((): ConversationMode | undefined => {
-            const agentMode = options?.agentMode as ConversationMode | undefined;
-            return agentMode && agentMode !== ConversationMode.Auto ? agentMode : undefined;
+        const mode: ConversationMode | undefined =
+          fixedMode ??
+          ((): ConversationMode | undefined => {
+            const agentMode = options?.agentMode as
+              | ConversationMode
+              | undefined;
+            return agentMode && agentMode !== ConversationMode.Auto
+              ? agentMode
+              : undefined;
           })();
 
         // 1. Create the conversation
@@ -149,32 +160,79 @@ export function useCreateAndSendMessage({
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
         queryClient.setQueryData(["conversation", newId], res.conversation);
 
-        // 3. Send the first message (optimistic chatStore update via useSendMessage)
+        // 3. Seed chatStore synchronously before transitioning so the receiving
+        //    component (Conversation.tsx / AnalyticsChatContainer) sees messages
+        //    immediately on mount instead of flashing blank then re-populating.
+        //    We pass these IDs to sendMessage so its onMutate skips duplicate seeding.
+        const now = new Date().toISOString();
+        const optimisticUserId = `optimistic-${Date.now()}-u`;
+        const optimisticAssistantId = `optimistic-${Date.now()}-a`;
+        const store = useChatStore.getState();
+        store.setShowMessagesFromIndex(newId, 0);
+        store.addPendingOptimisticId(optimisticUserId);
+        store.addPendingOptimisticId(optimisticAssistantId);
+        store.addMessage(newId, {
+          id: optimisticUserId,
+          runId: optimisticUserId,
+          conversationId: newId,
+          messageType: "text",
+          messageContent: content,
+          role: "user",
+          createdAt: now,
+          createdBy: null,
+          isStreaming: false,
+          status: "completed",
+        });
+        store.addMessage(newId, {
+          id: optimisticAssistantId,
+          runId: optimisticAssistantId,
+          conversationId: newId,
+          messageType: "text",
+          messageContent: "",
+          role: "assistant",
+          createdAt: now,
+          createdBy: null,
+          isStreaming: true,
+          status: "streaming",
+        });
+        store.triggerScrollToBottom(newId);
+
+        // 4. Fire the actual API call; onMutate skips chatStore since we pre-seeded
         sendMessage({
           conversationId: newId,
           content,
           ...(references?.length ? { references } : {}),
+          preSeededOptimisticIds: {
+            userId: optimisticUserId,
+            assistantId: optimisticAssistantId,
+          },
         });
 
         if (navigateOnCreate) {
-          // 4a. Refresh sidebar (fire-and-forget)
+          // 5a. Refresh sidebar (fire-and-forget)
           queryClient.refetchQueries({
             queryKey: isSidebarV2
               ? chatSidebarKeys.sidebar()
               : conversationKeys.lists(),
           });
 
-          // 4b. Navigate — replace so back button skips /chat/new.
+          // 5b. Navigate — replace so back button skips /chat/new.
           //     { newlyCreated: true } tells Conversation.tsx to skip the skeleton.
+          //     chatStore is already seeded above so no blank flash on mount.
           navigate(`/chat/${newId}`, {
             replace: true,
             state: { newlyCreated: true },
           });
         } else {
+          // 5. Notify parent — chatStore already seeded so receiving component
+          //    (e.g. AnalyticsChatContainer) renders messages immediately on mount.
           onCreated?.(newId);
         }
       } catch (error) {
-        console.error("[useCreateAndSendMessage] Failed to create conversation:", error);
+        console.error(
+          "[useCreateAndSendMessage] Failed to create conversation:",
+          error,
+        );
         setIsCreating(false);
         setPendingMessages(null);
       }
