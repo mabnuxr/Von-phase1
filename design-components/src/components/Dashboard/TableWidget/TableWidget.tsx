@@ -21,7 +21,11 @@ const TableWidget: React.FC<TableWidgetProps> = ({ config, onPageChange, isLoadi
   const lastOptionsRef = useRef<GridOptions | null>(null);
 
   const base = config.gridOptions as GridOptions;
-  const options: GridOptions = { ...base, pagination: { enabled: false } };
+  // Only disable client-side pagination for server-paginated tables;
+  // non-server-paginated tables keep their existing pagination config.
+  const options: GridOptions = hasServerPagination
+    ? { ...base, pagination: { enabled: false } }
+    : base;
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {
