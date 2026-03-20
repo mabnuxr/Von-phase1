@@ -15,15 +15,19 @@ import { useCallback, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
-import type { SendMessageOptions } from "@vonlabs/design-components";
+import type { SendMessageOptions, FileAttachment } from "@vonlabs/design-components";
 
 import { useCreateConversation, conversationKeys } from "./useConversations";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { useSendMessage } from "./useSendMessage";
 import { transformConversationMessages } from "../lib/dashboardUtils";
+import {
+  ReferenceType,
+} from "../types/conversation";
 import type {
   MessageWithStreaming,
   MessageReference,
+  MessageCommand,
 } from "../types/conversation";
 import useChatStore from "../store/chatStore";
 
@@ -90,7 +94,7 @@ export function useCreateAndSendMessage({
   const navigate = useNavigate();
 
   const { mutateAsync: createConversation } = useCreateConversation();
-  const { mutate: sendMessage } = useSendMessage();
+  const { mutateAsync: sendMessage } = useSendMessage();
 
   const [isCreating, setIsCreating] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<
@@ -105,7 +109,7 @@ export function useCreateAndSendMessage({
   const handleSendMessage = useCallback(
     async (
       content: string,
-      _attachments?: unknown,
+      _attachments?: FileAttachment[],
       options?: SendMessageOptions,
     ) => {
       if (isCreating) return;
@@ -197,11 +201,50 @@ export function useCreateAndSendMessage({
         });
         store.triggerScrollToBottom(newId);
 
-        // 4. Fire the actual API call; onMutate skips chatStore since we pre-seeded
-        sendMessage({
+        // 4. Send message — await so we only navigate/onCreated on success.
+        //    If this throws, onError in useSendMessage rolls back the chatStore
+        //    pre-seeded messages, and the catch block below resets local UI state.
+        //    Merge static references (e.g. dashboard) with any @mention references.
+        const mentionRefs: MessageReference[] = (options?.mentions ?? []).map(
+          (m) => ({
+            refId: `${ReferenceType.Dashboard}-${m.id}`,
+            type: ReferenceType.Dashboard,
+            context: {
+              dashboardId: m.id,
+              dashboardVersion: m.version,
+              dashboardName: m.name,
+            },
+          }),
+        );
+        const allReferences =
+          mentionRefs.length > 0
+            ? [...(references ?? []), ...mentionRefs]
+            : references;
+
+        const command: MessageCommand | undefined = options?.command
+          ? {
+              id: options.command.id,
+              name: options.command.name,
+              prompt: options.command.prompt,
+              dataSources: options.command.dataSources
+                ?.filter((ds) => ds.s3Key)
+                ?.map((ds) => ({
+                  fileId: ds.id,
+                  fileName: ds.name,
+                  fileSize: ds.size,
+                  mimeType: ds.type,
+                  extension: ds.extension,
+                  category: ds.category,
+                  s3Key: ds.s3Key!,
+                })),
+            }
+          : undefined;
+
+        await sendMessage({
           conversationId: newId,
           content,
-          ...(references?.length ? { references } : {}),
+          ...(allReferences?.length ? { references: allReferences } : {}),
+          ...(command ? { command } : {}),
           preSeededOptimisticIds: {
             userId: optimisticUserId,
             assistantId: optimisticAssistantId,
