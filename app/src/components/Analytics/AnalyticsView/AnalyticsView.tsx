@@ -180,6 +180,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             <DashboardLayout.HeaderRow.Right>
               <StatusLine
                 state={dashboard.status}
+                lastSavedAt={dashboard.updatedAt}
                 lastRefreshedAt={refreshInfo?.lastRefreshedAt}
               />
               <SaveSplitButton savePhase={savePhase} onSave={onSave} />

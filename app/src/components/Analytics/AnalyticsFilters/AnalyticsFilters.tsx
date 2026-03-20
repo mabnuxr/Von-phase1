@@ -69,13 +69,15 @@ function toFilterGroups(
 ): FilterGroup[] {
   const conditions = filters
     .filter(
-      (f) => activeFilters[f.id] !== undefined && activeFilters[f.id] !== null,
+      (f) =>
+        activeFilters[f.column] !== undefined &&
+        activeFilters[f.column] !== null,
     )
     .map((f) => ({
       id: f.id,
       field: f.column,
       operator: toFilterOperator(f.type),
-      value: formatFilterValue(f, activeFilters[f.id]),
+      value: formatFilterValue(f, activeFilters[f.column]),
     }));
 
   if (conditions.length === 0) return [];
@@ -99,12 +101,8 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
     [safeFilters, activeFilters],
   );
 
-  const hasActiveFilters = groups.length > 0;
-
-  if (!hasActiveFilters) {
-    return (
-      <span className="text-xs text-gray-400 px-1">No filters applied</span>
-    );
+  if (groups.length === 0) {
+    return null;
   }
 
   return (
