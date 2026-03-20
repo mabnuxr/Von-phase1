@@ -122,21 +122,30 @@ export function useTableServerPagination(
     })),
   });
 
-  // Revert pageState for any panel whose query errored out, so the pagination
-  // snaps back to the last successful page instead of showing a mismatch.
+  // Track the last successfully loaded page per panel so we can revert on error.
+  const lastSuccessfulPage = useRef<Record<string, number>>({});
   const revertedRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     panelsNeedingFetch.forEach((panel, idx) => {
       const query = pageQueries[idx];
-      if (query?.isError && !revertedRef.current.has(panel.id)) {
-        revertedRef.current.add(panel.id);
-        setPageState((prev) => {
-          const next = { ...prev };
-          delete next[panel.id]; // back to page 1 (initial data)
-          return next;
-        });
-      } else if (!query?.isError) {
+
+      if (query?.data && !query.isError) {
+        // Successful fetch — record this page as the last good one
+        lastSuccessfulPage.current[panel.id] = panel.currentPage;
         revertedRef.current.delete(panel.id);
+      } else if (query?.isError && !revertedRef.current.has(panel.id)) {
+        // Failed fetch — revert to the last successful page (or page 1)
+        revertedRef.current.add(panel.id);
+        const fallbackPage = lastSuccessfulPage.current[panel.id] ?? 1;
+        setPageState((prev) => {
+          if (fallbackPage === 1) {
+            const next = { ...prev };
+            delete next[panel.id];
+            return next;
+          }
+          return { ...prev, [panel.id]: fallbackPage };
+        });
       }
     });
   }, [panelsNeedingFetch, pageQueries]);
