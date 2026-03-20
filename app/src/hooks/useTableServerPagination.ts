@@ -68,6 +68,7 @@ export function useTableServerPagination(
   widgets: Record<string, WidgetConfig>,
 ) {
   // Current page per panel. Panels not in this map are on page 1.
+  // Reset is handled by key={dashboardId} on the Analytics route component.
   const [pageState, setPageState] = useState<Record<string, number>>({});
 
   // Identify table panels that have server pagination
@@ -75,11 +76,15 @@ export function useTableServerPagination(
     return Object.entries(widgets)
       .filter(([, w]) => {
         if (w.type !== "table") return false;
-        const cfg = w.config as { serverPagination?: { limit: number } };
+        const cfg = w.config as unknown as {
+          serverPagination?: { limit: number };
+        };
         return !!cfg.serverPagination;
       })
       .map(([id, w]) => {
-        const cfg = w.config as { serverPagination: { limit: number } };
+        const cfg = w.config as unknown as {
+          serverPagination: { limit: number };
+        };
         return {
           id,
           limit: cfg.serverPagination.limit,

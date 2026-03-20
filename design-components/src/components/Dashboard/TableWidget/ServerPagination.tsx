@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { TablePaginationInfo } from '../types';
 
 interface ServerPaginationProps {
@@ -6,78 +7,73 @@ interface ServerPaginationProps {
   onPageChange: (page: number) => void;
 }
 
-/**
- * Builds a compact page-number list with ellipses.
- * e.g. [1, '…', 4, 5, 6, '…', 15]
- */
-function getPageNumbers(current: number, total: number): (number | '…')[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pages: (number | '…')[] = [1];
-
-  if (current > 3) pages.push('…');
-
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  for (let i = start; i <= end; i++) pages.push(i);
-
-  if (current < total - 2) pages.push('…');
-
-  pages.push(total);
-  return pages;
-}
-
 const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageChange }) => {
-  const { page, totalRows, totalPages, hasNextPage, hasPrevPage, limit } = pagination;
-  const pages = useMemo(() => getPageNumbers(page, totalPages), [page, totalPages]);
+  const { page, totalPages, hasPrevPage, hasNextPage } = pagination;
+
+  // Local input value so the user can type freely, committed on Enter/blur
+  const [inputValue, setInputValue] = useState(String(page));
+
+  // Sync input when page changes externally (e.g. optimistic update)
+  useEffect(() => {
+    setInputValue(String(page));
+  }, [page]);
+
+  const commitPage = useCallback(() => {
+    const num = parseInt(inputValue, 10);
+    if (!Number.isNaN(num) && num >= 1 && num <= totalPages && num !== page) {
+      onPageChange(num);
+    } else {
+      // Reset to current page if invalid
+      setInputValue(String(page));
+    }
+  }, [inputValue, totalPages, page, onPageChange]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.currentTarget.blur();
+        commitPage();
+      }
+    },
+    [commitPage],
+  );
 
   if (totalPages <= 1) return null;
 
-  const startRow = (page - 1) * limit + 1;
-  const endRow = Math.min(page * limit, totalRows);
-
   return (
-    <div className="server-pagination-wrapper">
-      <span className="server-pagination-info">
-        {startRow}–{endRow} of {totalRows}
-      </span>
+    <div className="server-pagination-bar">
+      <button
+        disabled={!hasPrevPage}
+        onClick={() => onPageChange(page - 1)}
+        className="server-pagination-arrow"
+        aria-label="Previous page"
+      >
+        <CaretLeftIcon size={14} weight="bold" />
+      </button>
 
-      <div className="server-pagination-controls">
-        <button
-          disabled={!hasPrevPage}
-          onClick={() => onPageChange(page - 1)}
-          aria-label="Previous page"
-        >
-          ‹
-        </button>
+      <span className="server-pagination-label">Page</span>
 
-        {pages.map((p, i) =>
-          p === '…' ? (
-            <span key={`ellipsis-${i}`} className="server-pagination-ellipsis">
-              …
-            </span>
-          ) : (
-            <button
-              key={p}
-              aria-current={p === page ? 'page' : undefined}
-              className={p === page ? 'server-pagination-active' : ''}
-              onClick={() => onPageChange(p)}
-            >
-              {p}
-            </button>
-          )
-        )}
+      <input
+        type="text"
+        inputMode="numeric"
+        className="server-pagination-input"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onBlur={commitPage}
+        onKeyDown={handleKeyDown}
+        aria-label="Current page"
+      />
 
-        <button
-          disabled={!hasNextPage}
-          onClick={() => onPageChange(page + 1)}
-          aria-label="Next page"
-        >
-          ›
-        </button>
-      </div>
+      <span className="server-pagination-label">/ {totalPages}</span>
+
+      <button
+        disabled={!hasNextPage}
+        onClick={() => onPageChange(page + 1)}
+        className="server-pagination-arrow"
+        aria-label="Next page"
+      >
+        <CaretRightIcon size={14} weight="bold" />
+      </button>
     </div>
   );
 };
