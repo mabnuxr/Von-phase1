@@ -13,6 +13,7 @@ import {
   DashboardGrid,
   ErrorBoundary,
 } from "@vonlabs/design-components";
+import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import { CustomizeButton } from "./CustomizeButton";
@@ -93,13 +94,18 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
+  const validatedColorTheme =
+    defaultColorTheme && (chartThemeIds as string[]).includes(defaultColorTheme)
+      ? (defaultColorTheme as ChartThemeId)
+      : undefined;
+
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
   }, []);
 
   return (
     <DashboardCustomizationProvider
-      defaultColorTheme={defaultColorTheme as ChartThemeId | undefined}
+      defaultColorTheme={validatedColorTheme}
       onColorThemeChange={onColorThemeChange}
     >
       <DashboardLayout>
