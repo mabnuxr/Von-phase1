@@ -287,7 +287,9 @@ export const StepRow = React.memo<StepRowProps>(
                     >
                       <ArrowsOutIcon size={14} className="text-gray-800 shrink-0" />
                       <span className="text-sm text-gray-900 truncate">
-                        {step.artifact.tool_name} results
+                        {step.artifact.artifact_type === 'email_draft'
+                          ? 'Draft Email'
+                          : `${step.artifact.tool_name || step.text} results`}
                       </span>
                     </div>
                   )}

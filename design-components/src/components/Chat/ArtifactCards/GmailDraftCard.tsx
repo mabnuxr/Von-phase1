@@ -173,7 +173,19 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
       )}
 
       {/* Footer CTAs */}
-      <div className="flex items-center gap-1.5 px-3 py-2.5 border-t border-gray-100 flex-shrink-0">
+      <div className="flex items-center justify-end gap-1.5 px-3 py-2.5 border-t border-gray-100 flex-shrink-0">
+        <button
+          onClick={handleCopyBody}
+          className="flex items-center justify-center rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
+          style={{ width: 34, height: 34, minWidth: 34, minHeight: 34 }}
+          title="Copy body"
+        >
+          {bodyCopied ? (
+            <CheckIcon size={15} weight="bold" className="text-emerald-600" />
+          ) : (
+            <CopyIcon size={15} className="text-gray-700" />
+          )}
+        </button>
         <button
           onClick={onOpenInGmail}
           disabled={!isGmailEnabled || !isGmailConnected}
@@ -188,18 +200,6 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
         >
           <GmailIcon size={16} />
           Open in Gmail
-        </button>
-        <button
-          onClick={handleCopyBody}
-          className="flex items-center justify-center rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
-          style={{ width: 34, height: 34, minWidth: 34, minHeight: 34 }}
-          title="Copy body"
-        >
-          {bodyCopied ? (
-            <CheckIcon size={15} weight="bold" className="text-emerald-600" />
-          ) : (
-            <CopyIcon size={15} className="text-gray-700" />
-          )}
         </button>
       </div>
     </motion.div>

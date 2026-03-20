@@ -17,12 +17,14 @@ import type {
   CallTranscript,
   EmailTranscript,
   ReportColumn,
+  EmailDraftArtifact,
 } from "@vonlabs/design-components";
 import {
   useLazyArtifactContent,
   type ArtifactResponse,
 } from "../hooks/useMessageArtifacts";
 import type { ArtifactState } from "../hooks/useArtifactState";
+import { draftCardToArtifact, type DraftCard } from "../lib/emailUtils";
 import {
   isRagArtifact,
   separateCallsAndEmails,
@@ -82,12 +84,18 @@ interface TransformedIQArtifact {
   rowCount: number;
 }
 
+interface TransformedEmailDraftArtifact {
+  viewMode: "email_draft";
+  emailDraft: EmailDraftArtifact;
+}
+
 type TransformedArtifact =
   | TransformedDataArtifact
   | TransformedCallsArtifact
   | TransformedConversationsArtifact
   | TransformedMemoryArtifact
-  | TransformedIQArtifact;
+  | TransformedIQArtifact
+  | TransformedEmailDraftArtifact;
 
 /**
  * Transform artifact content to display format
@@ -426,6 +434,18 @@ function transformArtifactToDisplayFormat(
     };
   }
 
+  // Handle email_draft artifacts
+  if (artifact.artifact_type === "email_draft") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const draftCard = (content as any).draft_card as DraftCard | undefined;
+    if (draftCard?.type === "email_draft") {
+      return {
+        viewMode: "email_draft",
+        emailDraft: draftCardToArtifact(draftCard, artifact.artifact_id),
+      };
+    }
+  }
+
   return null;
 }
 
@@ -532,6 +552,25 @@ export const SingleArtifactDrawerContainer: React.FC<
         columns={displayData.columns}
         data={displayData.data}
         rowCount={displayData.rowCount}
+        isLoading={isLoading}
+        error={errorMessage}
+      />
+    );
+  }
+
+  if (displayData?.viewMode === "email_draft") {
+    const { emailDraft } = displayData;
+    const gmailUrl = emailDraft.gmailUrl;
+    return (
+      <SingleArtifactDrawer
+        isOpen={isOpen}
+        onClose={onClose}
+        toolName={toolName}
+        viewMode="email_draft"
+        emailDraft={emailDraft}
+        onOpenInGmail={
+          gmailUrl ? () => window.open(gmailUrl, "_blank") : undefined
+        }
         isLoading={isLoading}
         error={errorMessage}
       />

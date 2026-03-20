@@ -163,6 +163,10 @@ export interface Message {
    */
   conversationId?: string;
   /**
+   * Gmail draft artifacts associated with this message
+   */
+  emailDraftArtifacts?: EmailDraftArtifact[];
+  /**
    * Agent-generated file artifacts associated with this message (matched by runId)
    */
   artifacts?: Array<{
@@ -173,10 +177,6 @@ export interface Message {
     isPending?: boolean;
     pdfPreview?: { id: string; fileName: string };
   }>;
-  /**
-   * Gmail draft artifacts associated with this message
-   */
-  emailDraftArtifacts?: EmailDraftArtifact[];
   /**
    * Whether the response was stopped by user
    */
@@ -1219,21 +1219,6 @@ export interface ChatProps {
    * Callback when a file attachment pill is clicked (for preview/download)
    */
   onFileClick?: (attachment: MessageFileAttachment) => void;
-
-  /**
-   * Callback when user clicks "Open in Gmail" on an email draft card
-   */
-  onOpenGmailDraft?: (draftId: string, gmailUrl?: string) => void;
-
-  /**
-   * Whether Gmail integration is enabled (feature flag is on)
-   */
-  isGmailEnabled?: boolean;
-
-  /**
-   * Whether Gmail is connected (user has authenticated)
-   */
-  isGmailConnected?: boolean;
 
   /**
    * Banner element to show above the chat input

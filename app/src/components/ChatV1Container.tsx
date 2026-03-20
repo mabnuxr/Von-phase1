@@ -45,9 +45,6 @@ export interface ChatV1ContainerProps {
   syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
-  onOpenGmailDraft?: (draftId: string, gmailUrl?: string) => void;
-  isGmailEnabled?: boolean;
-  isGmailConnected?: boolean;
 }
 
 export function ChatV1Container(props: ChatV1ContainerProps) {
@@ -198,9 +195,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         useStandardInput={false}
         isAgentLocked={isAgentLocked}
         lockedConversationMode={lockedConversationMode}
-        onOpenGmailDraft={props.onOpenGmailDraft}
-        isGmailEnabled={props.isGmailEnabled}
-        isGmailConnected={props.isGmailConnected}
         controlledAttachments={fileAttachmentState}
         onRemoveAttachment={handleRemoveAttachment}
         onFilesSelected={handleFilesSelected}

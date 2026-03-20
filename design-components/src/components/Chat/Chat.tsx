@@ -59,9 +59,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   driveTooltip,
   driveLoadingFileId,
   onFileClick,
-  onOpenGmailDraft,
-  isGmailEnabled,
-  isGmailConnected,
   banner,
   topBanner,
   disableSubmit = false,
@@ -434,9 +431,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   emailDraftArtifacts={message.emailDraftArtifacts}
-                  onOpenGmailDraft={onOpenGmailDraft}
-                  isGmailEnabled={isGmailEnabled}
-                  isGmailConnected={isGmailConnected}
                 />
               </div>
             ))}
