@@ -44,12 +44,10 @@ export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProv
   const onChangeRef = useRef(onColorThemeChange);
   onChangeRef.current = onColorThemeChange;
 
-  const isInitialMount = useRef(true);
+  const prevColorThemeRef = useRef(colorTheme);
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
+    if (prevColorThemeRef.current === colorTheme) return;
+    prevColorThemeRef.current = colorTheme;
     onChangeRef.current?.(colorTheme);
   }, [colorTheme]);
 

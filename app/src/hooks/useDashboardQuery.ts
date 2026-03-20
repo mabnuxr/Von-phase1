@@ -78,7 +78,10 @@ interface RawApiDashboardResponse {
   };
   ui_config?: {
     color_palette_global?: string;
-    panel_layouts?: Record<string, { x: number; y: number; w: number; h: number }>;
+    panel_layouts?: Record<
+      string,
+      { x: number; y: number; w: number; h: number }
+    >;
   };
 }
 

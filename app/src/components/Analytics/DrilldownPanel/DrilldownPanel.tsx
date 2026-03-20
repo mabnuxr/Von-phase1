@@ -2,10 +2,7 @@ import { useRef, useCallback, useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { XIcon } from "@phosphor-icons/react";
-import {
-  ReportTable,
-  buildGridOptions,
-} from "@vonlabs/design-components";
+import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
 import type { ReportColumn } from "@vonlabs/design-components";
 import type { PanelDrilldownPagination } from "../../../types/dashboard";
 import { DrilldownPagination } from "./DrilldownPagination";
@@ -13,16 +10,19 @@ import { DrilldownPagination } from "./DrilldownPagination";
 // ─── Helpers ────────────────────────────────────────────────────
 
 /** Infer a ReportColumn type from a sample value */
-function inferColumnType(
-  key: string,
-  value: unknown,
-): ReportColumn["type"] {
+function inferColumnType(key: string, value: unknown): ReportColumn["type"] {
   if (value === null || value === undefined) return "text";
   if (typeof value === "boolean") return "boolean";
   if (typeof value === "number") {
-    if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("price"))
+    if (
+      key.toLowerCase().includes("amount") ||
+      key.toLowerCase().includes("price")
+    )
       return "currency";
-    if (key.toLowerCase().includes("probability") || key.toLowerCase().includes("percent"))
+    if (
+      key.toLowerCase().includes("probability") ||
+      key.toLowerCase().includes("percent")
+    )
       return "percentage";
     return "number";
   }
@@ -112,7 +112,10 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     const containerHeight = window.innerHeight;
     const deltaY = startYRef.current - e.clientY;
     const deltaPercent = (deltaY / containerHeight) * 100;
-    const newHeight = Math.min(95, Math.max(20, startHeightRef.current + deltaPercent));
+    const newHeight = Math.min(
+      95,
+      Math.max(20, startHeightRef.current + deltaPercent),
+    );
     setPanelHeight(newHeight);
   }, []);
 

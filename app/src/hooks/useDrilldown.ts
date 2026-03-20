@@ -11,19 +11,17 @@ interface DrilldownState {
   page: number;
 }
 
-export function useDrilldown(dashboardId: string, widgets: Record<string, { title: string }>) {
+export function useDrilldown(
+  dashboardId: string,
+  widgets: Record<string, { title: string }>,
+) {
   const [drilldown, setDrilldown] = useState<DrilldownState | null>(null);
   // Track the last successful data so we can show it while loading a new page
   const lastDataRef = useRef<Record<string, unknown>[]>([]);
   const lastPaginationRef = useRef<PanelDrilldownPagination | null>(null);
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: [
-      "drilldown",
-      dashboardId,
-      drilldown?.panelId,
-      drilldown?.page,
-    ],
+    queryKey: ["drilldown", dashboardId, drilldown?.panelId, drilldown?.page],
     queryFn: async () => {
       if (!drilldown) throw new Error("No drilldown state");
       return dashboardService.drilldownPanel(dashboardId, {
