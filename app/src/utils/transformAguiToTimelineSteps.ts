@@ -1549,11 +1549,8 @@ export function transformAguiToTimelineSteps(
     stoppedByUser,
     hadApprovalPause: sawRunFinishedWithPendingApproval,
     runErrorMessage,
-<<<<<<< HEAD
     emailDraftArtifact,
-=======
     isExpiredApproval: steps.some((s) => s.status === "expired"),
->>>>>>> main
   };
 }
 
