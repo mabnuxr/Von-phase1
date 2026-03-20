@@ -80,6 +80,8 @@ export function AnalyticsNewConversationContainer({
     fileAttachments,
     addFiles,
     removeFile,
+    fileErrorMessage,
+    dismissFileError,
   } = useCreateAndSendMessage({
     agentVersion: "v2",
     isAgentV2: true,
@@ -111,6 +113,8 @@ export function AnalyticsNewConversationContainer({
       controlledAttachments={fileAttachments}
       onFilesSelected={addFiles}
       onRemoveAttachment={removeFile}
+      fileErrorMessage={fileErrorMessage}
+      onDismissFileError={dismissFileError}
       enableCommands={isSlashCommandsEnabled}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}

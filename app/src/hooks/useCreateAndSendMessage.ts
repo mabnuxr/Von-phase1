@@ -11,7 +11,7 @@
  *   isCreating         — true while the API calls are in-flight
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
@@ -111,12 +111,22 @@ export function useCreateAndSendMessage({
     clearFiles,
     allUploaded,
     hasAttachments,
-  } = useFileUploadPipeline(null);
+  } = useFileUploadPipeline(null, { onError: handleFileError });
 
   const [isCreating, setIsCreating] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<
     MessageWithStreaming[] | null
   >(null);
+  const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
+  const fileErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleFileError = useCallback((_errorCode: string, message: string) => {
+    setFileErrorMessage(message);
+    if (fileErrorTimerRef.current) clearTimeout(fileErrorTimerRef.current);
+    fileErrorTimerRef.current = setTimeout(
+      () => setFileErrorMessage(null),
+      4000,
+    );
+  }, []);
 
   const transformedMessages = useMemo(() => {
     if (!pendingMessages) return [];
@@ -333,7 +343,7 @@ export function useCreateAndSendMessage({
         // so stale file IDs don't leak into a retry on a new conversation.
         if (newId && uploadedFiles.length > 0) {
           uploadedFiles.forEach((f) => {
-            fileUploadService.deleteFile(newId!, f.fileId).catch(() => {});
+            fileUploadService.deleteFile(newId!, f.uploadId).catch(() => {});
           });
         }
         clearFiles();
@@ -376,5 +386,10 @@ export function useCreateAndSendMessage({
     removeFile,
     allUploaded,
     hasAttachments,
+    fileErrorMessage,
+    dismissFileError: () => {
+      if (fileErrorTimerRef.current) clearTimeout(fileErrorTimerRef.current);
+      setFileErrorMessage(null);
+    },
   };
 }

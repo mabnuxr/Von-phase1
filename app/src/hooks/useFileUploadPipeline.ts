@@ -29,6 +29,8 @@ export interface MessageFileAttachment {
   extension: string;
   category: string;
   s3Key: string;
+  /** uploadId from the presign step — used to delete the upload on the backend. */
+  uploadId: string;
 }
 
 export interface UseFileUploadPipelineOptions {
@@ -114,6 +116,7 @@ export function useFileUploadPipeline(
           extension: attachment.extension,
           category: attachment.category,
           s3Key: presignResponse.s3Key,
+          uploadId: presignResponse.uploadId,
         };
         // Only write metadata if we're still on the same conversation.
         // Allow null → newId transitions (new-conversation flow where the

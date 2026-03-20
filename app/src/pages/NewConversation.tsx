@@ -14,8 +14,7 @@
  */
 
 import { useCallback, useMemo, useState, Profiler } from "react";
-import { Chat } from "@vonlabs/design-components";
-import { ConversationMode } from "@vonlabs/design-components";
+import { Chat, ConversationMode } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -34,6 +33,7 @@ const NewConversation = () => {
     isDeepResearchEnabled,
     isTenantDisabled,
     isSlashCommandsEnabled,
+    isFileUploadEnabled,
   } = useFeatureFlag();
 
   const {
@@ -44,14 +44,22 @@ const NewConversation = () => {
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
 
-  const { handleSendMessage, transformedMessages, isCreating } =
-    useCreateAndSendMessage({
-      agentVersion: isAgentV2Flag ? "v2" : "v1",
-      isAgentV2: isAgentV2Flag,
-      title: "",
-      navigateOnCreate: true,
-      isSidebarV2,
-    });
+  const {
+    handleSendMessage,
+    transformedMessages,
+    isCreating,
+    fileAttachments,
+    addFiles,
+    removeFile,
+    fileErrorMessage,
+    dismissFileError,
+  } = useCreateAndSendMessage({
+    agentVersion: isAgentV2Flag ? "v2" : "v1",
+    isAgentV2: isAgentV2Flag,
+    title: "",
+    navigateOnCreate: true,
+    isSidebarV2,
+  });
 
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
@@ -110,7 +118,12 @@ const NewConversation = () => {
         lockedConversationMode={ConversationMode.Auto}
         thinkingProcessVersion={isAgentV2Flag ? "v2" : "v1"}
         useStandardInput={isAgentV2Flag}
-        enableFileUpload={false}
+        enableFileUpload={isFileUploadEnabled}
+        controlledAttachments={fileAttachments}
+        onFilesSelected={addFiles}
+        onRemoveAttachment={removeFile}
+        fileErrorMessage={fileErrorMessage}
+        onDismissFileError={dismissFileError}
         enableCommands={isSlashCommandsEnabled}
       />
     </Profiler>
