@@ -11,15 +11,17 @@ export const formatValue = (value: unknown, type: ColumnType): string => {
   if (value === null || value === undefined) return '—';
 
   switch (type) {
-    case 'currency':
-      return typeof value === 'number'
+    case 'currency': {
+      const num = typeof value === 'number' ? value : Number(value);
+      return !isNaN(num)
         ? new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
-          }).format(value)
+          }).format(num)
         : String(value);
+    }
 
     case 'percentage':
       return typeof value === 'number' ? `${(value * 100).toFixed(1)}%` : `${value}%`;
@@ -27,25 +29,21 @@ export const formatValue = (value: unknown, type: ColumnType): string => {
     case 'number':
       return typeof value === 'number' ? value.toLocaleString() : String(value);
 
-    case 'date':
+    case 'date': {
+      const dateOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
       if (value instanceof Date) {
-        return value.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
+        return value.toLocaleDateString('en-US', dateOptions);
+      }
+      if (typeof value === 'number') {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('en-US', dateOptions);
       }
       if (typeof value === 'string') {
-        const date = new Date(value);
-        return isNaN(date.getTime())
-          ? value
-          : date.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            });
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', dateOptions);
       }
       return String(value);
+    }
 
     case 'boolean':
       return value ? 'Yes' : 'No';
@@ -259,6 +257,13 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
 
       case 'longText':
         return `<span style="color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block" title="${escapeHtml(String(value))}">${strVal}</span>`;
+
+      case 'url': {
+        const href = String(value).trim();
+        return href
+          ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block" onclick="event.stopPropagation()">${escapeHtml(href)}</a>`
+          : '<span style="color:#9ca3af">—</span>';
+      }
 
       default:
         return `<span style="color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${strVal}</span>`;
