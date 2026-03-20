@@ -23,6 +23,7 @@ import type {
 import { useCreateConversation, conversationKeys } from "./useConversations";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { useSendMessage } from "./useSendMessage";
+import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { transformConversationMessages } from "../lib/dashboardUtils";
 import { ReferenceType } from "../types/conversation";
 import type {
@@ -97,6 +98,18 @@ export function useCreateAndSendMessage({
   const { mutateAsync: createConversation } = useCreateConversation();
   const { mutateAsync: sendMessage } = useSendMessage();
 
+  // null conversationId = files stay pending until the conversation is created.
+  // uploadPendingFiles(newId) is called after creation to upload them.
+  const {
+    attachments: fileAttachments,
+    addFiles,
+    removeFile,
+    uploadPendingFiles,
+    clearFiles,
+    allUploaded,
+    hasAttachments,
+  } = useFileUploadPipeline(null);
+
   const [isCreating, setIsCreating] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<
     MessageWithStreaming[] | null
@@ -110,7 +123,7 @@ export function useCreateAndSendMessage({
   const handleSendMessage = useCallback(
     async (
       content: string,
-      _attachments?: FileAttachment[],
+      _?: FileAttachment[],
       options?: SendMessageOptions,
     ) => {
       if (isCreating) return;
@@ -165,7 +178,10 @@ export function useCreateAndSendMessage({
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
         queryClient.setQueryData(["conversation", newId], res.conversation);
 
-        // 3. Seed chatStore synchronously before transitioning so the receiving
+        // 3. Upload any pending file attachments now that we have a conversation ID
+        const uploadedFiles = await uploadPendingFiles(newId);
+
+        // 4. Seed chatStore synchronously before transitioning so the receiving
         //    component (Conversation.tsx / AnalyticsChatContainer) sees messages
         //    immediately on mount instead of flashing blank then re-populating.
         //    We pass these IDs to sendMessage so its onMutate skips duplicate seeding.
@@ -187,6 +203,7 @@ export function useCreateAndSendMessage({
           createdBy: null,
           isStreaming: false,
           status: "completed",
+          ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
         });
         store.addMessage(newId, {
           id: optimisticAssistantId,
@@ -244,6 +261,7 @@ export function useCreateAndSendMessage({
         await sendMessage({
           conversationId: newId,
           content,
+          ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
           ...(allReferences?.length ? { references: allReferences } : {}),
           ...(command ? { command } : {}),
           preSeededOptimisticIds: {
@@ -251,6 +269,8 @@ export function useCreateAndSendMessage({
             assistantId: optimisticAssistantId,
           },
         });
+
+        clearFiles();
 
         if (navigateOnCreate) {
           // 5a. Refresh sidebar (fire-and-forget)
@@ -283,6 +303,7 @@ export function useCreateAndSendMessage({
     },
     [
       agentVersion,
+      clearFiles,
       createConversation,
       fixedMode,
       isCreating,
@@ -294,8 +315,19 @@ export function useCreateAndSendMessage({
       references,
       sendMessage,
       title,
+      uploadPendingFiles,
     ],
   );
 
-  return { handleSendMessage, transformedMessages, isCreating };
+  return {
+    handleSendMessage,
+    transformedMessages,
+    isCreating,
+    // File attachment state — pass to Chat as controlledAttachments / handlers
+    fileAttachments,
+    addFiles,
+    removeFile,
+    allUploaded,
+    hasAttachments,
+  };
 }

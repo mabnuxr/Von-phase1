@@ -82,15 +82,23 @@ export function AnalyticsNewConversationContainer({
     [dashboardId, dashboardTitle, dashboardVersion],
   );
 
-  const { handleSendMessage, transformedMessages, isCreating } =
-    useCreateAndSendMessage({
-      agentVersion: "v2",
-      isAgentV2: true,
-      title: dashboardTitle,
-      fixedMode: ConversationMode.DashboardBuilder,
-      references: [dashboardRef],
-      onCreated,
-    });
+  const {
+    handleSendMessage,
+    transformedMessages,
+    isCreating,
+    fileAttachments,
+    addFiles,
+    removeFile,
+    allUploaded,
+    hasAttachments,
+  } = useCreateAndSendMessage({
+    agentVersion: "v2",
+    isAgentV2: true,
+    title: dashboardTitle,
+    fixedMode: ConversationMode.DashboardBuilder,
+    references: [dashboardRef],
+    onCreated,
+  });
 
   return (
     <Chat
@@ -109,8 +117,13 @@ export function AnalyticsNewConversationContainer({
       width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
-      disableSubmit={!canSubmit || isCreating}
+      disableSubmit={
+        !canSubmit || isCreating || (hasAttachments && !allUploaded)
+      }
       enableFileUpload={isFileUploadEnabled}
+      controlledAttachments={fileAttachments}
+      onFilesSelected={addFiles}
+      onRemoveAttachment={removeFile}
       enableCommands={isSlashCommandsEnabled}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}

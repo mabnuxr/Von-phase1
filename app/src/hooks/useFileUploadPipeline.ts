@@ -115,8 +115,14 @@ export function useFileUploadPipeline(
           category: attachment.category,
           s3Key: presignResponse.s3Key,
         };
-        // Only write metadata if we're still on the same conversation
-        if (conversationIdRef.current !== convId) return;
+        // Only write metadata if we're still on the same conversation.
+        // Allow null → newId transitions (new-conversation flow where the
+        // conversation is created after files are attached).
+        if (
+          conversationIdRef.current !== null &&
+          conversationIdRef.current !== convId
+        )
+          return;
         metadataRef.current.set(attachment.id, metadata);
 
         setAttachments((prev) =>

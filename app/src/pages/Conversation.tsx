@@ -192,9 +192,14 @@ const Conversation = () => {
     useState(false);
 
   // --- Loading ---
+  // isNewlyCreated comes from history.state which survives page refresh, but
+  // chatStore (in-memory) is wiped on refresh. Guard the optimisation by also
+  // requiring that optimistic messages are actually present in chatStore;
+  // otherwise fall back to the normal skeleton path.
+  const skipSkeleton = isNewlyCreated && conversationMessages.length > 0;
   const isLoading =
-    (!isNewlyCreated && isInitializing) ||
-    (!isNewlyCreated && isLoadingMessages && conversationMessages.length === 0);
+    (!skipSkeleton && isInitializing) ||
+    (!skipSkeleton && isLoadingMessages && conversationMessages.length === 0);
 
   // --- Reset message filter on conversation switch ---
   const resetShowMessagesFromIndex = useChatStore(
