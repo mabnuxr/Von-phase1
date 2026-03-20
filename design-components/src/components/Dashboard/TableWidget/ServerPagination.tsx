@@ -35,7 +35,7 @@ const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageC
         commitPage();
       }
     },
-    [commitPage],
+    [commitPage]
   );
 
   if (totalPages <= 1) return null;

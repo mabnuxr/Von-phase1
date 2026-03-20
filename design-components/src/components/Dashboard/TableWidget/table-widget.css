@@ -58,7 +58,9 @@
   background: transparent;
   color: #6b7280;
   cursor: pointer;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .server-pagination-arrow:hover:not(:disabled) {

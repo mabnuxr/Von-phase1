@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import type { WidgetConfig } from "../types/dashboard";
@@ -121,6 +121,25 @@ export function useTableServerPagination(
       staleTime: 5 * 60 * 1000, // 5 min — cached pages stay fresh
     })),
   });
+
+  // Revert pageState for any panel whose query errored out, so the pagination
+  // snaps back to the last successful page instead of showing a mismatch.
+  const revertedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    panelsNeedingFetch.forEach((panel, idx) => {
+      const query = pageQueries[idx];
+      if (query?.isError && !revertedRef.current.has(panel.id)) {
+        revertedRef.current.add(panel.id);
+        setPageState((prev) => {
+          const next = { ...prev };
+          delete next[panel.id]; // back to page 1 (initial data)
+          return next;
+        });
+      } else if (!query?.isError) {
+        revertedRef.current.delete(panel.id);
+      }
+    });
+  }, [panelsNeedingFetch, pageQueries]);
 
   // Build the merged widgets: replace table widget configs with fetched page data
   // When a page is requested but data hasn't arrived, optimistically update
