@@ -24,6 +24,8 @@ import { useCreateConversation, conversationKeys } from "./useConversations";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { useSendMessage } from "./useSendMessage";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
+import type { MessageFileAttachment } from "./useFileUploadPipeline";
+import { fileUploadService } from "../services/fileUploadService";
 import { transformConversationMessages } from "../lib/dashboardUtils";
 import { ReferenceType } from "../types/conversation";
 import type {
@@ -158,6 +160,9 @@ export function useCreateAndSendMessage({
         },
       ]);
 
+      let newId: string | undefined;
+      let uploadedFiles: MessageFileAttachment[] = [];
+
       try {
         // Resolve conversation mode
         const mode: ConversationMode | undefined =
@@ -173,13 +178,13 @@ export function useCreateAndSendMessage({
 
         // 1. Create the conversation
         const res = await createConversation({ title, agentVersion, mode });
-        const newId = res.conversation.conversationId;
+        newId = res.conversation.conversationId;
 
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
         queryClient.setQueryData(["conversation", newId], res.conversation);
 
         // 3. Upload any pending file attachments now that we have a conversation ID
-        const uploadedFiles = await uploadPendingFiles(newId);
+        uploadedFiles = await uploadPendingFiles(newId);
 
         // 4. Seed chatStore synchronously before transitioning so the receiving
         //    component (Conversation.tsx / AnalyticsChatContainer) sees messages
@@ -297,6 +302,14 @@ export function useCreateAndSendMessage({
           "[useCreateAndSendMessage] Failed to create conversation:",
           error,
         );
+        // Best-effort: delete any files already uploaded to the failed conversation
+        // so stale file IDs don't leak into a retry on a new conversation.
+        if (newId && uploadedFiles.length > 0) {
+          uploadedFiles.forEach((f) => {
+            fileUploadService.deleteFile(newId!, f.fileId).catch(() => {});
+          });
+        }
+        clearFiles();
         setIsCreating(false);
         setPendingMessages(null);
       }
