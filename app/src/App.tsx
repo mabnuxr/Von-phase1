@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import RootGate from "./pages/RootGate";
 import Callback from "./pages/Callback";
 import Conversation from "./pages/Conversation";
+import NewConversation from "./pages/NewConversation";
 import Analytics from "./pages/Analytics";
 import Logout from "./pages/Logout";
 import AuthStart from "./pages/AuthStart";
@@ -34,6 +35,7 @@ export default function App() {
             }
           >
             <Route path="/chat" element={<Conversation />} />
+            <Route path="/chat/new" element={<NewConversation />} />
             <Route path="/chat/:conversationId" element={<Conversation />} />
             <Route path="/dashboard/:dashboardId" element={<Analytics />} />
           </Route>

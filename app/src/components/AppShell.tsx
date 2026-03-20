@@ -22,9 +22,8 @@ import type { AppShellContextValue } from "../contexts/AppShellContext";
  */
 export function AppShell() {
   const navigate = useNavigate();
-  const { conversationId: urlConversationId } = useParams<{
-    conversationId?: string;
-  }>();
+  const { conversationId } = useParams<{ conversationId?: string }>();
+  const currentConversationId = conversationId ?? null;
 
   // --- Auth & User ---
   useAuthCheck();
@@ -32,7 +31,7 @@ export function AppShell() {
 
   // --- Feature Flags ---
   const featureFlags = useFeatureFlag();
-  const { isSidebarV2, isAgentV2: isAgentV2Flag } = featureFlags;
+  const { isSidebarV2 } = featureFlags;
 
   // --- Sidebar ---
   const {
@@ -42,12 +41,7 @@ export function AppShell() {
   } = useSidebarState();
 
   // --- New Chat ---
-  const currentConversationId = urlConversationId ?? null;
-  const { handleNewChatClick, isCreatingChat } = useNewChat({
-    currentConversationId,
-    isSidebarV2,
-    isAgentV2Flag,
-  });
+  const { handleNewChatClick } = useNewChat();
 
   // --- Logout ---
   const { handleLogout } = useLogout();
@@ -77,12 +71,11 @@ export function AppShell() {
   const contextValue = useMemo<AppShellContextValue>(
     () => ({
       user,
-      isCreatingChat,
       collapseSidebar,
       handleLogout,
       handleNewChatClick,
     }),
-    [user, isCreatingChat, collapseSidebar, handleLogout, handleNewChatClick],
+    [user, collapseSidebar, handleLogout, handleNewChatClick],
   );
 
   return (

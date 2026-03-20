@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ConversationMode } from "@vonlabs/design-components";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useAppShell } from "../hooks/useAppShell";
@@ -13,8 +11,8 @@ import {
   AnalyticsError,
 } from "../components/Analytics";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
+import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
-import { conversationsService } from "../services/conversationsService";
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>() as {
@@ -22,42 +20,13 @@ const Analytics = () => {
   };
   const [searchParams] = useSearchParams();
 
-  // Read conversationId from query params
+  // Read conversationId from query params (deep-link support)
   const conversationIdFromParams = searchParams.get("conversationId");
 
-  // Tracks the dashboardId at the time each mutation fires so onSuccess can
-  // discard results that belong to a dashboard the user has already left.
-  const currentDashboardIdRef = useRef(dashboardId);
-  currentDashboardIdRef.current = dashboardId;
-
+  // Conversation created after the user sends their first message
   const [createdConversationId, setCreatedConversationId] = useState<
     string | null
   >(null);
-
-  const {
-    mutate: createConversation,
-    reset: resetConversation,
-    isPending: isCreatingConversation,
-    isError: conversationCreateFailed,
-  } = useMutation({
-    mutationFn: ({
-      title,
-      forDashboardId,
-    }: {
-      title: string;
-      forDashboardId: string;
-    }) =>
-      conversationsService
-        .createConversation(title, ConversationMode.DashboardBuilder, "v2")
-        .then((res) => ({ res, forDashboardId })),
-    onSuccess: ({ res, forDashboardId }) => {
-      if (forDashboardId !== currentDashboardIdRef.current) return;
-      setCreatedConversationId(res.conversation.conversationId);
-    },
-    onError: (err) => {
-      console.error("[Analytics] Failed to create conversation:", err);
-    },
-  });
 
   const {
     isVisible: isChatOpen,
@@ -97,35 +66,10 @@ const Analytics = () => {
     collapseSidebar();
   }, [collapseSidebar]);
 
-  // Reset mutation state when navigating to a different dashboard
+  // Reset local conversation when navigating to a different dashboard
   useEffect(() => {
     setCreatedConversationId(null);
-    resetConversation();
-  }, [dashboardId, resetConversation]);
-
-  // Auto-create a DashboardBuilder conversation when no conversationId is provided
-  useEffect(() => {
-    if (
-      conversationIdFromParams ||
-      createdConversationId ||
-      isCreatingConversation ||
-      conversationCreateFailed ||
-      !dashboard ||
-      !isChatOpen
-    )
-      return;
-
-    createConversation({ title: dashboard.title, forDashboardId: dashboardId });
-  }, [
-    conversationIdFromParams,
-    createdConversationId,
-    isCreatingConversation,
-    conversationCreateFailed,
-    dashboard,
-    dashboardId,
-    isChatOpen,
-    createConversation,
-  ]);
+  }, [dashboardId]);
 
   if (isLoading) {
     return <AnalyticsSkeleton />;
@@ -174,32 +118,25 @@ const Analytics = () => {
             <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
           </div>
 
-          {conversationId ? (
-            <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+          <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+            {conversationId ? (
               <AnalyticsChatContainer
+                key={conversationId}
                 conversationId={conversationId}
-                dashboardId={dashboardId!}
+                dashboardId={dashboardId}
                 dashboardTitle={dashboard.title}
                 dashboardVersion={dashboard.dashboardVersion}
               />
-            </div>
-          ) : conversationCreateFailed ? (
-            <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex flex-col items-center justify-center gap-3">
-              <p className="text-sm text-gray-500">
-                Failed to start conversation.
-              </p>
-              <button
-                className="text-sm text-indigo-600 hover:text-indigo-700 underline"
-                onClick={resetConversation}
-              >
-                Try again
-              </button>
-            </div>
-          ) : (
-            <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex items-center justify-center">
-              <p className="text-sm text-gray-400">Starting conversation...</p>
-            </div>
-          )}
+            ) : (
+              <AnalyticsNewConversationContainer
+                key={dashboardId}
+                dashboardId={dashboardId}
+                dashboardTitle={dashboard.title}
+                dashboardVersion={dashboard.dashboardVersion}
+                onCreated={setCreatedConversationId}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
