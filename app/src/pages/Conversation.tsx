@@ -15,7 +15,7 @@
  */
 
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
@@ -45,12 +45,18 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const Conversation = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { conversationId: urlConversationId } = useParams<{
     conversationId?: string;
   }>();
 
+  // When navigating from /chat/new, chatStore already has optimistic messages
+  // and the conversation metadata is pre-cached — skip the loading skeleton.
+  const isNewlyCreated = !!(location.state as { newlyCreated?: boolean } | null)
+    ?.newlyCreated;
+
   // --- AppShell context (auth, user, sidebar, flags) ---
-  const { user, isCreatingChat, collapseSidebar } = useAppShell();
+  const { user, collapseSidebar } = useAppShell();
   const {
     isSlashCommandsEnabled,
     isActionsEnabled,
@@ -186,10 +192,14 @@ const Conversation = () => {
     useState(false);
 
   // --- Loading ---
+  // isNewlyCreated comes from history.state which survives page refresh, but
+  // chatStore (in-memory) is wiped on refresh. Guard the optimisation by also
+  // requiring that optimistic messages are actually present in chatStore;
+  // otherwise fall back to the normal skeleton path.
+  const skipSkeleton = isNewlyCreated && conversationMessages.length > 0;
   const isLoading =
-    isCreatingChat ||
-    isInitializing ||
-    (isLoadingMessages && conversationMessages.length === 0);
+    (!skipSkeleton && isInitializing) ||
+    (!skipSkeleton && isLoadingMessages && conversationMessages.length === 0);
 
   // --- Reset message filter on conversation switch ---
   const resetShowMessagesFromIndex = useChatStore(

@@ -152,6 +152,22 @@ export function useMessages(
       return msg;
     });
 
+    // Don't overwrite live chatStore messages with an empty backend response.
+    // A newly-created conversation has 0 messages on the backend until Pusher
+    // events reconcile them — preserve the optimistic chatStore messages seeded
+    // by useCreateAndSendMessage.
+    if (
+      messagesWithReplayedContent.length === 0 &&
+      (useChatStore.getState().messages[conversationId]?.length ?? 0) > 0
+    ) {
+      if (import.meta.env.DEV) {
+        console.log(
+          `[useMessages] Skipping empty response sync for ${conversationId} — chatStore has optimistic messages`,
+        );
+      }
+      return;
+    }
+
     // Update Zustand store with properly ordered messages
     setMessages(conversationId, messagesWithReplayedContent);
 
