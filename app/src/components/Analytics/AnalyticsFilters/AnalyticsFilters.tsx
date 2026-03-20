@@ -14,9 +14,7 @@ interface AnalyticsFiltersProps {
   activeFilters: DashboardFilterState;
 }
 
-function toFilterFields(
-  filters: DashboardFilterDefinition[],
-): FilterField[] {
+function toFilterFields(filters: DashboardFilterDefinition[]): FilterField[] {
   return filters.map((f) => ({
     value: f.column,
     label: f.label,
@@ -48,11 +46,7 @@ function formatFilterValue(
     if (start && end) return `${start} – ${end}`;
     return start ?? end ?? "";
   }
-  if (
-    filter.type === "range" &&
-    typeof value === "object" &&
-    value !== null
-  ) {
+  if (filter.type === "range" && typeof value === "object" && value !== null) {
     const { min, max } = value as { min?: number; max?: number };
     if (min !== undefined && max !== undefined) return `${min} – ${max}`;
     return String(min ?? max ?? "");
@@ -63,10 +57,7 @@ function formatFilterValue(
 function toFilterOperator(type: DashboardFilterDefinition["type"]): string {
   switch (type) {
     case "multi-select":
-      return "is any of";
-    case "date-range":
-    case "range":
-      return "is between";
+      return "is_any_of";
     default:
       return "equals";
   }

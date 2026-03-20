@@ -4,6 +4,7 @@ import {
   ArrowsOutIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import vonFilledLogo from "../../../assets/von-filled-logo.svg";
 import {
@@ -39,10 +40,12 @@ interface AnalyticsViewProps {
   sharePhase: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
   onExpand?: () => void;
-  /** Show close (X) icon — closes the dashboard pane */
+  /** Show close (X) icon — closes the dashboard/preview pane */
   onClose?: () => void;
   /** Show Von Chat button */
   onChatClick?: () => void;
+  /** Dedicated handler to close the chat pane (distinct from closing the dashboard) */
+  onChatClose?: () => void;
   /** Whether the chat pane is currently open */
   isChatOpen?: boolean;
 }
@@ -60,6 +63,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onExpand,
   onClose,
   onChatClick,
+  onChatClose,
   isChatOpen,
 }) => {
   const gridConfig = dashboard.gridConfig as unknown as GridConfig;
@@ -113,7 +117,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         transition={{ duration: 0.15 }}
                       >
                         <button
-                          onClick={onClose}
+                          onClick={onChatClose}
                           title="Close chat"
                           className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-gray-100 border border-gray-200/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
                         >
@@ -146,6 +150,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     )}
                   </AnimatePresence>
                 </div>
+              )}
+
+              {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
+              {!onChatClick && onClose && (
+                <button
+                  onClick={onClose}
+                  title="Close"
+                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <XIcon size={14} />
+                </button>
               )}
 
               <RefreshButton onRefresh={onRefresh} />
