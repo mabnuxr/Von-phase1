@@ -49,6 +49,14 @@ interface RawApiWidget {
   highcharts: Record<string, unknown> | null;
   gridOptions: Record<string, unknown> | null;
   query_failed?: boolean;
+  pagination?: {
+    page: number;
+    limit: number;
+    total_rows: number;
+    total_pages: number;
+    has_next_page: boolean;
+    has_prev_page: boolean;
+  };
 }
 
 interface RawApiDashboardResponse {
@@ -122,6 +130,16 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
       title: raw.title,
       config: {
         gridOptions: raw.gridOptions ?? {},
+        serverPagination: raw.pagination
+          ? {
+              page: raw.pagination.page,
+              limit: raw.pagination.limit,
+              totalRows: raw.pagination.total_rows,
+              totalPages: raw.pagination.total_pages,
+              hasNextPage: raw.pagination.has_next_page,
+              hasPrevPage: raw.pagination.has_prev_page,
+            }
+          : undefined,
       },
     } as unknown as WidgetConfig;
   }

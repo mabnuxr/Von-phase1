@@ -1,43 +1,73 @@
-import { useMemo } from 'react';
+import { useCallback, useRef } from 'react';
 import { ReportTable } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
-import type { TableWidgetConfig } from '../types';
-import { useTablePagination } from './useTablePagination';
+import type { TableWidgetConfig, TablePaginationInfo } from '../types';
+import { ServerPagination } from './ServerPagination';
 import './table-widget.css';
 
 interface TableWidgetProps {
   config: TableWidgetConfig;
+  onPageChange?: (page: number) => void;
+  isLoading?: boolean;
 }
 
-function getRowCount(gridOptions: Record<string, unknown>): number {
-  const dt = gridOptions.dataTable as { columns?: Record<string, unknown[]> } | undefined;
-  if (!dt?.columns) return 0;
-  const firstCol = Object.values(dt.columns)[0];
-  return firstCol?.length ?? 0;
-}
+const TableWidget: React.FC<TableWidgetProps> = ({ config, onPageChange, isLoading }) => {
+  const { serverPagination } = config;
+  const hasServerPagination = !!serverPagination;
 
-const TableWidget: React.FC<TableWidgetProps> = ({ config }) => {
-  const totalRows = useMemo(() => getRowCount(config.gridOptions), [config.gridOptions]);
-  const { containerRef, pagination } = useTablePagination(totalRows);
-
-  // Still measuring — show loading shimmer
-  if (!pagination) {
-    return (
-      <div ref={containerRef} className="h-full w-full">
-        <ReportTable options={{} as GridOptions} isLoading />
-      </div>
-    );
-  }
+  // Keep the last valid gridOptions so the table stays stable during loading.
+  // When loading, config.gridOptions may still hold the previous page's data
+  // (which is exactly what we want — headers stay, shimmer covers rows).
+  const lastOptionsRef = useRef<GridOptions | null>(null);
 
   const base = config.gridOptions as GridOptions;
-  const options: GridOptions = {
-    ...base,
-    pagination,
-  };
+  // Only disable client-side pagination for server-paginated tables;
+  // non-server-paginated tables keep their existing pagination config.
+  const options: GridOptions = hasServerPagination
+    ? { ...base, pagination: { enabled: false } }
+    : base;
+
+  // Update ref only when NOT loading (i.e. fresh data has arrived)
+  if (!isLoading) {
+    lastOptionsRef.current = options;
+  }
+
+  // Use the last known good options so the grid never flickers
+  const stableOptions = lastOptionsRef.current ?? options;
+
+  const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
+
+  const skeletonRows = serverPagination?.limit ?? 10;
 
   return (
-    <div ref={containerRef} className="h-full w-full table-widget-root">
-      <ReportTable options={options} />
+    <div
+      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}`}
+    >
+      <div className="flex-1 min-h-0 overflow-hidden relative">
+        <ReportTable options={stableOptions} hidePagination />
+
+        {/* Shimmer covers body rows while headers stay visible */}
+        {isLoading && (
+          <div className="table-skeleton">
+            {Array.from({ length: skeletonRows }).map((_, i) => (
+              <div key={i} className="table-skeleton-row">
+                <div className="table-skeleton-cell" style={{ width: '25%' }} />
+                <div className="table-skeleton-cell" style={{ width: '18%' }} />
+                <div className="table-skeleton-cell" style={{ width: '15%' }} />
+                <div className="table-skeleton-cell" style={{ width: '12%' }} />
+                <div className="table-skeleton-cell" style={{ width: '14%' }} />
+                <div className="table-skeleton-cell" style={{ width: '10%' }} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {hasServerPagination && (
+        <ServerPagination
+          pagination={serverPagination as TablePaginationInfo}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 };

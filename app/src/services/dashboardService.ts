@@ -3,6 +3,8 @@ import type {
   DashboardMetadataResponse,
   WidgetDataRequest,
   WidgetDataResponse,
+  PanelRenderRequest,
+  PanelRenderResponse,
 } from "../types/dashboard";
 
 /**
@@ -103,6 +105,16 @@ class DashboardService {
     const params = version != null ? `?version=${version}` : "";
     return apiClient.post<DashboardMetadataResponse>(
       `/api/v1/dashboards/${dashboardId}/publish${params}`,
+    );
+  }
+
+  async renderPanels(
+    dashboardId: string,
+    request: PanelRenderRequest,
+  ): Promise<PanelRenderResponse> {
+    return apiClient.post<PanelRenderResponse>(
+      `/api/v1/dashboards/${dashboardId}/panels/render`,
+      request,
     );
   }
 }

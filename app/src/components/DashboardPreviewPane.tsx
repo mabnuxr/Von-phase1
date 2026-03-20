@@ -10,6 +10,7 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
+import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 
 interface DashboardPreviewPaneProps {
@@ -37,6 +38,9 @@ export function DashboardPreviewPane({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+
+  const { mergedWidgets, handlePageChange, loadingPanels } =
+    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
   const handleExpand = useCallback(() => {
     navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
@@ -69,6 +73,9 @@ export function DashboardPreviewPane({
               sharePhase={sharePhase}
               onExpand={handleExpand}
               onClose={onClose}
+              onTablePageChange={handlePageChange}
+              loadingTablePanels={loadingPanels}
+              paginatedWidgets={mergedWidgets}
             />
           )}
         </div>
