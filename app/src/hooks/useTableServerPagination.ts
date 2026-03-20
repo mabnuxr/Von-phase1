@@ -168,7 +168,7 @@ export function useTableServerPagination(
           result[panel.id] = {
             ...existingWidget,
             config: {
-              gridOptions: rendered.gridOptions ?? {},
+              gridOptions: rendered.gridOptions ?? existingConfig.gridOptions,
               serverPagination: rendered.pagination
                 ? adaptPagination(rendered.pagination)
                 : existingConfig.serverPagination,
