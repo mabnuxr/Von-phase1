@@ -163,6 +163,7 @@ export function useCreateAndSendMessage({
 
       let newId: string | undefined;
       let uploadedFiles: MessageFileAttachment[] = [];
+      let succeeded = false;
 
       try {
         // Resolve conversation mode
@@ -225,7 +226,7 @@ export function useCreateAndSendMessage({
         });
         store.triggerScrollToBottom(newId);
 
-        // Pre-seed the React Query infinite messages cache with an empty page.
+        // 5. Pre-seed the React Query infinite messages cache with an empty page.
         // When Conversation.tsx mounts, useMessages will find this cache entry
         // (fresh within staleTime) and skip the network fetch — preventing an
         // empty-page response from overwriting the optimistic chatStore messages.
@@ -248,7 +249,7 @@ export function useCreateAndSendMessage({
           },
         );
 
-        // 4. Send message — await so we only navigate/onCreated on success.
+        // 6. Send message — await so we only navigate/onCreated on success.
         //    If this throws, onError in useSendMessage rolls back the chatStore
         //    pre-seeded messages, and the catch block below resets local UI state.
         //    Merge static references (e.g. dashboard) with any @mention references.
@@ -301,15 +302,17 @@ export function useCreateAndSendMessage({
 
         clearFiles();
 
+        succeeded = true;
+
         if (navigateOnCreate) {
-          // 5a. Refresh sidebar (fire-and-forget)
+          // 7a. Refresh sidebar (fire-and-forget)
           queryClient.refetchQueries({
             queryKey: isSidebarV2
               ? chatSidebarKeys.sidebar()
               : conversationKeys.lists(),
           });
 
-          // 5b. Navigate — replace so back button skips /chat/new.
+          // 7b. Navigate — replace so back button skips /chat/new.
           //     { newlyCreated: true } tells Conversation.tsx to skip the skeleton.
           //     chatStore is already seeded above so no blank flash on mount.
           navigate(`/chat/${newId}`, {
@@ -317,7 +320,7 @@ export function useCreateAndSendMessage({
             state: { newlyCreated: true },
           });
         } else {
-          // 5. Notify parent — chatStore already seeded so receiving component
+          // 7. Notify parent — chatStore already seeded so receiving component
           //    (e.g. AnalyticsChatContainer) renders messages immediately on mount.
           onCreated?.(newId);
         }
@@ -336,7 +339,13 @@ export function useCreateAndSendMessage({
         clearFiles();
       } finally {
         setIsCreating(false);
-        setPendingMessages(null);
+        // On navigateOnCreate success the component is about to unmount — skipping
+        // setPendingMessages(null) avoids a blank-chat flash between navigate() being
+        // called and the component actually unmounting. For errors and the onCreated
+        // path (component stays mounted) we always clear.
+        if (!succeeded || !navigateOnCreate) {
+          setPendingMessages(null);
+        }
       }
     },
     [

@@ -160,6 +160,11 @@ export function useMessages(
       messagesWithReplayedContent.length === 0 &&
       (useChatStore.getState().messages[conversationId]?.length ?? 0) > 0
     ) {
+      if (import.meta.env.DEV) {
+        console.log(
+          `[useMessages] Skipping empty response sync for ${conversationId} — chatStore has optimistic messages`,
+        );
+      }
       return;
     }
 

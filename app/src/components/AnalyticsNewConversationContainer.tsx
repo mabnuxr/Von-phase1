@@ -11,8 +11,7 @@
  */
 
 import { useMemo } from "react";
-import { Chat } from "@vonlabs/design-components";
-import { ConversationMode } from "@vonlabs/design-components";
+import { Chat, ConversationMode } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -69,17 +68,9 @@ export function AnalyticsNewConversationContainer({
 
   const refStack = useReferenceStack(dashboardBaseLayer);
 
-  const dashboardRef: MessageReference = useMemo(
-    () => ({
-      refId: `dashboard-${dashboardId}`,
-      type: ReferenceType.Dashboard,
-      context: {
-        dashboardId,
-        dashboardVersion,
-        dashboardName: dashboardTitle,
-      },
-    }),
-    [dashboardId, dashboardTitle, dashboardVersion],
+  const references: MessageReference[] = useMemo(
+    () => [dashboardBaseLayer.reference],
+    [dashboardBaseLayer],
   );
 
   const {
@@ -89,14 +80,12 @@ export function AnalyticsNewConversationContainer({
     fileAttachments,
     addFiles,
     removeFile,
-    allUploaded,
-    hasAttachments,
   } = useCreateAndSendMessage({
     agentVersion: "v2",
     isAgentV2: true,
     title: dashboardTitle,
     fixedMode: ConversationMode.DashboardBuilder,
-    references: [dashboardRef],
+    references,
     onCreated,
   });
 
@@ -117,9 +106,7 @@ export function AnalyticsNewConversationContainer({
       width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
-      disableSubmit={
-        !canSubmit || isCreating || (hasAttachments && !allUploaded)
-      }
+      disableSubmit={!canSubmit || isCreating}
       enableFileUpload={isFileUploadEnabled}
       controlledAttachments={fileAttachments}
       onFilesSelected={addFiles}
