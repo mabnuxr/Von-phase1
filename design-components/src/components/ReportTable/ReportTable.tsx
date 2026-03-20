@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
@@ -89,7 +90,44 @@ export function ReportTable({
   const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
 
-  // Event delegation: handle clicks on .von-cell-btn elements inside the grid
+  // ── Truncation tooltip (TruncateWithText-like) ─────────────────────────────
+  const [truncTooltip, setTruncTooltip] = useState<{
+    text: string;
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const handleCellMouseEnter = useCallback((e: React.MouseEvent) => {
+    const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
+    if (!td) return;
+
+    // Check if cell content is actually truncated
+    if (td.scrollWidth <= td.clientWidth) return;
+
+    // Get the plain text content for the tooltip
+    const text = td.textContent?.trim();
+    if (!text) return;
+
+    const rect = td.getBoundingClientRect();
+    setTruncTooltip({
+      text,
+      top: rect.top - 6,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  const handleCellMouseLeave = useCallback((e: React.MouseEvent) => {
+    const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
+    const related = (e.relatedTarget as HTMLElement | null)?.closest?.('td');
+    // Only clear if we're actually leaving the cell (not moving between child elements)
+    if (td && td !== related) {
+      setTruncTooltip(null);
+    }
+  }, []);
+
+  // ── AI reasoning popover (event delegation on .von-cell-btn) ───────────────
   const handleWrapperClick = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest('.von-cell-btn') as HTMLElement | null;
     if (!target) return;
@@ -154,8 +192,11 @@ export function ReportTable({
       ref={wrapperRef}
       className={`w-full flex flex-col h-full report-grid-wrapper ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
       onClick={handleWrapperClick}
+      onMouseOver={handleCellMouseEnter}
+      onMouseOut={handleCellMouseLeave}
     >
       <Grid options={options} />
+
       {popoverReasoning && (
         <SourcePopover
           reasoning={popoverReasoning}
@@ -163,6 +204,24 @@ export function ReportTable({
           onClose={() => setPopoverReasoning(null)}
         />
       )}
+
+      {/* Truncation tooltip — portal-based, same style as TruncateWithText */}
+      {truncTooltip &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="fixed z-[10000] px-2 py-1 text-xs text-white bg-gray-900 rounded-lg shadow-lg pointer-events-none break-words"
+            style={{
+              top: truncTooltip.top,
+              left: truncTooltip.left,
+              maxWidth: Math.max(truncTooltip.width, 280),
+              transform: 'translateY(-100%)',
+            }}
+          >
+            {truncTooltip.text}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
