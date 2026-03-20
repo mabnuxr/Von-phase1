@@ -16,7 +16,7 @@ import {
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
-import { SaveSplitButton } from "./SaveSplitButton";
+import { PublishButton } from "./PublishButton";
 import { SharePopover } from "./SharePopover";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -196,23 +196,31 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 lastSavedAt={dashboard.updatedAt}
                 lastRefreshedAt={refreshInfo?.lastRefreshedAt}
               />
-              <SaveSplitButton savePhase={savePhase} onSave={onSave} />
-              {dashboard.status === DashboardStatus.Draft && (
-                <button
-                  onClick={onRevert}
-                  title="Discard draft — revert to published version"
-                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <ClockCounterClockwiseIcon size={14} />
-                </button>
+              {dashboard.isOwner && (
+                <>
+                  <PublishButton
+                    savePhase={savePhase}
+                    onSave={onSave}
+                    isPublished={dashboard.status === DashboardStatus.Published}
+                  />
+                  {dashboard.status === DashboardStatus.Draft && (
+                    <button
+                      onClick={onRevert}
+                      title="Discard draft — revert to published version"
+                      className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <ClockCounterClockwiseIcon size={14} />
+                    </button>
+                  )}
+                  <SharePopover
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    canShare={dashboard.dashboardVersion >= 1}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                </>
               )}
-              <SharePopover
-                isSharedWithTenant={dashboard.isSharedWithTenant}
-                canShare={dashboard.dashboardVersion >= 1}
-                sharePhase={sharePhase}
-                onShare={onShare}
-                onCopyLink={handleCopyLink}
-              />
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
         </DashboardLayout.Header>
