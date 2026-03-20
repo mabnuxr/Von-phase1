@@ -19,6 +19,8 @@ import {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
 } from "@vonlabs/design-components";
+import type { EmailDraftArtifact } from "@vonlabs/design-components";
+import { draftCardToArtifact, type DraftCard } from "../lib/emailUtils";
 
 /**
  * Research results state for Deep Research workflow
@@ -418,6 +420,8 @@ export interface TransformResult {
   hadApprovalPause: boolean;
   /** Error message if the run failed (from RUN_FINISHED with status=failed or RUN_ERROR) */
   runErrorMessage: string;
+  /** Email draft artifact extracted from a tool result with draft_card.type === "email_draft" */
+  emailDraftArtifact: EmailDraftArtifact | null;
 }
 
 /**
@@ -448,6 +452,7 @@ export function transformAguiToTimelineSteps(
       stoppedByUser: false,
       hadApprovalPause: false,
       runErrorMessage: "",
+      emailDraftArtifact: null,
     };
   }
 
@@ -504,6 +509,9 @@ export function transformAguiToTimelineSteps(
 
   // Track error message from failed RUN_FINISHED or RUN_ERROR
   let runErrorMessage = "";
+
+  // Email draft artifact extracted from tool result
+  let emailDraftArtifact: EmailDraftArtifact | null = null;
 
   // Track if we've seen RUN_FINISHED with pending approval (run paused for approval)
   let sawRunFinishedWithPendingApproval = false;
@@ -953,6 +961,11 @@ export function transformAguiToTimelineSteps(
                 const result = JSON.parse(accumulated);
 
                 // Parse and update step (same logic as content handling)
+                // Detect email draft card from any tool result
+                if (!emailDraftArtifact && result?.draft_card?.type === "email_draft") {
+                  emailDraftArtifact = draftCardToArtifact(result.draft_card as DraftCard, toolId);
+                }
+
                 if (step.status === "awaiting-approval") {
                   // Handle approval results
                   if (result.approved === true) {
@@ -1086,6 +1099,11 @@ export function transformAguiToTimelineSteps(
               // Handle non-approval tool results
               try {
                 const result = JSON.parse(event.content);
+
+                // Detect email draft card
+                if (!emailDraftArtifact && result?.draft_card?.type === "email_draft") {
+                  emailDraftArtifact = draftCardToArtifact(result.draft_card as DraftCard, toolId);
+                }
 
                 // Check for artifact (success case)
                 if (result._artifact) {
@@ -1368,6 +1386,7 @@ export function transformAguiToTimelineSteps(
     stoppedByUser,
     hadApprovalPause: sawRunFinishedWithPendingApproval,
     runErrorMessage,
+    emailDraftArtifact,
   };
 }
 

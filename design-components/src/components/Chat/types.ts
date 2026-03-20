@@ -3,6 +3,7 @@
  */
 
 import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
+import type { EmailDraftArtifact } from './ArtifactCards/types';
 import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -164,14 +165,7 @@ export interface Message {
   /**
    * Gmail draft artifacts associated with this message
    */
-  emailDraftArtifacts?: Array<{
-    draftId: string;
-    subject: string;
-    body: string;
-    to?: string;
-    gmailUrl?: string;
-    isPending?: boolean;
-  }>;
+  emailDraftArtifacts?: EmailDraftArtifact[];
   /**
    * Whether the response was stopped by user
    */

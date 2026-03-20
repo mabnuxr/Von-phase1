@@ -3,6 +3,7 @@ import type {
   Message as ChatMessage,
   TimelineStep,
   RunFinishedEvent,
+  EmailDraftArtifact,
 } from "@vonlabs/design-components";
 import type { ChatItem } from "@vonlabs/design-components";
 
@@ -25,7 +26,7 @@ import {
   getElapsedTimeFromEvents,
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
-import { parseEmailDraftFromContent } from "./emailUtils";
+import { draftCardToArtifact, type DraftCard } from "./emailUtils";
 
 /**
  * Transform backend MessageWithStreaming to Chat component Message format
@@ -59,16 +60,19 @@ export function transformMessagesToChatFormat(
       }
     }
 
-    // Parse email draft from content (frontend-only, no backend required)
-    const emailDraftResult =
-      !streamingMsg.emailDraft && streamingMsg.role === "assistant"
-        ? parseEmailDraftFromContent(content ?? streamingMsg.messageContent, streamingMsg.id)
-        : null;
-
-    // If a draft was parsed, replace displayed content with just the pre-draft text
-    if (emailDraftResult) {
-      content = emailDraftResult.preText;
-    }
+    // Scan tool call results for an email draft card (result.draft_card.type === "email_draft")
+    const allToolCalls = [
+      ...(toolCalls ?? []),
+      ...(stepMessages?.flatMap((s) => s.toolCalls ?? []) ?? []),
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const draftCard = allToolCalls.reduce<DraftCard | null>((found, tc) => {
+      if (found) return found;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = (tc.result as any)?.raw;
+      if (raw?.draft_card?.type === "email_draft") return raw.draft_card as DraftCard;
+      return null;
+    }, null);
 
     return {
       id: streamingMsg.id,
@@ -124,20 +128,10 @@ export function transformMessagesToChatFormat(
             })),
           }
         : undefined,
-      // Email draft: prefer explicit backend field, fall back to content parsing
-      emailDraftArtifacts: emailDraftResult
-        ? [emailDraftResult.artifact]
-        : streamingMsg.emailDraft
-          ? [
-              {
-                draftId: streamingMsg.id,
-                subject: streamingMsg.emailDraft.subject,
-                body: streamingMsg.emailDraft.body,
-                to: streamingMsg.emailDraft.to,
-                gmailUrl: streamingMsg.emailDraft.gmailUrl,
-              },
-            ]
-          : undefined,
+      // Email draft: from tool result draft_card payload
+      emailDraftArtifacts: draftCard
+        ? [draftCardToArtifact(draftCard, streamingMsg.id)]
+        : undefined,
     } as ChatMessage;
   });
 }
@@ -271,6 +265,8 @@ export interface V2LiveData {
   phase?: "plan-proposed" | "ask" | null;
   /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
   dashboard?: DashboardMetadata | null;
+  /** Email draft artifact detected from tool results during live streaming */
+  emailDraftArtifact?: EmailDraftArtifact | null;
 }
 
 /**
@@ -387,6 +383,9 @@ function transformMessagesForV2(
         stoppedByUser: v2LiveData.stoppedByUser,
         phase: v2LiveData.phase,
         dashboard: v2LiveData.dashboard ?? null,
+        emailDraftArtifacts: v2LiveData.emailDraftArtifact
+          ? [v2LiveData.emailDraftArtifact]
+          : msg.emailDraftArtifacts,
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
@@ -405,6 +404,7 @@ function transformMessagesForV2(
         researchResults,
         stoppedByUser: persistedStoppedByUser,
         runErrorMessage: persistedRunErrorMessage,
+        emailDraftArtifact: persistedEmailDraftArtifact,
       } = transformAguiToTimelineSteps(msg.events);
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
@@ -463,6 +463,9 @@ function transformMessagesForV2(
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
         dashboard: persistedDashboard,
+        emailDraftArtifacts: persistedEmailDraftArtifact
+          ? [persistedEmailDraftArtifact]
+          : msg.emailDraftArtifacts,
         // Propagate persisted error from events
         ...(persistedRunErrorMessage
           ? {
@@ -589,15 +592,5 @@ export function transformConversationMessages(
     phase: null,
   };
 
-  const result = transformMessagesForV2(conversationMessages, liveData);
-
-  // Strip email draft text from v2FinalResponse for messages that have emailDraftArtifacts
-  result.messages = result.messages.map((msg) => {
-    if (!msg.emailDraftArtifacts?.length || !msg.v2FinalResponse) return msg;
-    const parsed = parseEmailDraftFromContent(msg.v2FinalResponse, msg.id);
-    if (!parsed) return msg;
-    return { ...msg, v2FinalResponse: parsed.preText };
-  });
-
-  return result;
+  return transformMessagesForV2(conversationMessages, liveData);
 }

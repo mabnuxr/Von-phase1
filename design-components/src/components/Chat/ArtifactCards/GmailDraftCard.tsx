@@ -1,113 +1,208 @@
-import React, { useState } from 'react';
-import { CopyIcon, ArrowSquareOutIcon } from '@phosphor-icons/react';
+import React, { useState, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { CopyIcon, EnvelopeSimpleIcon, CheckIcon } from '@phosphor-icons/react';
 import { ArtifactCardSkeleton } from './BaseArtifactCard';
 import type { EmailDraftArtifact } from './types';
+
+// ============================================================================
+// Gmail Icon
+// ============================================================================
+
+const GmailIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="52 42 88 66"
+    width={size}
+    height={(size * 66) / 88}
+    className="flex-shrink-0"
+  >
+    <path fill="#4285f4" d="M58 108h14V74L52 59v43c0 3.32 2.69 6 6 6" />
+    <path fill="#34a853" d="M120 108h14c3.32 0 6-2.69 6-6V59l-20 15" />
+    <path fill="#fbbc04" d="M120 48v26l20-15v-8c0-7.42-8.47-11.65-14.4-7.2" />
+    <path fill="#ea4335" d="M72 74V48l24 18 24-18v26L96 92" />
+    <path fill="#c5221f" d="M52 51v8l20 15V48l-5.6-4.2c-5.94-4.45-14.4-.22-14.4 7.2" />
+  </svg>
+);
+
+// ============================================================================
+// Props
+// ============================================================================
 
 export interface GmailDraftCardProps {
   artifact: EmailDraftArtifact;
   onOpenInGmail?: () => void;
   isGmailConnected?: boolean;
   isGmailEnabled?: boolean;
+  /** Fixed height in pixels (default 480) */
+  height?: number;
 }
 
-const GmailIcon: React.FC = () => (
-  <svg width="16" height="16" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#EA4335" d="M6 6h36v36H6z" opacity="0" />
-    <path fill="#4285F4" d="M45 6H3a3 3 0 0 0-3 3v30a3 3 0 0 0 3 3h42a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3z" opacity="0" />
-    <path fill="#EA4335" d="M45 6H3L24 27z" />
-    <path fill="#FBBC05" d="M3 6 0 9v30l14-14z" />
-    <path fill="#34A853" d="M45 6l3 3v30L34 25z" />
-    <path fill="#4285F4" d="M0 39l14-14 10 10 10-10 14 14v3a3 3 0 0 1-3 3H3a3 3 0 0 1-3-3z" />
-    <path fill="#C5221F" d="M3 6 0 9l14 16 10-8z" opacity="0" />
-  </svg>
-);
+// ============================================================================
+// Component
+// ============================================================================
 
 export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
   artifact,
   onOpenInGmail,
   isGmailConnected = false,
   isGmailEnabled = true,
+  height = 480,
 }) => {
-  const [copiedSubject, setCopiedSubject] = useState(false);
+  const [subjectCopied, setSubjectCopied] = useState(false);
+  const [bodyCopied, setBodyCopied] = useState(false);
+  const [showSubjectTooltip, setShowSubjectTooltip] = useState(false);
+  const subjectTextRef = useRef<HTMLParagraphElement>(null);
+
+  const handleCopySubject = useCallback(() => {
+    navigator.clipboard.writeText(artifact.subject);
+    setSubjectCopied(true);
+    setTimeout(() => setSubjectCopied(false), 2000);
+  }, [artifact.subject]);
+
+  const handleCopyBody = useCallback(() => {
+    navigator.clipboard.writeText(artifact.bodyFull);
+    setBodyCopied(true);
+    setTimeout(() => setBodyCopied(false), 2000);
+  }, [artifact.bodyFull]);
+
+  const isSubjectTruncated = useCallback(() => {
+    const el = subjectTextRef.current;
+    if (!el) return false;
+    return el.scrollWidth > el.clientWidth;
+  }, []);
 
   if (artifact.isPending) {
     return <ArtifactCardSkeleton />;
   }
 
-  const handleCopySubject = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(artifact.subject);
-      setCopiedSubject(true);
-      setTimeout(() => setCopiedSubject(false), 2000);
-    } catch {
-      // ignore
-    }
-  };
-
-  const openTooltip = !isGmailEnabled
-    ? 'Open in Gmail (Coming Soon)'
-    : !isGmailConnected
-      ? 'Connect Gmail'
-      : 'Open in Gmail';
-
   return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-xs hover:border-gray-200 transition-colors bg-white">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100 bg-gray-50">
-        <svg
-          className="w-3.5 h-3.5 text-gray-400 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-          />
-        </svg>
-        <span className="text-xs font-medium text-gray-500 tracking-wide">Draft Email</span>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="border border-gray-100 rounded-xl bg-white overflow-hidden flex flex-col shadow-xs"
+      style={{ height }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <EnvelopeSimpleIcon size={14} className="text-gray-700" />
+          <span className="text-sm font-medium text-gray-900">Draft Email</span>
+        </div>
       </div>
 
-      {/* Subject */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100">
-        <span className="text-xs text-gray-400 shrink-0 w-12">Subject</span>
-        <span className="text-sm font-medium text-gray-900 flex-1 min-w-0 truncate">
-          {artifact.subject}
-        </span>
+      {/* To row */}
+      {artifact.to && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 flex-shrink-0">
+          <span className="text-xs text-gray-700 flex-shrink-0">To</span>
+          <p className="text-sm text-gray-900 truncate">{artifact.to}</p>
+        </div>
+      )}
+
+      {/* CC row */}
+      {artifact.cc && artifact.cc.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 flex-shrink-0">
+          <span className="text-xs text-gray-700 flex-shrink-0">CC</span>
+          <p className="text-sm text-gray-900 truncate">{artifact.cc.join(', ')}</p>
+        </div>
+      )}
+
+      {/* Subject row */}
+      <div
+        className="flex items-center justify-between px-3 py-2 border-b border-gray-100 flex-shrink-0 relative"
+        onMouseEnter={() => {
+          if (isSubjectTruncated()) setShowSubjectTooltip(true);
+        }}
+        onMouseLeave={() => setShowSubjectTooltip(false)}
+      >
+        <div className="flex-1 min-w-0 mr-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-700 flex-shrink-0">Subject</span>
+            <p
+              ref={subjectTextRef}
+              className="text-sm font-medium text-gray-900 truncate"
+            >
+              {artifact.subject}
+            </p>
+          </div>
+        </div>
         <button
           onClick={handleCopySubject}
-          className="shrink-0 p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer border-none bg-transparent"
-          title={copiedSubject ? 'Copied!' : 'Copy subject'}
+          className="flex items-center justify-center rounded-xl border hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0 border-gray-100"
+          style={{ width: 34, height: 34, minWidth: 34, minHeight: 34 }}
+          title="Copy subject"
         >
-          <CopyIcon size={14} />
+          {subjectCopied ? (
+            <CheckIcon size={16} weight="bold" className="text-emerald-600" />
+          ) : (
+            <CopyIcon size={16} className="text-gray-700" />
+          )}
         </button>
+
+        {/* Tooltip for truncated subject */}
+        <AnimatePresence>
+          {showSubjectTooltip && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-3 right-3 top-full mt-1 z-50 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-sm leading-relaxed"
+            >
+              {artifact.subject}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Body */}
-      <div className="px-4 py-3 max-h-44 overflow-y-auto not-prose">
-        <div className="font-sans text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{artifact.body}</div>
+      {/* Email body — scrollable */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
+        <span className="text-xs text-gray-700 mb-2 block">Body</span>
+        <div className="text-sm text-gray-900 leading-relaxed markdown-content not-prose">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.bodyFull}</ReactMarkdown>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-t border-gray-100">
+      {/* CRM context */}
+      {artifact.crmContext && (
+        <div className="flex items-center gap-1.5 px-3 py-2 border-t border-gray-100 flex-shrink-0 bg-gray-50/60">
+          <span className="text-xs text-gray-500 truncate">{artifact.crmContext}</span>
+        </div>
+      )}
+
+      {/* Footer CTAs */}
+      <div className="flex items-center gap-1.5 px-3 py-2.5 border-t border-gray-100 flex-shrink-0">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenInGmail?.();
-          }}
+          onClick={onOpenInGmail}
           disabled={!isGmailEnabled || !isGmailConnected}
-          title={openTooltip}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+          title={
+            !isGmailEnabled
+              ? 'Open in Gmail (Coming Soon)'
+              : !isGmailConnected
+                ? 'Connect Gmail to send'
+                : 'Open in Gmail'
+          }
+          className="flex items-center gap-2 h-[34px] px-3 text-sm font-medium text-gray-900 bg-white rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <GmailIcon />
-          <span>Open in Gmail</span>
-          <ArrowSquareOutIcon size={13} className="text-gray-400" />
+          <GmailIcon size={16} />
+          Open in Gmail
+        </button>
+        <button
+          onClick={handleCopyBody}
+          className="flex items-center justify-center rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
+          style={{ width: 34, height: 34, minWidth: 34, minHeight: 34 }}
+          title="Copy body"
+        >
+          {bodyCopied ? (
+            <CheckIcon size={15} weight="bold" className="text-emerald-600" />
+          ) : (
+            <CopyIcon size={15} className="text-gray-700" />
+          )}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

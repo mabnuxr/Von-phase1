@@ -24,6 +24,7 @@ import type {
   AguiEventWrapper,
   TimelineStep,
   RunFinishedEvent,
+  EmailDraftArtifact,
 } from "@vonlabs/design-components";
 
 /** RUN_FINISHED result extended with the optional dashboard field the backend emits. */
@@ -98,6 +99,7 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
+  emailDraftArtifact: EmailDraftArtifact | null;
   phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
   markStopped: () => void;
@@ -162,6 +164,8 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
+  const [emailDraftArtifact, setEmailDraftArtifact] =
+    useState<EmailDraftArtifact | null>(null);
   const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
 
@@ -201,6 +205,9 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
+        if (result.emailDraftArtifact !== undefined) {
+          setEmailDraftArtifact(result.emailDraftArtifact);
+        }
         if (options?.phase !== undefined) {
           setPhase(options.phase);
         }
@@ -494,6 +501,9 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(result.isDeepResearchRunning);
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
+          if (result.emailDraftArtifact !== undefined) {
+            setEmailDraftArtifact(result.emailDraftArtifact);
+          }
 
           // Update phase when RUN_FINISHED arrives
           if (runFinishedPhase !== undefined) {
@@ -733,6 +743,7 @@ export function useV2EventProcessor(
     isDeepResearchRunning,
     stoppedByUser,
     runErrorMessage,
+    emailDraftArtifact,
     phase,
     dashboard,
     markStopped,
