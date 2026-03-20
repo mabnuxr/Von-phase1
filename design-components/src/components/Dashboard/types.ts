@@ -91,8 +91,18 @@ export interface TextWidgetProps {
 
 // ─── Table ──────────────────────────────────────────────────────
 
+export interface TablePaginationInfo {
+  page: number;
+  limit: number;
+  totalRows: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
 export interface TableWidgetConfig {
   gridOptions: Record<string, unknown>;
+  serverPagination?: TablePaginationInfo;
 }
 
 // ─── Widget Shell ────────────────────────────────────────────────
@@ -107,6 +117,8 @@ export interface WidgetShellProps {
 
 export interface WidgetRendererProps {
   widget: WidgetConfig;
+  onTablePageChange?: (panelId: string, page: number) => void;
+  isTableLoading?: boolean;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -115,4 +127,6 @@ export interface DashboardGridProps {
   layout: LayoutItem[];
   widgets: Record<string, WidgetConfig>;
   gridConfig: GridConfig;
+  onTablePageChange?: (panelId: string, page: number) => void;
+  loadingTablePanels?: Set<string>;
 }

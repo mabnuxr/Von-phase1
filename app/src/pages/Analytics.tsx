@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
+import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useAppShell } from "../hooks/useAppShell";
 import { useVisibilityToggle } from "@vonlabs/design-components";
 import { useResizablePane } from "../hooks/useResizablePane";
@@ -70,6 +71,9 @@ const Analytics = () => {
   } = useResizablePane();
   const { collapseSidebar } = useAppShell();
 
+  const { mergedWidgets, handlePageChange, loadingPanels } =
+    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+
   // Subscribe to Pusher events for dashboard refresh notifications
   useDashboardRefreshEvents(dashboardId);
 
@@ -108,6 +112,9 @@ const Analytics = () => {
           onChatClick={openChat}
           onChatClose={closeChat}
           isChatOpen={isChatOpen}
+          onTablePageChange={handlePageChange}
+          loadingTablePanels={loadingPanels}
+          paginatedWidgets={mergedWidgets}
         />
       </div>
 

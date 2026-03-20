@@ -371,3 +371,34 @@ export interface WidgetData {
   };
   error?: { code: string; message: string };
 }
+
+export interface PanelRenderRequest {
+  panels: PanelRenderItem[];
+}
+
+export interface PanelRenderItem {
+  panel_id: string;
+  table_limit: number;
+  table_page: number;
+}
+
+export interface PanelPaginationInfo {
+  page: number;
+  limit: number;
+  total_rows: number;
+  total_pages: number;
+  has_next_page: boolean;
+  has_prev_page: boolean;
+}
+
+export interface PanelRenderWidget {
+  id: string;
+  type: string;
+  title?: string;
+  gridOptions?: Record<string, unknown>;
+  pagination?: PanelPaginationInfo;
+}
+
+export interface PanelRenderResponse {
+  widgets: Record<string, PanelRenderWidget>;
+}

@@ -28,3 +28,129 @@
 .table-widget-root .hcg-pagination-page-size {
   display: none;
 }
+
+/* Hide Highcharts built-in pagination when using server-side pagination */
+.table-widget-root.server-paginated .hcg-pagination-wrapper {
+  display: none;
+}
+
+/* ─── Server Pagination ─────────────────────────────────────────── */
+
+.server-pagination-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.server-pagination-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.server-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.server-pagination-controls button {
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 4px 8px;
+  min-width: 28px;
+  height: 28px;
+  color: #374151;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-pagination-controls button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.server-pagination-controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.server-pagination-controls button[aria-current='page'],
+.server-pagination-controls button.server-pagination-active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.server-pagination-controls button.server-pagination-active:hover {
+  background: #111827;
+}
+
+.server-pagination-ellipsis {
+  min-width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+/* ─── Table Skeleton (shown while loading a new page) ─────────── */
+
+.table-skeleton {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 30px; /* sits right below the 30px table header */
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  gap: 0;
+  background: #ffffff;
+  z-index: 1;
+}
+
+.table-skeleton-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  height: 30px;
+  padding: 0 4px;
+}
+
+.table-skeleton-cell {
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: table-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Stagger the animation slightly per row for a wave effect */
+.table-skeleton-row:nth-child(2n) .table-skeleton-cell {
+  animation-delay: 0.15s;
+}
+.table-skeleton-row:nth-child(3n) .table-skeleton-cell {
+  animation-delay: 0.3s;
+}
+
+@keyframes table-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -48,6 +48,13 @@ interface AnalyticsViewProps {
   onChatClose?: () => void;
   /** Whether the chat pane is currently open */
   isChatOpen?: boolean;
+  /** Server-side table pagination handler */
+  onTablePageChange?: (panelId: string, page: number) => void;
+  /** Set of panel IDs currently loading a new page */
+  loadingTablePanels?: Set<string>;
+  /** Widgets with paginated table data merged in (overrides dashboard.widgets) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  paginatedWidgets?: Record<string, any>;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -65,10 +72,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onChatClick,
   onChatClose,
   isChatOpen,
+  onTablePageChange,
+  loadingTablePanels,
+  paginatedWidgets,
 }) => {
   const gridConfig = dashboard.gridConfig as unknown as GridConfig;
   const layout = dashboard.layout as unknown as LayoutItem[];
-  const widgets = dashboard.widgets as unknown as Record<string, WidgetConfig>;
+  const widgets = (paginatedWidgets ?? dashboard.widgets) as unknown as Record<
+    string,
+    WidgetConfig
+  >;
 
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -210,6 +223,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               layout={layout}
               widgets={widgets}
               gridConfig={gridConfig}
+              onTablePageChange={onTablePageChange}
+              loadingTablePanels={loadingTablePanels}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

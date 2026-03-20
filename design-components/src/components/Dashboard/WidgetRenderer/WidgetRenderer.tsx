@@ -17,7 +17,11 @@ import type {
  *
  * Text widgets render without a shell since they ARE the header content.
  */
-const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget }) => {
+const WidgetRenderer: React.FC<WidgetRendererProps> = ({
+  widget,
+  onTablePageChange,
+  isTableLoading,
+}) => {
   switch (widget.type) {
     case 'chart':
       return (
@@ -53,7 +57,13 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({ widget }) => {
     case 'table':
       return (
         <WidgetShell title={widget.title} subtitle={widget.subtitle}>
-          <TableWidget config={widget.config as TableWidgetConfig} />
+          <TableWidget
+            config={widget.config as TableWidgetConfig}
+            onPageChange={
+              onTablePageChange ? (page: number) => onTablePageChange(widget.id, page) : undefined
+            }
+            isLoading={isTableLoading}
+          />
         </WidgetShell>
       );
 

@@ -9,7 +9,13 @@ import 'react-grid-layout/css/styles.css';
  * View-only dashboard grid. Renders widgets in their configured positions
  * using react-grid-layout with drag and resize disabled.
  */
-const DashboardGrid: React.FC<DashboardGridProps> = ({ layout, widgets, gridConfig }) => {
+const DashboardGrid: React.FC<DashboardGridProps> = ({
+  layout,
+  widgets,
+  gridConfig,
+  onTablePageChange,
+  loadingTablePanels,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
@@ -57,7 +63,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ layout, widgets, gridConf
           return (
             <div key={item.i} className="h-full">
               <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
-                <WidgetRenderer widget={widget} />
+                <WidgetRenderer
+                  widget={widget}
+                  onTablePageChange={onTablePageChange}
+                  isTableLoading={loadingTablePanels?.has(widget.id)}
+                />
               </WidgetErrorBoundary>
             </div>
           );

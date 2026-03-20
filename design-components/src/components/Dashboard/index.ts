@@ -24,6 +24,7 @@ export type {
   CounterWidgetConfig,
   TextWidgetConfig,
   TableWidgetConfig,
+  TablePaginationInfo,
 } from './types';
 
 // ── DashboardLayout (Compound component) ────────────────────────────
