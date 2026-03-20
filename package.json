@@ -18,6 +18,7 @@
     "format:all": "npm run format --workspaces --if-present",
     "format:check:all": "npm run format:check --workspaces --if-present",
     "typecheck:all": "npm run typecheck --workspaces --if-present",
+    "test:all": "npm run test --workspaces --if-present",
     "clean": "rm -rf app/node_modules design-components/node_modules node_modules"
   },
   "bin": {
