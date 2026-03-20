@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -27,6 +27,18 @@ const Analytics = () => {
   const [createdConversationId, setCreatedConversationId] = useState<
     string | null
   >(null);
+  // Track which dashboardId was active when the create was initiated so that
+  // an in-flight response from a previous dashboard doesn't overwrite state
+  // after the user has navigated to a different dashboard.
+  const activeDashboardIdRef = useRef(dashboardId);
+  const handleConversationCreated = useCallback(
+    (conversationId: string) => {
+      if (activeDashboardIdRef.current === dashboardId) {
+        setCreatedConversationId(conversationId);
+      }
+    },
+    [dashboardId],
+  );
 
   const {
     isVisible: isChatOpen,
@@ -68,6 +80,7 @@ const Analytics = () => {
 
   // Reset local conversation when navigating to a different dashboard
   useEffect(() => {
+    activeDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
   }, [dashboardId]);
 
@@ -133,7 +146,7 @@ const Analytics = () => {
                 dashboardId={dashboardId}
                 dashboardTitle={dashboard.title}
                 dashboardVersion={dashboard.dashboardVersion}
-                onCreated={setCreatedConversationId}
+                onCreated={handleConversationCreated}
               />
             )}
           </div>

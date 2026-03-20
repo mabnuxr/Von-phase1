@@ -102,6 +102,7 @@ export function useCreateAndSendMessage({
   const { mutateAsync: sendMessage } = useSendMessage();
 
   const [isCreating, setIsCreating] = useState(false);
+  const isCreatingRef = useRef(false);
   const [pendingMessages, setPendingMessages] = useState<
     MessageWithStreaming[] | null
   >(null);
@@ -139,7 +140,8 @@ export function useCreateAndSendMessage({
       _?: FileAttachment[],
       options?: SendMessageOptions,
     ) => {
-      if (isCreating) return;
+      if (isCreatingRef.current) return;
+      isCreatingRef.current = true;
       setIsCreating(true);
 
       // Show user message + thinking indicator immediately, before any API call.
@@ -349,6 +351,7 @@ export function useCreateAndSendMessage({
         }
         clearFiles();
       } finally {
+        isCreatingRef.current = false;
         setIsCreating(false);
         // On navigateOnCreate success the component is about to unmount — skipping
         // setPendingMessages(null) avoids a blank-chat flash between navigate() being
@@ -364,7 +367,6 @@ export function useCreateAndSendMessage({
       clearFiles,
       createConversation,
       fixedMode,
-      isCreating,
       isSidebarV2,
       navigate,
       navigateOnCreate,
