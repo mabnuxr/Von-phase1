@@ -24,6 +24,7 @@ import { getDisplayTitle } from "./conversationUtils";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
+  DEFAULT_EXPIRED_APPROVAL_MESSAGE,
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 import { draftCardToArtifact, type DraftCard } from "./emailUtils";
@@ -250,6 +251,7 @@ export interface V2LiveData {
   elapsedTime: number;
   finalResponse: string;
   isFinalResponseStreaming: boolean;
+  isAwaitingApproval: boolean;
   researchResults: ResearchResultsState;
   stoppedByUser: boolean;
   /** Error message if the current run failed */
@@ -375,7 +377,7 @@ function transformMessagesForV2(
     ) {
       return {
         ...msg,
-        isStreaming: v2LiveData.isThinking,
+        isStreaming: v2LiveData.isThinking && !v2LiveData.isAwaitingApproval,
         timelineSteps: usableV2TimelineSteps,
         thinkingElapsedTime: v2LiveData.elapsedTime,
         v2FinalResponse: v2LiveData.finalResponse,
@@ -405,6 +407,7 @@ function transformMessagesForV2(
         stoppedByUser: persistedStoppedByUser,
         runErrorMessage: persistedRunErrorMessage,
         emailDraftArtifact: persistedEmailDraftArtifact,
+        isExpiredApproval: persistedIsExpiredApproval,
       } = transformAguiToTimelineSteps(msg.events);
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
@@ -412,9 +415,20 @@ function transformMessagesForV2(
       // For persisted (non-streaming) messages, ensure any remaining in-progress
       // steps are marked complete. This handles cases where events were persisted
       // before a RUN_FINISHED event (e.g., stopped runs without a final event).
+      // Steps still in "awaiting-approval" were never resolved (the user sent a
+      // new message or the approval expired) — mark them as expired so the card
+      // does not misleadingly show "Approved".
       for (const step of usableSteps) {
         if (step.status === "in-progress" || step.status === "pending") {
           step.status = "complete";
+        } else if (step.status === "awaiting-approval") {
+          // A completed (non-streaming) message should never have actionable
+          // pending approvals.  If the step is still awaiting-approval the
+          // approval was never resolved — the user sent a new message, the
+          // page was refreshed, or the backend expired it without an explicit
+          // TOOL_CALL_RESULT.  Mark it expired unconditionally so approve/
+          // reject buttons don't reappear for a superseded run.
+          step.status = "expired";
         }
       }
 
@@ -466,13 +480,25 @@ function transformMessagesForV2(
         emailDraftArtifacts: persistedEmailDraftArtifact
           ? [persistedEmailDraftArtifact]
           : msg.emailDraftArtifacts,
-        // Propagate persisted error from events
-        ...(persistedRunErrorMessage
+        // Propagate expired or error status.  Check both the transform flag
+        // (backend sent an explicit expired result) and the post-processed
+        // steps (awaiting-approval unconditionally marked expired above, e.g.
+        // when the user sent a new message and no expired TOOL_CALL_RESULT
+        // exists in the persisted events).
+        ...(persistedIsExpiredApproval ||
+        usableSteps.some((s) => s.status === "expired" && s.approval)
           ? {
-              status: "failed" as const,
-              errorMessage: persistedRunErrorMessage,
+              status: "expired" as const,
+              errorMessage:
+                steps.find((s) => s.status === "expired")?.errorMessage ||
+                DEFAULT_EXPIRED_APPROVAL_MESSAGE,
             }
-          : {}),
+          : persistedRunErrorMessage
+            ? {
+                status: "failed" as const,
+                errorMessage: persistedRunErrorMessage,
+              }
+            : {}),
       };
     }
 
@@ -579,6 +605,7 @@ export function transformConversationMessages(
     elapsedTime: 0,
     finalResponse: "",
     isFinalResponseStreaming: false,
+    isAwaitingApproval: false,
     researchResults: {
       isStreaming: false,
       isCompleted: false,

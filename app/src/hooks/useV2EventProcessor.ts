@@ -109,6 +109,7 @@ export interface UseV2EventProcessorReturn {
   resumeTimer: () => void;
   /** Undo the optimistic timer resume when the approval API fails. */
   pauseTimerOnApprovalFailure: () => void;
+  invalidateApproval: () => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -183,6 +184,10 @@ export function useV2EventProcessor(
   // was known. When true, the first event's run_id is added to finishedRunsRef
   // and the event is swallowed.
   const pendingStopRef = useRef(false);
+  // Ref mirror of timelineSteps for immediate reads after flushSync (where the
+  // closure-captured state variable would still be stale).
+  const timelineStepsRef = useRef(timelineSteps);
+  timelineStepsRef.current = timelineSteps;
 
   // Apply a transform result to state (used by both event handler and reconciliation)
   const applyTransformResult = useCallback(
@@ -243,10 +248,14 @@ export function useV2EventProcessor(
           runErrorMessage: errorMsg,
         } = transformAguiToTimelineSteps(activeRunEvents);
 
-        // Mark any in-progress/pending steps as complete (run is terminated)
+        // Mark any in-progress/pending steps as complete (run is terminated).
+        // Steps still awaiting approval were never resolved — mark as expired
+        // so the card shows "Invalid" instead of "Approved".
         for (const step of steps) {
           if (step.status === "in-progress" || step.status === "pending") {
             step.status = "complete";
+          } else if (step.status === "awaiting-approval") {
+            step.status = "expired";
           }
         }
 
@@ -254,6 +263,7 @@ export function useV2EventProcessor(
           setTimelineSteps(steps);
           setIsThinking(false);
           setIsFinalResponseStreaming(false);
+          setIsAwaitingApproval(false);
           setStoppedByUser(options.stoppedByUser);
           setFinalResponse(response);
           setResearchResults(research);
@@ -289,6 +299,55 @@ export function useV2EventProcessor(
   const clearPendingStop = useCallback(() => {
     pendingStopRef.current = false;
   }, []);
+
+  const invalidateApproval = useCallback(() => {
+    // Mark all active runs as finished so their events are no longer processed
+    for (const [runId] of eventsRef.current) {
+      if (!finishedRunsRef.current.has(runId)) {
+        finishedRunsRef.current.add(runId);
+      }
+    }
+
+    // Reset live state synchronously so React commits the update before this
+    // function returns.  The functional updater reads React's latest committed
+    // state (avoiding races with queued updates).  Note: `flushSync` guarantees
+    // the DOM is updated, but the `timelineSteps` state variable captured by
+    // the enclosing closure is NOT updated until the next render — any code that
+    // needs the new steps immediately after this call must read via the ref.
+    flushSync(() => {
+      setTimelineSteps((prev) => {
+        const next = prev.map((step) => {
+          if (step.status === "awaiting-approval") {
+            return { ...step, status: "expired" as const };
+          }
+          if (step.status === "in-progress" || step.status === "pending") {
+            return { ...step, status: "complete" as const };
+          }
+          return step;
+        });
+        timelineStepsRef.current = next;
+        return next;
+      });
+      setIsAwaitingApproval(false);
+      setIsThinking(false);
+      setIsFinalResponseStreaming(false);
+    });
+    timerOnRunTerminated(true);
+    lastEventTimeRef.current = 0;
+
+    // Trigger event persistence: onRunComplete calls forceCompleteMessage which
+    // persists events from eventsRef into the chatStore message, then
+    // refetchMessages() replaces the optimistic message with the server's
+    // version.  dashboardUtils post-processing unconditionally marks any
+    // remaining awaiting-approval steps as expired for non-streaming messages,
+    // and propagates the expired status to the message level — so no
+    // separate markMessageExpired call is needed here.
+    try {
+      onRunComplete?.();
+    } catch (err) {
+      console.error("[invalidateApproval] onRunComplete failed:", err);
+    }
+  }, [timerOnRunTerminated, onRunComplete]);
 
   const markTimedOut = useCallback(() => {
     if (import.meta.env.DEV) {
@@ -521,6 +580,30 @@ export function useV2EventProcessor(
           }
         });
 
+        // Mark message as expired in chatStore when approval expires
+        if (result.isExpiredApproval) {
+          // Extract the expired message from the step that has expired status
+          const expiredStep = result.steps.find((s) => s.status === "expired");
+          const expiredMessage = expiredStep?.errorMessage;
+
+          const messages =
+            useChatStore.getState().messages[conversationId ?? ""] || [];
+          // Match by run_id to find the correct message when multiple runs are active
+          const targetMsg = messages
+            .slice()
+            .reverse()
+            .find((m) => m.role === "assistant" && m.runId === run_id);
+          if (targetMsg) {
+            useChatStore
+              .getState()
+              .markMessageExpired(
+                conversationId ?? "",
+                targetMsg.id,
+                expiredMessage,
+              );
+          }
+        }
+
         // Delegate timer pause/play/stop to the controller based on event state
         timerOnEventProcessed(run_id, {
           isAwaitingApproval: result.isAwaitingApproval,
@@ -751,6 +834,7 @@ export function useV2EventProcessor(
     clearPendingStop,
     resumeTimer: timerOnApprovalResumed,
     pauseTimerOnApprovalFailure: timerOnApprovalFailed,
+    invalidateApproval,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

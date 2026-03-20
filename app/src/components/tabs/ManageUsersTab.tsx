@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   TrashSimple,
   BookOpen,
+  PencilSimple,
 } from "@phosphor-icons/react";
 import {
   useTeamMembers,
@@ -49,7 +50,7 @@ export function ManageUsersTab() {
   const updatePermissionsMutation = useUpdateMemberPermissions(activeTenant);
 
   // Access store to open add team member panel
-  const { setAddingTeamMember } = usePreferencesStore();
+  const { setAddingTeamMember, setEditingTeamMemberId } = usePreferencesStore();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -185,7 +186,7 @@ export function ManageUsersTab() {
             {canCreateTeamMember && (
               <button
                 onClick={handleAddTeamMemberClick}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm flex-shrink-0"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm shrink-0"
               >
                 Add Team Member
               </button>
@@ -273,7 +274,7 @@ export function ManageUsersTab() {
 
           {/* Error State */}
           {error && (
-            <div className="flex items-center justify-center min-h-[300px]">
+            <div className="flex items-center justify-center min-h-75">
               <p className="text-sm text-red-600">
                 Failed to load team members. Please try again.
               </p>
@@ -285,7 +286,7 @@ export function ManageUsersTab() {
             !error &&
             teamMembers &&
             filteredUsers.length === 0 && (
-              <div className="flex items-center justify-center min-h-[300px]">
+              <div className="flex items-center justify-center min-h-75">
                 <p className="text-sm text-gray-500">
                   {searchQuery
                     ? "No users found matching your search"
@@ -417,8 +418,23 @@ export function ManageUsersTab() {
                             {openMenuUserId === member.id && (
                               <div
                                 ref={menuRef}
-                                className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[100]"
+                                className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-100"
                               >
+                                {/* Edit Details */}
+                                <button
+                                  onClick={() => {
+                                    setEditingTeamMemberId(member.id);
+                                    setOpenMenuUserId(null);
+                                  }}
+                                  className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100/80 transition-colors duration-150 cursor-pointer"
+                                >
+                                  <PencilSimple
+                                    size={14}
+                                    className="text-gray-800"
+                                  />
+                                  <span>Edit Details</span>
+                                </button>
+
                                 {/* Customize Permissions */}
                                 <div className="relative">
                                   <button
@@ -460,7 +476,7 @@ export function ManageUsersTab() {
                                           disabled={
                                             updatePermissionsMutation.isPending
                                           }
-                                          className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
+                                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
                                             (member.permissions?.sfdc_write ??
                                             true)
                                               ? "bg-green-500"
@@ -548,7 +564,7 @@ export function ManageUsersTab() {
             >
               <div className="flex items-start gap-4">
                 {/* Warning Icon */}
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
                   <svg
                     className="w-6 h-6 text-red-600"
                     fill="none"

@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
@@ -105,6 +106,20 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ["@thesysai/genui-sdk", "@crayonai/react-ui"],
+    },
+    test: {
+      environment: "node",
+      include: ["src/**/*.test.ts"],
+      setupFiles: ["src/__tests__/setup.ts"],
+      alias: [
+        {
+          find: "@vonlabs/design-components",
+          replacement: path.resolve(
+            __dirname,
+            "src/__tests__/stubs/design-components.ts",
+          ),
+        },
+      ],
     },
   };
 });

@@ -1,31 +1,34 @@
 import { useState, useEffect, useMemo } from "react";
 import usePreferencesStore from "../store/preferencesStore";
 import { Input, Banner, SingleSelect } from "@vonlabs/design-components";
-import { useAddTeamMember, useRoles } from "../hooks/useTeam";
+import { useTeamMembers, useRoles, useUpdateMember } from "../hooks/useTeam";
 import { useUser } from "../hooks/useUser";
 
-export function AddTeamMemberPane() {
-  const { addingTeamMember, setAddingTeamMember } = usePreferencesStore();
+export function EditTeamMemberPane() {
+  const { editingTeamMemberId, setEditingTeamMemberId } = usePreferencesStore();
   const { user } = useUser();
+  const activeTenant = user?.tenantId as string | undefined;
 
-  // React Query mutations and data
-  const addMutation = useAddTeamMember(user?.tenantId as string | undefined);
-  const { data: roles, isLoading: rolesLoading } = useRoles(
-    user?.tenantId as string | undefined,
+  // Fetch team members to get the member being edited
+  const { data: teamMembers } = useTeamMembers(activeTenant);
+  const { data: roles, isLoading: rolesLoading } = useRoles(activeTenant);
+  const updateMutation = useUpdateMember(activeTenant);
+
+  const member = useMemo(
+    () => teamMembers?.find((m) => m.id === editingTeamMemberId) ?? null,
+    [teamMembers, editingTeamMemberId],
   );
 
   // Form state
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
     role: "",
   });
 
-  // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  // Prepare role options for dropdown (members can only see "Member" role)
+  // Role options - admins see all, members only see Member
   const isAdmin = user?.roles?.includes("Admin") ?? false;
 
   const roleOptions = useMemo(
@@ -39,73 +42,84 @@ export function AddTeamMemberPane() {
     [roles, isAdmin],
   );
 
-  // Reset form when panel opens
+  // Match member's role display name to internal role name
+  const memberRoleName = useMemo(
+    () =>
+      roles?.find(
+        (r) => r.displayName === member?.role || r.name === member?.role,
+      )?.name ?? "",
+    [roles, member?.role],
+  );
+
+  // Populate form when member changes
   useEffect(() => {
-    if (addingTeamMember) {
+    if (member) {
       setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        role: roleOptions.length > 0 ? roleOptions[0].value : "",
+        firstName: member.firstName,
+        lastName: member.lastName,
+        role: memberRoleName,
       });
       setValidationErrors([]);
     }
-  }, [addingTeamMember, roles, user?.roles, roleOptions]);
+  }, [member, memberRoleName]);
+
+  // Disable role editing when viewing your own profile
+  const isEditingSelf = member?.email === user?.email;
+
+  const isOpen = editingTeamMemberId !== null;
 
   const handleClose = () => {
-    setAddingTeamMember(false);
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      role: "",
-    });
+    setEditingTeamMemberId(null);
     setValidationErrors([]);
   };
 
   const handleSave = async () => {
-    // Collect validation errors
-    const errors: string[] = [];
+    if (!member) return;
 
+    const errors: string[] = [];
     if (!formData.firstName.trim()) {
       errors.push("First Name is required");
     }
     if (!formData.lastName.trim()) {
       errors.push("Last Name is required");
     }
-    if (!formData.email.trim()) {
-      errors.push("Email is required");
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.push("Please enter a valid email address");
-    }
     if (!formData.role) {
       errors.push("Role is required");
     }
 
-    // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
       return;
     }
 
+    // Build update payload - only include changed fields
+    const updates: Record<string, string> = {};
+    if (formData.firstName.trim() !== member.firstName) {
+      updates.firstName = formData.firstName.trim();
+    }
+    if (formData.lastName.trim() !== member.lastName) {
+      updates.lastName = formData.lastName.trim();
+    }
+
+    if (formData.role !== memberRoleName) {
+      updates.role = formData.role;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      handleClose();
+      return;
+    }
+
     try {
-      // Clear any previous errors
       setValidationErrors([]);
-
-      // Call the mutation
-      await addMutation.mutateAsync({
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim(),
-        role: formData.role,
+      await updateMutation.mutateAsync({
+        userId: member.id,
+        data: updates,
       });
-
-      // Success - close panel
       handleClose();
     } catch (error: unknown) {
-      console.error("[AddTeamMemberPane] Save error:", error);
+      console.error("[EditTeamMemberPane] Save error:", error);
 
-      // Handle 400 Bad Request errors (user already exists, role not found, etc.)
       if (error && typeof error === "object") {
         const response =
           "response" in error
@@ -122,26 +136,23 @@ export function AddTeamMemberPane() {
         if (response?.status === 400) {
           const detail = response.data?.detail || response.data?.message;
           setValidationErrors([
-            detail || "Failed to add team member. Please check your input.",
+            detail || "Failed to update team member. Please check your input.",
           ]);
           return;
         }
 
-        // Handle 403 Forbidden (insufficient permissions for role assignment)
         if (response?.status === 403) {
-          const detail = response.data?.detail || response.data?.message;
           setValidationErrors([
-            detail || "You don't have permission to assign this role.",
+            "You don't have permission to update this team member.",
           ]);
           return;
         }
       }
 
-      // Handle other errors
       const errorMessage =
         error && typeof error === "object" && "message" in error
           ? (error as { message: string }).message
-          : "Failed to add team member. Please try again.";
+          : "Failed to update team member. Please try again.";
       setValidationErrors([errorMessage]);
     }
   };
@@ -153,15 +164,12 @@ export function AddTeamMemberPane() {
     }));
   };
 
-  // Check if roles are empty (not initialized)
-  const rolesNotInitialized = !rolesLoading && roles && roles.length === 0;
-
   return (
     <>
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/20 transition-opacity duration-300 z-40 ${
-          addingTeamMember ? "opacity-100" : "opacity-0 pointer-events-none"
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={handleClose}
       />
@@ -169,7 +177,7 @@ export function AddTeamMemberPane() {
       {/* Side Panel */}
       <div
         className={`fixed top-0 right-0 h-full w-120 p-2 z-50 transform transition-transform duration-300 ease-in-out ${
-          addingTeamMember ? "translate-x-0" : "translate-x-full"
+          isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-xs">
@@ -177,7 +185,7 @@ export function AddTeamMemberPane() {
           <div className="px-5 py-3 border-b border-gray-200 shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 m-0">
-                Add Team Member
+                Edit Details
               </h2>
               <button
                 onClick={handleClose}
@@ -213,32 +221,16 @@ export function AddTeamMemberPane() {
                 />
               )}
 
-              {/* Roles Not Initialized Warning */}
-              {rolesNotInitialized && (
-                <Banner
-                  variant="warning"
-                  message="Team roles not initialized. Please contact your administrator to set up roles first."
-                  dismissible={false}
-                />
-              )}
-
-              {/* Description
-              <div>
-                <p className="text-sm text-gray-600">
-                  Add a new team member to your organization.
-                </p>
-              </div> */}
-
               {/* First Name */}
               <div>
                 <label
-                  htmlFor="firstName"
+                  htmlFor="editFirstName"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <Input
-                  id="firstName"
+                  id="editFirstName"
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   placeholder="John"
@@ -249,13 +241,13 @@ export function AddTeamMemberPane() {
               {/* Last Name */}
               <div>
                 <label
-                  htmlFor="lastName"
+                  htmlFor="editLastName"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <Input
-                  id="lastName"
+                  id="editLastName"
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   placeholder="Doe"
@@ -263,28 +255,30 @@ export function AddTeamMemberPane() {
                 />
               </div>
 
-              {/* Email */}
+              {/* Email - Read Only */}
               <div>
                 <label
-                  htmlFor="email"
+                  htmlFor="editEmail"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
-                  Email <span className="text-red-500">*</span>
+                  Email
                 </label>
                 <Input
-                  id="email"
+                  id="editEmail"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  placeholder="john.doe@example.com"
+                  value={member?.email ?? ""}
+                  disabled
                   fullWidth
                 />
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Email cannot be changed
+                </p>
               </div>
 
               {/* Role */}
               <div>
                 <label
-                  htmlFor="role"
+                  htmlFor="editRole"
                   className="block text-sm font-medium text-gray-700 mb-1.5"
                 >
                   Role <span className="text-red-500">*</span>
@@ -300,8 +294,14 @@ export function AddTeamMemberPane() {
                       placeholder="Select a role"
                       fullWidth
                       showSearch={false}
+                      disabled={isEditingSelf}
                     />
-                    {roles && formData.role && (
+                    {isEditingSelf && (
+                      <p className="mt-1.5 text-xs text-gray-400">
+                        You cannot change your own role
+                      </p>
+                    )}
+                    {!isEditingSelf && roles && formData.role && (
                       <p className="mt-2 text-xs text-gray-500">
                         {
                           roles.find((r) => r.name === formData.role)
@@ -326,12 +326,10 @@ export function AddTeamMemberPane() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={
-                  addMutation.isPending || rolesLoading || rolesNotInitialized
-                }
+                disabled={updateMutation.isPending || rolesLoading}
                 className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {addMutation.isPending ? "Adding..." : "Add Team Member"}
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>

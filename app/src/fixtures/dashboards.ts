@@ -32,18 +32,16 @@ export const salesExecDashboard: DashboardMetadataResponse = {
           title: "Total ARR",
           config: {
             value: 18750000,
-            format: "currency",
+            format: ",.0f",
             prefix: "$",
-            decimals: 0,
-            trend: {
+            comparison: {
               value: 14.2,
-              direction: "up",
-              sentiment: "positive",
+              format: ".1f",
+              suffix: "%",
               label: "vs last quarter",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 78,
-            target: "$24M",
+            target: { value: 24000000, format: ",.0f", label: "Target" },
           },
         },
         w_new_bookings: {
@@ -52,18 +50,16 @@ export const salesExecDashboard: DashboardMetadataResponse = {
           title: "New Bookings (Q4)",
           config: {
             value: 3250000,
-            format: "currency",
+            format: ",.0f",
             prefix: "$",
-            decimals: 0,
-            trend: {
+            comparison: {
               value: 22.6,
-              direction: "up",
-              sentiment: "positive",
+              format: ".1f",
+              suffix: "%",
               label: "vs Q3",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 93,
-            target: "$3.5M",
+            target: { value: 3500000, format: ",.0f", label: "Target" },
           },
         },
         w_revenue_trend: {
@@ -203,18 +199,16 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
           title: "Pipeline Value",
           config: {
             value: 12400000,
-            format: "currency",
+            format: ",.0f",
             prefix: "$",
-            decimals: 0,
-            trend: {
+            comparison: {
               value: 18.3,
-              direction: "up",
-              sentiment: "positive",
+              format: ".1f",
+              suffix: "%",
               label: "vs last quarter",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 82,
-            target: "$15M",
+            target: { value: 15000000, format: ",.0f", label: "Target" },
           },
         },
         w_win_rate: {
@@ -223,18 +217,16 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
           title: "Win Rate",
           config: {
             value: 32.4,
-            format: "percentage",
+            format: ".1f",
             suffix: "%",
-            decimals: 1,
-            trend: {
+            comparison: {
               value: 3.1,
-              direction: "up",
-              sentiment: "positive",
+              format: ".1f",
+              suffix: "%",
               label: "vs Q3",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 65,
-            target: "50%",
+            target: { value: 50, format: ".0f", label: "Target" },
           },
         },
         w_avg_deal_size: {
@@ -243,18 +235,16 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
           title: "Avg Deal Size",
           config: {
             value: 78500,
-            format: "currency",
+            format: ",.0f",
             prefix: "$",
-            decimals: 0,
-            trend: {
+            comparison: {
               value: 5.2,
-              direction: "up",
-              sentiment: "positive",
+              format: ".1f",
+              suffix: "%",
               label: "vs Q3",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 45,
-            target: "$175K",
+            target: { value: 175000, format: ",.0f", label: "Target" },
           },
         },
         w_sales_cycle: {
@@ -263,15 +253,14 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
           title: "Avg Sales Cycle",
           config: {
             value: 42,
-            format: "number",
+            format: ",.0f",
             suffix: " days",
-            decimals: 0,
-            trend: {
-              value: 5,
-              direction: "down",
-              sentiment: "positive",
+            comparison: {
+              value: -5,
+              format: ".0f",
+              suffix: "%",
               label: "vs Q3 (47 days)",
-              unit: "%",
+              positive_is_good: false,
             },
           },
         },
@@ -600,18 +589,16 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           title: "Annual Recurring Revenue",
           config: {
             value: 24800000,
-            format: "currency",
+            format: ",.0f",
             prefix: "$",
-            decimals: 0,
-            trend: {
+            comparison: {
               value: 18.6,
-              direction: "up",
-              sentiment: "positive",
+              format: ".1f",
+              suffix: "%",
               label: "YoY growth",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 83,
-            target: "$30M",
+            target: { value: 30000000, format: ",.0f", label: "Target" },
           },
         },
         w_counter_nrr: {
@@ -620,18 +607,16 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           title: "Net Revenue Retention",
           config: {
             value: 118,
-            format: "percentage",
+            format: ".0f",
             suffix: "%",
-            decimals: 0,
-            trend: {
+            comparison: {
               value: 4,
-              direction: "up",
-              sentiment: "positive",
+              format: ".0f",
+              suffix: "%",
               label: "vs last year (114%)",
-              unit: "%",
+              positive_is_good: true,
             },
-            progress: 100,
-            target: "110%",
+            target: { value: 110, format: ".0f", label: "Target" },
           },
         },
         w_counter_cac: {
@@ -640,18 +625,21 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           title: "Customer Acquisition Cost",
           config: {
             value: 12400,
-            format: "currency",
+            format: ",.0f",
             prefix: "$",
-            decimals: 0,
-            trend: {
-              value: 8.2,
-              direction: "down",
-              sentiment: "positive",
+            comparison: {
+              value: -8.2,
+              format: ".1f",
+              suffix: "%",
               label: "vs Q3 ($13,500)",
-              unit: "%",
+              positive_is_good: false,
             },
-            progress: 72,
-            target: "$10K",
+            target: {
+              value: 10000,
+              format: ",.0f",
+              label: "Target",
+              inverted: true,
+            },
           },
         },
         w_counter_churn: {
@@ -660,18 +648,21 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
           title: "Gross Churn Rate",
           config: {
             value: 4.2,
-            format: "percentage",
+            format: ".1f",
             suffix: "%",
-            decimals: 1,
-            trend: {
+            comparison: {
               value: 0.8,
-              direction: "up",
-              sentiment: "negative",
+              format: ".1f",
+              suffix: "%",
               label: "vs Q3 (3.4%)",
-              unit: "%",
+              positive_is_good: false,
             },
-            progress: 42,
-            target: "< 3%",
+            target: {
+              value: 3,
+              format: ".0f",
+              label: "Target",
+              inverted: true,
+            },
           },
         },
         w_line_mrr: {

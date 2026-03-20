@@ -12,7 +12,7 @@ import { CompactApprovalCard } from './CompactApprovalCard';
  * Renders CompactApprovalCard for single record operations
  */
 export const ApprovalCard = React.memo<CompactApprovalCardProps>(
-  ({ approval, onApprove, onReject, isApproved, isRejected }) => {
+  ({ approval, onApprove, onReject, isApproved, isRejected, isExpired, isError }) => {
     return (
       <CompactApprovalCard
         approval={approval}
@@ -20,6 +20,8 @@ export const ApprovalCard = React.memo<CompactApprovalCardProps>(
         onReject={onReject}
         isApproved={isApproved}
         isRejected={isRejected}
+        isExpired={isExpired}
+        isError={isError}
       />
     );
   }

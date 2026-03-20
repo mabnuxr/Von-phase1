@@ -389,6 +389,7 @@ export function useChatV2(props: UseChatV2Props) {
         elapsedTime: v2Processor.elapsedTime,
         finalResponse: v2Processor.finalResponse,
         isFinalResponseStreaming: v2Processor.isFinalResponseStreaming,
+        isAwaitingApproval: v2Processor.isAwaitingApproval,
         researchResults: v2Processor.researchResults,
         stoppedByUser: v2Processor.stoppedByUser,
         runErrorMessage: v2Processor.runErrorMessage,
@@ -405,6 +406,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.elapsedTime,
       v2Processor.finalResponse,
       v2Processor.isFinalResponseStreaming,
+      v2Processor.isAwaitingApproval,
       v2Processor.researchResults,
       v2Processor.stoppedByUser,
       v2Processor.runErrorMessage,
@@ -500,6 +502,11 @@ export function useChatV2(props: UseChatV2Props) {
 
       // Clear any stale pending-stop flag so the new run's events aren't swallowed
       v2Processor.clearPendingStop();
+
+      // If awaiting approval, invalidate the old run so its events don't interfere
+      if (v2Processor.isAwaitingApproval) {
+        v2Processor.invalidateApproval();
+      }
 
       // Persist any in-flight V2 state before sending a new message
       forceCompleteStreamingMessages();

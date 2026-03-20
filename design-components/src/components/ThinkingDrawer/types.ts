@@ -5,7 +5,7 @@
 /**
  * Step status type for thinking drawer steps
  */
-export type StepStatus = 'pending' | 'in-progress' | 'complete' | 'error' | 'rejected';
+export type StepStatus = 'pending' | 'in-progress' | 'complete' | 'error' | 'rejected' | 'expired';
 
 /**
  * Detailed information about a thinking step

@@ -4,6 +4,7 @@ import type {
   MessageWithStreaming,
   AguiEventWrapper,
 } from "../types/conversation";
+import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from "../utils/transformAguiToTimelineSteps";
 
 interface ChatState {
   // UI state
@@ -60,6 +61,11 @@ interface ChatState {
     events?: AguiEventWrapper[],
   ) => void;
   markMessageTimeout: (conversationId: string, messageId: string) => void;
+  markMessageExpired: (
+    conversationId: string,
+    messageId: string,
+    message?: string,
+  ) => void;
 
   // Message filtering state for ChatGPT-style visual clearing
   // Stored in Zustand for synchronous updates with message additions
@@ -336,6 +342,28 @@ const useChatStoreBase = create<ChatState>((set) => ({
                   isStreaming: false,
                   status: "timeout" as const,
                   errorMessage: "Message timed out after 60 seconds",
+                }
+              : msg,
+          ),
+        },
+      };
+    }),
+
+  markMessageExpired: (conversationId, messageId, message) =>
+    set((state) => {
+      const messages = state.messages[conversationId];
+      if (!messages) return state;
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: messages.map((msg) =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  isStreaming: false,
+                  status: "expired" as const,
+                  errorMessage: message || DEFAULT_EXPIRED_APPROVAL_MESSAGE,
                 }
               : msg,
           ),

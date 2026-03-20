@@ -10,6 +10,17 @@ import type { FileAttachment } from './FileAttachment/types';
 import type { MentionItem } from '../Mentions/types';
 
 /**
+ * Shared message status type used across Chat components
+ */
+export type MessageStatus =
+  | 'created'
+  | 'streaming'
+  | 'completed'
+  | 'failed'
+  | 'timeout'
+  | 'expired';
+
+/**
  * Additional options passed with the send message callback
  */
 export interface SendMessageOptions {
@@ -115,7 +126,7 @@ export interface Message {
    * so they disappear from the list rather than showing timeout status.
    * However, client-side timeout recovery may set status to "timeout" temporarily.
    */
-  status?: 'created' | 'streaming' | 'completed' | 'failed' | 'timeout';
+  status?: MessageStatus;
   /**
    * Error message if status is 'failed'
    */

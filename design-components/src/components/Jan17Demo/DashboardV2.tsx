@@ -34,6 +34,7 @@ import { ReportTable, buildGridOptions, type ReportColumn } from '../ReportTable
 import type { FilterField, FilterGroup, FilterCondition } from '../forms/filter/Filter';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { formatKpiDisplay, computeProgress, getComparisonColor } from '../../utils/formatKpiValue';
 
 // ============================================================================
 // Types
@@ -57,14 +58,26 @@ export interface DashboardFilter {
 export interface KPICardData {
   id: string;
   title: string;
-  value: string;
-  change?: string;
-  changeDirection?: 'up' | 'down' | 'neutral';
-  subtitle?: string;
-  /** Progress value as a percentage (0-100) for horizontal progress bar */
-  progress?: number;
-  /** Target/goal value to display alongside progress */
-  target?: string;
+  kpi: {
+    value: number | null;
+    format: string | null;
+    prefix?: string | null;
+    suffix?: string | null;
+    comparison?: {
+      value: number | null;
+      format: string | null;
+      suffix?: string | null;
+      label?: string | null;
+      positive_is_good: boolean;
+    } | null;
+    target?: {
+      value: number | null;
+      format: string | null;
+      label: string;
+      inverted?: boolean;
+    } | null;
+  };
+  query_failed?: boolean;
 }
 
 export interface WaterfallDataPoint {
@@ -843,6 +856,12 @@ interface KPICardProps {
   onClick?: () => void;
 }
 
+const COLOR_CLASS = {
+  good: 'text-emerald-600',
+  bad: 'text-red-600',
+  neutral: 'text-gray-500',
+} as const;
+
 const KPICard: React.FC<KPICardProps> = ({
   data,
   isAnimating,
@@ -851,6 +870,30 @@ const KPICard: React.FC<KPICardProps> = ({
   onClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  const { kpi } = data;
+  const isError = data.query_failed || kpi.value === null;
+  const displayValue = isError
+    ? '—'
+    : formatKpiDisplay(kpi.value, kpi.format, kpi.prefix, kpi.suffix);
+
+  const comparison = kpi.comparison;
+  const cmpVal = comparison?.value ?? null;
+  const hasComparison = !isError && comparison != null && cmpVal !== null;
+  const comparisonColor = hasComparison
+    ? getComparisonColor(cmpVal, comparison.positive_is_good)
+    : 'neutral';
+  const comparisonText = hasComparison
+    ? `${cmpVal > 0 ? '+' : ''}${formatKpiDisplay(cmpVal, comparison.format, null, comparison.suffix, false)}`
+    : undefined;
+
+  const target = kpi.target;
+  const progress =
+    !isError && target ? computeProgress(kpi.value, target.value, target.inverted) : undefined;
+  const targetDisplay =
+    target && target.value !== null
+      ? formatKpiDisplay(target.value, target.format, kpi.prefix, kpi.suffix)
+      : undefined;
 
   return (
     <motion.div
@@ -894,55 +937,53 @@ const KPICard: React.FC<KPICardProps> = ({
       </AnimatePresence>
 
       <p className="text-xs text-gray-500 mb-1">{data.title}</p>
-      <p className="text-2xl font-semibold text-gray-900 tabular-nums">{data.value}</p>
-      {data.change && (
+      <p
+        className={`text-2xl font-semibold tabular-nums ${isError ? 'text-gray-400' : 'text-gray-900'}`}
+      >
+        {displayValue}
+      </p>
+
+      {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
-          {data.changeDirection === 'up' && <ArrowUpIcon size={12} className="text-emerald-600" />}
-          {data.changeDirection === 'down' && <ArrowDownIcon size={12} className="text-red-600" />}
-          <span
-            className={`text-xs font-medium ${
-              data.changeDirection === 'up'
-                ? 'text-emerald-600'
-                : data.changeDirection === 'down'
-                  ? 'text-red-600'
-                  : 'text-gray-500'
-            }`}
-          >
-            {data.change}
+          {cmpVal > 0 && <ArrowUpIcon size={12} className={COLOR_CLASS[comparisonColor]} />}
+          {cmpVal < 0 && <ArrowDownIcon size={12} className={COLOR_CLASS[comparisonColor]} />}
+          {cmpVal === 0 && <span className="text-gray-500">—</span>}
+          <span className={`text-xs font-medium ${COLOR_CLASS[comparisonColor]}`}>
+            {comparisonText}
           </span>
-          {data.subtitle && <span className="text-xs text-gray-500">{data.subtitle}</span>}
+          {comparison.label && <span className="text-xs text-gray-500">{comparison.label}</span>}
         </div>
       )}
 
       {/* Progress bar */}
-      {data.progress !== undefined && (
+      {progress !== undefined && (
         <div className="mt-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] text-gray-500">Progress</span>
-            {data.target && (
-              <span className="text-[10px] text-gray-500">Target: {data.target}</span>
+            {targetDisplay && target && (
+              <span className="text-[10px] text-gray-500">
+                {target.label}: {targetDisplay}
+              </span>
             )}
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${Math.min(100, Math.max(0, data.progress))}%` }}
+              animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
               className={`h-full rounded-full ${
-                data.progress >= 100
+                progress >= 100
                   ? 'bg-emerald-500'
-                  : data.progress >= 75
+                  : progress >= 75
                     ? 'bg-indigo-500'
-                    : data.progress >= 50
+                    : progress >= 50
                       ? 'bg-amber-500'
                       : 'bg-red-400'
               }`}
             />
           </div>
           <div className="flex items-center justify-end mt-0.5">
-            <span className="text-[10px] font-medium text-gray-600">
-              {Math.round(data.progress)}%
-            </span>
+            <span className="text-[10px] font-medium text-gray-600">{Math.round(progress)}%</span>
           </div>
         </div>
       )}
