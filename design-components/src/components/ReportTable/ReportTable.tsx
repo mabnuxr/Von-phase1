@@ -97,10 +97,12 @@ export function ReportTable({
     left: number;
     width: number;
   } | null>(null);
+  const lastHoveredTd = useRef<HTMLElement | null>(null);
 
   const handleCellMouseEnter = useCallback((e: React.MouseEvent) => {
     const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
-    if (!td) return;
+    if (!td || td === lastHoveredTd.current) return;
+    lastHoveredTd.current = td;
 
     // Check if cell content is actually truncated
     if (td.scrollWidth <= td.clientWidth) return;
@@ -125,6 +127,7 @@ export function ReportTable({
     const related = (e.relatedTarget as HTMLElement | null)?.closest?.('td');
     // Only clear if we're actually leaving the cell (not moving between child elements)
     if (td && td !== related) {
+      lastHoveredTd.current = null;
       setTruncTooltip(null);
     }
   }, []);
@@ -136,7 +139,10 @@ export function ReportTable({
     const viewport = wrapper.querySelector('.ag-body-viewport');
     if (!viewport) return;
 
-    const onScroll = () => setTruncTooltip(null);
+    const onScroll = () => {
+      lastHoveredTd.current = null;
+      setTruncTooltip(null);
+    };
     viewport.addEventListener('scroll', onScroll, { passive: true });
     return () => viewport.removeEventListener('scroll', onScroll);
   }, []);
