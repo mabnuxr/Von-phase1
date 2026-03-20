@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { ArrowsOutSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowsOutIcon, XIcon } from "@phosphor-icons/react";
 import vonFilledLogo from "../../../assets/von-filled-logo.svg";
 import {
   DashboardLayout,
@@ -105,7 +105,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                   title="Expand dashboard"
                 >
-                  <ArrowsOutSimpleIcon size={14} />
+                  <ArrowsOutIcon size={14} />
                 </button>
               )}
               {onClose && (

@@ -279,15 +279,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                               )
                           : undefined
                       }
-                      onClick={
-                        onDashboardOpen
-                          ? () =>
-                              onDashboardOpen(
-                                message.dashboard!.dashboard_id,
-                                message.dashboard!.dashboard_version
-                              )
-                          : undefined
-                      }
                     />
                   </div>
                   <MessageActions
@@ -426,15 +417,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                                 : undefined
                             }
                             onOpen={
-                              onDashboardOpen
-                                ? () =>
-                                    onDashboardOpen(
-                                      message.dashboard!.dashboard_id,
-                                      message.dashboard!.dashboard_version
-                                    )
-                                : undefined
-                            }
-                            onClick={
                               onDashboardOpen
                                 ? () =>
                                     onDashboardOpen(

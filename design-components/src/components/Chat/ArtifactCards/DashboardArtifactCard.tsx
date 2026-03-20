@@ -27,20 +27,25 @@ export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
   onClick,
   isPending,
 }) => (
-  <BaseArtifactCard title={title} description="Dashboard" isPending={isPending} onClick={onClick}>
+  <BaseArtifactCard
+    title={title}
+    description="Dashboard"
+    isPending={isPending}
+    onClick={onClick ?? onPreview}
+  >
     <BaseArtifactCard.Icon>
       <SquaresFourIcon size={20} weight="regular" className="text-gray-500" />
     </BaseArtifactCard.Icon>
 
     <BaseArtifactCard.Actions>
       {onPreview && (
-        <ActionButton onClick={onPreview} title="Preview full screen">
-          <ArrowsOutIcon size={16} weight="regular" />
+        <ActionButton onClick={onPreview} title="Expand in chat">
+          <ArrowRightIcon size={16} weight="regular" />
         </ActionButton>
       )}
       {onOpen && (
-        <ActionButton onClick={onOpen} title="Open">
-          <ArrowRightIcon size={16} weight="regular" />
+        <ActionButton onClick={onOpen} title="Open full view">
+          <ArrowsOutIcon size={16} weight="regular" />
         </ActionButton>
       )}
     </BaseArtifactCard.Actions>
