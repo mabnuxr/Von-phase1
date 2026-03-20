@@ -68,8 +68,15 @@ interface RawApiDashboardResponse {
   is_owner: boolean;
   is_shared_with_tenant: boolean;
   gridConfig: Dashboard["gridConfig"];
-  layout: Dashboard["layout"];
   widgets: Record<string, RawApiWidget>;
+  ui_config?: {
+    panel_layouts?: Record<
+      string,
+      { x: number; y: number; w: number; h: number }
+    >;
+    color_palette?: string | null;
+    color_palette_global?: string | null;
+  };
   filters?: DashboardFilters;
   created_at: string;
   updated_at: string;
@@ -173,7 +180,9 @@ function adaptApiResponse(
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         gridConfig: raw.gridConfig,
-        layout: raw.layout,
+        layout: Object.entries(raw.ui_config?.panel_layouts ?? {}).map(
+          ([id, pos]) => ({ i: id, x: pos.x, y: pos.y, w: pos.w, h: pos.h }),
+        ),
         widgets,
         filters: raw.filters
           ? {
