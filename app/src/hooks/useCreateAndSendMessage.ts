@@ -15,15 +15,16 @@ import { useCallback, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ConversationMode } from "@vonlabs/design-components";
-import type { SendMessageOptions, FileAttachment } from "@vonlabs/design-components";
+import type {
+  SendMessageOptions,
+  FileAttachment,
+} from "@vonlabs/design-components";
 
 import { useCreateConversation, conversationKeys } from "./useConversations";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { useSendMessage } from "./useSendMessage";
 import { transformConversationMessages } from "../lib/dashboardUtils";
-import {
-  ReferenceType,
-} from "../types/conversation";
+import { ReferenceType } from "../types/conversation";
 import type {
   MessageWithStreaming,
   MessageReference,
