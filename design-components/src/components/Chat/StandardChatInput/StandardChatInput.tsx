@@ -40,6 +40,7 @@ import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
 import { ChatInputPopover } from './ChatInputPopover';
 import { ConversationMode } from './types';
+import { TruncateWithText } from '../../TruncateWithText/TruncateWithText';
 
 /**
  * Get icon for reference type
@@ -625,13 +626,13 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
           {/* Reference tag - shown above the input when a reference is set */}
           {referenceContext && !activePopover && (
-            <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl">
-              <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1">
-                <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-xl overflow-hidden">
+              <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1 min-w-0 overflow-hidden">
+                <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                   {getReferenceIcon(referenceContext.type)}
-                  <span className="text-sm text-gray-900">
-                    {getReferenceLabel(referenceContext.type)}: {referenceContext.name}
-                  </span>
+                  <TruncateWithText className="text-sm text-gray-900">
+                    {`${getReferenceLabel(referenceContext.type)}: ${referenceContext.name}`}
+                  </TruncateWithText>
                 </div>
                 {onRemoveReference && (
                   <RemoveButton
@@ -946,9 +947,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
           </div>
 
           {!hideDisclaimer && (
-            <div className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+            <TruncateWithText className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
               Von AI may make mistakes. Please recheck all important information.
-            </div>
+            </TruncateWithText>
           )}
         </div>
       </div>
