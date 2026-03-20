@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react';
+import { ArrowUp, ArrowDown, Minus, TableIcon } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 import { useDashboardCustomization } from '../DashboardCustomization';
 import {
@@ -98,7 +98,7 @@ const COMPARISON_COLOR_CLASS = {
   neutral: 'text-gray-500',
 } as const;
 
-const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }) => {
+const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, onDrillDown }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
   const primaryColor = useThemePrimary();
 
@@ -132,7 +132,19 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle }
     comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
 
   return (
-    <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
+    <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
+      {onDrillDown && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDrillDown();
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer z-10"
+          title="View data"
+        >
+          <TableIcon size={14} />
+        </button>
+      )}
       {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
       {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 

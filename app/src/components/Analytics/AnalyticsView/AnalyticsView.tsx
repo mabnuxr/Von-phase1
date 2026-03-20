@@ -55,6 +55,8 @@ interface AnalyticsViewProps {
   /** Widgets with paginated table data merged in (overrides dashboard.widgets) */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   paginatedWidgets?: Record<string, any>;
+  /** Callback when a widget's drilldown icon is clicked */
+  onDrillDown?: (panelId: string) => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -75,6 +77,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
+  onDrillDown,
 }) => {
   const gridConfig = dashboard.gridConfig as unknown as GridConfig;
   const layout = dashboard.layout as unknown as LayoutItem[];
@@ -225,6 +228,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               gridConfig={gridConfig}
               onTablePageChange={onTablePageChange}
               loadingTablePanels={loadingTablePanels}
+              onDrillDown={onDrillDown}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

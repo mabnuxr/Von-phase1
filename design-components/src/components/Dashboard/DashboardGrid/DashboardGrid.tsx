@@ -15,6 +15,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   gridConfig,
   onTablePageChange,
   loadingTablePanels,
+  onDrillDown,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
@@ -67,6 +68,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                   widget={widget}
                   onTablePageChange={onTablePageChange}
                   isTableLoading={loadingTablePanels?.has(widget.id)}
+                  onDrillDown={onDrillDown}
                 />
               </WidgetErrorBoundary>
             </div>

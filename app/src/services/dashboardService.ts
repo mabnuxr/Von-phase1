@@ -5,6 +5,8 @@ import type {
   WidgetDataResponse,
   PanelRenderRequest,
   PanelRenderResponse,
+  PanelDrilldownRequest,
+  PanelDrilldownResponse,
 } from "../types/dashboard";
 
 /**
@@ -114,6 +116,16 @@ class DashboardService {
   ): Promise<PanelRenderResponse> {
     return apiClient.post<PanelRenderResponse>(
       `/api/v1/dashboards/${dashboardId}/panels/render`,
+      request,
+    );
+  }
+
+  async drilldownPanel(
+    dashboardId: string,
+    request: PanelDrilldownRequest,
+  ): Promise<PanelDrilldownResponse> {
+    return apiClient.post<PanelDrilldownResponse>(
+      `/api/v1/dashboards/${dashboardId}/panels/drilldown`,
       request,
     );
   }
