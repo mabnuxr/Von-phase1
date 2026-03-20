@@ -50,6 +50,13 @@
   font-size: 14px;
   font-weight: 500;
   color: #1f2937;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+/* Force all header cells left-aligned (overrides HCG number-column right-align) */
+.report-grid-wrapper .hcg-table thead th {
+  text-align: left !important;
 }
 
 /* Remove flex:1 from header content spans so icon spans don't stretch */
