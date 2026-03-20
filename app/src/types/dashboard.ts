@@ -51,7 +51,7 @@ export interface Dashboard {
   gridConfig: GridConfig;
   layout: LayoutItem[];
   widgets: Record<string, WidgetConfig>;
-  filters?: DashboardFilter[];
+  filters?: DashboardFilters;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -284,24 +284,43 @@ export interface TextWidgetConfig {
 
 // ─── Filters ─────────────────────────────────────────────────────
 
-export interface DashboardFilter {
+export type DashboardFilterType =
+  | "select"
+  | "multi-select"
+  | "date-range"
+  | "search"
+  | "range";
+
+export interface DashboardFilterDefinition {
   id: string;
   label: string;
-  field: string;
-  type: "select" | "multi-select" | "date-range" | "search" | "range";
-  options?: Array<{
-    value: string;
-    label: string;
-    count?: number;
-  }>;
-  defaultValue?: unknown;
-  range?: {
-    min: number;
-    max: number;
-    step?: number;
-  };
-  affectedWidgets?: string[];
+  type: DashboardFilterType;
+  /** Column name used in SQL queries */
+  column: string;
+  /** Available option values (for select / multi-select) */
+  options?: string[];
+  /** Default value applied on first load */
+  default?: unknown;
+  /** Widget IDs this filter applies to */
+  applies_to?: string[];
 }
+
+/** Active filter state values per filter type:
+ *  select       → string
+ *  multi-select → string[]
+ *  date-range   → { start: string; end: string }
+ *  range        → { min: number; max: number }
+ *  search       → string
+ */
+export type DashboardFilterState = Record<string, unknown>;
+
+export interface DashboardFilters {
+  definitions: DashboardFilterDefinition[];
+  state: DashboardFilterState;
+}
+
+/** @deprecated Use DashboardFilterDefinition */
+export type DashboardFilter = DashboardFilterDefinition;
 
 // ─── Refresh ─────────────────────────────────────────────────────
 
