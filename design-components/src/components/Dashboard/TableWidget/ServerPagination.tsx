@@ -31,8 +31,7 @@ const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageC
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
-        e.currentTarget.blur();
-        commitPage();
+        e.currentTarget.blur(); // triggers onBlur → commitPage
       }
     },
     [commitPage]
