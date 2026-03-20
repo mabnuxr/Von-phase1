@@ -14,27 +14,20 @@
  */
 
 import { useCallback, useMemo, useState, Profiler } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { Chat } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
-import type { SendMessageOptions, FileAttachment } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
-import { useCreateConversation, conversationKeys } from "../hooks/useConversations";
-import { chatSidebarKeys } from "../hooks/useChatSidebar";
-import { useSendMessage } from "../hooks/useSendMessage";
+import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { config } from "../config";
 import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { user, collapseSidebar } = useAppShell();
+  const { user } = useAppShell();
   const {
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
@@ -51,10 +44,15 @@ const NewConversation = () => {
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
 
-  const { mutateAsync: createConversation } = useCreateConversation();
-  const { mutate: sendMessage } = useSendMessage();
+  const { handleSendMessage, transformedMessages, isCreating } =
+    useCreateAndSendMessage({
+      agentVersion: isAgentV2Flag ? "v2" : "v1",
+      isAgentV2: isAgentV2Flag,
+      title: "",
+      navigateOnCreate: true,
+      isSidebarV2,
+    });
 
-  const [isCreating, setIsCreating] = useState(false);
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
     useState(false);
@@ -64,67 +62,6 @@ const NewConversation = () => {
     if (isDeepResearchEnabled) modes.push(ConversationMode.DashboardBuilder);
     return modes;
   }, [isDeepResearchEnabled]);
-
-  const handleSendMessage = useCallback(
-    async (
-      content: string,
-      _attachments?: FileAttachment[],
-      options?: SendMessageOptions,
-    ) => {
-      if (isCreating) return;
-      setIsCreating(true);
-      try {
-        const agentMode = options?.agentMode as ConversationMode | undefined;
-        const mode =
-          agentMode && agentMode !== ConversationMode.Auto
-            ? agentMode
-            : undefined;
-
-        // 1. Create conversation (with mode if an agent/bot was selected)
-        const res = await createConversation({
-          title: "",
-          agentVersion: isAgentV2Flag ? "v2" : "v1",
-          mode,
-        });
-        const newId = res.conversation.conversationId;
-
-        // 2. Pre-populate conversation metadata cache so Conversation.tsx
-        //    renders instantly without waiting for a network round-trip.
-        queryClient.setQueryData(["conversation", newId], res.conversation);
-
-        // 3. Send the first message (adds optimistic messages to chatStore
-        //    so the chat renders with the message immediately on navigation).
-        sendMessage({ conversationId: newId, content });
-
-        // 4. Refresh sidebar (fire-and-forget)
-        queryClient.refetchQueries({
-          queryKey: isSidebarV2
-            ? chatSidebarKeys.sidebar()
-            : conversationKeys.lists(),
-        });
-
-        // 5. Navigate — replace so back button skips /chat/new.
-        //    { newlyCreated: true } tells Conversation.tsx to skip the skeleton
-        //    since chatStore already has the optimistic messages.
-        navigate(`/chat/${newId}`, {
-          replace: true,
-          state: { newlyCreated: true },
-        });
-      } catch (error) {
-        console.error("[NewConversation] Failed to create conversation:", error);
-        setIsCreating(false);
-      }
-    },
-    [
-      createConversation,
-      isAgentV2Flag,
-      isCreating,
-      isSidebarV2,
-      navigate,
-      queryClient,
-      sendMessage,
-    ],
-  );
 
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {
@@ -157,7 +94,7 @@ const NewConversation = () => {
         userEmail={user?.email}
         apiBaseUrl={config.apiBaseUrl}
         conversationId=""
-        messages={[]}
+        messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
         placeholder="Ask von anything"
@@ -175,7 +112,6 @@ const NewConversation = () => {
         useStandardInput={isAgentV2Flag}
         enableFileUpload={false}
         enableCommands={isSlashCommandsEnabled}
-        onCollapseSidebar={collapseSidebar}
       />
     </Profiler>
   );

@@ -52,8 +52,8 @@ const Conversation = () => {
 
   // When navigating from /chat/new, chatStore already has optimistic messages
   // and the conversation metadata is pre-cached — skip the loading skeleton.
-  const isNewlyCreated =
-    !!(location.state as { newlyCreated?: boolean } | null)?.newlyCreated;
+  const isNewlyCreated = !!(location.state as { newlyCreated?: boolean } | null)
+    ?.newlyCreated;
 
   // --- AppShell context (auth, user, sidebar, flags) ---
   const { user, collapseSidebar } = useAppShell();

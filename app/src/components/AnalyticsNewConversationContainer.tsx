@@ -10,16 +10,14 @@
  *   4. Call onCreated(conversationId) — Analytics swaps to AnalyticsChatContainer
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Chat } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
-import { useCreateConversation } from "../hooks/useConversations";
-import { useSendMessage } from "../hooks/useSendMessage";
+import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
 import { useReferenceStack } from "../hooks/useReferenceStack";
 import type { ReferenceStackLayer } from "../hooks/useReferenceStack";
 import { ReferenceType } from "../types/conversation";
@@ -40,7 +38,6 @@ export function AnalyticsNewConversationContainer({
   dashboardVersion,
   onCreated,
 }: AnalyticsNewConversationContainerProps) {
-  const queryClient = useQueryClient();
   const { user } = useAppShell();
   const { isSlashCommandsEnabled, isFileUploadEnabled } = useFeatureFlag();
   const {
@@ -49,11 +46,6 @@ export function AnalyticsNewConversationContainer({
   } = useSalesforceConnection();
 
   const canSubmit = isSalesforceConnected && isSalesforceAuthenticated;
-
-  const { mutateAsync: createConversation } = useCreateConversation();
-  const { mutate: sendMessage } = useSendMessage();
-
-  const [isCreating, setIsCreating] = useState(false);
 
   const dashboardBaseLayer: ReferenceStackLayer = useMemo(
     () => ({
@@ -90,49 +82,15 @@ export function AnalyticsNewConversationContainer({
     [dashboardId, dashboardTitle, dashboardVersion],
   );
 
-  const handleSendMessage = useCallback(
-    async (content: string) => {
-      if (isCreating) return;
-      setIsCreating(true);
-      try {
-        // 1. Create DashboardBuilder conversation
-        const res = await createConversation({
-          title: dashboardTitle,
-          agentVersion: "v2",
-          mode: ConversationMode.DashboardBuilder,
-        });
-        const newId = res.conversation.conversationId;
-
-        // 2. Pre-populate conversation metadata cache
-        queryClient.setQueryData(["conversation", newId], res.conversation);
-
-        // 3. Send the first message with the dashboard reference
-        sendMessage({
-          conversationId: newId,
-          content,
-          references: [dashboardRef],
-        });
-
-        // 4. Notify parent — Analytics swaps to AnalyticsChatContainer
-        onCreated(newId);
-      } catch (error) {
-        console.error(
-          "[AnalyticsNewConversationContainer] Failed to create conversation:",
-          error,
-        );
-        setIsCreating(false);
-      }
-    },
-    [
-      createConversation,
-      dashboardRef,
-      dashboardTitle,
-      isCreating,
+  const { handleSendMessage, transformedMessages, isCreating } =
+    useCreateAndSendMessage({
+      agentVersion: "v2",
+      isAgentV2: true,
+      title: dashboardTitle,
+      fixedMode: ConversationMode.DashboardBuilder,
+      references: [dashboardRef],
       onCreated,
-      queryClient,
-      sendMessage,
-    ],
-  );
+    });
 
   return (
     <Chat
@@ -142,7 +100,7 @@ export function AnalyticsNewConversationContainer({
       userEmail={user?.email}
       apiBaseUrl={config.apiBaseUrl}
       conversationId=""
-      messages={[]}
+      messages={transformedMessages}
       onSendMessage={handleSendMessage}
       isLoading={false}
       placeholder="Make changes to this dashboard..."
