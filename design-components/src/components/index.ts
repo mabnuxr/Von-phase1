@@ -21,6 +21,9 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 
+export { TruncateWithText } from './TruncateWithText/TruncateWithText';
+export type { TruncateWithTextProps } from './TruncateWithText/TruncateWithText';
+
 export { Menu } from './Menu';
 export type { MenuProps, MenuItem } from './Menu';
 
