@@ -13,7 +13,7 @@ interface TableWidgetProps {
 
 const TableWidget: React.FC<TableWidgetProps> = ({ config, onPageChange, isLoading }) => {
   const { serverPagination } = config;
-  const hasServerPagination = !!serverPagination && serverPagination.totalPages > 1;
+  const hasServerPagination = !!serverPagination;
 
   // Keep the last valid gridOptions so the table stays stable during loading.
   // When loading, config.gridOptions may still hold the previous page's data
