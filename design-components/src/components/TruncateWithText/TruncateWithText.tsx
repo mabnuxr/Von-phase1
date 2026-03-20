@@ -103,6 +103,7 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
           WebkitLineClamp: maxLines,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
+          overflowWrap: 'break-word',
         }
       : {};
 
