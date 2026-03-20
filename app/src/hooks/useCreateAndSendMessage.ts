@@ -22,6 +22,7 @@ import type {
 
 import { useCreateConversation, conversationKeys } from "./useConversations";
 import { chatSidebarKeys } from "./useChatSidebar";
+import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { useSendMessage } from "./useSendMessage";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import type { MessageFileAttachment } from "./useFileUploadPipeline";
@@ -224,6 +225,29 @@ export function useCreateAndSendMessage({
         });
         store.triggerScrollToBottom(newId);
 
+        // Pre-seed the React Query infinite messages cache with an empty page.
+        // When Conversation.tsx mounts, useMessages will find this cache entry
+        // (fresh within staleTime) and skip the network fetch — preventing an
+        // empty-page response from overwriting the optimistic chatStore messages.
+        queryClient.setQueryData(
+          conversationKeys.messagesList(newId, 1, MESSAGES_PAGE_LIMIT),
+          {
+            pages: [
+              {
+                data: [],
+                pagination: {
+                  page: 1,
+                  limit: MESSAGES_PAGE_LIMIT,
+                  total: 0,
+                  totalPages: 0,
+                  hasNextPage: false,
+                },
+              },
+            ],
+            pageParams: [1],
+          },
+        );
+
         // 4. Send message — await so we only navigate/onCreated on success.
         //    If this throws, onError in useSendMessage rolls back the chatStore
         //    pre-seeded messages, and the catch block below resets local UI state.
@@ -310,6 +334,7 @@ export function useCreateAndSendMessage({
           });
         }
         clearFiles();
+      } finally {
         setIsCreating(false);
         setPendingMessages(null);
       }
