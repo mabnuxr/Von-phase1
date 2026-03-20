@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
+import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 
 interface DashboardPreviewPaneProps {
@@ -34,6 +35,15 @@ export function DashboardPreviewPane({
     sharePhase,
     handleRefresh,
   } = useAnalyticsTools(dashboardId);
+
+  const { handleUpdate } = useDashboardUpdate(dashboardId);
+
+  const handleColorThemeChange = useCallback(
+    (themeId: string) => {
+      handleUpdate({ ui_config: { color_palette_global: themeId } });
+    },
+    [handleUpdate],
+  );
 
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
@@ -76,6 +86,8 @@ export function DashboardPreviewPane({
               onTablePageChange={handlePageChange}
               loadingTablePanels={loadingPanels}
               paginatedWidgets={mergedWidgets}
+              defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
+              onColorThemeChange={handleColorThemeChange}
             />
           )}
         </div>

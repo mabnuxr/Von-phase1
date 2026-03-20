@@ -56,6 +56,10 @@ export interface Dashboard {
   updatedAt: string;
   createdBy: string;
   analysisId: string;
+  uiConfig?: {
+    colorPaletteGlobal?: string;
+    panelLayouts?: Record<string, { x: number; y: number; w: number; h: number }>;
+  };
 }
 
 export interface GridConfig {

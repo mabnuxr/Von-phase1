@@ -13,6 +13,7 @@ import {
   DashboardGrid,
   ErrorBoundary,
 } from "@vonlabs/design-components";
+import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
@@ -57,6 +58,10 @@ interface AnalyticsViewProps {
   paginatedWidgets?: Record<string, any>;
   /** Callback when a widget's drilldown icon is clicked */
   onDrillDown?: (panelId: string) => void;
+  /** Initial color theme from backend ui_config */
+  defaultColorTheme?: string;
+  /** Called when the user changes the color theme */
+  onColorThemeChange?: (themeId: string) => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -78,6 +83,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   loadingTablePanels,
   paginatedWidgets,
   onDrillDown,
+  defaultColorTheme,
+  onColorThemeChange,
 }) => {
   const gridConfig = dashboard.gridConfig as unknown as GridConfig;
   const layout = dashboard.layout as unknown as LayoutItem[];
@@ -91,7 +98,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, []);
 
   return (
-    <DashboardCustomizationProvider>
+    <DashboardCustomizationProvider
+      defaultColorTheme={defaultColorTheme as ChartThemeId | undefined}
+      onColorThemeChange={onColorThemeChange}
+    >
       <DashboardLayout>
         <DashboardLayout.Header>
           {/* Title row: name + description | chat + close */}

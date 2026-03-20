@@ -4,6 +4,7 @@ import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
+import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useAppShell } from "../hooks/useAppShell";
 import { useVisibilityToggle } from "@vonlabs/design-components";
 import { useResizablePane } from "../hooks/useResizablePane";
@@ -60,6 +61,15 @@ const Analytics = () => {
     sharePhase,
     handleRefresh,
   } = useAnalyticsTools(dashboardId);
+
+  const { handleUpdate } = useDashboardUpdate(dashboardId);
+
+  const handleColorThemeChange = useCallback(
+    (themeId: string) => {
+      handleUpdate({ ui_config: { color_palette_global: themeId } });
+    },
+    [handleUpdate],
+  );
 
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
@@ -130,6 +140,8 @@ const Analytics = () => {
           loadingTablePanels={loadingPanels}
           paginatedWidgets={mergedWidgets}
           onDrillDown={openDrilldown}
+          defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
+          onColorThemeChange={handleColorThemeChange}
         />
       </div>
 

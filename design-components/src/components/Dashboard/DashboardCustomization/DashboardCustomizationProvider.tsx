@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { chartThemes, type ChartThemeId, type ChartThemePalette } from './chartTheme';
 import { DashboardCustomizationContext } from './DashboardCustomizationContext';
 
@@ -25,15 +25,33 @@ export interface DashboardCustomizationProviderProps {
   defaultColorTheme?: ChartThemeId;
   /** Initial mode (default: 'preview') */
   defaultMode?: 'edit' | 'preview';
+  /** Called when the user changes the color theme (not on initial mount) */
+  onColorThemeChange?: (themeId: ChartThemeId) => void;
 }
 
 export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProviderProps> = ({
   children,
   defaultColorTheme = 'teal',
   defaultMode = 'preview',
+  onColorThemeChange,
 }) => {
   const [colorTheme, setColorTheme] = useState<ChartThemeId>(defaultColorTheme);
   const [mode, setMode] = useState<'edit' | 'preview'>(defaultMode);
+
+  // Fire callback on user-initiated color changes (skip initial mount).
+  // Use a ref for the callback to avoid re-triggering the effect when the
+  // parent re-renders with a new function reference (e.g. after query invalidation).
+  const onChangeRef = useRef(onColorThemeChange);
+  onChangeRef.current = onColorThemeChange;
+
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    onChangeRef.current?.(colorTheme);
+  }, [colorTheme]);
 
   const palette = useMemo(() => chartThemes[colorTheme], [colorTheme]);
 

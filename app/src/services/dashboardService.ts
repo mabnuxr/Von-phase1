@@ -34,6 +34,15 @@ export interface DashboardListResponse {
   };
 }
 
+export interface DashboardUpdateRequest {
+  dashboard_name?: string;
+  description?: string;
+  ui_config?: {
+    color_palette_global?: string;
+    [key: string]: unknown;
+  };
+}
+
 /**
  * Service for dashboard API endpoints.
  */
@@ -117,6 +126,16 @@ class DashboardService {
     return apiClient.post<PanelRenderResponse>(
       `/api/v1/dashboards/${dashboardId}/panels/render`,
       request,
+    );
+  }
+
+  async updateDashboard(
+    dashboardId: string,
+    data: DashboardUpdateRequest,
+  ): Promise<DashboardMetadataResponse> {
+    return apiClient.patch<DashboardMetadataResponse>(
+      `/api/v1/dashboards/${dashboardId}`,
+      data,
     );
   }
 

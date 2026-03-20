@@ -76,6 +76,10 @@ interface RawApiDashboardResponse {
   refresh_info: {
     last_refreshed_at: string;
   };
+  ui_config?: {
+    color_palette_global?: string;
+    panel_layouts?: Record<string, { x: number; y: number; w: number; h: number }>;
+  };
 }
 
 // ─── API Response Adapter ───────────────────────────────────────
@@ -161,6 +165,17 @@ function adaptApiResponse(
     widgets[key] = adaptWidget(apiWidget);
   }
 
+  // Infer layout from ui_config.panel_layouts when available, fallback to raw.layout
+  const layout = raw.ui_config?.panel_layouts
+    ? Object.entries(raw.ui_config.panel_layouts).map(([panelId, pos]) => ({
+        i: panelId,
+        x: pos.x,
+        y: pos.y,
+        w: pos.w,
+        h: pos.h,
+      }))
+    : raw.layout;
+
   return {
     success: true,
     data: {
@@ -173,7 +188,7 @@ function adaptApiResponse(
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         gridConfig: raw.gridConfig,
-        layout: raw.layout,
+        layout,
         widgets,
         filters: raw.filters
           ? {
@@ -187,6 +202,12 @@ function adaptApiResponse(
         updatedAt: raw.updated_at,
         createdBy: "",
         analysisId: "",
+        uiConfig: raw.ui_config
+          ? {
+              colorPaletteGlobal: raw.ui_config.color_palette_global,
+              panelLayouts: raw.ui_config.panel_layouts,
+            }
+          : undefined,
       },
       refreshInfo: {
         lastRefreshedAt: raw.refresh_info.last_refreshed_at,
