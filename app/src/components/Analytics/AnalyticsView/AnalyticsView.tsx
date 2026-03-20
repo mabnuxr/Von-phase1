@@ -1,32 +1,28 @@
-import { useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowsOutIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
   XIcon,
-} from "@phosphor-icons/react";
-import vonFilledLogo from "../../../assets/von-filled-logo.svg";
+} from '@phosphor-icons/react';
+import vonFilledLogo from '../../../assets/von-filled-logo.svg';
 import {
   DashboardLayout,
   DashboardCustomizationProvider,
   DashboardGrid,
   ErrorBoundary,
-} from "@vonlabs/design-components";
-import { AnalyticsFilters } from "../AnalyticsFilters";
-import { CustomizeButton } from "./CustomizeButton";
-import { StatusLine } from "./StatusLine";
-import { SaveSplitButton } from "./SaveSplitButton";
-import { SharePopover } from "./SharePopover";
-import { RefreshButton } from "./RefreshButton";
-import { DashboardStatus } from "../../../types/dashboard";
-import type { Dashboard, RefreshInfo } from "../../../types/dashboard";
-import type { MutationPhase } from "../../../hooks/useMutationPhase";
-import type {
-  WidgetConfig,
-  GridConfig,
-  LayoutItem,
-} from "@vonlabs/design-components";
+} from '@vonlabs/design-components';
+import { AnalyticsFilters } from '../AnalyticsFilters';
+import { CustomizeButton } from './CustomizeButton';
+import { StatusLine } from './StatusLine';
+import { PublishButton } from './PublishButton';
+import { SharePopover } from './SharePopover';
+import { RefreshButton } from './RefreshButton';
+import { DashboardStatus } from '../../../types/dashboard';
+import type { Dashboard, RefreshInfo } from '../../../types/dashboard';
+import type { MutationPhase } from '../../../hooks/useMutationPhase';
+import type { WidgetConfig, GridConfig, LayoutItem } from '@vonlabs/design-components';
 
 interface AnalyticsViewProps {
   dashboard: Dashboard;
@@ -102,9 +98,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   {dashboard.title}
                 </h1>
                 {dashboard.description && (
-                  <p className="text-xs text-gray-700 truncate">
-                    {dashboard.description}
-                  </p>
+                  <p className="text-xs text-gray-700 truncate">{dashboard.description}</p>
                 )}
               </div>
             </DashboardLayout.HeaderRow.Left>
@@ -137,10 +131,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           title="Close chat"
                           className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-gray-100 border border-gray-200/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
                         >
-                          <SidebarSimpleIcon
-                            size={14}
-                            className="scale-x-[-1]"
-                          />
+                          <SidebarSimpleIcon size={14} className="scale-x-[-1]" />
                         </button>
                       </motion.div>
                     ) : (
@@ -199,23 +190,31 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 lastSavedAt={dashboard.updatedAt}
                 lastRefreshedAt={refreshInfo?.lastRefreshedAt}
               />
-              <SaveSplitButton savePhase={savePhase} onSave={onSave} />
-              {dashboard.status === DashboardStatus.Draft && (
-                <button
-                  onClick={onRevert}
-                  title="Discard draft — revert to published version"
-                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <ClockCounterClockwiseIcon size={14} />
-                </button>
+              {dashboard.isOwner && (
+                <>
+                  <PublishButton
+                    savePhase={savePhase}
+                    onSave={onSave}
+                    isPublished={dashboard.status === DashboardStatus.Published}
+                  />
+                  {dashboard.status === DashboardStatus.Draft && (
+                    <button
+                      onClick={onRevert}
+                      title="Discard draft — revert to published version"
+                      className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <ClockCounterClockwiseIcon size={14} />
+                    </button>
+                  )}
+                  <SharePopover
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    canShare={dashboard.dashboardVersion >= 1}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                </>
               )}
-              <SharePopover
-                isSharedWithTenant={dashboard.isSharedWithTenant}
-                canShare={dashboard.dashboardVersion >= 1}
-                sharePhase={sharePhase}
-                onShare={onShare}
-                onCopyLink={handleCopyLink}
-              />
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
         </DashboardLayout.Header>

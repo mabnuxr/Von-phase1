@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
 import { SourcePopover } from './SourcePopover';
@@ -105,8 +105,10 @@ export function ReportTable({
     // Check if cell content is actually truncated
     if (td.scrollWidth <= td.clientWidth) return;
 
-    // Get the plain text content for the tooltip
-    const text = td.textContent?.trim();
+    // Prefer explicit data-tooltip (set for owner/multiPicklist cells where
+    // textContent concatenates avatar initials or tag text without separators)
+    const tooltipEl = td.querySelector('[data-tooltip]') as HTMLElement | null;
+    const text = tooltipEl?.getAttribute('data-tooltip') || td.textContent?.trim();
     if (!text) return;
 
     const rect = td.getBoundingClientRect();
@@ -125,6 +127,18 @@ export function ReportTable({
     if (td && td !== related) {
       setTruncTooltip(null);
     }
+  }, []);
+
+  // Clear tooltip on grid scroll so it doesn't become detached
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const viewport = wrapper.querySelector('.ag-body-viewport');
+    if (!viewport) return;
+
+    const onScroll = () => setTruncTooltip(null);
+    viewport.addEventListener('scroll', onScroll, { passive: true });
+    return () => viewport.removeEventListener('scroll', onScroll);
   }, []);
 
   // ── AI reasoning popover (event delegation on .von-cell-btn) ───────────────

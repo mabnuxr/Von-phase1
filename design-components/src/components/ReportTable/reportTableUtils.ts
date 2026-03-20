@@ -204,7 +204,7 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
         const colorIdx = hashString(name) % AVATAR_COLORS.length;
         const bg = AVATAR_COLORS[colorIdx];
         return (
-          `<div style="display:flex;align-items:center;gap:8px">` +
+          `<div style="display:flex;align-items:center;gap:8px" data-tooltip="${escapeHtml(name)}">` +
           `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${bg};color:white;font-size:10px;font-weight:500;flex-shrink:0">${escapeHtml(initials)}</div>` +
           `<span style="color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(name)}</span>` +
           `</div>`
@@ -224,12 +224,17 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
             items = str.split(',').map((s: string) => s.trim());
           }
         }
-        return items
-          .map(
-            (item: string) =>
-              `<span style="display:inline-flex;padding:2px 8px;font-size:14px;font-weight:500;background:#f9fafb;border:1px solid #f3f4f6;border-radius:9999px;color:#1f2937;white-space:nowrap;margin-right:4px">${escapeHtml(String(item))}</span>`
-          )
-          .join('');
+        const tooltipText = items.join(', ');
+        return (
+          `<span data-tooltip="${escapeHtml(tooltipText)}">` +
+          items
+            .map(
+              (item: string) =>
+                `<span style="display:inline-flex;padding:2px 8px;font-size:14px;font-weight:500;background:#f9fafb;border:1px solid #f3f4f6;border-radius:9999px;color:#1f2937;white-space:nowrap;margin-right:4px">${escapeHtml(String(item))}</span>`
+            )
+            .join('') +
+          '</span>'
+        );
       }
 
       case 'sentiment': {
