@@ -101,18 +101,6 @@ export function useCreateAndSendMessage({
   const { mutateAsync: createConversation } = useCreateConversation();
   const { mutateAsync: sendMessage } = useSendMessage();
 
-  // null conversationId = files stay pending until the conversation is created.
-  // uploadPendingFiles(newId) is called after creation to upload them.
-  const {
-    attachments: fileAttachments,
-    addFiles,
-    removeFile,
-    uploadPendingFiles,
-    clearFiles,
-    allUploaded,
-    hasAttachments,
-  } = useFileUploadPipeline(null, { onError: handleFileError });
-
   const [isCreating, setIsCreating] = useState(false);
   const [pendingMessages, setPendingMessages] = useState<
     MessageWithStreaming[] | null
@@ -127,6 +115,18 @@ export function useCreateAndSendMessage({
       4000,
     );
   }, []);
+
+  // null conversationId = files stay pending until the conversation is created.
+  // uploadPendingFiles(newId) is called after creation to upload them.
+  const {
+    attachments: fileAttachments,
+    addFiles,
+    removeFile,
+    uploadPendingFiles,
+    clearFiles,
+    allUploaded,
+    hasAttachments,
+  } = useFileUploadPipeline(null, { onError: handleFileError });
 
   const transformedMessages = useMemo(() => {
     if (!pendingMessages) return [];
@@ -203,8 +203,9 @@ export function useCreateAndSendMessage({
         //    immediately on mount instead of flashing blank then re-populating.
         //    We pass these IDs to sendMessage so its onMutate skips duplicate seeding.
         const now = new Date().toISOString();
-        const optimisticUserId = `optimistic-${Date.now()}-u`;
-        const optimisticAssistantId = `optimistic-${Date.now()}-a`;
+        const optimisticBase = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const optimisticUserId = `${optimisticBase}-u`;
+        const optimisticAssistantId = `${optimisticBase}-a`;
         const store = useChatStore.getState();
         store.setShowMessagesFromIndex(newId, 0);
         store.addPendingOptimisticId(optimisticUserId);
