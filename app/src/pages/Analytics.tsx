@@ -106,8 +106,8 @@ const Analytics = () => {
           onShare={handleShare}
           sharePhase={sharePhase}
           onChatClick={openChat}
+          onChatClose={closeChat}
           isChatOpen={isChatOpen}
-          onClose={isChatOpen ? closeChat : undefined}
         />
       </div>
 

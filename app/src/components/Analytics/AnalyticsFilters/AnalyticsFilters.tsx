@@ -4,61 +4,106 @@ import {
   type FilterField,
   type FilterGroup,
 } from "@vonlabs/design-components";
-import type { DashboardFilter } from "../../../types/dashboard";
+import type {
+  DashboardFilterDefinition,
+  DashboardFilterState,
+} from "../../../types/dashboard";
 
 interface AnalyticsFiltersProps {
-  filters: DashboardFilter[];
-  activeFilters: Record<string, unknown>;
+  filters: DashboardFilterDefinition[];
+  activeFilters: DashboardFilterState;
 }
 
-/** Map our DashboardFilter[] to FilterField[] for the FilterButton. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function toFilterFields(_filters: DashboardFilter[]): FilterField[] {
-  return [];
-  // return filters.map((f) => ({
-  //   value: f.field,
-  //   label: f.label,
-  //   type:
-  //     f.type === "date-range" ? "date" : f.type === "range" ? "number" : "text",
-  //   options: f.options?.map((o) => ({ value: o.value, label: o.label })),
-  // }));
+function toFilterFields(filters: DashboardFilterDefinition[]): FilterField[] {
+  return filters.map((f) => ({
+    value: f.column,
+    label: f.label,
+    type:
+      f.type === "date-range"
+        ? "date"
+        : f.type === "range"
+          ? "number"
+          : f.type === "select" || f.type === "multi-select"
+            ? "select"
+            : "text",
+    options: f.options?.map((o) => ({ value: o, label: o })),
+  }));
 }
 
-/** Convert activeFilters into a FilterGroup[] that the FilterButton can display. */
-function toFilterGroups( // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _filters: DashboardFilter[], // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _activeFilters: Record<string, unknown>,
+function formatFilterValue(
+  filter: DashboardFilterDefinition,
+  value: unknown,
+): string {
+  if (filter.type === "multi-select" && Array.isArray(value)) {
+    return (value as string[]).join(", ");
+  }
+  if (
+    filter.type === "date-range" &&
+    typeof value === "object" &&
+    value !== null
+  ) {
+    const { start, end } = value as { start?: string; end?: string };
+    if (start && end) return `${start} – ${end}`;
+    return start ?? end ?? "";
+  }
+  if (filter.type === "range" && typeof value === "object" && value !== null) {
+    const { min, max } = value as { min?: number; max?: number };
+    if (min !== undefined && max !== undefined) return `${min} – ${max}`;
+    return String(min ?? max ?? "");
+  }
+  return String(value);
+}
+
+function toFilterOperator(type: DashboardFilterDefinition["type"]): string {
+  switch (type) {
+    case "multi-select":
+      return "is_any_of";
+    default:
+      return "equals";
+  }
+}
+
+function toFilterGroups(
+  filters: DashboardFilterDefinition[],
+  activeFilters: DashboardFilterState,
 ): FilterGroup[] {
-  return [];
-  // const conditions = filters
-  //   .filter(
-  //     (f) => activeFilters[f.id] !== undefined && activeFilters[f.id] !== null,
-  //   )
-  //   .map((f) => ({
-  //     id: f.id,
-  //     field: f.field,
-  //     operator: "equals",
-  //     value: String(activeFilters[f.id]),
-  //   }));
+  const conditions = filters
+    .filter(
+      (f) =>
+        activeFilters[f.column] !== undefined &&
+        activeFilters[f.column] !== null,
+    )
+    .map((f) => ({
+      id: f.id,
+      field: f.column,
+      operator: toFilterOperator(f.type),
+      value: formatFilterValue(f, activeFilters[f.column]),
+    }));
 
-  // if (conditions.length === 0) return [];
+  if (conditions.length === 0) return [];
 
-  // return [{ id: "active", connector: "and" as const, conditions }];
+  return [{ id: "active", connector: "and" as const, conditions }];
 }
 
 /**
  * Dashboard filter display using the design-system FilterButton in read-only mode.
- * Filters are agentic-only — the user can view but not edit.
+ * Active filter state comes from the API's filters.state and is displayed as chips.
+ * When no filters are configured for this dashboard, renders a subtle placeholder.
  */
 const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
   filters,
   activeFilters,
 }) => {
-  const fields = useMemo(() => toFilterFields(filters), [filters]);
+  const safeFilters = Array.isArray(filters) ? filters : [];
+  const fields = useMemo(() => toFilterFields(safeFilters), [safeFilters]);
   const groups = useMemo(
-    () => toFilterGroups(filters, activeFilters),
-    [filters, activeFilters],
+    () => toFilterGroups(safeFilters, activeFilters),
+    [safeFilters, activeFilters],
   );
+
+  if (groups.length === 0) {
+    return null;
+  }
 
   return (
     <FilterButton
@@ -67,6 +112,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
       onGroupsChange={() => {}}
       hideIcon
       readOnly
+      compact
     />
   );
 };

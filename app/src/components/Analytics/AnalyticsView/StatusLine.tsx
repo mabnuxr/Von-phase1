@@ -12,13 +12,23 @@ export const StatusLine: React.FC<StatusLineProps> = ({
   lastSavedAt,
   lastRefreshedAt,
 }) => (
-  <span className="text-xs text-gray-500">
+  <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
     {state === DashboardStatus.Draft ? (
-      "Draft"
+      <span className="text-amber-700 font-medium">Draft</span>
     ) : (
-      <span className="text-emerald-600">Saved</span>
+      <span className="text-emerald-700 font-medium">Published</span>
     )}
-    {lastSavedAt && <> · {formatRelativeTime(lastSavedAt)}</>}
-    {lastRefreshedAt && <> · Refreshed {formatRelativeTime(lastRefreshedAt)}</>}
+    {lastSavedAt && (
+      <span className="text-gray-700">
+        {" "}
+        · {formatRelativeTime(lastSavedAt)}
+      </span>
+    )}
+    {lastRefreshedAt && (
+      <span className="text-gray-700">
+        {" "}
+        · Refreshed {formatRelativeTime(lastRefreshedAt)}
+      </span>
+    )}
   </span>
 );

@@ -4,6 +4,7 @@ import { applyWidgetTheme } from "../utils/applyWidgetTheme";
 import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
+  DashboardFilters,
   RefreshInfo,
   DashboardMetadataResponse,
   WidgetConfig,
@@ -61,7 +62,7 @@ interface RawApiDashboardResponse {
   gridConfig: Dashboard["gridConfig"];
   layout: Dashboard["layout"];
   widgets: Record<string, RawApiWidget>;
-  filters: Dashboard["filters"];
+  filters?: DashboardFilters;
   created_at: string;
   updated_at: string;
   refresh_info: {
@@ -156,7 +157,14 @@ function adaptApiResponse(
         gridConfig: raw.gridConfig,
         layout: raw.layout,
         widgets,
-        filters: raw.filters,
+        filters: raw.filters
+          ? {
+              definitions: Array.isArray(raw.filters.definitions)
+                ? raw.filters.definitions
+                : [],
+              state: raw.filters.state ?? {},
+            }
+          : undefined,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
         createdBy: "",
@@ -225,13 +233,9 @@ export function useDashboardQuery(dashboardId: string | undefined) {
           dashboard.widgets,
         ) as typeof dashboard.widgets;
 
-        // Extract default filter values
-        const activeFilters: Record<string, unknown> = {};
-        // dashboard.filters?.forEach((filter) => {
-        //   if (filter.defaultValue !== undefined) {
-        //     activeFilters[filter.id] = filter.defaultValue;
-        //   }
-        // });
+        // Extract active filter values from the filter state
+        const activeFilters: Record<string, unknown> =
+          dashboard.filters?.state ?? {};
 
         return { dashboard, refreshInfo, activeFilters };
       } catch (error) {
