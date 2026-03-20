@@ -12,7 +12,12 @@ export const formatValue = (value: unknown, type: ColumnType): string => {
 
   switch (type) {
     case 'currency': {
-      const num = typeof value === 'number' ? value : Number(value);
+      const num =
+        typeof value === 'number'
+          ? value
+          : typeof value === 'string' && value.trim() !== ''
+            ? Number(value)
+            : NaN;
       return !isNaN(num)
         ? new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -30,7 +35,11 @@ export const formatValue = (value: unknown, type: ColumnType): string => {
       return typeof value === 'number' ? value.toLocaleString() : String(value);
 
     case 'date': {
-      const dateOptions: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      };
       if (value instanceof Date) {
         return value.toLocaleDateString('en-US', dateOptions);
       }
@@ -260,9 +269,12 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
 
       case 'url': {
         const href = String(value).trim();
-        return href
+        const isSafe = /^https?:\/\//i.test(href);
+        return isSafe
           ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block" onclick="event.stopPropagation()">${escapeHtml(href)}</a>`
-          : '<span style="color:#9ca3af">—</span>';
+          : href
+            ? `<span style="color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${escapeHtml(href)}</span>`
+            : '<span style="color:#9ca3af">—</span>';
       }
 
       default:
