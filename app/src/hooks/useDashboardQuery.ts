@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { dashboardService } from "../services/dashboardService";
-import { applyWidgetTheme } from "../utils/applyWidgetTheme";
-import { DashboardStatus } from "../types/dashboard";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { dashboardService } from '../services/dashboardService';
+import { applyWidgetTheme } from '../utils/applyWidgetTheme';
+import { DashboardStatus } from '../types/dashboard';
 import type {
   Dashboard,
   DashboardFilters,
@@ -9,13 +9,13 @@ import type {
   DashboardMetadataResponse,
   WidgetConfig,
   ChartType,
-} from "../types/dashboard";
+} from '../types/dashboard';
 
 /**
  * Query keys for dashboard data.
  */
 export const dashboardKeys = {
-  all: ["dashboards"] as const,
+  all: ['dashboards'] as const,
   detail: (id: string) => [...dashboardKeys.all, id] as const,
 };
 
@@ -67,9 +67,13 @@ interface RawApiDashboardResponse {
   dashboard_version: number;
   is_owner: boolean;
   is_shared_with_tenant: boolean;
-  gridConfig: Dashboard["gridConfig"];
-  layout: Dashboard["layout"];
+  gridConfig: Dashboard['gridConfig'];
   widgets: Record<string, RawApiWidget>;
+  ui_config?: {
+    panel_layouts?: Record<string, { x: number; y: number; w: number; h: number }>;
+    color_palette?: string | null;
+    color_palette_global?: string | null;
+  };
   filters?: DashboardFilters;
   created_at: string;
   updated_at: string;
@@ -78,33 +82,30 @@ interface RawApiDashboardResponse {
   };
   ui_config?: {
     color_palette_global?: string;
-    panel_layouts?: Record<
-      string,
-      { x: number; y: number; w: number; h: number }
-    >;
+    panel_layouts?: Record<string, { x: number; y: number; w: number; h: number }>;
   };
 }
 
 // ─── API Response Adapter ───────────────────────────────────────
 
 function adaptWidget(raw: RawApiWidget): WidgetConfig {
-  if (raw.type === "kpi" && raw.kpi) {
+  if (raw.type === 'kpi' && raw.kpi) {
     return {
       id: raw.id,
-      type: "counter",
+      type: 'counter',
       title: raw.title,
       config: raw.kpi,
       query_failed: raw.query_failed,
     };
   }
 
-  if (raw.type === "chart" && raw.highcharts) {
+  if (raw.type === 'chart' && raw.highcharts) {
     const hc = raw.highcharts as Record<string, unknown>;
-    if (typeof hc !== "object" || hc === null) {
-      console.error("[adaptWidget] Invalid highcharts config:", raw);
+    if (typeof hc !== 'object' || hc === null) {
+      console.error('[adaptWidget] Invalid highcharts config:', raw);
       return {
         id: raw.id,
-        type: raw.type as WidgetConfig["type"],
+        type: raw.type as WidgetConfig['type'],
         title: raw.title,
         config: {},
       } as WidgetConfig;
@@ -115,25 +116,25 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
       ...(hc.yAxis && !Array.isArray(hc.yAxis) ? { yAxis: [hc.yAxis] } : {}),
     };
     const chartObj =
-      typeof hc.chart === "object" && hc.chart !== null
+      typeof hc.chart === 'object' && hc.chart !== null
         ? (hc.chart as Record<string, unknown>)
         : {};
     return {
       id: raw.id,
-      type: "chart",
+      type: 'chart',
       title: raw.title,
       config: {
-        chartType: ((chartObj.type as string) ?? "bar") as ChartType,
+        chartType: ((chartObj.type as string) ?? 'bar') as ChartType,
         highchartsOptions: normalizedHc,
-      } as unknown as WidgetConfig["config"],
+      } as unknown as WidgetConfig['config'],
     };
   }
 
   // Table widget - pass through gridOptions for ReportTable
-  if (raw.type === "table") {
+  if (raw.type === 'table') {
     return {
       id: raw.id,
-      type: "table",
+      type: 'table',
       title: raw.title,
       config: {
         gridOptions: raw.gridOptions ?? {},
@@ -154,15 +155,13 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
   // Fallback for unknown widget types
   return {
     id: raw.id,
-    type: raw.type as WidgetConfig["type"],
+    type: raw.type as WidgetConfig['type'],
     title: raw.title,
     config: {},
   } as WidgetConfig;
 }
 
-function adaptApiResponse(
-  raw: RawApiDashboardResponse,
-): DashboardMetadataResponse {
+function adaptApiResponse(raw: RawApiDashboardResponse): DashboardMetadataResponse {
   const widgets: Record<string, WidgetConfig> = {};
   for (const [key, apiWidget] of Object.entries(raw.widgets)) {
     widgets[key] = adaptWidget(apiWidget);
@@ -191,20 +190,24 @@ function adaptApiResponse(
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         gridConfig: raw.gridConfig,
-        layout,
+        layout: Object.entries(raw.ui_config?.panel_layouts ?? {}).map(([id, pos]) => ({
+          i: id,
+          x: pos.x,
+          y: pos.y,
+          w: pos.w,
+          h: pos.h,
+        })),
         widgets,
         filters: raw.filters
           ? {
-              definitions: Array.isArray(raw.filters.definitions)
-                ? raw.filters.definitions
-                : [],
+              definitions: Array.isArray(raw.filters.definitions) ? raw.filters.definitions : [],
               state: raw.filters.state ?? {},
             }
           : undefined,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
-        createdBy: "",
-        analysisId: "",
+        createdBy: '',
+        analysisId: '',
         uiConfig: raw.ui_config
           ? {
               colorPaletteGlobal: raw.ui_config.color_palette_global,
@@ -214,11 +217,11 @@ function adaptApiResponse(
       },
       refreshInfo: {
         lastRefreshedAt: raw.refresh_info.last_refreshed_at,
-        refreshStatus: "idle",
+        refreshStatus: 'idle',
         dataSource: {
-          analysisId: "",
-          analysisName: "",
-          dataFreshness: "fresh",
+          analysisId: '',
+          analysisName: '',
+          dataFreshness: 'fresh',
         },
       },
     },
@@ -242,46 +245,32 @@ export function useDashboardQuery(dashboardId: string | undefined) {
     queryKey: dashboardKeys.detail(dashboardId!),
     queryFn: async () => {
       try {
-        const rawResponse = await dashboardService.getDashboardWithRenderData(
-          dashboardId!,
-        );
+        const rawResponse = await dashboardService.getDashboardWithRenderData(dashboardId!);
 
-        if (
-          !rawResponse ||
-          typeof rawResponse !== "object" ||
-          !("id" in rawResponse)
-        ) {
-          throw new Error("Invalid dashboard response structure");
+        if (!rawResponse || typeof rawResponse !== 'object' || !('id' in rawResponse)) {
+          throw new Error('Invalid dashboard response structure');
         }
 
-        if (
-          "success" in rawResponse &&
-          !(rawResponse as { success: boolean }).success
-        ) {
+        if ('success' in rawResponse && !(rawResponse as { success: boolean }).success) {
           throw new Error(
             (rawResponse as { error?: { message?: string } }).error?.message ??
-              "Failed to load dashboard",
+              'Failed to load dashboard'
           );
         }
 
-        const response = adaptApiResponse(
-          rawResponse as RawApiDashboardResponse,
-        );
+        const response = adaptApiResponse(rawResponse as RawApiDashboardResponse);
 
         const { dashboard, refreshInfo } = response.data;
 
         // Inject frontend color palette into widget configs
-        dashboard.widgets = applyWidgetTheme(
-          dashboard.widgets,
-        ) as typeof dashboard.widgets;
+        dashboard.widgets = applyWidgetTheme(dashboard.widgets) as typeof dashboard.widgets;
 
         // Extract active filter values from the filter state
-        const activeFilters: Record<string, unknown> =
-          dashboard.filters?.state ?? {};
+        const activeFilters: Record<string, unknown> = dashboard.filters?.state ?? {};
 
         return { dashboard, refreshInfo, activeFilters };
       } catch (error) {
-        console.error("[useDashboardQuery] Failed to load dashboard:", error);
+        console.error('[useDashboardQuery] Failed to load dashboard:', error);
         throw error;
       }
     },
