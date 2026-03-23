@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { XIcon } from "@phosphor-icons/react";
+import { XIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
 import type { ReportColumn } from "@vonlabs/design-components";
 import type { PanelDrilldownPagination } from "../../../types/dashboard";
@@ -82,6 +82,7 @@ export interface DrilldownPanelProps {
   data: Record<string, unknown>[];
   pagination: PanelDrilldownPagination | null;
   isLoading: boolean;
+  isError?: boolean;
   onPageChange: (page: number) => void;
 }
 
@@ -94,6 +95,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   data,
   pagination,
   isLoading,
+  isError = false,
   onPageChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,6 +153,9 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      // Reset body styles in case the component unmounts mid-drag
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
   }, [handleMouseMove, handleMouseUp]);
 
@@ -202,7 +207,12 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
 
             {/* Table */}
             <div className="flex-1 overflow-hidden p-4">
-              {gridOptions ? (
+              {isError ? (
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-gray-500">
+                  <WarningCircleIcon size={24} className="text-red-400" />
+                  <span>Failed to load data. Please try again.</span>
+                </div>
+              ) : gridOptions ? (
                 <div className="h-full relative">
                   <ReportTable options={gridOptions} />
                   {/* Shimmer overlay — same pattern as TableWidget: headers stay visible,

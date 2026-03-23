@@ -27,7 +27,7 @@ export function useDrilldown(
     lastPaginationRef.current = null;
   }, [dashboardId]);
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: ["drilldown", dashboardId, drilldown?.panelId, drilldown?.page],
     queryFn: async () => {
       if (!drilldown) throw new Error("No drilldown state");
@@ -81,6 +81,8 @@ export function useDrilldown(
     data: data?.data ?? lastDataRef.current,
     pagination: data?.pagination ?? lastPaginationRef.current,
     isLoading: isLoading || isFetching,
+    isError,
+    error,
     openDrilldown,
     closeDrilldown,
     changePage,

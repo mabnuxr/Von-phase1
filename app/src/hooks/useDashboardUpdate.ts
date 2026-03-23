@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   dashboardService,
@@ -6,6 +5,7 @@ import {
 } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
 import { useToast } from "./useToast";
+import { useDebouncedFn } from "./useDebouncedFn";
 
 /**
  * Generic hook for updating dashboard metadata / ui_config via PATCH.
@@ -31,10 +31,10 @@ export function useDashboardUpdate(dashboardId: string) {
     },
   });
 
-  const handleUpdate = useCallback(
+  const handleUpdate = useDebouncedFn(
     (data: DashboardUpdateRequest) => {
       updateMutation.mutate(data, {
-        onError: (error) => {
+        onError: (error: unknown) => {
           console.error("[useDashboardUpdate] Update failed:", error);
           showToast({
             message: "Failed to update dashboard. Please try again.",
@@ -43,7 +43,8 @@ export function useDashboardUpdate(dashboardId: string) {
         },
       });
     },
-    [updateMutation, showToast],
+    400,
+    [updateMutation.mutate, showToast],
   );
 
   return { handleUpdate, updateMutation };

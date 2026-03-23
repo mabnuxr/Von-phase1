@@ -93,6 +93,7 @@ const Analytics = () => {
     data: drilldownData,
     pagination: drilldownPagination,
     isLoading: isDrilldownLoading,
+    isError: isDrilldownError,
     openDrilldown,
     closeDrilldown,
     changePage: changeDrilldownPage,
@@ -195,6 +196,7 @@ const Analytics = () => {
         data={drilldownData}
         pagination={drilldownPagination}
         isLoading={isDrilldownLoading}
+        isError={isDrilldownError}
         onPageChange={changeDrilldownPage}
       />
     </div>
