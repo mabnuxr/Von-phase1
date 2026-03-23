@@ -20,6 +20,7 @@ import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
+import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { config } from "../config";
@@ -60,6 +61,17 @@ const NewConversation = () => {
     navigateOnCreate: true,
     isSidebarV2,
   });
+
+  const {
+    commands,
+    isLoadingCommands,
+    isSavingCommand,
+    handleSaveCommand,
+    handleUploadFile,
+    handleRequestFilePreviewUrl,
+    handleDeleteCommand,
+    handleToggleFavorite,
+  } = useCommandsPanel(user?.id);
 
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
@@ -125,6 +137,15 @@ const NewConversation = () => {
         fileErrorMessage={fileErrorMessage}
         onDismissFileError={dismissFileError}
         enableCommands={isSlashCommandsEnabled}
+        commands={commands}
+        isLoadingCommands={isLoadingCommands}
+        onSaveCommand={handleSaveCommand}
+        onDeleteCommand={handleDeleteCommand}
+        isSavingCommand={isSavingCommand}
+        isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+        onToggleFavorite={handleToggleFavorite}
+        onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
+        onUploadFile={handleUploadFile}
       />
     </Profiler>
   );

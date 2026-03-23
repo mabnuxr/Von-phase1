@@ -17,6 +17,7 @@ import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
+import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { useReferenceStack } from "../hooks/useReferenceStack";
 import type { ReferenceStackLayer } from "../hooks/useReferenceStack";
 import { ReferenceType } from "../types/conversation";
@@ -45,6 +46,17 @@ export function AnalyticsNewConversationContainer({
   } = useSalesforceConnection();
 
   const canSubmit = isSalesforceConnected && isSalesforceAuthenticated;
+
+  const {
+    commands,
+    isLoadingCommands,
+    isSavingCommand,
+    handleSaveCommand,
+    handleUploadFile,
+    handleRequestFilePreviewUrl,
+    handleDeleteCommand,
+    handleToggleFavorite,
+  } = useCommandsPanel(user?.id);
 
   const dashboardBaseLayer: ReferenceStackLayer = useMemo(
     () => ({
@@ -116,6 +128,15 @@ export function AnalyticsNewConversationContainer({
       fileErrorMessage={fileErrorMessage}
       onDismissFileError={dismissFileError}
       enableCommands={isSlashCommandsEnabled}
+      commands={commands}
+      isLoadingCommands={isLoadingCommands}
+      onSaveCommand={handleSaveCommand}
+      onDeleteCommand={handleDeleteCommand}
+      isSavingCommand={isSavingCommand}
+      isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
+      onToggleFavorite={handleToggleFavorite}
+      onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
+      onUploadFile={handleUploadFile}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     >
