@@ -175,17 +175,6 @@ function adaptApiResponse(
     widgets[key] = adaptWidget(apiWidget);
   }
 
-  // Infer layout from ui_config.panel_layouts when available, fallback to raw.layout
-  const layout = raw.ui_config?.panel_layouts
-    ? Object.entries(raw.ui_config.panel_layouts).map(([panelId, pos]) => ({
-        i: panelId,
-        x: pos.x,
-        y: pos.y,
-        w: pos.w,
-        h: pos.h,
-      }))
-    : raw.layout;
-
   return {
     success: true,
     data: {
