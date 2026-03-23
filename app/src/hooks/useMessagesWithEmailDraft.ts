@@ -3,31 +3,40 @@ import type { Message } from "@vonlabs/design-components";
 import type { EmailDraftArtifact } from "@vonlabs/design-components";
 
 /**
- * Post-processes a message list to attach an email draft artifact to the last
- * assistant message. Kept separate from dashboardUtils so the email-draft
- * concern doesn't bleed into the core message-transformation logic.
+ * Post-processes a message list to attach email draft artifacts to the correct
+ * assistant message per runId. Each entry in `artifactsByRunId` is matched to
+ * the last assistant message whose `runId` equals the map key. Falls back to
+ * the last assistant message when no match is found.
+ *
+ * Kept separate from dashboardUtils so the email-draft concern doesn't bleed
+ * into the core message-transformation logic.
  */
 export function useMessagesWithEmailDraft(
   messages: Message[],
-  emailDraftArtifact: EmailDraftArtifact | null | undefined,
+  artifactsByRunId: Map<string, EmailDraftArtifact[]>,
 ): Message[] {
   return useMemo(() => {
-    if (!emailDraftArtifact) return messages;
+    if (artifactsByRunId.size === 0) return messages;
 
-    // Find the last assistant message
-    let lastAssistantIdx = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].type === "assistant") {
-        lastAssistantIdx = i;
-        break;
+    let result = messages;
+
+    for (const [runId, artifacts] of artifactsByRunId) {
+      if (artifacts.length === 0) continue;
+
+      let targetIdx = result.findLastIndex(
+        (m) => m.type === "assistant" && m.runId === runId,
+      );
+      if (targetIdx === -1) {
+        targetIdx = result.findLastIndex((m) => m.type === "assistant");
       }
+      if (targetIdx === -1) continue;
+
+      result = result.map((msg, idx) => {
+        if (idx !== targetIdx) return msg;
+        return { ...msg, emailDraftArtifacts: artifacts };
+      });
     }
 
-    if (lastAssistantIdx === -1) return messages;
-
-    return messages.map((msg, idx) => {
-      if (idx !== lastAssistantIdx) return msg;
-      return { ...msg, emailDraftArtifacts: [emailDraftArtifact] };
-    });
-  }, [messages, emailDraftArtifact]);
+    return result;
+  }, [messages, artifactsByRunId]);
 }

@@ -15,6 +15,7 @@ import type {
   SendMessageOptions,
   FileAttachment,
   MessageFileAttachment,
+  EmailDraftArtifact,
 } from "@vonlabs/design-components";
 
 import { ConversationMode } from "@vonlabs/design-components";
@@ -40,6 +41,8 @@ import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import { useEmailDraftArtifact } from "./useEmailDraftArtifact";
+import { useEmailDraftCreatedEvent } from "./useEmailDraftCreatedEvent";
+import { useEmlDraftArtifacts } from "./useEmlDraftArtifacts";
 import { useMessagesWithEmailDraft } from "./useMessagesWithEmailDraft";
 import {
   transformConversationMessages,
@@ -204,11 +207,88 @@ export function useChatV2(props: UseChatV2Props) {
     assistantRunIds,
   );
 
-  // Fetch email draft artifact from ref (emitted by V2 event processor)
-  const fetchedEmailDraftArtifact = useEmailDraftArtifact(
+  // Collect email draft refs from artifact_created Pusher events (live path)
+  const emailDraftCreatedRefs = useEmailDraftCreatedEvent(channel, conversationId);
+
+  // Merge refs from both sources: TOOL_CALL_RESULT events (page refresh / replay)
+  // and artifact_created Pusher events (live path), deduped by artifactId.
+  const emailDraftRefs = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: { artifactId: string; runId: string }[] = [];
+    for (const ref of [
+      ...v2Processor.emailDraftArtifactRefs,
+      ...emailDraftCreatedRefs,
+    ]) {
+      if (!seen.has(ref.artifactId)) {
+        seen.add(ref.artifactId);
+        merged.push(ref);
+      }
+    }
+    return merged;
+  }, [v2Processor.emailDraftArtifactRefs, emailDraftCreatedRefs]);
+
+  // Fetch all email draft artifacts in parallel (draft_card path — backward compat)
+  const fetchedEmailDraftArtifacts = useEmailDraftArtifact(
     conversationId,
-    v2Processor.emailDraftArtifactRef,
+    emailDraftRefs,
   );
+
+  // Extract .eml file refs from agent artifacts (EML file path).
+  // Skip pending artifacts — their IDs are fake placeholders that would fail getDownloadUrl.
+  const emlFileRefs = useMemo(() => {
+    if (!agentArtifactsByRunId) return [];
+    const refs: { fileId: string; runId: string }[] = [];
+    for (const [runId, files] of agentArtifactsByRunId) {
+      for (const f of files) {
+        if (
+          (f.artifactType === "email_draft" || f.fileName?.endsWith(".eml")) &&
+          !f.isPending
+        ) {
+          refs.push({ fileId: f.id, runId });
+        }
+      }
+    }
+    return refs;
+  }, [agentArtifactsByRunId]);
+
+  // Fetch and parse EML file content from S3
+  const emlDraftArtifacts = useEmlDraftArtifacts(conversationId, emlFileRefs);
+
+  // Group EML-based artifacts by runId (draftId === fileId, so look up via emlFileRefs)
+  const emlDraftsByRunId = useMemo(() => {
+    const map = new Map<string, EmailDraftArtifact[]>();
+    for (const artifact of emlDraftArtifacts) {
+      const ref = emlFileRefs.find((r) => r.fileId === artifact.draftId);
+      if (!ref) continue;
+      const existing = map.get(ref.runId) ?? [];
+      map.set(ref.runId, [...existing, artifact]);
+    }
+    return map;
+  }, [emlDraftArtifacts, emlFileRefs]);
+
+  // Group draft_card-based artifacts by runId (draftId === artifactId)
+  const fetchedDraftsByRunId = useMemo(() => {
+    const map = new Map<string, EmailDraftArtifact[]>();
+    for (const artifact of fetchedEmailDraftArtifacts) {
+      const ref = emailDraftRefs.find((r) => r.artifactId === artifact.draftId);
+      if (!ref) continue;
+      const existing = map.get(ref.runId) ?? [];
+      map.set(ref.runId, [...existing, artifact]);
+    }
+    return map;
+  }, [fetchedEmailDraftArtifacts, emailDraftRefs]);
+
+  // Merge both maps, deduped by draftId within each runId
+  const allDraftsByRunId = useMemo(() => {
+    const merged = new Map(emlDraftsByRunId);
+    for (const [runId, artifacts] of fetchedDraftsByRunId) {
+      const existing = merged.get(runId) ?? [];
+      const seen = new Set(existing.map((a) => a.draftId));
+      const toAdd = artifacts.filter((a) => !seen.has(a.draftId));
+      if (toAdd.length > 0) merged.set(runId, [...existing, ...toAdd]);
+    }
+    return merged;
+  }, [emlDraftsByRunId, fetchedDraftsByRunId]);
 
   // Chat-type-aware reconciliation
   useReconciliation({
@@ -426,7 +506,7 @@ export function useChatV2(props: UseChatV2Props) {
 
   const messages = useMessagesWithEmailDraft(
     transformedMessages,
-    fetchedEmailDraftArtifact,
+    allDraftsByRunId,
   );
 
   // Message filtering state

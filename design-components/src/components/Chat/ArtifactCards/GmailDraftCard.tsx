@@ -53,7 +53,11 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
   const [subjectCopied, setSubjectCopied] = useState(false);
   const [bodyCopied, setBodyCopied] = useState(false);
   const [showSubjectTooltip, setShowSubjectTooltip] = useState(false);
+  const [bodyExpanded, setBodyExpanded] = useState(false);
   const subjectTextRef = useRef<HTMLParagraphElement>(null);
+
+  const hasBodyToggle = artifact.bodyPreview !== artifact.bodyFull;
+  const displayedBody = hasBodyToggle && !bodyExpanded ? artifact.bodyPreview : artifact.bodyFull;
 
   const handleCopySubject = useCallback(() => {
     navigator.clipboard.writeText(artifact.subject);
@@ -161,8 +165,16 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         <span className="text-xs text-gray-700 mb-2 block">Body</span>
         <div className="text-sm text-gray-900 leading-relaxed markdown-content not-prose">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{artifact.bodyFull}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayedBody}</ReactMarkdown>
         </div>
+        {hasBodyToggle && (
+          <button
+            onClick={() => setBodyExpanded((v) => !v)}
+            className="mt-2 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          >
+            {bodyExpanded ? 'Show less ▲' : 'Show full email ▼'}
+          </button>
+        )}
       </div>
 
       {/* CRM context */}

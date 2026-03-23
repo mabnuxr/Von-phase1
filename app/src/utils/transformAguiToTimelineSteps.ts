@@ -496,8 +496,8 @@ export interface TransformResult {
   hadApprovalPause: boolean;
   /** Error message if the run failed (from RUN_FINISHED with status=failed or RUN_ERROR) */
   runErrorMessage: string;
-  /** Reference to an email_draft artifact that must be fetched from the API */
-  emailDraftArtifactRef: { artifactId: string; runId: string } | null;
+  /** References to all email_draft artifacts produced in this run */
+  emailDraftArtifactRefs: { artifactId: string; runId: string }[];
   /** Whether an approval request has expired */
   isExpiredApproval: boolean;
 }
@@ -530,7 +530,7 @@ export function transformAguiToTimelineSteps(
       stoppedByUser: false,
       hadApprovalPause: false,
       runErrorMessage: "",
-      emailDraftArtifactRef: null,
+      emailDraftArtifactRefs: [],
       isExpiredApproval: false,
     };
   }
@@ -589,8 +589,8 @@ export function transformAguiToTimelineSteps(
   // Track error message from failed RUN_FINISHED or RUN_ERROR
   let runErrorMessage = "";
 
-  // Email draft artifact reference (new path)
-  let emailDraftArtifactRef: { artifactId: string; runId: string } | null = null;
+  // Email draft artifact references — one per gmail_compose tool call
+  const emailDraftArtifactRefs: { artifactId: string; runId: string }[] = [];
 
   // Track if we've seen RUN_FINISHED with pending approval (run paused for approval)
   let sawRunFinishedWithPendingApproval = false;
@@ -1103,14 +1103,11 @@ export function transformAguiToTimelineSteps(
                         tool_name: result._artifact.tool_name,
                         artifact_type: result._artifact.artifact_type,
                       };
-                      if (
-                        !emailDraftArtifactRef &&
-                        result._artifact.artifact_type === "email_draft"
-                      ) {
-                        emailDraftArtifactRef = {
+                      if (result._artifact.artifact_type === "email_draft") {
+                        emailDraftArtifactRefs.push({
                           artifactId: result._artifact.artifact_id,
                           runId: result._artifact.run_id,
-                        };
+                        });
                       }
                       toolCallResultMap.delete(toolId);
                     } else {
@@ -1246,14 +1243,11 @@ export function transformAguiToTimelineSteps(
                       tool_name: result._artifact.tool_name,
                       artifact_type: result._artifact.artifact_type,
                     };
-                    if (
-                      !emailDraftArtifactRef &&
-                      result._artifact.artifact_type === "email_draft"
-                    ) {
-                      emailDraftArtifactRef = {
+                    if (result._artifact.artifact_type === "email_draft") {
+                      emailDraftArtifactRefs.push({
                         artifactId: result._artifact.artifact_id,
                         runId: result._artifact.run_id,
-                      };
+                      });
                     }
                   } else {
                     // Remove failed step from steps array
@@ -1505,14 +1499,11 @@ export function transformAguiToTimelineSteps(
                   tool_name: result._artifact.tool_name,
                   artifact_type: result._artifact.artifact_type,
                 };
-                if (
-                  !emailDraftArtifactRef &&
-                  result._artifact.artifact_type === "email_draft"
-                ) {
-                  emailDraftArtifactRef = {
+                if (result._artifact.artifact_type === "email_draft") {
+                  emailDraftArtifactRefs.push({
                     artifactId: result._artifact.artifact_id,
                     runId: result._artifact.run_id,
-                  };
+                  });
                 }
               } else {
                 // Remove failed step from steps array
@@ -1564,7 +1555,7 @@ export function transformAguiToTimelineSteps(
     stoppedByUser,
     hadApprovalPause: sawRunFinishedWithPendingApproval,
     runErrorMessage,
-    emailDraftArtifactRef,
+    emailDraftArtifactRefs,
     isExpiredApproval: steps.some((s) => s.status === "expired"),
   };
 }
