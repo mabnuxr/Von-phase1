@@ -83,13 +83,6 @@ interface RawApiDashboardResponse {
   refresh_info: {
     last_refreshed_at: string;
   };
-  ui_config?: {
-    color_palette_global?: string;
-    panel_layouts?: Record<
-      string,
-      { x: number; y: number; w: number; h: number }
-    >;
-  };
 }
 
 // ─── API Response Adapter ───────────────────────────────────────
@@ -211,7 +204,8 @@ function adaptApiResponse(
         analysisId: "",
         uiConfig: raw.ui_config
           ? {
-              colorPaletteGlobal: raw.ui_config.color_palette_global,
+              colorPaletteGlobal:
+                raw.ui_config.color_palette_global ?? undefined,
               panelLayouts: raw.ui_config.panel_layouts,
             }
           : undefined,

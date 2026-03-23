@@ -28,14 +28,11 @@ const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageC
     }
   }, [inputValue, totalPages, page, onPageChange]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        e.currentTarget.blur(); // triggers onBlur → commitPage
-      }
-    },
-    []
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // triggers onBlur → commitPage
+    }
+  }, []);
 
   if (totalPages <= 1) return null;
 

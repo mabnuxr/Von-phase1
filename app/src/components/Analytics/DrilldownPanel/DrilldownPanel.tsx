@@ -41,16 +41,36 @@ function formatLabel(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Default column width by type so Grid Lite constrains cells and truncation kicks in */
+function defaultWidthForType(type: ReturnType<typeof inferColumnType>): number {
+  switch (type) {
+    case "boolean":
+      return 80;
+    case "number":
+    case "currency":
+    case "percentage":
+      return 120;
+    case "date":
+      return 130;
+    default:
+      return 160;
+  }
+}
+
 /** Build ReportColumn definitions from the first data row */
 function columnsFromData(rows: Record<string, unknown>[]): ReportColumn[] {
   if (rows.length === 0) return [];
   const sample = rows[0];
-  return Object.keys(sample).map((key) => ({
-    id: key,
-    label: formatLabel(key),
-    type: inferColumnType(key, sample[key]),
-    sortable: true,
-  }));
+  return Object.keys(sample).map((key) => {
+    const type = inferColumnType(key, sample[key]);
+    return {
+      id: key,
+      label: formatLabel(key),
+      type,
+      sortable: true,
+      width: defaultWidthForType(type),
+    };
+  });
 }
 
 // ─── Props ──────────────────────────────────────────────────────

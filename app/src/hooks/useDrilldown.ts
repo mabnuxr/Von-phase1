@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import type { PanelDrilldownPagination } from "../types/dashboard";
 
-const PAGE_LIMIT = 10;
+const PAGE_LIMIT = 20;
 
 interface DrilldownState {
   panelId: string;
