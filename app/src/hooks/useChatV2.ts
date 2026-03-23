@@ -41,7 +41,6 @@ import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import { useEmlDraftArtifacts } from "./useEmlDraftArtifacts";
-import { useMessagesWithEmailDraft } from "./useMessagesWithEmailDraft";
 import {
   transformConversationMessages,
   handleToolApproval,
@@ -431,6 +430,7 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
+        emlDraftsByRunId: allDraftsByRunId,
         phase: v2Processor.phase,
         dashboard: v2Processor.dashboard,
       }),
@@ -447,15 +447,13 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
+      allDraftsByRunId,
       v2Processor.phase,
       v2Processor.dashboard,
     ],
   );
 
-  const messages = useMessagesWithEmailDraft(
-    transformedMessages,
-    allDraftsByRunId,
-  );
+  const messages = transformedMessages;
 
   // Message filtering state
   const showMessagesFromIndex = useChatStore(
