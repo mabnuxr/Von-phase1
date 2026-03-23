@@ -498,7 +498,10 @@ function transformMessagesForV2(
             (a) => a.artifactType === "slide_preview_pdf",
           );
           const displayArtifacts = artifacts.filter(
-            (a) => a.artifactType !== "slide_preview_pdf",
+            (a) =>
+              a.artifactType !== "slide_preview_pdf" &&
+              a.artifactType !== "email_draft" &&
+              !a.fileName?.endsWith(".eml"),
           );
           transformedMessages[i] = {
             ...msg,

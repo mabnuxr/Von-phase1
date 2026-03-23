@@ -21,35 +21,15 @@ import {
 } from "../lib/emailUtils";
 
 /**
- * Route a presigned S3 URL through the appropriate Vite proxy to avoid CORS
- * issues and signature mismatches.
+ * Returns the URL to fetch EML content from.
  *
- * S3 presigned URLs come in two styles:
- *
- * 1. Virtual-hosted: https://BUCKET.s3.REGION.amazonaws.com/KEY?sig...
- *    → bucket is in the hostname; canonical resource is /BUCKET/KEY
- *    → proxy target `vonlabs-public-assets.s3.us-west-2.amazonaws.com`
- *    → use /s3-assets prefix (strips it, forwards the /KEY path)
- *
- * 2. Path-style: https://s3.REGION.amazonaws.com/BUCKET/KEY?sig...
- *    → bucket is in the path; canonical resource is /BUCKET/KEY
- *    → proxy target must be s3.REGION.amazonaws.com so the path is forwarded
- *      unchanged — sending to the virtual-hosted endpoint would prepend the
- *      bucket name again, giving /BUCKET/BUCKET/KEY → SignatureDoesNotMatch
- *    → use /s3-path prefix (strips it, forwards the /BUCKET/KEY path)
+ * Presigned S3 URLs are fetched directly — the S3 bucket must have CORS
+ * configured for the frontend origin. If CORS is not available, a backend
+ * endpoint (e.g. GET /api/conversations/{id}/files/{id}/content) should be
+ * added to serve the content server-side.
  */
-function toProxiedUrl(s3Url: string): string {
-  try {
-    const url = new URL(s3Url);
-    const { pathname, search } = url;
-    // Path-style: host is a bare S3 regional endpoint (s3.*, s3-*)
-    const isPathStyle = /^s3[.-]/.test(url.hostname);
-    return isPathStyle
-      ? `/s3-path${pathname}${search}`
-      : `/s3-assets${pathname}${search}`;
-  } catch {
-    return s3Url;
-  }
+function toFetchableUrl(s3Url: string): string {
+  return s3Url;
 }
 
 export function useEmlDraftArtifacts(
@@ -73,7 +53,7 @@ export function useEmlDraftArtifacts(
     queries: urlQueries.map((q, i) => ({
       queryKey: ["eml-content", emlFiles[i].fileId],
       queryFn: async () => {
-        const res = await fetch(toProxiedUrl(q.data!.downloadUrl));
+        const res = await fetch(toFetchableUrl(q.data!.downloadUrl));
         if (!res.ok) throw new Error(`EML fetch failed: ${res.status}`);
         return res.text();
       },
