@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
-    "@highcharts/grid-lite": "^2.2.0",
+    "@highcharts/grid-lite": "^2.3.0",
     "@highcharts/grid-lite-react": "^1.0.0",
     "@tiptap/extension-code-block-lowlight": "^3.15.3",
     "@tiptap/extension-color": "^3.15.3",
