@@ -31,21 +31,17 @@ export function useDashboardUpdate(dashboardId: string) {
     },
   });
 
-  const handleUpdate = useDebouncedFn(
-    (data: DashboardUpdateRequest) => {
-      updateMutation.mutate(data, {
-        onError: (error: unknown) => {
-          console.error("[useDashboardUpdate] Update failed:", error);
-          showToast({
-            message: "Failed to update dashboard. Please try again.",
-            variant: "error",
-          });
-        },
-      });
-    },
-    400,
-    [updateMutation.mutate, showToast, dashboardId],
-  );
+  const handleUpdate = useDebouncedFn((data: DashboardUpdateRequest) => {
+    updateMutation.mutate(data, {
+      onError: (error: unknown) => {
+        console.error("[useDashboardUpdate] Update failed:", error);
+        showToast({
+          message: "Failed to update dashboard. Please try again.",
+          variant: "error",
+        });
+      },
+    });
+  }, 400);
 
   return { handleUpdate, updateMutation };
 }
