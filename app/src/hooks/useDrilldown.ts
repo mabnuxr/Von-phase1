@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import type { PanelDrilldownPagination } from "../types/dashboard";
@@ -19,6 +19,13 @@ export function useDrilldown(
   // Track the last successful data so we can show it while loading a new page
   const lastDataRef = useRef<Record<string, unknown>[]>([]);
   const lastPaginationRef = useRef<PanelDrilldownPagination | null>(null);
+
+  // Reset all state when the dashboard changes so stale panel data never bleeds across
+  useEffect(() => {
+    setDrilldown(null);
+    lastDataRef.current = [];
+    lastPaginationRef.current = null;
+  }, [dashboardId]);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["drilldown", dashboardId, drilldown?.panelId, drilldown?.page],
@@ -43,13 +50,19 @@ export function useDrilldown(
   const openDrilldown = useCallback(
     (panelId: string) => {
       const widget = widgets[panelId];
+      // Clear cached rows when switching to a different panel so the previous
+      // panel's data is never shown while the new panel's first fetch is in-flight.
+      if (drilldown?.panelId !== panelId) {
+        lastDataRef.current = [];
+        lastPaginationRef.current = null;
+      }
       setDrilldown({
         panelId,
         widgetTitle: widget?.title ?? "Drilldown",
         page: 1,
       });
     },
-    [widgets],
+    [widgets, drilldown?.panelId],
   );
 
   const closeDrilldown = useCallback(() => {

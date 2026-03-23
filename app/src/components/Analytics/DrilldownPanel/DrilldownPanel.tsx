@@ -178,10 +178,10 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50 overflow-hidden"
             style={{ height: `${panelHeight}vh` }}
           >
-            {/* Resize Handle */}
+            {/* Resize Handle — kept inside panel bounds so overflow-hidden doesn't clip it */}
             <div
               onMouseDown={handleMouseDown}
-              className="absolute -top-2 left-0 right-0 h-4 cursor-ns-resize flex justify-center items-center group"
+              className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize flex justify-center items-center group"
             >
               <div className="w-10 h-1 bg-gray-300 rounded-full group-hover:bg-gray-400 transition-colors" />
             </div>
@@ -203,7 +203,45 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             {/* Table */}
             <div className="flex-1 overflow-hidden p-4">
               {gridOptions ? (
-                <ReportTable options={gridOptions} isLoading={isLoading} />
+                <div className="h-full relative">
+                  <ReportTable options={gridOptions} />
+                  {/* Shimmer overlay — same pattern as TableWidget: headers stay visible,
+                      shimmer covers only body rows. top:36px clears the HCG header. */}
+                  {isLoading && (
+                    <div className="table-skeleton" style={{ top: 36 }}>
+                      {Array.from({
+                        length: pagination?.limit ?? 20,
+                      }).map((_, i) => (
+                        <div key={i} className="table-skeleton-row">
+                          <div
+                            className="table-skeleton-cell"
+                            style={{ width: "25%" }}
+                          />
+                          <div
+                            className="table-skeleton-cell"
+                            style={{ width: "18%" }}
+                          />
+                          <div
+                            className="table-skeleton-cell"
+                            style={{ width: "15%" }}
+                          />
+                          <div
+                            className="table-skeleton-cell"
+                            style={{ width: "12%" }}
+                          />
+                          <div
+                            className="table-skeleton-cell"
+                            style={{ width: "14%" }}
+                          />
+                          <div
+                            className="table-skeleton-cell"
+                            style={{ width: "10%" }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-sm text-gray-500">
                   {isLoading ? "Loading..." : "No data available"}

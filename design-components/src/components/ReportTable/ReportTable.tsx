@@ -143,7 +143,7 @@ export function ReportTable({
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const viewport = wrapper.querySelector('.ag-body-viewport');
+    const viewport = wrapper.querySelector('.hcg-scrollable-content');
     if (!viewport) return;
 
     const onScroll = () => {

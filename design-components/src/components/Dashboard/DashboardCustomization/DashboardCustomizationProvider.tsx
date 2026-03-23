@@ -51,6 +51,18 @@ export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProv
     onChangeRef.current?.(colorTheme);
   }, [colorTheme]);
 
+  // Sync internal state when the parent provides a new defaultColorTheme (e.g.
+  // when the preview pane shows a different dashboard without unmounting).
+  // Bypass the change-callback by pre-updating prevColorThemeRef so the effect
+  // above treats this as a non-user-initiated change.
+  const prevDefaultColorThemeRef = useRef(defaultColorTheme);
+  useEffect(() => {
+    if (prevDefaultColorThemeRef.current === defaultColorTheme) return;
+    prevDefaultColorThemeRef.current = defaultColorTheme;
+    prevColorThemeRef.current = defaultColorTheme;
+    setColorTheme(defaultColorTheme);
+  }, [defaultColorTheme]);
+
   const palette = useMemo(() => chartThemes[colorTheme], [colorTheme]);
 
   const stableSetColorTheme = useCallback((t: ChartThemeId) => setColorTheme(t), []);
