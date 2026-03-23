@@ -287,7 +287,13 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
             : ((props as DataViewProps).rows?.length ?? 0) > 0;
 
   // Header icon based on view mode
-  const HeaderIcon = isMemoryView ? BrainIcon : isEmailDraftView ? EnvelopeIcon : isCallsView ? PhoneIcon : DatabaseIcon;
+  const HeaderIcon = isMemoryView
+    ? BrainIcon
+    : isEmailDraftView
+      ? EnvelopeIcon
+      : isCallsView
+        ? PhoneIcon
+        : DatabaseIcon;
 
   // Memoize grid options for IQ view to avoid rebuilding on every render
   const iqColumns = isIQView ? (props as IQViewProps).columns : undefined;

@@ -715,23 +715,26 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   )}
 
                   {/* Gmail draft artifact cards */}
-                  {!isUser && emailDraftArtifacts && emailDraftArtifacts.length > 0 && !isStreaming && (
-                    <div className="mt-3 space-y-2">
-                      {emailDraftArtifacts.map((draft) => (
-                        <GmailDraftCard
-                          key={draft.draftId}
-                          artifact={draft}
-                          isGmailEnabled={true}
-                          isGmailConnected={!!draft.gmailUrl}
-                          onOpenInGmail={
-                            draft.gmailUrl
-                              ? () => window.open(draft.gmailUrl, '_blank')
-                              : undefined
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
+                  {!isUser &&
+                    emailDraftArtifacts &&
+                    emailDraftArtifacts.length > 0 &&
+                    !isStreaming && (
+                      <div className="mt-3 space-y-2">
+                        {emailDraftArtifacts.map((draft) => (
+                          <GmailDraftCard
+                            key={draft.draftId}
+                            artifact={draft}
+                            isGmailEnabled={true}
+                            isGmailConnected={!!draft.gmailUrl}
+                            onOpenInGmail={
+                              draft.gmailUrl
+                                ? () => window.open(draft.gmailUrl, '_blank')
+                                : undefined
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
 
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (

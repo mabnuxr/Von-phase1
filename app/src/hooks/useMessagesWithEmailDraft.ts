@@ -23,11 +23,22 @@ export function useMessagesWithEmailDraft(
     for (const [runId, artifacts] of artifactsByRunId) {
       if (artifacts.length === 0) continue;
 
-      let targetIdx = result.findLastIndex(
-        (m) => m.type === "assistant" && m.runId === runId,
-      );
+      // findLastIndex is ES2023+ — use a manual reverse scan for compat
+      let targetIdx = -1;
+      for (let i = result.length - 1; i >= 0; i--) {
+        const m = result[i];
+        if (m.type === "assistant" && m.runId === runId) {
+          targetIdx = i;
+          break;
+        }
+      }
       if (targetIdx === -1) {
-        targetIdx = result.findLastIndex((m) => m.type === "assistant");
+        for (let i = result.length - 1; i >= 0; i--) {
+          if (result[i].type === "assistant") {
+            targetIdx = i;
+            break;
+          }
+        }
       }
       if (targetIdx === -1) continue;
 

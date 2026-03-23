@@ -14,13 +14,39 @@ import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
 import type { EmailDraftArtifact } from "@vonlabs/design-components";
 import { fileUploadService } from "../services/fileUploadService";
-import { parseEmlContent, buildGmailComposeUrl, type DraftCard } from "../lib/emailUtils";
+import {
+  parseEmlContent,
+  buildGmailComposeUrl,
+  type DraftCard,
+} from "../lib/emailUtils";
 
-/** Route a presigned S3 URL through the /s3-assets proxy to avoid CORS issues. */
+/**
+ * Route a presigned S3 URL through the appropriate Vite proxy to avoid CORS
+ * issues and signature mismatches.
+ *
+ * S3 presigned URLs come in two styles:
+ *
+ * 1. Virtual-hosted: https://BUCKET.s3.REGION.amazonaws.com/KEY?sig...
+ *    → bucket is in the hostname; canonical resource is /BUCKET/KEY
+ *    → proxy target `vonlabs-public-assets.s3.us-west-2.amazonaws.com`
+ *    → use /s3-assets prefix (strips it, forwards the /KEY path)
+ *
+ * 2. Path-style: https://s3.REGION.amazonaws.com/BUCKET/KEY?sig...
+ *    → bucket is in the path; canonical resource is /BUCKET/KEY
+ *    → proxy target must be s3.REGION.amazonaws.com so the path is forwarded
+ *      unchanged — sending to the virtual-hosted endpoint would prepend the
+ *      bucket name again, giving /BUCKET/BUCKET/KEY → SignatureDoesNotMatch
+ *    → use /s3-path prefix (strips it, forwards the /BUCKET/KEY path)
+ */
 function toProxiedUrl(s3Url: string): string {
   try {
-    const { pathname, search } = new URL(s3Url);
-    return `/s3-assets${pathname}${search}`;
+    const url = new URL(s3Url);
+    const { pathname, search } = url;
+    // Path-style: host is a bare S3 regional endpoint (s3.*, s3-*)
+    const isPathStyle = /^s3[.-]/.test(url.hostname);
+    return isPathStyle
+      ? `/s3-path${pathname}${search}`
+      : `/s3-assets${pathname}${search}`;
   } catch {
     return s3Url;
   }
@@ -34,7 +60,8 @@ export function useEmlDraftArtifacts(
   const urlQueries = useQueries({
     queries: emlFiles.map((f) => ({
       queryKey: ["eml-download-url", conversationId, f.fileId],
-      queryFn: () => fileUploadService.getDownloadUrl(conversationId!, f.fileId),
+      queryFn: () =>
+        fileUploadService.getDownloadUrl(conversationId!, f.fileId),
       enabled: !!conversationId && !!f.fileId,
       staleTime: 4 * 60 * 1000, // presigned URLs expire, keep short
       gcTime: 10 * 60 * 1000,

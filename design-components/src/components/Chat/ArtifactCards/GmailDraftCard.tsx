@@ -124,10 +124,7 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
         <div className="flex-1 min-w-0 mr-2">
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-700 flex-shrink-0">Subject</span>
-            <p
-              ref={subjectTextRef}
-              className="text-sm font-medium text-gray-900 truncate"
-            >
+            <p ref={subjectTextRef} className="text-sm font-medium text-gray-900 truncate">
               {artifact.subject}
             </p>
           </div>

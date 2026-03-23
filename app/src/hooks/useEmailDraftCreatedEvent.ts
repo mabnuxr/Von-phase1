@@ -51,9 +51,15 @@ export function useEmailDraftCreatedEvent(
 
   useEffect(() => {
     if (!channel) return;
-    channel.bind(ConversationChannelEvents.ARTIFACT_CREATED, handleArtifactCreated);
+    channel.bind(
+      ConversationChannelEvents.ARTIFACT_CREATED,
+      handleArtifactCreated,
+    );
     return () => {
-      channel.unbind(ConversationChannelEvents.ARTIFACT_CREATED, handleArtifactCreated);
+      channel.unbind(
+        ConversationChannelEvents.ARTIFACT_CREATED,
+        handleArtifactCreated,
+      );
     };
   }, [channel, handleArtifactCreated]);
 

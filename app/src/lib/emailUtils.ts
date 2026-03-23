@@ -37,11 +37,17 @@ export function parseEmlContent(
   const subject = headers["subject"] ?? "";
   if (!to && !subject) return null;
 
-  const isQP = headers["content-transfer-encoding"]?.toLowerCase() === "quoted-printable";
+  const isQP =
+    headers["content-transfer-encoding"]?.toLowerCase() === "quoted-printable";
   const body = isQP ? decodeQuotedPrintable(rawBody) : rawBody;
 
   const splitList = (v?: string) =>
-    v ? v.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+    v
+      ? v
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
 
   return {
     to,

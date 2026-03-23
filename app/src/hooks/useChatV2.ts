@@ -208,7 +208,10 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   // Collect email draft refs from artifact_created Pusher events (live path)
-  const emailDraftCreatedRefs = useEmailDraftCreatedEvent(channel, conversationId);
+  const emailDraftCreatedRefs = useEmailDraftCreatedEvent(
+    channel,
+    conversationId,
+  );
 
   // Merge refs from both sources: TOOL_CALL_RESULT events (page refresh / replay)
   // and artifact_created Pusher events (live path), deduped by artifactId.

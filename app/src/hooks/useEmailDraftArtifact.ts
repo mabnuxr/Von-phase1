@@ -42,7 +42,9 @@ export function useEmailDraftArtifact(
       const data = results[i].data;
       if (!data) continue;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const draftCard = (data.content as any)?.draft_card as DraftCard | undefined;
+      const draftCard = (data.content as any)?.draft_card as
+        | DraftCard
+        | undefined;
       if (!draftCard?.type || draftCard.type !== "email_draft") continue;
       artifacts.push(draftCardToArtifact(draftCard, refs[i].artifactId));
     }
