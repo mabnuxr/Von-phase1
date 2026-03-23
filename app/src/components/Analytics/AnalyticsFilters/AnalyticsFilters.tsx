@@ -94,7 +94,10 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
   filters,
   activeFilters,
 }) => {
-  const safeFilters = Array.isArray(filters) ? filters : [];
+  const safeFilters = useMemo(
+    () => (Array.isArray(filters) ? filters : []),
+    [filters],
+  );
   const fields = useMemo(() => toFilterFields(safeFilters), [safeFilters]);
   const groups = useMemo(
     () => toFilterGroups(safeFilters, activeFilters),

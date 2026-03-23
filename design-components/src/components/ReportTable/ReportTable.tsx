@@ -104,8 +104,15 @@ export function ReportTable({
     if (!td || td === lastHoveredTd.current) return;
     lastHoveredTd.current = td;
 
-    // Check if cell content is actually truncated
-    if (td.scrollWidth <= td.clientWidth) return;
+    // Check if cell content is actually truncated.
+    // The default cell formatter wraps text in a display:block span with overflow:hidden,
+    // so the td's scrollWidth equals clientWidth even when text is truncated — the inner
+    // element clips it. We need to check td OR its first child element.
+    const firstChild = td.firstElementChild as HTMLElement | null;
+    const isTruncated =
+      td.scrollWidth > td.clientWidth ||
+      (firstChild !== null && firstChild.scrollWidth > firstChild.clientWidth);
+    if (!isTruncated) return;
 
     // Prefer explicit data-tooltip (set for owner/multiPicklist cells where
     // textContent concatenates avatar initials or tag text without separators)
@@ -136,7 +143,7 @@ export function ReportTable({
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const viewport = wrapper.querySelector('.ag-body-viewport');
+    const viewport = wrapper.querySelector('.hcg-scrollable-content');
     if (!viewport) return;
 
     const onScroll = () => {

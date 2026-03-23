@@ -75,6 +75,8 @@ export interface CounterWidgetProps {
   config: CounterWidgetConfig;
   title?: string;
   subtitle?: string;
+  /** Callback when the drilldown icon is clicked */
+  onDrillDown?: () => void;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -111,6 +113,8 @@ export interface WidgetShellProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  /** Callback when the drilldown icon is clicked */
+  onDrillDown?: () => void;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
@@ -119,6 +123,8 @@ export interface WidgetRendererProps {
   widget: WidgetConfig;
   onTablePageChange?: (panelId: string, page: number) => void;
   isTableLoading?: boolean;
+  /** Callback when a widget's drilldown icon is clicked */
+  onDrillDown?: (panelId: string) => void;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -129,4 +135,6 @@ export interface DashboardGridProps {
   gridConfig: GridConfig;
   onTablePageChange?: (panelId: string, page: number) => void;
   loadingTablePanels?: Set<string>;
+  /** Callback when a widget's drilldown icon is clicked */
+  onDrillDown?: (panelId: string) => void;
 }

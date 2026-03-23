@@ -13,6 +13,8 @@ import {
   DashboardGrid,
   ErrorBoundary,
 } from "@vonlabs/design-components";
+import { chartThemeIds } from "@vonlabs/design-components";
+import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
@@ -55,6 +57,12 @@ interface AnalyticsViewProps {
   /** Widgets with paginated table data merged in (overrides dashboard.widgets) */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   paginatedWidgets?: Record<string, any>;
+  /** Callback when a widget's drilldown icon is clicked */
+  onDrillDown?: (panelId: string) => void;
+  /** Initial color theme from backend ui_config */
+  defaultColorTheme?: string;
+  /** Called when the user changes the color theme */
+  onColorThemeChange?: (themeId: string) => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -75,6 +83,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
+  onDrillDown,
+  defaultColorTheme,
+  onColorThemeChange,
 }) => {
   const gridConfig = dashboard.gridConfig as unknown as GridConfig;
   const layout = dashboard.layout as unknown as LayoutItem[];
@@ -83,12 +94,20 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
+  const validatedColorTheme =
+    defaultColorTheme && (chartThemeIds as string[]).includes(defaultColorTheme)
+      ? (defaultColorTheme as ChartThemeId)
+      : undefined;
+
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
   }, []);
 
   return (
-    <DashboardCustomizationProvider>
+    <DashboardCustomizationProvider
+      defaultColorTheme={validatedColorTheme}
+      onColorThemeChange={onColorThemeChange}
+    >
       <DashboardLayout>
         <DashboardLayout.Header>
           {/* Title row: name + description | chat + close */}
@@ -233,6 +252,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               gridConfig={gridConfig}
               onTablePageChange={onTablePageChange}
               loadingTablePanels={loadingTablePanels}
+              onDrillDown={onDrillDown}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

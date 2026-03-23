@@ -21,11 +21,14 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
   widget,
   onTablePageChange,
   isTableLoading,
+  onDrillDown,
 }) => {
+  const handleDrillDown = onDrillDown ? () => onDrillDown(widget.id) : undefined;
+
   switch (widget.type) {
     case 'chart':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle}>
+        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown}>
           <ChartWidget config={widget.config as ChartWidgetConfig} />
         </WidgetShell>
       );
@@ -44,6 +47,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
           config={widget.config as CounterWidgetConfig}
           title={widget.title}
           subtitle={widget.subtitle}
+          onDrillDown={handleDrillDown}
         />
       );
 
@@ -56,7 +60,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
 
     case 'table':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle}>
+        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown}>
           <TableWidget
             config={widget.config as TableWidgetConfig}
             onPageChange={

@@ -5,6 +5,8 @@ import type {
   WidgetDataResponse,
   PanelRenderRequest,
   PanelRenderResponse,
+  PanelDrilldownRequest,
+  PanelDrilldownResponse,
 } from "../types/dashboard";
 
 /**
@@ -29,6 +31,15 @@ export interface DashboardListResponse {
     total_pages: number;
     has_next_page: boolean;
     has_prev_page: boolean;
+  };
+}
+
+export interface DashboardUpdateRequest {
+  dashboard_name?: string;
+  description?: string;
+  ui_config?: {
+    color_palette_global?: string;
+    [key: string]: unknown;
   };
 }
 
@@ -114,6 +125,26 @@ class DashboardService {
   ): Promise<PanelRenderResponse> {
     return apiClient.post<PanelRenderResponse>(
       `/api/v1/dashboards/${dashboardId}/panels/render`,
+      request,
+    );
+  }
+
+  async updateDashboard(
+    dashboardId: string,
+    data: DashboardUpdateRequest,
+  ): Promise<DashboardMetadataResponse> {
+    return apiClient.patch<DashboardMetadataResponse>(
+      `/api/v1/dashboards/${dashboardId}`,
+      data,
+    );
+  }
+
+  async drilldownPanel(
+    dashboardId: string,
+    request: PanelDrilldownRequest,
+  ): Promise<PanelDrilldownResponse> {
+    return apiClient.post<PanelDrilldownResponse>(
+      `/api/v1/dashboards/${dashboardId}/panels/drilldown`,
       request,
     );
   }

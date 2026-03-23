@@ -3,6 +3,8 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
+import { useDrilldown } from "../hooks/useDrilldown";
+import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useAppShell } from "../hooks/useAppShell";
 import { useVisibilityToggle } from "@vonlabs/design-components";
 import { useResizablePane } from "../hooks/useResizablePane";
@@ -11,6 +13,7 @@ import {
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
+import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
 import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
@@ -59,6 +62,15 @@ const Analytics = () => {
     handleRefresh,
   } = useAnalyticsTools(dashboardId);
 
+  const { handleUpdate } = useDashboardUpdate(dashboardId);
+
+  const handleColorThemeChange = useCallback(
+    (themeId: string) => {
+      handleUpdate({ ui_config: { color_palette_global: themeId } });
+    },
+    [handleUpdate],
+  );
+
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
@@ -73,6 +85,19 @@ const Analytics = () => {
 
   const { mergedWidgets, handlePageChange, loadingPanels } =
     useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+
+  // Drilldown
+  const {
+    isOpen: isDrilldownOpen,
+    widgetTitle: drilldownWidgetTitle,
+    data: drilldownData,
+    pagination: drilldownPagination,
+    isLoading: isDrilldownLoading,
+    isError: isDrilldownError,
+    openDrilldown,
+    closeDrilldown,
+    changePage: changeDrilldownPage,
+  } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
   // Subscribe to Pusher events for dashboard refresh notifications
   useDashboardRefreshEvents(dashboardId);
@@ -115,6 +140,9 @@ const Analytics = () => {
           onTablePageChange={handlePageChange}
           loadingTablePanels={loadingPanels}
           paginatedWidgets={mergedWidgets}
+          onDrillDown={openDrilldown}
+          defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
+          onColorThemeChange={handleColorThemeChange}
         />
       </div>
 
@@ -159,6 +187,18 @@ const Analytics = () => {
           </div>
         </div>
       )}
+
+      {/* Drilldown Panel */}
+      <DrilldownPanel
+        isOpen={isDrilldownOpen}
+        onClose={closeDrilldown}
+        widgetTitle={drilldownWidgetTitle}
+        data={drilldownData}
+        pagination={drilldownPagination}
+        isLoading={isDrilldownLoading}
+        isError={isDrilldownError}
+        onPageChange={changeDrilldownPage}
+      />
     </div>
   );
 };

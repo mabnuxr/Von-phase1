@@ -1,19 +1,19 @@
-import { useState, useCallback, useEffect } from 'react';
-import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
-import type { TablePaginationInfo } from '../types';
+import { useState, useCallback, useEffect } from "react";
+import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import type { PanelDrilldownPagination } from "../../../types/dashboard";
 
-interface ServerPaginationProps {
-  pagination: TablePaginationInfo;
+interface DrilldownPaginationProps {
+  pagination: PanelDrilldownPagination;
   onPageChange: (page: number) => void;
 }
 
-const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageChange }) => {
+export const DrilldownPagination: React.FC<DrilldownPaginationProps> = ({
+  pagination,
+  onPageChange,
+}) => {
   const { page, totalPages, hasPrevPage, hasNextPage } = pagination;
-
-  // Local input value so the user can type freely, committed on Enter/blur
   const [inputValue, setInputValue] = useState(String(page));
 
-  // Sync input when page changes externally (e.g. optimistic update)
   useEffect(() => {
     setInputValue(String(page));
   }, [page]);
@@ -23,49 +23,42 @@ const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageC
     if (!Number.isNaN(num) && num >= 1 && num <= totalPages && num !== page) {
       onPageChange(num);
     } else {
-      // Reset to current page if invalid
       setInputValue(String(page));
     }
   }, [inputValue, totalPages, page, onPageChange]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur(); // triggers onBlur → commitPage
-    }
-  }, []);
-
-  if (totalPages <= 1) return null;
-
   return (
-    <div className="server-pagination-bar">
+    <div className="flex items-center gap-2 text-sm text-gray-600">
       <button
         disabled={!hasPrevPage}
         onClick={() => onPageChange(page - 1)}
-        className="server-pagination-arrow"
+        className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
         aria-label="Previous page"
       >
         <CaretLeftIcon size={14} weight="bold" />
       </button>
 
-      <span className="server-pagination-label">Page</span>
+      <span className="text-xs text-gray-500">Page</span>
 
       <input
         type="text"
         inputMode="numeric"
-        className="server-pagination-input"
+        className="w-10 h-7 text-center text-xs border border-gray-200 rounded-lg outline-none focus:border-gray-400 transition-colors"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onBlur={commitPage}
-        onKeyDown={handleKeyDown}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
         aria-label="Current page"
       />
 
-      <span className="server-pagination-label">/ {totalPages}</span>
+      <span className="text-xs text-gray-500">/ {totalPages}</span>
 
       <button
         disabled={!hasNextPage}
         onClick={() => onPageChange(page + 1)}
-        className="server-pagination-arrow"
+        className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
         aria-label="Next page"
       >
         <CaretRightIcon size={14} weight="bold" />
@@ -73,5 +66,3 @@ const ServerPagination: React.FC<ServerPaginationProps> = ({ pagination, onPageC
     </div>
   );
 };
-
-export { ServerPagination };

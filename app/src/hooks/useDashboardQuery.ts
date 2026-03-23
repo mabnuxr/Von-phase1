@@ -180,9 +180,28 @@ function adaptApiResponse(
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         gridConfig: raw.gridConfig,
-        layout: Object.entries(raw.ui_config?.panel_layouts ?? {}).map(
-          ([id, pos]) => ({ i: id, x: pos.x, y: pos.y, w: pos.w, h: pos.h }),
-        ),
+        // Prefer panel_layouts when it has entries; fall back to each widget's
+        // own layout field when panel_layouts is absent or an empty object (the
+        // backend may return {} for dashboards with no customised layouts).
+        layout: (() => {
+          const pl = raw.ui_config?.panel_layouts;
+          if (pl && Object.keys(pl).length > 0) {
+            return Object.entries(pl).map(([id, pos]) => ({
+              i: id,
+              x: pos.x,
+              y: pos.y,
+              w: pos.w,
+              h: pos.h,
+            }));
+          }
+          return Object.entries(raw.widgets).map(([id, w]) => ({
+            i: id,
+            x: w.layout.x,
+            y: w.layout.y,
+            w: w.layout.w,
+            h: w.layout.h,
+          }));
+        })(),
         widgets,
         filters: raw.filters
           ? {
@@ -196,6 +215,13 @@ function adaptApiResponse(
         updatedAt: raw.updated_at,
         createdBy: "",
         analysisId: "",
+        uiConfig: raw.ui_config
+          ? {
+              colorPaletteGlobal:
+                raw.ui_config.color_palette_global ?? undefined,
+              panelLayouts: raw.ui_config.panel_layouts,
+            }
+          : undefined,
       },
       refreshInfo: {
         lastRefreshedAt: raw.refresh_info.last_refreshed_at,

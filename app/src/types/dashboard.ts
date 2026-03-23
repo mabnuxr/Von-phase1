@@ -56,6 +56,13 @@ export interface Dashboard {
   updatedAt: string;
   createdBy: string;
   analysisId: string;
+  uiConfig?: {
+    colorPaletteGlobal?: string;
+    panelLayouts?: Record<
+      string,
+      { x: number; y: number; w: number; h: number }
+    >;
+  };
 }
 
 export interface GridConfig {
@@ -401,4 +408,26 @@ export interface PanelRenderWidget {
 
 export interface PanelRenderResponse {
   widgets: Record<string, PanelRenderWidget>;
+}
+
+// ─── Panel Drilldown ────────────────────────────────────────────
+
+export interface PanelDrilldownRequest {
+  panel_id: string;
+  page_limit: number;
+  page: number;
+}
+
+export interface PanelDrilldownPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PanelDrilldownResponse {
+  data: Record<string, unknown>[];
+  pagination: PanelDrilldownPagination;
 }
