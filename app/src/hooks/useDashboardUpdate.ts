@@ -44,7 +44,7 @@ export function useDashboardUpdate(dashboardId: string) {
       });
     },
     400,
-    [updateMutation.mutate, showToast],
+    [updateMutation.mutate, showToast, dashboardId],
   );
 
   return { handleUpdate, updateMutation };

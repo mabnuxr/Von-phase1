@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, type DependencyList } from "react";
 /**
  * Returns a debounced version of `fn` that fires `delay` ms after the last call.
  * Mirrors the useCallback API — pass deps to control when the debounced
- * function is recreated.
+ * function is recreated. Any pending timer is cancelled on unmount.
  */
 export function useDebouncedFn<Args extends unknown[]>(
   fn: (...args: Args) => void,
@@ -14,7 +14,10 @@ export function useDebouncedFn<Args extends unknown[]>(
 
   useEffect(
     () => () => {
-      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      if (timerRef.current !== null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     },
     [],
   );
@@ -24,7 +27,7 @@ export function useDebouncedFn<Args extends unknown[]>(
     if (timerRef.current !== null) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      fn(...args as Args);
+      fn(...(args as Args));
     }, delay);
   }, deps);
 }
