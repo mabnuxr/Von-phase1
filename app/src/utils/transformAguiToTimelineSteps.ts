@@ -1097,7 +1097,6 @@ export function transformAguiToTimelineSteps(
                         tool_name: result._artifact.tool_name,
                         artifact_type: result._artifact.artifact_type,
                       };
-
                       toolCallResultMap.delete(toolId);
                     } else {
                       // Remove failed step from steps array

@@ -416,8 +416,6 @@ export function useChatV2(props: UseChatV2Props) {
     ],
   );
 
-  const messages = transformedMessages;
-
   // Message filtering state
   const showMessagesFromIndex = useChatStore(
     (state) => state.showMessagesFromIndex[conversationId] ?? 0,
@@ -449,13 +447,13 @@ export function useChatV2(props: UseChatV2Props) {
   // Transparency handler
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
-      const message = messages.find((m) => m.id === messageId);
+      const message = transformedMessages.find((m) => m.id === messageId);
       if (message?.runId) {
         setTransparencyRunId(message.runId);
         setIsTransparencyOpen(true);
       }
     },
-    [messages],
+    [transformedMessages],
   );
 
   const handleCloseTransparency = useCallback(() => {
@@ -604,7 +602,7 @@ export function useChatV2(props: UseChatV2Props) {
     dashboard: v2Processor.dashboard,
 
     // Messages
-    transformedMessages: messages,
+    transformedMessages,
     effectiveResearchResults,
     showMessagesFromIndex,
 

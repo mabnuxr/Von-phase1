@@ -19,6 +19,7 @@ import {
   buildGmailComposeUrl,
   type DraftCard,
 } from "../lib/emailUtils";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 interface GmailDraftCardContainerProps {
   conversationId: string;
@@ -28,6 +29,8 @@ interface GmailDraftCardContainerProps {
 export const GmailDraftCardContainer: React.FC<
   GmailDraftCardContainerProps
 > = ({ conversationId, artifact }) => {
+  const { isGmailEnabled } = useFeatureFlag();
+
   // Step 1 — get presigned download URL
   const urlQuery = useQuery({
     queryKey: ["eml-download-url", conversationId, artifact.fileId],
@@ -78,9 +81,13 @@ export const GmailDraftCardContainer: React.FC<
         crmContext: parsed.crm_context,
         gmailUrl,
       }}
-      isGmailEnabled={true}
-      isGmailConnected={!!gmailUrl}
-      onOpenInGmail={() => window.open(gmailUrl, "_blank")}
+      isGmailEnabled={isGmailEnabled}
+      isGmailConnected={isGmailEnabled && !!gmailUrl}
+      onOpenInGmail={
+        isGmailEnabled && gmailUrl
+          ? () => window.open(gmailUrl, "_blank")
+          : undefined
+      }
     />
   );
 };

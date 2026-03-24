@@ -162,7 +162,22 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         <span className="text-xs text-gray-700 mb-2 block">Body</span>
         <div className="text-sm text-gray-900 leading-relaxed markdown-content not-prose">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayedBody}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            urlTransform={(url) => {
+              const scheme = url.trim().toLowerCase();
+              if (
+                scheme.startsWith('javascript:') ||
+                scheme.startsWith('vbscript:') ||
+                scheme.startsWith('data:')
+              ) {
+                return '';
+              }
+              return url;
+            }}
+          >
+            {displayedBody}
+          </ReactMarkdown>
         </div>
         {hasBodyToggle && (
           <button

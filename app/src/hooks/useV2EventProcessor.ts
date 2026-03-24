@@ -206,7 +206,6 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
-
         if (options?.phase !== undefined) {
           setPhase(options.phase);
         }

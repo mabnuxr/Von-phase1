@@ -267,8 +267,8 @@ export const StepRow = React.memo<StepRowProps>(
                     </div>
                   )}
 
-                  {/* Artifact reference - shown when artifact metadata is available (skip email drafts — rendered as artifact cards) */}
-                  {step.artifact && step.artifact.artifact_type !== 'email_draft' && (
+                  {/* Artifact reference - shown when artifact metadata is available */}
+                  {step.artifact && (
                     <div
                       className="flex w-full items-center gap-1.5 mt-2 mr-4 px-2.5 py-1.5 bg-white shadow-xs border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                       onClick={() => {
@@ -287,7 +287,7 @@ export const StepRow = React.memo<StepRowProps>(
                     >
                       <ArrowsOutIcon size={14} className="text-gray-800 shrink-0" />
                       <span className="text-sm text-gray-900 truncate">
-                        {`${step.artifact.tool_name || step.text} results`}
+                        {step.artifact.tool_name} results
                       </span>
                     </div>
                   )}
