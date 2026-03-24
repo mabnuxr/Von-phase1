@@ -1,5 +1,4 @@
 import { useRef, useCallback, useState, useMemo, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { XIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
@@ -41,34 +40,42 @@ function formatLabel(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Default column width by type so Grid Lite constrains cells and truncation kicks in */
-function defaultWidthForType(type: ReturnType<typeof inferColumnType>): number {
-  switch (type) {
-    case "boolean":
-      return 80;
-    case "number":
-    case "currency":
-    case "percentage":
-      return 120;
-    case "date":
-      return 130;
-    default:
-      return 160;
-  }
-}
+
+const MIN_COL_WIDTH: Record<ReportColumn["type"], number> = {
+  boolean: 80,
+  number: 100,
+  currency: 110,
+  percentage: 100,
+  date: 120,
+  text: 140,
+  owner: 140,
+  picklist: 120,
+  multiPicklist: 140,
+  sentiment: 120,
+  email: 160,
+  phone: 130,
+  url: 160,
+  longText: 160,
+};
+
+// Columns fill available width evenly; when there are many columns, each gets
+// a minimum pixel width so headers aren't squeezed.
+const EVEN_DISTRIBUTION_THRESHOLD = 6;
 
 /** Build ReportColumn definitions from the first data row */
 function columnsFromData(rows: Record<string, unknown>[]): ReportColumn[] {
   if (rows.length === 0) return [];
   const sample = rows[0];
-  return Object.keys(sample).map((key) => {
+  const keys = Object.keys(sample);
+  const useMinWidths = keys.length > EVEN_DISTRIBUTION_THRESHOLD;
+  return keys.map((key) => {
     const type = inferColumnType(key, sample[key]);
     return {
       id: key,
       label: formatLabel(key),
       type,
       sortable: true,
-      width: defaultWidthForType(type),
+      ...(useMinWidths ? { width: MIN_COL_WIDTH[type] ?? 120 } : {}),
     };
   });
 }
@@ -130,8 +137,9 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   );
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDraggingRef.current) return;
-    const containerHeight = window.innerHeight;
+    if (!isDraggingRef.current || !containerRef.current) return;
+    const containerHeight =
+      containerRef.current.parentElement?.clientHeight ?? window.innerHeight;
     const deltaY = startYRef.current - e.clientY;
     const deltaPercent = (deltaY / containerHeight) * 100;
     const newHeight = Math.min(
@@ -159,7 +167,8 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  return createPortal(
+
+  return (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -169,7 +178,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-40"
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-40"
             onClick={onClose}
           />
 
@@ -180,8 +189,8 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50 overflow-hidden"
-            style={{ height: `${panelHeight}vh` }}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl border-t border-gray-200 flex flex-col z-50 overflow-hidden"
+            style={{ height: `${panelHeight}%` }}
           >
             {/* Resize Handle — kept inside panel bounds so overflow-hidden doesn't clip it */}
             <div
@@ -206,7 +215,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             </div>
 
             {/* Table */}
-            <div className="flex-1 overflow-hidden p-4">
+            <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
               {isError ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-gray-500">
                   <WarningCircleIcon size={24} className="text-red-400" />
@@ -276,7 +285,6 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
           </motion.div>
         </>
       )}
-    </AnimatePresence>,
-    document.body,
+    </AnimatePresence>
   );
 };

@@ -123,7 +123,7 @@ const Analytics = () => {
 
   return (
     <div className="flex h-full w-full gap-1">
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 h-full relative">
         <AnalyticsView
           dashboard={dashboard}
           refreshInfo={refreshInfo}
@@ -143,6 +143,16 @@ const Analytics = () => {
           onDrillDown={openDrilldown}
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
+        />
+        <DrilldownPanel
+          isOpen={isDrilldownOpen}
+          onClose={closeDrilldown}
+          widgetTitle={drilldownWidgetTitle}
+          data={drilldownData}
+          pagination={drilldownPagination}
+          isLoading={isDrilldownLoading}
+          isError={isDrilldownError}
+          onPageChange={changeDrilldownPage}
         />
       </div>
 
@@ -188,17 +198,6 @@ const Analytics = () => {
         </div>
       )}
 
-      {/* Drilldown Panel */}
-      <DrilldownPanel
-        isOpen={isDrilldownOpen}
-        onClose={closeDrilldown}
-        widgetTitle={drilldownWidgetTitle}
-        data={drilldownData}
-        pagination={drilldownPagination}
-        isLoading={isDrilldownLoading}
-        isError={isDrilldownError}
-        onPageChange={changeDrilldownPage}
-      />
     </div>
   );
 };
