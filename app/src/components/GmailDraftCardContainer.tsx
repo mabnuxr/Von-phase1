@@ -71,8 +71,8 @@ export const GmailDraftCardContainer: React.FC<
         </span>
         <button
           onClick={() => {
-            if (urlQuery.error) void urlQuery.refetch();
-            else void contentQuery.refetch();
+            // Always refetch the presigned URL first — it may have expired
+            void urlQuery.refetch();
           }}
           className="text-sm text-red-700 underline cursor-pointer hover:text-red-900"
         >

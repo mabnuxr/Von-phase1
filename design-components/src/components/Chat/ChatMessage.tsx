@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect, Fragment } from 'react';
 import { InfoIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
@@ -680,7 +680,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         // Allow app layer to override rendering for specific artifact types (e.g. email_draft)
                         if (renderArtifactCard) {
                           const custom = renderArtifactCard(artifact);
-                          if (custom) return <span key={artifact.fileId}>{custom}</span>;
+                          if (custom) return <Fragment key={artifact.fileId}>{custom}</Fragment>;
                         }
 
                         const handleOpen = onFileArtifactClick
