@@ -20,17 +20,29 @@ export interface DraftCard {
 export async function parseEmlContent(
   emlBytes: ArrayBuffer,
 ): Promise<Omit<DraftCard, "type"> | null> {
-  const parser = new PostalMime();
-  const email = await parser.parse(emlBytes);
+  let email;
+  try {
+    const parser = new PostalMime();
+    email = await parser.parse(emlBytes);
+  } catch {
+    return null;
+  }
 
   const to =
     email.to
-      ?.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+      ?.map((a) =>
+        a.address
+          ? a.name
+            ? `${a.name} <${a.address}>`
+            : a.address
+          : a.name || "",
+      )
+      .filter(Boolean)
       .join(", ") ?? "";
   const subject = email.subject ?? "";
   if (!to && !subject) return null;
 
-  const body = email.text ?? "";
+  const body = email.text || email.html?.replace(/<[^>]+>/g, "").trim() || "";
   const toAddrs = (list?: { address?: string }[]) => {
     const addrs = list
       ?.map((a) => a.address)
