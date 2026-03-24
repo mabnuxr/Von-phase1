@@ -810,8 +810,7 @@ export function BaseIntegrationConfigPane({
                           );
                         } else if (
                           value &&
-                          !value.includes(".") &&
-                          !value.endsWith(".")
+                          !/\.zendesk\.com$/i.test(value)
                         ) {
                           setZendeskSubdomainError(
                             "Enter the full domain (e.g. yourcompany.zendesk.com)",
