@@ -16,7 +16,7 @@ function decodeQuotedPrintable(text: string): string {
       bytes.push(parseInt(cleaned.slice(i + 1, i + 3), 16));
       i += 3;
     } else {
-      bytes.push(cleaned.charCodeAt(i));
+      new TextEncoder().encode(cleaned[i]).forEach((byte) => bytes.push(byte));
       i += 1;
     }
   }
@@ -27,14 +27,18 @@ function decodeQuotedPrintable(text: string): string {
 function decodeRfc2047(header: string): string {
   return header.replace(
     /=\?([^?]+)\?(Q|B)\?([^?]*)\?=/gi,
-    (_, charset: string, encoding: string, encoded: string) => {
+    (match, charset: string, encoding: string, encoded: string) => {
       let bytes: Uint8Array;
       if (encoding.toUpperCase() === "B") {
-        // Base64
-        const binary = atob(encoded);
-        bytes = new Uint8Array(binary.length);
-        for (let j = 0; j < binary.length; j++) {
-          bytes[j] = binary.charCodeAt(j);
+        // Base64 — fall back to raw match if input is malformed
+        try {
+          const binary = atob(encoded);
+          bytes = new Uint8Array(binary.length);
+          for (let j = 0; j < binary.length; j++) {
+            bytes[j] = binary.charCodeAt(j);
+          }
+        } catch {
+          return match;
         }
       } else {
         // Q-encoding: underscores → spaces, =XX → byte
