@@ -1,10 +1,74 @@
-/** Decode a quoted-printable encoded string (RFC 2045). */
+/** Decode a quoted-printable encoded string (RFC 2045) with proper UTF-8 support. */
 function decodeQuotedPrintable(text: string): string {
-  return text
-    .replace(/=\r?\n/g, "") // soft line breaks
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
-      String.fromCharCode(parseInt(hex, 16)),
-    );
+  // Remove soft line breaks first
+  const cleaned = text.replace(/=\r?\n/g, "");
+
+  // Collect all bytes (encoded =XX → byte value, plain ASCII → char code),
+  // then decode the whole buffer as UTF-8 so multi-byte sequences work.
+  const bytes: number[] = [];
+  let i = 0;
+  while (i < cleaned.length) {
+    if (
+      cleaned[i] === "=" &&
+      i + 2 < cleaned.length &&
+      /^[0-9A-Fa-f]{2}$/.test(cleaned.slice(i + 1, i + 3))
+    ) {
+      bytes.push(parseInt(cleaned.slice(i + 1, i + 3), 16));
+      i += 3;
+    } else {
+      new TextEncoder().encode(cleaned[i]).forEach((byte) => bytes.push(byte));
+      i += 1;
+    }
+  }
+  return new TextDecoder("utf-8").decode(new Uint8Array(bytes));
+}
+
+/** Decode RFC 2047 encoded-words in email headers (e.g. =?utf-8?q?...?= or =?utf-8?b?...?=). */
+function decodeRfc2047(header: string): string {
+  // RFC 2047 §6.2: whitespace between adjacent encoded-words must be ignored
+  const collapsed = header.replace(/\?=\s+=\?/g, "?==?");
+  return collapsed.replace(
+    /=\?([^?]+)\?(Q|B)\?([^?]*)\?=/gi,
+    (match, charset: string, encoding: string, encoded: string) => {
+      let bytes: Uint8Array;
+      if (encoding.toUpperCase() === "B") {
+        // Base64 — fall back to raw match if input is malformed
+        try {
+          const binary = atob(encoded);
+          bytes = new Uint8Array(binary.length);
+          for (let j = 0; j < binary.length; j++) {
+            bytes[j] = binary.charCodeAt(j);
+          }
+        } catch {
+          return match;
+        }
+      } else {
+        // Q-encoding: underscores → spaces, =XX → byte
+        const raw = encoded.replace(/_/g, " ");
+        const byteArr: number[] = [];
+        let k = 0;
+        while (k < raw.length) {
+          if (
+            raw[k] === "=" &&
+            k + 2 < raw.length &&
+            /^[0-9A-Fa-f]{2}$/.test(raw.slice(k + 1, k + 3))
+          ) {
+            byteArr.push(parseInt(raw.slice(k + 1, k + 3), 16));
+            k += 3;
+          } else {
+            byteArr.push(raw.charCodeAt(k));
+            k += 1;
+          }
+        }
+        bytes = new Uint8Array(byteArr);
+      }
+      try {
+        return new TextDecoder(charset).decode(bytes);
+      } catch {
+        return new TextDecoder("utf-8").decode(bytes);
+      }
+    },
+  );
 }
 
 /**
@@ -31,8 +95,8 @@ export function parseEmlContent(
     if (match) headers[match[1].toLowerCase().trim()] = match[2].trim();
   }
 
-  const to = headers["to"] ?? "";
-  const subject = headers["subject"] ?? "";
+  const to = decodeRfc2047(headers["to"] ?? "");
+  const subject = decodeRfc2047(headers["subject"] ?? "");
   if (!to && !subject) return null;
 
   const isQP =
