@@ -40,7 +40,6 @@ function formatLabel(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-
 const MIN_COL_WIDTH: Record<ReportColumn["type"], number> = {
   boolean: 80,
   number: 100,
@@ -166,7 +165,6 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
       document.body.style.userSelect = "";
     };
   }, [handleMouseMove, handleMouseUp]);
-
 
   return (
     <AnimatePresence>
