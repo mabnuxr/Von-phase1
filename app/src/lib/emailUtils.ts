@@ -25,7 +25,9 @@ function decodeQuotedPrintable(text: string): string {
 
 /** Decode RFC 2047 encoded-words in email headers (e.g. =?utf-8?q?...?= or =?utf-8?b?...?=). */
 function decodeRfc2047(header: string): string {
-  return header.replace(
+  // RFC 2047 §6.2: whitespace between adjacent encoded-words must be ignored
+  const collapsed = header.replace(/\?=\s+=\?/g, "?==?");
+  return collapsed.replace(
     /=\?([^?]+)\?(Q|B)\?([^?]*)\?=/gi,
     (match, charset: string, encoding: string, encoded: string) => {
       let bytes: Uint8Array;
