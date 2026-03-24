@@ -147,6 +147,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
           ...(raw.chart ?? {}),
           reflow: false,
         },
+        title: { text: undefined },
       };
     }
 
@@ -235,6 +236,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
           }))
         : yAxisDefaults,
       colors: palette.chartColors,
+      title: { text: undefined },
       series: themedSeries,
       plotOptions: {
         ...(raw.plotOptions ?? {}),
