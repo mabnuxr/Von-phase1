@@ -1,5 +1,3 @@
-import type { EmailDraftArtifact } from "@vonlabs/design-components";
-
 /** Decode a quoted-printable encoded string (RFC 2045). */
 function decodeQuotedPrintable(text: string): string {
   return text
@@ -87,24 +85,4 @@ export function buildGmailComposeUrl(card: DraftCard): string {
   if (card.cc?.length) params.set("cc", card.cc.join(","));
   if (card.bcc?.length) params.set("bcc", card.bcc.join(","));
   return `https://mail.google.com/mail/?${params.toString()}`;
-}
-
-/**
- * Convert a backend DraftCard payload into an EmailDraftArtifact for the UI.
- */
-export function draftCardToArtifact(
-  card: DraftCard,
-  messageId: string,
-): EmailDraftArtifact {
-  return {
-    draftId: messageId,
-    to: card.to,
-    subject: card.subject,
-    bodyPreview: card.body_preview,
-    bodyFull: card.body_full,
-    cc: card.cc,
-    bcc: card.bcc,
-    crmContext: card.crm_context,
-    gmailUrl: buildGmailComposeUrl(card),
-  };
 }

@@ -98,7 +98,6 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
-  emailDraftArtifactRefs: { artifactId: string; runId: string }[];
   phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
   markStopped: () => void;
@@ -164,9 +163,6 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
-  const [emailDraftArtifactRefs, setEmailDraftArtifactRefs] = useState<
-    { artifactId: string; runId: string }[]
-  >([]);
   const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
 
@@ -210,7 +206,7 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
-        setEmailDraftArtifactRefs(result.emailDraftArtifactRefs);
+
         if (options?.phase !== undefined) {
           setPhase(options.phase);
         }
@@ -558,7 +554,6 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(result.isDeepResearchRunning);
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
-          setEmailDraftArtifactRefs(result.emailDraftArtifactRefs);
 
           // Update phase when RUN_FINISHED arrives
           if (runFinishedPhase !== undefined) {
@@ -729,9 +724,6 @@ export function useV2EventProcessor(
       flushSync(() => {
         setPhase(seededPhase);
         setDashboard(seededDashboard);
-        // Set emailDraftArtifactRef so useEmailDraftArtifact can fetch the artifact
-        // even on page refresh (without forcing the V2 live render path).
-        setEmailDraftArtifactRefs(result.emailDraftArtifactRefs);
       });
     } else {
       // Active run, not yet tracked by Pusher (page refresh recovery).
@@ -825,7 +817,6 @@ export function useV2EventProcessor(
     isDeepResearchRunning,
     stoppedByUser,
     runErrorMessage,
-    emailDraftArtifactRefs,
     phase,
     dashboard,
     markStopped,

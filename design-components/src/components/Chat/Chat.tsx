@@ -51,6 +51,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   showMessagesFromIndex = 0,
   onArtifactClick,
   showArtifacts = false,
+  renderArtifactCard,
   onFileArtifactClick,
   onArtifactDownload,
   onGoogleDriveClick,
@@ -430,7 +431,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   driveTooltip={driveTooltip}
                   driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
-                  emailDraftArtifacts={message.emailDraftArtifacts}
+                  renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
                 />
               </div>
             ))}

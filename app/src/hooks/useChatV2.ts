@@ -15,7 +15,6 @@ import type {
   SendMessageOptions,
   FileAttachment,
   MessageFileAttachment,
-  EmailDraftArtifact,
 } from "@vonlabs/design-components";
 
 import { ConversationMode } from "@vonlabs/design-components";
@@ -40,7 +39,6 @@ import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
 import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
-import { useEmlDraftArtifacts } from "./useEmlDraftArtifacts";
 import {
   transformConversationMessages,
   handleToolApproval,
@@ -203,39 +201,6 @@ export function useChatV2(props: UseChatV2Props) {
     conversationId,
     assistantRunIds,
   );
-
-  // Extract .eml file refs from agent artifacts.
-  // Skip pending artifacts — their IDs are fake placeholders that would fail getDownloadUrl.
-  const emlFileRefs = useMemo(() => {
-    if (!agentArtifactsByRunId) return [];
-    const refs: { fileId: string; runId: string }[] = [];
-    for (const [runId, files] of agentArtifactsByRunId) {
-      for (const f of files) {
-        if (
-          (f.artifactType === "email_draft" || f.fileName?.endsWith(".eml")) &&
-          !f.isPending
-        ) {
-          refs.push({ fileId: f.id, runId });
-        }
-      }
-    }
-    return refs;
-  }, [agentArtifactsByRunId]);
-
-  // Fetch and parse EML file content from S3
-  const emlDraftArtifacts = useEmlDraftArtifacts(conversationId, emlFileRefs);
-
-  // Group EML-based artifacts by runId (draftId === fileId, look up via emlFileRefs)
-  const allDraftsByRunId = useMemo(() => {
-    const map = new Map<string, EmailDraftArtifact[]>();
-    for (const artifact of emlDraftArtifacts) {
-      const ref = emlFileRefs.find((r) => r.fileId === artifact.draftId);
-      if (!ref) continue;
-      const existing = map.get(ref.runId) ?? [];
-      map.set(ref.runId, [...existing, artifact]);
-    }
-    return map;
-  }, [emlDraftArtifacts, emlFileRefs]);
 
   // Chat-type-aware reconciliation
   useReconciliation({
@@ -430,7 +395,6 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
-        emlDraftsByRunId: allDraftsByRunId,
         phase: v2Processor.phase,
         dashboard: v2Processor.dashboard,
       }),
@@ -447,7 +411,6 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
-      allDraftsByRunId,
       v2Processor.phase,
       v2Processor.dashboard,
     ],

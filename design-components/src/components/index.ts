@@ -104,7 +104,12 @@ export type { ChatSkeletonProps } from './Chat/ChatSkeleton';
 export { ArtifactPane } from './Chat/ArtifactPane';
 export type { ArtifactPaneProps, ArtifactData } from './Chat/ArtifactPane';
 
-export { FileArtifactCard, DashboardArtifactCard, GmailDraftCard } from './Chat';
+export {
+  FileArtifactCard,
+  DashboardArtifactCard,
+  GmailDraftCard,
+  ArtifactCardSkeleton,
+} from './Chat';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,

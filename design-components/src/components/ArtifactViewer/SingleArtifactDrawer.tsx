@@ -16,15 +16,13 @@ import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
 import type { MemoryResultData } from '../Chat/types';
 import { ReportTable, buildGridOptions } from '../ReportTable';
 import type { ReportColumn } from '../ReportTable/ReportTable';
-import { GmailDraftCard } from '../Chat/ArtifactCards';
-import type { EmailDraftArtifact } from '../Chat/ArtifactCards/types';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /** View mode for the artifact drawer */
-export type ArtifactViewMode = 'data' | 'calls' | 'memory' | 'iq' | 'conversations' | 'email_draft';
+export type ArtifactViewMode = 'data' | 'calls' | 'memory' | 'iq' | 'conversations';
 
 /** Base props shared by all view modes */
 interface BaseDrawerProps {
@@ -94,21 +92,13 @@ export interface ConversationsViewProps extends BaseDrawerProps {
   emails: EmailTranscript[];
 }
 
-/** Props for email draft view mode */
-export interface EmailDraftViewProps extends BaseDrawerProps {
-  viewMode: 'email_draft';
-  emailDraft: EmailDraftArtifact;
-  onOpenInGmail?: () => void;
-}
-
 /** Discriminated union: props depend on viewMode */
 export type SingleArtifactDrawerProps =
   | DataViewProps
   | CallsViewProps
   | MemoryViewProps
   | IQViewProps
-  | ConversationsViewProps
-  | EmailDraftViewProps;
+  | ConversationsViewProps;
 
 // ============================================================================
 // Subcomponents
@@ -270,30 +260,21 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const isMemoryView = viewMode === 'memory';
   const isIQView = viewMode === 'iq';
   const isConversationsView = viewMode === 'conversations';
-  const isEmailDraftView = viewMode === 'email_draft';
 
   // Determine if there's data based on view mode
-  const hasData = isEmailDraftView
-    ? true // Email draft always has content
-    : isConversationsView
-      ? ((props as ConversationsViewProps).calls?.length ?? 0) > 0 ||
-        ((props as ConversationsViewProps).emails?.length ?? 0) > 0
-      : isCallsView
-        ? ((props as CallsViewProps).calls?.length ?? 0) > 0
-        : isMemoryView
-          ? true // Memory always has data if we got here
-          : isIQView
-            ? ((props as IQViewProps).data?.length ?? 0) > 0
-            : ((props as DataViewProps).rows?.length ?? 0) > 0;
+  const hasData = isConversationsView
+    ? ((props as ConversationsViewProps).calls?.length ?? 0) > 0 ||
+      ((props as ConversationsViewProps).emails?.length ?? 0) > 0
+    : isCallsView
+      ? ((props as CallsViewProps).calls?.length ?? 0) > 0
+      : isMemoryView
+        ? true // Memory always has data if we got here
+        : isIQView
+          ? ((props as IQViewProps).data?.length ?? 0) > 0
+          : ((props as DataViewProps).rows?.length ?? 0) > 0;
 
   // Header icon based on view mode
-  const HeaderIcon = isMemoryView
-    ? BrainIcon
-    : isEmailDraftView
-      ? EnvelopeIcon
-      : isCallsView
-        ? PhoneIcon
-        : DatabaseIcon;
+  const HeaderIcon = isMemoryView ? BrainIcon : isCallsView ? PhoneIcon : DatabaseIcon;
 
   // Memoize grid options for IQ view to avoid rebuilding on every render
   const iqColumns = isIQView ? (props as IQViewProps).columns : undefined;
@@ -313,7 +294,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     }
 
     // For data view with error, still show query but with error message in table area
-    if (error && !isCallsView && !isMemoryView && !isIQView && !isEmailDraftView) {
+    if (error && !isCallsView && !isMemoryView && !isIQView) {
       const { query, duration } = props as DataViewProps;
       return (
         <ArtifactContentViewer
@@ -340,21 +321,6 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
         return <EmptyState />;
       }
       // For data view, fall through to ArtifactContentViewer which handles empty state with query
-    }
-
-    if (isEmailDraftView) {
-      const { emailDraft, onOpenInGmail } = props as EmailDraftViewProps;
-      return (
-        <div className="p-4 flex-1 min-h-0 overflow-auto">
-          <GmailDraftCard
-            artifact={emailDraft}
-            onOpenInGmail={onOpenInGmail}
-            isGmailEnabled={true}
-            isGmailConnected={!!onOpenInGmail}
-            height={560}
-          />
-        </div>
-      );
     }
 
     if (isMemoryView) {

@@ -51,7 +51,12 @@ export type { EngagingMessageProps } from './EngagingMessage';
 
 export { ArtifactPane } from './ArtifactPane';
 
-export { FileArtifactCard, DashboardArtifactCard, GmailDraftCard } from './ArtifactCards';
+export {
+  FileArtifactCard,
+  DashboardArtifactCard,
+  GmailDraftCard,
+  ArtifactCardSkeleton,
+} from './ArtifactCards';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,

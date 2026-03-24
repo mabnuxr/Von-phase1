@@ -11,8 +11,7 @@ import { TiptapViewer } from '../TiptapEditor';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment, MessageStatus } from './types';
-import { FileArtifactCard, GmailDraftCard, type FileArtifact } from './ArtifactCards';
-import type { EmailDraftArtifact } from './ArtifactCards/types';
+import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
 import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
@@ -308,9 +307,10 @@ export interface ChatMessageProps {
   driveLoadingFileId?: string | null;
 
   /**
-   * Gmail draft artifacts to render below this assistant message
+   * Custom renderer for artifact cards (e.g. email_draft → GmailDraftCard).
+   * Return a ReactNode to override the default FileArtifactCard, or null to use the default.
    */
-  emailDraftArtifacts?: EmailDraftArtifact[];
+  renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
 
   /**
    * Quick command used for this user message (shows expandable chip)
@@ -362,7 +362,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
-  emailDraftArtifacts,
+  renderArtifactCard,
   command,
   onRequestFilePreviewUrl,
 }) => {
@@ -675,8 +675,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                   {/* File artifact cards (agent-generated documents) */}
                   {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-3">
                       {artifacts.map((artifact) => {
+                        // Allow app layer to override rendering for specific artifact types (e.g. email_draft)
+                        if (renderArtifactCard) {
+                          const custom = renderArtifactCard(artifact);
+                          if (custom) return <span key={artifact.fileId}>{custom}</span>;
+                        }
+
                         const handleOpen = onFileArtifactClick
                           ? () =>
                               onFileArtifactClick(
@@ -713,28 +719,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       })}
                     </div>
                   )}
-
-                  {/* Gmail draft artifact cards */}
-                  {!isUser &&
-                    emailDraftArtifacts &&
-                    emailDraftArtifacts.length > 0 &&
-                    !isStreaming && (
-                      <div className="mt-3 space-y-2">
-                        {emailDraftArtifacts.map((draft) => (
-                          <GmailDraftCard
-                            key={draft.draftId}
-                            artifact={draft}
-                            isGmailEnabled={true}
-                            isGmailConnected={!!draft.gmailUrl}
-                            onOpenInGmail={
-                              draft.gmailUrl
-                                ? () => window.open(draft.gmailUrl, '_blank')
-                                : undefined
-                            }
-                          />
-                        ))}
-                      </div>
-                    )}
 
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (

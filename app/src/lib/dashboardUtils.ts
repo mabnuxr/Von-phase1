@@ -3,7 +3,6 @@ import type {
   Message as ChatMessage,
   TimelineStep,
   RunFinishedEvent,
-  EmailDraftArtifact,
 } from "@vonlabs/design-components";
 import type { ChatItem } from "@vonlabs/design-components";
 
@@ -248,8 +247,6 @@ export interface V2LiveData {
   phase?: "plan-proposed" | "ask" | null;
   /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
   dashboard?: DashboardMetadata | null;
-  /** Email draft artifacts grouped by runId (from useEmlDraftArtifacts) */
-  emlDraftsByRunId?: Map<string, EmailDraftArtifact[]>;
 }
 
 /**
@@ -501,10 +498,7 @@ function transformMessagesForV2(
             (a) => a.artifactType === "slide_preview_pdf",
           );
           const displayArtifacts = artifacts.filter(
-            (a) =>
-              a.artifactType !== "slide_preview_pdf" &&
-              a.artifactType !== "email_draft" &&
-              !a.fileName?.endsWith(".eml"),
+            (a) => a.artifactType !== "slide_preview_pdf",
           );
           transformedMessages[i] = {
             ...msg,
@@ -525,19 +519,6 @@ function transformMessagesForV2(
               };
             }),
           };
-        }
-      }
-    }
-  }
-
-  // Attach email draft artifacts to assistant messages by runId
-  if (v2LiveData.emlDraftsByRunId && v2LiveData.emlDraftsByRunId.size > 0) {
-    for (let i = 0; i < transformedMessages.length; i++) {
-      const msg = transformedMessages[i];
-      if (msg.type === "assistant" && msg.runId) {
-        const drafts = v2LiveData.emlDraftsByRunId.get(msg.runId);
-        if (drafts && drafts.length > 0) {
-          transformedMessages[i] = { ...msg, emailDraftArtifacts: drafts };
         }
       }
     }
