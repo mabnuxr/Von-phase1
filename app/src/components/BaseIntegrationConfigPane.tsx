@@ -536,7 +536,8 @@ export function BaseIntegrationConfigPane({
               {/* OAuth Authentication Info - for OAuth integrations */}
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar" ||
-                integrationId === "googledrive") && (
+                integrationId === "googledrive" ||
+                integrationId === "gmail") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type

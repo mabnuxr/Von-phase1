@@ -37,6 +37,8 @@ import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
+import { GmailDraftCardContainer } from "./GmailDraftCardContainer";
+import type { FileArtifact } from "@vonlabs/design-components";
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -156,6 +158,25 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
         version: d.dashboard_version,
       })) ?? [],
     [dashboardListData],
+  );
+
+  // Custom artifact card renderer — renders GmailDraftCard for email_draft artifacts
+  const renderArtifactCard = useCallback(
+    (artifact: FileArtifact) => {
+      if (
+        artifact.artifactType === "email_draft" ||
+        artifact.fileName?.endsWith(".eml")
+      ) {
+        return (
+          <GmailDraftCardContainer
+            conversationId={conversationId}
+            artifact={artifact}
+          />
+        );
+      }
+      return null;
+    },
+    [conversationId],
   );
 
   // Dashboard preview pane state
@@ -331,6 +352,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               fileErrorMessage={chatV2.fileErrorMessage}
               onDismissFileError={() => chatV2.setFileErrorMessage(null)}
               showArtifacts={isArtifactsEnabled}
+              renderArtifactCard={renderArtifactCard}
               onFileArtifactClick={chatV2.handleFileArtifactClick}
               onArtifactDownload={chatV2.handleArtifactDownload}
               onGoogleDriveClick={onGoogleDriveClick}
