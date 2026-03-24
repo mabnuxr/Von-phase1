@@ -1,126 +1,4 @@
-/** Decode a quoted-printable encoded string (RFC 2045) with proper UTF-8 support. */
-function decodeQuotedPrintable(text: string): string {
-  // Remove soft line breaks first
-  const cleaned = text.replace(/=\r?\n/g, "");
-
-  // Collect all bytes (encoded =XX → byte value, plain ASCII → char code),
-  // then decode the whole buffer as UTF-8 so multi-byte sequences work.
-  const bytes: number[] = [];
-  let i = 0;
-  while (i < cleaned.length) {
-    if (
-      cleaned[i] === "=" &&
-      i + 2 < cleaned.length &&
-      /^[0-9A-Fa-f]{2}$/.test(cleaned.slice(i + 1, i + 3))
-    ) {
-      bytes.push(parseInt(cleaned.slice(i + 1, i + 3), 16));
-      i += 3;
-    } else {
-      new TextEncoder().encode(cleaned[i]).forEach((byte) => bytes.push(byte));
-      i += 1;
-    }
-  }
-  return new TextDecoder("utf-8").decode(new Uint8Array(bytes));
-}
-
-/** Decode RFC 2047 encoded-words in email headers (e.g. =?utf-8?q?...?= or =?utf-8?b?...?=). */
-function decodeRfc2047(header: string): string {
-  // RFC 2047 §6.2: whitespace between adjacent encoded-words must be ignored
-  const collapsed = header.replace(/\?=\s+=\?/g, "?==?");
-  return collapsed.replace(
-    /=\?([^?]+)\?(Q|B)\?([^?]*)\?=/gi,
-    (match, charset: string, encoding: string, encoded: string) => {
-      let bytes: Uint8Array;
-      if (encoding.toUpperCase() === "B") {
-        // Base64 — fall back to raw match if input is malformed
-        try {
-          const binary = atob(encoded);
-          bytes = new Uint8Array(binary.length);
-          for (let j = 0; j < binary.length; j++) {
-            bytes[j] = binary.charCodeAt(j);
-          }
-        } catch {
-          return match;
-        }
-      } else {
-        // Q-encoding: underscores → spaces, =XX → byte
-        const raw = encoded.replace(/_/g, " ");
-        const byteArr: number[] = [];
-        let k = 0;
-        while (k < raw.length) {
-          if (
-            raw[k] === "=" &&
-            k + 2 < raw.length &&
-            /^[0-9A-Fa-f]{2}$/.test(raw.slice(k + 1, k + 3))
-          ) {
-            byteArr.push(parseInt(raw.slice(k + 1, k + 3), 16));
-            k += 3;
-          } else {
-            byteArr.push(raw.charCodeAt(k));
-            k += 1;
-          }
-        }
-        bytes = new Uint8Array(byteArr);
-      }
-      try {
-        return new TextDecoder(charset).decode(bytes);
-      } catch {
-        return new TextDecoder("utf-8").decode(bytes);
-      }
-    },
-  );
-}
-
-/**
- * Parse an RFC 2822 EML file into a DraftCard-compatible shape.
- * Handles folded headers, both \r\n and \n line endings, and
- * quoted-printable body encoding.
- * Returns null if the content is not a recognisable email.
- */
-export function parseEmlContent(
-  emlText: string,
-): Omit<DraftCard, "type"> | null {
-  const normalized = emlText.replace(/\r\n/g, "\n");
-  const splitIdx = normalized.indexOf("\n\n");
-  if (splitIdx === -1) return null;
-
-  const headerSection = normalized.slice(0, splitIdx);
-  const rawBody = normalized.slice(splitIdx + 2).trim();
-
-  // Unfold headers (continuation lines start with whitespace)
-  const unfolded = headerSection.replace(/\n[ \t]+/g, " ");
-  const headers: Record<string, string> = {};
-  for (const line of unfolded.split("\n")) {
-    const match = line.match(/^([^:]+):\s*(.*)$/);
-    if (match) headers[match[1].toLowerCase().trim()] = match[2].trim();
-  }
-
-  const to = decodeRfc2047(headers["to"] ?? "");
-  const subject = decodeRfc2047(headers["subject"] ?? "");
-  if (!to && !subject) return null;
-
-  const isQP =
-    headers["content-transfer-encoding"]?.toLowerCase() === "quoted-printable";
-  const body = isQP ? decodeQuotedPrintable(rawBody) : rawBody;
-
-  const splitList = (v?: string) =>
-    v
-      ? v
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : undefined;
-
-  return {
-    to,
-    subject,
-    body_preview: body.length > 500 ? body.slice(0, 497) + "..." : body,
-    body_full: body,
-    cc: splitList(headers["cc"]),
-    bcc: splitList(headers["bcc"]),
-    crm_context: headers["x-crm-context"] || undefined,
-  };
-}
+import PostalMime from "postal-mime";
 
 /** Shape of the draft_card payload returned by the backend tool result */
 export interface DraftCard {
@@ -132,6 +10,55 @@ export interface DraftCard {
   cc?: string[];
   bcc?: string[];
   crm_context?: string;
+}
+
+/**
+ * Parse an EML file (as ArrayBuffer) into a DraftCard-compatible shape.
+ * Uses postal-mime for RFC-compliant decoding of quoted-printable, base64,
+ * multipart, RFC 2047 headers, and charset detection.
+ */
+export async function parseEmlContent(
+  emlBytes: ArrayBuffer,
+): Promise<Omit<DraftCard, "type"> | null> {
+  let email;
+  try {
+    const parser = new PostalMime();
+    email = await parser.parse(emlBytes);
+  } catch {
+    return null;
+  }
+
+  const to =
+    email.to
+      ?.map((a) =>
+        a.address
+          ? a.name
+            ? `${a.name} <${a.address}>`
+            : a.address
+          : a.name || "",
+      )
+      .filter(Boolean)
+      .join(", ") ?? "";
+  const subject = email.subject ?? "";
+  if (!to && !subject) return null;
+
+  const body = email.text || email.html?.replace(/<[^>]+>/g, "").trim() || "";
+  const toAddrs = (list?: { address?: string }[]) => {
+    const addrs = list
+      ?.map((a) => a.address)
+      .filter((addr): addr is string => !!addr);
+    return addrs?.length ? addrs : undefined;
+  };
+
+  return {
+    to,
+    subject,
+    body_preview: body.length > 500 ? body.slice(0, 497) + "..." : body,
+    body_full: body,
+    cc: toAddrs(email.cc),
+    bcc: toAddrs(email.bcc),
+    crm_context: email.headers?.find((h) => h.key === "x-crm-context")?.value,
+  };
 }
 
 /**
