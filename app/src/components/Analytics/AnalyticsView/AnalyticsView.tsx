@@ -195,7 +195,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </button>
               )}
 
-              <RefreshButton onRefresh={onRefresh} />
+              {dashboard.isOwner && <RefreshButton onRefresh={onRefresh} />}
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
 
@@ -206,7 +206,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 filters={dashboard.filters?.definitions ?? []}
                 activeFilters={activeFilters}
               />
-              <CustomizeButton />
+              {dashboard.isOwner && <CustomizeButton />}
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
