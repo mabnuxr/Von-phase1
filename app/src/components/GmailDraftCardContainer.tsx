@@ -69,7 +69,7 @@ export const GmailDraftCardContainer: React.FC<
         </span>
         <button
           onClick={() => {
-            void urlQuery.refetch();
+            void urlQuery.refetch().then(() => parsedQuery.refetch());
           }}
           className="text-sm text-red-700 underline cursor-pointer hover:text-red-900"
         >
