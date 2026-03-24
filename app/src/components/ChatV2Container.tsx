@@ -233,6 +233,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               onArtifactClick={chatV2.handleArtifactClick}
               onApprove={chatV2.handleApproval}
               onReject={chatV2.handleRejection}
+              onApprovePlan={chatV2.handlePlanApproval}
+              onRejectPlan={chatV2.handlePlanRejection}
               placeholder="Ask von anything"
               disableSubmit={!chatV2.canSubmitFinal}
               onInputWhileDisabled={onDisabledInteraction}
@@ -313,6 +315,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               enableActions={isActionsEnabled}
               onApprove={chatV2.handleApproval}
               onReject={chatV2.handleRejection}
+              onApprovePlan={chatV2.handlePlanApproval}
+              onRejectPlan={chatV2.handlePlanRejection}
               showTransparency={isSourcesEnabled}
               onTransparencyClick={chatV2.handleTransparencyClick}
               salesforceInstanceUrl={salesforceInstanceUrl}

@@ -87,10 +87,22 @@ export interface DeepResearchChatProps {
     artifactType: string,
     runId: string
   ) => void;
-  /** Callback when approval is triggered */
+  /** Callback when approval is triggered (HITL tool call approvals in timeline) */
   onApprove?: (stepId: string, runId: string) => void;
-  /** Callback when rejection is triggered */
+  /** Callback when rejection is triggered (HITL tool call rejections in timeline) */
   onReject?: (stepId: string, runId: string) => void;
+  /**
+   * Callback when "Create Dashboard" is clicked for workflow execution approval.
+   * Used when approvalMessage.executionId is set (execute_workflow dry_run completed).
+   * Calls /resume with approved=true and execution_id instead of sending a chat message.
+   */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+  /**
+   * Callback when "Skip" is clicked for workflow execution approval.
+   * Used when approvalMessage.executionId is set (execute_workflow dry_run completed).
+   * Calls /resume with approved=false and execution_id.
+   */
+  onRejectPlan?: (runId: string, executionId: string) => void;
   /** Callback when thumbs up is clicked */
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
@@ -127,6 +139,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onArtifactClick,
   onApprove,
   onReject,
+  onApprovePlan,
+  onRejectPlan,
   onLike,
   onDislike,
   onDashboardPreview,
@@ -140,10 +154,14 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
     setShowConfirmModal(true);
   };
 
-  // Handle confirmation - send the message and close modal
+  // Handle confirmation - use resume API (with executionId) or send message (legacy)
   const handleConfirmAnalysis = () => {
     setShowConfirmModal(false);
-    onSendMessage?.('Run full analysis and create the dashboard');
+    if (approvalMessage?.executionId && approvalMessage?.runId) {
+      onApprovePlan?.(approvalMessage.runId, approvalMessage.executionId);
+    } else {
+      onSendMessage?.('Run full analysis and create the dashboard');
+    }
   };
 
   // Handle cancel - just close the modal
@@ -341,17 +359,21 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                           ? {
                               label: 'Skip',
                               onClick: () => {
-                                // Call onReject to update backend phase to "plan-rejected"
-                                // Find the approval step's toolCallId from timeline steps
-                                const approvalStep = approvalMessage?.timelineSteps?.find(
-                                  (s) => s.type === 'approval' && s.approval?.toolCallId
-                                );
-                                const stepId =
-                                  approvalStep?.approval?.toolCallId ?? approvalStep?.id;
-                                if (stepId && approvalMessage?.runId) {
-                                  onReject?.(stepId, approvalMessage.runId);
+                                if (approvalMessage?.executionId && approvalMessage?.runId) {
+                                  // New workflow execution approval: use resume API with executionId
+                                  onRejectPlan?.(approvalMessage.runId, approvalMessage.executionId);
+                                } else {
+                                  // Legacy HITL approval: find the approval step's toolCallId
+                                  const approvalStep = approvalMessage?.timelineSteps?.find(
+                                    (s) => s.type === 'approval' && s.approval?.toolCallId
+                                  );
+                                  const stepId =
+                                    approvalStep?.approval?.toolCallId ?? approvalStep?.id;
+                                  if (stepId && approvalMessage?.runId) {
+                                    onReject?.(stepId, approvalMessage.runId);
+                                  }
                                 }
-                                // Also call onSkip to hide buttons and focus input
+                                // Hide buttons and focus input
                                 onSkip?.();
                               },
                               disabled: isDeepResearchRunning,

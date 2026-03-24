@@ -397,6 +397,7 @@ export function useChatV2(props: UseChatV2Props) {
         agentArtifactsByRunId,
         phase: v2Processor.phase,
         dashboard: v2Processor.dashboard,
+        executionId: v2Processor.executionId,
       }),
     [
       conversationMessages,
@@ -413,6 +414,7 @@ export function useChatV2(props: UseChatV2Props) {
       agentArtifactsByRunId,
       v2Processor.phase,
       v2Processor.dashboard,
+      v2Processor.executionId,
     ],
   );
 
@@ -440,6 +442,28 @@ export function useChatV2(props: UseChatV2Props) {
     async (toolCallId: string, runId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
       await handleToolRejection(toolCallId, effectiveRunId, conversationId);
+    },
+    [conversationId],
+  );
+
+  // Workflow execution plan approval (execute_workflow dry_run completed)
+  const handlePlanApproval = useCallback(
+    async (runId: string, executionId: string) => {
+      const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
+      resumeTimer();
+      try {
+        await handleToolApproval(executionId, effectiveRunId, conversationId, executionId);
+      } catch {
+        pauseTimerOnApprovalFailure();
+      }
+    },
+    [conversationId, resumeTimer, pauseTimerOnApprovalFailure],
+  );
+
+  const handlePlanRejection = useCallback(
+    async (runId: string, executionId: string) => {
+      const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
+      await handleToolRejection(executionId, effectiveRunId, conversationId, executionId);
     },
     [conversationId],
   );
@@ -615,6 +639,8 @@ export function useChatV2(props: UseChatV2Props) {
     handleStopStreaming,
     handleApproval,
     handleRejection,
+    handlePlanApproval,
+    handlePlanRejection,
 
     // Transparency
     isTransparencyOpen,

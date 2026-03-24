@@ -215,6 +215,12 @@ export interface Message {
    */
   dashboard?: DashboardMetadata | null;
   /**
+   * execution_id from RUN_FINISHED for workflow execution approval (dry_run completed).
+   * When present alongside phase="plan-proposed", use the resume API with this
+   * execution_id instead of sending a new chat message.
+   */
+  executionId?: string | null;
+  /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.
    */
