@@ -21,6 +21,7 @@ import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
+import { useTeamMembers } from "../hooks/useTeam";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { config } from "../config";
@@ -35,6 +36,7 @@ const NewConversation = () => {
     isTenantDisabled,
     isSlashCommandsEnabled,
     isFileUploadEnabled,
+    isScheduledCommandsEnabled,
   } = useFeatureFlag();
 
   const {
@@ -71,7 +73,30 @@ const NewConversation = () => {
     handleRequestFilePreviewUrl,
     handleDeleteCommand,
     handleToggleFavorite,
+    handleSendTest,
   } = useCommandsPanel(user?.id);
+
+  const { data: teamMembersData } = useTeamMembers(
+    isScheduledCommandsEnabled ? user?.tenantId : undefined,
+  );
+  const teamMembersForSchedule = isScheduledCommandsEnabled
+    ? (teamMembersData ?? []).map((m) => ({
+        id: m.id,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
+      }))
+    : undefined;
+  const currentUserRecipient =
+    isScheduledCommandsEnabled && user
+      ? {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+          lastName:
+            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+        }
+      : undefined;
 
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
@@ -146,6 +171,9 @@ const NewConversation = () => {
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
+        teamMembers={teamMembersForSchedule}
+        currentUser={currentUserRecipient}
+        onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
       />
     </Profiler>
   );

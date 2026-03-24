@@ -125,8 +125,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether scheduled commands (schedule section, recipients, send test) are enabled
      */
-    isScheduledCommandsEnabled:
-      flags[FEATURE_FLAGS.SCHEDULED_COMMANDS] === true,
+    isScheduledCommandsEnabled: true,
 
     /**
      * Controls whether Zendesk integration is visible
