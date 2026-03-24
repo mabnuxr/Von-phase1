@@ -41,13 +41,14 @@ export const GmailDraftCardContainer: React.FC<
     gcTime: 10 * 60 * 1000,
   });
 
-  // Step 2 — fetch raw EML text from S3
-  const contentQuery = useQuery({
-    queryKey: ["eml-content", artifact.fileId],
+  // Step 2 — fetch EML as ArrayBuffer and parse with postal-mime
+  const parsedQuery = useQuery({
+    queryKey: ["eml-parsed", artifact.fileId],
     queryFn: async () => {
       const res = await fetch(urlQuery.data!.downloadUrl);
       if (!res.ok) throw new Error(`EML fetch failed: ${res.status}`);
-      return res.text();
+      const buffer = await res.arrayBuffer();
+      return parseEmlContent(buffer);
     },
     enabled: !!urlQuery.data?.downloadUrl,
     staleTime: Infinity,
@@ -55,15 +56,12 @@ export const GmailDraftCardContainer: React.FC<
   });
 
   // Pending or loading → skeleton
-  if (
-    artifact.isPending ||
-    (!contentQuery.data && !urlQuery.error && !contentQuery.error)
-  ) {
+  if (artifact.isPending || urlQuery.isLoading || parsedQuery.isLoading) {
     return <ArtifactCardSkeleton />;
   }
 
   // Error state — show inline message with retry
-  if (urlQuery.error || contentQuery.error) {
+  if (urlQuery.error || parsedQuery.error) {
     return (
       <div className="border border-red-100 rounded-xl px-4 py-3 flex items-center gap-3 bg-red-50/50">
         <span className="text-sm text-red-700">
@@ -71,7 +69,6 @@ export const GmailDraftCardContainer: React.FC<
         </span>
         <button
           onClick={() => {
-            // Always refetch the presigned URL first — it may have expired
             void urlQuery.refetch();
           }}
           className="text-sm text-red-700 underline cursor-pointer hover:text-red-900"
@@ -82,8 +79,7 @@ export const GmailDraftCardContainer: React.FC<
     );
   }
 
-  // Parse EML content
-  const parsed = parseEmlContent(contentQuery.data!);
+  const parsed = parsedQuery.data;
   if (!parsed) {
     return (
       <div className="border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-500">

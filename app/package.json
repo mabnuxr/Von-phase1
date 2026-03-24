@@ -38,6 +38,7 @@
     "highcharts": "^12.5.0",
     "highcharts-react-official": "^3.2.3",
     "launchdarkly-react-client-sdk": "^3.9.0",
+    "postal-mime": "^2.7.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
