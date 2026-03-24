@@ -55,14 +55,36 @@ export const GmailDraftCardContainer: React.FC<
   });
 
   // Pending or loading → skeleton
-  if (artifact.isPending || !contentQuery.data) {
+  if (artifact.isPending || (!contentQuery.data && !urlQuery.error && !contentQuery.error)) {
     return <ArtifactCardSkeleton />;
   }
 
+  // Error state — show inline message with retry
+  if (urlQuery.error || contentQuery.error) {
+    return (
+      <div className="border border-red-100 rounded-xl px-4 py-3 flex items-center gap-3 bg-red-50/50">
+        <span className="text-sm text-red-700">Failed to load email draft.</span>
+        <button
+          onClick={() => {
+            if (urlQuery.error) void urlQuery.refetch();
+            else void contentQuery.refetch();
+          }}
+          className="text-sm text-red-700 underline cursor-pointer hover:text-red-900"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   // Parse EML content
-  const parsed = parseEmlContent(contentQuery.data);
+  const parsed = parseEmlContent(contentQuery.data!);
   if (!parsed) {
-    return <ArtifactCardSkeleton />;
+    return (
+      <div className="border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-500">
+        Unable to parse email draft.
+      </div>
+    );
   }
 
   const card: DraftCard = { type: "email_draft", ...parsed };
@@ -85,7 +107,7 @@ export const GmailDraftCardContainer: React.FC<
       isGmailConnected={isGmailEnabled && !!gmailUrl}
       onOpenInGmail={
         isGmailEnabled && gmailUrl
-          ? () => window.open(gmailUrl, "_blank")
+          ? () => window.open(gmailUrl, "_blank", "noopener,noreferrer")
           : undefined
       }
     />
