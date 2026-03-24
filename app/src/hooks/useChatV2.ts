@@ -452,7 +452,12 @@ export function useChatV2(props: UseChatV2Props) {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
       resumeTimer();
       try {
-        await handleToolApproval(executionId, effectiveRunId, conversationId, executionId);
+        await handleToolApproval(
+          executionId,
+          effectiveRunId,
+          conversationId,
+          executionId,
+        );
       } catch {
         pauseTimerOnApprovalFailure();
       }
@@ -463,7 +468,12 @@ export function useChatV2(props: UseChatV2Props) {
   const handlePlanRejection = useCallback(
     async (runId: string, executionId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
-      await handleToolRejection(executionId, effectiveRunId, conversationId, executionId);
+      await handleToolRejection(
+        executionId,
+        effectiveRunId,
+        conversationId,
+        executionId,
+      );
     },
     [conversationId],
   );

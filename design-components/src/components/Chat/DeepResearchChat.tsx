@@ -361,7 +361,10 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                               onClick: () => {
                                 if (approvalMessage?.executionId && approvalMessage?.runId) {
                                   // New workflow execution approval: use resume API with executionId
-                                  onRejectPlan?.(approvalMessage.runId, approvalMessage.executionId);
+                                  onRejectPlan?.(
+                                    approvalMessage.runId,
+                                    approvalMessage.executionId
+                                  );
                                 } else {
                                   // Legacy HITL approval: find the approval step's toolCallId
                                   const approvalStep = approvalMessage?.timelineSteps?.find(

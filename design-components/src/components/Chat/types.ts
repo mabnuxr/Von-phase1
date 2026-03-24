@@ -1271,6 +1271,18 @@ export interface ChatProps {
   onReject?: (toolCallId: string, runId: string) => void;
 
   /**
+   * Callback when user approves a workflow execution plan
+   * Called with the run ID and execution ID
+   */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+
+  /**
+   * Callback when user rejects a workflow execution plan
+   * Called with the run ID and execution ID
+   */
+  onRejectPlan?: (runId: string, executionId: string) => void;
+
+  /**
    * Enable slash commands feature
    * When enabled, typing '/' in the input will show a commands popover
    * @default false

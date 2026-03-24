@@ -181,7 +181,13 @@ export async function handleToolApproval(
 ): Promise<void> {
   try {
     await withRetry(() =>
-      conversationsService.resumeConversation(conversationId, true, runId, "", executionId),
+      conversationsService.resumeConversation(
+        conversationId,
+        true,
+        runId,
+        "",
+        executionId,
+      ),
     );
     if (import.meta.env.DEV) {
       console.log(
@@ -210,7 +216,13 @@ export async function handleToolRejection(
 ): Promise<void> {
   try {
     await withRetry(() =>
-      conversationsService.resumeConversation(conversationId, false, runId, "", executionId),
+      conversationsService.resumeConversation(
+        conversationId,
+        false,
+        runId,
+        "",
+        executionId,
+      ),
     );
     if (import.meta.env.DEV) {
       console.log(
