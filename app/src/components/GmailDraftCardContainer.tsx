@@ -55,7 +55,10 @@ export const GmailDraftCardContainer: React.FC<
   });
 
   // Pending or loading → skeleton
-  if (artifact.isPending || (!contentQuery.data && !urlQuery.error && !contentQuery.error)) {
+  if (
+    artifact.isPending ||
+    (!contentQuery.data && !urlQuery.error && !contentQuery.error)
+  ) {
     return <ArtifactCardSkeleton />;
   }
 
@@ -63,7 +66,9 @@ export const GmailDraftCardContainer: React.FC<
   if (urlQuery.error || contentQuery.error) {
     return (
       <div className="border border-red-100 rounded-xl px-4 py-3 flex items-center gap-3 bg-red-50/50">
-        <span className="text-sm text-red-700">Failed to load email draft.</span>
+        <span className="text-sm text-red-700">
+          Failed to load email draft.
+        </span>
         <button
           onClick={() => {
             if (urlQuery.error) void urlQuery.refetch();
