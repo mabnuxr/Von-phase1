@@ -217,7 +217,7 @@ export function ReportTable({
   return (
     <div
       ref={wrapperRef}
-      className={`w-full flex flex-col h-full report-grid-wrapper ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
+      className={`w-full flex flex-col h-full report-grid-wrapper highcharts-light ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
       onClick={handleWrapperClick}
       onMouseOver={handleCellMouseEnter}
       onMouseOut={handleCellMouseLeave}

@@ -87,20 +87,16 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
   const textElement = (
     <div
       ref={textRef}
-      className={`${maxLines === 1 ? 'truncate' : ''} ${isTruncated ? 'cursor-pointer' : ''} ${className}`}
+      className={`${maxLines === 1 ? 'truncate' : ''} ${isTruncated ? 'cursor-default' : ''} ${className}`}
       style={multiLineStyle}
     >
       {children}
     </div>
   );
 
-  if (isTruncated && tooltipContent) {
-    return (
-      <Tooltip content={tooltipContent} placement="auto">
-        {textElement}
-      </Tooltip>
-    );
-  }
-
-  return textElement;
+  return (
+    <Tooltip content={tooltipContent} placement="auto" enabled={isTruncated && !!tooltipContent}>
+      {textElement}
+    </Tooltip>
+  );
 };

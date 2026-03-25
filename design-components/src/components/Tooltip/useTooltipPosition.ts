@@ -37,7 +37,7 @@ export function useTooltipPosition(opts: { placement?: TooltipPlacement } = {}) 
   const [position, setPosition] = useState<TooltipPosition>({
     top: 0,
     left: 0,
-    maxWidth: 0,
+    maxWidth: typeof window !== 'undefined' ? window.innerWidth - EDGE_PADDING * 2 : 300,
   });
 
   const updatePosition = useCallback(() => {
