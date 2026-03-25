@@ -273,6 +273,7 @@ export function useV2EventProcessor(
           setResearchResults(research);
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
+          setExecutionId(null);
         });
       } else {
         flushSync(() => {
@@ -281,6 +282,7 @@ export function useV2EventProcessor(
           setStoppedByUser(options.stoppedByUser);
           setRunErrorMessage(options.errorMessage ?? "");
           setTimelineSteps([]);
+          setExecutionId(null);
         });
       }
 
@@ -335,6 +337,7 @@ export function useV2EventProcessor(
       setIsAwaitingApproval(false);
       setIsThinking(false);
       setIsFinalResponseStreaming(false);
+      setExecutionId(null);
     });
     timerOnRunTerminated(true);
     lastEventTimeRef.current = 0;
