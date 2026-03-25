@@ -509,7 +509,7 @@ export function useChatV2(props: UseChatV2Props) {
       resumeTimer();
       try {
         await handleToolApproval(
-          executionId,
+          "", // No toolCallId for plan approvals
           effectiveRunId,
           conversationId,
           executionId,
@@ -536,7 +536,7 @@ export function useChatV2(props: UseChatV2Props) {
     async (runId: string, executionId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
       await handleToolRejection(
-        executionId,
+        "", // No toolCallId for plan rejections
         effectiveRunId,
         conversationId,
         executionId,
