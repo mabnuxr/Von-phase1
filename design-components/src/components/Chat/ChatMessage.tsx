@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect, Fragment } from 'react';
+import { useState, useRef, useLayoutEffect, useEffect, Fragment } from 'react';
 import { InfoIcon, CopyIcon, CheckIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
@@ -397,6 +397,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const userMessageRef = useRef<HTMLDivElement>(null);
   const [isSingleLine, setIsSingleLine] = useState(true);
   const [copiedUser, setCopiedUser] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   // Measure user message height to determine alignment
   useLayoutEffect(() => {
@@ -422,7 +429,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     try {
       await navigator.clipboard.writeText(content);
       setCopiedUser(true);
-      setTimeout(() => setCopiedUser(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopiedUser(false), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
     }
