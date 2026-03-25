@@ -70,12 +70,12 @@ export function useFeatureFlag() {
     /**
      * Controls whether Slash Commands feature is enabled in chat
      */
-    isSlashCommandsEnabled: import.meta.env.DEV || flags[FEATURE_FLAGS.SLASH_COMMANDS] === true,
+    isSlashCommandsEnabled: flags[FEATURE_FLAGS.SLASH_COMMANDS] === true,
 
     /**
      * Controls whether additional actions menu is enabled (convert to dashboard, etc.)
      */
-    isActionsEnabled: import.meta.env.DEV || flags[FEATURE_FLAGS.ACTIONS] === true,
+    isActionsEnabled: flags[FEATURE_FLAGS.ACTIONS] === true,
 
     /**
      * Salesforce deep links — permanently enabled, no longer behind a feature flag
@@ -85,13 +85,13 @@ export function useFeatureFlag() {
     /**
      * Controls if we need to show new sidebar UI experience
      */
-    isSidebarV2: import.meta.env.DEV || flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
 
     /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isAgentV2: import.meta.env.DEV || flags[FEATURE_FLAGS.AGENT_V2] === true,
+    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
 
     /**
      * User memory — permanently enabled, no longer behind a feature flag
@@ -106,7 +106,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether the Sources button is shown on assistant messages
      */
-    isSourcesEnabled: import.meta.env.DEV || flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
+    isSourcesEnabled: flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
 
     /**
      * Controls whether the current tenant's subscription is inactive
