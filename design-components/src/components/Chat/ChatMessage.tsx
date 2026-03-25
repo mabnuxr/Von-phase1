@@ -428,6 +428,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const handleCopyUser = async () => {
     try {
       await navigator.clipboard.writeText(content);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
       setCopiedUser(true);
       copyTimeoutRef.current = setTimeout(() => setCopiedUser(false), 2000);
     } catch (error) {
