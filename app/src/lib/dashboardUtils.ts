@@ -357,12 +357,13 @@ function transformMessagesForV2(
       isLastAssistant &&
       hasLiveV2Data &&
       !isRunActive &&
-      !!v2LiveData.currentRunId;
+      !!v2LiveData.currentRunId &&
+      msgBelongsToCurrentV2Run;
     const shouldUsePersistedData =
       !msg.isStreaming &&
-      !isRunActive &&
       msg.events &&
       msg.events.length > 0 &&
+      (!isRunActive || !msgBelongsToCurrentV2Run) &&
       !v2JustFinishedThisRun;
 
     if (

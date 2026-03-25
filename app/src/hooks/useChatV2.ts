@@ -446,38 +446,6 @@ export function useChatV2(props: UseChatV2Props) {
     [conversationId],
   );
 
-  // Workflow execution plan approval (execute_workflow dry_run completed)
-  const handlePlanApproval = useCallback(
-    async (runId: string, executionId: string) => {
-      const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
-      resumeTimer();
-      try {
-        await handleToolApproval(
-          executionId,
-          effectiveRunId,
-          conversationId,
-          executionId,
-        );
-      } catch {
-        pauseTimerOnApprovalFailure();
-      }
-    },
-    [conversationId, resumeTimer, pauseTimerOnApprovalFailure],
-  );
-
-  const handlePlanRejection = useCallback(
-    async (runId: string, executionId: string) => {
-      const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
-      await handleToolRejection(
-        executionId,
-        effectiveRunId,
-        conversationId,
-        executionId,
-      );
-    },
-    [conversationId],
-  );
-
   // Transparency handler
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
@@ -522,6 +490,60 @@ export function useChatV2(props: UseChatV2Props) {
       }
     }
   }, [conversationId]);
+
+  // Workflow execution plan approval (execute_workflow dry_run completed)
+  // The backend's /resume endpoint calls create_message internally when
+  // execution_id is provided, which creates the user message, assistant
+  // message, sends Pusher events, and triggers the Temporal workflow.
+  // We just need to call the API and refetch to pick up the new messages.
+  const handlePlanApproval = useCallback(
+    async (runId: string, executionId: string) => {
+      const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
+
+      // Clear stale pending-stop flag so the new run's events aren't swallowed
+      v2Processor.clearPendingStop();
+
+      // Persist any in-flight V2 state before the new execution run
+      forceCompleteStreamingMessages();
+
+      resumeTimer();
+      try {
+        await handleToolApproval(
+          executionId,
+          effectiveRunId,
+          conversationId,
+          executionId,
+        );
+        // Backend's /resume creates user + assistant messages via
+        // create_message. Refetch so they appear in chatStore immediately
+        // instead of waiting for reconciliation.
+        refetchMessages();
+      } catch {
+        pauseTimerOnApprovalFailure();
+      }
+    },
+    [
+      conversationId,
+      resumeTimer,
+      pauseTimerOnApprovalFailure,
+      v2Processor,
+      forceCompleteStreamingMessages,
+      refetchMessages,
+    ],
+  );
+
+  const handlePlanRejection = useCallback(
+    async (runId: string, executionId: string) => {
+      const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
+      await handleToolRejection(
+        executionId,
+        effectiveRunId,
+        conversationId,
+        executionId,
+      );
+    },
+    [conversationId],
+  );
 
   // Send message handler
   const handleSendMessage = useCallback(

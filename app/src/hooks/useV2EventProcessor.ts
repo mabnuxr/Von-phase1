@@ -514,6 +514,7 @@ export function useV2EventProcessor(
               setRunErrorMessage("");
               setDashboard(null);
               setPhase(null);
+              setExecutionId(null);
             });
             timerOnRunStarted(run_id);
           } else {
