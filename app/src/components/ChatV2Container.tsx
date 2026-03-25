@@ -11,7 +11,14 @@
  * on conversation switch (no stale state, no race conditions).
  */
 
-import { Profiler, useCallback, useMemo, useState } from "react";
+import {
+  Profiler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Chat,
@@ -199,6 +206,19 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     },
     [conversationId, navigate],
   );
+
+  // Auto-open dashboard preview pane when a dashboard is generated
+  const autoOpenedDashboardRef = useRef<string | null>(null);
+  useEffect(() => {
+    const dashboard = chatV2.dashboard;
+    if (
+      dashboard?.dashboard_id &&
+      dashboard.dashboard_id !== autoOpenedDashboardRef.current
+    ) {
+      autoOpenedDashboardRef.current = dashboard.dashboard_id;
+      handleDashboardPreview(dashboard.dashboard_id);
+    }
+  }, [chatV2.dashboard, handleDashboardPreview]);
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,

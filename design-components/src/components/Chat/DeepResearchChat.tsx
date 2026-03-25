@@ -358,7 +358,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                             }
                           : undefined
                       }
-                      beforeActions={
+                      afterActions={
                         (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
                           <DataTablesCard
                             tableCount={dataTablesInfo?.tableCount ?? 0}
