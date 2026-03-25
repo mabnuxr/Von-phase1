@@ -101,7 +101,7 @@ export interface MarkdownActionCardProps {
   /**
    * Content to render above the separator/action buttons
    */
-  beforeActions?: React.ReactNode;
+  afterActions?: React.ReactNode;
 }
 
 // ============================================================================
@@ -342,7 +342,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
   items,
   calendarEvents,
   isStreaming = false,
-  beforeActions,
+  afterActions,
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -364,7 +364,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
   return (
     <div className="overflow-hidden">
       {/* Custom content at start */}
-      {beforeActions && <div className="mb-4">{beforeActions}</div>}
+      {afterActions && <div className="mb-4">{afterActions}</div>}
 
       {/* Markdown Content */}
       <div className="py-1">

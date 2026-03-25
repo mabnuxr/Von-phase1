@@ -185,6 +185,10 @@ export function BaseIntegrationConfigPane({
         errors.push("Subdomain is required");
       } else if (/^https?:\/\//i.test(zendeskSubdomain)) {
         errors.push("Subdomain should not include http:// or https://");
+      } else if (!/\.zendesk\.com$/i.test(zendeskSubdomain)) {
+        errors.push(
+          "Enter the full domain (e.g. yourcompany.zendesk.com)",
+        );
       }
       if (!hasExistingCredentials) {
         if (!zendeskEmail) {
@@ -536,7 +540,8 @@ export function BaseIntegrationConfigPane({
               {/* OAuth Authentication Info - for OAuth integrations */}
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar" ||
-                integrationId === "googledrive") && (
+                integrationId === "googledrive" ||
+                integrationId === "gmail") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type
@@ -803,6 +808,13 @@ export function BaseIntegrationConfigPane({
                         if (/^https?:\/\//i.test(value)) {
                           setZendeskSubdomainError(
                             "Please enter the subdomain without http:// or https://",
+                          );
+                        } else if (
+                          value &&
+                          !/\.zendesk\.com$/i.test(value)
+                        ) {
+                          setZendeskSubdomainError(
+                            "Enter the full domain (e.g. yourcompany.zendesk.com)",
                           );
                         } else {
                           setZendeskSubdomainError("");

@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState, useRef, useLayoutEffect, Fragment } from 'react';
 import { InfoIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
@@ -307,6 +307,12 @@ export interface ChatMessageProps {
   driveLoadingFileId?: string | null;
 
   /**
+   * Custom renderer for artifact cards (e.g. email_draft → GmailDraftCard).
+   * Return a ReactNode to override the default FileArtifactCard, or null to use the default.
+   */
+  renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
+
+  /**
    * Quick command used for this user message (shows expandable chip)
    */
   command?: Command;
@@ -356,6 +362,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
+  renderArtifactCard,
   command,
   onRequestFilePreviewUrl,
 }) => {
@@ -668,8 +675,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                   {/* File artifact cards (agent-generated documents) */}
                   {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-3">
                       {artifacts.map((artifact) => {
+                        // Allow app layer to override rendering for specific artifact types (e.g. email_draft)
+                        if (renderArtifactCard) {
+                          const custom = renderArtifactCard(artifact);
+                          if (custom) return <Fragment key={artifact.fileId}>{custom}</Fragment>;
+                        }
+
                         const handleOpen = onFileArtifactClick
                           ? () =>
                               onFileArtifactClick(

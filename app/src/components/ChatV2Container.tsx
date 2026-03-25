@@ -11,7 +11,14 @@
  * on conversation switch (no stale state, no race conditions).
  */
 
-import { Profiler, useCallback, useMemo, useState } from "react";
+import {
+  Profiler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Chat,
@@ -37,6 +44,8 @@ import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
+import { GmailDraftCardContainer } from "./GmailDraftCardContainer";
+import type { FileArtifact } from "@vonlabs/design-components";
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -158,6 +167,25 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     [dashboardListData],
   );
 
+  // Custom artifact card renderer — renders GmailDraftCard for email_draft artifacts
+  const renderArtifactCard = useCallback(
+    (artifact: FileArtifact) => {
+      if (
+        artifact.artifactType === "email_draft" ||
+        artifact.fileName?.endsWith(".eml")
+      ) {
+        return (
+          <GmailDraftCardContainer
+            conversationId={conversationId}
+            artifact={artifact}
+          />
+        );
+      }
+      return null;
+    },
+    [conversationId],
+  );
+
   // Dashboard preview pane state
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
@@ -178,6 +206,30 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     },
     [conversationId, navigate],
   );
+
+  // Auto-open dashboard preview pane when a NEW dashboard is generated
+  // (not on mount/page-refresh — only when dashboard changes after initial render)
+  const initialDashboardRef = useRef<string | undefined>(undefined);
+  const hasHydratedRef = useRef(false);
+  useEffect(() => {
+    const dashboard = chatV2.dashboard;
+    const key = dashboard
+      ? `${dashboard.dashboard_id}:${dashboard.dashboard_version}`
+      : undefined;
+
+    if (!hasHydratedRef.current) {
+      // First render — capture initial state, don't auto-open
+      initialDashboardRef.current = key;
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    // Only auto-open if this is a new dashboard (not the one present on mount)
+    if (key && key !== initialDashboardRef.current) {
+      initialDashboardRef.current = key;
+      handleDashboardPreview(dashboard!.dashboard_id);
+    }
+  }, [chatV2.dashboard, handleDashboardPreview]);
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
@@ -335,6 +387,7 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               fileErrorMessage={chatV2.fileErrorMessage}
               onDismissFileError={() => chatV2.setFileErrorMessage(null)}
               showArtifacts={isArtifactsEnabled}
+              renderArtifactCard={renderArtifactCard}
               onFileArtifactClick={chatV2.handleFileArtifactClick}
               onArtifactDownload={chatV2.handleArtifactDownload}
               onGoogleDriveClick={onGoogleDriveClick}

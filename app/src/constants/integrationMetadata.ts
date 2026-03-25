@@ -124,6 +124,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg",
     category: "Internal Documents",
   },
+  gmail: {
+    id: "gmail",
+    name: "Gmail",
+    description: "Draft and send emails directly from your Gmail account",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Gmail.svg",
+    category: "Other",
+  },
   highspot: {
     id: "highspot",
     name: "Highspot",
@@ -262,6 +270,7 @@ export function getIntegrationLogoPath(type: string): string {
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
     PYLON: "pylon",
+    GMAIL: "gmail",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -301,6 +310,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     databricks: "DATABRICKS",
     zendesk: "ZENDESK",
     pylon: "PYLON",
+    gmail: "GMAIL",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -334,6 +344,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
     PYLON: "pylon",
+    GMAIL: "gmail",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -368,6 +379,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
     PYLON: "pylon",
+    GMAIL: "gmail",
   };
 
   const integrationId =

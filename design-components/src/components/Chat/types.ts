@@ -3,6 +3,7 @@
  */
 
 import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
+import type { FileArtifact } from './ArtifactCards/types';
 import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -1172,6 +1173,12 @@ export interface ChatProps {
    * Gated by feature flag — defaults to false.
    */
   showArtifacts?: boolean;
+
+  /**
+   * Custom renderer for artifact cards (e.g. email_draft → GmailDraftCard).
+   * Return a ReactNode to override the default FileArtifactCard, or null to use the default.
+   */
+  renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
 
   /**
    * Callback when user clicks on a file artifact card (agent-generated documents)

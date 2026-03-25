@@ -12,6 +12,7 @@ import {
   DashboardCustomizationProvider,
   DashboardGrid,
   ErrorBoundary,
+  TruncateWithText,
 } from "@vonlabs/design-components";
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
@@ -118,9 +119,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   {dashboard.title}
                 </h1>
                 {dashboard.description && (
-                  <p className="text-xs text-gray-700 truncate">
+                  <TruncateWithText className="text-xs text-gray-700 max-w-[60%]">
                     {dashboard.description}
-                  </p>
+                  </TruncateWithText>
                 )}
               </div>
             </DashboardLayout.HeaderRow.Left>
@@ -194,8 +195,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <XIcon size={14} />
                 </button>
               )}
-
-              <RefreshButton onRefresh={onRefresh} />
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
 
@@ -206,7 +205,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 filters={dashboard.filters?.definitions ?? []}
                 activeFilters={activeFilters}
               />
-              <CustomizeButton />
+              {dashboard.isOwner && <CustomizeButton />}
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
@@ -231,6 +230,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       <ClockCounterClockwiseIcon size={14} />
                     </button>
                   )}
+                  <RefreshButton onRefresh={onRefresh} />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
                     canShare={dashboard.dashboardVersion >= 1}

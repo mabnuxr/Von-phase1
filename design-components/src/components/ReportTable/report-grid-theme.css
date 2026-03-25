@@ -3,17 +3,14 @@
  * to match the old TanStack ReportTable visual style.
  */
 
-/* Force light mode regardless of system preference */
+/*
+ * Light mode is forced via the `highcharts-light` class on the wrapper element.
+ * Variables below only customize colors *beyond* HCG's built-in light defaults.
+ */
 .report-grid-wrapper .hcg-container {
-  --hcg-background: #ffffff;
   --hcg-color: #111827;
-  --ig-default-background: #ffffff;
   --ig-default-color: #111827;
-  --highcharts-background-color: #ffffff;
-  --highcharts-neutral-color-100: #111827;
   --hcg-row-hover-background: rgba(249, 250, 251, 0.5);
-  --hcg-row-even-background: #ffffff;
-  --hcg-cell-background: #ffffff;
   --hcg-header-background: #f9fafb;
   --hcg-border-color: #f3f4f6;
   --hcg-row-border-color: #f3f4f6;
@@ -22,7 +19,6 @@
   --hcg-button-hover-color: #111827;
   --hcg-pagination-button-selected-background: #111827;
   --hcg-pagination-button-selected-color: #ffffff;
-  color-scheme: light;
 }
 
 /* Wrapper */

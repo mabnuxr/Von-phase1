@@ -27,6 +27,7 @@ export const FEATURE_FLAGS = {
   SCHEDULED_COMMANDS: "enableScheduledCommands",
   ZENDESK_INTEGRATION: "enableZendesk",
   SNOWFLAKE: "enableSnowflake",
+  GMAIL: "enableGmail",
 } as const;
 
 /**
@@ -125,8 +126,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether scheduled commands (schedule section, recipients, send test) are enabled
      */
-    isScheduledCommandsEnabled:
-      flags[FEATURE_FLAGS.SCHEDULED_COMMANDS] === true,
+    isScheduledCommandsEnabled: true,
 
     /**
      * Controls whether Zendesk integration is visible
@@ -137,6 +137,11 @@ export function useFeatureFlag() {
      * Controls whether Snowflake integration is visible
      */
     isSnowflakeEnabled: flags[FEATURE_FLAGS.SNOWFLAKE] === true,
+
+    /**
+     * Controls whether Gmail integration is visible
+     */
+    isGmailEnabled: flags[FEATURE_FLAGS.GMAIL] === true,
 
     /**
      * Raw flags object for advanced usage

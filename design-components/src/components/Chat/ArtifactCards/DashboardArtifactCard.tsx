@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { ArrowRightIcon, ArrowsOutIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import { CaretRightIcon, ArrowsOutIcon, SquaresFourIcon } from '@phosphor-icons/react';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 
 // ============================================================================
@@ -40,7 +40,7 @@ export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
     <BaseArtifactCard.Actions>
       {onPreview && (
         <ActionButton onClick={onPreview} title="Expand in chat">
-          <ArrowRightIcon size={16} weight="regular" />
+          <CaretRightIcon size={16} weight="regular" />
         </ActionButton>
       )}
       {onOpen && (

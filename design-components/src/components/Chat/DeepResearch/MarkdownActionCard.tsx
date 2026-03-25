@@ -102,9 +102,9 @@ export interface MarkdownActionCardProps {
   isStreaming?: boolean;
 
   /**
-   * Content to render above the markdown content (e.g., DataTablesCard)
+   * Content to render below the action buttons (e.g., DataTablesCard)
    */
-  beforeActions?: React.ReactNode;
+  afterActions?: React.ReactNode;
 
   /**
    * Custom className for the container
@@ -359,7 +359,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
   items,
   calendarEvents,
   isStreaming = false,
-  beforeActions,
+  afterActions,
   className = '',
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -381,9 +381,6 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
 
   return (
     <div className={`overflow-hidden ${className}`}>
-      {/* Custom content at start (e.g., DataTablesCard) */}
-      {beforeActions && <div className="mb-4">{beforeActions}</div>}
-
       {/* Markdown Content */}
       <div className="py-1">
         <div className="prose-sm markdown-body max-w-none">
@@ -458,6 +455,9 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
           </PrimaryButton>
         </div>
       )}
+
+      {/* Custom content at end (e.g., DataTablesCard) */}
+      {afterActions && <div className="mt-4">{afterActions}</div>}
     </div>
   );
 };

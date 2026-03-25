@@ -206,6 +206,11 @@ export function useTimelineState({
         }
       }
 
+      // Always expand steps that have an artifact so the chip is always visible
+      if (step.artifact) {
+        return 'expanded';
+      }
+
       // Default to collapsed
       return 'collapsed';
     },
