@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect, Fragment } from 'react';
-import { InfoIcon } from '@phosphor-icons/react';
+import { InfoIcon, CopyIcon, CheckIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
@@ -8,6 +8,7 @@ import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
 import { TiptapViewer } from '../TiptapEditor';
+import { Tooltip } from '../Tooltip';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment, MessageStatus } from './types';
@@ -15,6 +16,30 @@ import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
 import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
+
+/**
+ * Format message timestamp: time only if within 24h, date only otherwise
+ */
+function formatMessageTimestamp(date: Date): string {
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 24) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Full date + time string for tooltip
+ */
+function formatFullTimestamp(date: Date): string {
+  return (
+    date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ', ' +
+    date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  );
+}
 
 /**
  * Get user initials from name or email
@@ -330,6 +355,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   reasoningContent,
   isStreaming = false,
   isReasoningStreaming = false,
+  timestamp,
   userName,
   userEmail,
   stepMessages,
@@ -372,6 +398,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // Ref and state for measuring user message height (for alignment)
   const userMessageRef = useRef<HTMLDivElement>(null);
   const [isSingleLine, setIsSingleLine] = useState(true);
+  const [copiedUser, setCopiedUser] = useState(false);
 
   // Measure user message height to determine alignment
   useLayoutEffect(() => {
@@ -391,6 +418,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     runId: string
   ) => {
     onArtifactClick?.(artifactId, toolName, artifactType, runId);
+  };
+
+  const handleCopyUser = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedUser(true);
+      setTimeout(() => setCopiedUser(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
   };
 
   const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
@@ -670,6 +707,39 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           className="markdown-content prose-sm max-w-none text-left"
                         />
                       )}
+                    </div>
+                  )}
+
+                  {/* User message hover actions: timestamp + copy */}
+                  {isUser && (
+                    <div className="flex items-center justify-end gap-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      {timestamp && (() => {
+                        const now = new Date();
+                        const isOlderThan24h = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60) >= 24;
+                        return (
+                          <Tooltip
+                            content={formatFullTimestamp(timestamp)}
+                            enabled={isOlderThan24h}
+                            placement="bottom"
+                          >
+                            <span className="text-xs text-gray-400 select-none">
+                              {formatMessageTimestamp(timestamp)}
+                            </span>
+                          </Tooltip>
+                        );
+                      })()}
+                      <button
+                        onClick={handleCopyUser}
+                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-500 transition-colors cursor-pointer"
+                        title={copiedUser ? 'Copied!' : 'Copy message'}
+                        aria-label={copiedUser ? 'Copied!' : 'Copy message'}
+                      >
+                        {copiedUser ? (
+                          <CheckIcon size={14} className="text-green-500" weight="bold" />
+                        ) : (
+                          <CopyIcon size={14} />
+                        )}
+                      </button>
                     </div>
                   )}
 
