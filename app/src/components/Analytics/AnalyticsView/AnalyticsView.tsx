@@ -194,8 +194,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <XIcon size={14} />
                 </button>
               )}
-
-              {dashboard.isOwner && <RefreshButton onRefresh={onRefresh} />}
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
 
@@ -231,6 +229,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       <ClockCounterClockwiseIcon size={14} />
                     </button>
                   )}
+                  <RefreshButton onRefresh={onRefresh} />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
                     canShare={dashboard.dashboardVersion >= 1}
