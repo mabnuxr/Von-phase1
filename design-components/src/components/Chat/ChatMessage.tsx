@@ -34,11 +34,9 @@ function formatMessageTimestamp(date: Date): string {
  * Full date + time string for tooltip
  */
 function formatFullTimestamp(date: Date): string {
-  return (
-    date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) +
-    ', ' +
-    date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  );
+  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `${dateStr} · ${timeStr}`;
 }
 
 /**
@@ -430,6 +428,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     }
   };
 
+  const isTimestampOlderThan24h =
+    !!timestamp && (Date.now() - timestamp.getTime()) / (1000 * 60 * 60) >= 24;
+
   const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
 
   return (
@@ -713,33 +714,31 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* User message hover actions: timestamp + copy */}
                   {isUser && (
                     <div className="flex items-center justify-end gap-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      {timestamp && (() => {
-                        const now = new Date();
-                        const isOlderThan24h = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60) >= 24;
-                        return (
-                          <Tooltip
-                            content={formatFullTimestamp(timestamp)}
-                            enabled={isOlderThan24h}
-                            placement="bottom"
-                          >
-                            <span className="text-xs text-gray-400 select-none">
-                              {formatMessageTimestamp(timestamp)}
-                            </span>
-                          </Tooltip>
-                        );
-                      })()}
-                      <button
-                        onClick={handleCopyUser}
-                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-500 transition-colors cursor-pointer"
-                        title={copiedUser ? 'Copied!' : 'Copy message'}
-                        aria-label={copiedUser ? 'Copied!' : 'Copy message'}
-                      >
-                        {copiedUser ? (
-                          <CheckIcon size={14} className="text-green-500" weight="bold" />
-                        ) : (
-                          <CopyIcon size={14} />
-                        )}
-                      </button>
+                      {timestamp && (
+                        <Tooltip
+                          content={formatFullTimestamp(timestamp)}
+                          enabled={isTimestampOlderThan24h}
+                          placement="bottom"
+                        >
+                          <span className="text-xs text-gray-400 select-none">
+                            {formatMessageTimestamp(timestamp)}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {content && (
+                        <button
+                          onClick={handleCopyUser}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-500 transition-colors cursor-pointer"
+                          title={copiedUser ? 'Copied!' : 'Copy message'}
+                          aria-label={copiedUser ? 'Copied!' : 'Copy message'}
+                        >
+                          {copiedUser ? (
+                            <CheckIcon size={14} className="text-green-500" weight="bold" />
+                          ) : (
+                            <CopyIcon size={14} />
+                          )}
+                        </button>
+                      )}
                     </div>
                   )}
 

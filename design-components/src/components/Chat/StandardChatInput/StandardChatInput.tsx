@@ -947,7 +947,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
           </div>
 
           {!hideDisclaimer && (
-            <TruncateWithText className="text-xs leading-normal text-gray-500 text-center font-sf mt-1">
+            <TruncateWithText className="w-full text-xs leading-normal text-gray-500 text-center font-sf mt-1">
               Von AI may make mistakes. Please recheck all important information.
             </TruncateWithText>
           )}
