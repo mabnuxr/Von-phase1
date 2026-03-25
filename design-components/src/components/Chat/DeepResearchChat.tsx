@@ -157,8 +157,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   // Handle confirmation - use resume API (with executionId) or send message (legacy)
   const handleConfirmAnalysis = () => {
     setShowConfirmModal(false);
-    if (approvalMessage?.executionId && approvalMessage?.runId) {
-      onApprovePlan?.(approvalMessage.runId, approvalMessage.executionId);
+    if (approvalMessage?.executionId && approvalMessage?.runId && onApprovePlan) {
+      onApprovePlan(approvalMessage.runId, approvalMessage.executionId);
     } else {
       onSendMessage?.('Run full analysis and create the dashboard');
     }
