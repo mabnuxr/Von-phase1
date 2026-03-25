@@ -12,6 +12,7 @@ import {
   DashboardCustomizationProvider,
   DashboardGrid,
   ErrorBoundary,
+  TruncateWithText,
 } from "@vonlabs/design-components";
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
@@ -118,9 +119,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   {dashboard.title}
                 </h1>
                 {dashboard.description && (
-                  <p className="text-xs text-gray-700 truncate">
+                  <TruncateWithText className="text-xs text-gray-700 max-w-[60%]">
                     {dashboard.description}
-                  </p>
+                  </TruncateWithText>
                 )}
               </div>
             </DashboardLayout.HeaderRow.Left>

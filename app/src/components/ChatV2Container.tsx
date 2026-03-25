@@ -207,16 +207,27 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     [conversationId, navigate],
   );
 
-  // Auto-open dashboard preview pane when a dashboard is generated
-  const autoOpenedDashboardRef = useRef<string | null>(null);
+  // Auto-open dashboard preview pane when a NEW dashboard is generated
+  // (not on mount/page-refresh — only when dashboard changes after initial render)
+  const initialDashboardRef = useRef<string | undefined>(undefined);
+  const hasHydratedRef = useRef(false);
   useEffect(() => {
     const dashboard = chatV2.dashboard;
-    if (
-      dashboard?.dashboard_id &&
-      dashboard.dashboard_id !== autoOpenedDashboardRef.current
-    ) {
-      autoOpenedDashboardRef.current = dashboard.dashboard_id;
-      handleDashboardPreview(dashboard.dashboard_id);
+    const key = dashboard
+      ? `${dashboard.dashboard_id}:${dashboard.dashboard_version}`
+      : undefined;
+
+    if (!hasHydratedRef.current) {
+      // First render — capture initial state, don't auto-open
+      initialDashboardRef.current = key;
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    // Only auto-open if this is a new dashboard (not the one present on mount)
+    if (key && key !== initialDashboardRef.current) {
+      initialDashboardRef.current = key;
+      handleDashboardPreview(dashboard!.dashboard_id);
     }
   }, [chatV2.dashboard, handleDashboardPreview]);
 

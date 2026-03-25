@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useLayoutEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { Tooltip } from '../Tooltip/Tooltip';
 
 export interface TruncateWithTextProps {
   /** Text or node to display. Pass a string for automatic tooltip content. */
@@ -21,8 +21,8 @@ export interface TruncateWithTextProps {
 
 /**
  * TruncateWithText — truncates overflowing text with an ellipsis and shows a
- * portal-based tooltip **only when the text is actually truncated**. The tooltip
- * appears instantly (no delay) and is never clipped by ancestor overflow.
+ * tooltip **only when the text is actually truncated**. Uses the shared Tooltip
+ * component with auto-placement so the tooltip never clips out of the viewport.
  *
  * @example Single-line
  * ```tsx
@@ -44,9 +44,6 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
 }) => {
   const textRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
-  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number; width: number } | null>(
-    null
-  );
 
   // ── Truncation detection ────────────────────────────────────────────────────
 
@@ -56,7 +53,6 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
     const truncated =
       maxLines === 1 ? el.scrollWidth > el.clientWidth : el.scrollHeight > el.clientHeight;
     setIsTruncated(truncated);
-    if (!truncated) setTooltipPos(null);
   }, [maxLines]);
 
   useLayoutEffect(() => {
@@ -70,25 +66,6 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
   useLayoutEffect(() => {
     checkTruncation();
   }, [children, checkTruncation]);
-
-  // ── Tooltip positioning ─────────────────────────────────────────────────────
-
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!isTruncated) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      setTooltipPos({
-        top: rect.top - 6,
-        left: rect.left,
-        width: rect.width,
-      });
-    },
-    [isTruncated]
-  );
-
-  const handleMouseLeave = useCallback(() => {
-    setTooltipPos(null);
-  }, []);
 
   // ── Resolve tooltip content ─────────────────────────────────────────────────
 
@@ -107,36 +84,23 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
         }
       : {};
 
-  return (
-    <>
-      <div
-        ref={textRef}
-        className={`${maxLines === 1 ? 'truncate' : ''} ${className}`}
-        style={multiLineStyle}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {children}
-      </div>
-
-      {tooltipPos &&
-        isTruncated &&
-        tooltipContent &&
-        createPortal(
-          <div
-            role="tooltip"
-            className="fixed z-[10000] px-2 py-1 text-xs text-white bg-gray-900 rounded-lg shadow-lg pointer-events-none break-words"
-            style={{
-              top: tooltipPos.top,
-              left: tooltipPos.left,
-              width: tooltipPos.width,
-              transform: 'translateY(-100%)',
-            }}
-          >
-            {tooltipContent}
-          </div>,
-          document.body
-        )}
-    </>
+  const textElement = (
+    <div
+      ref={textRef}
+      className={`${maxLines === 1 ? 'truncate' : ''} ${isTruncated ? 'cursor-pointer' : ''} ${className}`}
+      style={multiLineStyle}
+    >
+      {children}
+    </div>
   );
+
+  if (isTruncated && tooltipContent) {
+    return (
+      <Tooltip content={tooltipContent} placement="auto">
+        {textElement}
+      </Tooltip>
+    );
+  }
+
+  return textElement;
 };

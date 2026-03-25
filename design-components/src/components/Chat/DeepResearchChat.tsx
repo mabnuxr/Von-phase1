@@ -317,7 +317,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       onArtifactClick={onArtifactClick}
                     />
                   )}
-                  {/* Approval card with DataTablesCard as beforeActions */}
+                  {/* Approval card with DataTablesCard as afterActions */}
                   {isApprovalMessage && (
                     <MarkdownActionCard
                       variant="analysis-request"
