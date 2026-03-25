@@ -99,10 +99,14 @@ export interface DeepResearchConversationProps {
     artifactType: string,
     runId: string,
   ) => void;
-  /** Callback when approval is triggered */
+  /** Callback when approval is triggered (HITL tool call approvals in timeline) */
   onApprove?: (stepId: string, runId: string) => void;
-  /** Callback when rejection is triggered */
+  /** Callback when rejection is triggered (HITL tool call rejections in timeline) */
   onReject?: (stepId: string, runId: string) => void;
+  /** Callback for workflow execution plan approval (execute_workflow dry_run completed) */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+  /** Callback for workflow execution plan rejection */
+  onRejectPlan?: (runId: string, executionId: string) => void;
   /** Placeholder text for input */
   placeholder?: string;
   /** Whether submission is disabled */
@@ -145,6 +149,8 @@ export const DeepResearchConversation: React.FC<
   onArtifactClick,
   onApprove,
   onReject,
+  onApprovePlan,
+  onRejectPlan,
   placeholder = "Ask von anything",
   disableSubmit = false,
   onInputWhileDisabled,
@@ -334,6 +340,8 @@ export const DeepResearchConversation: React.FC<
           onArtifactClick={onArtifactClick}
           onApprove={onApprove}
           onReject={onReject}
+          onApprovePlan={onApprovePlan}
+          onRejectPlan={onRejectPlan}
           onLike={onLike}
           onDislike={onDislike}
           onDashboardPreview={onDashboardPreview}

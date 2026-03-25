@@ -177,10 +177,17 @@ export async function handleToolApproval(
   toolCallId: string,
   runId: string,
   conversationId: string,
+  executionId?: string,
 ): Promise<void> {
   try {
     await withRetry(() =>
-      conversationsService.resumeConversation(conversationId, true, runId),
+      conversationsService.resumeConversation(
+        conversationId,
+        true,
+        runId,
+        "",
+        executionId,
+      ),
     );
     if (import.meta.env.DEV) {
       console.log(
@@ -188,6 +195,7 @@ export async function handleToolApproval(
         toolCallId,
         "runId:",
         runId,
+        ...(executionId ? ["executionId:", executionId] : []),
       );
     }
   } catch (error) {
@@ -204,10 +212,17 @@ export async function handleToolRejection(
   toolCallId: string,
   runId: string,
   conversationId: string,
+  executionId?: string,
 ): Promise<void> {
   try {
     await withRetry(() =>
-      conversationsService.resumeConversation(conversationId, false, runId),
+      conversationsService.resumeConversation(
+        conversationId,
+        false,
+        runId,
+        "",
+        executionId,
+      ),
     );
     if (import.meta.env.DEV) {
       console.log(
@@ -215,6 +230,7 @@ export async function handleToolRejection(
         toolCallId,
         "runId:",
         runId,
+        ...(executionId ? ["executionId:", executionId] : []),
       );
     }
   } catch (error) {
@@ -247,6 +263,8 @@ export interface V2LiveData {
   phase?: "plan-proposed" | "ask" | null;
   /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
   dashboard?: DashboardMetadata | null;
+  /** execution_id for workflow execution approval (dry_run completed, pending approval) */
+  executionId?: string | null;
 }
 
 /**
@@ -339,12 +357,13 @@ function transformMessagesForV2(
       isLastAssistant &&
       hasLiveV2Data &&
       !isRunActive &&
-      !!v2LiveData.currentRunId;
+      !!v2LiveData.currentRunId &&
+      msgBelongsToCurrentV2Run;
     const shouldUsePersistedData =
       !msg.isStreaming &&
-      !isRunActive &&
       msg.events &&
       msg.events.length > 0 &&
+      (!isRunActive || !msgBelongsToCurrentV2Run) &&
       !v2JustFinishedThisRun;
 
     if (
@@ -363,6 +382,7 @@ function transformMessagesForV2(
         stoppedByUser: v2LiveData.stoppedByUser,
         phase: v2LiveData.phase,
         dashboard: v2LiveData.dashboard ?? null,
+        executionId: v2LiveData.executionId ?? null,
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
@@ -423,6 +443,7 @@ function transformMessagesForV2(
               result: {
                 phase?: string | null;
                 dashboard?: DashboardMetadata | null;
+                execution_id?: string | null;
               };
             }
           ).result
@@ -430,6 +451,7 @@ function transformMessagesForV2(
       const persistedPhase =
         (runFinishedResult?.phase as "plan-proposed" | "ask" | null) ?? null;
       const persistedDashboard = runFinishedResult?.dashboard ?? null;
+      const persistedExecutionId = runFinishedResult?.execution_id ?? null;
 
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
@@ -451,6 +473,7 @@ function transformMessagesForV2(
         stoppedByUser: effectiveStoppedByUser,
         phase: persistedPhase,
         dashboard: persistedDashboard,
+        executionId: persistedExecutionId,
         // Propagate expired or error status.  Check both the transform flag
         // (backend sent an explicit expired result) and the post-processed
         // steps (awaiting-approval unconditionally marked expired above, e.g.

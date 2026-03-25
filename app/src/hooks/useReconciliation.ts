@@ -54,6 +54,7 @@ export interface UseReconciliationConfig {
     options?: {
       phase?: "plan-proposed" | "ask" | null;
       dashboard?: DashboardMetadata | null;
+      executionId?: string | null;
     },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
@@ -155,6 +156,7 @@ export function useReconciliation({
       type RunFinishedWithDashboard = Omit<RunFinishedEvent, "result"> & {
         result: RunFinishedEvent["result"] & {
           dashboard?: DashboardMetadata | null;
+          execution_id?: string | null;
         };
       };
       const runFinishedEvent = mergedEvents.find(
@@ -168,11 +170,16 @@ export function useReconciliation({
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.dashboard ?? null)
         : undefined;
+      const reconciledExecutionId = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+            ?.execution_id ?? null)
+        : undefined;
 
-      // Step 6: Update state (including phase/dashboard from RUN_FINISHED)
+      // Step 6: Update state (including phase/dashboard/executionId from RUN_FINISHED)
       onStateUpdate(result, runId, {
         phase: reconciledPhase,
         dashboard: reconciledDashboard,
+        executionId: reconciledExecutionId,
       });
 
       // Step 7: Handle run completion

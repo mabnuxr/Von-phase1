@@ -368,6 +368,7 @@ class ConversationsService {
     approved: boolean,
     runId: string,
     message: string = "",
+    executionId?: string,
   ): Promise<ResumeConversationResponse> {
     return apiClient.post<ResumeConversationResponse>(
       `/api/v1/chat/conversations/${conversationId}/resume`,
@@ -375,6 +376,7 @@ class ConversationsService {
         approved,
         message,
         run_id: runId,
+        ...(executionId ? { execution_id: executionId } : {}),
       },
     );
   }

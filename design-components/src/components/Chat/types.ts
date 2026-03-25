@@ -216,6 +216,12 @@ export interface Message {
    */
   dashboard?: DashboardMetadata | null;
   /**
+   * execution_id from RUN_FINISHED for workflow execution approval (dry_run completed).
+   * When present alongside phase="plan-proposed", use the resume API with this
+   * execution_id instead of sending a new chat message.
+   */
+  executionId?: string | null;
+  /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.
    */
@@ -1270,6 +1276,18 @@ export interface ChatProps {
    * Backend looks up the message by run_id, so messageId is not needed
    */
   onReject?: (toolCallId: string, runId: string) => void;
+
+  /**
+   * Callback when user approves a workflow execution plan
+   * Called with the run ID and execution ID
+   */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+
+  /**
+   * Callback when user rejects a workflow execution plan
+   * Called with the run ID and execution ID
+   */
+  onRejectPlan?: (runId: string, executionId: string) => void;
 
   /**
    * Enable slash commands feature
