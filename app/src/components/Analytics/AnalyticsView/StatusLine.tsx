@@ -11,24 +11,23 @@ export const StatusLine: React.FC<StatusLineProps> = ({
   state,
   lastSavedAt,
   lastRefreshedAt,
-}) => (
-  <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
-    {state === DashboardStatus.Draft ? (
-      <span className="text-amber-700 font-medium">Draft</span>
-    ) : (
-      <span className="text-emerald-700 font-medium">Published</span>
-    )}
-    {lastSavedAt && (
-      <span className="text-gray-700">
-        {" "}
-        · {formatRelativeTime(lastSavedAt)}
+}) => {
+  const isDraft = state === DashboardStatus.Draft;
+  const colorClass = isDraft ? "text-amber-700" : "text-emerald-700";
+
+  return (
+    <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
+      <span className={`${colorClass} font-medium`}>
+        {isDraft ? "Draft" : "Published"}
       </span>
-    )}
-    {lastRefreshedAt && (
-      <span className="text-gray-700">
-        {" "}
-        · Refreshed {formatRelativeTime(lastRefreshedAt)}
-      </span>
-    )}
-  </span>
-);
+      {lastSavedAt && (
+        <span className={colorClass}>{formatRelativeTime(lastSavedAt)}</span>
+      )}
+      {lastRefreshedAt && (
+        <span className="text-gray-700">
+          · Refreshed {formatRelativeTime(lastRefreshedAt)}
+        </span>
+      )}
+    </span>
+  );
+};

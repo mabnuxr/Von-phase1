@@ -119,17 +119,9 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
       ? formatKpiDisplay(target.value, target.format, prefix, suffix)
       : undefined;
 
-  // Theme-aware color: "good" uses primaryColor if set, otherwise emerald
-  const arrowClassName =
-    comparisonColor === 'good' && primaryColor ? '' : COMPARISON_COLOR_CLASS[comparisonColor];
-  const arrowStyle =
-    comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
-  const textClassName =
-    comparisonColor === 'good' && primaryColor
-      ? 'text-xs font-medium'
-      : `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
-  const textStyle =
-    comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
+  // Comparison arrows/text always use green (good) / red (bad) regardless of theme
+  const arrowClassName = COMPARISON_COLOR_CLASS[comparisonColor];
+  const textClassName = `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
 
   return (
     <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
@@ -152,16 +144,10 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
 
       {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
-          {cmpVal > 0 && (
-            <ArrowUp size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
-          )}
-          {cmpVal < 0 && (
-            <ArrowDown size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
-          )}
+          {cmpVal > 0 && <ArrowUp size={12} weight="bold" className={arrowClassName} />}
+          {cmpVal < 0 && <ArrowDown size={12} weight="bold" className={arrowClassName} />}
           {cmpVal === 0 && <Minus size={12} weight="bold" className="text-gray-500" />}
-          <span className={textClassName} style={textStyle}>
-            {comparisonText}
-          </span>
+          <span className={textClassName}>{comparisonText}</span>
           {comparison.label && <span className="text-xs text-gray-700">{comparison.label}</span>}
         </div>
       )}
