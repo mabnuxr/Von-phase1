@@ -19,6 +19,7 @@ export interface IntegrationMetadata {
     | "Data Warehouse"
     | "Customer Support"
     | "Calendar"
+    | "Note Takers"
     | "Other";
 }
 
@@ -239,7 +240,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "Search meeting notes, transcripts, and AI-generated summaries",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
-    category: "Call Recorder",
+    category: "Note Takers",
   },
 } as const;
 

@@ -35,6 +35,7 @@ const CATEGORY_ORDER: Array<
   | "CRM"
   | "Calendar"
   | "Call Recorder"
+  | "Note Takers"
   | "Internal Documents"
   | "Sales Engagement"
   | "Data Warehouse"
@@ -44,6 +45,7 @@ const CATEGORY_ORDER: Array<
   "CRM",
   "Calendar",
   "Call Recorder",
+  "Note Takers",
   "Internal Documents",
   "Sales Engagement",
   "Data Warehouse",
@@ -633,7 +635,7 @@ export function IntegrationsList({
         return (
           <div
             key={category}
-            className="bg-white rounded-lg border border-gray-200 overflow-visible"
+            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
           >
             {/* Category Header */}
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
