@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
+import { sidebarDashboardKeys } from "./useSidebarDashboards";
 import { useMutationPhase } from "./useMutationPhase";
 import { useToast } from "./useToast";
 
@@ -13,16 +14,23 @@ export function useAnalyticsTools(dashboardId: string) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // ─── Publish (Save) ────────────────────────────────────────────
-  const publishMutation = useMutation({
+  // ─── Save ─────────────────────────────────────────────────────
+  const isFirstSaveRef = useRef(false);
+
+  const saveMutation = useMutation({
     mutationFn: (version?: number) =>
       dashboardService.publishDashboard(dashboardId, version),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+      queryClient.invalidateQueries({
+        queryKey: sidebarDashboardKeys.all,
+      });
       showToast({
-        message: "Dashboard published successfully.",
+        message: isFirstSaveRef.current
+          ? "Dashboard is created. You can access the dashboard from the side panel."
+          : "Dashboard is updated. You can access the dashboard from the side panel.",
         variant: "success",
       });
     },
@@ -33,24 +41,29 @@ export function useAnalyticsTools(dashboardId: string) {
     },
   });
 
-  const handleSave = useCallback(() => {
-    publishMutation.mutate(undefined, {
-      onError: (error) => {
-        console.error("[useAnalyticsTools] Publish failed:", error);
-        showToast({
-          message: "Failed to save dashboard. Please try again.",
-          variant: "error",
-        });
-      },
-    });
-  }, [publishMutation, showToast]);
-
-  const savePhase = useMutationPhase(
-    publishMutation.isPending,
-    publishMutation.isSuccess,
+  const handleSave = useCallback(
+    (isFirstSave?: boolean) => {
+      saveMutation.mutate(undefined, {
+        onError: (error) => {
+          console.error("[useAnalyticsTools] Save failed:", error);
+          showToast({
+            message: "Failed to save dashboard. Please try again.",
+            variant: "error",
+          });
+        },
+      });
+      // Store whether this is a first save so the onSuccess toast can use it
+      isFirstSaveRef.current = isFirstSave ?? false;
+    },
+    [saveMutation, showToast],
   );
 
-  // ─── Revert to Published ────────────────────────────────────────
+  const savePhase = useMutationPhase(
+    saveMutation.isPending,
+    saveMutation.isSuccess,
+  );
+
+  // ─── Revert to Saved ───────────────────────────────────────────
   const revertMutation = useMutation({
     mutationFn: () => dashboardService.revertToPublished(dashboardId),
     onSuccess: () => {
@@ -129,7 +142,7 @@ export function useAnalyticsTools(dashboardId: string) {
   return {
     handleSave,
     savePhase,
-    publishMutation,
+    saveMutation,
     handleRevert,
     revertPhase,
     revertMutation,
