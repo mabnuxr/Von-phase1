@@ -1,10 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
   XIcon,
+  PencilSimpleIcon,
 } from "@phosphor-icons/react";
 import vonFilledLogo from "../../../assets/von-filled-logo.svg";
 import {
@@ -64,6 +65,8 @@ interface AnalyticsViewProps {
   defaultColorTheme?: string;
   /** Called when the user changes the color theme */
   onColorThemeChange?: (themeId: string) => void;
+  /** Called when the owner renames the dashboard */
+  onRename?: (newName: string) => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -87,6 +90,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onDrillDown,
   defaultColorTheme,
   onColorThemeChange,
+  onRename,
 }) => {
   const gridConfig = dashboard.gridConfig as unknown as GridConfig;
   const layout = dashboard.layout as unknown as LayoutItem[];
@@ -104,6 +108,37 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     await navigator.clipboard.writeText(window.location.href);
   }, []);
 
+  // Inline rename state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(dashboard.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const committedRef = useRef(false);
+
+  // Sync editValue when dashboard title changes from the server
+  useEffect(() => {
+    if (!isEditing) setEditValue(dashboard.title);
+  }, [dashboard.title, isEditing]);
+
+  // Auto-focus and select when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      committedRef.current = false;
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const commitRename = useCallback(() => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    const trimmed = editValue.trim();
+    setIsEditing(false);
+    if (trimmed && trimmed !== dashboard.title) {
+      onRename?.(trimmed);
+    } else {
+      setEditValue(dashboard.title);
+    }
+  }, [editValue, dashboard.title, onRename]);
+
   return (
     <DashboardCustomizationProvider
       defaultColorTheme={validatedColorTheme}
@@ -115,9 +150,50 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <DashboardLayout.HeaderRow>
             <DashboardLayout.HeaderRow.Left>
               <div className="min-w-0">
-                <h1 className="text-base font-semibold text-gray-900 truncate">
-                  {dashboard.title}
-                </h1>
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitRename();
+                      if (e.key === "Escape") {
+                        setEditValue(dashboard.title);
+                        setIsEditing(false);
+                      }
+                    }}
+                    className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5 group">
+                    <h1 className="text-base font-semibold text-gray-900 truncate">
+                      {dashboard.title}
+                    </h1>
+                    {dashboard.isOwner && onRename && (
+                      <button
+                        onClick={
+                          dashboard.dashboardVersion >= 1
+                            ? () => setIsEditing(true)
+                            : undefined
+                        }
+                        disabled={dashboard.dashboardVersion < 1}
+                        className={`opacity-0 group-hover:opacity-100 transition-opacity ${
+                          dashboard.dashboardVersion >= 1
+                            ? "text-gray-400 hover:text-gray-600 cursor-pointer"
+                            : "text-gray-300 cursor-not-allowed"
+                        }`}
+                        title={
+                          dashboard.dashboardVersion >= 1
+                            ? "Rename dashboard"
+                            : "Save the dashboard to rename"
+                        }
+                      >
+                        <PencilSimpleIcon size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 {dashboard.description && (
                   <TruncateWithText className="text-xs text-gray-700 max-w-[60%]">
                     {dashboard.description}
@@ -205,7 +281,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 filters={dashboard.filters?.definitions ?? []}
                 activeFilters={activeFilters}
               />
-              {dashboard.isOwner && <CustomizeButton />}
+              {dashboard.isOwner && (
+                <CustomizeButton
+                  canCustomize={dashboard.dashboardVersion >= 1}
+                />
+              )}
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
@@ -230,7 +310,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       <ClockCounterClockwiseIcon size={14} />
                     </button>
                   )}
-                  <RefreshButton onRefresh={onRefresh} />
+                  <RefreshButton
+                    onRefresh={onRefresh}
+                    canRefresh={dashboard.dashboardVersion >= 1}
+                  />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
                     canShare={dashboard.dashboardVersion >= 1}

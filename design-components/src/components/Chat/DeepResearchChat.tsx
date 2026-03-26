@@ -335,7 +335,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       onArtifactClick={onArtifactClick}
                     />
                   )}
-                  {/* Approval card with DataTablesCard as afterActions */}
+                  {/* Approval card with DataTablesCard as beforeActions */}
                   {isApprovalMessage && (
                     <MarkdownActionCard
                       variant="analysis-request"
@@ -383,7 +383,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                             }
                           : undefined
                       }
-                      afterActions={
+                      beforeActions={
                         (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
                           <DataTablesCard
                             tableCount={dataTablesInfo?.tableCount ?? 0}
@@ -484,6 +484,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               conversationId={message.conversationId}
               timelineSteps={message.timelineSteps}
               thinkingProcessVersion="v2"
+              thinkingElapsedTime={message.thinkingElapsedTime}
               v2FinalResponse={message.v2FinalResponse}
               onArtifactClick={onArtifactClick}
               onApprove={onApprove}

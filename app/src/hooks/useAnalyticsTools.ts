@@ -21,6 +21,10 @@ export function useAnalyticsTools(dashboardId: string) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+      showToast({
+        message: "Dashboard published successfully.",
+        variant: "success",
+      });
     },
     onMutate: async () => {
       await queryClient.cancelQueries({

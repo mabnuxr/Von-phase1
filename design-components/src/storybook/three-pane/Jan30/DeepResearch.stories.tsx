@@ -1716,7 +1716,7 @@ const DeepResearchChatView: React.FC<DeepResearchChatViewProps> = ({
                     label: 'Skip',
                     onClick: onDeclineFull,
                   }}
-                  afterActions={
+                  beforeActions={
                     onDataTablesClick && (
                       <DataTablesCard tables={deepResearchTables} onClick={onDataTablesClick} />
                     )

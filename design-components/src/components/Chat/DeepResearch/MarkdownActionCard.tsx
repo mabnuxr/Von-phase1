@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CaretDown as CaretDownIcon,
-  CaretRight as CaretRightIcon,
-  X as XIcon,
-  Clock as ClockIcon,
-  MapPin as MapPinIcon,
-  Users as UsersIcon,
-  VideoCamera as VideoCameraIcon,
-  ArrowsClockwise as ArrowsClockwiseIcon,
-  ArrowRight as ArrowRightIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  XIcon,
+  ClockIcon,
+  MapPinIcon,
+  UsersIcon,
+  VideoCameraIcon,
+  ArrowsClockwiseIcon,
+  ArrowRightIcon,
 } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { PrimaryButton, SecondaryButton } from '../../forms/buttons/ActionButtons';
@@ -102,9 +102,9 @@ export interface MarkdownActionCardProps {
   isStreaming?: boolean;
 
   /**
-   * Content to render below the action buttons (e.g., DataTablesCard)
+   * Content to render before the action buttons (e.g., DataTablesCard)
    */
-  afterActions?: React.ReactNode;
+  beforeActions?: React.ReactNode;
 
   /**
    * Custom className for the container
@@ -359,7 +359,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
   items,
   calendarEvents,
   isStreaming = false,
-  afterActions,
+  beforeActions,
   className = '',
 }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -435,6 +435,8 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
           </div>
         </div>
       )}
+      {/* Custom content before actions (e.g., DataTablesCard) */}
+      {beforeActions && <div className="mt-4">{beforeActions}</div>}
 
       {/* Separator and Action Buttons - only shown when primaryAction is provided */}
       {primaryAction && (
@@ -455,9 +457,6 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
           </PrimaryButton>
         </div>
       )}
-
-      {/* Custom content at end (e.g., DataTablesCard) */}
-      {afterActions && <div className="mt-4">{afterActions}</div>}
     </div>
   );
 };

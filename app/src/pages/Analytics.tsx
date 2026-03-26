@@ -71,6 +71,13 @@ const Analytics = () => {
     [handleUpdate],
   );
 
+  const handleRename = useCallback(
+    (newName: string) => {
+      handleUpdate({ dashboard_name: newName });
+    },
+    [handleUpdate],
+  );
+
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
@@ -143,6 +150,7 @@ const Analytics = () => {
           onDrillDown={openDrilldown}
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
+          onRename={handleRename}
         />
         <DrilldownPanel
           isOpen={isDrilldownOpen}

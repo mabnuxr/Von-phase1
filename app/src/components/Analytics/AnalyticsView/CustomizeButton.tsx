@@ -7,18 +7,28 @@ import {
   multiSwatchColors,
 } from "@vonlabs/design-components";
 
-const CustomizeButton: React.FC = () => {
+interface CustomizeButtonProps {
+  canCustomize?: boolean;
+}
+
+const CustomizeButton: React.FC<CustomizeButtonProps> = ({
+  canCustomize = true,
+}) => {
   const { colorTheme, setColorTheme } = useDashboardCustomization();
   const { isVisible, hide, toggleVisibility } = useVisibilityToggle();
 
   return (
     <div className="relative">
       <button
-        onClick={toggleVisibility}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl border transition-colors cursor-pointer ${
-          isVisible
-            ? "bg-gray-50 border-gray-300 text-gray-900"
-            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+        onClick={canCustomize ? toggleVisibility : undefined}
+        disabled={!canCustomize}
+        title={canCustomize ? "Customize" : "Save the dashboard to customize"}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl border transition-colors ${
+          !canCustomize
+            ? "bg-white border-gray-200 text-gray-400 cursor-not-allowed"
+            : isVisible
+              ? "bg-gray-50 border-gray-300 text-gray-900 cursor-pointer"
+              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 cursor-pointer"
         }`}
       >
         <PaletteIcon size={14} />
