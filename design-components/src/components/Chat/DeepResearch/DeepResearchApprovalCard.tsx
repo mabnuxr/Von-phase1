@@ -217,6 +217,9 @@ export const DeepResearchApprovalCard: React.FC<DeepResearchApprovalCardProps> =
         </div>
       </div>
 
+      {/* Custom content before actions */}
+      {beforeActions && <div className="mt-4">{beforeActions}</div>}
+
       {/* Separator and Action Buttons */}
       <div className="mt-4 pt-3 pb-1 border-t border-gray-100 flex items-center gap-2">
         {secondaryAction && (
@@ -234,9 +237,6 @@ export const DeepResearchApprovalCard: React.FC<DeepResearchApprovalCardProps> =
           {primaryAction.isLoading ? 'Processing...' : primaryAction.label}
         </PrimaryButton>
       </div>
-
-      {/* Custom content after actions */}
-      {beforeActions && <div className="mt-4">{beforeActions}</div>}
     </div>
   );
 };

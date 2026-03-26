@@ -22,8 +22,7 @@ export function useAnalyticsTools(dashboardId: string) {
         queryKey: dashboardKeys.detail(dashboardId),
       });
       showToast({
-        message:
-          "Dashboard is created. You can access the dashboard from the side panel.",
+        message: "Dashboard published successfully.",
         variant: "success",
       });
     },

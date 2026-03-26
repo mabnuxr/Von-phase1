@@ -112,6 +112,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(dashboard.title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const committedRef = useRef(false);
 
   // Sync editValue when dashboard title changes from the server
   useEffect(() => {
@@ -120,10 +121,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   // Auto-focus and select when entering edit mode
   useEffect(() => {
-    if (isEditing) inputRef.current?.select();
+    if (isEditing) {
+      committedRef.current = false;
+      inputRef.current?.select();
+    }
   }, [isEditing]);
 
   const commitRename = useCallback(() => {
+    if (committedRef.current) return;
+    committedRef.current = true;
     const trimmed = editValue.trim();
     setIsEditing(false);
     if (trimmed && trimmed !== dashboard.title) {
