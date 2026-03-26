@@ -5,6 +5,7 @@ import {
   chartThemes,
   chartThemeIds,
   multiSwatchColors,
+  Tooltip,
 } from "@vonlabs/design-components";
 
 interface CustomizeButtonProps {
@@ -19,26 +20,28 @@ const CustomizeButton: React.FC<CustomizeButtonProps> = ({
 
   return (
     <div className="relative">
-      <button
-        onClick={canCustomize ? toggleVisibility : undefined}
-        disabled={!canCustomize}
-        title={canCustomize ? "Customize" : "Save the dashboard to customize"}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-xl border transition-colors ${
-          !canCustomize
-            ? "bg-white border-gray-200 text-gray-400 cursor-not-allowed"
-            : isVisible
-              ? "bg-gray-50 border-gray-300 text-gray-900 cursor-pointer"
-              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 cursor-pointer"
-        }`}
+      <Tooltip
+        content={canCustomize ? "Customize" : "Save the dashboard to customize"}
       >
-        <PaletteIcon size={14} />
-        Customize
-      </button>
+        <button
+          onClick={canCustomize ? toggleVisibility : undefined}
+          disabled={!canCustomize}
+          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+            !canCustomize
+              ? "bg-white border-gray-200/70 text-gray-400 cursor-not-allowed"
+              : isVisible
+                ? "bg-gray-50 border-gray-300 text-gray-900 cursor-pointer"
+                : "bg-white border-gray-200/70 text-gray-700 hover:bg-gray-50 hover:border-gray-300 cursor-pointer"
+          }`}
+        >
+          <PaletteIcon size={14} />
+        </button>
+      </Tooltip>
 
       {isVisible && (
         <>
           <div className="fixed inset-0 z-[9998]" onClick={hide} />
-          <div className="absolute left-0 top-full mt-1.5 z-[9999] bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+          <div className="absolute right-0 top-full mt-1.5 z-[9999] bg-white rounded-xl border border-gray-200 shadow-sm p-3">
             <p className="text-xs font-medium text-gray-900 mb-2">
               Color theme
             </p>

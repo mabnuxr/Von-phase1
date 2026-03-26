@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
@@ -14,6 +14,8 @@ export function useAnalyticsTools(dashboardId: string) {
   const { showToast } = useToast();
 
   // ─── Publish (Save) ────────────────────────────────────────────
+  const isFirstSaveRef = useRef(false);
+
   const publishMutation = useMutation({
     mutationFn: (version?: number) =>
       dashboardService.publishDashboard(dashboardId, version),
@@ -22,7 +24,9 @@ export function useAnalyticsTools(dashboardId: string) {
         queryKey: dashboardKeys.detail(dashboardId),
       });
       showToast({
-        message: "Dashboard published successfully.",
+        message: isFirstSaveRef.current
+          ? "Dashboard is created. You can access the dashboard from the side panel."
+          : "Dashboard is updated. You can access the dashboard from the side panel.",
         variant: "success",
       });
     },
@@ -33,17 +37,22 @@ export function useAnalyticsTools(dashboardId: string) {
     },
   });
 
-  const handleSave = useCallback(() => {
-    publishMutation.mutate(undefined, {
-      onError: (error) => {
-        console.error("[useAnalyticsTools] Publish failed:", error);
-        showToast({
-          message: "Failed to save dashboard. Please try again.",
-          variant: "error",
-        });
-      },
-    });
-  }, [publishMutation, showToast]);
+  const handleSave = useCallback(
+    (isFirstSave?: boolean) => {
+      publishMutation.mutate(undefined, {
+        onError: (error) => {
+          console.error("[useAnalyticsTools] Publish failed:", error);
+          showToast({
+            message: "Failed to save dashboard. Please try again.",
+            variant: "error",
+          });
+        },
+      });
+      // Store whether this is a first save so the onSuccess toast can use it
+      isFirstSaveRef.current = isFirstSave ?? false;
+    },
+    [publishMutation, showToast],
+  );
 
   const savePhase = useMutationPhase(
     publishMutation.isPending,

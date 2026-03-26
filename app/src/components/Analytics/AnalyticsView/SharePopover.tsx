@@ -8,7 +8,7 @@ import {
   LinkIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useVisibilityToggle } from "@vonlabs/design-components";
+import { useVisibilityToggle, Tooltip } from "@vonlabs/design-components";
 import { useToast } from "../../../hooks/useToast";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 
@@ -64,24 +64,27 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
 
   return (
     <div className="relative">
-      <button
-        onClick={canShare ? handleToggle : undefined}
-        disabled={!canShare}
-        title={
+      <Tooltip
+        content={
           canShare
             ? "Share"
             : "Save the dashboard to share it with your organisation"
         }
-        className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-          !canShare
-            ? "text-gray-400 bg-white border-gray-200/70 cursor-not-allowed"
-            : open
-              ? "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer"
-              : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-        }`}
       >
-        <ExportIcon size={14} />
-      </button>
+        <button
+          onClick={canShare ? handleToggle : undefined}
+          disabled={!canShare}
+          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+            !canShare
+              ? "text-gray-400 bg-white border-gray-200/70 cursor-not-allowed"
+              : open
+                ? "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer"
+                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+          }`}
+        >
+          <ExportIcon size={14} />
+        </button>
+      </Tooltip>
 
       <AnimatePresence>
         {open && (

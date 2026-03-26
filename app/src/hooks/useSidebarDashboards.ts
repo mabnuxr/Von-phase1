@@ -32,7 +32,7 @@ function toDashboardSidebarItem(item: DashboardListItem): DashboardSidebarItem {
   };
 }
 
-const STATUS = "draft,published";
+const STATUS = "published";
 
 /**
  * Hook to fetch dashboards for the sidebar with "show more" pagination.

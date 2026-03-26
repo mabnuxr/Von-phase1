@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { CaretRightIcon, ArrowsOutIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import { CaretRightIcon, SquaresFourIcon } from '@phosphor-icons/react';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 
 // ============================================================================
@@ -15,7 +15,6 @@ import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 export interface DashboardArtifactCardProps {
   title: string;
   onPreview?: () => void;
-  onOpen?: () => void;
   onClick?: () => void;
   isPending?: boolean;
 }
@@ -23,7 +22,6 @@ export interface DashboardArtifactCardProps {
 export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
   title,
   onPreview,
-  onOpen,
   onClick,
   isPending,
 }) => (
@@ -41,11 +39,6 @@ export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
       {onPreview && (
         <ActionButton onClick={onPreview} title="Expand in chat">
           <CaretRightIcon size={16} weight="regular" />
-        </ActionButton>
-      )}
-      {onOpen && (
-        <ActionButton onClick={onOpen} title="Open full view">
-          <ArrowsOutIcon size={16} weight="regular" />
         </ActionButton>
       )}
     </BaseArtifactCard.Actions>

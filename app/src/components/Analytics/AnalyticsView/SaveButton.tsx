@@ -1,13 +1,13 @@
 import { CheckIcon, SpinnerGapIcon } from "@phosphor-icons/react";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 
-interface PublishButtonProps {
+interface SaveButtonProps {
   savePhase: MutationPhase;
   onSave: () => void;
   isPublished?: boolean;
 }
 
-export const PublishButton: React.FC<PublishButtonProps> = ({
+export const SaveButton: React.FC<SaveButtonProps> = ({
   savePhase,
   onSave,
   isPublished,
@@ -30,16 +30,16 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
       {savePhase === "pending" && (
         <>
           <SpinnerGapIcon size={14} className="animate-spin" />
-          Publishing
+          Saving
         </>
       )}
       {(savePhase === "success" || (isIdle && isPublished)) && (
         <>
           <CheckIcon size={14} weight="bold" />
-          Published
+          Saved
         </>
       )}
-      {isIdle && !isPublished && "Publish"}
+      {isIdle && !isPublished && "Save"}
     </button>
   );
 };
