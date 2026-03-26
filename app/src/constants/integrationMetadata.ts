@@ -187,13 +187,24 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     category: "Sales Engagement",
     disabled: true,
   },
-  salesloft: {
-    id: "salesloft",
+  salesloft_engagement: {
+    id: "salesloft_engagement",
     name: "Salesloft",
-    description: "Import cadences and sales engagement metrics from Salesloft",
+    description:
+      "Query activities, enroll contacts in cadences, log calls, and create tasks in Salesloft",
+    personalDescription: "Connect your Salesloft account for sales engagement",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
     category: "Sales Engagement",
+  },
+  salesloft: {
+    id: "salesloft",
+    name: "Salesloft Recorder",
+    description:
+      "Import call recordings and transcripts from Salesloft Recorder",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
+    category: "Call Recorder",
     disabled: true,
   },
   // Data Warehouse integrations
@@ -275,6 +286,7 @@ export function getIntegrationLogoPath(type: string): string {
     INTERCOM: "intercom",
     OUTREACH: "outreach",
     SALESLOFT: "salesloft",
+    SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
@@ -316,6 +328,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     intercom: "INTERCOM",
     outreach: "OUTREACH",
     salesloft: "SALESLOFT",
+    salesloft_engagement: "SALESLOFT_ENGAGEMENT",
     snowflake: "SNOWFLAKE",
     databricks: "DATABRICKS",
     zendesk: "ZENDESK",
@@ -351,6 +364,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     INTERCOM: "intercom",
     OUTREACH: "outreach",
     SALESLOFT: "salesloft",
+    SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
@@ -387,6 +401,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     INTERCOM: "intercom",
     OUTREACH: "outreach",
     SALESLOFT: "salesloft",
+    SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
     ZENDESK: "zendesk",
@@ -434,6 +449,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   intercom: ["user"],
   outreach: ["user"],
   salesloft: ["user"],
+  salesloft_engagement: ["user"],
   snowflake: ["tenant"],
   databricks: ["user"],
   pylon: ["user"],
