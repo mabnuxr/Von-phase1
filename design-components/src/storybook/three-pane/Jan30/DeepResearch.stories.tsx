@@ -2915,9 +2915,7 @@ const DeepResearchDemo = () => {
       {/* Expensive Operation Modal - shown before running full analysis */}
       <ExpensiveOperationModal
         isOpen={showExpensiveOperationModal}
-        recordCount={2847}
-        estimatedTime="10-15 minutes"
-        operationName="Create Dashboard"
+        operationName="Skip Dashboard Creation"
         onConfirm={startFullAnalysis}
         onCancel={() => setShowExpensiveOperationModal(false)}
       />
