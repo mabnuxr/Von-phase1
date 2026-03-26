@@ -49,7 +49,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   onPopoverClose,
   onPopoverPrimaryAction,
   onPopoverFeedback,
-  availableAgentModes = [ConversationMode.Ask, ConversationMode.DashboardBuilder],
+  availableAgentModes = [ConversationMode.Auto, ConversationMode.DashboardBuilder],
   disabledAgentModes = [ConversationMode.DashboardBuilder],
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);

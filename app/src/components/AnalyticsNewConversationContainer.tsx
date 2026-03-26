@@ -26,7 +26,7 @@ import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
 import { config } from "../config";
 
 const CHAT_PANE_AGENT_MODES = [
-  ConversationMode.Ask,
+  ConversationMode.Auto,
   ConversationMode.DashboardBuilder,
 ] as const;
 

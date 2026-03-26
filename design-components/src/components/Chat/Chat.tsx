@@ -92,7 +92,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   useStandardInput = false,
   // Agent selection props
   isAgentLocked = false,
-  lockedConversationMode = ConversationMode.Ask,
+  lockedConversationMode = ConversationMode.Auto,
   // Agent modes & file upload
   availableAgentModes,
   disabledAgentModes,

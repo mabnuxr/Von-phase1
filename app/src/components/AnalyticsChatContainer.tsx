@@ -30,7 +30,7 @@ import { config } from "../config";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 
 const CHAT_PANE_AGENT_MODES = [
-  ConversationMode.Ask,
+  ConversationMode.Auto,
   ConversationMode.DashboardBuilder,
 ] as const;
 

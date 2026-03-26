@@ -52,7 +52,6 @@ export interface ActivePopover {
  * Shared between frontend and backend.
  */
 export const ConversationMode = {
-  Ask: 'ask',
   Auto: 'auto',
   DashboardBuilder: 'dashboard-builder',
 } as const;

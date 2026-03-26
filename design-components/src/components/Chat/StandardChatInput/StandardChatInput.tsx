@@ -97,7 +97,6 @@ export { ConversationMode } from './types';
  */
 function getConversationModeDisplay(mode: ConversationMode) {
   switch (mode) {
-    case ConversationMode.Ask:
     case ConversationMode.Auto:
       return { label: 'Ask Mode', description: 'Chat, research, get answers' };
     case ConversationMode.DashboardBuilder:
@@ -369,7 +368,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       hideDisclaimer = false,
       // Agent selection props (for locking after first message)
       isAgentLocked = false,
-      lockedConversationMode = ConversationMode.Ask,
+      lockedConversationMode = ConversationMode.Auto,
       // Command chip
       contextBar,
       // Commands
@@ -380,7 +379,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       fileErrorMessage,
       onDismissFileError,
       // Agent modes
-      availableAgentModes = [ConversationMode.Ask],
+      availableAgentModes = [ConversationMode.Auto],
       disabledAgentModes = [],
       // File upload
       enableFileUpload = false,
@@ -392,7 +391,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     const [internalMessage, setInternalMessage] = useState('');
     const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
     const [internalConversationMode, setInternalConversationMode] = useState<ConversationMode>(
-      ConversationMode.Ask
+      availableAgentModes[0] ?? ConversationMode.Auto
     );
     const editorRef = useRef<Editor | null>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);

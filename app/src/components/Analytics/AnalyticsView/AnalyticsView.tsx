@@ -96,7 +96,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
     ...rawGridConfig,
-    rowHeight: Math.min(rawGridConfig.rowHeight, 60),
+    rowHeight: Math.min(rawGridConfig.rowHeight ?? 60, 60),
   };
   const layout = dashboard.layout as unknown as LayoutItem[];
   const widgets = (paginatedWidgets ?? dashboard.widgets) as unknown as Record<
