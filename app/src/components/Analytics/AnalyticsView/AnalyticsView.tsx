@@ -62,6 +62,14 @@ interface AnalyticsViewProps {
   paginatedWidgets?: Record<string, any>;
   /** Callback when a widget's drilldown icon is clicked */
   onDrillDown?: (panelId: string) => void;
+  /** Server-side table sort handler */
+  onTableSortChange?: (
+    panelId: string,
+    columnId: string,
+    order: "asc" | "desc" | null,
+  ) => void;
+  /** Current sort state per panel */
+  tableSortStates?: Record<string, { orderBy: string; orderByAsc: boolean }>;
   /** Initial color theme from backend ui_config */
   defaultColorTheme?: string;
   /** Called when the user changes the color theme */
@@ -89,6 +97,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   loadingTablePanels,
   paginatedWidgets,
   onDrillDown,
+  onTableSortChange,
+  tableSortStates,
   defaultColorTheme,
   onColorThemeChange,
   onRename,
@@ -356,6 +366,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTablePageChange={onTablePageChange}
               loadingTablePanels={loadingTablePanels}
               onDrillDown={onDrillDown}
+              onTableSortChange={onTableSortChange}
+              tableSortStates={tableSortStates}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

@@ -22,6 +22,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
   onTablePageChange,
   isTableLoading,
   onDrillDown,
+  onTableSortChange,
+  tableSortState,
 }) => {
   const handleDrillDown = onDrillDown ? () => onDrillDown(widget.id) : undefined;
 
@@ -67,6 +69,13 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
               onTablePageChange ? (page: number) => onTablePageChange(widget.id, page) : undefined
             }
             isLoading={isTableLoading}
+            onSortChange={
+              onTableSortChange
+                ? (columnId: string, order: 'asc' | 'desc' | null) =>
+                    onTableSortChange(widget.id, columnId, order)
+                : undefined
+            }
+            sortState={tableSortState}
           />
         </WidgetShell>
       );
