@@ -131,8 +131,6 @@ export interface DeepResearchConversationProps {
   isFetchingNextMessagePage?: boolean;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
-  /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -163,7 +161,6 @@ export const DeepResearchConversation: React.FC<
   hasNextMessagePage,
   isFetchingNextMessagePage,
   onDashboardPreview,
-  onDashboardOpen,
 }) => {
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
@@ -345,7 +342,6 @@ export const DeepResearchConversation: React.FC<
           onLike={onLike}
           onDislike={onDislike}
           onDashboardPreview={onDashboardPreview}
-          onDashboardOpen={onDashboardOpen}
         />
 
         {/* Scroll to bottom button */}

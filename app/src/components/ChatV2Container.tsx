@@ -19,7 +19,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Chat,
   FilePreviewModal,
@@ -123,8 +122,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     onCollapseSidebar,
   } = props;
 
-  const navigate = useNavigate();
-
   const chatV2 = useChatV2({
     conversationId: props.conversationId,
     user: props.user,
@@ -224,14 +221,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     [openDashboardPane, onCollapseSidebar],
   );
 
-  // Dashboard open button: navigate to full dashboard page
-  const handleDashboardOpen = useCallback(
-    (dashboardId: string) => {
-      navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-    },
-    [conversationId, navigate],
-  );
-
   // Auto-open dashboard preview pane when a NEW dashboard is generated live
   // (not on mount/page-refresh/seeding — liveDashboardKey is only set by live Pusher events)
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
@@ -316,7 +305,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               hasNextMessagePage={hasNextMessagePage}
               isFetchingNextMessagePage={isFetchingNextMessagePage}
               onDashboardPreview={handleDashboardPreview}
-              onDashboardOpen={handleDashboardOpen}
             />
           </div>
 

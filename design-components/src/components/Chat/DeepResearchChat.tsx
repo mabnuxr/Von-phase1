@@ -109,8 +109,6 @@ export interface DeepResearchChatProps {
   onDislike?: (messageId: string) => void;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
-  /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
 }
 
 /**
@@ -144,7 +142,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onLike,
   onDislike,
   onDashboardPreview,
-  onDashboardOpen,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -304,15 +301,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                               )
                           : undefined
                       }
-                      onOpen={
-                        onDashboardOpen
-                          ? () =>
-                              onDashboardOpen(
-                                message.dashboard!.dashboard_id,
-                                message.dashboard!.dashboard_version
-                              )
-                          : undefined
-                      }
                     />
                   </div>
                   <MessageActions
@@ -432,15 +420,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                               onDashboardPreview
                                 ? () =>
                                     onDashboardPreview(
-                                      message.dashboard!.dashboard_id,
-                                      message.dashboard!.dashboard_version
-                                    )
-                                : undefined
-                            }
-                            onOpen={
-                              onDashboardOpen
-                                ? () =>
-                                    onDashboardOpen(
                                       message.dashboard!.dashboard_id,
                                       message.dashboard!.dashboard_version
                                     )
