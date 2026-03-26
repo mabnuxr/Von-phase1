@@ -57,6 +57,7 @@ const Analytics = () => {
     handleSave,
     savePhase,
     handleRevert,
+    revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
@@ -139,6 +140,7 @@ const Analytics = () => {
           onSave={handleSave}
           savePhase={savePhase}
           onRevert={handleRevert}
+          revertPhase={revertPhase}
           onShare={handleShare}
           sharePhase={sharePhase}
           onChatClick={openChat}

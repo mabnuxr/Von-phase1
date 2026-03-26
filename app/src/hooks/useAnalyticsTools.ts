@@ -70,6 +70,10 @@ export function useAnalyticsTools(dashboardId: string) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+      showToast({
+        message: "Dashboard reverted to last saved version.",
+        variant: "success",
+      });
     },
     onMutate: async () => {
       await queryClient.cancelQueries({
@@ -79,8 +83,16 @@ export function useAnalyticsTools(dashboardId: string) {
   });
 
   const handleRevert = useCallback(() => {
-    revertMutation.mutate();
-  }, [revertMutation]);
+    revertMutation.mutate(undefined, {
+      onError: (error) => {
+        console.error("[useAnalyticsTools] Revert failed:", error);
+        showToast({
+          message: "Failed to revert dashboard. Please try again.",
+          variant: "error",
+        });
+      },
+    });
+  }, [revertMutation, showToast]);
 
   const revertPhase = useMutationPhase(
     revertMutation.isPending,

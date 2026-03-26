@@ -305,6 +305,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               hasNextMessagePage={hasNextMessagePage}
               isFetchingNextMessagePage={isFetchingNextMessagePage}
               onDashboardPreview={handleDashboardPreview}
+              enableFileUpload={isFileUploadEnabled}
+              onFileClick={chatV2.handleFileClick}
             />
           </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight as ArrowRightIcon } from '@phosphor-icons/react';
+import { CaretRightIcon } from '@phosphor-icons/react';
 
 // ============================================================================
 // Types
@@ -117,7 +117,7 @@ export const DataTablesCard: React.FC<DataTablesCardProps> = ({
 
       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 rounded-xl text-[13px] font-medium text-white group-hover:bg-gray-800 transition-colors">
         <span>{buttonText}</span>
-        <ArrowRightIcon size={14} weight="bold" />
+        <CaretRightIcon size={14} weight="bold" />
       </div>
     </button>
   );
