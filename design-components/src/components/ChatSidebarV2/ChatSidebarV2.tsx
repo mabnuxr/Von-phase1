@@ -5,7 +5,6 @@ import {
   PlusCircleIcon,
   ChalkboardIcon,
   ChalkboardTeacherIcon,
-  PushPinIcon,
   DotsThreeIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
@@ -86,6 +85,7 @@ export interface DashboardSidebarItem {
   visibility: DashboardItemVisibility;
   href?: string;
   isPinned?: boolean;
+  isOwner?: boolean;
   lastEdited?: string;
   lastSaved?: string;
 }
@@ -154,10 +154,6 @@ export interface ChatSidebarProps {
   onDashboardClick?: (id: string) => void;
   /** Callback to rename a dashboard */
   onRenameDashboard?: (id: string, newName: string) => void;
-  /** Callback to delete a dashboard */
-  onDeleteDashboard?: (id: string) => void;
-  /** Callback to pin/unpin a dashboard */
-  onPinDashboard?: (id: string, isPinned: boolean) => void;
   /** Whether more dashboards are available to load */
   hasMoreDashboards?: boolean;
   /** Callback to load more dashboards */
@@ -176,11 +172,6 @@ interface DashboardContextMenuState {
   dashboard: DashboardSidebarItem | null;
 }
 
-interface DashboardDeleteConfirmationState {
-  isOpen: boolean;
-  dashboard: DashboardSidebarItem | null;
-}
-
 /** Individual dashboard row — mirrors FolderRow hover/action pattern exactly */
 const DashboardRow: React.FC<{
   dash: DashboardSidebarItem;
@@ -189,7 +180,6 @@ const DashboardRow: React.FC<{
   isMenuOpen: boolean;
   onDashboardClick?: (id: string) => void;
   onContextMenu: (e: React.MouseEvent) => void;
-  onPinDashboard?: (id: string, isPinned: boolean) => void;
   onRenameDashboard?: (id: string, newName: string) => void;
   onCancelEdit: () => void;
 }> = ({
@@ -199,7 +189,6 @@ const DashboardRow: React.FC<{
   isMenuOpen,
   onDashboardClick,
   onContextMenu,
-  onPinDashboard,
   onRenameDashboard,
   onCancelEdit,
 }) => {
@@ -207,8 +196,7 @@ const DashboardRow: React.FC<{
   const [editValue, setEditValue] = useState(dash.label);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showPinButton = (dash.isPinned || isHovered) && !isEditing;
-  const showDotsButton = (isHovered || isMenuOpen) && !isEditing;
+  const showDotsButton = dash.isOwner && (isHovered || isMenuOpen) && !isEditing;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -241,7 +229,7 @@ const DashboardRow: React.FC<{
         }
       `}
       onClick={isEditing ? undefined : () => onDashboardClick?.(dash.id)}
-      onContextMenu={isEditing ? undefined : onContextMenu}
+      onContextMenu={isEditing || !dash.isOwner ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       title={dash.label}
@@ -285,41 +273,17 @@ const DashboardRow: React.FC<{
         )}
       </div>
 
-      {!isEditing && (
+      {!isEditing && showDotsButton && (
         <div className="flex items-center gap-0.5 flex-shrink-0 h-6">
-          {/* Pin button: always rendered, opacity toggled to avoid layout shifts */}
-          <button
-            onClick={(e) => {
+          <PrimaryIconButton
+            icon={<DotsThreeIcon size={16} weight="bold" />}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              onPinDashboard?.(dash.id, !dash.isPinned);
+              onContextMenu(e);
             }}
-            className={`flex items-center justify-center w-6 h-6 rounded-md hover:bg-gray-100 transition-all cursor-pointer ${
-              showPinButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-            title={dash.isPinned ? 'Unpin dashboard' : 'Pin dashboard'}
-          >
-            <PushPinIcon
-              size={14}
-              weight={dash.isPinned ? 'fill' : 'regular'}
-              className={
-                dash.isPinned
-                  ? 'text-gray-400 hover:text-gray-600'
-                  : 'text-gray-800 hover:text-gray-900'
-              }
-            />
-          </button>
-          {/* Three-dot menu: only when hovered/menu open */}
-          {showDotsButton && (
-            <PrimaryIconButton
-              icon={<DotsThreeIcon size={16} weight="bold" />}
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                e.stopPropagation();
-                onContextMenu(e);
-              }}
-              visible={true}
-              size="small"
-            />
-          )}
+            visible={true}
+            size="small"
+          />
         </div>
       )}
     </div>
@@ -331,8 +295,6 @@ const DashboardSection: React.FC<{
   selectedDashboardId?: string;
   onDashboardClick?: (id: string) => void;
   onRenameDashboard?: (id: string, newName: string) => void;
-  onDeleteDashboard?: (id: string) => void;
-  onPinDashboard?: (id: string, isPinned: boolean) => void;
   hasMoreDashboards?: boolean;
   onLoadMoreDashboards?: () => void;
 }> = ({
@@ -340,8 +302,6 @@ const DashboardSection: React.FC<{
   selectedDashboardId,
   onDashboardClick,
   onRenameDashboard,
-  onDeleteDashboard,
-  onPinDashboard,
   hasMoreDashboards,
   onLoadMoreDashboards,
 }) => {
@@ -349,10 +309,6 @@ const DashboardSection: React.FC<{
   const [contextMenu, setContextMenu] = useState<DashboardContextMenuState>({
     isOpen: false,
     position: { top: 0, left: 0 },
-    dashboard: null,
-  });
-  const [deleteConfirmation, setDeleteConfirmation] = useState<DashboardDeleteConfirmationState>({
-    isOpen: false,
     dashboard: null,
   });
 
@@ -389,7 +345,6 @@ const DashboardSection: React.FC<{
             isMenuOpen={contextMenu.isOpen && contextMenu.dashboard?.id === dash.id}
             onDashboardClick={onDashboardClick}
             onContextMenu={(e) => handleOpenContextMenu(e, dash)}
-            onPinDashboard={onPinDashboard}
             onRenameDashboard={onRenameDashboard}
             onCancelEdit={() => setEditingId(null)}
           />
@@ -408,18 +363,14 @@ const DashboardSection: React.FC<{
       <ContextMenu
         isOpen={contextMenu.isOpen}
         onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
-        items={getDashboardContextMenuItems({ isPinned: contextMenu.dashboard?.isPinned })}
+        items={getDashboardContextMenuItems()}
         fixedPosition={contextMenu.position}
         width={180}
         onItemClick={(menuItem) => {
           const dash = contextMenu.dashboard;
           if (!dash) return;
-          if (menuItem.id === 'pin') {
-            onPinDashboard?.(dash.id, !dash.isPinned);
-          } else if (menuItem.id === 'rename') {
+          if (menuItem.id === 'rename') {
             setEditingId(dash.id);
-          } else if (menuItem.id === 'delete') {
-            setDeleteConfirmation({ isOpen: true, dashboard: dash });
           }
           setContextMenu((prev) => ({ ...prev, isOpen: false }));
         }}
@@ -434,20 +385,6 @@ const DashboardSection: React.FC<{
             </div>
           )
         }
-      />
-
-      {/* Dashboard Delete Confirmation */}
-      <DeleteConfirmationPopup
-        isOpen={deleteConfirmation.isOpen}
-        itemLabel={deleteConfirmation.dashboard?.label || ''}
-        itemType="dashboard"
-        onConfirm={() => {
-          if (deleteConfirmation.dashboard) {
-            onDeleteDashboard?.(deleteConfirmation.dashboard.id);
-          }
-          setDeleteConfirmation({ isOpen: false, dashboard: null });
-        }}
-        onCancel={() => setDeleteConfirmation({ isOpen: false, dashboard: null })}
       />
     </div>
   );
@@ -499,8 +436,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedDashboardId,
   onDashboardClick,
   onRenameDashboard,
-  onDeleteDashboard,
-  onPinDashboard,
   hasMoreDashboards,
   onLoadMoreDashboards,
 }) => {
@@ -746,8 +681,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     selectedDashboardId={selectedDashboardId}
                     onDashboardClick={onDashboardClick}
                     onRenameDashboard={onRenameDashboard}
-                    onDeleteDashboard={onDeleteDashboard}
-                    onPinDashboard={onPinDashboard}
                     hasMoreDashboards={hasMoreDashboards}
                     onLoadMoreDashboards={onLoadMoreDashboards}
                   />

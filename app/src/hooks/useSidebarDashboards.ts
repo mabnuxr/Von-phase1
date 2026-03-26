@@ -28,6 +28,7 @@ function toDashboardSidebarItem(item: DashboardListItem): DashboardSidebarItem {
     state: item.status === "published" ? "published" : "draft",
     visibility: item.is_shared_with_tenant ? "org" : "private",
     isPinned: false,
+    isOwner: item.is_owner,
     lastEdited: item.updated_at,
   };
 }
