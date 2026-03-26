@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { ArrowUp, ArrowDown, Minus, TableIcon } from '@phosphor-icons/react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TableIcon } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 import { useDashboardCustomization } from '../DashboardCustomization';
 import {
@@ -14,7 +14,8 @@ const DEFAULT_ACCENT = '#8039e9';
 
 /** Try to read the theme primary color, fallback gracefully */
 function useThemePrimary(): string | undefined {
-  return useDashboardCustomization().palette?.primary;
+  const activeTheme = useDashboardCustomization();
+  return activeTheme.palette?.primary;
 }
 
 const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: string }> = ({
@@ -144,9 +145,9 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
 
       {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
-          {cmpVal > 0 && <ArrowUp size={12} weight="bold" className={arrowClassName} />}
-          {cmpVal < 0 && <ArrowDown size={12} weight="bold" className={arrowClassName} />}
-          {cmpVal === 0 && <Minus size={12} weight="bold" className="text-gray-500" />}
+          {cmpVal > 0 && <ArrowUpIcon size={12} weight="bold" className={arrowClassName} />}
+          {cmpVal < 0 && <ArrowDownIcon size={12} weight="bold" className={arrowClassName} />}
+          {cmpVal === 0 && <MinusIcon size={12} weight="bold" className="text-gray-500" />}
           <span className={textClassName}>{comparisonText}</span>
           {comparison.label && <span className="text-xs text-gray-700">{comparison.label}</span>}
         </div>
