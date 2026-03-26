@@ -9,7 +9,7 @@
  * - dot pattern pairs for donut fills
  */
 
-export type ChartThemeId = 'teal' | 'purple' | 'orange' | 'blue' | 'multi';
+export type ChartThemeId = 'default' | 'teal' | 'purple' | 'orange' | 'blue' | 'multi';
 
 export interface ChartThemePalette {
   id: ChartThemeId;
@@ -140,7 +140,7 @@ export const chartThemes: Record<ChartThemeId, ChartThemePalette> = {
   multi: multiPalette,
 };
 
-export const chartThemeIds: ChartThemeId[] = ['teal', 'purple', 'orange', 'blue', 'multi'];
+export const chartThemeIds: ChartThemeId[] = ['default', 'teal', 'purple', 'orange', 'blue', 'multi'];
 
 /** Swatch colors for the multi-theme preview (4 quadrants) */
 export const multiSwatchColors = [

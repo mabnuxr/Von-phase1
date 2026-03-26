@@ -15,17 +15,24 @@ export const StatusLine: React.FC<StatusLineProps> = ({
   const isDraft = state === DashboardStatus.Draft;
   const colorClass = isDraft ? "text-amber-700" : "text-emerald-700";
 
+  const savedLabel = lastSavedAt ? formatRelativeTime(lastSavedAt) : null;
+  const refreshedLabel = lastRefreshedAt
+    ? formatRelativeTime(lastRefreshedAt)
+    : null;
+  const sameTimestamp =
+    savedLabel && refreshedLabel && savedLabel === refreshedLabel;
+
   return (
     <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
       <span className={`${colorClass} font-medium`}>
-        {isDraft ? "Draft" : "Saved"}
+        {isDraft ? "Draft" : sameTimestamp ? "Saved and Refreshed" : "Saved"}
       </span>
-      {lastSavedAt && (
-        <span className={colorClass}>{formatRelativeTime(lastSavedAt)}</span>
+      {savedLabel && (
+        <span className={colorClass}>{savedLabel}</span>
       )}
-      {lastRefreshedAt && (
+      {refreshedLabel && !sameTimestamp && (
         <span className="text-gray-700">
-          · Refreshed {formatRelativeTime(lastRefreshedAt)}
+          · Refreshed {refreshedLabel}
         </span>
       )}
     </span>

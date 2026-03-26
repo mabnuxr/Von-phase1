@@ -47,8 +47,43 @@ const CustomizeButton: React.FC<CustomizeButtonProps> = ({
             </p>
             <div className="flex items-center gap-2.5">
               {chartThemeIds.map((id) => {
-                const theme = chartThemes[id];
                 const isActive = id === colorTheme;
+
+                // Default option — no palette, use backend colors
+                if (id === "default") {
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => {
+                        setColorTheme(id);
+                        hide();
+                      }}
+                      className="flex flex-col items-center gap-1 cursor-pointer bg-transparent border-none p-0"
+                      title="Default"
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all border border-gray-200 bg-white ${
+                          isActive
+                            ? "ring-2 ring-offset-2 ring-gray-300"
+                            : "hover:scale-110"
+                        }`}
+                      >
+                        {isActive && (
+                          <CheckIcon
+                            size={12}
+                            weight="bold"
+                            className="text-gray-500"
+                          />
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500">
+                        Default
+                      </span>
+                    </button>
+                  );
+                }
+
+                const theme = chartThemes[id];
                 return (
                   <button
                     key={id}

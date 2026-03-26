@@ -84,7 +84,7 @@ const BASE_CHART_OPTIONS: Highcharts.Options = {
   title: { text: undefined },
   credits: { enabled: false },
   legend: {
-    enabled: true,
+    enabled: false,
     align: 'center',
     verticalAlign: 'bottom',
     margin: 4,
@@ -137,18 +137,105 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
 
   const options = useMemo(() => {
     const raw = config.highchartsOptions as Highcharts.Options;
+    const autoLegend = { legend: { enabled: false } };
 
-    // If no theme palette, use raw options with base styling
+    // If no theme palette, use raw backend options with base styling.
+    // Explicitly strip any pattern/borderColor properties from series so
+    // Highcharts doesn't flash stale themed fills during the transition.
     if (!palette) {
+      const cleanSeries = (raw.series ?? []).map((s) => {
+        const {
+          color, borderColor, fillColor, fillOpacity,
+          ...rest
+        } = s as Record<string, unknown>;
+        const cleaned: Record<string, unknown> = {
+          ...rest,
+          borderColor: '#ffffff',
+          borderWidth: 1,
+        };
+        // Keep color/fillColor only if they are plain strings (backend-provided).
+        if (typeof color === 'string') cleaned.color = color;
+        if (typeof fillColor === 'string') cleaned.fillColor = fillColor;
+        if (typeof fillOpacity === 'number') cleaned.fillOpacity = fillOpacity;
+        // Strip pattern colors from donut/pie data points
+        if (Array.isArray(cleaned.data)) {
+          cleaned.data = (cleaned.data as Record<string, unknown>[]).map((d) => {
+            if (d && typeof d === 'object' && d.color && typeof d.color !== 'string') {
+              const { color: _c, ...dRest } = d;
+              return dRest;
+            }
+            return d;
+          });
+        }
+        return cleaned;
+      }) as Highcharts.SeriesOptionsType[];
+
+      const xAxisDefaults = {
+        labels: { style: AXIS_LABEL_STYLE },
+        lineColor: LINE_COLOR,
+        tickColor: TICK_COLOR,
+      };
+      const yAxisDefaults = {
+        title: { text: undefined },
+        labels: { style: AXIS_LABEL_STYLE },
+        gridLineColor: GRID_LINE_COLOR,
+      };
+
       return {
         ...BASE_CHART_OPTIONS,
+        ...autoLegend,
         ...raw,
         chart: {
           ...BASE_CHART_OPTIONS.chart,
           ...(raw.chart ?? {}),
+          animation: false,
           reflow: false,
         },
+        xAxis: { ...xAxisDefaults, ...((raw.xAxis as object) ?? {}) },
+        yAxis: raw.yAxis
+          ? (Array.isArray(raw.yAxis) ? raw.yAxis : [raw.yAxis]).map((y) => ({
+              ...yAxisDefaults,
+              ...(y as object),
+            }))
+          : yAxisDefaults,
         title: { text: undefined },
+        series: cleanSeries,
+        plotOptions: {
+          ...(raw.plotOptions ?? {}),
+          series: {
+            animation: false,
+            ...(((raw.plotOptions as Record<string, unknown>)?.series as object) ?? {}),
+          },
+          column: {
+            borderRadius: 6,
+            borderWidth: 0,
+            groupPadding: 0.1,
+            pointPadding: 0.05,
+            ...(((raw.plotOptions as Record<string, unknown>)?.column as object) ?? {}),
+          },
+          area: {
+            lineWidth: 2.5,
+            marker: { enabled: true, radius: 3, symbol: 'circle' },
+            fillOpacity: 1,
+            linecap: 'round',
+            ...(((raw.plotOptions as Record<string, unknown>)?.area as object) ?? {}),
+          },
+          pie: {
+            innerSize: '55%',
+            size: '80%',
+            borderWidth: 2,
+            borderColor: '#ffffff',
+            center: ['50%', '50%'],
+            dataLabels: {
+              enabled: true,
+              format: '{point.name}: {point.percentage:.0f}%',
+              style: { fontSize: '10px', fontWeight: '400', color: '#374151' },
+              distance: 15,
+              connectorWidth: 1,
+            },
+            ...(((raw.plotOptions as Record<string, unknown>)?.pie as object) ?? {}),
+          },
+        },
       };
     }
 
@@ -159,11 +246,13 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
 
     if (category === 'bar' && raw.series) {
       themedSeries = (raw.series as Highcharts.SeriesColumnOptions[]).map((s, i) => {
-        const [light, dark] = palette.hatchPairs[i % palette.hatchPairs.length];
+        const baseColor = palette.chartColors[i % palette.chartColors.length];
         return {
           ...s,
-          color: hatchPattern(light, dark, `bar-hatch-${themeId}-${i}`),
-          borderColor: dark,
+          color: hatchPattern(`${baseColor}20`, baseColor, `bar-hatch-${themeId}-${i}`),
+          borderColor: baseColor,
+          colorByPoint: false,
+          legendSymbolColor: baseColor,
         };
       }) as Highcharts.SeriesOptionsType[];
     } else if (category === 'line' && raw.series) {
@@ -223,10 +312,12 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
 
     return {
       ...BASE_CHART_OPTIONS,
+      ...autoLegend,
       ...raw,
       chart: {
         ...BASE_CHART_OPTIONS.chart,
         ...(raw.chart ?? {}),
+        animation: false,
         reflow: false,
       },
       xAxis: { ...xAxisDefaults, ...((raw.xAxis as object) ?? {}) },

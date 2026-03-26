@@ -14,7 +14,7 @@ const DEFAULT_ACCENT = '#8039e9';
 
 /** Try to read the theme primary color, fallback gracefully */
 function useThemePrimary(): string | undefined {
-  return useDashboardCustomization().palette.primary;
+  return useDashboardCustomization().palette?.primary;
 }
 
 const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: string }> = ({
