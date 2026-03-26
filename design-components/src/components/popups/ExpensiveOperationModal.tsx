@@ -25,7 +25,7 @@ export interface ExpensiveOperationModalProps {
   /**
    * Operation description (e.g., "Create Dashboard")
    */
-  operationName?: string;
+  operationName: string;
 }
 
 // ============================================================================
@@ -76,7 +76,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
   isOpen,
   onConfirm,
   onCancel,
-  operationName = 'Skip Dashboard Creation',
+  operationName,
 }) => {
   return (
     <AnimatePresence>

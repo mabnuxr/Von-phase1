@@ -2916,7 +2916,7 @@ const DeepResearchDemo = () => {
       <ExpensiveOperationModal
         isOpen={showExpensiveOperationModal}
         operationName="Skip Dashboard Creation"
-        onConfirm={() => setShowExpensiveOperationModal(false)}
+        onConfirm={startFullAnalysis}
         onCancel={() => setShowExpensiveOperationModal(false)}
       />
     </div>
