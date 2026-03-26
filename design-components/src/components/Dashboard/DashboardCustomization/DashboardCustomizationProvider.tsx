@@ -31,7 +31,7 @@ export interface DashboardCustomizationProviderProps {
 
 export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProviderProps> = ({
   children,
-  defaultColorTheme = 'teal',
+  defaultColorTheme = 'default',
   defaultMode = 'preview',
   onColorThemeChange,
 }) => {

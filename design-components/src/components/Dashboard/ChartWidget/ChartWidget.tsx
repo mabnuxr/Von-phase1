@@ -143,8 +143,8 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
     // Explicitly strip any pattern/borderColor properties from series so
     // Highcharts doesn't flash stale themed fills during the transition.
     if (!palette) {
-      const cleanSeries = (raw.series ?? []).map((s) => {
-        const { color, fillColor, fillOpacity, ...rest } = s as Record<string, unknown>;
+      const cleanSeries = ((raw.series ?? []) as Record<string, unknown>[]).map((s) => {
+        const { color, fillColor, fillOpacity, ...rest } = s;
         const cleaned: Record<string, unknown> = {
           ...rest,
           borderColor: '#ffffff',
@@ -189,7 +189,9 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
           animation: false,
           reflow: false,
         },
-        xAxis: { ...xAxisDefaults, ...((raw.xAxis as object) ?? {}) },
+        xAxis: Array.isArray(raw.xAxis)
+          ? raw.xAxis.map((x) => ({ ...xAxisDefaults, ...(x as object) }))
+          : { ...xAxisDefaults, ...((raw.xAxis as object) ?? {}) },
         yAxis: raw.yAxis
           ? (Array.isArray(raw.yAxis) ? raw.yAxis : [raw.yAxis]).map((y) => ({
               ...yAxisDefaults,

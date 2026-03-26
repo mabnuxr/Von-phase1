@@ -132,7 +132,15 @@ const multiPalette: ChartThemePalette = {
 
 // ── Registry ──────────────────────────────────────────────────────
 
+/** The "default" theme uses the teal palette as its base. */
+const defaultPalette: ChartThemePalette = {
+  ...tealPalette,
+  id: 'default',
+  label: 'Default',
+};
+
 export const chartThemes: Record<ChartThemeId, ChartThemePalette> = {
+  default: defaultPalette,
   teal: tealPalette,
   purple: purplePalette,
   orange: orangePalette,
