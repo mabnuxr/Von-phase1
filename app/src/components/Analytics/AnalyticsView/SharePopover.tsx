@@ -68,7 +68,9 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
         onClick={canShare ? handleToggle : undefined}
         disabled={!canShare}
         title={
-          canShare ? "Share" : "Please save the Dashboard first before sharing"
+          canShare
+            ? "Share"
+            : "Save the dashboard to share it with your organisation"
         }
         className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
           !canShare

@@ -89,7 +89,7 @@ export interface DeepResearchApprovalCardProps {
   /**
    * Custom content to render above the action buttons
    */
-  afterActions?: React.ReactNode;
+  beforeActions?: React.ReactNode;
 
   /**
    * Custom className for the container
@@ -137,7 +137,7 @@ export const DeepResearchApprovalCard: React.FC<DeepResearchApprovalCardProps> =
   dataSources,
   totalRecords,
   headerContent,
-  afterActions,
+  beforeActions,
   className = '',
 }) => {
   // Calculate total records from data sources if not provided
@@ -236,7 +236,7 @@ export const DeepResearchApprovalCard: React.FC<DeepResearchApprovalCardProps> =
       </div>
 
       {/* Custom content after actions */}
-      {afterActions && <div className="mt-4">{afterActions}</div>}
+      {beforeActions && <div className="mt-4">{beforeActions}</div>}
     </div>
   );
 };

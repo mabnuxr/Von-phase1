@@ -4,6 +4,8 @@ import {
   type DashboardUpdateRequest,
 } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
+import { dashboardListKeys } from "./useDashboardList";
+import { sidebarDashboardKeys } from "./useSidebarDashboards";
 import { useToast } from "./useToast";
 import { useDebouncedFn } from "./useDebouncedFn";
 
@@ -19,10 +21,19 @@ export function useDashboardUpdate(dashboardId: string) {
   const updateMutation = useMutation({
     mutationFn: (data: DashboardUpdateRequest) =>
       dashboardService.updateDashboard(dashboardId, data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+      // Invalidate sidebar/list caches when the name changes
+      if (variables.dashboard_name) {
+        queryClient.invalidateQueries({
+          queryKey: dashboardListKeys.all,
+        });
+        queryClient.invalidateQueries({
+          queryKey: sidebarDashboardKeys.all,
+        });
+      }
     },
     onMutate: async () => {
       await queryClient.cancelQueries({
