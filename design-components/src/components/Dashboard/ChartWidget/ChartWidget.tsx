@@ -144,10 +144,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
     // Highcharts doesn't flash stale themed fills during the transition.
     if (!palette) {
       const cleanSeries = (raw.series ?? []).map((s) => {
-        const {
-          color, borderColor, fillColor, fillOpacity,
-          ...rest
-        } = s as Record<string, unknown>;
+        const { color, fillColor, fillOpacity, ...rest } = s as Record<string, unknown>;
         const cleaned: Record<string, unknown> = {
           ...rest,
           borderColor: '#ffffff',
@@ -161,8 +158,9 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
         if (Array.isArray(cleaned.data)) {
           cleaned.data = (cleaned.data as Record<string, unknown>[]).map((d) => {
             if (d && typeof d === 'object' && d.color && typeof d.color !== 'string') {
-              const { color: _c, ...dRest } = d;
-              return dRest;
+              const dCopy = { ...d };
+              delete dCopy.color;
+              return dCopy;
             }
             return d;
           });

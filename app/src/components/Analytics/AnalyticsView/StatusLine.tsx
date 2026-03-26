@@ -27,13 +27,9 @@ export const StatusLine: React.FC<StatusLineProps> = ({
       <span className={`${colorClass} font-medium`}>
         {isDraft ? "Draft" : sameTimestamp ? "Saved and Refreshed" : "Saved"}
       </span>
-      {savedLabel && (
-        <span className={colorClass}>{savedLabel}</span>
-      )}
+      {savedLabel && <span className={colorClass}>{savedLabel}</span>}
       {refreshedLabel && !sameTimestamp && (
-        <span className="text-gray-700">
-          · Refreshed {refreshedLabel}
-        </span>
+        <span className="text-gray-700">· Refreshed {refreshedLabel}</span>
       )}
     </span>
   );

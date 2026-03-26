@@ -68,7 +68,7 @@ const Analytics = () => {
     (themeId: string) => {
       handleUpdate({
         ui_config: {
-          color_palette_global: themeId === 'default' ? null : themeId,
+          color_palette_global: themeId === "default" ? null : themeId,
         },
       });
     },

@@ -76,9 +76,7 @@ const CustomizeButton: React.FC<CustomizeButtonProps> = ({
                           />
                         )}
                       </div>
-                      <span className="text-[10px] text-gray-500">
-                        Default
-                      </span>
+                      <span className="text-[10px] text-gray-500">Default</span>
                     </button>
                   );
                 }
