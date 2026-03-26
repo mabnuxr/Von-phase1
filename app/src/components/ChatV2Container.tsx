@@ -288,7 +288,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             className="min-w-0 flex flex-col"
             style={
               dashboardPaneState.isOpen
-                ? { flex: `0 0 ${splitRatios[0] * 100}%` }
+                ? {
+                    flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                  }
                 : { flex: 1 }
             }
           >
@@ -342,7 +344,9 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               </div>
               <div
                 className="h-full min-w-0"
-                style={{ flex: `0 0 ${splitRatios[1] * 100}%` }}
+                style={{
+                  flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+                }}
               >
                 <DashboardPreviewPane
                   dashboardId={dashboardPaneState.dashboardId}

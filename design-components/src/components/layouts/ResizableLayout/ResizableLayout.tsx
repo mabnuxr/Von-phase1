@@ -46,7 +46,7 @@ function Slot({ children, className, style, __slotIndex = 0 }: SlotProps) {
   const sizeProperty = isHorizontal ? 'width' : 'height';
 
   // Guard: if index is out of bounds, fall back to equal distribution
-  const ratio = ratios[__slotIndex] ?? 1 / ratios.length;
+  const ratio = ratios[__slotIndex] ?? (ratios.length > 0 ? 1 / ratios.length : 0);
 
   // Subtract proportional share of handle widths so slots + handles = 100%
   const handleOffset = handleCount > 0 ? HANDLE_SIZE_PX * handleCount : 0;

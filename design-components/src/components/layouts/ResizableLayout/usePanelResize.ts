@@ -115,6 +115,9 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
         const container = containerRef.current;
         if (!container) return;
 
+        // Bounds check: handle must sit between two valid panels
+        if (handleIndex < 0 || handleIndex >= ratios.length - 1) return;
+
         const containerRect = container.getBoundingClientRect();
         const containerSize = isHorizontal ? containerRect.width : containerRect.height;
         const containerStart = isHorizontal ? containerRect.left : containerRect.top;
