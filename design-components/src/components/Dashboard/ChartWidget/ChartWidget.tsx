@@ -150,9 +150,14 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
           borderColor: '#ffffff',
           borderWidth: 1,
         };
-        // Keep color/fillColor only if they are plain strings (backend-provided).
+        // Keep color/fillColor unless they are pattern objects injected by palette theming.
         if (typeof color === 'string') cleaned.color = color;
-        if (typeof fillColor === 'string') cleaned.fillColor = fillColor;
+        if (
+          fillColor != null &&
+          !(typeof fillColor === 'object' && (fillColor as Record<string, unknown>).pattern)
+        ) {
+          cleaned.fillColor = fillColor;
+        }
         if (typeof fillOpacity === 'number') cleaned.fillOpacity = fillOpacity;
         // Strip pattern colors from donut/pie data points
         if (Array.isArray(cleaned.data)) {
