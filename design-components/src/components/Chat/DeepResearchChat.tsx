@@ -8,7 +8,7 @@ import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import { MessageActions } from './MessageActions';
 import { DashboardArtifactCard } from './ArtifactCards';
-import type { Message } from './types';
+import type { Message, MessageFileAttachment } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
 /**
@@ -109,6 +109,8 @@ export interface DeepResearchChatProps {
   onDislike?: (messageId: string) => void;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
+  /** Callback when a file attachment is clicked */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 /**
@@ -142,6 +144,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onLike,
   onDislike,
   onDashboardPreview,
+  onFileClick,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -230,6 +233,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                 userEmail={userEmail}
                 messageId={message.messageId || message.id}
                 conversationId={message.conversationId}
+                attachments={message.attachments}
+                onFileClick={onFileClick}
               />
             </div>
           );

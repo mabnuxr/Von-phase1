@@ -31,6 +31,7 @@ import type {
   Message,
   SendMessageOptions,
   FileAttachment,
+  MessageFileAttachment,
 } from "@vonlabs/design-components";
 
 /** Ref handle for ChatInputSelector */
@@ -131,6 +132,10 @@ export interface DeepResearchConversationProps {
   isFetchingNextMessagePage?: boolean;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
+  /** Whether file upload is enabled */
+  enableFileUpload?: boolean;
+  /** Callback when a file attachment is clicked */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -161,6 +166,8 @@ export const DeepResearchConversation: React.FC<
   hasNextMessagePage,
   isFetchingNextMessagePage,
   onDashboardPreview,
+  enableFileUpload = false,
+  onFileClick,
 }) => {
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
@@ -342,6 +349,7 @@ export const DeepResearchConversation: React.FC<
           onLike={onLike}
           onDislike={onDislike}
           onDashboardPreview={onDashboardPreview}
+          onFileClick={onFileClick}
         />
 
         {/* Scroll to bottom button */}
@@ -372,6 +380,7 @@ export const DeepResearchConversation: React.FC<
           isAgentLocked={true}
           lockedConversationMode={lockedConversationMode}
           availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
         />
       )}
 
