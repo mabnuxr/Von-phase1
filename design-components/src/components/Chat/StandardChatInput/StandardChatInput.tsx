@@ -214,6 +214,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                       content="Start a new conversation to change agent mode"
                       enabled={isAgentLocked}
                       placement="top"
+                      wrapperClassName="flex"
                     >
                       <TransparentButton
                         icon={<RobotIcon size={16} className="text-gray-800" />}

@@ -12,6 +12,8 @@ export interface TooltipProps {
   enabled?: boolean;
   /** Placement relative to the trigger @default 'auto' */
   placement?: TooltipPlacement;
+  /** Extra class names on the trigger wrapper div. @default 'inline-flex' */
+  wrapperClassName?: string;
 }
 
 /**
@@ -33,6 +35,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   children,
   enabled = true,
   placement = 'auto',
+  wrapperClassName = 'inline-flex',
 }) => {
   const { triggerRef, tooltipRef, visible, show, hide, position } = useTooltipPosition({
     placement,
@@ -46,7 +49,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
         onMouseLeave={hide}
         onFocus={show}
         onBlur={hide}
-        className="inline-flex"
+        className={wrapperClassName}
       >
         {children}
       </div>
