@@ -38,7 +38,7 @@ export interface DashboardUpdateRequest {
   dashboard_name?: string;
   description?: string;
   ui_config?: {
-    color_palette_global?: string;
+    color_palette_global?: string | null;
     [key: string]: unknown;
   };
 }

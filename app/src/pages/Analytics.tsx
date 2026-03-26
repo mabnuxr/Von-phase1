@@ -67,7 +67,11 @@ const Analytics = () => {
 
   const handleColorThemeChange = useCallback(
     (themeId: string) => {
-      handleUpdate({ ui_config: { color_palette_global: themeId } });
+      handleUpdate({
+        ui_config: {
+          color_palette_global: themeId === "default" ? null : themeId,
+        },
+      });
     },
     [handleUpdate],
   );

@@ -220,7 +220,7 @@ function adaptApiResponse(
         uiConfig: raw.ui_config
           ? {
               colorPaletteGlobal:
-                raw.ui_config.color_palette_global ?? undefined,
+                raw.ui_config.color_palette_global ?? "default",
               panelLayouts: raw.ui_config.panel_layouts,
             }
           : undefined,

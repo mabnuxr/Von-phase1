@@ -7,8 +7,8 @@ import { DashboardCustomizationContext } from './DashboardCustomizationContext';
 export interface DashboardCustomizationState {
   /** Active color theme id */
   colorTheme: ChartThemeId;
-  /** Resolved palette for the active theme */
-  palette: ChartThemePalette;
+  /** Resolved palette for the active theme (null when 'default' — use backend colors) */
+  palette: ChartThemePalette | null;
   /** Update the color theme */
   setColorTheme: (theme: ChartThemeId) => void;
   /** Dashboard mode */
@@ -31,7 +31,7 @@ export interface DashboardCustomizationProviderProps {
 
 export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProviderProps> = ({
   children,
-  defaultColorTheme = 'teal',
+  defaultColorTheme = 'default',
   defaultMode = 'preview',
   onColorThemeChange,
 }) => {
@@ -63,7 +63,10 @@ export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProv
     setColorTheme(defaultColorTheme);
   }, [defaultColorTheme]);
 
-  const palette = useMemo(() => chartThemes[colorTheme], [colorTheme]);
+  const palette = useMemo(
+    () => (colorTheme === 'default' ? null : chartThemes[colorTheme]),
+    [colorTheme]
+  );
 
   const stableSetColorTheme = useCallback((t: ChartThemeId) => setColorTheme(t), []);
   const stableSetMode = useCallback((m: 'edit' | 'preview') => setMode(m), []);

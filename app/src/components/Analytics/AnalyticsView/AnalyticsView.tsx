@@ -120,7 +120,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const validatedColorTheme =
     defaultColorTheme && (chartThemeIds as string[]).includes(defaultColorTheme)
       ? (defaultColorTheme as ChartThemeId)
-      : undefined;
+      : "default";
 
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
