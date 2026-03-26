@@ -28,9 +28,9 @@ export interface DashboardListResponse {
     page: number;
     limit: number;
     total: number;
-    total_pages: number;
-    has_next_page: boolean;
-    has_prev_page: boolean;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
 }
 

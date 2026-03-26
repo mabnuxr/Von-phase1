@@ -1,6 +1,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import Highcharts from 'highcharts';
 import 'highcharts/modules/xrange';
+import 'highcharts/modules/funnel';
 import 'highcharts/modules/pattern-fill';
 import HighchartsReact from 'highcharts-react-official';
 import type { ChartWidgetConfig } from '../types';

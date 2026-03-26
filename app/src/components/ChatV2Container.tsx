@@ -24,6 +24,7 @@ import {
   Chat,
   FilePreviewModal,
   ArtifactViewerPanel,
+  usePanelResize,
 } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
@@ -46,6 +47,20 @@ import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
 import { GmailDraftCardContainer } from "./GmailDraftCardContainer";
 import type { FileArtifact } from "@vonlabs/design-components";
+
+// Dashboard / chat split-pane layout constants
+const CHAT_DEFAULT_RATIO = 0.3;
+const DASHBOARD_DEFAULT_RATIO = 0.7;
+const CHAT_MIN_RATIO = 0.3;
+const CHAT_MAX_RATIO = 0.6;
+const DASHBOARD_MIN_RATIO = 0.4;
+const DASHBOARD_MAX_RATIO = 0.7;
+
+const SPLIT_DEFAULT_RATIOS = [CHAT_DEFAULT_RATIO, DASHBOARD_DEFAULT_RATIO];
+const SPLIT_CONSTRAINTS = [
+  { min: CHAT_MIN_RATIO, max: CHAT_MAX_RATIO },
+  { min: DASHBOARD_MIN_RATIO, max: DASHBOARD_MAX_RATIO },
+];
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -190,6 +205,16 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
 
+  // Resizable chat / dashboard split
+  const {
+    containerRef: splitContainerRef,
+    ratios: splitRatios,
+    getHandleProps: getSplitHandleProps,
+  } = usePanelResize({
+    defaultRatios: SPLIT_DEFAULT_RATIOS,
+    constraints: SPLIT_CONSTRAINTS,
+  });
+
   // Dashboard preview button: open artifact preview pane & collapse sidebar
   const handleDashboardPreview = useCallback(
     (dashboardId: string) => {
@@ -207,29 +232,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     [conversationId, navigate],
   );
 
-  // Auto-open dashboard preview pane when a NEW dashboard is generated
-  // (not on mount/page-refresh — only when dashboard changes after initial render)
-  const initialDashboardRef = useRef<string | undefined>(undefined);
-  const hasHydratedRef = useRef(false);
+  // Auto-open dashboard preview pane when a NEW dashboard is generated live
+  // (not on mount/page-refresh/seeding — liveDashboardKey is only set by live Pusher events)
+  const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    const dashboard = chatV2.dashboard;
-    const key = dashboard
-      ? `${dashboard.dashboard_id}:${dashboard.dashboard_version}`
-      : undefined;
-
-    if (!hasHydratedRef.current) {
-      // First render — capture initial state, don't auto-open
-      initialDashboardRef.current = key;
-      hasHydratedRef.current = true;
-      return;
+    const key = chatV2.liveDashboardKey;
+    if (key && key !== prevLiveDashboardKeyRef.current) {
+      prevLiveDashboardKeyRef.current = key;
+      const dashboardId = key.split(":")[0];
+      handleDashboardPreview(dashboardId);
     }
-
-    // Only auto-open if this is a new dashboard (not the one present on mount)
-    if (key && key !== initialDashboardRef.current) {
-      initialDashboardRef.current = key;
-      handleDashboardPreview(dashboard!.dashboard_id);
-    }
-  }, [chatV2.dashboard, handleDashboardPreview]);
+  }, [chatV2.liveDashboardKey, handleDashboardPreview]);
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
@@ -257,10 +270,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
         /* Deep Research Mode */
-        <div className="flex h-full w-full gap-1">
+        <div ref={splitContainerRef} className="flex h-full w-full">
+          {/* Chat column — always at the same tree position to avoid remount */}
           <div
-            className={`min-w-0 flex flex-col ${dashboardPaneState.isOpen ? "flex-shrink-0" : "flex-1"}`}
-            style={dashboardPaneState.isOpen ? { width: 480 } : undefined}
+            className="min-w-0 flex flex-col"
+            style={
+              dashboardPaneState.isOpen
+                ? {
+                    flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                  }
+                : { flex: 1 }
+            }
           >
             {banner}
             {chatV2.writeBlocked && (
@@ -300,13 +320,29 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
             />
           </div>
 
-          {/* Dashboard Preview Pane */}
+          {/* Dashboard pane — conditionally rendered beside the stable chat column */}
           {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
-            <DashboardPreviewPane
-              dashboardId={dashboardPaneState.dashboardId}
-              conversationId={conversationId}
-              onClose={closeDashboardPane}
-            />
+            <>
+              {/* Drag handle */}
+              <div
+                {...getSplitHandleProps(0)}
+                className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+              >
+                <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+              </div>
+              <div
+                className="h-full min-w-0"
+                style={{
+                  flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+                }}
+              >
+                <DashboardPreviewPane
+                  dashboardId={dashboardPaneState.dashboardId}
+                  conversationId={conversationId}
+                  onClose={closeDashboardPane}
+                />
+              </div>
+            </>
           )}
         </div>
       ) : (

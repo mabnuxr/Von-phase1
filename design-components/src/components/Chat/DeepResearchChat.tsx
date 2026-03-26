@@ -149,14 +149,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Handle run full analysis click - show confirmation modal
-  const handleRunFullAnalysisClick = () => {
-    setShowConfirmModal(true);
-  };
-
-  // Handle confirmation - use resume API (with executionId) or send message (legacy)
-  const handleConfirmAnalysis = () => {
-    setShowConfirmModal(false);
+  // Handle Create Dashboard click - directly proceed
+  const handleCreateDashboard = () => {
     if (approvalMessage?.executionId && approvalMessage?.runId && onApprovePlan) {
       onApprovePlan(approvalMessage.runId, approvalMessage.executionId);
     } else {
@@ -164,8 +158,30 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
     }
   };
 
-  // Handle cancel - just close the modal
-  const handleCancelAnalysis = () => {
+  // Handle skip click - show confirmation modal
+  const handleSkipClick = () => {
+    setShowConfirmModal(true);
+  };
+
+  // Handle skip confirmation
+  const handleConfirmSkip = () => {
+    setShowConfirmModal(false);
+    if (approvalMessage?.executionId && approvalMessage?.runId) {
+      onRejectPlan?.(approvalMessage.runId, approvalMessage.executionId);
+    } else {
+      const approvalStep = approvalMessage?.timelineSteps?.find(
+        (s) => s.type === 'approval' && s.approval?.toolCallId
+      );
+      const stepId = approvalStep?.approval?.toolCallId ?? approvalStep?.id;
+      if (stepId && approvalMessage?.runId) {
+        onReject?.(stepId, approvalMessage.runId);
+      }
+    }
+    onSkip?.();
+  };
+
+  // Handle skip cancel - just close the modal
+  const handleCancelSkip = () => {
     setShowConfirmModal(false);
   };
 
@@ -348,7 +364,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         !hasSkipped
                           ? {
                               label: 'Create Dashboard',
-                              onClick: handleRunFullAnalysisClick,
+                              onClick: handleCreateDashboard,
                               disabled: isDeepResearchRunning,
                               isLoading: isDeepResearchRunning,
                             }
@@ -358,27 +374,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         !hasSkipped
                           ? {
                               label: 'Skip',
-                              onClick: () => {
-                                if (approvalMessage?.executionId && approvalMessage?.runId) {
-                                  // New workflow execution approval: use resume API with executionId
-                                  onRejectPlan?.(
-                                    approvalMessage.runId,
-                                    approvalMessage.executionId
-                                  );
-                                } else {
-                                  // Legacy HITL approval: find the approval step's toolCallId
-                                  const approvalStep = approvalMessage?.timelineSteps?.find(
-                                    (s) => s.type === 'approval' && s.approval?.toolCallId
-                                  );
-                                  const stepId =
-                                    approvalStep?.approval?.toolCallId ?? approvalStep?.id;
-                                  if (stepId && approvalMessage?.runId) {
-                                    onReject?.(stepId, approvalMessage.runId);
-                                  }
-                                }
-                                // Hide buttons and focus input
-                                onSkip?.();
-                              },
+                              onClick: handleSkipClick,
                               disabled: isDeepResearchRunning,
                             }
                           : undefined
@@ -499,11 +495,9 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
       {/* Confirmation Modal */}
       <ExpensiveOperationModal
         isOpen={showConfirmModal}
-        recordCount={dataTablesInfo?.totalRecords || researchResults?.metadata?.total_records || 0}
-        estimatedTime={researchResults?.metadata?.estimated_time || '10-15 minutes'}
-        onConfirm={handleConfirmAnalysis}
-        onCancel={handleCancelAnalysis}
-        operationName="Create Dashboard"
+        onConfirm={handleConfirmSkip}
+        onCancel={handleCancelSkip}
+        operationName="Skip Dashboard Creation"
       />
     </div>
   );

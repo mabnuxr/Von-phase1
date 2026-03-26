@@ -14,6 +14,8 @@ export interface TooltipProps {
   placement?: TooltipPlacement;
   /** Maximum width of the tooltip in pixels. Overrides the default viewport-based maxWidth. */
   maxWidth?: number;
+  /** Extra class names on the trigger wrapper div. @default 'inline-flex' */
+  wrapperClassName?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   enabled = true,
   placement = 'auto',
   maxWidth: maxWidthProp,
+  wrapperClassName = 'inline-flex',
 }) => {
   const { triggerRef, tooltipRef, visible, show, hide, position } = useTooltipPosition({
     placement,
@@ -49,7 +52,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
         onMouseLeave={hide}
         onFocus={show}
         onBlur={hide}
-        className="inline-flex"
+        className={wrapperClassName}
       >
         {children}
       </div>

@@ -33,18 +33,18 @@ export const panelPageKeys = {
 function adaptPagination(raw: {
   page: number;
   limit: number;
-  total_rows: number;
-  total_pages: number;
-  has_next_page: boolean;
-  has_prev_page: boolean;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }): ServerPagination {
   return {
     page: raw.page,
     limit: raw.limit,
-    totalRows: raw.total_rows,
-    totalPages: raw.total_pages,
-    hasNextPage: raw.has_next_page,
-    hasPrevPage: raw.has_prev_page,
+    totalRows: raw.total,
+    totalPages: raw.totalPages,
+    hasNextPage: raw.hasNextPage,
+    hasPrevPage: raw.hasPrevPage,
   };
 }
 

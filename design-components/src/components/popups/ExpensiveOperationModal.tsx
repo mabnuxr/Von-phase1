@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, X } from '@phosphor-icons/react';
+import { X } from '@phosphor-icons/react';
 
 // ============================================================================
 // Types
@@ -11,16 +11,6 @@ export interface ExpensiveOperationModalProps {
    * Whether the modal is open
    */
   isOpen: boolean;
-
-  /**
-   * Number of records to process
-   */
-  recordCount: number;
-
-  /**
-   * Estimated processing time (e.g., "15-20 minutes")
-   */
-  estimatedTime?: string;
 
   /**
    * Callback when user confirms the operation
@@ -35,7 +25,7 @@ export interface ExpensiveOperationModalProps {
   /**
    * Operation description (e.g., "Create Dashboard")
    */
-  operationName?: string;
+  operationName: string;
 }
 
 // ============================================================================
@@ -84,10 +74,9 @@ const VonLogo: React.FC<{ size?: number }> = ({ size = 32 }) => (
  */
 export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = ({
   isOpen,
-  estimatedTime = '10-15 minutes',
   onConfirm,
   onCancel,
-  operationName = 'Create Dashboard',
+  operationName,
 }) => {
   return (
     <AnimatePresence>
@@ -128,16 +117,9 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
 
               {/* Description */}
               <p className="text-[13px] text-gray-800 leading-relaxed mb-4">
-                <span className="font-medium text-gray-900">
-                  Create the underlying data sources and the dashboard.
-                </span>
+                Are you sure you want to skip? The dashboard and underlying data sources will not be
+                created.
               </p>
-
-              {/* Time estimate */}
-              <div className="flex items-center gap-2 mb-5 text-sm text-gray-800">
-                <Clock size={14} className="text-gray-600" />
-                <span>Estimated time: {estimatedTime}</span>
-              </div>
 
               {/* Action buttons */}
               <div className="flex items-center gap-2">
@@ -151,7 +133,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
                   onClick={onConfirm}
                   className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
                 >
-                  Create Dashboard
+                  Skip
                 </button>
               </div>
             </div>
