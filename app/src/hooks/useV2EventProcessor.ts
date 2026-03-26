@@ -104,6 +104,8 @@ export interface UseV2EventProcessorReturn {
   runErrorMessage: string;
   phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
+  /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
+  liveDashboardKey: string | null;
   /** execution_id from RUN_FINISHED for workflow execution approval (dry_run completed) */
   executionId: string | null;
   markStopped: () => void;
@@ -171,6 +173,8 @@ export function useV2EventProcessor(
   const [runErrorMessage, setRunErrorMessage] = useState("");
   const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
+  /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
+  const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
   const [executionId, setExecutionId] = useState<string | null>(null);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
@@ -587,6 +591,12 @@ export function useV2EventProcessor(
               );
             }
             setDashboard(runFinishedDashboard);
+            // Signal auto-open — only for live events, not seeding
+            if (runFinishedDashboard) {
+              setLiveDashboardKey(
+                `${runFinishedDashboard.dashboard_id}:${runFinishedDashboard.dashboard_version}`,
+              );
+            }
           }
           // Update executionId when RUN_FINISHED arrives with workflow execution approval
           if (runFinishedExecutionId !== undefined) {
@@ -849,6 +859,7 @@ export function useV2EventProcessor(
     runErrorMessage,
     phase,
     dashboard,
+    liveDashboardKey,
     executionId,
     markStopped,
     markTimedOut,
