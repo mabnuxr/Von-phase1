@@ -19,7 +19,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Chat,
   FilePreviewModal,
@@ -122,8 +121,6 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     driveLoadingFileId,
     onCollapseSidebar,
   } = props;
-
-  const navigate = useNavigate();
 
   const chatV2 = useChatV2({
     conversationId: props.conversationId,
