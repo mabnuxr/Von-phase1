@@ -100,6 +100,11 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
   // Track active listeners so we can clean up on unmount
   const cleanupRef = useRef<(() => void) | null>(null);
 
+  // Re-sync ratios when defaultRatios or constraints change (e.g. slot count changes)
+  useEffect(() => {
+    setRatios(defaultRatios.map((r, i) => clampRatio(r, constraints[i])));
+  }, [defaultRatios, constraints]);
+
   useEffect(() => {
     return () => {
       // If unmounted while dragging, remove listeners and reset cursor
