@@ -287,8 +287,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                   />
                   <div className="space-y-2">
                     <p className="text-sm text-gray-600">
-                      The dashboard is currently saved as a <strong>draft</strong>. You can publish
-                      it to make it visible to your organization.
+                      The dashboard is currently saved as a <strong>draft</strong>. Save it to make
+                      it accessible from the side panel.
                     </p>
                     <DashboardArtifactCard
                       title={message.dashboard.dashboard_name}
@@ -411,8 +411,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       {researchResults.isCompleted && message.dashboard && (
                         <div className="space-y-2">
                           <p className="text-sm text-gray-600">
-                            The dashboard is currently saved as a <strong>draft</strong>. You can
-                            publish it to make it visible to your organization.
+                            The dashboard is currently saved as a <strong>draft</strong>. Save it to
+                            make it accessible from the side panel.
                           </p>
                           <DashboardArtifactCard
                             title={message.dashboard.dashboard_name}

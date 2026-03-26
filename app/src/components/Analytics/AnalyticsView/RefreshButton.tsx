@@ -1,4 +1,5 @@
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
+import { Tooltip } from "@vonlabs/design-components";
 
 interface RefreshButtonProps {
   onRefresh: () => Promise<void>;
@@ -9,16 +10,19 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   onRefresh,
   canRefresh = true,
 }) => (
-  <button
-    onClick={canRefresh ? onRefresh : undefined}
-    disabled={!canRefresh}
-    title={canRefresh ? "Refresh data" : "Save the dashboard to refresh data"}
-    className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-      !canRefresh
-        ? "text-gray-400 bg-white border-gray-200/70 cursor-not-allowed"
-        : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-    }`}
+  <Tooltip
+    content={canRefresh ? "Refresh data" : "Save the dashboard to refresh data"}
   >
-    <ArrowsClockwiseIcon size={14} />
-  </button>
+    <button
+      onClick={canRefresh ? onRefresh : undefined}
+      disabled={!canRefresh}
+      className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+        !canRefresh
+          ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+          : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+      }`}
+    >
+      <ArrowsClockwiseIcon size={14} />
+    </button>
+  </Tooltip>
 );

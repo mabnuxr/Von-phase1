@@ -18,7 +18,7 @@ export const StatusLine: React.FC<StatusLineProps> = ({
   return (
     <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
       <span className={`${colorClass} font-medium`}>
-        {isDraft ? "Draft" : "Published"}
+        {isDraft ? "Draft" : "Saved"}
       </span>
       {lastSavedAt && (
         <span className={colorClass}>{formatRelativeTime(lastSavedAt)}</span>
