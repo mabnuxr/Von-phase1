@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { ReportTable } from '../../ReportTable';
+import type { ServerSortState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
 import { ServerPagination } from './ServerPagination';
@@ -9,9 +10,19 @@ interface TableWidgetProps {
   config: TableWidgetConfig;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
+  /** Called when a column header is clicked for server-side sorting */
+  onSortChange?: (columnId: string, order: 'asc' | 'desc' | null) => void;
+  /** Current server sort state */
+  sortState?: ServerSortState | null;
 }
 
-const TableWidget: React.FC<TableWidgetProps> = ({ config, onPageChange, isLoading }) => {
+const TableWidget: React.FC<TableWidgetProps> = ({
+  config,
+  onPageChange,
+  isLoading,
+  onSortChange,
+  sortState,
+}) => {
   const { serverPagination } = config;
   const hasServerPagination = !!serverPagination;
 
@@ -44,7 +55,12 @@ const TableWidget: React.FC<TableWidgetProps> = ({ config, onPageChange, isLoadi
       className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}`}
     >
       <div className="flex-1 min-h-0 overflow-hidden relative">
-        <ReportTable options={stableOptions} hidePagination />
+        <ReportTable
+          options={stableOptions}
+          hidePagination
+          onSortChange={hasServerPagination ? onSortChange : undefined}
+          sortState={hasServerPagination ? sortState : undefined}
+        />
 
         {/* Shimmer covers body rows while headers stay visible */}
         {isLoading && (

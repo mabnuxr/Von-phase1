@@ -165,7 +165,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
           color: hatchPattern(light, dark, `bar-hatch-${themeId}-${i}`),
           borderColor: dark,
         };
-      }) as Highcharts.SeriesOptionsType[];
+      }) as unknown as Highcharts.SeriesOptionsType[];
     } else if (category === 'line' && raw.series) {
       themedSeries = (raw.series as Highcharts.SeriesAreaOptions[]).flatMap((s, i) => {
         const color = palette.chartColors[i % palette.chartColors.length];
@@ -195,7 +195,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
             fillColor: gridDotPattern('transparent', `${color}35`, `line-grid-dot-${themeId}-${i}`),
           },
         ];
-      }) as Highcharts.SeriesOptionsType[];
+      }) as unknown as Highcharts.SeriesOptionsType[];
     } else if (category === 'donut' && raw.series) {
       themedSeries = (raw.series as Highcharts.SeriesPieOptions[]).map((s) => ({
         ...s,

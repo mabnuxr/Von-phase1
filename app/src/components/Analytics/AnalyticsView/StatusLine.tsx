@@ -15,6 +15,14 @@ export const StatusLine: React.FC<StatusLineProps> = ({
   const isDraft = state === DashboardStatus.Draft;
   const colorClass = isDraft ? "text-amber-700" : "text-emerald-700";
 
+  // Compare raw timestamps to decide whether to show "Refreshed" separately.
+  // formatRelativeTime can produce identical strings for different timestamps
+  // (e.g. both "1m ago"), so comparing formatted output is unreliable.
+  const sameTimestamp =
+    !!lastSavedAt &&
+    !!lastRefreshedAt &&
+    new Date(lastSavedAt).getTime() === new Date(lastRefreshedAt).getTime();
+
   return (
     <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
       <span className={`${colorClass} font-medium`}>
@@ -23,7 +31,7 @@ export const StatusLine: React.FC<StatusLineProps> = ({
       {lastSavedAt && (
         <span className={colorClass}>{formatRelativeTime(lastSavedAt)}</span>
       )}
-      {lastRefreshedAt && (
+      {lastRefreshedAt && !sameTimestamp && (
         <span className="text-gray-700">
           · Refreshed {formatRelativeTime(lastRefreshedAt)}
         </span>

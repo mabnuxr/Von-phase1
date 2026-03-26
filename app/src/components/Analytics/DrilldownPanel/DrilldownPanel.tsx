@@ -2,7 +2,7 @@ import { useRef, useCallback, useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
-import type { ReportColumn } from "@vonlabs/design-components";
+import type { ReportColumn, ServerSortState } from "@vonlabs/design-components";
 import type { PanelDrilldownPagination } from "../../../types/dashboard";
 import { DrilldownPagination } from "./DrilldownPagination";
 
@@ -90,6 +90,10 @@ export interface DrilldownPanelProps {
   isLoading: boolean;
   isError?: boolean;
   onPageChange: (page: number) => void;
+  /** Called when a column header is clicked for server-side sorting */
+  onSortChange?: (columnId: string, order: "asc" | "desc" | null) => void;
+  /** Current server sort state */
+  sortState?: ServerSortState | null;
 }
 
 // ─── Component ──────────────────────────────────────────────────
@@ -103,6 +107,8 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   isLoading,
   isError = false,
   onPageChange,
+  onSortChange,
+  sortState,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [panelHeight, setPanelHeight] = useState(90);
@@ -113,14 +119,36 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   // Derive columns from data
   const columns = useMemo(() => columnsFromData(data), [data]);
 
-  // Build grid options
+  // Build grid options, injecting server sort state so Grid Lite preserves
+  // its sort cycle correctly across data updates.
   const gridOptions = useMemo(() => {
     if (columns.length === 0 || data.length === 0) return null;
-    return buildGridOptions(columns, data, {
+    const opts = buildGridOptions(columns, data, {
       pageSize: data.length,
       showPagination: false,
     });
-  }, [columns, data]);
+    if (!sortState?.orderBy || !opts.columns) return opts;
+    return {
+      ...opts,
+      columns: (
+        opts.columns as Array<{
+          id: string;
+          sorting?: Record<string, unknown>;
+        }>
+      ).map((col) => ({
+        ...col,
+        sorting: {
+          ...(col.sorting ?? {}),
+          order:
+            col.id === sortState.orderBy
+              ? sortState.orderByAsc
+                ? ("asc" as const)
+                : ("desc" as const)
+              : undefined,
+        },
+      })),
+    };
+  }, [columns, data, sortState]);
 
   // ── Resize drag handlers ──────────────────────────────────────
 
@@ -221,7 +249,11 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
                 </div>
               ) : gridOptions ? (
                 <div className="h-full relative">
-                  <ReportTable options={gridOptions} />
+                  <ReportTable
+                    options={gridOptions}
+                    onSortChange={onSortChange}
+                    sortState={sortState}
+                  />
                   {/* Shimmer overlay — same pattern as TableWidget: headers stay visible,
                       shimmer covers only body rows. top:36px clears the HCG header. */}
                   {isLoading && (
