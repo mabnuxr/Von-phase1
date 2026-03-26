@@ -328,7 +328,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     dashboard.dashboardVersion >= 1 && (
                       <Tooltip content="Reverts to previous saved version">
                         <button
-                          onClick={revertPhase === "idle" ? onRevert : undefined}
+                          onClick={
+                            revertPhase === "idle" ? onRevert : undefined
+                          }
                           disabled={revertPhase !== "idle"}
                           className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
                             revertPhase === "pending"
@@ -339,7 +341,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           }`}
                         >
                           {revertPhase === "pending" ? (
-                            <SpinnerGapIcon size={14} className="animate-spin" />
+                            <SpinnerGapIcon
+                              size={14}
+                              className="animate-spin"
+                            />
                           ) : (
                             <ClockCounterClockwiseIcon size={14} />
                           )}
