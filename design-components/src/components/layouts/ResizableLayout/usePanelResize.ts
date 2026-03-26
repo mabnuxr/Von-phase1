@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 // ============================================================================
 // Types
@@ -89,12 +89,18 @@ function clampRatio(ratio: number, constraint?: PanelConstraint): number {
  * ```
  */
 export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeReturn {
-  const { defaultRatios, constraints = [], direction = 'horizontal' } = options;
+  const { defaultRatios, constraints, direction = 'horizontal' } = options;
+
+  // Stabilise array references so inline literals don't trigger effects every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableDefaultRatios = useMemo(() => defaultRatios, [JSON.stringify(defaultRatios)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableConstraints = useMemo(() => constraints ?? [], [JSON.stringify(constraints)]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [ratios, setRatios] = useState<number[]>(() =>
-    defaultRatios.map((r, i) => clampRatio(r, constraints[i]))
+    stableDefaultRatios.map((r, i) => clampRatio(r, stableConstraints[i]))
   );
 
   // Track active listeners so we can clean up on unmount
@@ -102,8 +108,8 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
 
   // Re-sync ratios when defaultRatios or constraints change (e.g. slot count changes)
   useEffect(() => {
-    setRatios(defaultRatios.map((r, i) => clampRatio(r, constraints[i])));
-  }, [defaultRatios, constraints]);
+    setRatios(stableDefaultRatios.map((r, i) => clampRatio(r, stableConstraints[i])));
+  }, [stableDefaultRatios, stableConstraints]);
 
   useEffect(() => {
     return () => {
@@ -156,12 +162,12 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
           let rightRatio = combinedRatio - leftRatio;
 
           // Clamp both panels
-          leftRatio = clampRatio(leftRatio, constraints[handleIndex]);
+          leftRatio = clampRatio(leftRatio, stableConstraints[handleIndex]);
           rightRatio = combinedRatio - leftRatio;
-          rightRatio = clampRatio(rightRatio, constraints[handleIndex + 1]);
+          rightRatio = clampRatio(rightRatio, stableConstraints[handleIndex + 1]);
           leftRatio = combinedRatio - rightRatio;
           // Re-clamp left after right adjustment
-          leftRatio = clampRatio(leftRatio, constraints[handleIndex]);
+          leftRatio = clampRatio(leftRatio, stableConstraints[handleIndex]);
           rightRatio = combinedRatio - leftRatio;
 
           const next = [...snapshotRatios];
@@ -195,12 +201,12 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
         style: { cursor },
       };
     },
-    [ratios, constraints, direction]
+    [ratios, stableConstraints, direction]
   );
 
   const reset = useCallback(() => {
-    setRatios(defaultRatios.map((r, i) => clampRatio(r, constraints[i])));
-  }, [defaultRatios, constraints]);
+    setRatios(stableDefaultRatios.map((r, i) => clampRatio(r, stableConstraints[i])));
+  }, [stableDefaultRatios, stableConstraints]);
 
   return {
     containerRef,
