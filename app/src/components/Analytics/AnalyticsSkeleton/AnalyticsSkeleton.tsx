@@ -3,7 +3,7 @@
  * header, filter pills, KPI cards row, chart row, and table area.
  */
 const AnalyticsSkeleton = () => (
-  <div className="flex flex-col flex-1 min-w-0 h-full rounded-lg bg-white shadow-xs border border-gray-200 overflow-hidden">
+  <div className="flex flex-col flex-1 min-w-0 h-full rounded-xl bg-white shadow-xs border border-gray-100 overflow-hidden">
     {/* Header */}
     <div className="px-4 pt-4 pb-2 space-y-2">
       <div className="h-5 w-48 bg-gray-100 rounded animate-pulse" />

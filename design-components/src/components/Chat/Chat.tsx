@@ -285,9 +285,10 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     'overflow-hidden',
     'bg-white',
     'antialiased',
-    isFullPage ? 'w-screen h-screen rounded-none border-none' : `rounded-lg border border-gray-200`,
-    isFixed && 'fixed z-[1000] shadow-xs',
-    !isFixed && !isFullPage && 'shadow-xs',
+    isFullPage
+      ? 'w-screen h-screen rounded-none border-none'
+      : 'rounded-xl border border-gray-100 shadow-xs',
+    isFixed && 'fixed z-[1000]',
     isFullPage && 'fixed inset-0 z-[999]',
   ]
     .filter(Boolean)

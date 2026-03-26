@@ -24,6 +24,7 @@ import { ReferenceType } from "../types/conversation";
 import type { MessageReference } from "../types/conversation";
 import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
 import { config } from "../config";
+import { CHAT_PANE_AGENT_MODES } from "../config/constants";
 
 export interface AnalyticsNewConversationContainerProps {
   dashboardId: string;
@@ -137,6 +138,9 @@ export function AnalyticsNewConversationContainer({
       onToggleFavorite={handleToggleFavorite}
       onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
       onUploadFile={handleUploadFile}
+      isAgentLocked
+      lockedConversationMode={ConversationMode.DashboardBuilder}
+      availableAgentModes={CHAT_PANE_AGENT_MODES}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     >

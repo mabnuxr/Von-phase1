@@ -80,7 +80,7 @@ export function AppShell() {
 
   return (
     <AppShellContext.Provider value={contextValue}>
-      <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
+      <div className="h-screen bg-gray-50 flex flex-col items-center overflow-hidden">
         {/* Connection Error Banner */}
         {showConnectionBanner && (
           <Banner
@@ -114,7 +114,7 @@ export function AppShell() {
               className={`chat-sidebar-wrapper h-full flex flex-col min-h-0 transition-all duration-300 ${
                 isSidebarV2
                   ? ""
-                  : "rounded-lg overflow-hidden bg-white shadow-xs border border-gray-200"
+                  : "rounded-xl overflow-hidden bg-white shadow-xs border border-gray-100"
               }`}
               style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
             >

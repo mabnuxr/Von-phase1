@@ -166,11 +166,10 @@ const Analytics = () => {
 
       {isChatOpen && (
         <div
+          className="h-full flex-shrink-0 relative"
           style={{
             width: chatPaneWidth,
             transition: isResizing ? "none" : "width 0.3s ease",
-            flexShrink: 0,
-            position: "relative",
           }}
         >
           {/* Resize handle */}
@@ -184,25 +183,23 @@ const Analytics = () => {
             <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
           </div>
 
-          <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
-            {conversationId ? (
-              <AnalyticsChatContainer
-                key={conversationId}
-                conversationId={conversationId}
-                dashboardId={dashboardId}
-                dashboardTitle={dashboard.title}
-                dashboardVersion={dashboard.dashboardVersion}
-              />
-            ) : (
-              <AnalyticsNewConversationContainer
-                key={dashboardId}
-                dashboardId={dashboardId}
-                dashboardTitle={dashboard.title}
-                dashboardVersion={dashboard.dashboardVersion}
-                onCreated={handleConversationCreated}
-              />
-            )}
-          </div>
+          {conversationId ? (
+            <AnalyticsChatContainer
+              key={conversationId}
+              conversationId={conversationId}
+              dashboardId={dashboardId}
+              dashboardTitle={dashboard.title}
+              dashboardVersion={dashboard.dashboardVersion}
+            />
+          ) : (
+            <AnalyticsNewConversationContainer
+              key={dashboardId}
+              dashboardId={dashboardId}
+              dashboardTitle={dashboard.title}
+              dashboardVersion={dashboard.dashboardVersion}
+              onCreated={handleConversationCreated}
+            />
+          )}
         </div>
       )}
     </div>

@@ -93,7 +93,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onColorThemeChange,
   onRename,
 }) => {
-  const gridConfig = dashboard.gridConfig as unknown as GridConfig;
+  const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
+  const gridConfig = {
+    ...rawGridConfig,
+    rowHeight: Math.min(rawGridConfig.rowHeight ?? 60, 60),
+  };
   const layout = dashboard.layout as unknown as LayoutItem[];
   const widgets = (paginatedWidgets ?? dashboard.widgets) as unknown as Record<
     string,
@@ -199,7 +203,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   </div>
                 )}
                 {dashboard.description && (
-                  <TruncateWithText className="text-xs text-gray-700 max-w-[60%]">
+                  <TruncateWithText
+                    className="text-xs text-gray-700 max-w-[60%]"
+                    tooltipMaxWidth={400}
+                  >
                     {dashboard.description}
                   </TruncateWithText>
                 )}

@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   SidebarSimpleIcon,
   PlusCircleIcon,
-  BuildingsIcon,
-  UserIcon,
+  ChalkboardIcon,
+  ChalkboardTeacherIcon,
   PushPinIcon,
   DotsThreeIcon,
 } from '@phosphor-icons/react';
@@ -248,13 +248,17 @@ const DashboardRow: React.FC<{
     >
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
         {dash.visibility === 'org' ? (
-          <BuildingsIcon
+          <ChalkboardTeacherIcon
             size={16}
             weight="regular"
             className="text-gray-800 mb-[1px] flex-shrink-0"
           />
         ) : (
-          <UserIcon size={16} weight="regular" className="text-gray-800 mb-[1px] flex-shrink-0" />
+          <ChalkboardIcon
+            size={16}
+            weight="regular"
+            className="text-gray-800 mb-[1px] flex-shrink-0"
+          />
         )}
 
         {isEditing ? (

@@ -124,7 +124,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
   const textClassName = `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
 
   return (
-    <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
+    <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
       {onDrillDown && (
         <button
           onClick={(e) => {
@@ -140,7 +140,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
       {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
       {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 
-      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
+      <p className="text-xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
 
       {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
