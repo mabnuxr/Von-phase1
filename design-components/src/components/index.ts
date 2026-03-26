@@ -432,7 +432,13 @@ export {
   createCellFormatter,
   formatValue,
 } from './ReportTable';
-export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData, ServerSortState } from './ReportTable';
+export type {
+  ReportTableProps,
+  ReportColumn,
+  ColumnType,
+  AIReasoningData,
+  ServerSortState,
+} from './ReportTable';
 
 // ============================================================================
 // ARTIFACT VIEWER (Single artifact display drawer)

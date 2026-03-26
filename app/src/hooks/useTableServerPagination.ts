@@ -169,9 +169,7 @@ export function useTableServerPagination(
     () =>
       tablePanels.filter(
         (p) =>
-          p.currentPage > 1 ||
-          p.orderBy !== undefined ||
-          sortCleared.has(p.id),
+          p.currentPage > 1 || p.orderBy !== undefined || sortCleared.has(p.id),
       ),
     [tablePanels, sortCleared],
   );
