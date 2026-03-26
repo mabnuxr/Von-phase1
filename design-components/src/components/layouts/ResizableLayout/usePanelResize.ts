@@ -93,7 +93,9 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [ratios, setRatios] = useState<number[]>(defaultRatios);
+  const [ratios, setRatios] = useState<number[]>(() =>
+    defaultRatios.map((r, i) => clampRatio(r, constraints[i]))
+  );
 
   // Track active listeners so we can clean up on unmount
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -112,6 +114,8 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
 
       const onMouseDown = (e: React.MouseEvent) => {
         e.preventDefault();
+        // Clean up any stale drag session (e.g. missed mouseup)
+        cleanupRef.current?.();
         const container = containerRef.current;
         if (!container) return;
 
@@ -190,8 +194,8 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
   );
 
   const reset = useCallback(() => {
-    setRatios(defaultRatios);
-  }, [defaultRatios]);
+    setRatios(defaultRatios.map((r, i) => clampRatio(r, constraints[i])));
+  }, [defaultRatios, constraints]);
 
   return {
     containerRef,
