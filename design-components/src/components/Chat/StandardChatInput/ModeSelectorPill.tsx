@@ -14,6 +14,8 @@ function getConversationModeDisplay(mode: ConversationMode) {
       return { label: 'Ask Mode', description: 'Chat, research, get answers' };
     case ConversationMode.DashboardBuilder:
       return { label: 'Dashboard Mode', description: 'Create and edit dashboards' };
+    default:
+      return { label: 'Unknown Mode', description: 'An unknown conversation mode' };
   }
 }
 

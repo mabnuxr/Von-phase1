@@ -5,7 +5,7 @@ interface AnalyticsErrorProps {
 }
 
 const AnalyticsError = ({ error }: AnalyticsErrorProps) => (
-  <div className="flex flex-1 items-center justify-center rounded-xl bg-white shadow-xs border border-gray-100">
+  <div className="flex flex-1 h-full items-center justify-center rounded-xl bg-white shadow-xs border border-gray-100">
     <div className="flex flex-col items-center gap-3 text-center px-6">
       <WarningCircle size={40} weight="duotone" className="text-gray-300" />
       <div>
