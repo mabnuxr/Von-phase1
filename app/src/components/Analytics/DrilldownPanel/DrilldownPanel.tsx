@@ -141,7 +141,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
           ...(col.sorting ?? {}),
           order:
             col.id === sortState.orderBy
-              ? (sortState.orderByAsc ? "asc" : "desc") as const
+              ? ((sortState.orderByAsc ? "asc" : "desc") as const)
               : undefined,
         },
       })),
