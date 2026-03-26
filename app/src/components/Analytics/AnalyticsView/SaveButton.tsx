@@ -4,26 +4,26 @@ import type { MutationPhase } from "../../../hooks/useMutationPhase";
 interface SaveButtonProps {
   savePhase: MutationPhase;
   onSave: () => void;
-  isPublished?: boolean;
+  isSaved?: boolean;
 }
 
 export const SaveButton: React.FC<SaveButtonProps> = ({
   savePhase,
   onSave,
-  isPublished,
+  isSaved,
 }) => {
   const isIdle = savePhase === "idle";
-  const isDisabled = !isIdle || isPublished;
+  const isDisabled = !isIdle || isSaved;
 
   return (
     <button
-      onClick={isIdle && !isPublished ? onSave : undefined}
+      onClick={isIdle && !isSaved ? onSave : undefined}
       disabled={isDisabled}
       className={`flex items-center gap-1.5 h-[34px] px-3 text-sm font-medium rounded-xl border transition-colors ${
-        savePhase === "success" || isPublished
+        savePhase === "success" || isSaved
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 cursor-default"
           : savePhase === "pending"
-            ? "border-gray-200/70 text-gray-500 cursor-not-allowed"
+            ? "border-gray-200/70 bg-gray-100 text-gray-500 cursor-not-allowed"
             : "border-gray-200/70 text-gray-800 hover:bg-gray-50 cursor-pointer"
       }`}
     >
@@ -33,13 +33,13 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
           Saving
         </>
       )}
-      {(savePhase === "success" || (isIdle && isPublished)) && (
+      {(savePhase === "success" || (isIdle && isSaved)) && (
         <>
           <CheckIcon size={14} weight="bold" />
           Saved
         </>
       )}
-      {isIdle && !isPublished && "Save"}
+      {isIdle && !isSaved && "Save"}
     </button>
   );
 };

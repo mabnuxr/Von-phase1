@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowsOutIcon,
+  ArrowSquareOutIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
   XIcon,
@@ -140,7 +140,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     }
   }, [editValue, dashboard.title, onRename]);
 
-  const isPublished = dashboard.status === DashboardStatus.Published;
+  const isSaved = dashboard.status === DashboardStatus.Published;
 
   return (
     <DashboardCustomizationProvider
@@ -176,18 +176,18 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     {dashboard.isOwner && onRename && (
                       <Tooltip
                         content={
-                          isPublished
+                          isSaved
                             ? "Rename dashboard"
                             : "Save the dashboard to rename"
                         }
                       >
                         <button
                           onClick={
-                            isPublished ? () => setIsEditing(true) : undefined
+                            isSaved ? () => setIsEditing(true) : undefined
                           }
-                          disabled={!isPublished}
+                          disabled={!isSaved}
                           className={`opacity-0 group-hover:opacity-100 transition-opacity ${
-                            isPublished
+                            isSaved
                               ? "text-gray-400 hover:text-gray-600 cursor-pointer"
                               : "text-gray-300 cursor-not-allowed"
                           }`}
@@ -210,21 +210,21 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {onExpand && (
                 <Tooltip
                   content={
-                    isPublished
+                    isSaved
                       ? "View in Dashboards"
                       : "Save the dashboard to view in Dashboards"
                   }
                 >
                   <button
-                    onClick={isPublished ? onExpand : undefined}
-                    disabled={!isPublished}
+                    onClick={isSaved ? onExpand : undefined}
+                    disabled={!isSaved}
                     className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                      !isPublished
-                        ? "text-gray-400 bg-white border-gray-200/70 cursor-not-allowed"
+                      !isSaved
+                        ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
                         : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
                     }`}
                   >
-                    <ArrowsOutIcon size={14} />
+                    <ArrowSquareOutIcon size={14} />
                   </button>
                 </Tooltip>
               )}
@@ -312,7 +312,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <SaveButton
                     savePhase={savePhase}
                     onSave={() => onSave(dashboard.dashboardVersion < 1)}
-                    isPublished={isPublished}
+                    isSaved={isSaved}
                   />
                   {dashboard.status === DashboardStatus.Draft &&
                     dashboard.dashboardVersion >= 1 && (
@@ -325,14 +325,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         </button>
                       </Tooltip>
                     )}
-                  <RefreshButton
-                    onRefresh={onRefresh}
-                    canRefresh={isPublished}
-                  />
-                  <CustomizeButton canCustomize={isPublished} />
+                  <RefreshButton onRefresh={onRefresh} canRefresh={isSaved} />
+                  <CustomizeButton canCustomize={isSaved} />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
-                    canShare={isPublished}
+                    canShare={isSaved}
                     sharePhase={sharePhase}
                     onShare={onShare}
                     onCopyLink={handleCopyLink}

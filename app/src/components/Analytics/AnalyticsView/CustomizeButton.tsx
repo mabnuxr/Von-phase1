@@ -28,7 +28,7 @@ const CustomizeButton: React.FC<CustomizeButtonProps> = ({
           disabled={!canCustomize}
           className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
             !canCustomize
-              ? "bg-white border-gray-200/70 text-gray-400 cursor-not-allowed"
+              ? "bg-gray-100 border-gray-200/70 text-gray-400 cursor-not-allowed"
               : isVisible
                 ? "bg-gray-50 border-gray-300 text-gray-900 cursor-pointer"
                 : "bg-white border-gray-200/70 text-gray-700 hover:bg-gray-50 hover:border-gray-300 cursor-pointer"

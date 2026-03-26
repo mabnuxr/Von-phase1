@@ -18,7 +18,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
       disabled={!canRefresh}
       className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
         !canRefresh
-          ? "text-gray-400 bg-white border-gray-200/70 cursor-not-allowed"
+          ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
           : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
       }`}
     >

@@ -76,7 +76,7 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
           disabled={!canShare}
           className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
             !canShare
-              ? "text-gray-400 bg-white border-gray-200/70 cursor-not-allowed"
+              ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
               : open
                 ? "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer"
                 : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
