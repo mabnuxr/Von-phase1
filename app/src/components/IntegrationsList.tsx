@@ -35,6 +35,7 @@ const CATEGORY_ORDER: Array<
   | "CRM"
   | "Calendar"
   | "Call Recorder"
+  | "Note Takers"
   | "Internal Documents"
   | "Sales Engagement"
   | "Data Warehouse"
@@ -44,6 +45,7 @@ const CATEGORY_ORDER: Array<
   "CRM",
   "Calendar",
   "Call Recorder",
+  "Note Takers",
   "Internal Documents",
   "Sales Engagement",
   "Data Warehouse",

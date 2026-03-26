@@ -57,6 +57,7 @@ const Analytics = () => {
     handleSave,
     savePhase,
     handleRevert,
+    revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
@@ -94,8 +95,13 @@ const Analytics = () => {
   } = useResizablePane();
   const { collapseSidebar } = useAppShell();
 
-  const { mergedWidgets, handlePageChange, loadingPanels } =
-    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  const {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
   // Drilldown
   const {
@@ -103,11 +109,13 @@ const Analytics = () => {
     widgetTitle: drilldownWidgetTitle,
     data: drilldownData,
     pagination: drilldownPagination,
+    currentSort: drilldownSort,
     isLoading: isDrilldownLoading,
     isError: isDrilldownError,
     openDrilldown,
     closeDrilldown,
     changePage: changeDrilldownPage,
+    changeSort: changeDrilldownSort,
   } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
   // Subscribe to Pusher events for dashboard refresh notifications
@@ -143,6 +151,7 @@ const Analytics = () => {
           onSave={handleSave}
           savePhase={savePhase}
           onRevert={handleRevert}
+          revertPhase={revertPhase}
           onShare={handleShare}
           sharePhase={sharePhase}
           onChatClick={openChat}
@@ -152,6 +161,8 @@ const Analytics = () => {
           loadingTablePanels={loadingPanels}
           paginatedWidgets={mergedWidgets}
           onDrillDown={openDrilldown}
+          onTableSortChange={handleSortChange}
+          tableSortStates={activeSorts}
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
           onRename={handleRename}
@@ -165,6 +176,8 @@ const Analytics = () => {
           isLoading={isDrilldownLoading}
           isError={isDrilldownError}
           onPageChange={changeDrilldownPage}
+          onSortChange={changeDrilldownSort}
+          sortState={drilldownSort}
         />
       </div>
 

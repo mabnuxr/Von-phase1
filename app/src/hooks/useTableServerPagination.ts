@@ -10,6 +10,13 @@ interface TablePanelMeta {
   id: string;
   limit: number;
   currentPage: number;
+  orderBy: string | undefined;
+  orderByAsc: boolean | undefined;
+}
+
+interface SortConfigItem {
+  order_by: string;
+  order_by_asc: boolean;
 }
 
 interface ServerPagination {
@@ -19,16 +26,67 @@ interface ServerPagination {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  sortConfig?: SortConfigItem[];
+}
+
+interface SortInfo {
+  orderBy: string;
+  orderByAsc: boolean;
 }
 
 // ─── Query key factory ──────────────────────────────────────────
 
 export const panelPageKeys = {
-  page: (dashboardId: string, panelId: string, page: number, limit: number) =>
-    ["panel-page", dashboardId, panelId, page, limit] as const,
+  page: (
+    dashboardId: string,
+    panelId: string,
+    page: number,
+    limit: number,
+    orderBy?: string,
+    orderByAsc?: boolean,
+  ) =>
+    [
+      "panel-page",
+      dashboardId,
+      panelId,
+      page,
+      limit,
+      orderBy ?? null,
+      orderByAsc ?? null,
+    ] as const,
 };
 
 // ─── Helpers ────────────────────────────────────────────────────
+
+/**
+ * Inject `sorting.order` into gridOptions columns so Grid Lite knows which
+ * column is sorted and can maintain its sort cycle (asc → desc → none)
+ * correctly across data updates.  Without this, `grid.update()` resets
+ * Grid Lite's internal sort state, causing the cycle to restart at "asc"
+ * on every click and preventing queries from firing for repeated clicks.
+ */
+function injectSortOrder(
+  gridOptions: Record<string, unknown>,
+  orderBy: string | undefined,
+  orderByAsc: boolean | undefined,
+): Record<string, unknown> {
+  if (!orderBy) return gridOptions;
+  const columns = gridOptions.columns as
+    | Array<{ id?: string; sorting?: Record<string, unknown> }>
+    | undefined;
+  if (!Array.isArray(columns)) return gridOptions;
+
+  return {
+    ...gridOptions,
+    columns: columns.map((col) => ({
+      ...col,
+      sorting: {
+        ...(col.sorting ?? {}),
+        order: col.id === orderBy ? (orderByAsc ? "asc" : "desc") : undefined,
+      },
+    })),
+  };
+}
 
 function adaptPagination(raw: {
   page: number;
@@ -37,6 +95,7 @@ function adaptPagination(raw: {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  sortConfig?: SortConfigItem[];
 }): ServerPagination {
   return {
     page: raw.page,
@@ -45,18 +104,19 @@ function adaptPagination(raw: {
     totalPages: raw.totalPages,
     hasNextPage: raw.hasNextPage,
     hasPrevPage: raw.hasPrevPage,
+    sortConfig: raw.sortConfig,
   };
 }
 
 /**
- * Manages server-side table pagination for dashboard table widgets.
+ * Manages server-side table pagination and sorting for dashboard table widgets.
  *
- * Uses `useQueries` so each (dashboardId, panelId, page, limit) tuple
+ * Uses `useQueries` so each (dashboardId, panelId, page, limit, sort) tuple
  * gets its own React Query cache entry. Navigating back to a previously
  * visited page is an instant cache hit — no duplicate requests.
  *
  * Page 1 data always comes from the initial dashboard render response;
- * the hook only fetches pages > 1.
+ * the hook only fetches pages > 1 or when a sort is applied.
  *
  * Returns `mergedWidgets` — the original widgets map with table widgets
  * overridden by their current page data when available. When a page is
@@ -70,6 +130,13 @@ export function useTableServerPagination(
   // Current page per panel. Panels not in this map are on page 1.
   // Reset is handled by key={dashboardId} on the Analytics route component.
   const [pageState, setPageState] = useState<Record<string, number>>({});
+
+  // Current sort per panel. Panels not in this map use default backend order.
+  const [sortState, setSortState] = useState<Record<string, SortInfo>>({});
+
+  // Panels that had a sort applied and then cleared — need one fetch to restore
+  // the backend default order before dropping out of panelsNeedingFetch.
+  const [sortCleared, setSortCleared] = useState<Set<string>>(new Set());
 
   // Identify table panels that have server pagination
   const tablePanels: TablePanelMeta[] = useMemo(() => {
@@ -85,18 +152,26 @@ export function useTableServerPagination(
         const cfg = w.config as unknown as {
           serverPagination: { limit: number };
         };
+        const sort = sortState[id];
         return {
           id,
           limit: cfg.serverPagination.limit,
           currentPage: pageState[id] ?? 1,
+          orderBy: sort?.orderBy,
+          orderByAsc: sort?.orderByAsc,
         };
       });
-  }, [widgets, pageState]);
+  }, [widgets, pageState, sortState]);
 
-  // Only fetch pages beyond the initial page (page 1 is in dashboard data)
+  // Fetch pages beyond initial, when sort is applied, or when sort was just cleared
+  // (sort-cleared panels need one fetch to restore backend default order)
   const panelsNeedingFetch = useMemo(
-    () => tablePanels.filter((p) => p.currentPage > 1),
-    [tablePanels],
+    () =>
+      tablePanels.filter(
+        (p) =>
+          p.currentPage > 1 || p.orderBy !== undefined || sortCleared.has(p.id),
+      ),
+    [tablePanels, sortCleared],
   );
 
   const pageQueries = useQueries({
@@ -106,6 +181,8 @@ export function useTableServerPagination(
         panel.id,
         panel.currentPage,
         panel.limit,
+        panel.orderBy,
+        panel.orderByAsc,
       ),
       queryFn: (): Promise<PanelRenderResponse> =>
         dashboardService.renderPanels(dashboardId!, {
@@ -114,6 +191,14 @@ export function useTableServerPagination(
               panel_id: panel.id,
               table_limit: panel.limit,
               table_page: panel.currentPage,
+              ...(panel.orderBy !== undefined && {
+                sort_config: [
+                  {
+                    order_by: panel.orderBy!,
+                    order_by_asc: panel.orderByAsc!,
+                  },
+                ],
+              }),
             },
           ],
         }),
@@ -134,21 +219,35 @@ export function useTableServerPagination(
         // Successful fetch — record this page as the last good one
         lastSuccessfulPage.current[panel.id] = panel.currentPage;
         revertedRef.current.delete(panel.id);
-      } else if (query?.isError && !revertedRef.current.has(panel.id)) {
-        // Failed fetch — revert to the last successful page (or page 1)
-        revertedRef.current.add(panel.id);
-        const fallbackPage = lastSuccessfulPage.current[panel.id] ?? 1;
-        setPageState((prev) => {
-          if (fallbackPage === 1) {
-            const next = { ...prev };
-            delete next[panel.id];
+        // If this was a sort-cleared refetch, it succeeded — stop tracking it
+        if (sortCleared.has(panel.id)) {
+          setSortCleared((prev) => {
+            const next = new Set(prev);
+            next.delete(panel.id);
             return next;
-          }
-          return { ...prev, [panel.id]: fallbackPage };
+          });
+        }
+      } else if (query?.isError && !revertedRef.current.has(panel.id)) {
+        // Failed fetch — revert to page 1 and clear sort so panel isn't stuck
+        revertedRef.current.add(panel.id);
+        setPageState((prev) => {
+          const next = { ...prev };
+          delete next[panel.id];
+          return next;
+        });
+        setSortState((prev) => {
+          const next = { ...prev };
+          delete next[panel.id];
+          return next;
+        });
+        setSortCleared((prev) => {
+          const next = new Set(prev);
+          next.delete(panel.id);
+          return next;
         });
       }
     });
-  }, [panelsNeedingFetch, pageQueries]);
+  }, [panelsNeedingFetch, pageQueries, sortCleared]);
 
   // Build the merged widgets: replace table widget configs with fetched page data
   // When a page is requested but data hasn't arrived, optimistically update
@@ -174,10 +273,16 @@ export function useTableServerPagination(
         // Data arrived — use it
         const rendered = query.data.widgets[panel.id];
         if (rendered) {
+          const baseGridOpts =
+            rendered.gridOptions ?? existingConfig.gridOptions;
           result[panel.id] = {
             ...existingWidget,
             config: {
-              gridOptions: rendered.gridOptions ?? existingConfig.gridOptions,
+              gridOptions: injectSortOrder(
+                baseGridOpts as Record<string, unknown>,
+                panel.orderBy,
+                panel.orderByAsc,
+              ),
               serverPagination: rendered.pagination
                 ? adaptPagination(rendered.pagination)
                 : existingConfig.serverPagination,
@@ -218,5 +323,52 @@ export function useTableServerPagination(
     setPageState((prev) => ({ ...prev, [panelId]: page }));
   }, []);
 
-  return { mergedWidgets, handlePageChange, loadingPanels };
+  const handleSortChange = useCallback(
+    (panelId: string, columnId: string, order: "asc" | "desc" | null) => {
+      // Reset error-revert tracking so stale page refs from the old sort don't interfere
+      delete lastSuccessfulPage.current[panelId];
+      revertedRef.current.delete(panelId);
+
+      setSortState((prev) => {
+        if (order === null) {
+          // Sort cleared — mark panel so it gets one unsorted refetch
+          if (prev[panelId]) {
+            setSortCleared((s) => new Set(s).add(panelId));
+          }
+          const next = { ...prev };
+          delete next[panelId];
+          return next;
+        }
+        // New sort applied — no longer in "sort cleared" state
+        setSortCleared((s) => {
+          if (!s.has(panelId)) return s;
+          const next = new Set(s);
+          next.delete(panelId);
+          return next;
+        });
+        return {
+          ...prev,
+          [panelId]: { orderBy: columnId, orderByAsc: order === "asc" },
+        };
+      });
+      // Reset to page 1 when sort changes
+      setPageState((prev) => {
+        const next = { ...prev };
+        delete next[panelId];
+        return next;
+      });
+    },
+    [],
+  );
+
+  // Expose current sort state so components can show sort indicators
+  const activeSorts = useMemo(() => sortState, [sortState]);
+
+  return {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  };
 }

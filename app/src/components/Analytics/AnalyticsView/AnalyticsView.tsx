@@ -4,6 +4,7 @@ import {
   ArrowSquareOutIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
+  SpinnerGapIcon,
   XIcon,
   PencilSimpleIcon,
 } from "@phosphor-icons/react";
@@ -41,6 +42,7 @@ interface AnalyticsViewProps {
   onSave: (isFirstSave?: boolean) => void;
   savePhase: MutationPhase;
   onRevert: () => void;
+  revertPhase: MutationPhase;
   onShare: (isSharedWithTenant: boolean) => void;
   sharePhase: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
@@ -62,6 +64,14 @@ interface AnalyticsViewProps {
   paginatedWidgets?: Record<string, any>;
   /** Callback when a widget's drilldown icon is clicked */
   onDrillDown?: (panelId: string) => void;
+  /** Server-side table sort handler */
+  onTableSortChange?: (
+    panelId: string,
+    columnId: string,
+    order: "asc" | "desc" | null,
+  ) => void;
+  /** Current sort state per panel */
+  tableSortStates?: Record<string, { orderBy: string; orderByAsc: boolean }>;
   /** Initial color theme from backend ui_config */
   defaultColorTheme?: string;
   /** Called when the user changes the color theme */
@@ -78,6 +88,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onSave,
   savePhase,
   onRevert,
+  revertPhase,
   onShare,
   sharePhase,
   onExpand,
@@ -89,6 +100,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   loadingTablePanels,
   paginatedWidgets,
   onDrillDown,
+  onTableSortChange,
+  tableSortStates,
   defaultColorTheme,
   onColorThemeChange,
   onRename,
@@ -325,10 +338,26 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     dashboard.dashboardVersion >= 1 && (
                       <Tooltip content="Reverts to previous saved version">
                         <button
-                          onClick={onRevert}
-                          className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={
+                            revertPhase === "idle" ? onRevert : undefined
+                          }
+                          disabled={revertPhase !== "idle"}
+                          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+                            revertPhase === "pending"
+                              ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                              : revertPhase === "success"
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                          }`}
                         >
-                          <ClockCounterClockwiseIcon size={14} />
+                          {revertPhase === "pending" ? (
+                            <SpinnerGapIcon
+                              size={14}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <ClockCounterClockwiseIcon size={14} />
+                          )}
                         </button>
                       </Tooltip>
                     )}
@@ -356,6 +385,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTablePageChange={onTablePageChange}
               loadingTablePanels={loadingTablePanels}
               onDrillDown={onDrillDown}
+              onTableSortChange={onTableSortChange}
+              tableSortStates={tableSortStates}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

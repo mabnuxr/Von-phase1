@@ -12,6 +12,7 @@ export type {
   DataSourceType,
   SourceReference,
   AIReasoningData,
+  ServerSortState,
 } from './ReportTable';
 export {
   OwnerCell,

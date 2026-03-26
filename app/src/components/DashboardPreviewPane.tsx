@@ -31,6 +31,7 @@ export function DashboardPreviewPane({
     handleSave,
     savePhase,
     handleRevert,
+    revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
@@ -87,6 +88,7 @@ export function DashboardPreviewPane({
           onSave={handleSave}
           savePhase={savePhase}
           onRevert={handleRevert}
+          revertPhase={revertPhase}
           onShare={handleShare}
           sharePhase={sharePhase}
           onExpand={handleExpand}
