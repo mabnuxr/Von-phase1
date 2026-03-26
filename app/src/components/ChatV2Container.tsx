@@ -24,6 +24,7 @@ import {
   Chat,
   FilePreviewModal,
   ArtifactViewerPanel,
+  ResizableLayout,
 } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
@@ -257,58 +258,105 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
         /* Deep Research Mode */
-        <div className="flex h-full w-full gap-1">
-          <div
-            className={`min-w-0 flex flex-col ${dashboardPaneState.isOpen ? "flex-shrink-0" : "flex-1"}`}
-            style={dashboardPaneState.isOpen ? { width: 480 } : undefined}
+        dashboardPaneState.isOpen && dashboardPaneState.dashboardId ? (
+          <ResizableLayout
+            defaultRatios={[0.3, 0.7]}
+            constraints={[
+              { min: 0.3, max: 0.6 },
+              { min: 0.4, max: 0.7 },
+            ]}
+            storageKey="dashboard-pane-ratio"
+            className="h-full w-full"
           >
-            {banner}
-            {chatV2.writeBlocked && (
-              <div className="w-full max-w-4xl mx-auto mb-2 px-2">
-                <WriteBlockedBanner
-                  writeBlocked={chatV2.writeBlocked}
-                  onDismiss={chatV2.dismissWriteBlocked}
-                />
-              </div>
-            )}
-            <DeepResearchConversation
-              messages={chatV2.transformedMessages}
-              userName={user?.firstName || user?.name?.split(" ")[0]}
-              userEmail={user?.email}
-              conversationId={conversationId}
-              researchResults={chatV2.effectiveResearchResults ?? undefined}
-              isDeepResearchRunning={chatV2.isDeepResearchRunning}
-              dashboard={chatV2.dashboard ?? undefined}
-              lockedConversationMode={lockedConversationMode}
-              onSendMessage={chatV2.handleSendMessage}
-              onStopStreaming={chatV2.handleStopStreaming}
-              onArtifactClick={chatV2.handleArtifactClick}
-              onApprove={chatV2.handleApproval}
-              onReject={chatV2.handleRejection}
-              onApprovePlan={chatV2.handlePlanApproval}
-              onRejectPlan={chatV2.handlePlanRejection}
-              placeholder="Ask von anything"
-              disableSubmit={!chatV2.canSubmitFinal}
-              onInputWhileDisabled={onDisabledInteraction}
-              enableCommands={isSlashCommandsEnabled}
-              availableAgentModes={availableAgentModes}
-              fetchNextMessagePage={fetchNextMessagePage}
-              hasNextMessagePage={hasNextMessagePage}
-              isFetchingNextMessagePage={isFetchingNextMessagePage}
-              onDashboardPreview={handleDashboardPreview}
-              onDashboardOpen={handleDashboardOpen}
-            />
+            <ResizableLayout.Slot className="min-w-0 flex flex-col">
+              {banner}
+              {chatV2.writeBlocked && (
+                <div className="w-full max-w-4xl mx-auto mb-2 px-2">
+                  <WriteBlockedBanner
+                    writeBlocked={chatV2.writeBlocked}
+                    onDismiss={chatV2.dismissWriteBlocked}
+                  />
+                </div>
+              )}
+              <DeepResearchConversation
+                messages={chatV2.transformedMessages}
+                userName={user?.firstName || user?.name?.split(" ")[0]}
+                userEmail={user?.email}
+                conversationId={conversationId}
+                researchResults={chatV2.effectiveResearchResults ?? undefined}
+                isDeepResearchRunning={chatV2.isDeepResearchRunning}
+                dashboard={chatV2.dashboard ?? undefined}
+                lockedConversationMode={lockedConversationMode}
+                onSendMessage={chatV2.handleSendMessage}
+                onStopStreaming={chatV2.handleStopStreaming}
+                onArtifactClick={chatV2.handleArtifactClick}
+                onApprove={chatV2.handleApproval}
+                onReject={chatV2.handleRejection}
+                onApprovePlan={chatV2.handlePlanApproval}
+                onRejectPlan={chatV2.handlePlanRejection}
+                placeholder="Ask von anything"
+                disableSubmit={!chatV2.canSubmitFinal}
+                onInputWhileDisabled={onDisabledInteraction}
+                enableCommands={isSlashCommandsEnabled}
+                availableAgentModes={availableAgentModes}
+                fetchNextMessagePage={fetchNextMessagePage}
+                hasNextMessagePage={hasNextMessagePage}
+                isFetchingNextMessagePage={isFetchingNextMessagePage}
+                onDashboardPreview={handleDashboardPreview}
+                onDashboardOpen={handleDashboardOpen}
+              />
+            </ResizableLayout.Slot>
+            <ResizableLayout.Slot className="h-full min-w-0">
+              <DashboardPreviewPane
+                dashboardId={dashboardPaneState.dashboardId}
+                conversationId={conversationId}
+                onClose={closeDashboardPane}
+              />
+            </ResizableLayout.Slot>
+          </ResizableLayout>
+        ) : (
+          /* Deep Research Mode — no dashboard pane */
+          <div className="flex h-full w-full">
+            <div className="flex-1 min-w-0 flex flex-col">
+              {banner}
+              {chatV2.writeBlocked && (
+                <div className="w-full max-w-4xl mx-auto mb-2 px-2">
+                  <WriteBlockedBanner
+                    writeBlocked={chatV2.writeBlocked}
+                    onDismiss={chatV2.dismissWriteBlocked}
+                  />
+                </div>
+              )}
+              <DeepResearchConversation
+                messages={chatV2.transformedMessages}
+                userName={user?.firstName || user?.name?.split(" ")[0]}
+                userEmail={user?.email}
+                conversationId={conversationId}
+                researchResults={chatV2.effectiveResearchResults ?? undefined}
+                isDeepResearchRunning={chatV2.isDeepResearchRunning}
+                dashboard={chatV2.dashboard ?? undefined}
+                lockedConversationMode={lockedConversationMode}
+                onSendMessage={chatV2.handleSendMessage}
+                onStopStreaming={chatV2.handleStopStreaming}
+                onArtifactClick={chatV2.handleArtifactClick}
+                onApprove={chatV2.handleApproval}
+                onReject={chatV2.handleRejection}
+                onApprovePlan={chatV2.handlePlanApproval}
+                onRejectPlan={chatV2.handlePlanRejection}
+                placeholder="Ask von anything"
+                disableSubmit={!chatV2.canSubmitFinal}
+                onInputWhileDisabled={onDisabledInteraction}
+                enableCommands={isSlashCommandsEnabled}
+                availableAgentModes={availableAgentModes}
+                fetchNextMessagePage={fetchNextMessagePage}
+                hasNextMessagePage={hasNextMessagePage}
+                isFetchingNextMessagePage={isFetchingNextMessagePage}
+                onDashboardPreview={handleDashboardPreview}
+                onDashboardOpen={handleDashboardOpen}
+              />
+            </div>
           </div>
-
-          {/* Dashboard Preview Pane */}
-          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
-            <DashboardPreviewPane
-              dashboardId={dashboardPaneState.dashboardId}
-              conversationId={conversationId}
-              onClose={closeDashboardPane}
-            />
-          )}
-        </div>
+        )
       ) : (
         /* Regular V2 Mode */
         <div className="flex h-full w-full gap-1">

@@ -58,6 +58,16 @@ export type { TabPillProps } from './TabPill';
 export { SidePane } from './SidePane';
 export type { SidePaneProps } from './SidePane';
 
+export { ResizableLayout, usePanelResize } from './layouts';
+export type {
+  ResizableLayoutProps,
+  ResizableSlotProps,
+  PanelConstraint,
+  UsePanelResizeOptions,
+  ResizableHandleProps,
+  UsePanelResizeReturn,
+} from './layouts';
+
 // Typography Atoms
 // ----------------
 export { Text } from './Text';
