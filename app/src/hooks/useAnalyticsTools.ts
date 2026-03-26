@@ -43,6 +43,8 @@ export function useAnalyticsTools(dashboardId: string) {
 
   const handleSave = useCallback(
     (isFirstSave?: boolean) => {
+      isFirstSaveRef.current = isFirstSave ?? false;
+
       saveMutation.mutate(undefined, {
         onError: (error) => {
           console.error("[useAnalyticsTools] Save failed:", error);
@@ -52,8 +54,6 @@ export function useAnalyticsTools(dashboardId: string) {
           });
         },
       });
-      // Store whether this is a first save so the onSuccess toast can use it
-      isFirstSaveRef.current = isFirstSave ?? false;
     },
     [saveMutation, showToast],
   );

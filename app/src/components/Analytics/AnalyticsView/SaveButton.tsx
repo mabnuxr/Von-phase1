@@ -1,4 +1,4 @@
-import { CheckIcon, SpinnerGapIcon } from "@phosphor-icons/react";
+import { SpinnerGapIcon } from "@phosphor-icons/react";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 
 interface SaveButtonProps {
@@ -33,12 +33,7 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
           Saving
         </>
       )}
-      {(savePhase === "success" || (isIdle && isSaved)) && (
-        <>
-          <CheckIcon size={14} weight="bold" />
-          Saved
-        </>
-      )}
+      {(savePhase === "success" || (isIdle && isSaved)) && <>Saved</>}
       {isIdle && !isSaved && "Save"}
     </button>
   );
