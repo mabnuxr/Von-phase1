@@ -232,6 +232,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     category: "Customer Support",
     disabled: true,
   },
+  granola: {
+    id: "granola",
+    name: "Granola",
+    description:
+      "Search meeting notes, transcripts, and AI-generated summaries",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
+    category: "Call Recorder",
+  },
 } as const;
 
 /**
@@ -271,6 +280,7 @@ export function getIntegrationLogoPath(type: string): string {
     ZENDESK: "zendesk",
     PYLON: "pylon",
     GMAIL: "gmail",
+    GRANOLA: "granola",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -311,6 +321,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     zendesk: "ZENDESK",
     pylon: "PYLON",
     gmail: "GMAIL",
+    granola: "GRANOLA",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -345,6 +356,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     ZENDESK: "zendesk",
     PYLON: "pylon",
     GMAIL: "gmail",
+    GRANOLA: "granola",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -380,6 +392,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     ZENDESK: "zendesk",
     PYLON: "pylon",
     GMAIL: "gmail",
+    GRANOLA: "granola",
   };
 
   const integrationId =
@@ -424,6 +437,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   snowflake: ["tenant"],
   databricks: ["user"],
   pylon: ["user"],
+  granola: ["user"],
 };
 
 /**

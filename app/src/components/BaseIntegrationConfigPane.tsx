@@ -539,7 +539,8 @@ export function BaseIntegrationConfigPane({
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar" ||
                 integrationId === "googledrive" ||
-                integrationId === "gmail") && (
+                integrationId === "gmail" ||
+                integrationId === "granola") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type
