@@ -8,6 +8,7 @@ import React, {
   useImperativeHandle,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip } from '../../Tooltip';
 import {
   PlusIcon,
   MicrophoneIcon,
@@ -209,13 +210,20 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                     onMouseEnter={() => !isAgentLocked && setIsAgentSubmenuOpen(true)}
                     onMouseLeave={() => setIsAgentSubmenuOpen(false)}
                   >
-                    <TransparentButton
-                      icon={<RobotIcon size={16} className="text-gray-800" />}
-                      rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
-                      onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
+                    <Tooltip
+                      content="Start a new conversation to change agent mode"
+                      enabled={isAgentLocked}
+                      placement="top"
                     >
-                      Agents
-                    </TransparentButton>
+                      <TransparentButton
+                        icon={<RobotIcon size={16} className="text-gray-800" />}
+                        rightContent={<CaretRightIcon size={14} className="text-gray-400" />}
+                        onClick={() => !isAgentLocked && setIsAgentSubmenuOpen(!isAgentSubmenuOpen)}
+                        disabled={isAgentLocked}
+                      >
+                        Agents
+                      </TransparentButton>
+                    </Tooltip>
 
                     {/* Agents submenu */}
                     <AnimatePresence>
