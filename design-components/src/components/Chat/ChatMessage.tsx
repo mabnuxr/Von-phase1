@@ -348,7 +348,7 @@ export interface ChatMessageProps {
    * When present, renders an integration card inline on the message.
    */
   integrationBlock?: {
-    blockCode: string;
+    blockCode?: string;
     message: string;
     integrationType: string;
   };
@@ -823,21 +823,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   )}
 
                   {/* Integration write blocked — inline card for connectable blocks */}
-                  {!isUser && integrationBlock && !isStreaming
-                    && integrationBlock.blockCode !== 'org_read_only'
-                    && integrationBlock.blockCode !== 'admin_disabled'
-                    && (() => {
+                  {!isUser &&
+                    integrationBlock &&
+                    !isStreaming &&
+                    integrationBlock.blockCode !== 'org_read_only' &&
+                    integrationBlock.blockCode !== 'admin_disabled' &&
+                    (() => {
                       const metadata = getIntegrationMetadata?.(integrationBlock.integrationType);
                       if (!metadata) return null;
-                      const isConnected = isIntegrationConnected?.(integrationBlock.integrationType) ?? false;
+                      const isConnected =
+                        isIntegrationConnected?.(integrationBlock.integrationType) ?? false;
                       return (
-                        <div className="mt-3 w-fit rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="mt-3 w-full rounded-lg border border-gray-200 overflow-hidden">
                           <IntegrationCard
                             name={metadata.name}
                             integrationLogoPath={metadata.logoPath}
                             description={integrationBlock.message}
                             isAvailable={!isConnected}
-                            onToggle={onIntegrate ? () => onIntegrate(integrationBlock.integrationType) : undefined}
+                            onToggle={
+                              onIntegrate
+                                ? () => onIntegrate(integrationBlock.integrationType)
+                                : undefined
+                            }
                             chips={isConnected ? ['connected'] : undefined}
                           />
                         </div>

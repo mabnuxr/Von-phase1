@@ -178,7 +178,7 @@ export interface Message {
    * When present, renders an integration card inline on the message.
    */
   integrationBlock?: {
-    blockCode: string;
+    blockCode?: string;
     message: string;
     integrationType: string;
   };
