@@ -834,7 +834,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       const isConnected =
                         isIntegrationConnected?.(integrationBlock.integrationType) ?? false;
                       return (
-                        <div className="mt-3 w-full rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="mt-3 w-full rounded-xl border border-gray-100 shadow-xs overflow-hidden">
                           <IntegrationCard
                             name={metadata.name}
                             integrationLogoPath={metadata.logoPath}
