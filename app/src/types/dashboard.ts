@@ -387,15 +387,19 @@ export interface PanelRenderItem {
   panel_id: string;
   table_limit: number;
   table_page: number;
+  order_by?: string;
+  order_by_asc?: boolean;
 }
 
 export interface PanelPaginationInfo {
   page: number;
   limit: number;
-  total_rows: number;
-  total_pages: number;
-  has_next_page: boolean;
-  has_prev_page: boolean;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  orderBy?: string;
+  orderByAsc?: boolean;
 }
 
 export interface PanelRenderWidget {
@@ -416,6 +420,8 @@ export interface PanelDrilldownRequest {
   panel_id: string;
   page_limit: number;
   page: number;
+  order_by?: string;
+  order_by_asc?: boolean;
 }
 
 export interface PanelDrilldownPagination {
@@ -425,6 +431,8 @@ export interface PanelDrilldownPagination {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  orderBy?: string;
+  orderByAsc?: boolean;
 }
 
 export interface PanelDrilldownResponse {
