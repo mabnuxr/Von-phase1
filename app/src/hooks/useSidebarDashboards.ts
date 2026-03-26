@@ -54,7 +54,7 @@ export function useSidebarDashboards() {
         ),
       initialPageParam: 1,
       getNextPageParam: (lastPage) =>
-        lastPage.pagination.has_next_page
+        lastPage.pagination.hasNextPage
           ? lastPage.pagination.page + 1
           : undefined,
       staleTime: DASHBOARD_LIST_STALE_TIME,
