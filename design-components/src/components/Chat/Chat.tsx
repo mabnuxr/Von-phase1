@@ -61,6 +61,9 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   driveLoadingFileId,
   onFileClick,
   banner,
+  isIntegrationConnected,
+  onIntegrate,
+  getIntegrationMetadata,
   topBanner,
   disableSubmit = false,
   examplePromptsDisabled = false,
@@ -433,6 +436,10 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
+                  integrationBlock={message.integrationBlock}
+                  isIntegrationConnected={isIntegrationConnected}
+                  onIntegrate={onIntegrate}
+                  getIntegrationMetadata={getIntegrationMetadata}
                 />
               </div>
             ))}

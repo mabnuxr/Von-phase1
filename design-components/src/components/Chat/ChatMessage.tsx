@@ -13,6 +13,7 @@ import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment, MessageStatus } from './types';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
+import { IntegrationCard } from '../IntegrationCard';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
 import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
@@ -341,6 +342,26 @@ export interface ChatMessageProps {
   command?: Command;
   /** Fetches a presigned download URL for a command's data source file */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+
+  /**
+   * Integration write block metadata (persisted on assistant messages).
+   * When present, renders an integration card inline on the message.
+   */
+  integrationBlock?: {
+    blockCode: string;
+    message: string;
+    integrationType: string;
+  };
+  /** Check whether a given integration type is connected */
+  isIntegrationConnected?: (integrationType: string) => boolean;
+  /** Callback to open the integration connection flow for a given integration type */
+  onIntegrate?: (integrationType: string) => void;
+  /** Resolve integration metadata (name, logo, description) for a given backend integration type */
+  getIntegrationMetadata?: (integrationType: string) => {
+    name: string;
+    logoPath: string;
+    description?: string;
+  } | null;
 }
 
 /**
@@ -389,6 +410,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   renderArtifactCard,
   command,
   onRequestFilePreviewUrl,
+  integrationBlock,
+  isIntegrationConnected,
+  onIntegrate,
+  getIntegrationMetadata,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -796,6 +821,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       })}
                     </div>
                   )}
+
+                  {/* Integration write blocked — inline card for connectable blocks */}
+                  {!isUser && integrationBlock && !isStreaming
+                    && integrationBlock.blockCode !== 'org_read_only'
+                    && integrationBlock.blockCode !== 'admin_disabled'
+                    && (() => {
+                      const metadata = getIntegrationMetadata?.(integrationBlock.integrationType);
+                      if (!metadata) return null;
+                      const isConnected = isIntegrationConnected?.(integrationBlock.integrationType) ?? false;
+                      return (
+                        <div className="mt-3 w-fit rounded-lg border border-gray-200 overflow-hidden">
+                          <IntegrationCard
+                            name={metadata.name}
+                            integrationLogoPath={metadata.logoPath}
+                            description={integrationBlock.message}
+                            isAvailable={!isConnected}
+                            onToggle={onIntegrate ? () => onIntegrate(integrationBlock.integrationType) : undefined}
+                            chips={isConnected ? ['connected'] : undefined}
+                          />
+                        </div>
+                      );
+                    })()}
 
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (

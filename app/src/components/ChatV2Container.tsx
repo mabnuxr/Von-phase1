@@ -42,7 +42,6 @@ import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
-import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
 import { GmailDraftCardContainer } from "./GmailDraftCardContainer";
 import type { FileArtifact } from "@vonlabs/design-components";
@@ -60,6 +59,15 @@ const SPLIT_CONSTRAINTS = [
   { min: CHAT_MIN_RATIO, max: CHAT_MAX_RATIO },
   { min: DASHBOARD_MIN_RATIO, max: DASHBOARD_MAX_RATIO },
 ];
+import { useTeamMembers } from "../hooks/useTeam";
+import { useIntegrations } from "../hooks/useIntegrations";
+import { AuthenticationStatus } from "../services/integrationsService";
+import usePreferencesStore from "../store/preferencesStore";
+import {
+  getFrontendIntegrationId,
+  INTEGRATION_METADATA,
+} from "../constants/integrationMetadata";
+import { useNavigate } from "react-router-dom";
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -121,6 +129,54 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     driveLoadingFileId,
     onCollapseSidebar,
   } = props;
+
+  const navigate = useNavigate();
+
+  // Build set of connected integration types (lowercase backend keys like "salesforce", "google_calendar")
+  // Used by per-message integration cards to show "Connected" vs "Connect"
+  // Only checks personal (user-level) integrations — workspace integrations don't resolve write blocks
+  const { data: integrationsData } = useIntegrations();
+  const connectedIntegrationTypes = useMemo(() => {
+    const connected = new Set<string>();
+    if (integrationsData?.integrations) {
+      for (const integration of integrationsData.integrations) {
+        if (
+          integration.accessLevel === "user" &&
+          integration.authenticationStatus ===
+            AuthenticationStatus.AUTHENTICATED
+        ) {
+          connected.add(integration.type.toLowerCase());
+        }
+      }
+    }
+    return connected;
+  }, [integrationsData]);
+  const setConfiguringPersonalIntegration = usePreferencesStore(
+    (s) => s.setConfiguringPersonalIntegration,
+  );
+  const handleIntegrate = useCallback(
+    (integrationType: string) => {
+      // Map backend integration_type (e.g. "google_calendar") to frontend ID (e.g. "googlecalendar")
+      const frontendId = getFrontendIntegrationId(integrationType);
+      setConfiguringPersonalIntegration(frontendId);
+      navigate("/settings?tab=integrations");
+    },
+    [setConfiguringPersonalIntegration, navigate],
+  );
+
+  const handleGetIntegrationMetadata = useCallback(
+    (integrationType: string) => {
+      const frontendId = getFrontendIntegrationId(integrationType);
+      const metadata = INTEGRATION_METADATA[frontendId];
+      if (!metadata) return null;
+      return {
+        name: metadata.name,
+        logoPath: metadata.logoPath,
+        description: metadata.description,
+      };
+    },
+    [],
+  );
 
   const chatV2 = useChatV2({
     conversationId: props.conversationId,
@@ -369,6 +425,11 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
                   )}
                 </>
               }
+              isIntegrationConnected={(type) =>
+                connectedIntegrationTypes.has(type)
+              }
+              onIntegrate={handleIntegrate}
+              getIntegrationMetadata={handleGetIntegrationMetadata}
               disableSubmit={!chatV2.canSubmitFinal}
               examplePromptsDisabled={!chatV2.canSubmitFinal}
               onExamplePromptDisabledClick={onDisabledInteraction}
