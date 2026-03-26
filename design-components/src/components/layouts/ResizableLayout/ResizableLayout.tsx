@@ -3,12 +3,20 @@ import { usePanelResize } from './usePanelResize';
 import type { PanelConstraint, UsePanelResizeReturn } from './usePanelResize';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/** Handle thickness in px — used by Slot to subtract from flex-basis. */
+const HANDLE_SIZE_PX = 6; // w-1.5 = 0.375rem = 6px at default font size
+
+// ============================================================================
 // Context
 // ============================================================================
 
 interface ResizableLayoutContextValue extends UsePanelResizeReturn {
   direction: 'horizontal' | 'vertical';
   slotCount: number;
+  handleCount: number;
 }
 
 const ResizableLayoutContext = createContext<ResizableLayoutContextValue | null>(null);
@@ -21,123 +29,6 @@ function useResizableLayout() {
 }
 
 // ============================================================================
-// Root
-// ============================================================================
-
-export interface ResizableLayoutProps {
-  /**
-   * Default ratios for each slot. Must sum to 1.
-   * Length determines the number of expected slots.
-   * @example [0.4, 0.6]
-   */
-  defaultRatios: number[];
-  /**
-   * Per-slot min/max constraints (array indices correspond to slot order).
-   */
-  constraints?: PanelConstraint[];
-  /** Resize direction. @default 'horizontal' */
-  direction?: 'horizontal' | 'vertical';
-  /** localStorage key for persisting ratios. */
-  storageKey?: string;
-  /** Extra class names on the container div. */
-  className?: string;
-  /** Extra inline styles on the container div. */
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-}
-
-/**
- * ResizableLayout — Declarative resizable split layout.
- *
- * Place `<ResizableLayout.Slot>` children inside to define each panel.
- * Resize handles are rendered automatically between slots.
- *
- * @example
- * ```tsx
- * <ResizableLayout
- *   defaultRatios={[0.4, 0.6]}
- *   constraints={[{ min: 0.4, max: 0.6 }, { min: 0.4, max: 0.6 }]}
- *   storageKey="chat-dashboard-split"
- *   className="h-full w-full"
- * >
- *   <ResizableLayout.Slot className="min-w-0">
- *     <ChatPanel />
- *   </ResizableLayout.Slot>
- *   <ResizableLayout.Slot className="min-w-0">
- *     <DashboardPanel />
- *   </ResizableLayout.Slot>
- * </ResizableLayout>
- * ```
- */
-function ResizableLayoutRoot({
-  defaultRatios,
-  constraints,
-  direction = 'horizontal',
-  storageKey,
-  className,
-  style,
-  children,
-}: ResizableLayoutProps) {
-  const resize = usePanelResize({
-    defaultRatios,
-    constraints,
-    direction,
-    storageKey,
-  });
-
-  // Count Slot children
-  const slots = Children.toArray(children).filter(
-    (child) => React.isValidElement(child) && (child.type as any).__resizableSlot
-  );
-
-  const ctx = useMemo<ResizableLayoutContextValue>(
-    () => ({
-      ...resize,
-      direction,
-      slotCount: slots.length,
-    }),
-    [resize, direction, slots.length]
-  );
-
-  const isHorizontal = direction === 'horizontal';
-  const containerClass = [isHorizontal ? 'flex flex-row' : 'flex flex-col', className]
-    .filter(Boolean)
-    .join(' ');
-
-  // Interleave Slot elements with resize handles
-  const elements: React.ReactNode[] = [];
-  let slotIndex = 0;
-
-  Children.forEach(children, (child) => {
-    if (!React.isValidElement(child)) return;
-
-    if ((child.type as any).__resizableSlot) {
-      // Clone Slot with its index injected
-      elements.push(
-        React.cloneElement(child as React.ReactElement<any>, { __slotIndex: slotIndex })
-      );
-
-      // Insert handle between slots (not after the last one)
-      if (slotIndex < slots.length - 1) {
-        elements.push(<Handle key={`handle-${slotIndex}`} index={slotIndex} />);
-      }
-      slotIndex++;
-    } else {
-      // Pass through non-Slot children as-is
-      elements.push(child);
-    }
-  });
-
-  return (
-    <ResizableLayoutContext.Provider value={ctx}>
-      <div ref={resize.containerRef} className={containerClass} style={style}>
-        {elements}
-      </div>
-    </ResizableLayoutContext.Provider>
-  );
-}
-
-// ============================================================================
 // Slot
 // ============================================================================
 
@@ -145,20 +36,27 @@ export interface SlotProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  /** @internal Injected by ResizableLayoutRoot */
+  /** @internal Injected by ResizableLayoutRoot — do not set manually. */
   __slotIndex?: number;
 }
 
 function Slot({ children, className, style, __slotIndex = 0 }: SlotProps) {
-  const { ratios, direction } = useResizableLayout();
+  const { ratios, direction, handleCount } = useResizableLayout();
   const isHorizontal = direction === 'horizontal';
   const sizeProperty = isHorizontal ? 'width' : 'height';
 
+  // Guard: if index is out of bounds, fall back to equal distribution
+  const ratio = ratios[__slotIndex] ?? 1 / ratios.length;
+
+  // Subtract proportional share of handle widths so slots + handles = 100%
+  const handleOffset = handleCount > 0 ? HANDLE_SIZE_PX * handleCount : 0;
+
   return (
     <div
-      className={['flex-shrink-0', className].filter(Boolean).join(' ')}
+      className={className}
       style={{
-        [sizeProperty]: `${ratios[__slotIndex] * 100}%`,
+        flex: `0 0 calc(${ratio * 100}% - ${handleOffset * ratio}px)`,
+        [sizeProperty === 'width' ? 'minWidth' : 'minHeight']: 0,
         ...style,
       }}
     >
@@ -166,9 +64,6 @@ function Slot({ children, className, style, __slotIndex = 0 }: SlotProps) {
     </div>
   );
 }
-
-// Tag Slot so the Root can identify it among children
-(Slot as any).__resizableSlot = true;
 
 // ============================================================================
 // Handle (auto-inserted between slots)
@@ -202,6 +97,132 @@ function Handle({ index }: HandleInternalProps) {
         ].join(' ')}
       />
     </div>
+  );
+}
+
+// ============================================================================
+// Helper — type-safe child identification
+// ============================================================================
+
+function isSlotElement(child: React.ReactNode): child is React.ReactElement<SlotProps> {
+  return React.isValidElement(child) && child.type === Slot;
+}
+
+// ============================================================================
+// Root
+// ============================================================================
+
+export interface ResizableLayoutProps {
+  /**
+   * Default ratios for each slot. Must sum to 1.
+   * Length determines the number of expected slots.
+   * @example [0.4, 0.6]
+   */
+  defaultRatios: number[];
+  /**
+   * Per-slot min/max constraints (array indices correspond to slot order).
+   */
+  constraints?: PanelConstraint[];
+  /** Resize direction. @default 'horizontal' */
+  direction?: 'horizontal' | 'vertical';
+  /** Extra class names on the container div. */
+  className?: string;
+  /** Extra inline styles on the container div. */
+  style?: React.CSSProperties;
+  children: React.ReactNode;
+}
+
+/**
+ * ResizableLayout — Declarative resizable split layout.
+ *
+ * Place `<ResizableLayout.Slot>` children inside to define each panel.
+ * Resize handles are rendered automatically between slots.
+ *
+ * @example
+ * ```tsx
+ * <ResizableLayout
+ *   defaultRatios={[0.4, 0.6]}
+ *   constraints={[{ min: 0.4, max: 0.6 }, { min: 0.4, max: 0.6 }]}
+ *   className="h-full w-full"
+ * >
+ *   <ResizableLayout.Slot className="min-w-0">
+ *     <ChatPanel />
+ *   </ResizableLayout.Slot>
+ *   <ResizableLayout.Slot className="min-w-0">
+ *     <DashboardPanel />
+ *   </ResizableLayout.Slot>
+ * </ResizableLayout>
+ * ```
+ */
+function ResizableLayoutRoot({
+  defaultRatios,
+  constraints,
+  direction = 'horizontal',
+  className,
+  style,
+  children,
+}: ResizableLayoutProps) {
+  const resize = usePanelResize({
+    defaultRatios,
+    constraints,
+    direction,
+  });
+
+  // Count Slot children
+  const slots = Children.toArray(children).filter(isSlotElement);
+  const handleCount = Math.max(0, slots.length - 1);
+
+  // Runtime guard: slot count must match defaultRatios length
+  if (process.env.NODE_ENV !== 'production' && slots.length !== defaultRatios.length) {
+    console.warn(
+      `[ResizableLayout] Slot count (${slots.length}) does not match defaultRatios length (${defaultRatios.length}). ` +
+        'Ratios may not apply correctly.'
+    );
+  }
+
+  const ctx = useMemo<ResizableLayoutContextValue>(
+    () => ({
+      ...resize,
+      direction,
+      slotCount: slots.length,
+      handleCount,
+    }),
+    [resize, direction, slots.length, handleCount]
+  );
+
+  const isHorizontal = direction === 'horizontal';
+  const containerClass = [isHorizontal ? 'flex flex-row' : 'flex flex-col', className]
+    .filter(Boolean)
+    .join(' ');
+
+  // Interleave Slot elements with resize handles
+  const elements: React.ReactNode[] = [];
+  let slotIndex = 0;
+
+  Children.forEach(children, (child) => {
+    if (isSlotElement(child)) {
+      // Clone Slot with its index injected
+      elements.push(
+        React.cloneElement(child, { key: `slot-${slotIndex}`, __slotIndex: slotIndex })
+      );
+
+      // Insert handle between slots (not after the last one)
+      if (slotIndex < slots.length - 1) {
+        elements.push(<Handle key={`handle-${slotIndex}`} index={slotIndex} />);
+      }
+      slotIndex++;
+    } else if (React.isValidElement(child)) {
+      // Pass through non-Slot children as-is
+      elements.push(child);
+    }
+  });
+
+  return (
+    <ResizableLayoutContext.Provider value={ctx}>
+      <div ref={resize.containerRef} className={containerClass} style={style}>
+        {elements}
+      </div>
+    </ResizableLayoutContext.Provider>
   );
 }
 

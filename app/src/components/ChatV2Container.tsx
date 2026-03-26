@@ -24,7 +24,7 @@ import {
   Chat,
   FilePreviewModal,
   ArtifactViewerPanel,
-  ResizableLayout,
+  usePanelResize,
 } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
@@ -47,6 +47,20 @@ import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
 import { GmailDraftCardContainer } from "./GmailDraftCardContainer";
 import type { FileArtifact } from "@vonlabs/design-components";
+
+// Dashboard / chat split-pane layout constants
+const CHAT_DEFAULT_RATIO = 0.3;
+const DASHBOARD_DEFAULT_RATIO = 0.7;
+const CHAT_MIN_RATIO = 0.3;
+const CHAT_MAX_RATIO = 0.6;
+const DASHBOARD_MIN_RATIO = 0.4;
+const DASHBOARD_MAX_RATIO = 0.7;
+
+const SPLIT_DEFAULT_RATIOS = [CHAT_DEFAULT_RATIO, DASHBOARD_DEFAULT_RATIO];
+const SPLIT_CONSTRAINTS = [
+  { min: CHAT_MIN_RATIO, max: CHAT_MAX_RATIO },
+  { min: DASHBOARD_MIN_RATIO, max: DASHBOARD_MAX_RATIO },
+];
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -191,6 +205,16 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
 
+  // Resizable chat / dashboard split
+  const {
+    containerRef: splitContainerRef,
+    ratios: splitRatios,
+    getHandleProps: getSplitHandleProps,
+  } = usePanelResize({
+    defaultRatios: SPLIT_DEFAULT_RATIOS,
+    constraints: SPLIT_CONSTRAINTS,
+  });
+
   // Dashboard preview button: open artifact preview pane & collapse sidebar
   const handleDashboardPreview = useCallback(
     (dashboardId: string) => {
@@ -258,105 +282,77 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
         /* Deep Research Mode */
-        dashboardPaneState.isOpen && dashboardPaneState.dashboardId ? (
-          <ResizableLayout
-            defaultRatios={[0.3, 0.7]}
-            constraints={[
-              { min: 0.3, max: 0.6 },
-              { min: 0.4, max: 0.7 },
-            ]}
-            storageKey="dashboard-pane-ratio"
-            className="h-full w-full"
+        <div ref={splitContainerRef} className="flex h-full w-full">
+          {/* Chat column — always at the same tree position to avoid remount */}
+          <div
+            className="min-w-0 flex flex-col"
+            style={
+              dashboardPaneState.isOpen
+                ? { flex: `0 0 ${splitRatios[0] * 100}%` }
+                : { flex: 1 }
+            }
           >
-            <ResizableLayout.Slot className="min-w-0 flex flex-col">
-              {banner}
-              {chatV2.writeBlocked && (
-                <div className="w-full max-w-4xl mx-auto mb-2 px-2">
-                  <WriteBlockedBanner
-                    writeBlocked={chatV2.writeBlocked}
-                    onDismiss={chatV2.dismissWriteBlocked}
-                  />
-                </div>
-              )}
-              <DeepResearchConversation
-                messages={chatV2.transformedMessages}
-                userName={user?.firstName || user?.name?.split(" ")[0]}
-                userEmail={user?.email}
-                conversationId={conversationId}
-                researchResults={chatV2.effectiveResearchResults ?? undefined}
-                isDeepResearchRunning={chatV2.isDeepResearchRunning}
-                dashboard={chatV2.dashboard ?? undefined}
-                lockedConversationMode={lockedConversationMode}
-                onSendMessage={chatV2.handleSendMessage}
-                onStopStreaming={chatV2.handleStopStreaming}
-                onArtifactClick={chatV2.handleArtifactClick}
-                onApprove={chatV2.handleApproval}
-                onReject={chatV2.handleRejection}
-                onApprovePlan={chatV2.handlePlanApproval}
-                onRejectPlan={chatV2.handlePlanRejection}
-                placeholder="Ask von anything"
-                disableSubmit={!chatV2.canSubmitFinal}
-                onInputWhileDisabled={onDisabledInteraction}
-                enableCommands={isSlashCommandsEnabled}
-                availableAgentModes={availableAgentModes}
-                fetchNextMessagePage={fetchNextMessagePage}
-                hasNextMessagePage={hasNextMessagePage}
-                isFetchingNextMessagePage={isFetchingNextMessagePage}
-                onDashboardPreview={handleDashboardPreview}
-                onDashboardOpen={handleDashboardOpen}
-              />
-            </ResizableLayout.Slot>
-            <ResizableLayout.Slot className="h-full min-w-0">
-              <DashboardPreviewPane
-                dashboardId={dashboardPaneState.dashboardId}
-                conversationId={conversationId}
-                onClose={closeDashboardPane}
-              />
-            </ResizableLayout.Slot>
-          </ResizableLayout>
-        ) : (
-          /* Deep Research Mode — no dashboard pane */
-          <div className="flex h-full w-full">
-            <div className="flex-1 min-w-0 flex flex-col">
-              {banner}
-              {chatV2.writeBlocked && (
-                <div className="w-full max-w-4xl mx-auto mb-2 px-2">
-                  <WriteBlockedBanner
-                    writeBlocked={chatV2.writeBlocked}
-                    onDismiss={chatV2.dismissWriteBlocked}
-                  />
-                </div>
-              )}
-              <DeepResearchConversation
-                messages={chatV2.transformedMessages}
-                userName={user?.firstName || user?.name?.split(" ")[0]}
-                userEmail={user?.email}
-                conversationId={conversationId}
-                researchResults={chatV2.effectiveResearchResults ?? undefined}
-                isDeepResearchRunning={chatV2.isDeepResearchRunning}
-                dashboard={chatV2.dashboard ?? undefined}
-                lockedConversationMode={lockedConversationMode}
-                onSendMessage={chatV2.handleSendMessage}
-                onStopStreaming={chatV2.handleStopStreaming}
-                onArtifactClick={chatV2.handleArtifactClick}
-                onApprove={chatV2.handleApproval}
-                onReject={chatV2.handleRejection}
-                onApprovePlan={chatV2.handlePlanApproval}
-                onRejectPlan={chatV2.handlePlanRejection}
-                placeholder="Ask von anything"
-                disableSubmit={!chatV2.canSubmitFinal}
-                onInputWhileDisabled={onDisabledInteraction}
-                enableCommands={isSlashCommandsEnabled}
-                availableAgentModes={availableAgentModes}
-                fetchNextMessagePage={fetchNextMessagePage}
-                hasNextMessagePage={hasNextMessagePage}
-                isFetchingNextMessagePage={isFetchingNextMessagePage}
-                onDashboardPreview={handleDashboardPreview}
-                onDashboardOpen={handleDashboardOpen}
-              />
-            </div>
+            {banner}
+            {chatV2.writeBlocked && (
+              <div className="w-full max-w-4xl mx-auto mb-2 px-2">
+                <WriteBlockedBanner
+                  writeBlocked={chatV2.writeBlocked}
+                  onDismiss={chatV2.dismissWriteBlocked}
+                />
+              </div>
+            )}
+            <DeepResearchConversation
+              messages={chatV2.transformedMessages}
+              userName={user?.firstName || user?.name?.split(" ")[0]}
+              userEmail={user?.email}
+              conversationId={conversationId}
+              researchResults={chatV2.effectiveResearchResults ?? undefined}
+              isDeepResearchRunning={chatV2.isDeepResearchRunning}
+              dashboard={chatV2.dashboard ?? undefined}
+              lockedConversationMode={lockedConversationMode}
+              onSendMessage={chatV2.handleSendMessage}
+              onStopStreaming={chatV2.handleStopStreaming}
+              onArtifactClick={chatV2.handleArtifactClick}
+              onApprove={chatV2.handleApproval}
+              onReject={chatV2.handleRejection}
+              onApprovePlan={chatV2.handlePlanApproval}
+              onRejectPlan={chatV2.handlePlanRejection}
+              placeholder="Ask von anything"
+              disableSubmit={!chatV2.canSubmitFinal}
+              onInputWhileDisabled={onDisabledInteraction}
+              enableCommands={isSlashCommandsEnabled}
+              availableAgentModes={availableAgentModes}
+              fetchNextMessagePage={fetchNextMessagePage}
+              hasNextMessagePage={hasNextMessagePage}
+              isFetchingNextMessagePage={isFetchingNextMessagePage}
+              onDashboardPreview={handleDashboardPreview}
+              onDashboardOpen={handleDashboardOpen}
+            />
           </div>
-        )
+
+          {/* Dashboard pane — conditionally rendered beside the stable chat column */}
+          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
+            <>
+              {/* Drag handle */}
+              <div
+                {...getSplitHandleProps(0)}
+                className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+              >
+                <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+              </div>
+              <div
+                className="h-full min-w-0"
+                style={{ flex: `0 0 ${splitRatios[1] * 100}%` }}
+              >
+                <DashboardPreviewPane
+                  dashboardId={dashboardPaneState.dashboardId}
+                  conversationId={conversationId}
+                  onClose={closeDashboardPane}
+                />
+              </div>
+            </>
+          )}
+        </div>
       ) : (
         /* Regular V2 Mode */
         <div className="flex h-full w-full gap-1">

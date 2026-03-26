@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 // ============================================================================
 // Types
@@ -27,8 +27,6 @@ export interface UsePanelResizeOptions {
   constraints?: PanelConstraint[];
   /** Resize direction. @default 'horizontal' */
   direction?: 'horizontal' | 'vertical';
-  /** localStorage key for persisting ratios across sessions. */
-  storageKey?: string;
 }
 
 export interface HandleProps {
@@ -56,32 +54,6 @@ export interface UsePanelResizeReturn {
 // Helpers
 // ============================================================================
 
-const STORAGE_VERSION = 'v1';
-
-function readStored(key: string, count: number, constraints: PanelConstraint[]): number[] | null {
-  try {
-    const raw = localStorage.getItem(`${key}:${STORAGE_VERSION}`);
-    if (!raw) return null;
-    const parsed: number[] = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length !== count) return null;
-    const valid = parsed.every(
-      (r, i) =>
-        typeof r === 'number' && r >= (constraints[i]?.min ?? 0) && r <= (constraints[i]?.max ?? 1)
-    );
-    return valid ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeStored(key: string, ratios: number[]) {
-  try {
-    localStorage.setItem(`${key}:${STORAGE_VERSION}`, JSON.stringify(ratios));
-  } catch {
-    // Silently ignore storage errors
-  }
-}
-
 function clampRatio(ratio: number, constraint?: PanelConstraint): number {
   const min = constraint?.min ?? 0;
   const max = constraint?.max ?? 1;
@@ -105,7 +77,6 @@ function clampRatio(ratio: number, constraint?: PanelConstraint): number {
  * const { containerRef, ratios, getHandleProps } = usePanelResize({
  *   defaultRatios: [0.4, 0.6],
  *   constraints: [{ min: 0.4, max: 0.6 }, { min: 0.4, max: 0.6 }],
- *   storageKey: 'my-split',
  * });
  *
  * return (
@@ -118,19 +89,21 @@ function clampRatio(ratio: number, constraint?: PanelConstraint): number {
  * ```
  */
 export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeReturn {
-  const { defaultRatios, constraints = [], direction = 'horizontal', storageKey } = options;
+  const { defaultRatios, constraints = [], direction = 'horizontal' } = options;
 
-  const panelCount = defaultRatios.length;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [ratios, setRatios] = useState<number[]>(defaultRatios);
 
-  const [ratios, setRatios] = useState<number[]>(() => {
-    if (storageKey) {
-      const stored = readStored(storageKey, panelCount, constraints);
-      if (stored) return stored;
-    }
-    return defaultRatios;
-  });
+  // Track active listeners so we can clean up on unmount
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // If unmounted while dragging, remove listeners and reset cursor
+      cleanupRef.current?.();
+    };
+  }, []);
 
   const getHandleProps = useCallback(
     (handleIndex: number): HandleProps => {
@@ -145,6 +118,9 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
         const containerRect = container.getBoundingClientRect();
         const containerSize = isHorizontal ? containerRect.width : containerRect.height;
         const containerStart = isHorizontal ? containerRect.left : containerRect.top;
+
+        // Bail out if container is hidden or not yet laid out
+        if (containerSize === 0) return;
 
         // Snapshot ratios at drag start so we only redistribute between
         // the two panels adjacent to this handle.
@@ -182,21 +158,21 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
           setRatios(next);
         };
 
-        const onMouseUp = () => {
+        const teardown = () => {
           setIsDragging(false);
           document.body.style.cursor = '';
           document.body.style.userSelect = '';
-
-          if (storageKey) {
-            setRatios((current) => {
-              writeStored(storageKey, current);
-              return current;
-            });
-          }
-
           window.removeEventListener('mousemove', onMouseMove);
           window.removeEventListener('mouseup', onMouseUp);
+          cleanupRef.current = null;
         };
+
+        const onMouseUp = () => {
+          teardown();
+        };
+
+        // Store teardown so unmount can call it
+        cleanupRef.current = teardown;
 
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
@@ -207,19 +183,12 @@ export function usePanelResize(options: UsePanelResizeOptions): UsePanelResizeRe
         style: { cursor },
       };
     },
-    [ratios, constraints, direction, storageKey]
+    [ratios, constraints, direction]
   );
 
   const reset = useCallback(() => {
     setRatios(defaultRatios);
-    if (storageKey) {
-      try {
-        localStorage.removeItem(`${storageKey}:${STORAGE_VERSION}`);
-      } catch {
-        // ignore
-      }
-    }
-  }, [defaultRatios, storageKey]);
+  }, [defaultRatios]);
 
   return {
     containerRef,
