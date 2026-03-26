@@ -104,8 +104,9 @@ export function ReportTable({
   emptyMessage = 'No data available',
   hidePagination = false,
   onSortChange,
-  sortState: _sortState,
+  sortState,
 }: ReportTableProps) {
+  void sortState; // reserved for future initial-sort sync
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });

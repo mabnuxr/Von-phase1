@@ -14,6 +14,11 @@ interface TablePanelMeta {
   orderByAsc: boolean | undefined;
 }
 
+interface SortConfigItem {
+  order_by: string;
+  order_by_asc: boolean;
+}
+
 interface ServerPagination {
   page: number;
   limit: number;
@@ -21,8 +26,7 @@ interface ServerPagination {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
-  orderBy?: string;
-  orderByAsc?: boolean;
+  sortConfig?: SortConfigItem[];
 }
 
 interface SortInfo {
@@ -91,8 +95,7 @@ function adaptPagination(raw: {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
-  orderBy?: string;
-  orderByAsc?: boolean;
+  sortConfig?: SortConfigItem[];
 }): ServerPagination {
   return {
     page: raw.page,
@@ -101,8 +104,7 @@ function adaptPagination(raw: {
     totalPages: raw.totalPages,
     hasNextPage: raw.hasNextPage,
     hasPrevPage: raw.hasPrevPage,
-    orderBy: raw.orderBy,
-    orderByAsc: raw.orderByAsc,
+    sortConfig: raw.sortConfig,
   };
 }
 
@@ -132,6 +134,10 @@ export function useTableServerPagination(
   // Current sort per panel. Panels not in this map use default backend order.
   const [sortState, setSortState] = useState<Record<string, SortInfo>>({});
 
+  // Panels that had a sort applied and then cleared — need one fetch to restore
+  // the backend default order before dropping out of panelsNeedingFetch.
+  const [sortCleared, setSortCleared] = useState<Set<string>>(new Set());
+
   // Identify table panels that have server pagination
   const tablePanels: TablePanelMeta[] = useMemo(() => {
     return Object.entries(widgets)
@@ -157,11 +163,17 @@ export function useTableServerPagination(
       });
   }, [widgets, pageState, sortState]);
 
-  // Fetch pages beyond initial OR when sort is applied (even page 1 needs refetch with sort)
+  // Fetch pages beyond initial, when sort is applied, or when sort was just cleared
+  // (sort-cleared panels need one fetch to restore backend default order)
   const panelsNeedingFetch = useMemo(
     () =>
-      tablePanels.filter((p) => p.currentPage > 1 || p.orderBy !== undefined),
-    [tablePanels],
+      tablePanels.filter(
+        (p) =>
+          p.currentPage > 1 ||
+          p.orderBy !== undefined ||
+          sortCleared.has(p.id),
+      ),
+    [tablePanels, sortCleared],
   );
 
   const pageQueries = useQueries({
@@ -182,8 +194,12 @@ export function useTableServerPagination(
               table_limit: panel.limit,
               table_page: panel.currentPage,
               ...(panel.orderBy !== undefined && {
-                order_by: panel.orderBy,
-                order_by_asc: panel.orderByAsc,
+                sort_config: [
+                  {
+                    order_by: panel.orderBy!,
+                    order_by_asc: panel.orderByAsc!,
+                  },
+                ],
               }),
             },
           ],
@@ -205,21 +221,35 @@ export function useTableServerPagination(
         // Successful fetch — record this page as the last good one
         lastSuccessfulPage.current[panel.id] = panel.currentPage;
         revertedRef.current.delete(panel.id);
-      } else if (query?.isError && !revertedRef.current.has(panel.id)) {
-        // Failed fetch — revert to the last successful page (or page 1)
-        revertedRef.current.add(panel.id);
-        const fallbackPage = lastSuccessfulPage.current[panel.id] ?? 1;
-        setPageState((prev) => {
-          if (fallbackPage === 1) {
-            const next = { ...prev };
-            delete next[panel.id];
+        // If this was a sort-cleared refetch, it succeeded — stop tracking it
+        if (sortCleared.has(panel.id)) {
+          setSortCleared((prev) => {
+            const next = new Set(prev);
+            next.delete(panel.id);
             return next;
-          }
-          return { ...prev, [panel.id]: fallbackPage };
+          });
+        }
+      } else if (query?.isError && !revertedRef.current.has(panel.id)) {
+        // Failed fetch — revert to page 1 and clear sort so panel isn't stuck
+        revertedRef.current.add(panel.id);
+        setPageState((prev) => {
+          const next = { ...prev };
+          delete next[panel.id];
+          return next;
+        });
+        setSortState((prev) => {
+          const next = { ...prev };
+          delete next[panel.id];
+          return next;
+        });
+        setSortCleared((prev) => {
+          const next = new Set(prev);
+          next.delete(panel.id);
+          return next;
         });
       }
     });
-  }, [panelsNeedingFetch, pageQueries]);
+  }, [panelsNeedingFetch, pageQueries, sortCleared]);
 
   // Build the merged widgets: replace table widget configs with fetched page data
   // When a page is requested but data hasn't arrived, optimistically update
@@ -297,13 +327,27 @@ export function useTableServerPagination(
 
   const handleSortChange = useCallback(
     (panelId: string, columnId: string, order: "asc" | "desc" | null) => {
+      // Reset error-revert tracking so stale page refs from the old sort don't interfere
+      delete lastSuccessfulPage.current[panelId];
+      revertedRef.current.delete(panelId);
+
       setSortState((prev) => {
         if (order === null) {
-          // Sort cleared
+          // Sort cleared — mark panel so it gets one unsorted refetch
+          if (prev[panelId]) {
+            setSortCleared((s) => new Set(s).add(panelId));
+          }
           const next = { ...prev };
           delete next[panelId];
           return next;
         }
+        // New sort applied — no longer in "sort cleared" state
+        setSortCleared((s) => {
+          if (!s.has(panelId)) return s;
+          const next = new Set(s);
+          next.delete(panelId);
+          return next;
+        });
         return {
           ...prev,
           [panelId]: { orderBy: columnId, orderByAsc: order === "asc" },

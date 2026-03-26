@@ -132,7 +132,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
       ...opts,
       columns: (
         opts.columns as Array<{
-          id?: string;
+          id: string;
           sorting?: Record<string, unknown>;
         }>
       ).map((col) => ({

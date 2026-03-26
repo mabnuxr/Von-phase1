@@ -93,6 +93,11 @@ export interface TextWidgetProps {
 
 // ─── Table ──────────────────────────────────────────────────────
 
+export interface SortConfigItem {
+  order_by: string;
+  order_by_asc: boolean;
+}
+
 export interface TablePaginationInfo {
   page: number;
   limit: number;
@@ -100,8 +105,7 @@ export interface TablePaginationInfo {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
-  orderBy?: string;
-  orderByAsc?: boolean;
+  sortConfig?: SortConfigItem[];
 }
 
 export interface SortState {

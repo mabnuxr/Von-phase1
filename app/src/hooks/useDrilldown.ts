@@ -49,8 +49,12 @@ export function useDrilldown(
         page_limit: PAGE_LIMIT,
         page: drilldown.page,
         ...(drilldown.sort && {
-          order_by: drilldown.sort.orderBy,
-          order_by_asc: drilldown.sort.orderByAsc,
+          sort_config: [
+            {
+              order_by: drilldown.sort.orderBy,
+              order_by_asc: drilldown.sort.orderByAsc,
+            },
+          ],
         }),
       });
     },
