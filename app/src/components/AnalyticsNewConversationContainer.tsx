@@ -25,6 +25,15 @@ import type { MessageReference } from "../types/conversation";
 import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
 import { config } from "../config";
 
+const CHAT_PANE_AGENT_MODES = [
+  ConversationMode.Ask,
+  ConversationMode.DashboardBuilder,
+] as const;
+
+const CHAT_PANE_DISABLED_AGENT_MODES = [
+  ConversationMode.DashboardBuilder,
+] as const;
+
 export interface AnalyticsNewConversationContainerProps {
   dashboardId: string;
   dashboardTitle: string;
@@ -137,6 +146,8 @@ export function AnalyticsNewConversationContainer({
       onToggleFavorite={handleToggleFavorite}
       onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
       onUploadFile={handleUploadFile}
+      availableAgentModes={[...CHAT_PANE_AGENT_MODES]}
+      disabledAgentModes={[...CHAT_PANE_DISABLED_AGENT_MODES]}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     >

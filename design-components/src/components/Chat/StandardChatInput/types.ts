@@ -52,6 +52,7 @@ export interface ActivePopover {
  * Shared between frontend and backend.
  */
 export const ConversationMode = {
+  Ask: 'ask',
   Auto: 'auto',
   DashboardBuilder: 'dashboard-builder',
 } as const;
@@ -309,6 +310,13 @@ export interface StandardChatInputProps {
    * @default [ConversationMode.Auto]
    */
   availableAgentModes?: ConversationMode[];
+
+  /**
+   * Agent modes that should appear in the selector popover but remain non-selectable.
+   * Useful when the UI should show an unavailable mode for context without allowing a switch.
+   * @default []
+   */
+  disabledAgentModes?: ConversationMode[];
 
   /**
    * Whether to show the Upload option in the plus menu.

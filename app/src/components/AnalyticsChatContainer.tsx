@@ -29,6 +29,15 @@ import { useChatV2 } from "../hooks/useChatV2";
 import { config } from "../config";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 
+const CHAT_PANE_AGENT_MODES = [
+  ConversationMode.Ask,
+  ConversationMode.DashboardBuilder,
+] as const;
+
+const CHAT_PANE_DISABLED_AGENT_MODES = [
+  ConversationMode.DashboardBuilder,
+] as const;
+
 export interface AnalyticsChatContainerProps {
   conversationId: string;
   dashboardId: string;
@@ -211,6 +220,8 @@ function AnalyticsChatInner({
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
+      availableAgentModes={[...CHAT_PANE_AGENT_MODES]}
+      disabledAgentModes={[...CHAT_PANE_DISABLED_AGENT_MODES]}
     >
       <Chat.EmptyState>
         <AnalyticsChatEmptyState />

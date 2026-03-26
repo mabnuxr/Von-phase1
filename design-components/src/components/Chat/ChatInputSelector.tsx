@@ -133,6 +133,8 @@ export interface ChatInputSelectorProps {
   ) => Promise<void>;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
+  /** Agent modes shown in the selector popover but not selectable */
+  disabledAgentModes?: ConversationMode[];
   /** Reference context shown above the input (dashboard/widget context) */
   referenceContext?: ReferenceContext;
   /** Callback when the reference context is removed */
@@ -205,6 +207,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onUploadFile,
       onSendTest,
       availableAgentModes,
+      disabledAgentModes,
       referenceContext,
       onRemoveReference,
       // Mention props
@@ -442,6 +445,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             enableCommands && showCommandsList ? handleCloseCommandsList : undefined
           }
           availableAgentModes={availableAgentModes}
+          disabledAgentModes={disabledAgentModes}
           enableFileUpload={enableFileUpload}
           additionalExtensions={additionalExtensions}
         />

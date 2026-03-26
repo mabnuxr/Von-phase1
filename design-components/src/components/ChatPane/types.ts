@@ -1,6 +1,10 @@
 import type { Message } from '../Chat/types';
 import type { FileAttachment } from '../Chat/FileAttachment/types';
-import type { AutoEditMode, ActivePopover } from '../Chat/StandardChatInput/types';
+import type {
+  AutoEditMode,
+  ActivePopover,
+  ConversationMode,
+} from '../Chat/StandardChatInput/types';
 
 /**
  * Reference context for the chat input
@@ -185,6 +189,18 @@ export interface ChatPaneProps {
    * Callback when user submits feedback in the popover
    */
   onPopoverFeedback?: (feedback: string) => void;
+
+  /**
+   * Conversation modes shown in the Ask/Dashboard selector pill.
+   * Defaults to Ask + Dashboard Builder for ChatPane.
+   */
+  availableAgentModes?: ConversationMode[];
+
+  /**
+   * Conversation modes shown but not selectable in the Ask/Dashboard selector popover.
+   * Defaults to Dashboard Builder in ChatPane.
+   */
+  disabledAgentModes?: ConversationMode[];
 }
 
 export interface ChatPaneHeaderProps {

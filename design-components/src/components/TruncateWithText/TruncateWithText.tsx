@@ -17,6 +17,8 @@ export interface TruncateWithTextProps {
   tooltip?: React.ReactNode;
   /** Extra classes for the text wrapper element. */
   className?: string;
+  /** Maximum width of the tooltip in pixels. */
+  tooltipMaxWidth?: number;
 }
 
 /**
@@ -41,6 +43,7 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
   maxLines = 1,
   tooltip,
   className = '',
+  tooltipMaxWidth,
 }) => {
   const textRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -95,7 +98,12 @@ export const TruncateWithText: React.FC<TruncateWithTextProps> = ({
   );
 
   return (
-    <Tooltip content={tooltipContent} placement="auto" enabled={isTruncated && !!tooltipContent}>
+    <Tooltip
+      content={tooltipContent}
+      placement="auto"
+      enabled={isTruncated && !!tooltipContent}
+      maxWidth={tooltipMaxWidth}
+    >
       {textElement}
     </Tooltip>
   );

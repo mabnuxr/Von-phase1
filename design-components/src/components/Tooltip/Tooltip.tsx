@@ -12,6 +12,8 @@ export interface TooltipProps {
   enabled?: boolean;
   /** Placement relative to the trigger @default 'auto' */
   placement?: TooltipPlacement;
+  /** Maximum width of the tooltip in pixels. Overrides the default viewport-based maxWidth. */
+  maxWidth?: number;
 }
 
 /**
@@ -33,6 +35,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   children,
   enabled = true,
   placement = 'auto',
+  maxWidth: maxWidthProp,
 }) => {
   const { triggerRef, tooltipRef, visible, show, hide, position } = useTooltipPosition({
     placement,
@@ -60,7 +63,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
             style={{
               top: position.top,
               left: position.left,
-              maxWidth: position.maxWidth,
+              maxWidth: maxWidthProp ?? position.maxWidth,
             }}
           >
             {content}
