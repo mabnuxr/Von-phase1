@@ -311,13 +311,6 @@ export interface StandardChatInputProps {
   availableAgentModes?: ConversationMode[];
 
   /**
-   * Agent modes that should appear in the selector popover but remain non-selectable.
-   * Useful when the UI should show an unavailable mode for context without allowing a switch.
-   * @default []
-   */
-  disabledAgentModes?: ConversationMode[];
-
-  /**
    * Whether to show the Upload option in the plus menu.
    * @default false
    */

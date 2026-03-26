@@ -50,7 +50,6 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   onPopoverPrimaryAction,
   onPopoverFeedback,
   availableAgentModes = [ConversationMode.Auto, ConversationMode.DashboardBuilder],
-  disabledAgentModes = [ConversationMode.DashboardBuilder],
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -175,7 +174,6 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
           onPopoverPrimaryAction={onPopoverPrimaryAction}
           onPopoverFeedback={onPopoverFeedback}
           availableAgentModes={availableAgentModes}
-          disabledAgentModes={disabledAgentModes}
         />
       </div>
     </div>

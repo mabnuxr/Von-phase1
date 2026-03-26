@@ -95,7 +95,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   lockedConversationMode = ConversationMode.Auto,
   // Agent modes & file upload
   availableAgentModes,
-  disabledAgentModes,
   enableFileUpload = false,
   // Controlled attachment props
   controlledAttachments,
@@ -373,7 +372,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
               fileErrorMessage={fileErrorMessage}
               onDismissFileError={onDismissFileError}
               availableAgentModes={availableAgentModes}
-              disabledAgentModes={disabledAgentModes}
               enableFileUpload={enableFileUpload}
               enableMentions={enableMentions}
               mentionItems={mentionItems}
@@ -493,7 +491,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
           availableAgentModes={availableAgentModes}
-          disabledAgentModes={disabledAgentModes}
           enableFileUpload={enableFileUpload}
           referenceContext={referenceContext}
           onRemoveReference={onRemoveReference}

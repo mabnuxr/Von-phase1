@@ -1446,11 +1446,6 @@ export interface ChatProps {
   availableAgentModes?: ConversationMode[];
 
   /**
-   * Agent modes shown in the selector popover but kept non-selectable.
-   */
-  disabledAgentModes?: ConversationMode[];
-
-  /**
    * Controlled file attachments for the chat input.
    * When provided, the input uses controlled mode — parent owns state.
    */

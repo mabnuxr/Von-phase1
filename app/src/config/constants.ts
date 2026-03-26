@@ -237,6 +237,17 @@ export const ARTIFACT_INFLIGHT_MAX_POLLS = 40 as const;
 export const ARTIFACT_INFLIGHT_POLL_INTERVAL_MS = 3000 as const; // 3 seconds
 
 // ============================================================================
+// Chat Pane Agent Mode Constants
+// ============================================================================
+
+import { ConversationMode } from "@vonlabs/design-components";
+
+export const CHAT_PANE_AGENT_MODES: ConversationMode[] = [
+  ConversationMode.Auto,
+  ConversationMode.DashboardBuilder,
+];
+
+// ============================================================================
 // UI Text & Display Constants
 // ============================================================================
 

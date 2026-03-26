@@ -195,12 +195,6 @@ export interface ChatPaneProps {
    * Defaults to Ask + Dashboard Builder for ChatPane.
    */
   availableAgentModes?: ConversationMode[];
-
-  /**
-   * Conversation modes shown but not selectable in the Ask/Dashboard selector popover.
-   * Defaults to Dashboard Builder in ChatPane.
-   */
-  disabledAgentModes?: ConversationMode[];
 }
 
 export interface ChatPaneHeaderProps {

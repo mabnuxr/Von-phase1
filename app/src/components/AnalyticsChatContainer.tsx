@@ -9,8 +9,11 @@
 
 import { useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Chat, ChatSkeleton } from "@vonlabs/design-components";
-import { ConversationMode } from "@vonlabs/design-components";
+import {
+  Chat,
+  ChatSkeleton,
+  ConversationMode,
+} from "@vonlabs/design-components";
 import { dashboardKeys } from "../hooks/useDashboardQuery";
 
 import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
@@ -27,16 +30,10 @@ import { ReferenceType } from "../types/conversation";
 import useChatStore from "../store/chatStore";
 import { useChatV2 } from "../hooks/useChatV2";
 import { config } from "../config";
-import { MESSAGES_PAGE_LIMIT } from "../config/constants";
-
-const CHAT_PANE_AGENT_MODES = [
-  ConversationMode.Auto,
-  ConversationMode.DashboardBuilder,
-] as const;
-
-const CHAT_PANE_DISABLED_AGENT_MODES = [
-  ConversationMode.DashboardBuilder,
-] as const;
+import {
+  MESSAGES_PAGE_LIMIT,
+  CHAT_PANE_AGENT_MODES,
+} from "../config/constants";
 
 export interface AnalyticsChatContainerProps {
   conversationId: string;
@@ -218,10 +215,11 @@ function AnalyticsChatInner({
       onFileClick={chatV2.handleFileClick}
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
+      isAgentLocked
+      lockedConversationMode={lockedConversationMode}
+      availableAgentModes={CHAT_PANE_AGENT_MODES}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
-      availableAgentModes={[...CHAT_PANE_AGENT_MODES]}
-      disabledAgentModes={[...CHAT_PANE_DISABLED_AGENT_MODES]}
     >
       <Chat.EmptyState>
         <AnalyticsChatEmptyState />

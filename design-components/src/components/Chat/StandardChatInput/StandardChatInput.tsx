@@ -15,12 +15,10 @@ import {
   Table,
   FileText,
   X,
-  CheckIcon,
   ChartLineIcon,
   HashIcon,
   DatabaseIcon,
   UploadSimpleIcon,
-  CaretDownIcon,
   LineVerticalIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
@@ -37,6 +35,7 @@ import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } f
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
+import { ModeSelectorPill } from './ModeSelectorPill';
 import { ChatInputPopover } from './ChatInputPopover';
 import { ConversationMode } from './types';
 import { TruncateWithText } from '../../TruncateWithText/TruncateWithText';
@@ -91,18 +90,6 @@ function getReferenceLabel(type: ReferenceContext['type']) {
 
 // Re-export ConversationMode from types for external use
 export { ConversationMode } from './types';
-
-/**
- * Get agent mode display label and description
- */
-function getConversationModeDisplay(mode: ConversationMode) {
-  switch (mode) {
-    case ConversationMode.Auto:
-      return { label: 'Ask Mode', description: 'Chat, research, get answers' };
-    case ConversationMode.DashboardBuilder:
-      return { label: 'Dashboard Mode', description: 'Create and edit dashboards' };
-  }
-}
 
 /**
  * PlusButtonMenu - Plus button with upload action
@@ -160,130 +147,6 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
                   </TransparentButton>
                 </div>
               )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-/**
- * ModeSelectorPill - Always-visible pill that shows the current conversation mode.
- * Click opens a popover to switch between Ask and Dashboard Builder.
- */
-interface ModeSelectorPillProps {
-  selectedMode: ConversationMode;
-  onModeChange: (mode: ConversationMode) => void;
-  availableModes: ConversationMode[];
-  disabledModes?: ConversationMode[];
-  disabled?: boolean;
-  isAgentLocked?: boolean;
-  onBuildDashboard?: () => void;
-}
-
-const ModeSelectorPill: React.FC<ModeSelectorPillProps> = ({
-  selectedMode,
-  onModeChange,
-  availableModes,
-  disabledModes = [],
-  disabled = false,
-  isAgentLocked = false,
-  onBuildDashboard,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const display = getConversationModeDisplay(selectedMode);
-
-  const handleSelect = (mode: ConversationMode) => {
-    if (isAgentLocked || disabledModes.includes(mode)) return;
-    onModeChange(mode);
-    if (mode === ConversationMode.DashboardBuilder) {
-      onBuildDashboard?.();
-    }
-    setIsOpen(false);
-  };
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => !disabled && !isAgentLocked && setIsOpen(!isOpen)}
-        disabled={disabled || isAgentLocked}
-        className={`flex items-center gap-1.5 px-2 py-1 text-sm font-medium rounded-full border border-green-200 bg-green-50 text-green-700 transition-colors cursor-pointer ${
-          disabled || isAgentLocked ? 'opacity-60 cursor-not-allowed' : 'hover:bg-green-100'
-        }`}
-        title={isAgentLocked ? 'Agent locked for this conversation' : 'Switch mode'}
-      >
-        {display.label}
-        <CaretDownIcon size={12} weight="bold" className="text-green-500" />
-      </button>
-
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 8 }}
-              transition={{ duration: 0.1 }}
-              className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 p-1 z-50"
-            >
-              {availableModes.map((mode) => {
-                const modeDisplay = getConversationModeDisplay(mode);
-                const isSelected = selectedMode === mode;
-                const isModeDisabled = disabledModes.includes(mode);
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    disabled={isModeDisabled}
-                    onClick={() => handleSelect(mode)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-colors ${
-                      isSelected
-                        ? 'border-green-200 bg-green-50'
-                        : isModeDisabled
-                          ? 'border-transparent bg-gray-50/70 opacity-55 cursor-not-allowed'
-                          : 'border-transparent hover:bg-gray-50'
-                    }`}
-                    title={isModeDisabled ? 'Unavailable in chat pane' : undefined}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-sm font-medium ${
-                            isSelected
-                              ? 'text-green-800'
-                              : isModeDisabled
-                                ? 'text-gray-500'
-                                : 'text-gray-900'
-                          }`}
-                        >
-                          {modeDisplay.label}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-xs ${
-                          isSelected
-                            ? 'text-green-700'
-                            : isModeDisabled
-                              ? 'text-gray-400'
-                              : 'text-gray-700'
-                        }`}
-                      >
-                        {modeDisplay.description}
-                      </span>
-                    </div>
-                    {isSelected && (
-                      <CheckIcon
-                        size={14}
-                        weight="bold"
-                        className={`flex-shrink-0 ${isModeDisabled ? 'text-green-500/70' : 'text-green-600'}`}
-                      />
-                    )}
-                  </button>
-                );
-              })}
             </motion.div>
           </>
         )}
@@ -380,7 +243,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDismissFileError,
       // Agent modes
       availableAgentModes = [ConversationMode.Auto],
-      disabledAgentModes = [],
       // File upload
       enableFileUpload = false,
       // Additional Tiptap extensions
@@ -817,7 +679,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                               selectedMode={selectedConversationMode}
                               onModeChange={handleConversationModeChange}
                               availableModes={availableAgentModes}
-                              disabledModes={disabledAgentModes}
                               disabled={disabled && !isStreaming}
                               isAgentLocked={isAgentLocked}
                               onBuildDashboard={onBuildDashboard}

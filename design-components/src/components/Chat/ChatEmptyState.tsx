@@ -148,8 +148,6 @@ export interface ChatEmptyStateProps {
   ) => Promise<void>;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
-  /** Agent modes shown in the selector popover but not selectable */
-  disabledAgentModes?: ConversationMode[];
   /** Enable @ mentions feature */
   enableMentions?: boolean;
   /** Available mention items for the @ overlay */
@@ -218,7 +216,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onRequestFilePreviewUrl,
   onUploadFile,
   availableAgentModes,
-  disabledAgentModes,
   enableMentions,
   mentionItems,
   isLoadingMentions,
@@ -438,7 +435,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           fileErrorMessage={fileErrorMessage}
           onDismissFileError={onDismissFileError}
           availableAgentModes={availableAgentModes}
-          disabledAgentModes={disabledAgentModes}
           enableMentions={enableMentions}
           mentionItems={mentionItems}
           isLoadingMentions={isLoadingMentions}
