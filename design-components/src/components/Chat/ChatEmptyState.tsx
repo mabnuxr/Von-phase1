@@ -458,7 +458,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {TEMPLATE_CATEGORIES.map((category) => {
             const isActive = category === activeCategory;
-            const isPopular = category === 'Popular';
             return (
               <button
                 key={category}
@@ -474,7 +473,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
-                {isPopular}
                 {category}
               </button>
             );
