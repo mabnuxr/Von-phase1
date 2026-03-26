@@ -166,7 +166,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
           });
         }
         return cleaned;
-      }) as Highcharts.SeriesOptionsType[];
+      }) as unknown as Highcharts.SeriesOptionsType[];
 
       const xAxisDefaults = {
         labels: { style: AXIS_LABEL_STYLE },

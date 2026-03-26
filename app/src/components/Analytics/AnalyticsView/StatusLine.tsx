@@ -20,7 +20,9 @@ export const StatusLine: React.FC<StatusLineProps> = ({
     ? formatRelativeTime(lastRefreshedAt)
     : null;
   const sameTimestamp =
-    savedLabel && refreshedLabel && savedLabel === refreshedLabel;
+    !!lastSavedAt &&
+    !!lastRefreshedAt &&
+    new Date(lastSavedAt).getTime() === new Date(lastRefreshedAt).getTime();
 
   return (
     <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
