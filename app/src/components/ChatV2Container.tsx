@@ -207,29 +207,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     [conversationId, navigate],
   );
 
-  // Auto-open dashboard preview pane when a NEW dashboard is generated
-  // (not on mount/page-refresh — only when dashboard changes after initial render)
-  const initialDashboardRef = useRef<string | undefined>(undefined);
-  const hasHydratedRef = useRef(false);
+  // Auto-open dashboard preview pane when a NEW dashboard is generated live
+  // (not on mount/page-refresh/seeding — liveDashboardKey is only set by live Pusher events)
+  const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    const dashboard = chatV2.dashboard;
-    const key = dashboard
-      ? `${dashboard.dashboard_id}:${dashboard.dashboard_version}`
-      : undefined;
-
-    if (!hasHydratedRef.current) {
-      // First render — capture initial state, don't auto-open
-      initialDashboardRef.current = key;
-      hasHydratedRef.current = true;
-      return;
+    const key = chatV2.liveDashboardKey;
+    if (key && key !== prevLiveDashboardKeyRef.current) {
+      prevLiveDashboardKeyRef.current = key;
+      const dashboardId = key.split(":")[0];
+      handleDashboardPreview(dashboardId);
     }
-
-    // Only auto-open if this is a new dashboard (not the one present on mount)
-    if (key && key !== initialDashboardRef.current) {
-      initialDashboardRef.current = key;
-      handleDashboardPreview(dashboard!.dashboard_id);
-    }
-  }, [chatV2.dashboard, handleDashboardPreview]);
+  }, [chatV2.liveDashboardKey, handleDashboardPreview]);
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,

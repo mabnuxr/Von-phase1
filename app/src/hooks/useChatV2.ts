@@ -656,6 +656,7 @@ export function useChatV2(props: UseChatV2Props) {
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
     phase: v2Processor.phase,
     dashboard: v2Processor.dashboard,
+    liveDashboardKey: v2Processor.liveDashboardKey,
 
     // Messages
     transformedMessages,
