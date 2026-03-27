@@ -343,6 +343,10 @@ function IntegrationItem({
     if (canBeOrgLevel(item.id)) availableChips.push("workspace");
     if (canBeUserLevel(item.id)) availableChips.push("personal");
 
+    // Gong Engage shows "Available" status instead of a Connect button —
+    // connection is managed via the existing Gong CI credentials.
+    const isStaticAvailable = item.id === "gongengage";
+
     return (
       <IntegrationCard
         name={item.name}
@@ -351,8 +355,10 @@ function IntegrationItem({
         isAvailable={true}
         disabled={item.disabled}
         chips={availableChips}
+        statusText={isStaticAvailable ? "Available" : undefined}
+        note={item.note}
         onToggle={
-          item.disabled
+          item.disabled || isStaticAvailable
             ? undefined
             : () => {
                 const accessLevel = canBeOrgLevel(item.id) ? "tenant" : "user";
@@ -405,6 +411,7 @@ function IntegrationItem({
         chips={chips}
         modifiedBy={modifiedBy}
         instanceUrl={instanceUrl}
+        note={item.note}
         onDelete={
           isLoading ? deleteHandler : canEditScope ? undefined : deleteHandler
         }
@@ -477,6 +484,7 @@ function IntegrationItem({
           chips={chips}
           modifiedBy={modifiedBy}
           instanceUrl={instanceUrl}
+          note={item.note}
           onDelete={
             workspaceIsLoading
               ? handleWorkspaceDelete
@@ -538,6 +546,7 @@ function IntegrationItem({
         integrationLogoPath={personal.integrationLogoPath}
         chips={chips}
         instanceUrl={instanceUrl}
+        note={item.note}
         onDelete={
           personalPerms?.delete
             ? () => onDelete(personal.id, "personal")
@@ -572,6 +581,7 @@ export function IntegrationsList({
     isSnowflakeEnabled,
     isGmailEnabled,
     isGranolaEnabled,
+    isGongEngageEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -582,6 +592,7 @@ export function IntegrationsList({
       if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
       if (app.id === "gmail" && !isGmailEnabled) return false;
       if (app.id === "granola" && !isGranolaEnabled) return false;
+      if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       return true;
     });
   }, [
@@ -590,6 +601,7 @@ export function IntegrationsList({
     isSnowflakeEnabled,
     isGmailEnabled,
     isGranolaEnabled,
+    isGongEngageEnabled,
   ]);
 
   // Merge available apps with connected integrations

@@ -11,6 +11,8 @@ export interface IntegrationMetadata {
   personalDescription?: string;
   logoPath: string;
   disabled?: boolean;
+  /** Optional note shown below the description */
+  note?: string;
   category:
     | "CRM"
     | "Call Recorder"
@@ -51,9 +53,20 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     id: "gong",
     name: "Gong",
     description: "Ask about Gong calls and get Von's conversation insights",
+    note: "If you have a Gong Engage license, it will be automatically enabled with this connection",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
+  },
+  gongengage: {
+    id: "gongengage",
+    name: "Gong Engage",
+    description:
+      "Analyse flows and manage engagement actions from Gong Engage",
+    note: "Set up your Gong call recorder to start using Gong Engage",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
+    category: "Sales Engagement",
   },
   fathom: {
     id: "fathom",
@@ -264,6 +277,7 @@ export function getIntegrationLogoPath(type: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     CHORUS: "chorus",
@@ -302,6 +316,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     salesforce: "SALESFORCE",
     hubspot: "HUBSPOT",
     gong: "GONG",
+    gongengage: "GONG_ENGAGE",
     fathom: "FATHOM",
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
@@ -337,6 +352,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     GOOGLE_CALENDAR: "googlecalendar",
@@ -376,6 +392,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     CHORUS: "chorus",
@@ -416,6 +433,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
 
   // Call recorders - workspace only (shared recordings)
   gong: ["tenant"],
+  gongengage: ["tenant"],
   fathom: ["tenant"],
   zoom: ["tenant"],
   chorus: ["tenant"],
