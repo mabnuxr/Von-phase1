@@ -255,6 +255,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
     category: "Note Takers",
   },
+  notion: {
+    id: "notion",
+    name: "Notion",
+    description:
+      "Search, read, and update Notion pages, databases, and comments",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/notion.svg",
+    category: "Internal Documents",
+  },
 } as const;
 
 /**
@@ -296,6 +305,7 @@ export function getIntegrationLogoPath(type: string): string {
     PYLON: "pylon",
     GMAIL: "gmail",
     GRANOLA: "granola",
+    NOTION: "notion",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -338,6 +348,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     pylon: "PYLON",
     gmail: "GMAIL",
     granola: "GRANOLA",
+    notion: "NOTION",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -374,6 +385,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     PYLON: "pylon",
     GMAIL: "gmail",
     GRANOLA: "granola",
+    NOTION: "notion",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -411,6 +423,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     PYLON: "pylon",
     GMAIL: "gmail",
     GRANOLA: "granola",
+    NOTION: "notion",
   };
 
   const integrationId =
@@ -457,6 +470,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   databricks: ["user"],
   pylon: ["user"],
   granola: ["user"],
+  notion: ["tenant"],
 };
 
 /**

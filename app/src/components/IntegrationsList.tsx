@@ -582,6 +582,7 @@ export function IntegrationsList({
     isGmailEnabled,
     isGranolaEnabled,
     isGongEngageEnabled,
+    isNotionEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -593,6 +594,7 @@ export function IntegrationsList({
       if (app.id === "gmail" && !isGmailEnabled) return false;
       if (app.id === "granola" && !isGranolaEnabled) return false;
       if (app.id === "gongengage" && !isGongEngageEnabled) return false;
+      if (app.id === "notion" && !isNotionEnabled) return false;
       return true;
     });
   }, [
@@ -601,6 +603,7 @@ export function IntegrationsList({
     isSnowflakeEnabled,
     isGmailEnabled,
     isGranolaEnabled,
+    isNotionEnabled,
     isGongEngageEnabled,
   ]);
 
