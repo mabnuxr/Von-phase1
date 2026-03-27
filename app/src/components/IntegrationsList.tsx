@@ -36,21 +36,21 @@ const CATEGORY_ORDER: Array<
   | "Calendar"
   | "Call Recorder"
   | "Note Takers"
-  | "Internal Documents"
+  | "Knowledge base"
   | "Sales Engagement"
   | "Data Warehouse"
   | "Customer Support"
-  | "Other"
+  | "Communication"
 > = [
   "CRM",
   "Calendar",
   "Call Recorder",
   "Note Takers",
-  "Internal Documents",
+  "Knowledge base",
   "Sales Engagement",
   "Data Warehouse",
   "Customer Support",
-  "Other",
+  "Communication",
 ];
 
 interface IntegrationsListProps {
