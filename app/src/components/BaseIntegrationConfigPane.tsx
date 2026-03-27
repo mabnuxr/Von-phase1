@@ -72,10 +72,6 @@ export function BaseIntegrationConfigPane({
   const [gongAccessKey, setGongAccessKey] = useState("");
   const [gongAccessSecret, setGongAccessSecret] = useState("");
 
-  // Gong Engage API key configuration state (separate from Gong CI)
-  const [gongEngageAccessKey, setGongEngageAccessKey] = useState("");
-  const [gongEngageAccessSecret, setGongEngageAccessSecret] = useState("");
-
   // Fathom API key configuration state
   const [fathomApiKey, setFathomApiKey] = useState("");
 
@@ -140,17 +136,6 @@ export function BaseIntegrationConfigPane({
           errors.push("Access Key is required");
         }
         if (!gongAccessSecret) {
-          errors.push("Access Secret is required");
-        }
-      }
-    }
-
-    if (integrationId === "gongengage") {
-      if (!hasExistingCredentials) {
-        if (!gongEngageAccessKey) {
-          errors.push("Access Key is required");
-        }
-        if (!gongEngageAccessSecret) {
           errors.push("Access Secret is required");
         }
       }
@@ -276,13 +261,6 @@ export function BaseIntegrationConfigPane({
           if (gongAccessSecret) {
             updateData.accessSecret = gongAccessSecret;
           }
-        } else if (integrationId === "gongengage") {
-          if (gongEngageAccessKey) {
-            updateData.accessKey = gongEngageAccessKey;
-          }
-          if (gongEngageAccessSecret) {
-            updateData.accessSecret = gongEngageAccessSecret;
-          }
         } else if (integrationId === "fathom") {
           if (fathomApiKey) {
             updateData.accessKey = fathomApiKey;
@@ -345,9 +323,7 @@ export function BaseIntegrationConfigPane({
           accessKey:
             integrationId === "gong"
               ? gongAccessKey
-              : integrationId === "gongengage"
-                ? gongEngageAccessKey
-                : integrationId === "fathom"
+              : integrationId === "fathom"
                   ? fathomApiKey
                   : integrationId === "zendesk"
                     ? zendeskEmail
@@ -357,9 +333,7 @@ export function BaseIntegrationConfigPane({
           accessSecret:
             integrationId === "gong"
               ? gongAccessSecret
-              : integrationId === "gongengage"
-                ? gongEngageAccessSecret
-                : integrationId === "zendesk"
+              : integrationId === "zendesk"
                   ? zendeskApiToken
                   : integrationId === "snowflake"
                     ? snowflakePrivateKey
@@ -391,10 +365,6 @@ export function BaseIntegrationConfigPane({
         if (integrationId === "gong") {
           setGongAccessKey("");
           setGongAccessSecret("");
-        }
-        if (integrationId === "gongengage") {
-          setGongEngageAccessKey("");
-          setGongEngageAccessSecret("");
         }
         if (integrationId === "fathom") {
           setFathomApiKey("");
@@ -691,62 +661,6 @@ export function BaseIntegrationConfigPane({
 
                   <style>{`
                       .gong-input-wrapper input::placeholder {
-                        font-size: 13px;
-                        color: #9ca3af;
-                      }
-                    `}</style>
-                </>
-              )}
-
-              {/* Gong Engage-specific fields */}
-              {integrationId === "gongengage" && (
-                <>
-                  {/* Access Key */}
-                  <div className="gong-engage-input-wrapper">
-                    <Input
-                      type="password"
-                      label="Access Key"
-                      value={gongEngageAccessKey}
-                      onChange={(e) => setGongEngageAccessKey(e.target.value)}
-                      placeholder={
-                        hasExistingCredentials ? "••••••••" : "Enter access key"
-                      }
-                      helperText={
-                        hasExistingCredentials
-                          ? "Leave empty to keep existing credentials"
-                          : "Your Gong Engage access key"
-                      }
-                      required={!hasExistingCredentials}
-                      fullWidth
-                    />
-                  </div>
-
-                  {/* Access Secret */}
-                  <div className="gong-engage-input-wrapper">
-                    <Input
-                      type="password"
-                      label="Access Secret"
-                      value={gongEngageAccessSecret}
-                      onChange={(e) =>
-                        setGongEngageAccessSecret(e.target.value)
-                      }
-                      placeholder={
-                        hasExistingCredentials
-                          ? "••••••••"
-                          : "Enter access secret"
-                      }
-                      helperText={
-                        hasExistingCredentials
-                          ? "Leave empty to keep existing credentials"
-                          : "Your Gong Engage access secret"
-                      }
-                      required={!hasExistingCredentials}
-                      fullWidth
-                    />
-                  </div>
-
-                  <style>{`
-                      .gong-engage-input-wrapper input::placeholder {
                         font-size: 13px;
                         color: #9ca3af;
                       }
@@ -1146,14 +1060,13 @@ export function BaseIntegrationConfigPane({
           {/* Help & Security Notice - shown for credential-based integrations */}
           {(integrationId === "gong" ||
             integrationId === "fathom" ||
-            integrationId === "gongengage" ||
             integrationId === "zendesk" ||
             integrationId === "snowflake") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <a
                   href={
-                    integrationId === "gong" || integrationId === "gongengage"
+                    integrationId === "gong"
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
                       : integrationId === "zendesk"
                         ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
@@ -1165,7 +1078,7 @@ export function BaseIntegrationConfigPane({
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700 underline"
                 >
-                  {integrationId === "gong" || integrationId === "gongengage"
+                  {integrationId === "gong"
                     ? "How to generate API credentials"
                     : integrationId === "zendesk"
                       ? "Generating a new API token"
