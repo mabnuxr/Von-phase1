@@ -137,6 +137,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg",
     category: "Knowledge base",
   },
+  notion: {
+    id: "notion",
+    name: "Notion",
+    description:
+      "Search, read, and update Notion pages, databases, and comments",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/notion.svg",
+    category: "Knowledge base",
+  },
   gmail: {
     id: "gmail",
     name: "Gmail",
@@ -253,15 +262,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
     category: "Note Takers",
-  },
-  notion: {
-    id: "notion",
-    name: "Notion",
-    description:
-      "Search, read, and update Notion pages, databases, and comments",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/notion.svg",
-    category: "Knowledge base",
   },
 } as const;
 
