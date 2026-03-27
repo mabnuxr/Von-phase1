@@ -324,20 +324,20 @@ export function BaseIntegrationConfigPane({
             integrationId === "gong"
               ? gongAccessKey
               : integrationId === "fathom"
-                  ? fathomApiKey
-                  : integrationId === "zendesk"
-                    ? zendeskEmail
-                    : integrationId === "snowflake"
-                      ? snowflakeDomain
-                      : undefined,
+                ? fathomApiKey
+                : integrationId === "zendesk"
+                  ? zendeskEmail
+                  : integrationId === "snowflake"
+                    ? snowflakeDomain
+                    : undefined,
           accessSecret:
             integrationId === "gong"
               ? gongAccessSecret
               : integrationId === "zendesk"
-                  ? zendeskApiToken
-                  : integrationId === "snowflake"
-                    ? snowflakePrivateKey
-                    : undefined,
+                ? zendeskApiToken
+                : integrationId === "snowflake"
+                  ? snowflakePrivateKey
+                  : undefined,
           // Semantic credentials for Basic Auth and specific integrations
           username:
             integrationId === "chorus"
@@ -540,7 +540,8 @@ export function BaseIntegrationConfigPane({
                 integrationId === "googlecalendar" ||
                 integrationId === "googledrive" ||
                 integrationId === "gmail" ||
-                integrationId === "granola") && (
+                integrationId === "granola" ||
+                integrationId === "notion") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type

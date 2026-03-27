@@ -30,6 +30,7 @@ export const FEATURE_FLAGS = {
   GMAIL: "enableGmail",
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
+  NOTION: "enableNotion",
 } as const;
 
 /**
@@ -154,6 +155,11 @@ export function useFeatureFlag() {
      * Controls whether Granola integration is visible
      */
     isGranolaEnabled: flags[FEATURE_FLAGS.GRANOLA] === true,
+
+    /**
+     * Controls whether Notion integration is visible
+     */
+    isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
 
     /**
      * Raw flags object for advanced usage
