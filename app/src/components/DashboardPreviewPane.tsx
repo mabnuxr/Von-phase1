@@ -102,41 +102,41 @@ export function DashboardPreviewPane({
         <AnalyticsError error={error?.message ?? null} />
       ) : (
         <>
-        <AnalyticsView
-          dashboard={dashboard}
-          refreshInfo={refreshInfo}
-          activeFilters={activeFilters}
-          onRefresh={handleRefresh}
-          onSave={handleSave}
-          savePhase={savePhase}
-          onRevert={handleRevert}
-          revertPhase={revertPhase}
-          onShare={handleShare}
-          sharePhase={sharePhase}
-          onExpand={handleExpand}
-          onClose={onClose}
-          onTablePageChange={handlePageChange}
-          loadingTablePanels={loadingPanels}
-          paginatedWidgets={mergedWidgets}
-          onDrillDown={openDrilldown}
-          onTableSortChange={handleSortChange}
-          tableSortStates={activeSorts}
-          defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-          onColorThemeChange={handleColorThemeChange}
-          onRename={handleRename}
-        />
-        <DrilldownPanel
-          isOpen={isDrilldownOpen}
-          onClose={closeDrilldown}
-          widgetTitle={drilldownWidgetTitle}
-          data={drilldownData}
-          pagination={drilldownPagination}
-          isLoading={isDrilldownLoading}
-          isError={isDrilldownError}
-          onPageChange={changeDrilldownPage}
-          onSortChange={changeDrilldownSort}
-          sortState={drilldownSort}
-        />
+          <AnalyticsView
+            dashboard={dashboard}
+            refreshInfo={refreshInfo}
+            activeFilters={activeFilters}
+            onRefresh={handleRefresh}
+            onSave={handleSave}
+            savePhase={savePhase}
+            onRevert={handleRevert}
+            revertPhase={revertPhase}
+            onShare={handleShare}
+            sharePhase={sharePhase}
+            onExpand={handleExpand}
+            onClose={onClose}
+            onTablePageChange={handlePageChange}
+            loadingTablePanels={loadingPanels}
+            paginatedWidgets={mergedWidgets}
+            onDrillDown={openDrilldown}
+            onTableSortChange={handleSortChange}
+            tableSortStates={activeSorts}
+            defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
+            onColorThemeChange={handleColorThemeChange}
+            onRename={handleRename}
+          />
+          <DrilldownPanel
+            isOpen={isDrilldownOpen}
+            onClose={closeDrilldown}
+            widgetTitle={drilldownWidgetTitle}
+            data={drilldownData}
+            pagination={drilldownPagination}
+            isLoading={isDrilldownLoading}
+            isError={isDrilldownError}
+            onPageChange={changeDrilldownPage}
+            onSortChange={changeDrilldownSort}
+            sortState={drilldownSort}
+          />
         </>
       )}
     </div>
