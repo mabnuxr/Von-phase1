@@ -28,6 +28,7 @@ export const FEATURE_FLAGS = {
   ZENDESK_INTEGRATION: "enableZendesk",
   SNOWFLAKE: "enableSnowflake",
   GMAIL: "enableGmail",
+  GONG_ENGAGE: "enableGongEngage",
 } as const;
 
 /**
@@ -142,6 +143,11 @@ export function useFeatureFlag() {
      * Controls whether Gmail integration is visible
      */
     isGmailEnabled: flags[FEATURE_FLAGS.GMAIL] === true,
+
+    /**
+     * Controls whether Gong Engage integration is visible
+     */
+    isGongEngageEnabled: flags[FEATURE_FLAGS.GONG_ENGAGE] === true,
 
     /**
      * Raw flags object for advanced usage

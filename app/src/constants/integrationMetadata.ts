@@ -54,6 +54,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
   },
+  gongengage: {
+    id: "gongengage",
+    name: "Gong Engage",
+    description: "Enroll contacts into Gong Engage flows directly from Von",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
+    category: "Sales Engagement",
+  },
   fathom: {
     id: "fathom",
     name: "Fathom",
@@ -254,6 +262,7 @@ export function getIntegrationLogoPath(type: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     CHORUS: "chorus",
@@ -291,6 +300,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     salesforce: "SALESFORCE",
     hubspot: "HUBSPOT",
     gong: "GONG",
+    gongengage: "GONG_ENGAGE",
     fathom: "FATHOM",
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
@@ -325,6 +335,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     GOOGLE_CALENDAR: "googlecalendar",
@@ -363,6 +374,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     CHORUS: "chorus",
@@ -402,6 +414,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
 
   // Call recorders - workspace only (shared recordings)
   gong: ["tenant"],
+  gongengage: ["tenant"],
   fathom: ["tenant"],
   zoom: ["tenant"],
   chorus: ["tenant"],

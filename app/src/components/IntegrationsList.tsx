@@ -569,6 +569,7 @@ export function IntegrationsList({
     isZendeskEnabled,
     isSnowflakeEnabled,
     isGmailEnabled,
+    isGongEngageEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -578,6 +579,7 @@ export function IntegrationsList({
       if (app.id === "zendesk" && !isZendeskEnabled) return false;
       if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
       if (app.id === "gmail" && !isGmailEnabled) return false;
+      if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       return true;
     });
   }, [
@@ -585,6 +587,7 @@ export function IntegrationsList({
     isZendeskEnabled,
     isSnowflakeEnabled,
     isGmailEnabled,
+    isGongEngageEnabled,
   ]);
 
   // Merge available apps with connected integrations
