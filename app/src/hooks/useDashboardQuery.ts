@@ -49,6 +49,10 @@ interface RawApiWidget {
   highcharts: Record<string, unknown> | null;
   gridOptions: Record<string, unknown> | null;
   query_failed?: boolean;
+  drilldown?: {
+    query_ref: string;
+    column_map: Array<{ data_key: string; sql_expression: string }>;
+  } | null;
   pagination?: {
     page: number;
     limit: number;
@@ -97,6 +101,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
       title: raw.title,
       config: raw.kpi,
       query_failed: raw.query_failed,
+      drilldown: raw.drilldown ?? null,
     };
   }
 
@@ -128,6 +133,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
         chartType: ((chartObj.type as string) ?? "bar") as ChartType,
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
+      drilldown: raw.drilldown ?? null,
     };
   }
 
@@ -150,6 +156,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
             }
           : undefined,
       },
+      drilldown: raw.drilldown ?? null,
     } as unknown as WidgetConfig;
   }
 
@@ -159,6 +166,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
     type: raw.type as WidgetConfig["type"],
     title: raw.title,
     config: {},
+    drilldown: raw.drilldown ?? null,
   } as WidgetConfig;
 }
 

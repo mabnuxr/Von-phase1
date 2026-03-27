@@ -24,6 +24,24 @@ export interface LayoutItem {
 
 export type WidgetType = 'chart' | 'counter' | 'table' | 'text';
 
+// ─── Drilldown ────────────────────────────────────────────────────
+
+/** Maps a Highcharts point event path to a SQL expression for drilldown. */
+export interface DrilldownColumnMapping {
+  data_key: string;
+  sql_expression: string;
+}
+
+export interface DrilldownConfig {
+  query_ref: string;
+  column_map: DrilldownColumnMapping[];
+}
+
+/** Column-value pairs sent as drill filters from a chart point click. */
+export type DrillFilters = Record<string, unknown>;
+
+// ─── Widget Config ────────────────────────────────────────────────
+
 export interface WidgetConfig {
   id: string;
   type: WidgetType;
@@ -31,6 +49,8 @@ export interface WidgetConfig {
   subtitle?: string;
   config: ChartWidgetConfig | CounterWidgetConfig | TableWidgetConfig | TextWidgetConfig;
   query_failed?: boolean;
+  /** Drilldown configuration — present when the panel supports drill-down. */
+  drilldown?: DrilldownConfig | null;
 }
 
 // ─── Chart ───────────────────────────────────────────────────────
@@ -134,8 +154,10 @@ export interface WidgetRendererProps {
   widget: WidgetConfig;
   onTablePageChange?: (panelId: string, page: number) => void;
   isTableLoading?: boolean;
-  /** Callback when a widget's drilldown icon is clicked */
+  /** Callback when a widget's drilldown icon is clicked (chart-level) */
   onDrillDown?: (panelId: string) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown) */
+  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state for this table widget */
@@ -150,8 +172,10 @@ export interface DashboardGridProps {
   gridConfig: GridConfig;
   onTablePageChange?: (panelId: string, page: number) => void;
   loadingTablePanels?: Set<string>;
-  /** Callback when a widget's drilldown icon is clicked */
+  /** Callback when a widget's drilldown icon is clicked (chart-level) */
   onDrillDown?: (panelId: string) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown) */
+  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state per panel */

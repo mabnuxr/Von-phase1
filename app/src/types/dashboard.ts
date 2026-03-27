@@ -105,6 +105,10 @@ export interface WidgetConfig {
     | TableWidgetConfig
     | TextWidgetConfig;
   query_failed?: boolean;
+  drilldown?: {
+    query_ref: string;
+    column_map: Array<{ data_key: string; sql_expression: string }>;
+  } | null;
 }
 
 // ─── Chart Widget ────────────────────────────────────────────────
@@ -452,6 +456,7 @@ export interface PanelRenderResponse {
 
 export interface PanelDrilldownRequest {
   panel_id: string;
+  drill_filters?: Record<string, unknown> | null;
   page_limit: number;
   page: number;
   sort_config?: SortConfigItem[];

@@ -9,6 +9,7 @@ import type {
   CounterWidgetConfig,
   TableWidgetConfig,
   TextWidgetConfig,
+  DrillFilters,
 } from '../types';
 
 /**
@@ -22,6 +23,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
   onTablePageChange,
   isTableLoading,
   onDrillDown,
+  onPointDrillDown,
   onTableSortChange,
   tableSortState,
 }) => {
@@ -31,7 +33,15 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
     case 'chart':
       return (
         <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown}>
-          <ChartWidget config={widget.config as ChartWidgetConfig} />
+          <ChartWidget
+            config={widget.config as ChartWidgetConfig}
+            drilldown={widget.drilldown}
+            onPointClick={
+              onPointDrillDown
+                ? (filters: DrillFilters) => onPointDrillDown(widget.id, filters)
+                : undefined
+            }
+          />
         </WidgetShell>
       );
 

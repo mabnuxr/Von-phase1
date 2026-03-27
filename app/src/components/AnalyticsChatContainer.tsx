@@ -251,8 +251,6 @@ function AnalyticsChatInner({
       onFileClick={chatV2.handleFileClick}
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
-      isAgentLocked
-      lockedConversationMode={lockedConversationMode}
       availableAgentModes={CHAT_PANE_AGENT_MODES}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}

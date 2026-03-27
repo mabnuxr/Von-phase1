@@ -15,6 +15,7 @@ interface DrilldownState {
   widgetTitle: string;
   page: number;
   sort: SortInfo | null;
+  drillFilters: Record<string, unknown> | null;
 }
 
 export function useDrilldown(
@@ -41,6 +42,7 @@ export function useDrilldown(
       drilldown?.page,
       drilldown?.sort?.orderBy ?? null,
       drilldown?.sort?.orderByAsc ?? null,
+      drilldown?.drillFilters ?? null,
     ],
     queryFn: async () => {
       if (!drilldown) throw new Error("No drilldown state");
@@ -48,6 +50,9 @@ export function useDrilldown(
         panel_id: drilldown.panelId,
         page_limit: PAGE_LIMIT,
         page: drilldown.page,
+        ...(drilldown.drillFilters && {
+          drill_filters: drilldown.drillFilters,
+        }),
         ...(drilldown.sort && {
           sort_config: [
             {
@@ -68,6 +73,7 @@ export function useDrilldown(
     lastPaginationRef.current = data.pagination;
   }
 
+  /** Chart-level drilldown — shows all rows (no filters). */
   const openDrilldown = useCallback(
     (panelId: string) => {
       const widget = widgets[panelId];
@@ -82,9 +88,29 @@ export function useDrilldown(
         widgetTitle: widget?.title ?? "Drilldown",
         page: 1,
         sort: null,
+        drillFilters: null,
       });
     },
     [widgets, drilldown?.panelId],
+  );
+
+  /** Point-level drilldown — filters to the clicked chart element. */
+  const openPointDrilldown = useCallback(
+    (panelId: string, drillFilters: Record<string, unknown>) => {
+      const widget = widgets[panelId];
+      // Always clear cached data — drill_filters change means new result set,
+      // even when clicking a different point on the same panel.
+      lastDataRef.current = [];
+      lastPaginationRef.current = null;
+      setDrilldown({
+        panelId,
+        widgetTitle: widget?.title ?? "Drilldown",
+        page: 1,
+        sort: null,
+        drillFilters,
+      });
+    },
+    [widgets],
   );
 
   const closeDrilldown = useCallback(() => {
@@ -121,6 +147,7 @@ export function useDrilldown(
     isError,
     error,
     openDrilldown,
+    openPointDrilldown,
     closeDrilldown,
     changePage,
     changeSort,

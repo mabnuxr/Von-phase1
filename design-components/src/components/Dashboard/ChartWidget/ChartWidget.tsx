@@ -5,7 +5,7 @@ import 'highcharts/modules/funnel';
 import 'highcharts/highcharts-more';
 import 'highcharts/modules/pattern-fill';
 import HighchartsReact from 'highcharts-react-official';
-import type { ChartWidgetConfig } from '../types';
+import type { ChartWidgetConfig, DrilldownConfig, DrillFilters } from '../types';
 import { useOptionalDashboardCustomization } from '../DashboardCustomization';
 
 // ── Pattern helpers ───────────────────────────────────────────
@@ -117,8 +117,29 @@ const GRID_LINE_COLOR = '#f3f4f6';
 const LINE_COLOR = '#e5e7eb';
 const TICK_COLOR = '#e5e7eb';
 
+/**
+ * Resolve a dot-separated property path against a Highcharts point object.
+ *
+ * Paths starting with "point." are stripped since the caller already holds
+ * the point reference (e.g. "point.name" → reads point["name"]).
+ */
+function getNestedValue(point: Highcharts.Point, path: string): unknown {
+  const effectivePath = path.startsWith('point.') ? path.slice(6) : path;
+  const parts = effectivePath.split('.');
+  let current: unknown = point;
+  for (const part of parts) {
+    if (current == null || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
 export interface ChartWidgetProps {
   config: ChartWidgetConfig;
+  /** Drilldown config with column_map for point-level drilldown. */
+  drilldown?: DrilldownConfig | null;
+  /** Called when a chart data point is clicked and column_map is present. */
+  onPointClick?: (drillFilters: DrillFilters) => void;
 }
 
 /**
@@ -126,7 +147,7 @@ export interface ChartWidgetProps {
  * the active dashboard theme (patterns, colors) from context.
  * Falls back gracefully if no provider is present.
  */
-const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
+const ChartWidget: React.FC<ChartWidgetProps> = ({ config, drilldown, onPointClick }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
 
@@ -371,6 +392,61 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
     };
   }, [config.highchartsOptions, palette, category]);
 
+  // Inject point click handler when column_map is present for point-level drilldown
+  const finalOptions = useMemo(() => {
+    const columnMap = drilldown?.column_map;
+    if (!columnMap?.length || !onPointClick) return options;
+
+    const existingPlotOptions = (options.plotOptions ?? {}) as Record<string, unknown>;
+    const existingSeriesOpts = (existingPlotOptions.series ?? {}) as Record<string, unknown>;
+    const existingPointOpts = (existingSeriesOpts.point as Record<string, unknown>) ?? {};
+    const existingPointEvents = (existingPointOpts.events as Record<string, unknown>) ?? {};
+    const existingClickHandler = existingPointEvents.click as
+      | ((this: Highcharts.Point, event: Highcharts.PointClickEventObject) => void)
+      | undefined;
+
+    return {
+      ...options,
+      plotOptions: {
+        ...existingPlotOptions,
+        series: {
+          ...existingSeriesOpts,
+          cursor: 'pointer',
+          point: {
+            ...existingPointOpts,
+            events: {
+              ...existingPointEvents,
+              click(this: Highcharts.Point, event: Highcharts.PointClickEventObject) {
+                // Preserve any existing click handler from backend config
+                if (existingClickHandler) {
+                  existingClickHandler.call(this, event);
+                }
+
+                const filters: Record<string, unknown> = {};
+                for (const { data_key } of columnMap) {
+                  // Special-case series.name — access the typed accessor directly
+                  // rather than traversing via generic property lookup on a class instance
+                  const value =
+                    data_key === 'series.name' ? this.series?.name : getNestedValue(this, data_key);
+                  if (value != null) {
+                    filters[data_key] = value;
+                  } else {
+                    console.warn(
+                      `[ChartWidget] drilldown data_key "${data_key}" resolved to null/undefined on point click`
+                    );
+                  }
+                }
+                if (Object.keys(filters).length > 0) {
+                  onPointClick(filters);
+                }
+              },
+            },
+          },
+        },
+      },
+    } as Highcharts.Options;
+  }, [options, drilldown, onPointClick]);
+
   useEffect(() => {
     const el = sizeRef.current;
     if (!el) return;
@@ -404,7 +480,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
         <HighchartsReact
           ref={chartRef}
           highcharts={Highcharts}
-          options={options}
+          options={finalOptions}
           containerProps={{ style: { height: '100%', width: '100%' } }}
         />
       </div>
