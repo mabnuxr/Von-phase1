@@ -398,7 +398,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     onResumeSchedule={onResumeSchedule}
                     onDeleteSchedule={onDeleteSchedule}
                   />
-                  <CustomizeButton canCustomize={isSaved} />
+                  <CustomizeButton />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
                     canShare={isSaved}
