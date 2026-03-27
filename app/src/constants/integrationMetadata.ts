@@ -11,6 +11,8 @@ export interface IntegrationMetadata {
   personalDescription?: string;
   logoPath: string;
   disabled?: boolean;
+  /** Optional note shown below the description */
+  note?: string;
   category:
     | "CRM"
     | "Call Recorder"
@@ -51,6 +53,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     id: "gong",
     name: "Gong",
     description: "Ask about Gong calls and get Von's conversation insights",
+    note: "If you have a Gong Engage license, it will be automatically enabled with this connection",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
@@ -58,7 +61,9 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   gongengage: {
     id: "gongengage",
     name: "Gong Engage",
-    description: "Enroll contacts into Gong Engage flows directly from Von",
+    description:
+      "Analyse flows and manage engagement actions from Gong Engage",
+    note: "Set up your Gong call recorder to start using Gong Engage",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Sales Engagement",

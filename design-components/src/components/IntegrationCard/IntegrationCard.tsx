@@ -124,6 +124,17 @@ export interface IntegrationCardProps {
    * Optional slot for custom actions rendered next to the delete button
    */
   actionSlot?: React.ReactNode;
+
+  /**
+   * Static status text shown in place of the Connect button for available integrations
+   * (e.g., "Available" for integrations that don't require user-initiated connection)
+   */
+  statusText?: string;
+
+  /**
+   * Optional note displayed below the description (e.g., prerequisite info)
+   */
+  note?: string;
 }
 
 /**
@@ -158,6 +169,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   canDelete = true,
   deleteTooltip,
   actionSlot,
+  statusText,
+  note,
 }) => {
   const isLoading = !!loadingText;
 
@@ -207,6 +220,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
           {/* Description */}
           {description && <span className="text-sm text-gray-500">{description}</span>}
+          {note && <span className="text-xs text-gray-400 italic">Note: {note}</span>}
 
           {/* Modified By */}
           {modifiedBy && <span className="text-xs text-gray-500">Modified by: {modifiedBy}</span>}
@@ -235,7 +249,11 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
 
         {/* If this is an available integration, show Connect button or Coming soon */}
         {isAvailable ? (
-          onToggle && !disabled ? (
+          statusText ? (
+            <span className="px-3 py-1.5 bg-emerald-50 rounded-xl text-sm font-medium text-emerald-700">
+              {statusText}
+            </span>
+          ) : onToggle && !disabled ? (
             <button
               onClick={() => onToggle(true)}
               className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors hover:cursor-pointer"
