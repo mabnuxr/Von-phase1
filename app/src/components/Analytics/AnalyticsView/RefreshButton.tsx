@@ -30,16 +30,31 @@ const DASHBOARD_FREQUENCIES: { value: ScheduleFrequency; label: string }[] = [
   { value: "monthly", label: "Monthly" },
 ];
 
-// ─── Helpers: convert between SchedulePicker local state & API UTC ──
+// ─── Helpers: convert between ScheduleFields local state & API UTC ──
+
+const SUPPORTED_DASHBOARD_FREQUENCIES = new Set(
+  DASHBOARD_FREQUENCIES.map((f) => f.value),
+);
+
+/** Validate an IANA timezone string, falling back to LOCAL_TIMEZONE */
+function safeTimezone(tz: string): string {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return tz;
+  } catch {
+    return LOCAL_TIMEZONE;
+  }
+}
 
 /** Convert local HH:MM in a given IANA timezone to UTC HH:MM */
 function localTimeToUtc(localTime: string, timezone: string): string {
+  const tz = safeTimezone(timezone);
   const [hours, minutes] = localTime.split(":").map(Number);
   const refDate = new Date(2000, 0, 15);
   refDate.setHours(hours, minutes, 0, 0);
 
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
+    timeZone: tz,
     hour: "numeric",
     minute: "numeric",
     hourCycle: "h23",
@@ -65,11 +80,12 @@ function localTimeToUtc(localTime: string, timezone: string): string {
 
 /** Convert UTC HH:MM to local HH:MM in a given IANA timezone */
 function utcTimeToLocal(utcTime: string, timezone: string): string {
+  const tz = safeTimezone(timezone);
   const [hours, minutes] = utcTime.split(":").map(Number);
   const utcDate = new Date(Date.UTC(2000, 0, 15, hours, minutes, 0));
 
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
+    timeZone: tz,
     hour: "numeric",
     minute: "numeric",
     hourCycle: "h23",
@@ -99,9 +115,15 @@ function apiToPickerSchedule(
   };
   if (!cfg) return defaults;
 
+  const frequency = SUPPORTED_DASHBOARD_FREQUENCIES.has(
+    cfg.frequency as ScheduleFrequency,
+  )
+    ? (cfg.frequency as ScheduleFrequency)
+    : defaults.frequency;
+
   return {
     enabled: true,
-    frequency: cfg.frequency as ScheduleFrequency,
+    frequency,
     time: cfg.time ? utcTimeToLocal(cfg.time, tz) : defaults.time,
     days: (cfg.days as Schedule["days"]) ?? defaults.days,
     dayOfMonth: cfg.dayOfMonth ?? defaults.dayOfMonth,
