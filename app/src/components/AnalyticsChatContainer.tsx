@@ -4,16 +4,24 @@
  * Reuses the same chat infrastructure (useChatV2, Pusher, event processing)
  * as the Conversation page, rendered inside a collapsible sidebar pane.
  *
+ * When in deep research mode (Dashboard Builder with messages), renders
+ * DeepResearchConversation for full approval/plan support — matching the
+ * main chat experience.
+ *
  * Mounted with key={conversationId} to ensure clean remount if conversation changes.
  */
 
 import { useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Chat, ChatSkeleton } from "@vonlabs/design-components";
-import { ConversationMode } from "@vonlabs/design-components";
+import {
+  Chat,
+  ChatSkeleton,
+  ConversationMode,
+} from "@vonlabs/design-components";
 import { dashboardKeys } from "../hooks/useDashboardQuery";
 
 import { AnalyticsChatEmptyState } from "./AnalyticsChatEmptyState";
+import { DeepResearchConversation } from "./DeepResearchConversation";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useMessages } from "../hooks/useMessages";
@@ -27,7 +35,10 @@ import { ReferenceType } from "../types/conversation";
 import useChatStore from "../store/chatStore";
 import { useChatV2 } from "../hooks/useChatV2";
 import { config } from "../config";
-import { MESSAGES_PAGE_LIMIT } from "../config/constants";
+import {
+  MESSAGES_PAGE_LIMIT,
+  CHAT_PANE_AGENT_MODES,
+} from "../config/constants";
 
 export interface AnalyticsChatContainerProps {
   conversationId: string;
@@ -166,6 +177,35 @@ function AnalyticsChatInner({
     return <ChatSkeleton messageCount={4} />;
   }
 
+  // Deep research mode: render DeepResearchConversation for full plan
+  // approval / research results support — consistent with main chat
+  if (chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0) {
+    return (
+      <DeepResearchConversation
+        messages={chatV2.transformedMessages}
+        userName={user?.firstName || user?.name?.split(" ")[0]}
+        userEmail={user?.email}
+        conversationId={conversationId}
+        researchResults={chatV2.effectiveResearchResults ?? undefined}
+        isDeepResearchRunning={chatV2.isDeepResearchRunning}
+        dashboard={chatV2.dashboard ?? undefined}
+        lockedConversationMode={lockedConversationMode}
+        onSendMessage={chatV2.handleSendMessage}
+        onStopStreaming={chatV2.handleStopStreaming}
+        onApprove={chatV2.handleApproval}
+        onReject={chatV2.handleRejection}
+        onApprovePlan={chatV2.handlePlanApproval}
+        onRejectPlan={chatV2.handlePlanRejection}
+        placeholder="Make changes to this dashboard..."
+        disableSubmit={!chatV2.canSubmitFinal}
+        enableCommands={isSlashCommandsEnabled}
+        fetchNextMessagePage={fetchNextMessagePage}
+        hasNextMessagePage={!!hasNextMessagePage}
+        isFetchingNextMessagePage={isFetchingNextMessagePage}
+      />
+    );
+  }
+
   return (
     <Chat
       title={dashboardTitle}
@@ -185,6 +225,8 @@ function AnalyticsChatInner({
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
+      isAgentLocked={true}
+      lockedConversationMode={lockedConversationMode}
       disableSubmit={!chatV2.canSubmitFinal}
       showTransparency={isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}
@@ -209,6 +251,9 @@ function AnalyticsChatInner({
       onFileClick={chatV2.handleFileClick}
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
+      isAgentLocked
+      lockedConversationMode={lockedConversationMode}
+      availableAgentModes={CHAT_PANE_AGENT_MODES}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     >

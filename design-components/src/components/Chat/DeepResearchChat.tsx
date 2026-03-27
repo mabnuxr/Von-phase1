@@ -8,7 +8,7 @@ import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import { MessageActions } from './MessageActions';
 import { DashboardArtifactCard } from './ArtifactCards';
-import type { Message } from './types';
+import type { Message, MessageFileAttachment } from './types';
 import type { ResearchResultsMetadata } from './DeepResearch/types';
 
 /**
@@ -87,18 +87,30 @@ export interface DeepResearchChatProps {
     artifactType: string,
     runId: string
   ) => void;
-  /** Callback when approval is triggered */
+  /** Callback when approval is triggered (HITL tool call approvals in timeline) */
   onApprove?: (stepId: string, runId: string) => void;
-  /** Callback when rejection is triggered */
+  /** Callback when rejection is triggered (HITL tool call rejections in timeline) */
   onReject?: (stepId: string, runId: string) => void;
+  /**
+   * Callback when "Create Dashboard" is clicked for workflow execution approval.
+   * Used when approvalMessage.executionId is set (execute_workflow dry_run completed).
+   * Calls /resume with approved=true and execution_id instead of sending a chat message.
+   */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+  /**
+   * Callback when "Skip" is clicked for workflow execution approval.
+   * Used when approvalMessage.executionId is set (execute_workflow dry_run completed).
+   * Calls /resume with approved=false and execution_id.
+   */
+  onRejectPlan?: (runId: string, executionId: string) => void;
   /** Callback when thumbs up is clicked */
   onLike?: (messageId: string) => void;
   /** Callback when thumbs down is clicked */
   onDislike?: (messageId: string) => void;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
-  /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
+  /** Callback when a file attachment is clicked */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 /**
@@ -127,27 +139,49 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onArtifactClick,
   onApprove,
   onReject,
+  onApprovePlan,
+  onRejectPlan,
   onLike,
   onDislike,
   onDashboardPreview,
-  onDashboardOpen,
+  onFileClick,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Handle run full analysis click - show confirmation modal
-  const handleRunFullAnalysisClick = () => {
+  // Handle Create Dashboard click - directly proceed
+  const handleCreateDashboard = () => {
+    if (approvalMessage?.executionId && approvalMessage?.runId && onApprovePlan) {
+      onApprovePlan(approvalMessage.runId, approvalMessage.executionId);
+    } else {
+      onSendMessage?.('Run full analysis and create the dashboard');
+    }
+  };
+
+  // Handle skip click - show confirmation modal
+  const handleSkipClick = () => {
     setShowConfirmModal(true);
   };
 
-  // Handle confirmation - send the message and close modal
-  const handleConfirmAnalysis = () => {
+  // Handle skip confirmation
+  const handleConfirmSkip = () => {
     setShowConfirmModal(false);
-    onSendMessage?.('Run full analysis and create the dashboard');
+    if (approvalMessage?.executionId && approvalMessage?.runId) {
+      onRejectPlan?.(approvalMessage.runId, approvalMessage.executionId);
+    } else {
+      const approvalStep = approvalMessage?.timelineSteps?.find(
+        (s) => s.type === 'approval' && s.approval?.toolCallId
+      );
+      const stepId = approvalStep?.approval?.toolCallId ?? approvalStep?.id;
+      if (stepId && approvalMessage?.runId) {
+        onReject?.(stepId, approvalMessage.runId);
+      }
+    }
+    onSkip?.();
   };
 
-  // Handle cancel - just close the modal
-  const handleCancelAnalysis = () => {
+  // Handle skip cancel - just close the modal
+  const handleCancelSkip = () => {
     setShowConfirmModal(false);
   };
 
@@ -199,6 +233,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                 userEmail={userEmail}
                 messageId={message.messageId || message.id}
                 conversationId={message.conversationId}
+                attachments={message.attachments}
+                onFileClick={onFileClick}
               />
             </div>
           );
@@ -256,8 +292,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                   />
                   <div className="space-y-2">
                     <p className="text-sm text-gray-600">
-                      The dashboard is currently saved as a <strong>draft</strong>. You can publish
-                      it to make it visible to your organization.
+                      The dashboard is currently saved as a <strong>draft</strong>. Save it to make
+                      it accessible from the side panel.
                     </p>
                     <DashboardArtifactCard
                       title={message.dashboard.dashboard_name}
@@ -265,15 +301,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         onDashboardPreview
                           ? () =>
                               onDashboardPreview(
-                                message.dashboard!.dashboard_id,
-                                message.dashboard!.dashboard_version
-                              )
-                          : undefined
-                      }
-                      onOpen={
-                        onDashboardOpen
-                          ? () =>
-                              onDashboardOpen(
                                 message.dashboard!.dashboard_id,
                                 message.dashboard!.dashboard_version
                               )
@@ -330,7 +357,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         !hasSkipped
                           ? {
                               label: 'Create Dashboard',
-                              onClick: handleRunFullAnalysisClick,
+                              onClick: handleCreateDashboard,
                               disabled: isDeepResearchRunning,
                               isLoading: isDeepResearchRunning,
                             }
@@ -340,20 +367,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                         !hasSkipped
                           ? {
                               label: 'Skip',
-                              onClick: () => {
-                                // Call onReject to update backend phase to "plan-rejected"
-                                // Find the approval step's toolCallId from timeline steps
-                                const approvalStep = approvalMessage?.timelineSteps?.find(
-                                  (s) => s.type === 'approval' && s.approval?.toolCallId
-                                );
-                                const stepId =
-                                  approvalStep?.approval?.toolCallId ?? approvalStep?.id;
-                                if (stepId && approvalMessage?.runId) {
-                                  onReject?.(stepId, approvalMessage.runId);
-                                }
-                                // Also call onSkip to hide buttons and focus input
-                                onSkip?.();
-                              },
+                              onClick: handleSkipClick,
                               disabled: isDeepResearchRunning,
                             }
                           : undefined
@@ -402,8 +416,8 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                       {researchResults.isCompleted && message.dashboard && (
                         <div className="space-y-2">
                           <p className="text-sm text-gray-600">
-                            The dashboard is currently saved as a <strong>draft</strong>. You can
-                            publish it to make it visible to your organization.
+                            The dashboard is currently saved as a <strong>draft</strong>. Save it to
+                            make it accessible from the side panel.
                           </p>
                           <DashboardArtifactCard
                             title={message.dashboard.dashboard_name}
@@ -411,15 +425,6 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                               onDashboardPreview
                                 ? () =>
                                     onDashboardPreview(
-                                      message.dashboard!.dashboard_id,
-                                      message.dashboard!.dashboard_version
-                                    )
-                                : undefined
-                            }
-                            onOpen={
-                              onDashboardOpen
-                                ? () =>
-                                    onDashboardOpen(
                                       message.dashboard!.dashboard_id,
                                       message.dashboard!.dashboard_version
                                     )
@@ -459,6 +464,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               conversationId={message.conversationId}
               timelineSteps={message.timelineSteps}
               thinkingProcessVersion="v2"
+              thinkingElapsedTime={message.thinkingElapsedTime}
               v2FinalResponse={message.v2FinalResponse}
               onArtifactClick={onArtifactClick}
               onApprove={onApprove}
@@ -473,11 +479,9 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
       {/* Confirmation Modal */}
       <ExpensiveOperationModal
         isOpen={showConfirmModal}
-        recordCount={dataTablesInfo?.totalRecords || researchResults?.metadata?.total_records || 0}
-        estimatedTime={researchResults?.metadata?.estimated_time || '10-15 minutes'}
-        onConfirm={handleConfirmAnalysis}
-        onCancel={handleCancelAnalysis}
-        operationName="Create Dashboard"
+        onConfirm={handleConfirmSkip}
+        onCancel={handleCancelSkip}
+        operationName="Skip Dashboard Creation"
       />
     </div>
   );

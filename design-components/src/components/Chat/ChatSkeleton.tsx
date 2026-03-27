@@ -10,7 +10,7 @@ export interface ChatSkeletonProps {
  */
 export const ChatSkeleton: React.FC<ChatSkeletonProps> = ({ messageCount = 2 }) => {
   return (
-    <div className="flex flex-col h-full w-full bg-white rounded-lg overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto flex flex-col">
         {Array.from({ length: messageCount }).map((_, i) => {

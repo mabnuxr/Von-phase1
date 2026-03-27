@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CaretLeftIcon, CaretRightIcon, StarIcon } from '@phosphor-icons/react';
+import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { ChatInputSelector } from './ChatInputSelector';
 import type { SendMessageOptions } from './types';
 import {
@@ -312,7 +312,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
       {/* Top Banner (if provided) - at very top */}
       {topBanner && (
         <motion.div
-          className="w-full max-w-3xl mb-6"
+          className="w-full max-w-3xl mb-8"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
@@ -326,14 +326,14 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
       {/* Animated Icon - Von Logo */}
       <motion.div
-        className="mb-6"
+        className="mb-3"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <svg
-          width="48"
-          height="48"
+          width="44"
+          height="44"
           viewBox="0 0 28 28"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -375,7 +375,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         <h2 className="text-3xl text-gray-900 tracking-tight">
           {greeting}, {displayName}
         </h2>
-        <p className="text-3xl text-gray-800/80 tracking-tight">How can I help you today?</p>
+        <p className="text-3xl text-gray-900 tracking-tight">How can I help you today?</p>
       </motion.div>
 
       {/* Banner (if provided) */}
@@ -392,7 +392,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
 
       {/* Input Field - Using ChatInput or StandardChatInput component */}
       <motion.div
-        className="w-full max-w-3xl mb-6"
+        className="w-full max-w-3xl mb-8"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.4 }}
@@ -454,7 +454,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {TEMPLATE_CATEGORIES.map((category) => {
             const isActive = category === activeCategory;
-            const isPopular = category === 'Popular';
             return (
               <button
                 key={category}
@@ -464,13 +463,12 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                   transition-all duration-200 inline-flex items-center gap-1
                   ${
                     isActive
-                      ? 'bg-gray-100 border border-gray-100 shadow-sm text-gray-900'
+                      ? 'bg-gray-50 border border-gray-200 shadow-xs text-gray-900'
                       : 'bg-white border border-gray-100 text-gray-600 hover:border-gray-200'
                   }
                   ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
-                {isPopular && <StarIcon size={12} weight="fill" className="text-amber-500" />}
                 {category}
               </button>
             );
@@ -503,18 +501,16 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                 onClick={() => handleTemplateClick(template)}
                 className={`
                   flex-shrink-0 w-48 px-4 py-2.5
-                  shadow-xs rounded-xl bg-white border border-gray-200
+                  rounded-xl bg-white border border-gray-100
                   text-left transition-all flex flex-col justify-start
                   ${
                     disabled
                       ? 'opacity-50 cursor-not-allowed'
-                      : 'hover:border-gray-300 hover:shadow-sm cursor-pointer'
+                      : 'hover:border-gray-200 cursor-pointer'
                   }
                 `}
               >
-                <div className="text-sm font-medium text-gray-700 line-clamp-3">
-                  {template.shortPrompt}
-                </div>
+                <div className="text-sm text-gray-800 line-clamp-3">{template.shortPrompt}</div>
               </button>
             ))}
           </div>

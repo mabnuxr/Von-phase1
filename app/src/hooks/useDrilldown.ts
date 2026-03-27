@@ -5,10 +5,16 @@ import type { PanelDrilldownPagination } from "../types/dashboard";
 
 const PAGE_LIMIT = 20;
 
+interface SortInfo {
+  orderBy: string;
+  orderByAsc: boolean;
+}
+
 interface DrilldownState {
   panelId: string;
   widgetTitle: string;
   page: number;
+  sort: SortInfo | null;
 }
 
 export function useDrilldown(
@@ -28,13 +34,28 @@ export function useDrilldown(
   }, [dashboardId]);
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
-    queryKey: ["drilldown", dashboardId, drilldown?.panelId, drilldown?.page],
+    queryKey: [
+      "drilldown",
+      dashboardId,
+      drilldown?.panelId,
+      drilldown?.page,
+      drilldown?.sort?.orderBy ?? null,
+      drilldown?.sort?.orderByAsc ?? null,
+    ],
     queryFn: async () => {
       if (!drilldown) throw new Error("No drilldown state");
       return dashboardService.drilldownPanel(dashboardId, {
         panel_id: drilldown.panelId,
         page_limit: PAGE_LIMIT,
         page: drilldown.page,
+        ...(drilldown.sort && {
+          sort_config: [
+            {
+              order_by: drilldown.sort.orderBy,
+              order_by_asc: drilldown.sort.orderByAsc,
+            },
+          ],
+        }),
       });
     },
     enabled: !!drilldown,
@@ -60,6 +81,7 @@ export function useDrilldown(
         panelId,
         widgetTitle: widget?.title ?? "Drilldown",
         page: 1,
+        sort: null,
       });
     },
     [widgets, drilldown?.panelId],
@@ -75,16 +97,32 @@ export function useDrilldown(
     setDrilldown((prev) => (prev ? { ...prev, page } : null));
   }, []);
 
+  const changeSort = useCallback(
+    (columnId: string, order: "asc" | "desc" | null) => {
+      setDrilldown((prev) => {
+        if (!prev) return null;
+        const nextSort: SortInfo | null =
+          order === null
+            ? null
+            : { orderBy: columnId, orderByAsc: order === "asc" };
+        return { ...prev, page: 1, sort: nextSort };
+      });
+    },
+    [],
+  );
+
   return {
     isOpen: !!drilldown,
     widgetTitle: drilldown?.widgetTitle ?? "",
     data: data?.data ?? lastDataRef.current,
     pagination: data?.pagination ?? lastPaginationRef.current,
+    currentSort: drilldown?.sort ?? null,
     isLoading: isLoading || isFetching,
     isError,
     error,
     openDrilldown,
     closeDrilldown,
     changePage,
+    changeSort,
   };
 }

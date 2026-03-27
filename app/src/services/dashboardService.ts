@@ -7,6 +7,8 @@ import type {
   PanelRenderResponse,
   PanelDrilldownRequest,
   PanelDrilldownResponse,
+  ScheduleConfigRequest,
+  DashboardScheduleResponse,
 } from "../types/dashboard";
 
 /**
@@ -28,9 +30,9 @@ export interface DashboardListResponse {
     page: number;
     limit: number;
     total: number;
-    total_pages: number;
-    has_next_page: boolean;
-    has_prev_page: boolean;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
   };
 }
 
@@ -147,6 +149,52 @@ class DashboardService {
       `/api/v1/dashboards/${dashboardId}/panels/drilldown`,
       request,
     );
+  }
+
+  // ─── Schedule ───────────────────────────────────────────────────
+
+  async getSchedule(dashboardId: string): Promise<DashboardScheduleResponse> {
+    return apiClient.get<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule`,
+    );
+  }
+
+  async createSchedule(
+    dashboardId: string,
+    config: ScheduleConfigRequest,
+  ): Promise<DashboardScheduleResponse> {
+    return apiClient.post<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule`,
+      config,
+    );
+  }
+
+  async updateSchedule(
+    dashboardId: string,
+    config: Partial<ScheduleConfigRequest>,
+  ): Promise<DashboardScheduleResponse> {
+    return apiClient.patch<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule`,
+      config,
+    );
+  }
+
+  async pauseSchedule(dashboardId: string): Promise<DashboardScheduleResponse> {
+    return apiClient.post<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule/pause`,
+    );
+  }
+
+  async resumeSchedule(
+    dashboardId: string,
+  ): Promise<DashboardScheduleResponse> {
+    return apiClient.post<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule/resume`,
+    );
+  }
+
+  async deleteSchedule(dashboardId: string): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/dashboards/${dashboardId}/schedule`);
   }
 }
 

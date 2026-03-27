@@ -26,9 +26,13 @@ import type {
   RunFinishedEvent,
 } from "@vonlabs/design-components";
 
-/** RUN_FINISHED result extended with the optional dashboard field the backend emits. */
+/** RUN_FINISHED result extended with optional fields the backend emits. */
 type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, "result"> & {
-  result: RunFinishedEvent["result"] & { dashboard?: DashboardMetadata | null };
+  result: RunFinishedEvent["result"] & {
+    dashboard?: DashboardMetadata | null;
+    execution_id?: string | null;
+    approval_type?: string | null;
+  };
 };
 import type { DashboardMetadata } from "../types/conversation";
 
@@ -100,6 +104,10 @@ export interface UseV2EventProcessorReturn {
   runErrorMessage: string;
   phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
+  /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
+  liveDashboardKey: string | null;
+  /** execution_id from RUN_FINISHED for workflow execution approval (dry_run completed) */
+  executionId: string | null;
   markStopped: () => void;
   markTimedOut: () => void;
   clearPendingStop: () => void;
@@ -165,6 +173,9 @@ export function useV2EventProcessor(
   const [runErrorMessage, setRunErrorMessage] = useState("");
   const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
+  /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
+  const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
+  const [executionId, setExecutionId] = useState<string | null>(null);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
@@ -193,6 +204,7 @@ export function useV2EventProcessor(
       options?: {
         phase?: "plan-proposed" | "ask" | null;
         dashboard?: DashboardMetadata | null;
+        executionId?: string | null;
       },
     ) => {
       flushSync(() => {
@@ -211,6 +223,9 @@ export function useV2EventProcessor(
         }
         if (options?.dashboard !== undefined) {
           setDashboard(options.dashboard);
+        }
+        if (options?.executionId !== undefined) {
+          setExecutionId(options.executionId);
         }
       });
     },
@@ -262,6 +277,7 @@ export function useV2EventProcessor(
           setResearchResults(research);
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
+          setExecutionId(null);
         });
       } else {
         flushSync(() => {
@@ -270,6 +286,7 @@ export function useV2EventProcessor(
           setStoppedByUser(options.stoppedByUser);
           setRunErrorMessage(options.errorMessage ?? "");
           setTimelineSteps([]);
+          setExecutionId(null);
         });
       }
 
@@ -324,6 +341,7 @@ export function useV2EventProcessor(
       setIsAwaitingApproval(false);
       setIsThinking(false);
       setIsFinalResponseStreaming(false);
+      setExecutionId(null);
     });
     timerOnRunTerminated(true);
     lastEventTimeRef.current = 0;
@@ -503,6 +521,7 @@ export function useV2EventProcessor(
               setRunErrorMessage("");
               setDashboard(null);
               setPhase(null);
+              setExecutionId(null);
             });
             timerOnRunStarted(run_id);
           } else {
@@ -530,7 +549,7 @@ export function useV2EventProcessor(
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
 
-        // Extract phase and dashboard from RUN_FINISHED event
+        // Extract phase, dashboard, and executionId from RUN_FINISHED event
         const runFinishedPhase =
           eventType === "RUN_FINISHED"
             ? ((wrapper.event as RunFinishedEventWithDashboard).result?.phase ??
@@ -540,6 +559,11 @@ export function useV2EventProcessor(
           eventType === "RUN_FINISHED"
             ? ((wrapper.event as RunFinishedEventWithDashboard).result
                 ?.dashboard ?? null)
+            : undefined;
+        const runFinishedExecutionId =
+          eventType === "RUN_FINISHED"
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+                ?.execution_id ?? null)
             : undefined;
 
         // Update state synchronously
@@ -567,6 +591,16 @@ export function useV2EventProcessor(
               );
             }
             setDashboard(runFinishedDashboard);
+            // Signal auto-open — only for live events, not seeding
+            if (runFinishedDashboard) {
+              setLiveDashboardKey(
+                `${runFinishedDashboard.dashboard_id}:${runFinishedDashboard.dashboard_version}`,
+              );
+            }
+          }
+          // Update executionId when RUN_FINISHED arrives with workflow execution approval
+          if (runFinishedExecutionId !== undefined) {
+            setExecutionId(runFinishedExecutionId);
           }
         });
 
@@ -682,6 +716,10 @@ export function useV2EventProcessor(
       ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
           ?.dashboard ?? null)
       : null;
+    const seededExecutionId = runFinishedEvent
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.execution_id ?? null)
+      : null;
 
     eventsRef.current.set(runId, mergedEvents);
 
@@ -703,6 +741,7 @@ export function useV2EventProcessor(
       applyTransformResult(result, runId, {
         phase: seededPhase,
         dashboard: seededDashboard,
+        executionId: seededExecutionId,
       });
 
       if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
@@ -723,6 +762,7 @@ export function useV2EventProcessor(
       flushSync(() => {
         setPhase(seededPhase);
         setDashboard(seededDashboard);
+        setExecutionId(seededExecutionId);
       });
     } else {
       // Active run, not yet tracked by Pusher (page refresh recovery).
@@ -737,6 +777,7 @@ export function useV2EventProcessor(
       applyTransformResult(result, runId, {
         phase: seededPhase,
         dashboard: seededDashboard,
+        executionId: seededExecutionId,
       });
     }
 
@@ -818,6 +859,8 @@ export function useV2EventProcessor(
     runErrorMessage,
     phase,
     dashboard,
+    liveDashboardKey,
+    executionId,
     markStopped,
     markTimedOut,
     clearPendingStop,

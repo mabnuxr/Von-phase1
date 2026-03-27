@@ -58,6 +58,16 @@ export type { TabPillProps } from './TabPill';
 export { SidePane } from './SidePane';
 export type { SidePaneProps } from './SidePane';
 
+export { ResizableLayout, usePanelResize } from './layouts';
+export type {
+  ResizableLayoutProps,
+  ResizableSlotProps,
+  PanelConstraint,
+  UsePanelResizeOptions,
+  ResizableHandleProps,
+  UsePanelResizeReturn,
+} from './layouts';
+
 // Typography Atoms
 // ----------------
 export { Text } from './Text';
@@ -161,6 +171,10 @@ export type { IconProps } from './Chat/icons';
 // Dropdown Molecule (uses: Menu atom)
 export { Dropdown } from './Dropdown';
 export type { DropdownProps, DropdownItem } from './Dropdown';
+
+// Form-level Select (single-value dropdown for forms)
+export { Select } from './forms/dropdown';
+export type { SelectProps, SelectOption } from './forms/dropdown';
 
 // Chat Molecules
 export { TabSwitcher } from './TabSwitcher';
@@ -290,8 +304,10 @@ export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
 // ============================================================================
 // SCHEDULE PICKER (General-purpose recurring schedule configuration)
 // ============================================================================
+export { ScheduleFields } from './SchedulePicker';
 export { SchedulePicker } from './SchedulePicker';
 export type {
+  ScheduleFieldsProps,
   SchedulePickerProps,
   Schedule,
   ScheduleFrequency,
@@ -302,6 +318,7 @@ export {
   SCHEDULE_DAYS,
   SCHEDULE_TIMES,
   DEFAULT_SCHEDULE,
+  LOCAL_TIMEZONE,
   formatScheduleBadge,
   normalizeFrequency,
 } from './SchedulePicker';
@@ -422,7 +439,13 @@ export {
   createCellFormatter,
   formatValue,
 } from './ReportTable';
-export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
+export type {
+  ReportTableProps,
+  ReportColumn,
+  ColumnType,
+  AIReasoningData,
+  ServerSortState,
+} from './ReportTable';
 
 // ============================================================================
 // ARTIFACT VIEWER (Single artifact display drawer)

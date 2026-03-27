@@ -52,10 +52,12 @@ interface RawApiWidget {
   pagination?: {
     page: number;
     limit: number;
-    total_rows: number;
-    total_pages: number;
-    has_next_page: boolean;
-    has_prev_page: boolean;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    orderBy?: string;
+    orderByAsc?: boolean;
   };
 }
 
@@ -141,10 +143,10 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
           ? {
               page: raw.pagination.page,
               limit: raw.pagination.limit,
-              totalRows: raw.pagination.total_rows,
-              totalPages: raw.pagination.total_pages,
-              hasNextPage: raw.pagination.has_next_page,
-              hasPrevPage: raw.pagination.has_prev_page,
+              totalRows: raw.pagination.total,
+              totalPages: raw.pagination.totalPages,
+              hasNextPage: raw.pagination.hasNextPage,
+              hasPrevPage: raw.pagination.hasPrevPage,
             }
           : undefined,
       },
@@ -218,7 +220,7 @@ function adaptApiResponse(
         uiConfig: raw.ui_config
           ? {
               colorPaletteGlobal:
-                raw.ui_config.color_palette_global ?? undefined,
+                raw.ui_config.color_palette_global ?? "default",
               panelLayouts: raw.ui_config.panel_layouts,
             }
           : undefined,

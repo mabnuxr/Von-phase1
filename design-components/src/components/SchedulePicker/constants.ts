@@ -14,10 +14,17 @@ export interface Schedule {
   timezone: string; // IANA timezone, e.g. "America/New_York"
 }
 
-export interface SchedulePickerProps {
+export interface ScheduleFieldsProps {
   schedule: Schedule;
   onScheduleChange: (schedule: Schedule) => void;
   readOnly?: boolean;
+  /** Restrict which frequencies are shown. Defaults to all. */
+  frequencies?: { value: ScheduleFrequency; label: string }[];
+  /** Optional className override for the wrapper div */
+  className?: string;
+}
+
+export interface SchedulePickerProps extends ScheduleFieldsProps {
   /** Label shown in the header */
   label?: string;
   /** Optional summary text shown next to the label when enabled */

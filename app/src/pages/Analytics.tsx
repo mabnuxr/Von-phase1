@@ -17,6 +17,7 @@ import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
 import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
+import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>() as {
@@ -57,6 +58,7 @@ const Analytics = () => {
     handleSave,
     savePhase,
     handleRevert,
+    revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
@@ -66,7 +68,18 @@ const Analytics = () => {
 
   const handleColorThemeChange = useCallback(
     (themeId: string) => {
-      handleUpdate({ ui_config: { color_palette_global: themeId } });
+      handleUpdate({
+        ui_config: {
+          color_palette_global: themeId,
+        },
+      });
+    },
+    [handleUpdate],
+  );
+
+  const handleRename = useCallback(
+    (newName: string) => {
+      handleUpdate({ dashboard_name: newName });
     },
     [handleUpdate],
   );
@@ -83,8 +96,13 @@ const Analytics = () => {
   } = useResizablePane();
   const { collapseSidebar } = useAppShell();
 
-  const { mergedWidgets, handlePageChange, loadingPanels } =
-    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  const {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
   // Drilldown
   const {
@@ -92,12 +110,27 @@ const Analytics = () => {
     widgetTitle: drilldownWidgetTitle,
     data: drilldownData,
     pagination: drilldownPagination,
+    currentSort: drilldownSort,
     isLoading: isDrilldownLoading,
     isError: isDrilldownError,
     openDrilldown,
     closeDrilldown,
     changePage: changeDrilldownPage,
+    changeSort: changeDrilldownSort,
   } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
+
+  // Schedule management
+  const {
+    schedule,
+    isScheduled,
+    isPaused: isSchedulePaused,
+    isMutating: isScheduleMutating,
+    handleCreateSchedule,
+    handleUpdateSchedule,
+    handlePauseSchedule,
+    handleResumeSchedule,
+    handleDeleteSchedule,
+  } = useDashboardSchedule(dashboardId);
 
   // Subscribe to Pusher events for dashboard refresh notifications
   useDashboardRefreshEvents(dashboardId);
@@ -132,6 +165,7 @@ const Analytics = () => {
           onSave={handleSave}
           savePhase={savePhase}
           onRevert={handleRevert}
+          revertPhase={revertPhase}
           onShare={handleShare}
           sharePhase={sharePhase}
           onChatClick={openChat}
@@ -141,8 +175,20 @@ const Analytics = () => {
           loadingTablePanels={loadingPanels}
           paginatedWidgets={mergedWidgets}
           onDrillDown={openDrilldown}
+          onTableSortChange={handleSortChange}
+          tableSortStates={activeSorts}
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
+          onRename={handleRename}
+          schedule={schedule}
+          isScheduled={isScheduled}
+          isSchedulePaused={isSchedulePaused}
+          isScheduleMutating={isScheduleMutating}
+          onCreateSchedule={handleCreateSchedule}
+          onUpdateSchedule={handleUpdateSchedule}
+          onPauseSchedule={handlePauseSchedule}
+          onResumeSchedule={handleResumeSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
         />
         <DrilldownPanel
           isOpen={isDrilldownOpen}
@@ -153,16 +199,17 @@ const Analytics = () => {
           isLoading={isDrilldownLoading}
           isError={isDrilldownError}
           onPageChange={changeDrilldownPage}
+          onSortChange={changeDrilldownSort}
+          sortState={drilldownSort}
         />
       </div>
 
       {isChatOpen && (
         <div
+          className="h-full flex-shrink-0 relative"
           style={{
             width: chatPaneWidth,
             transition: isResizing ? "none" : "width 0.3s ease",
-            flexShrink: 0,
-            position: "relative",
           }}
         >
           {/* Resize handle */}
@@ -176,25 +223,23 @@ const Analytics = () => {
             <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
           </div>
 
-          <div className="h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
-            {conversationId ? (
-              <AnalyticsChatContainer
-                key={conversationId}
-                conversationId={conversationId}
-                dashboardId={dashboardId}
-                dashboardTitle={dashboard.title}
-                dashboardVersion={dashboard.dashboardVersion}
-              />
-            ) : (
-              <AnalyticsNewConversationContainer
-                key={dashboardId}
-                dashboardId={dashboardId}
-                dashboardTitle={dashboard.title}
-                dashboardVersion={dashboard.dashboardVersion}
-                onCreated={handleConversationCreated}
-              />
-            )}
-          </div>
+          {conversationId ? (
+            <AnalyticsChatContainer
+              key={conversationId}
+              conversationId={conversationId}
+              dashboardId={dashboardId}
+              dashboardTitle={dashboard.title}
+              dashboardVersion={dashboard.dashboardVersion}
+            />
+          ) : (
+            <AnalyticsNewConversationContainer
+              key={dashboardId}
+              dashboardId={dashboardId}
+              dashboardTitle={dashboard.title}
+              dashboardVersion={dashboard.dashboardVersion}
+              onCreated={handleConversationCreated}
+            />
+          )}
         </div>
       )}
     </div>

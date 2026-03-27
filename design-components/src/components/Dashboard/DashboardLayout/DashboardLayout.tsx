@@ -115,7 +115,7 @@ const DashboardLayoutRoot: React.FC<DashboardLayoutProps> = ({ children, classNa
   return (
     <div className={`flex h-full w-full gap-2 ${className}`}>
       {/* Dashboard panel (header + canvas) */}
-      <div className="flex-1 min-w-0 h-full bg-white rounded-xl border border-gray-100 overflow-hidden flex flex-col">
+      <div className="flex-1 min-w-0 h-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden flex flex-col">
         {dashboardChildren}
       </div>
 

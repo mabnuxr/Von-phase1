@@ -1,5 +1,5 @@
-import { useState, useRef, useLayoutEffect, Fragment } from 'react';
-import { InfoIcon } from '@phosphor-icons/react';
+import { useState, useRef, useLayoutEffect, useEffect, Fragment } from 'react';
+import { InfoIcon, CopyIcon, CheckIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
@@ -8,13 +8,37 @@ import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { SalesforceLink } from './SalesforceLink';
 import { TiptapViewer } from '../TiptapEditor';
+import { Tooltip } from '../Tooltip';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment, MessageStatus } from './types';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
+import { IntegrationCard } from '../IntegrationCard';
 import { CommandPreview } from '../Commands/CommandPreview';
 import type { Command } from '../Commands/types';
 import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
+
+/**
+ * Format message timestamp: time only if within 24h, date only otherwise
+ */
+function formatMessageTimestamp(date: Date): string {
+  const now = new Date();
+  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours < 24) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Full date + time string for tooltip
+ */
+function formatFullTimestamp(date: Date): string {
+  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `${dateStr} · ${timeStr}`;
+}
 
 /**
  * Get user initials from name or email
@@ -318,6 +342,26 @@ export interface ChatMessageProps {
   command?: Command;
   /** Fetches a presigned download URL for a command's data source file */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+
+  /**
+   * Integration write block metadata (persisted on assistant messages).
+   * When present, renders an integration card inline on the message.
+   */
+  integrationBlock?: {
+    blockCode?: string;
+    message: string;
+    integrationType: string;
+  };
+  /** Check whether a given integration type is connected */
+  isIntegrationConnected?: (integrationType: string) => boolean;
+  /** Callback to open the integration connection flow for a given integration type */
+  onIntegrate?: (integrationType: string) => void;
+  /** Resolve integration metadata (name, logo, description) for a given backend integration type */
+  getIntegrationMetadata?: (integrationType: string) => {
+    name: string;
+    logoPath: string;
+    description?: string;
+  } | null;
 }
 
 /**
@@ -330,6 +374,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   reasoningContent,
   isStreaming = false,
   isReasoningStreaming = false,
+  timestamp,
   userName,
   userEmail,
   stepMessages,
@@ -365,6 +410,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   renderArtifactCard,
   command,
   onRequestFilePreviewUrl,
+  integrationBlock,
+  isIntegrationConnected,
+  onIntegrate,
+  getIntegrationMetadata,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -372,6 +421,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   // Ref and state for measuring user message height (for alignment)
   const userMessageRef = useRef<HTMLDivElement>(null);
   const [isSingleLine, setIsSingleLine] = useState(true);
+  const [copiedUser, setCopiedUser] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   // Measure user message height to determine alignment
   useLayoutEffect(() => {
@@ -392,6 +449,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   ) => {
     onArtifactClick?.(artifactId, toolName, artifactType, runId);
   };
+
+  const handleCopyUser = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      setCopiedUser(true);
+      copyTimeoutRef.current = setTimeout(() => setCopiedUser(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
+  };
+
+  const isTimestampOlderThan24h =
+    !!timestamp && (Date.now() - timestamp.getTime()) / (1000 * 60 * 60) >= 24;
 
   const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
 
@@ -673,6 +744,37 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     </div>
                   )}
 
+                  {/* User message hover actions: timestamp + copy */}
+                  {isUser && (
+                    <div className="flex items-center justify-end gap-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      {timestamp && (
+                        <Tooltip
+                          content={formatFullTimestamp(timestamp)}
+                          enabled={isTimestampOlderThan24h}
+                          placement="bottom"
+                        >
+                          <span className="text-xs text-gray-400 select-none">
+                            {formatMessageTimestamp(timestamp)}
+                          </span>
+                        </Tooltip>
+                      )}
+                      {content && (
+                        <button
+                          onClick={handleCopyUser}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-500 transition-colors cursor-pointer"
+                          title={copiedUser ? 'Copied!' : 'Copy message'}
+                          aria-label={copiedUser ? 'Copied!' : 'Copy message'}
+                        >
+                          {copiedUser ? (
+                            <CheckIcon size={14} className="text-green-500" weight="bold" />
+                          ) : (
+                            <CopyIcon size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* File artifact cards (agent-generated documents) */}
                   {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
                     <div className="mt-3 space-y-3">
@@ -719,6 +821,35 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       })}
                     </div>
                   )}
+
+                  {/* Integration write blocked — inline card for connectable blocks */}
+                  {!isUser &&
+                    integrationBlock &&
+                    !isStreaming &&
+                    integrationBlock.blockCode !== 'org_read_only' &&
+                    integrationBlock.blockCode !== 'admin_disabled' &&
+                    (() => {
+                      const metadata = getIntegrationMetadata?.(integrationBlock.integrationType);
+                      if (!metadata) return null;
+                      const isConnected =
+                        isIntegrationConnected?.(integrationBlock.integrationType) ?? false;
+                      return (
+                        <div className="mt-3 w-full rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+                          <IntegrationCard
+                            name={metadata.name}
+                            integrationLogoPath={metadata.logoPath}
+                            description={integrationBlock.message}
+                            isAvailable={!isConnected}
+                            onToggle={
+                              onIntegrate
+                                ? () => onIntegrate(integrationBlock.integrationType)
+                                : undefined
+                            }
+                            chips={isConnected ? ['connected'] : undefined}
+                          />
+                        </div>
+                      );
+                    })()}
 
                   {/* Show stopped indicator for assistant messages */}
                   {!isUser && stoppedByUser && (

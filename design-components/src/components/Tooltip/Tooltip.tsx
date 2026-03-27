@@ -1,5 +1,7 @@
-import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
+import React from 'react';
 import { createPortal } from 'react-dom';
+import { useTooltipPosition } from './useTooltipPosition';
+import type { TooltipPlacement } from './useTooltipPosition';
 
 export interface TooltipProps {
   /** Content to display inside the tooltip */
@@ -8,15 +10,20 @@ export interface TooltipProps {
   children: React.ReactNode;
   /** Whether the tooltip is enabled. When false, only children render. @default true */
   enabled?: boolean;
-  /** Placement relative to the trigger @default 'top' */
-  placement?: 'top' | 'bottom';
+  /** Placement relative to the trigger @default 'auto' */
+  placement?: TooltipPlacement;
+  /** Maximum width of the tooltip in pixels. Overrides the default viewport-based maxWidth. */
+  maxWidth?: number;
+  /** Extra class names on the trigger wrapper div. @default 'inline-flex' */
+  wrapperClassName?: string;
 }
 
 /**
- * Tooltip - Lightweight portal-based tooltip.
+ * Tooltip - Lightweight portal-based tooltip with smart auto-placement.
  *
  * Renders via `createPortal` so it is never clipped by `overflow: hidden` ancestors.
- * Position is recalculated on every mouse-enter to stay accurate after scrolls/resizes.
+ * In `auto` mode (default), the tooltip picks the side with the most available space
+ * and clamps horizontally so it never overflows the viewport.
  *
  * @example
  * ```tsx
@@ -29,49 +36,23 @@ export const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
   enabled = true,
-  placement = 'top',
+  placement = 'auto',
+  maxWidth: maxWidthProp,
+  wrapperClassName = 'inline-flex',
 }) => {
-  const triggerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-
-  const updatePosition = useCallback(() => {
-    const trigger = triggerRef.current;
-    const tooltip = tooltipRef.current;
-    if (!trigger || !tooltip) return;
-
-    const triggerRect = trigger.getBoundingClientRect();
-    const tooltipRect = tooltip.getBoundingClientRect();
-
-    let top: number;
-    if (placement === 'top') {
-      top = triggerRect.top - tooltipRect.height - 6;
-    } else {
-      top = triggerRect.bottom + 6;
-    }
-
-    // Center horizontally, clamp to viewport
-    let left = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
-    left = Math.max(8, Math.min(left, window.innerWidth - tooltipRect.width - 8));
-
-    setPosition({ top, left });
-  }, [placement]);
-
-  // Recalculate position once the tooltip is in the DOM
-  useLayoutEffect(() => {
-    if (visible) updatePosition();
-  }, [visible, updatePosition, enabled]);
+  const { triggerRef, tooltipRef, visible, show, hide, position } = useTooltipPosition({
+    placement,
+  });
 
   return (
     <>
       <div
         ref={triggerRef}
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
-        onFocus={() => setVisible(true)}
-        onBlur={() => setVisible(false)}
-        className="inline-flex"
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        className={wrapperClassName}
       >
         {children}
       </div>
@@ -81,8 +62,12 @@ export const Tooltip: React.FC<TooltipProps> = ({
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="fixed px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg whitespace-nowrap z-[10000] pointer-events-none"
-            style={{ top: position.top, left: position.left }}
+            className="fixed px-2 py-1 text-xs text-white bg-gray-900 rounded-lg shadow-lg z-[10000] pointer-events-none break-words"
+            style={{
+              top: position.top,
+              left: position.left,
+              maxWidth: maxWidthProp ?? position.maxWidth,
+            }}
           >
             {content}
           </div>,

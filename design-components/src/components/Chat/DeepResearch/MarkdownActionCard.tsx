@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CaretDown as CaretDownIcon,
-  CaretRight as CaretRightIcon,
-  X as XIcon,
-  Clock as ClockIcon,
-  MapPin as MapPinIcon,
-  Users as UsersIcon,
-  VideoCamera as VideoCameraIcon,
-  ArrowsClockwise as ArrowsClockwiseIcon,
-  ArrowRight as ArrowRightIcon,
+  CaretDownIcon,
+  CaretRightIcon,
+  XIcon,
+  ClockIcon,
+  MapPinIcon,
+  UsersIcon,
+  VideoCameraIcon,
+  ArrowsClockwiseIcon,
+  ArrowRightIcon,
 } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
 import { PrimaryButton, SecondaryButton } from '../../forms/buttons/ActionButtons';
@@ -102,7 +102,7 @@ export interface MarkdownActionCardProps {
   isStreaming?: boolean;
 
   /**
-   * Content to render above the markdown content (e.g., DataTablesCard)
+   * Content to render before the action buttons (e.g., DataTablesCard)
    */
   beforeActions?: React.ReactNode;
 
@@ -381,9 +381,6 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
 
   return (
     <div className={`overflow-hidden ${className}`}>
-      {/* Custom content at start (e.g., DataTablesCard) */}
-      {beforeActions && <div className="mb-4">{beforeActions}</div>}
-
       {/* Markdown Content */}
       <div className="py-1">
         <div className="prose-sm markdown-body max-w-none">
@@ -438,6 +435,8 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
           </div>
         </div>
       )}
+      {/* Custom content before actions (e.g., DataTablesCard) */}
+      {beforeActions && <div className="mt-4">{beforeActions}</div>}
 
       {/* Separator and Action Buttons - only shown when primaryAction is provided */}
       {primaryAction && (

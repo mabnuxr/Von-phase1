@@ -29,6 +29,7 @@ export const FEATURE_FLAGS = {
   SNOWFLAKE: "enableSnowflake",
   GMAIL: "enableGmail",
   GONG_ENGAGE: "enableGongEngage",
+  GRANOLA: "enableGranola",
 } as const;
 
 /**
@@ -148,6 +149,11 @@ export function useFeatureFlag() {
      * Controls whether Gong Engage integration is visible
      */
     isGongEngageEnabled: flags[FEATURE_FLAGS.GONG_ENGAGE] === true,
+
+    /**
+     * Controls whether Granola integration is visible
+     */
+    isGranolaEnabled: flags[FEATURE_FLAGS.GRANOLA] === true,
 
     /**
      * Raw flags object for advanced usage

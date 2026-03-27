@@ -2,6 +2,7 @@ import { useRef, useLayoutEffect } from 'react';
 import { SidebarSimpleIcon } from '@phosphor-icons/react';
 import { ChatMessage } from '../Chat/ChatMessage';
 import { StandardChatInput } from '../Chat/StandardChatInput/StandardChatInput';
+import { ConversationMode } from '../Chat/StandardChatInput/types';
 import { ChatPaneHeader } from './ChatPaneHeader';
 import { TertiaryIconButton } from '../forms/buttons';
 import type { ChatPaneProps } from './types';
@@ -48,6 +49,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   onPopoverClose,
   onPopoverPrimaryAction,
   onPopoverFeedback,
+  availableAgentModes = [ConversationMode.Auto, ConversationMode.DashboardBuilder],
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -171,6 +173,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
           onPopoverClose={onPopoverClose}
           onPopoverPrimaryAction={onPopoverPrimaryAction}
           onPopoverFeedback={onPopoverFeedback}
+          availableAgentModes={availableAgentModes}
         />
       </div>
     </div>

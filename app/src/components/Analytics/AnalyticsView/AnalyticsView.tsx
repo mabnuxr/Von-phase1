@@ -1,10 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowsOutIcon,
+  ArrowSquareOutIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
+  SpinnerGapIcon,
   XIcon,
+  PencilSimpleIcon,
 } from "@phosphor-icons/react";
 import vonFilledLogo from "../../../assets/von-filled-logo.svg";
 import {
@@ -12,17 +14,24 @@ import {
   DashboardCustomizationProvider,
   DashboardGrid,
   ErrorBoundary,
+  TruncateWithText,
+  Tooltip,
 } from "@vonlabs/design-components";
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
-import { PublishButton } from "./PublishButton";
+import { SaveButton } from "./SaveButton";
 import { SharePopover } from "./SharePopover";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
-import type { Dashboard, RefreshInfo } from "../../../types/dashboard";
+import type {
+  Dashboard,
+  RefreshInfo,
+  ScheduleConfigRequest,
+  DashboardScheduleResponse,
+} from "../../../types/dashboard";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 import type {
   WidgetConfig,
@@ -35,9 +44,10 @@ interface AnalyticsViewProps {
   refreshInfo: RefreshInfo | null;
   activeFilters: Record<string, unknown>;
   onRefresh: () => Promise<void>;
-  onSave: () => void;
+  onSave: (isFirstSave?: boolean) => void;
   savePhase: MutationPhase;
   onRevert: () => void;
+  revertPhase: MutationPhase;
   onShare: (isSharedWithTenant: boolean) => void;
   sharePhase: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
@@ -59,10 +69,30 @@ interface AnalyticsViewProps {
   paginatedWidgets?: Record<string, any>;
   /** Callback when a widget's drilldown icon is clicked */
   onDrillDown?: (panelId: string) => void;
+  /** Server-side table sort handler */
+  onTableSortChange?: (
+    panelId: string,
+    columnId: string,
+    order: "asc" | "desc" | null,
+  ) => void;
+  /** Current sort state per panel */
+  tableSortStates?: Record<string, { orderBy: string; orderByAsc: boolean }>;
   /** Initial color theme from backend ui_config */
   defaultColorTheme?: string;
   /** Called when the user changes the color theme */
   onColorThemeChange?: (themeId: string) => void;
+  /** Called when the owner renames the dashboard */
+  onRename?: (newName: string) => void;
+  /** Schedule state and handlers (required when dashboard.isOwner) */
+  schedule: DashboardScheduleResponse | null;
+  isScheduled: boolean;
+  isSchedulePaused: boolean;
+  isScheduleMutating: boolean;
+  onCreateSchedule: (config: ScheduleConfigRequest) => void;
+  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => void;
+  onPauseSchedule: () => void;
+  onResumeSchedule: () => void;
+  onDeleteSchedule: () => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -73,6 +103,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onSave,
   savePhase,
   onRevert,
+  revertPhase,
   onShare,
   sharePhase,
   onExpand,
@@ -84,10 +115,26 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   loadingTablePanels,
   paginatedWidgets,
   onDrillDown,
+  onTableSortChange,
+  tableSortStates,
   defaultColorTheme,
   onColorThemeChange,
+  onRename,
+  schedule,
+  isScheduled,
+  isSchedulePaused,
+  isScheduleMutating,
+  onCreateSchedule,
+  onUpdateSchedule,
+  onPauseSchedule,
+  onResumeSchedule,
+  onDeleteSchedule,
 }) => {
-  const gridConfig = dashboard.gridConfig as unknown as GridConfig;
+  const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
+  const gridConfig = {
+    ...rawGridConfig,
+    rowHeight: Math.min(rawGridConfig.rowHeight ?? 60, 60),
+  };
   const layout = dashboard.layout as unknown as LayoutItem[];
   const widgets = (paginatedWidgets ?? dashboard.widgets) as unknown as Record<
     string,
@@ -97,11 +144,44 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const validatedColorTheme =
     defaultColorTheme && (chartThemeIds as string[]).includes(defaultColorTheme)
       ? (defaultColorTheme as ChartThemeId)
-      : undefined;
+      : "default";
 
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
   }, []);
+
+  // Inline rename state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(dashboard.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const committedRef = useRef(false);
+
+  // Sync editValue when dashboard title changes from the server
+  useEffect(() => {
+    if (!isEditing) setEditValue(dashboard.title);
+  }, [dashboard.title, isEditing]);
+
+  // Auto-focus and select when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      committedRef.current = false;
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const commitRename = useCallback(() => {
+    if (committedRef.current) return;
+    committedRef.current = true;
+    const trimmed = editValue.trim();
+    setIsEditing(false);
+    if (trimmed && trimmed !== dashboard.title) {
+      onRename?.(trimmed);
+    } else {
+      setEditValue(dashboard.title);
+    }
+  }, [editValue, dashboard.title, onRename]);
+
+  const isSaved = dashboard.status === DashboardStatus.Published;
 
   return (
     <DashboardCustomizationProvider
@@ -114,26 +194,83 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <DashboardLayout.HeaderRow>
             <DashboardLayout.HeaderRow.Left>
               <div className="min-w-0">
-                <h1 className="text-base font-semibold text-gray-900 truncate">
-                  {dashboard.title}
-                </h1>
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitRename();
+                      if (e.key === "Escape") {
+                        setEditValue(dashboard.title);
+                        setIsEditing(false);
+                      }
+                    }}
+                    className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5 group">
+                    <h1 className="text-base font-semibold text-gray-900 truncate">
+                      {dashboard.title}
+                    </h1>
+                    {dashboard.isOwner && onRename && (
+                      <Tooltip
+                        content={
+                          isSaved
+                            ? "Rename dashboard"
+                            : "Save the dashboard to rename"
+                        }
+                      >
+                        <button
+                          onClick={
+                            isSaved ? () => setIsEditing(true) : undefined
+                          }
+                          disabled={!isSaved}
+                          className={`opacity-0 group-hover:opacity-100 transition-opacity ${
+                            isSaved
+                              ? "text-gray-400 hover:text-gray-600 cursor-pointer"
+                              : "text-gray-300 cursor-not-allowed"
+                          }`}
+                        >
+                          <PencilSimpleIcon size={14} />
+                        </button>
+                      </Tooltip>
+                    )}
+                  </div>
+                )}
                 {dashboard.description && (
-                  <p className="text-xs text-gray-700 truncate">
+                  <TruncateWithText
+                    className="text-xs text-gray-700 max-w-[60%]"
+                    tooltipMaxWidth={400}
+                  >
                     {dashboard.description}
-                  </p>
+                  </TruncateWithText>
                 )}
               </div>
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
               {onExpand && (
-                <button
-                  onClick={onExpand}
-                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                  title="Expand dashboard"
+                <Tooltip
+                  content={
+                    isSaved
+                      ? "View in Dashboards"
+                      : "Save the dashboard to view in Dashboards"
+                  }
                 >
-                  <ArrowsOutIcon size={14} />
-                </button>
+                  <button
+                    onClick={isSaved ? onExpand : undefined}
+                    disabled={!isSaved}
+                    className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+                      !isSaved
+                        ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                        : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                    }`}
+                  >
+                    <ArrowSquareOutIcon size={14} />
+                  </button>
+                </Tooltip>
               )}
 
               {/* Animated "Ask Von" ↔ sidebar-icon chat toggle */}
@@ -148,16 +285,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         exit={{ opacity: 0, scale: 0.8 }}
                         transition={{ duration: 0.15 }}
                       >
-                        <button
-                          onClick={onChatClose}
-                          title="Close chat"
-                          className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-gray-100 border border-gray-200/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
-                        >
-                          <SidebarSimpleIcon
-                            size={14}
-                            className="scale-x-[-1]"
-                          />
-                        </button>
+                        <Tooltip content="Close chat">
+                          <button
+                            onClick={onChatClose}
+                            className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-gray-100 border border-gray-200/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
+                          >
+                            <SidebarSimpleIcon
+                              size={14}
+                              className="scale-x-[-1]"
+                            />
+                          </button>
+                        </Tooltip>
                       </motion.div>
                     ) : (
                       <motion.button
@@ -186,27 +324,25 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
               {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
               {!onChatClick && onClose && (
-                <button
-                  onClick={onClose}
-                  title="Close"
-                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <XIcon size={14} />
-                </button>
+                <Tooltip content="Close">
+                  <button
+                    onClick={onClose}
+                    className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                </Tooltip>
               )}
-
-              {dashboard.isOwner && <RefreshButton onRefresh={onRefresh} />}
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
 
-          {/* Toolbar row: filters, customize, save/draft, share */}
+          {/* Toolbar row: filters | save/draft, customize, refresh, share */}
           <DashboardLayout.HeaderRow bordered>
             <DashboardLayout.HeaderRow.Left>
               <AnalyticsFilters
                 filters={dashboard.filters?.definitions ?? []}
                 activeFilters={activeFilters}
               />
-              {dashboard.isOwner && <CustomizeButton />}
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
@@ -217,23 +353,55 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               />
               {dashboard.isOwner && (
                 <>
-                  <PublishButton
+                  <SaveButton
                     savePhase={savePhase}
-                    onSave={onSave}
-                    isPublished={dashboard.status === DashboardStatus.Published}
+                    onSave={() => onSave(dashboard.dashboardVersion < 1)}
+                    isSaved={isSaved}
                   />
-                  {dashboard.status === DashboardStatus.Draft && (
-                    <button
-                      onClick={onRevert}
-                      title="Discard draft — revert to published version"
-                      className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <ClockCounterClockwiseIcon size={14} />
-                    </button>
-                  )}
+                  {dashboard.status === DashboardStatus.Draft &&
+                    dashboard.dashboardVersion >= 1 && (
+                      <Tooltip content="Reverts to previous saved version">
+                        <button
+                          onClick={
+                            revertPhase === "idle" ? onRevert : undefined
+                          }
+                          disabled={revertPhase !== "idle"}
+                          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+                            revertPhase === "pending"
+                              ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                              : revertPhase === "success"
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                          }`}
+                        >
+                          {revertPhase === "pending" ? (
+                            <SpinnerGapIcon
+                              size={14}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <ClockCounterClockwiseIcon size={14} />
+                          )}
+                        </button>
+                      </Tooltip>
+                    )}
+                  <RefreshButton
+                    onRefresh={onRefresh}
+                    canRefresh={isSaved}
+                    schedule={schedule}
+                    isScheduled={isScheduled}
+                    isPaused={isSchedulePaused}
+                    isMutating={isScheduleMutating}
+                    onCreateSchedule={onCreateSchedule}
+                    onUpdateSchedule={onUpdateSchedule}
+                    onPauseSchedule={onPauseSchedule}
+                    onResumeSchedule={onResumeSchedule}
+                    onDeleteSchedule={onDeleteSchedule}
+                  />
+                  <CustomizeButton />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
-                    canShare={dashboard.dashboardVersion >= 1}
+                    canShare={isSaved}
                     sharePhase={sharePhase}
                     onShare={onShare}
                     onCopyLink={handleCopyLink}
@@ -253,6 +421,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTablePageChange={onTablePageChange}
               loadingTablePanels={loadingTablePanels}
               onDrillDown={onDrillDown}
+              onTableSortChange={onTableSortChange}
+              tableSortStates={tableSortStates}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

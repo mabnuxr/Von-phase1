@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
+import { addEvent } from '@highcharts/grid-lite/es-modules/Shared/Utilities.js';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
@@ -59,6 +60,15 @@ export interface ReportColumn {
 }
 
 // ============================================================================
+// Server Sort State
+// ============================================================================
+
+export interface ServerSortState {
+  orderBy: string;
+  orderByAsc: boolean;
+}
+
+// ============================================================================
 // Props
 // ============================================================================
 
@@ -73,6 +83,14 @@ export interface ReportTableProps {
   emptyMessage?: string;
   /** Hide the pagination UI while still limiting rows via pageSize */
   hidePagination?: boolean;
+  /**
+   * When provided, Grid Lite's native sort UI is kept but sort changes
+   * also trigger this callback so the parent can fetch server-sorted data.
+   * `order` is 'asc', 'desc', or null (sort cleared).
+   */
+  onSortChange?: (columnId: string, order: 'asc' | 'desc' | null) => void;
+  /** Current server sort state (reserved for future initial-sort sync) */
+  sortState?: ServerSortState | null;
 }
 
 // ============================================================================
@@ -85,7 +103,10 @@ export function ReportTable({
   isLoading = false,
   emptyMessage = 'No data available',
   hidePagination = false,
+  onSortChange,
+  sortState,
 }: ReportTableProps) {
+  void sortState; // reserved for future initial-sort sync
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
@@ -154,6 +175,43 @@ export function ReportTable({
     return () => viewport.removeEventListener('scroll', onScroll);
   }, []);
 
+  // ── Server-side sort: listen to Grid Lite's afterSort event ────────────────
+  // Grid Lite fires `afterSort` on the grid instance with
+  // { target: Column, order: 'asc' | 'desc' | null }.
+  // We hook into this via the `callback` prop which fires after grid init.
+  const onSortChangeRef = useRef(onSortChange);
+  onSortChangeRef.current = onSortChange;
+  const removeEventRef = useRef<Function | null>(null); // eslint-disable-line @typescript-eslint/no-unsafe-function-type
+
+  const handleGridReady = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (grid: any) => {
+      // Clean up previous listener (Grid re-creates on options change)
+      removeEventRef.current?.();
+      removeEventRef.current = null;
+
+      if (!onSortChangeRef.current) return;
+
+      // addEvent returns a cleanup function
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      removeEventRef.current = addEvent(grid, 'afterSort', (e: any) => {
+        const columnId: string | undefined = e?.target?.id;
+        const order: 'asc' | 'desc' | null = e?.order ?? null;
+        if (columnId) {
+          onSortChangeRef.current?.(columnId, order);
+        }
+      });
+    },
+    []
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      removeEventRef.current?.();
+    };
+  }, []);
+
   // ── AI reasoning popover (event delegation on .von-cell-btn) ───────────────
   const handleWrapperClick = useCallback((e: React.MouseEvent) => {
     const target = (e.target as HTMLElement).closest('.von-cell-btn') as HTMLElement | null;
@@ -217,12 +275,12 @@ export function ReportTable({
   return (
     <div
       ref={wrapperRef}
-      className={`w-full flex flex-col h-full report-grid-wrapper ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
+      className={`w-full flex flex-col h-full report-grid-wrapper highcharts-light ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
       onClick={handleWrapperClick}
       onMouseOver={handleCellMouseEnter}
       onMouseOut={handleCellMouseLeave}
     >
-      <Grid options={options} />
+      <Grid options={options} callback={onSortChange ? handleGridReady : undefined} />
 
       {popoverReasoning && (
         <SourcePopover

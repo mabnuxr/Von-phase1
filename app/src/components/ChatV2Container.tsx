@@ -11,12 +11,19 @@
  * on conversation switch (no stale state, no race conditions).
  */
 
-import { Profiler, useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+  Profiler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Chat,
   FilePreviewModal,
   ArtifactViewerPanel,
+  usePanelResize,
 } from "@vonlabs/design-components";
 import { ConversationMode } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
@@ -35,10 +42,32 @@ import { SingleArtifactDrawerContainer } from "./SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "./LazyTransparencyDrawer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
-import { useTeamMembers } from "../hooks/useTeam";
 import { WriteBlockedBanner } from "./WriteBlockedBanner";
 import { GmailDraftCardContainer } from "./GmailDraftCardContainer";
 import type { FileArtifact } from "@vonlabs/design-components";
+
+// Dashboard / chat split-pane layout constants
+const CHAT_DEFAULT_RATIO = 0.3;
+const DASHBOARD_DEFAULT_RATIO = 0.7;
+const CHAT_MIN_RATIO = 0.3;
+const CHAT_MAX_RATIO = 0.6;
+const DASHBOARD_MIN_RATIO = 0.4;
+const DASHBOARD_MAX_RATIO = 0.7;
+
+const SPLIT_DEFAULT_RATIOS = [CHAT_DEFAULT_RATIO, DASHBOARD_DEFAULT_RATIO];
+const SPLIT_CONSTRAINTS = [
+  { min: CHAT_MIN_RATIO, max: CHAT_MAX_RATIO },
+  { min: DASHBOARD_MIN_RATIO, max: DASHBOARD_MAX_RATIO },
+];
+import { useTeamMembers } from "../hooks/useTeam";
+import { useIntegrations } from "../hooks/useIntegrations";
+import { AuthenticationStatus } from "../services/integrationsService";
+import usePreferencesStore from "../store/preferencesStore";
+import {
+  getFrontendIntegrationId,
+  INTEGRATION_METADATA,
+} from "../constants/integrationMetadata";
+import { useNavigate } from "react-router-dom";
 
 export interface ChatV2ContainerProps {
   conversationId: string;
@@ -102,6 +131,52 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
   } = props;
 
   const navigate = useNavigate();
+
+  // Build set of connected integration types (lowercase backend keys like "salesforce", "google_calendar")
+  // Used by per-message integration cards to show "Connected" vs "Connect"
+  // Only checks personal (user-level) integrations — workspace integrations don't resolve write blocks
+  const { data: integrationsData } = useIntegrations();
+  const connectedIntegrationTypes = useMemo(() => {
+    const connected = new Set<string>();
+    if (integrationsData?.integrations) {
+      for (const integration of integrationsData.integrations) {
+        if (
+          integration.accessLevel === "user" &&
+          integration.authenticationStatus ===
+            AuthenticationStatus.AUTHENTICATED
+        ) {
+          connected.add(integration.type.toLowerCase());
+        }
+      }
+    }
+    return connected;
+  }, [integrationsData]);
+  const setConfiguringPersonalIntegration = usePreferencesStore(
+    (s) => s.setConfiguringPersonalIntegration,
+  );
+  const handleIntegrate = useCallback(
+    (integrationType: string) => {
+      // Map backend integration_type (e.g. "google_calendar") to frontend ID (e.g. "googlecalendar")
+      const frontendId = getFrontendIntegrationId(integrationType);
+      setConfiguringPersonalIntegration(frontendId);
+      navigate("/settings?tab=integrations");
+    },
+    [setConfiguringPersonalIntegration, navigate],
+  );
+
+  const handleGetIntegrationMetadata = useCallback(
+    (integrationType: string) => {
+      const frontendId = getFrontendIntegrationId(integrationType);
+      const metadata = INTEGRATION_METADATA[frontendId];
+      if (!metadata) return null;
+      return {
+        name: metadata.name,
+        logoPath: metadata.logoPath,
+        description: metadata.description,
+      };
+    },
+    [],
+  );
 
   const chatV2 = useChatV2({
     conversationId: props.conversationId,
@@ -183,6 +258,16 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
 
+  // Resizable chat / dashboard split
+  const {
+    containerRef: splitContainerRef,
+    ratios: splitRatios,
+    getHandleProps: getSplitHandleProps,
+  } = usePanelResize({
+    defaultRatios: SPLIT_DEFAULT_RATIOS,
+    constraints: SPLIT_CONSTRAINTS,
+  });
+
   // Dashboard preview button: open artifact preview pane & collapse sidebar
   const handleDashboardPreview = useCallback(
     (dashboardId: string) => {
@@ -192,13 +277,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     [openDashboardPane, onCollapseSidebar],
   );
 
-  // Dashboard open button: navigate to full dashboard page
-  const handleDashboardOpen = useCallback(
-    (dashboardId: string) => {
-      navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-    },
-    [conversationId, navigate],
-  );
+  // Auto-open dashboard preview pane when a NEW dashboard is generated live
+  // (not on mount/page-refresh/seeding — liveDashboardKey is only set by live Pusher events)
+  const prevLiveDashboardKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = chatV2.liveDashboardKey;
+    if (key && key !== prevLiveDashboardKeyRef.current) {
+      prevLiveDashboardKeyRef.current = key;
+      const dashboardId = key.split(":")[0];
+      handleDashboardPreview(dashboardId);
+    }
+  }, [chatV2.liveDashboardKey, handleDashboardPreview]);
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
@@ -226,10 +315,17 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
     <Profiler id="ChatV2Container" onRender={reportRenderTiming}>
       {chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0 ? (
         /* Deep Research Mode */
-        <div className="flex h-full w-full gap-1">
+        <div ref={splitContainerRef} className="flex h-full w-full">
+          {/* Chat column — always at the same tree position to avoid remount */}
           <div
-            className={`min-w-0 flex flex-col ${dashboardPaneState.isOpen ? "flex-shrink-0" : "flex-1"}`}
-            style={dashboardPaneState.isOpen ? { width: 480 } : undefined}
+            className="min-w-0 flex flex-col"
+            style={
+              dashboardPaneState.isOpen
+                ? {
+                    flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                  }
+                : { flex: 1 }
+            }
           >
             {banner}
             {chatV2.writeBlocked && (
@@ -254,6 +350,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               onArtifactClick={chatV2.handleArtifactClick}
               onApprove={chatV2.handleApproval}
               onReject={chatV2.handleRejection}
+              onApprovePlan={chatV2.handlePlanApproval}
+              onRejectPlan={chatV2.handlePlanRejection}
               placeholder="Ask von anything"
               disableSubmit={!chatV2.canSubmitFinal}
               onInputWhileDisabled={onDisabledInteraction}
@@ -263,17 +361,34 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               hasNextMessagePage={hasNextMessagePage}
               isFetchingNextMessagePage={isFetchingNextMessagePage}
               onDashboardPreview={handleDashboardPreview}
-              onDashboardOpen={handleDashboardOpen}
+              enableFileUpload={isFileUploadEnabled}
+              onFileClick={chatV2.handleFileClick}
             />
           </div>
 
-          {/* Dashboard Preview Pane */}
+          {/* Dashboard pane — conditionally rendered beside the stable chat column */}
           {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
-            <DashboardPreviewPane
-              dashboardId={dashboardPaneState.dashboardId}
-              conversationId={conversationId}
-              onClose={closeDashboardPane}
-            />
+            <>
+              {/* Drag handle */}
+              <div
+                {...getSplitHandleProps(0)}
+                className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+              >
+                <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+              </div>
+              <div
+                className="h-full min-w-0"
+                style={{
+                  flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+                }}
+              >
+                <DashboardPreviewPane
+                  dashboardId={dashboardPaneState.dashboardId}
+                  conversationId={conversationId}
+                  onClose={closeDashboardPane}
+                />
+              </div>
+            </>
           )}
         </div>
       ) : (
@@ -312,6 +427,11 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
                   )}
                 </>
               }
+              isIntegrationConnected={(type) =>
+                connectedIntegrationTypes.has(type)
+              }
+              onIntegrate={handleIntegrate}
+              getIntegrationMetadata={handleGetIntegrationMetadata}
               disableSubmit={!chatV2.canSubmitFinal}
               examplePromptsDisabled={!chatV2.canSubmitFinal}
               onExamplePromptDisabledClick={onDisabledInteraction}
@@ -334,6 +454,8 @@ export function ChatV2Container(props: ChatV2ContainerProps) {
               enableActions={isActionsEnabled}
               onApprove={chatV2.handleApproval}
               onReject={chatV2.handleRejection}
+              onApprovePlan={chatV2.handlePlanApproval}
+              onRejectPlan={chatV2.handlePlanRejection}
               showTransparency={isSourcesEnabled}
               onTransparencyClick={chatV2.handleTransparencyClick}
               salesforceInstanceUrl={salesforceInstanceUrl}

@@ -15,7 +15,7 @@ export const salesExecDashboard: DashboardMetadataResponse = {
         "Key sales KPIs and quarterly revenue trend for GTM leadership",
       gridConfig: {
         cols: 12,
-        rowHeight: 80,
+        rowHeight: 60,
         margin: [8, 8],
         containerPadding: [0, 0],
         compactType: "vertical",
@@ -165,7 +165,7 @@ export const gtmPerfDashboard: DashboardMetadataResponse = {
         "Pipeline, win rates, rep performance, and deal flow for the GTM team",
       gridConfig: {
         cols: 12,
-        rowHeight: 80,
+        rowHeight: 60,
         margin: [8, 8],
         containerPadding: [0, 0],
         compactType: "vertical",
@@ -538,7 +538,7 @@ export const fullShowcaseDashboard: DashboardMetadataResponse = {
         "Comprehensive GTM dashboard covering all chart types with real sales data",
       gridConfig: {
         cols: 12,
-        rowHeight: 80,
+        rowHeight: 60,
         margin: [8, 8],
         containerPadding: [0, 0],
         compactType: "vertical",

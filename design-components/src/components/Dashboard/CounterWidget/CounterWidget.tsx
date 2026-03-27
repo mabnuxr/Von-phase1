@@ -1,7 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import { ArrowUp, ArrowDown, Minus, TableIcon } from '@phosphor-icons/react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TableIcon } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 import { useDashboardCustomization } from '../DashboardCustomization';
 import {
@@ -14,7 +14,8 @@ const DEFAULT_ACCENT = '#8039e9';
 
 /** Try to read the theme primary color, fallback gracefully */
 function useThemePrimary(): string | undefined {
-  return useDashboardCustomization().palette.primary;
+  const activeTheme = useDashboardCustomization();
+  return activeTheme.palette?.primary;
 }
 
 const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: string }> = ({
@@ -119,20 +120,12 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
       ? formatKpiDisplay(target.value, target.format, prefix, suffix)
       : undefined;
 
-  // Theme-aware color: "good" uses primaryColor if set, otherwise emerald
-  const arrowClassName =
-    comparisonColor === 'good' && primaryColor ? '' : COMPARISON_COLOR_CLASS[comparisonColor];
-  const arrowStyle =
-    comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
-  const textClassName =
-    comparisonColor === 'good' && primaryColor
-      ? 'text-xs font-medium'
-      : `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
-  const textStyle =
-    comparisonColor === 'good' && primaryColor ? { color: primaryColor } : undefined;
+  // Comparison arrows/text always use green (good) / red (bad) regardless of theme
+  const arrowClassName = COMPARISON_COLOR_CLASS[comparisonColor];
+  const textClassName = `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
 
   return (
-    <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
+    <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
       {onDrillDown && (
         <button
           onClick={(e) => {
@@ -148,20 +141,14 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, 
       {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
       {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
 
-      <p className="text-2xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
+      <p className="text-xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
 
       {hasComparison && comparisonText && (
         <div className="flex items-center gap-1 mt-1">
-          {cmpVal > 0 && (
-            <ArrowUp size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
-          )}
-          {cmpVal < 0 && (
-            <ArrowDown size={12} weight="bold" className={arrowClassName} style={arrowStyle} />
-          )}
-          {cmpVal === 0 && <Minus size={12} weight="bold" className="text-gray-500" />}
-          <span className={textClassName} style={textStyle}>
-            {comparisonText}
-          </span>
+          {cmpVal > 0 && <ArrowUpIcon size={12} weight="bold" className={arrowClassName} />}
+          {cmpVal < 0 && <ArrowDownIcon size={12} weight="bold" className={arrowClassName} />}
+          {cmpVal === 0 && <MinusIcon size={12} weight="bold" className="text-gray-500" />}
+          <span className={textClassName}>{comparisonText}</span>
           {comparison.label && <span className="text-xs text-gray-700">{comparison.label}</span>}
         </div>
       )}

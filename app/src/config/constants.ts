@@ -3,6 +3,8 @@
  * All constants are exported as readonly for protection against accidental modification
  */
 
+import { ConversationMode } from "@vonlabs/design-components";
+
 // ============================================================================
 // React Query Configuration Constants
 // ============================================================================
@@ -235,6 +237,15 @@ export const ARTIFACT_INFLIGHT_MAX_POLLS = 40 as const;
  * Interval in milliseconds between polls for in-flight artifact status.
  */
 export const ARTIFACT_INFLIGHT_POLL_INTERVAL_MS = 3000 as const; // 3 seconds
+
+// ============================================================================
+// Chat Pane Agent Mode Constants
+// ============================================================================
+
+export const CHAT_PANE_AGENT_MODES: ConversationMode[] = [
+  ConversationMode.Auto,
+  ConversationMode.DashboardBuilder,
+];
 
 // ============================================================================
 // UI Text & Display Constants

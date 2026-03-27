@@ -93,6 +93,11 @@ export interface TextWidgetProps {
 
 // ─── Table ──────────────────────────────────────────────────────
 
+export interface SortConfigItem {
+  order_by: string;
+  order_by_asc: boolean;
+}
+
 export interface TablePaginationInfo {
   page: number;
   limit: number;
@@ -100,6 +105,12 @@ export interface TablePaginationInfo {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  sortConfig?: SortConfigItem[];
+}
+
+export interface SortState {
+  orderBy: string;
+  orderByAsc: boolean;
 }
 
 export interface TableWidgetConfig {
@@ -125,6 +136,10 @@ export interface WidgetRendererProps {
   isTableLoading?: boolean;
   /** Callback when a widget's drilldown icon is clicked */
   onDrillDown?: (panelId: string) => void;
+  /** Callback when a table column header is clicked for sorting */
+  onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
+  /** Current sort state for this table widget */
+  tableSortState?: SortState;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -137,4 +152,8 @@ export interface DashboardGridProps {
   loadingTablePanels?: Set<string>;
   /** Callback when a widget's drilldown icon is clicked */
   onDrillDown?: (panelId: string) => void;
+  /** Callback when a table column header is clicked for sorting */
+  onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
+  /** Current sort state per panel */
+  tableSortStates?: Record<string, SortState>;
 }

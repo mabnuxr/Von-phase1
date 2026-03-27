@@ -1,11 +1,9 @@
 /**
  * DashboardArtifactCard — pre-composed card for dashboard artifacts.
- *
- * Renders preview (expand) and open (navigate) actions.
  */
 
 import React from 'react';
-import { ArrowRightIcon, ArrowsOutIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import { CaretRightIcon, SquaresFourIcon } from '@phosphor-icons/react';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 
 // ============================================================================
@@ -15,7 +13,6 @@ import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 export interface DashboardArtifactCardProps {
   title: string;
   onPreview?: () => void;
-  onOpen?: () => void;
   onClick?: () => void;
   isPending?: boolean;
 }
@@ -23,7 +20,6 @@ export interface DashboardArtifactCardProps {
 export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
   title,
   onPreview,
-  onOpen,
   onClick,
   isPending,
 }) => (
@@ -40,12 +36,7 @@ export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
     <BaseArtifactCard.Actions>
       {onPreview && (
         <ActionButton onClick={onPreview} title="Expand in chat">
-          <ArrowRightIcon size={16} weight="regular" />
-        </ActionButton>
-      )}
-      {onOpen && (
-        <ActionButton onClick={onOpen} title="Open full view">
-          <ArrowsOutIcon size={16} weight="regular" />
+          <CaretRightIcon size={16} weight="regular" />
         </ActionButton>
       )}
     </BaseArtifactCard.Actions>

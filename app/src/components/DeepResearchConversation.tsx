@@ -31,6 +31,7 @@ import type {
   Message,
   SendMessageOptions,
   FileAttachment,
+  MessageFileAttachment,
 } from "@vonlabs/design-components";
 
 /** Ref handle for ChatInputSelector */
@@ -99,10 +100,14 @@ export interface DeepResearchConversationProps {
     artifactType: string,
     runId: string,
   ) => void;
-  /** Callback when approval is triggered */
+  /** Callback when approval is triggered (HITL tool call approvals in timeline) */
   onApprove?: (stepId: string, runId: string) => void;
-  /** Callback when rejection is triggered */
+  /** Callback when rejection is triggered (HITL tool call rejections in timeline) */
   onReject?: (stepId: string, runId: string) => void;
+  /** Callback for workflow execution plan approval (execute_workflow dry_run completed) */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+  /** Callback for workflow execution plan rejection */
+  onRejectPlan?: (runId: string, executionId: string) => void;
   /** Placeholder text for input */
   placeholder?: string;
   /** Whether submission is disabled */
@@ -127,8 +132,10 @@ export interface DeepResearchConversationProps {
   isFetchingNextMessagePage?: boolean;
   /** Callback when dashboard expand button is clicked (opens preview pane) */
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
-  /** Callback when dashboard arrow-right button is clicked (navigates to full dashboard page) */
-  onDashboardOpen?: (dashboardId: string, dashboardVersion: number) => void;
+  /** Whether file upload is enabled */
+  enableFileUpload?: boolean;
+  /** Callback when a file attachment is clicked */
+  onFileClick?: (attachment: MessageFileAttachment) => void;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -145,6 +152,8 @@ export const DeepResearchConversation: React.FC<
   onArtifactClick,
   onApprove,
   onReject,
+  onApprovePlan,
+  onRejectPlan,
   placeholder = "Ask von anything",
   disableSubmit = false,
   onInputWhileDisabled,
@@ -157,7 +166,8 @@ export const DeepResearchConversation: React.FC<
   hasNextMessagePage,
   isFetchingNextMessagePage,
   onDashboardPreview,
-  onDashboardOpen,
+  enableFileUpload = false,
+  onFileClick,
 }) => {
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
@@ -299,7 +309,7 @@ export const DeepResearchConversation: React.FC<
   );
 
   return (
-    <div className="relative flex flex-col overflow-hidden bg-white antialiased font-sf rounded-lg border border-gray-200 shadow-xs w-full h-full">
+    <div className="relative flex flex-col overflow-hidden bg-white antialiased font-sf rounded-xl border border-gray-100 shadow-xs w-full h-full">
       {/* Messages area */}
       <div
         ref={containerRef}
@@ -334,10 +344,12 @@ export const DeepResearchConversation: React.FC<
           onArtifactClick={onArtifactClick}
           onApprove={onApprove}
           onReject={onReject}
+          onApprovePlan={onApprovePlan}
+          onRejectPlan={onRejectPlan}
           onLike={onLike}
           onDislike={onDislike}
           onDashboardPreview={onDashboardPreview}
-          onDashboardOpen={onDashboardOpen}
+          onFileClick={onFileClick}
         />
 
         {/* Scroll to bottom button */}
@@ -368,6 +380,7 @@ export const DeepResearchConversation: React.FC<
           isAgentLocked={true}
           lockedConversationMode={lockedConversationMode}
           availableAgentModes={availableAgentModes}
+          enableFileUpload={enableFileUpload}
         />
       )}
 

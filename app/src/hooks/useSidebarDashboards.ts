@@ -28,11 +28,12 @@ function toDashboardSidebarItem(item: DashboardListItem): DashboardSidebarItem {
     state: item.status === "published" ? "published" : "draft",
     visibility: item.is_shared_with_tenant ? "org" : "private",
     isPinned: false,
+    isOwner: item.is_owner,
     lastEdited: item.updated_at,
   };
 }
 
-const STATUS = "draft,published";
+const STATUS = "published";
 
 /**
  * Hook to fetch dashboards for the sidebar with "show more" pagination.
@@ -54,7 +55,7 @@ export function useSidebarDashboards() {
         ),
       initialPageParam: 1,
       getNextPageParam: (lastPage) =>
-        lastPage.pagination.has_next_page
+        lastPage.pagination.hasNextPage
           ? lastPage.pagination.page + 1
           : undefined,
       staleTime: DASHBOARD_LIST_STALE_TIME,

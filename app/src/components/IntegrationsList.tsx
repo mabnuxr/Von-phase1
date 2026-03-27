@@ -35,6 +35,7 @@ const CATEGORY_ORDER: Array<
   | "CRM"
   | "Calendar"
   | "Call Recorder"
+  | "Note Takers"
   | "Internal Documents"
   | "Sales Engagement"
   | "Data Warehouse"
@@ -44,6 +45,7 @@ const CATEGORY_ORDER: Array<
   "CRM",
   "Calendar",
   "Call Recorder",
+  "Note Takers",
   "Internal Documents",
   "Sales Engagement",
   "Data Warehouse",
@@ -569,6 +571,7 @@ export function IntegrationsList({
     isZendeskEnabled,
     isSnowflakeEnabled,
     isGmailEnabled,
+    isGranolaEnabled,
     isGongEngageEnabled,
   } = useFeatureFlag();
 
@@ -579,6 +582,7 @@ export function IntegrationsList({
       if (app.id === "zendesk" && !isZendeskEnabled) return false;
       if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
       if (app.id === "gmail" && !isGmailEnabled) return false;
+      if (app.id === "granola" && !isGranolaEnabled) return false;
       if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       return true;
     });
@@ -587,6 +591,7 @@ export function IntegrationsList({
     isZendeskEnabled,
     isSnowflakeEnabled,
     isGmailEnabled,
+    isGranolaEnabled,
     isGongEngageEnabled,
   ]);
 

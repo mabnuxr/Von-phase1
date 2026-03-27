@@ -20,7 +20,7 @@ export const ConversationSkeleton = () => {
       {/* Two-Pane Layout */}
       <div className="flex flex-1 px-3 pb-3 gap-2 overflow-hidden min-h-0">
         {/* Sidebar skeleton */}
-        <div className="w-60 h-full rounded-lg bg-white shadow-xs border border-gray-200 p-3 space-y-3">
+        <div className="w-60 h-full rounded-xl bg-white shadow-xs border border-gray-100 p-3 space-y-3">
           {/* Search placeholder */}
           <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
           {/* Chat items placeholders */}
