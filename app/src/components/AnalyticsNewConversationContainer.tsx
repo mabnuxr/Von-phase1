@@ -121,6 +121,8 @@ export function AnalyticsNewConversationContainer({
       width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
+      isAgentLocked={true}
+      lockedConversationMode={ConversationMode.DashboardBuilder}
       disableSubmit={!canSubmit || isCreating}
       enableFileUpload={isFileUploadEnabled}
       controlledAttachments={fileAttachments}
