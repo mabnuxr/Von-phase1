@@ -63,10 +63,7 @@ export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProv
     setColorTheme(defaultColorTheme);
   }, [defaultColorTheme]);
 
-  const palette = useMemo(
-    () => chartThemes[colorTheme] ?? null,
-    [colorTheme]
-  );
+  const palette = useMemo(() => chartThemes[colorTheme] ?? null, [colorTheme]);
 
   const stableSetColorTheme = useCallback((t: ChartThemeId) => setColorTheme(t), []);
   const stableSetMode = useCallback((m: 'edit' | 'preview') => setMode(m), []);
