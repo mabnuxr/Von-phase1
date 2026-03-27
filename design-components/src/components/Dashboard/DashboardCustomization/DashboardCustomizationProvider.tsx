@@ -7,7 +7,7 @@ import { DashboardCustomizationContext } from './DashboardCustomizationContext';
 export interface DashboardCustomizationState {
   /** Active color theme id */
   colorTheme: ChartThemeId;
-  /** Resolved palette for the active theme (null when 'default' — use backend colors) */
+  /** Resolved palette for the active theme */
   palette: ChartThemePalette | null;
   /** Update the color theme */
   setColorTheme: (theme: ChartThemeId) => void;
@@ -64,7 +64,7 @@ export const DashboardCustomizationProvider: React.FC<DashboardCustomizationProv
   }, [defaultColorTheme]);
 
   const palette = useMemo(
-    () => (colorTheme === 'default' ? null : chartThemes[colorTheme]),
+    () => chartThemes[colorTheme] ?? null,
     [colorTheme]
   );
 

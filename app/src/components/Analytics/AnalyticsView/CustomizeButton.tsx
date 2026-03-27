@@ -49,7 +49,7 @@ const CustomizeButton: React.FC<CustomizeButtonProps> = ({
               {chartThemeIds.map((id) => {
                 const isActive = id === colorTheme;
 
-                // Default option — no palette, use backend colors
+                // Default option — Von theme (teal)
                 if (id === "default") {
                   return (
                     <button
