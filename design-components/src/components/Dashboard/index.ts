@@ -26,6 +26,9 @@ export type {
   TableWidgetConfig,
   TablePaginationInfo,
   SortState,
+  DrilldownConfig,
+  DrilldownColumnMapping,
+  DrillFilters,
 } from './types';
 
 // ── DashboardLayout (Compound component) ────────────────────────────

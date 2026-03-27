@@ -67,8 +67,13 @@ interface AnalyticsViewProps {
   /** Widgets with paginated table data merged in (overrides dashboard.widgets) */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   paginatedWidgets?: Record<string, any>;
-  /** Callback when a widget's drilldown icon is clicked */
+  /** Callback when a widget's drilldown icon is clicked (chart-level) */
   onDrillDown?: (panelId: string) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown) */
+  onPointDrillDown?: (
+    panelId: string,
+    drillFilters: Record<string, unknown>,
+  ) => void;
   /** Server-side table sort handler */
   onTableSortChange?: (
     panelId: string,
@@ -115,6 +120,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   loadingTablePanels,
   paginatedWidgets,
   onDrillDown,
+  onPointDrillDown,
   onTableSortChange,
   tableSortStates,
   defaultColorTheme,
@@ -421,6 +427,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTablePageChange={onTablePageChange}
               loadingTablePanels={loadingTablePanels}
               onDrillDown={onDrillDown}
+              onPointDrillDown={onPointDrillDown}
               onTableSortChange={onTableSortChange}
               tableSortStates={tableSortStates}
             />

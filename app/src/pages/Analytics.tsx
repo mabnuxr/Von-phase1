@@ -114,6 +114,7 @@ const Analytics = () => {
     isLoading: isDrilldownLoading,
     isError: isDrilldownError,
     openDrilldown,
+    openPointDrilldown,
     closeDrilldown,
     changePage: changeDrilldownPage,
     changeSort: changeDrilldownSort,
@@ -175,6 +176,7 @@ const Analytics = () => {
           loadingTablePanels={loadingPanels}
           paginatedWidgets={mergedWidgets}
           onDrillDown={openDrilldown}
+          onPointDrillDown={openPointDrilldown}
           onTableSortChange={handleSortChange}
           tableSortStates={activeSorts}
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}

@@ -16,6 +16,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   onTablePageChange,
   loadingTablePanels,
   onDrillDown,
+  onPointDrillDown,
   onTableSortChange,
   tableSortStates,
 }) => {
@@ -71,6 +72,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                   onTablePageChange={onTablePageChange}
                   isTableLoading={loadingTablePanels?.has(widget.id)}
                   onDrillDown={onDrillDown}
+                  onPointDrillDown={onPointDrillDown}
                   onTableSortChange={onTableSortChange}
                   tableSortState={tableSortStates?.[widget.id]}
                 />
