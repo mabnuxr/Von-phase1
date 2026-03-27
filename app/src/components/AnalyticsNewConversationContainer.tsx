@@ -140,8 +140,6 @@ export function AnalyticsNewConversationContainer({
       onToggleFavorite={handleToggleFavorite}
       onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
       onUploadFile={handleUploadFile}
-      isAgentLocked
-      lockedConversationMode={ConversationMode.DashboardBuilder}
       availableAgentModes={CHAT_PANE_AGENT_MODES}
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
