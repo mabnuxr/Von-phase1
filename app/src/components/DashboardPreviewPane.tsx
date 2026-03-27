@@ -12,6 +12,7 @@ import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
+import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 
 interface DashboardPreviewPaneProps {
@@ -38,6 +39,17 @@ export function DashboardPreviewPane({
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
+  const {
+    schedule,
+    isScheduled,
+    isPaused: isSchedulePaused,
+    isMutating: isScheduleMutating,
+    handleCreateSchedule,
+    handleUpdateSchedule,
+    handlePauseSchedule,
+    handleResumeSchedule,
+    handleDeleteSchedule,
+  } = useDashboardSchedule(dashboardId);
 
   const handleColorThemeChange = useCallback(
     (themeId: string) => {
@@ -99,6 +111,15 @@ export function DashboardPreviewPane({
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
           onRename={handleRename}
+          schedule={schedule}
+          isScheduled={isScheduled}
+          isSchedulePaused={isSchedulePaused}
+          isScheduleMutating={isScheduleMutating}
+          onCreateSchedule={handleCreateSchedule}
+          onUpdateSchedule={handleUpdateSchedule}
+          onPauseSchedule={handlePauseSchedule}
+          onResumeSchedule={handleResumeSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
         />
       )}
     </div>

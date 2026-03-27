@@ -1,7 +1,7 @@
 /**
  * ScheduleFields — the raw form fields for schedule configuration.
  *
- * Renders frequency, time, interval, day-of-week, day-of-month, and timezone
+ * Renders frequency, time, day-of-week, day-of-month, and timezone
  * controls with no wrapper chrome. Use directly when you need to embed schedule
  * controls inside your own layout (e.g. a popover). For a self-contained widget
  * with toggle header, use SchedulePicker instead.
@@ -12,7 +12,6 @@ import { Dropdown } from '../forms/dropdown/Dropdown';
 import { MultiSelectDropdown } from '../forms/dropdown/MultiSelectDropdown';
 import {
   SCHEDULE_FREQUENCIES,
-  SCHEDULE_HOURLY_INTERVALS,
   SCHEDULE_DAYS,
   SCHEDULE_TIMES,
   SCHEDULE_DAYS_OF_MONTH,
@@ -48,8 +47,6 @@ export const ScheduleFields: React.FC<ScheduleFieldsProps> = ({
   const frequencyOptions = frequencies ?? SCHEDULE_FREQUENCIES;
   const showDayOfWeek = schedule.frequency === 'weekly' || schedule.frequency === 'biweekly';
   const showDayOfMonth = schedule.frequency === 'monthly';
-  const showHourlyInterval = schedule.frequency === 'hourly';
-  const showTime = schedule.frequency !== 'hourly';
 
   return (
     <div className={className ?? 'space-y-2.5'}>
@@ -64,46 +61,31 @@ export const ScheduleFields: React.FC<ScheduleFieldsProps> = ({
         usePortal
       />
 
-      {/* Hourly interval */}
-      {showHourlyInterval && (
+      {/* Time & Date — same row */}
+      <div className="flex items-start gap-2">
         <Dropdown
-          label="Interval"
+          label="Time"
           labelClassName="text-xs font-medium text-gray-800/80"
-          options={SCHEDULE_HOURLY_INTERVALS}
-          value={String(schedule.interval ?? 1)}
-          onChange={(v) => update({ interval: parseInt(v, 10) })}
+          options={SCHEDULE_TIMES}
+          value={schedule.time}
+          onChange={(v) => update({ time: v })}
           disabled={readOnly}
+          className="flex-1"
           usePortal
         />
-      )}
-
-      {/* Time & Date — same row */}
-      {showTime && (
-        <div className="flex items-start gap-2">
+        {showDayOfMonth && (
           <Dropdown
-            label="Time"
+            label="Date"
             labelClassName="text-xs font-medium text-gray-800/80"
-            options={SCHEDULE_TIMES}
-            value={schedule.time}
-            onChange={(v) => update({ time: v })}
+            options={SCHEDULE_DAYS_OF_MONTH}
+            value={String(schedule.dayOfMonth)}
+            onChange={(v) => update({ dayOfMonth: parseInt(v, 10) })}
             disabled={readOnly}
             className="flex-1"
             usePortal
           />
-          {showDayOfMonth && (
-            <Dropdown
-              label="Date"
-              labelClassName="text-xs font-medium text-gray-800/80"
-              options={SCHEDULE_DAYS_OF_MONTH}
-              value={String(schedule.dayOfMonth)}
-              onChange={(v) => update({ dayOfMonth: parseInt(v, 10) })}
-              disabled={readOnly}
-              className="flex-1"
-              usePortal
-            />
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Day-of-week multi-select dropdown */}
       {showDayOfWeek && (
@@ -119,18 +101,16 @@ export const ScheduleFields: React.FC<ScheduleFieldsProps> = ({
         />
       )}
 
-      {/* Timezone — only when time is relevant */}
-      {showTime && (
-        <Dropdown
-          label="Timezone"
-          labelClassName="text-xs font-medium text-gray-800/80"
-          options={timezoneOptions}
-          value={schedule.timezone}
-          onChange={(v) => update({ timezone: v })}
-          disabled={readOnly}
-          usePortal
-        />
-      )}
+      {/* Timezone */}
+      <Dropdown
+        label="Timezone"
+        labelClassName="text-xs font-medium text-gray-800/80"
+        options={timezoneOptions}
+        value={schedule.timezone}
+        onChange={(v) => update({ timezone: v })}
+        disabled={readOnly}
+        usePortal
+      />
     </div>
   );
 };

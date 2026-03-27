@@ -315,7 +315,6 @@ export type {
 } from './SchedulePicker';
 export {
   SCHEDULE_FREQUENCIES,
-  SCHEDULE_HOURLY_INTERVALS,
   SCHEDULE_DAYS,
   SCHEDULE_TIMES,
   DEFAULT_SCHEDULE,

@@ -37,20 +37,11 @@ export interface SchedulePickerProps extends ScheduleFieldsProps {
 // ---------------------------------------------------------------------------
 
 export const SCHEDULE_FREQUENCIES: { value: ScheduleFrequency; label: string }[] = [
-  { value: 'hourly', label: 'Hourly' },
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Bi-weekly' },
   { value: 'monthly', label: 'Monthly' },
 ];
-
-export const SCHEDULE_HOURLY_INTERVALS: { value: string; label: string }[] = Array.from(
-  { length: 23 },
-  (_, i) => ({
-    value: String(i + 1),
-    label: i + 1 === 1 ? 'Every hour' : `Every ${i + 1} hours`,
-  })
-);
 
 export const SCHEDULE_DAYS: ScheduleDay[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -126,10 +117,6 @@ export function normalizeFrequency(raw: string): ScheduleFrequency {
 }
 
 export function formatScheduleBadge(schedule: Schedule): string {
-  if (schedule.frequency === 'hourly') {
-    const n = schedule.interval ?? 1;
-    return n === 1 ? 'Every hour' : `Every ${n} hours`;
-  }
   const freq =
     SCHEDULE_FREQUENCIES.find((f) => f.value === schedule.frequency)?.label ?? schedule.frequency;
   const timeLabel = SCHEDULE_TIMES.find((t) => t.value === schedule.time)?.label ?? schedule.time;

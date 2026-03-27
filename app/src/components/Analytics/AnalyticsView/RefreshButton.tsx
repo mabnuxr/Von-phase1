@@ -25,7 +25,6 @@ import type {
 // ─── Frequency options for dashboard scheduling ────────────────
 // (excludes biweekly — not supported by the dashboard schedule API)
 const DASHBOARD_FREQUENCIES: { value: ScheduleFrequency; label: string }[] = [
-  { value: "hourly", label: "Hourly" },
   { value: "daily", label: "Daily" },
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
