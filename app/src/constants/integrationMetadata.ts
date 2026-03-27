@@ -61,8 +61,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   gongengage: {
     id: "gongengage",
     name: "Gong Engage",
-    description:
-      "Analyse flows and manage engagement actions from Gong Engage",
+    description: "Analyse flows and manage engagement actions from Gong Engage",
     note: "Set up your Gong call recorder to start using Gong Engage",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
