@@ -92,6 +92,7 @@ export function DashboardPreviewPane({
     isLoading: isDrilldownLoading,
     isError: isDrilldownError,
     openDrilldown,
+    openPointDrilldown,
     closeDrilldown,
     changePage: changeDrilldownPage,
     changeSort: changeDrilldownSort,
@@ -131,6 +132,7 @@ export function DashboardPreviewPane({
             loadingTablePanels={loadingPanels}
             paginatedWidgets={mergedWidgets}
             onDrillDown={openDrilldown}
+            onPointDrillDown={openPointDrilldown}
             onTableSortChange={handleSortChange}
             tableSortStates={activeSorts}
             defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
