@@ -46,12 +46,13 @@ function safeTimezone(tz: string): string {
   }
 }
 
-/** Convert local HH:MM in a given IANA timezone to UTC HH:MM */
+/** Convert local HH:MM in a given IANA timezone to UTC HH:MM.
+ *  Uses today's date so DST offsets are correct for the current period. */
 function localTimeToUtc(localTime: string, timezone: string): string {
   const tz = safeTimezone(timezone);
   const [hours, minutes] = localTime.split(":").map(Number);
-  const refDate = new Date(2000, 0, 15);
-  refDate.setHours(hours, minutes, 0, 0);
+  const today = new Date();
+  today.setHours(hours, minutes, 0, 0);
 
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
@@ -60,29 +61,40 @@ function localTimeToUtc(localTime: string, timezone: string): string {
     hourCycle: "h23",
   });
 
-  const localParts = formatter.formatToParts(refDate);
+  const localParts = formatter.formatToParts(today);
   const localH = Number(localParts.find((p) => p.type === "hour")?.value ?? 0);
   const localM = Number(
     localParts.find((p) => p.type === "minute")?.value ?? 0,
   );
 
-  const machineMinutes = refDate.getHours() * 60 + refDate.getMinutes();
+  const machineMinutes = today.getHours() * 60 + today.getMinutes();
   const targetMinutes = localH * 60 + localM;
   const offsetMinutes = machineMinutes - targetMinutes;
 
   const desiredMinutes = hours * 60 + minutes;
   const machineEquiv = desiredMinutes + offsetMinutes;
-  const utcDate = new Date(2000, 0, 15);
+  const utcDate = new Date();
   utcDate.setHours(0, machineEquiv, 0, 0);
 
   return `${String(utcDate.getUTCHours()).padStart(2, "0")}:${String(utcDate.getUTCMinutes()).padStart(2, "0")}`;
 }
 
-/** Convert UTC HH:MM to local HH:MM in a given IANA timezone */
+/** Convert UTC HH:MM to local HH:MM in a given IANA timezone.
+ *  Uses today's date so DST offsets are correct for the current period. */
 function utcTimeToLocal(utcTime: string, timezone: string): string {
   const tz = safeTimezone(timezone);
   const [hours, minutes] = utcTime.split(":").map(Number);
-  const utcDate = new Date(Date.UTC(2000, 0, 15, hours, minutes, 0));
+  const today = new Date();
+  const utcDate = new Date(
+    Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate(),
+      hours,
+      minutes,
+      0,
+    ),
+  );
 
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
@@ -111,7 +123,6 @@ function apiToPickerSchedule(
     days: ["Mon", "Wed", "Fri"],
     dayOfMonth: 1,
     timezone: tz,
-    interval: 1,
   };
   if (!cfg) return defaults;
 
@@ -128,7 +139,6 @@ function apiToPickerSchedule(
     days: (cfg.days as Schedule["days"]) ?? defaults.days,
     dayOfMonth: cfg.dayOfMonth ?? defaults.dayOfMonth,
     timezone: tz,
-    interval: cfg.interval ?? defaults.interval,
   };
 }
 
@@ -138,11 +148,7 @@ function pickerScheduleToApi(s: Schedule): ScheduleConfigRequest {
     frequency: s.frequency as ScheduleConfigRequest["frequency"],
   };
 
-  if (s.frequency === "hourly") {
-    config.interval = s.interval ?? 1;
-  } else {
-    config.time = localTimeToUtc(s.time, s.timezone);
-  }
+  config.time = localTimeToUtc(s.time, s.timezone);
 
   if (s.frequency === "weekly") {
     config.days = s.days;

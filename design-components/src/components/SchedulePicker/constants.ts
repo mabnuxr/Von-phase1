@@ -2,7 +2,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type ScheduleFrequency = 'hourly' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
+export type ScheduleFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 export type ScheduleDay = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 
 export interface Schedule {
@@ -12,7 +12,6 @@ export interface Schedule {
   days: ScheduleDay[]; // relevant for weekly / biweekly
   dayOfMonth: number; // 1-31, relevant for monthly
   timezone: string; // IANA timezone, e.g. "America/New_York"
-  interval?: number; // 1-23, relevant for hourly
 }
 
 export interface ScheduleFieldsProps {
