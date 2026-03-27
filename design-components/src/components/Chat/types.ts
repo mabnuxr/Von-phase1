@@ -174,6 +174,15 @@ export interface Message {
     pdfPreview?: { id: string; fileName: string };
   }>;
   /**
+   * Integration write block metadata (persisted on assistant messages).
+   * When present, renders an integration card inline on the message.
+   */
+  integrationBlock?: {
+    blockCode?: string;
+    message: string;
+    integrationType: string;
+  };
+  /**
    * Whether the response was stopped by user
    */
   stoppedByUser?: boolean;
@@ -1233,6 +1242,29 @@ export interface ChatProps {
    * Use this to show warnings or important messages to the user
    */
   banner?: React.ReactNode;
+
+  /**
+   * Check whether a given integration type is connected.
+   * Called with the backend integration_type (e.g. "salesforce", "google_calendar").
+   * Used by per-message integration cards to show "Connected" state.
+   */
+  isIntegrationConnected?: (integrationType: string) => boolean;
+
+  /**
+   * Callback to open the integration connection flow (e.g. OAuth banner).
+   * Passed to per-message integration cards.
+   */
+  onIntegrate?: (integrationType: string) => void;
+
+  /**
+   * Resolve integration metadata (name, logo, description) for a given backend integration type.
+   * Used to render IntegrationCard inline when a write is blocked.
+   */
+  getIntegrationMetadata?: (integrationType: string) => {
+    name: string;
+    logoPath: string;
+    description?: string;
+  } | null;
 
   /**
    * Top banner element to show at the very top of the empty state
