@@ -11,8 +11,10 @@ import { useNavigate } from "react-router-dom";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
+import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
+import { DrilldownPanel } from "./Analytics/DrilldownPanel";
 
 interface DashboardPreviewPaneProps {
   dashboardId: string;
@@ -61,8 +63,27 @@ export function DashboardPreviewPane({
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
 
-  const { mergedWidgets, handlePageChange, loadingPanels } =
-    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  const {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+
+  const {
+    isOpen: isDrilldownOpen,
+    widgetTitle: drilldownWidgetTitle,
+    data: drilldownData,
+    pagination: drilldownPagination,
+    currentSort: drilldownSort,
+    isLoading: isDrilldownLoading,
+    isError: isDrilldownError,
+    openDrilldown,
+    closeDrilldown,
+    changePage: changeDrilldownPage,
+    changeSort: changeDrilldownSort,
+  } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
   const handleExpand = useCallback(() => {
     navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
@@ -80,6 +101,7 @@ export function DashboardPreviewPane({
       ) : error || !dashboard ? (
         <AnalyticsError error={error?.message ?? null} />
       ) : (
+        <>
         <AnalyticsView
           dashboard={dashboard}
           refreshInfo={refreshInfo}
@@ -96,10 +118,26 @@ export function DashboardPreviewPane({
           onTablePageChange={handlePageChange}
           loadingTablePanels={loadingPanels}
           paginatedWidgets={mergedWidgets}
+          onDrillDown={openDrilldown}
+          onTableSortChange={handleSortChange}
+          tableSortStates={activeSorts}
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
           onRename={handleRename}
         />
+        <DrilldownPanel
+          isOpen={isDrilldownOpen}
+          onClose={closeDrilldown}
+          widgetTitle={drilldownWidgetTitle}
+          data={drilldownData}
+          pagination={drilldownPagination}
+          isLoading={isDrilldownLoading}
+          isError={isDrilldownError}
+          onPageChange={changeDrilldownPage}
+          onSortChange={changeDrilldownSort}
+          sortState={drilldownSort}
+        />
+        </>
       )}
     </div>
   );
