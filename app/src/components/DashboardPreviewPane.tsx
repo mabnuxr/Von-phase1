@@ -6,16 +6,16 @@
  * Expand navigates to the full dashboard page with conversationId.
  */
 
-import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDashboardQuery } from '../hooks/useDashboardQuery';
-import { useAnalyticsTools } from '../hooks/useAnalyticsTools';
-import { useTableServerPagination } from '../hooks/useTableServerPagination';
-import { useDrilldown } from '../hooks/useDrilldown';
-import { useDashboardUpdate } from '../hooks/useDashboardUpdate';
-import { useDashboardSchedule } from '../hooks/useDashboardSchedule';
-import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from './Analytics';
-import { DrilldownPanel } from './Analytics/DrilldownPanel';
+import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
+import { useTableServerPagination } from "../hooks/useTableServerPagination";
+import { useDrilldown } from "../hooks/useDrilldown";
+import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
+import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
+import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
+import { DrilldownPanel } from "./Analytics/DrilldownPanel";
 
 interface DashboardPreviewPaneProps {
   dashboardId: string;
@@ -61,22 +61,27 @@ export function DashboardPreviewPane({
         },
       });
     },
-    [handleUpdate]
+    [handleUpdate],
   );
 
   const handleRename = useCallback(
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
     },
-    [handleUpdate]
+    [handleUpdate],
   );
 
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
 
-  const { mergedWidgets, handlePageChange, handleSortChange, loadingPanels, activeSorts } =
-    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  const {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
   const {
     isOpen: isDrilldownOpen,
@@ -99,7 +104,7 @@ export function DashboardPreviewPane({
   return (
     <div
       style={{
-        position: 'relative',
+        position: "relative",
       }}
       className="h-full flex-1 min-w-0"
     >
