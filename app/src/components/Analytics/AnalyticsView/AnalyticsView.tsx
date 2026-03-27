@@ -83,16 +83,16 @@ interface AnalyticsViewProps {
   onColorThemeChange?: (themeId: string) => void;
   /** Called when the owner renames the dashboard */
   onRename?: (newName: string) => void;
-  /** Schedule state and handlers */
-  schedule?: DashboardScheduleResponse | null;
-  isScheduled?: boolean;
-  isSchedulePaused?: boolean;
-  isScheduleMutating?: boolean;
-  onCreateSchedule?: (config: ScheduleConfigRequest) => void;
-  onUpdateSchedule?: (config: Partial<ScheduleConfigRequest>) => void;
-  onPauseSchedule?: () => void;
-  onResumeSchedule?: () => void;
-  onDeleteSchedule?: () => void;
+  /** Schedule state and handlers (required when dashboard.isOwner) */
+  schedule: DashboardScheduleResponse | null;
+  isScheduled: boolean;
+  isSchedulePaused: boolean;
+  isScheduleMutating: boolean;
+  onCreateSchedule: (config: ScheduleConfigRequest) => void;
+  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => void;
+  onPauseSchedule: () => void;
+  onResumeSchedule: () => void;
+  onDeleteSchedule: () => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -121,9 +121,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onColorThemeChange,
   onRename,
   schedule,
-  isScheduled = false,
-  isSchedulePaused = false,
-  isScheduleMutating = false,
+  isScheduled,
+  isSchedulePaused,
+  isScheduleMutating,
   onCreateSchedule,
   onUpdateSchedule,
   onPauseSchedule,
@@ -388,15 +388,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <RefreshButton
                     onRefresh={onRefresh}
                     canRefresh={isSaved}
-                    schedule={schedule ?? null}
+                    schedule={schedule}
                     isScheduled={isScheduled}
                     isPaused={isSchedulePaused}
                     isMutating={isScheduleMutating}
-                    onCreateSchedule={onCreateSchedule ?? (() => {})}
-                    onUpdateSchedule={onUpdateSchedule ?? (() => {})}
-                    onPauseSchedule={onPauseSchedule ?? (() => {})}
-                    onResumeSchedule={onResumeSchedule ?? (() => {})}
-                    onDeleteSchedule={onDeleteSchedule ?? (() => {})}
+                    onCreateSchedule={onCreateSchedule}
+                    onUpdateSchedule={onUpdateSchedule}
+                    onPauseSchedule={onPauseSchedule}
+                    onResumeSchedule={onResumeSchedule}
+                    onDeleteSchedule={onDeleteSchedule}
                   />
                   <CustomizeButton canCustomize={isSaved} />
                   <SharePopover

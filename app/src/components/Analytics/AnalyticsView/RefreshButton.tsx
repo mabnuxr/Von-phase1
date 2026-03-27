@@ -43,7 +43,7 @@ function localTimeToUtc(localTime: string, timezone: string): string {
     timeZone: timezone,
     hour: "numeric",
     minute: "numeric",
-    hour12: false,
+    hourCycle: "h23",
   });
 
   const localParts = formatter.formatToParts(refDate);
@@ -73,7 +73,7 @@ function utcTimeToLocal(utcTime: string, timezone: string): string {
     timeZone: timezone,
     hour: "numeric",
     minute: "numeric",
-    hour12: false,
+    hourCycle: "h23",
   });
 
   const parts = formatter.formatToParts(utcDate);
@@ -83,17 +83,19 @@ function utcTimeToLocal(utcTime: string, timezone: string): string {
   return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
 }
 
-/** Build a SchedulePicker-compatible Schedule from API response */
+/** Build a ScheduleFields-compatible Schedule from API response */
 function apiToPickerSchedule(
   cfg: DashboardScheduleResponse["schedule_config"],
+  savedTimezone?: string,
 ): Schedule {
+  const tz = savedTimezone || LOCAL_TIMEZONE;
   const defaults: Schedule = {
     enabled: true,
     frequency: "daily",
     time: "09:00",
     days: ["Mon", "Wed", "Fri"],
     dayOfMonth: 1,
-    timezone: LOCAL_TIMEZONE,
+    timezone: tz,
     interval: 1,
   };
   if (!cfg) return defaults;
@@ -101,10 +103,10 @@ function apiToPickerSchedule(
   return {
     enabled: true,
     frequency: cfg.frequency as ScheduleFrequency,
-    time: cfg.time ? utcTimeToLocal(cfg.time, LOCAL_TIMEZONE) : defaults.time,
+    time: cfg.time ? utcTimeToLocal(cfg.time, tz) : defaults.time,
     days: (cfg.days as Schedule["days"]) ?? defaults.days,
     dayOfMonth: cfg.dayOfMonth ?? defaults.dayOfMonth,
-    timezone: LOCAL_TIMEZONE,
+    timezone: tz,
     interval: cfg.interval ?? defaults.interval,
   };
 }
@@ -168,15 +170,18 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
     toggleVisibility: toggleSchedule,
   } = useVisibilityToggle();
 
-  // SchedulePicker local form state
+  // ScheduleFields local form state
   const [pickerSchedule, setPickerSchedule] = useState<Schedule>(() =>
     apiToPickerSchedule(schedule?.schedule_config ?? null),
   );
 
-  // Sync form state from server schedule when popover opens
+  // Sync form state from server schedule when popover opens,
+  // preserving the user's last-selected timezone for UTC↔local conversion
   useEffect(() => {
     if (!open) return;
-    setPickerSchedule(apiToPickerSchedule(schedule?.schedule_config ?? null));
+    setPickerSchedule((prev) =>
+      apiToPickerSchedule(schedule?.schedule_config ?? null, prev.timezone),
+    );
   }, [open, schedule]);
 
   // Close accordion when popover closes
@@ -201,8 +206,10 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   // Summary text for collapsed schedule header
   const scheduleSummary = useMemo(() => {
     if (!isScheduled || !schedule?.schedule_config) return null;
-    return formatScheduleBadge(apiToPickerSchedule(schedule.schedule_config));
-  }, [isScheduled, schedule]);
+    return formatScheduleBadge(
+      apiToPickerSchedule(schedule.schedule_config, pickerSchedule.timezone),
+    );
+  }, [isScheduled, schedule, pickerSchedule.timezone]);
 
   return (
     <div className="relative">
