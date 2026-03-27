@@ -312,15 +312,6 @@ const DashboardSection: React.FC<{
     dashboard: null,
   });
 
-  // Sort: pinned first, then by label
-  const sortedDashboards = useMemo(() => {
-    return [...dashboards].sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return a.label.localeCompare(b.label);
-    });
-  }, [dashboards]);
-
   const handleOpenContextMenu = (e: React.MouseEvent, dash: DashboardSidebarItem) => {
     e.preventDefault();
     e.stopPropagation();
@@ -336,7 +327,7 @@ const DashboardSection: React.FC<{
     <div className="mb-3">
       <SectionHeader label="Dashboards" />
       <div>
-        {sortedDashboards.map((dash) => (
+        {dashboards.map((dash) => (
           <DashboardRow
             key={dash.id}
             dash={dash}

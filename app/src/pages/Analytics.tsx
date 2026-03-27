@@ -17,6 +17,7 @@ import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
 import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
+import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 
 const Analytics = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>() as {
@@ -118,6 +119,19 @@ const Analytics = () => {
     changeSort: changeDrilldownSort,
   } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
+  // Schedule management
+  const {
+    schedule,
+    isScheduled,
+    isPaused: isSchedulePaused,
+    isMutating: isScheduleMutating,
+    handleCreateSchedule,
+    handleUpdateSchedule,
+    handlePauseSchedule,
+    handleResumeSchedule,
+    handleDeleteSchedule,
+  } = useDashboardSchedule(dashboardId);
+
   // Subscribe to Pusher events for dashboard refresh notifications
   useDashboardRefreshEvents(dashboardId);
 
@@ -166,6 +180,15 @@ const Analytics = () => {
           defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
           onColorThemeChange={handleColorThemeChange}
           onRename={handleRename}
+          schedule={schedule}
+          isScheduled={isScheduled}
+          isSchedulePaused={isSchedulePaused}
+          isScheduleMutating={isScheduleMutating}
+          onCreateSchedule={handleCreateSchedule}
+          onUpdateSchedule={handleUpdateSchedule}
+          onPauseSchedule={handlePauseSchedule}
+          onResumeSchedule={handleResumeSchedule}
+          onDeleteSchedule={handleDeleteSchedule}
         />
         <DrilldownPanel
           isOpen={isDrilldownOpen}

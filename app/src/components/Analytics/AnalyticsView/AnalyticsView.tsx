@@ -26,7 +26,12 @@ import { SaveButton } from "./SaveButton";
 import { SharePopover } from "./SharePopover";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
-import type { Dashboard, RefreshInfo } from "../../../types/dashboard";
+import type {
+  Dashboard,
+  RefreshInfo,
+  ScheduleConfigRequest,
+  DashboardScheduleResponse,
+} from "../../../types/dashboard";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 import type {
   WidgetConfig,
@@ -78,6 +83,16 @@ interface AnalyticsViewProps {
   onColorThemeChange?: (themeId: string) => void;
   /** Called when the owner renames the dashboard */
   onRename?: (newName: string) => void;
+  /** Schedule state and handlers (required when dashboard.isOwner) */
+  schedule: DashboardScheduleResponse | null;
+  isScheduled: boolean;
+  isSchedulePaused: boolean;
+  isScheduleMutating: boolean;
+  onCreateSchedule: (config: ScheduleConfigRequest) => void;
+  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => void;
+  onPauseSchedule: () => void;
+  onResumeSchedule: () => void;
+  onDeleteSchedule: () => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -105,6 +120,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   defaultColorTheme,
   onColorThemeChange,
   onRename,
+  schedule,
+  isScheduled,
+  isSchedulePaused,
+  isScheduleMutating,
+  onCreateSchedule,
+  onUpdateSchedule,
+  onPauseSchedule,
+  onResumeSchedule,
+  onDeleteSchedule,
 }) => {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -361,7 +385,19 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         </button>
                       </Tooltip>
                     )}
-                  <RefreshButton onRefresh={onRefresh} canRefresh={isSaved} />
+                  <RefreshButton
+                    onRefresh={onRefresh}
+                    canRefresh={isSaved}
+                    schedule={schedule}
+                    isScheduled={isScheduled}
+                    isPaused={isSchedulePaused}
+                    isMutating={isScheduleMutating}
+                    onCreateSchedule={onCreateSchedule}
+                    onUpdateSchedule={onUpdateSchedule}
+                    onPauseSchedule={onPauseSchedule}
+                    onResumeSchedule={onResumeSchedule}
+                    onDeleteSchedule={onDeleteSchedule}
+                  />
                   <CustomizeButton canCustomize={isSaved} />
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
