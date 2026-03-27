@@ -16,13 +16,13 @@ export interface IntegrationMetadata {
   category:
     | "CRM"
     | "Call Recorder"
-    | "Internal Documents"
+    | "Knowledge base"
     | "Sales Engagement"
     | "Data Warehouse"
     | "Customer Support"
     | "Calendar"
     | "Note Takers"
-    | "Other";
+    | "Communication";
 }
 
 /**
@@ -128,14 +128,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
     category: "Call Recorder",
   },
-  // Internal Documents integrations
+  // Knowledge base integrations
   googledrive: {
     id: "googledrive",
     name: "Google Drive",
     description: "Search and reference documents from your Google Drive",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
   },
   gmail: {
     id: "gmail",
@@ -143,7 +143,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Draft and send emails directly from your Gmail account",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Gmail.svg",
-    category: "Other",
+    category: "Communication",
   },
   highspot: {
     id: "highspot",
@@ -151,7 +151,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Access sales enablement content and analytics from Highspot",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Highspot.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   seismic: {
@@ -160,7 +160,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Sync sales content and enablement materials from Seismic",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Seismic.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   confluence: {
@@ -169,7 +169,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Connect Confluence to access team documentation and wikis",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Confluence.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   guru: {
@@ -178,7 +178,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Access knowledge base and team wiki from Guru",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Guru.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   intercom: {
@@ -187,7 +187,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Import customer conversations and support data from Intercom",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Intercom.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   // Sales Engagement integrations
@@ -261,7 +261,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "Search, read, and update Notion pages, databases, and comments",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/notion.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
   },
 } as const;
 
