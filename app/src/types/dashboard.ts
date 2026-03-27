@@ -329,6 +329,37 @@ export interface DashboardFilters {
 /** @deprecated Use DashboardFilterDefinition */
 export type DashboardFilter = DashboardFilterDefinition;
 
+// ─── Schedule ────────────────────────────────────────────────────
+
+export type ScheduleFrequency =
+  | "minutely"
+  | "hourly"
+  | "daily"
+  | "weekly"
+  | "monthly";
+
+export interface ScheduleConfigRequest {
+  frequency: ScheduleFrequency;
+  interval?: number | null;
+  time?: string | null; // HH:MM UTC
+  days?: string[] | null; // for weekly, e.g. ["Mon","Wed","Fri"]
+  dayOfMonth?: number | null; // 1-31, for monthly
+}
+
+export interface ScheduleConfig extends ScheduleConfigRequest {
+  enabled?: boolean;
+}
+
+export interface DashboardScheduleResponse {
+  dashboard_id: string;
+  schedule_config: ScheduleConfig | null;
+  schedule_trigger_id: string | null;
+  next_run_time: string | null;
+  is_scheduled: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 // ─── Refresh ─────────────────────────────────────────────────────
 
 export interface RefreshInfo {

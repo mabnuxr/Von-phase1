@@ -172,6 +172,10 @@ export type { IconProps } from './Chat/icons';
 export { Dropdown } from './Dropdown';
 export type { DropdownProps, DropdownItem } from './Dropdown';
 
+// Form-level Select (single-value dropdown for forms)
+export { Select } from './forms/dropdown';
+export type { SelectProps, SelectOption } from './forms/dropdown';
+
 // Chat Molecules
 export { TabSwitcher } from './TabSwitcher';
 export type { TabSwitcherProps, TabSwitcherTab } from './TabSwitcher';
@@ -300,8 +304,10 @@ export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
 // ============================================================================
 // SCHEDULE PICKER (General-purpose recurring schedule configuration)
 // ============================================================================
+export { ScheduleFields } from './SchedulePicker';
 export { SchedulePicker } from './SchedulePicker';
 export type {
+  ScheduleFieldsProps,
   SchedulePickerProps,
   Schedule,
   ScheduleFrequency,
@@ -309,9 +315,11 @@ export type {
 } from './SchedulePicker';
 export {
   SCHEDULE_FREQUENCIES,
+  SCHEDULE_HOURLY_INTERVALS,
   SCHEDULE_DAYS,
   SCHEDULE_TIMES,
   DEFAULT_SCHEDULE,
+  LOCAL_TIMEZONE,
   formatScheduleBadge,
   normalizeFrequency,
 } from './SchedulePicker';

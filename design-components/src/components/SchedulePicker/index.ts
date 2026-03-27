@@ -1,9 +1,17 @@
+export { ScheduleFields } from './ScheduleFields';
 export { SchedulePicker } from './SchedulePicker';
 
-export type { SchedulePickerProps, Schedule, ScheduleFrequency, ScheduleDay } from './constants';
+export type {
+  ScheduleFieldsProps,
+  SchedulePickerProps,
+  Schedule,
+  ScheduleFrequency,
+  ScheduleDay,
+} from './constants';
 
 export {
   SCHEDULE_FREQUENCIES,
+  SCHEDULE_HOURLY_INTERVALS,
   SCHEDULE_DAYS,
   SCHEDULE_TIMES,
   SCHEDULE_DAYS_OF_MONTH,
