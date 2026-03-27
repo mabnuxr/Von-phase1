@@ -399,6 +399,11 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config, drilldown, onPointCli
 
     const existingPlotOptions = (options.plotOptions ?? {}) as Record<string, unknown>;
     const existingSeriesOpts = (existingPlotOptions.series ?? {}) as Record<string, unknown>;
+    const existingPointOpts = (existingSeriesOpts.point as Record<string, unknown>) ?? {};
+    const existingPointEvents = (existingPointOpts.events as Record<string, unknown>) ?? {};
+    const existingClickHandler = existingPointEvents.click as
+      | ((this: Highcharts.Point, event: Highcharts.PointClickEventObject) => void)
+      | undefined;
 
     return {
       ...options,
@@ -408,20 +413,27 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config, drilldown, onPointCli
           ...existingSeriesOpts,
           cursor: 'pointer',
           point: {
+            ...existingPointOpts,
             events: {
-              click(this: Highcharts.Point) {
+              ...existingPointEvents,
+              click(this: Highcharts.Point, event: Highcharts.PointClickEventObject) {
+                // Preserve any existing click handler from backend config
+                if (existingClickHandler) {
+                  existingClickHandler.call(this, event);
+                }
+
                 const filters: Record<string, unknown> = {};
                 for (const { data_key } of columnMap) {
                   // Special-case series.name — access the typed accessor directly
                   // rather than traversing via generic property lookup on a class instance
                   const value =
-                    data_key === 'series.name'
-                      ? this.series?.name
-                      : getNestedValue(this, data_key);
+                    data_key === 'series.name' ? this.series?.name : getNestedValue(this, data_key);
                   if (value != null) {
                     filters[data_key] = value;
                   } else {
-                    console.warn(`[ChartWidget] drilldown data_key "${data_key}" resolved to null/undefined on point click`);
+                    console.warn(
+                      `[ChartWidget] drilldown data_key "${data_key}" resolved to null/undefined on point click`
+                    );
                   }
                 }
                 if (Object.keys(filters).length > 0) {

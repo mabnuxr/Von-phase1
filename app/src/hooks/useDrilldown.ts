@@ -98,10 +98,10 @@ export function useDrilldown(
   const openPointDrilldown = useCallback(
     (panelId: string, drillFilters: Record<string, unknown>) => {
       const widget = widgets[panelId];
-      if (drilldown?.panelId !== panelId) {
-        lastDataRef.current = [];
-        lastPaginationRef.current = null;
-      }
+      // Always clear cached data — drill_filters change means new result set,
+      // even when clicking a different point on the same panel.
+      lastDataRef.current = [];
+      lastPaginationRef.current = null;
       setDrilldown({
         panelId,
         widgetTitle: widget?.title ?? "Drilldown",
@@ -110,7 +110,7 @@ export function useDrilldown(
         drillFilters,
       });
     },
-    [widgets, drilldown?.panelId],
+    [widgets],
   );
 
   const closeDrilldown = useCallback(() => {
