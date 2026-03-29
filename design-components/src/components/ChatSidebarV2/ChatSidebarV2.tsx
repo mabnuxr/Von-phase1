@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   SidebarSimpleIcon,
   PlusCircleIcon,
-  ChalkboardIcon,
-  ChalkboardTeacherIcon,
   DotsThreeIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
@@ -196,7 +194,7 @@ const DashboardRow: React.FC<{
   const [editValue, setEditValue] = useState(dash.label);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showDotsButton = dash.isOwner && (isHovered || isMenuOpen) && !isEditing;
+  const showDotsButton = (isHovered || isMenuOpen) && !isEditing;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -235,20 +233,6 @@ const DashboardRow: React.FC<{
       title={dash.label}
     >
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
-        {dash.visibility === 'org' ? (
-          <ChalkboardTeacherIcon
-            size={16}
-            weight="regular"
-            className="text-gray-800 mb-[1px] flex-shrink-0"
-          />
-        ) : (
-          <ChalkboardIcon
-            size={16}
-            weight="regular"
-            className="text-gray-800 mb-[1px] flex-shrink-0"
-          />
-        )}
-
         {isEditing ? (
           <input
             ref={inputRef}
@@ -354,13 +338,13 @@ const DashboardSection: React.FC<{
       <ContextMenu
         isOpen={contextMenu.isOpen}
         onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
-        items={getDashboardContextMenuItems()}
+        items={getDashboardContextMenuItems({ isOwner: contextMenu.dashboard?.isOwner })}
         fixedPosition={contextMenu.position}
         width={180}
         onItemClick={(menuItem) => {
           const dash = contextMenu.dashboard;
           if (!dash) return;
-          if (menuItem.id === 'rename') {
+          if (menuItem.id === 'rename' && dash.isOwner) {
             setEditingId(dash.id);
           }
           setContextMenu((prev) => ({ ...prev, isOpen: false }));
@@ -447,6 +431,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     dropdownPosition,
     isFoldersHovered,
     foldersDropdownPosition,
+    isDashboardsHovered,
+    dashboardsDropdownPosition,
 
     // Inline folder creation
     isCreatingFolder,
@@ -460,6 +446,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     // Refs
     chatButtonRef,
     foldersButtonRef,
+    dashboardsButtonRef,
     avatarButtonRef,
 
     // Derived state
@@ -498,6 +485,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     // UI handlers
     handleChatsHover,
     handleFoldersHover,
+    handleDashboardsHover,
     handleAvatarClick,
     handleCloseProfile,
   } = useChatSidebarState({
@@ -554,6 +542,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           foldersDropdownPosition={foldersDropdownPosition}
           foldersButtonRef={foldersButtonRef}
           onFoldersHover={handleFoldersHover}
+          dashboards={dashboards}
+          selectedDashboardId={selectedDashboardId}
+          onDashboardClick={onDashboardClick}
+          isDashboardsHovered={isDashboardsHovered}
+          dashboardsDropdownPosition={dashboardsDropdownPosition}
+          dashboardsButtonRef={dashboardsButtonRef}
+          onDashboardsHover={handleDashboardsHover}
           userName={userName}
           userEmail={userEmail}
           avatarSrc={avatarSrc}

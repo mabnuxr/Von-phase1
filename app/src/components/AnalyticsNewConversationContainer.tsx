@@ -116,9 +116,7 @@ export function AnalyticsNewConversationContainer({
       onSendMessage={handleSendMessage}
       isLoading={false}
       placeholder="Make changes to this dashboard..."
-      variant="floating"
-      height="100%"
-      width="100%"
+      variant="sidebar"
       thinkingProcessVersion="v2"
       useStandardInput
       isAgentLocked={true}

@@ -46,6 +46,6 @@ export function getFolderContextMenuItems(options: { isPinned?: boolean } = {}):
 /**
  * Get context menu items for dashboards (rename only)
  */
-export function getDashboardContextMenuItems(): ContextMenuItem[] {
-  return [{ id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> }];
+export function getDashboardContextMenuItems(options: { isOwner?: boolean } = {}): ContextMenuItem[] {
+  return [{ id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} />, disabled: !options.isOwner }];
 }

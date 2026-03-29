@@ -1,58 +1,49 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { ArrowLineRightIcon, PlusCircleIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useAppShell } from "../hooks/useAppShell";
-import { useVisibilityToggle } from "@vonlabs/design-components";
 import { useResizablePane } from "../hooks/useResizablePane";
 import {
   AnalyticsView,
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
+import { Tooltip } from "@vonlabs/design-components";
 import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
+import { ChatPicker } from "../components/Analytics/ChatPicker";
+import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
 import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
 import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
+import { useGlobalChat } from "../providers/GlobalChatProvider";
+import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 
-const Analytics = () => {
-  const { dashboardId } = useParams<{ dashboardId: string }>() as {
-    dashboardId: string;
-  };
-  const [searchParams] = useSearchParams();
+interface DashboardCanvasProps {
+  dashboardId: string;
+  onChatClick: () => void;
+  onChatClose: () => void;
+  isChatOpen: boolean;
+  collapseOnMount: boolean;
+}
 
-  // Read conversationId from query params (deep-link support)
-  const conversationIdFromParams = searchParams.get("conversationId");
-
-  // Conversation created after the user sends their first message
-  const [createdConversationId, setCreatedConversationId] = useState<
-    string | null
-  >(null);
-  // Track which dashboardId was active when the create was initiated so that
-  // an in-flight response from a previous dashboard doesn't overwrite state
-  // after the user has navigated to a different dashboard.
-  const activeDashboardIdRef = useRef(dashboardId);
-  const handleConversationCreated = useCallback(
-    (conversationId: string) => {
-      if (activeDashboardIdRef.current === dashboardId) {
-        setCreatedConversationId(conversationId);
-      }
-    },
-    [dashboardId],
-  );
-
-  const {
-    isVisible: isChatOpen,
-    show: openChat,
-    hide: closeChat,
-  } = useVisibilityToggle();
-
-  const conversationId = conversationIdFromParams ?? createdConversationId;
-
+/**
+ * All dashboard-specific state and rendering. Receives key={dashboardId} so it
+ * fully resets on navigation — but lives inside Analytics so the chat panel
+ * (rendered alongside it) remains untouched.
+ */
+function DashboardCanvas({
+  dashboardId,
+  onChatClick,
+  onChatClose,
+  isChatOpen,
+  collapseOnMount,
+}: DashboardCanvasProps) {
   const { data, isLoading, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,
@@ -87,13 +78,6 @@ const Analytics = () => {
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
-  const {
-    widthCss: chatPaneWidth,
-    isResizing,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-  } = useResizablePane();
   const { collapseSidebar } = useAppShell();
 
   const {
@@ -136,16 +120,13 @@ const Analytics = () => {
   // Subscribe to Pusher events for dashboard refresh notifications
   useDashboardRefreshEvents(dashboardId);
 
-  // Collapse left sidebar on mount
+  // Only collapse sidebar when first entering the dashboard from another section
+  // (e.g. from chat). Switching between dashboards should leave the sidebar as-is.
   useEffect(() => {
-    collapseSidebar();
-  }, [collapseSidebar]);
-
-  // Reset local conversation when navigating to a different dashboard
-  useEffect(() => {
-    activeDashboardIdRef.current = dashboardId;
-    setCreatedConversationId(null);
-  }, [dashboardId]);
+    if (collapseOnMount) {
+      collapseSidebar();
+    }
+  }, [collapseOnMount, collapseSidebar]);
 
   if (isLoading) {
     return <AnalyticsSkeleton />;
@@ -156,61 +137,164 @@ const Analytics = () => {
   }
 
   return (
-    <div className="flex h-full w-full gap-1">
+    <>
+      <AnalyticsView
+        dashboard={dashboard}
+        refreshInfo={refreshInfo}
+        activeFilters={activeFilters}
+        onRefresh={handleRefresh}
+        onSave={handleSave}
+        savePhase={savePhase}
+        onRevert={handleRevert}
+        revertPhase={revertPhase}
+        onShare={handleShare}
+        sharePhase={sharePhase}
+        onChatClick={onChatClick}
+        onChatClose={onChatClose}
+        isChatOpen={isChatOpen}
+        onTablePageChange={handlePageChange}
+        loadingTablePanels={loadingPanels}
+        paginatedWidgets={mergedWidgets}
+        onDrillDown={openDrilldown}
+        onPointDrillDown={openPointDrilldown}
+        onTableSortChange={handleSortChange}
+        tableSortStates={activeSorts}
+        defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
+        onColorThemeChange={handleColorThemeChange}
+        onRename={handleRename}
+        schedule={schedule}
+        isScheduled={isScheduled}
+        isSchedulePaused={isSchedulePaused}
+        isScheduleMutating={isScheduleMutating}
+        onCreateSchedule={handleCreateSchedule}
+        onUpdateSchedule={handleUpdateSchedule}
+        onPauseSchedule={handlePauseSchedule}
+        onResumeSchedule={handleResumeSchedule}
+        onDeleteSchedule={handleDeleteSchedule}
+      />
+      <DrilldownPanel
+        isOpen={isDrilldownOpen}
+        onClose={closeDrilldown}
+        widgetTitle={drilldownWidgetTitle}
+        data={drilldownData}
+        pagination={drilldownPagination}
+        isLoading={isDrilldownLoading}
+        isError={isDrilldownError}
+        onPageChange={changeDrilldownPage}
+        onSortChange={changeDrilldownSort}
+        sortState={drilldownSort}
+      />
+    </>
+  );
+}
+
+/**
+ * Outer shell — persists across dashboard navigation. Chat panel lives here
+ * so it never remounts when the user switches dashboards.
+ */
+const Analytics = () => {
+  const { dashboardId } = useParams<{ dashboardId: string }>() as {
+    dashboardId: string;
+  };
+  const [searchParams] = useSearchParams();
+
+  // Read conversationId from query params (deep-link support: "View in Dashboard" CTA)
+  const conversationIdFromParams = searchParams.get("conversationId");
+
+  // Global chat state — persists across dashboard navigation
+  const { activeChatId, setActiveChatId, isChatPanelOpen, setIsChatPanelOpen } =
+    useGlobalChat();
+
+  const { unfiledConversations } = useChatSidebarV2();
+
+  // Auto-select the most recent conversation on first load
+  const hasInitializedChatRef = useRef(false);
+  useEffect(() => {
+    if (!hasInitializedChatRef.current && activeChatId === null && unfiledConversations.length > 0) {
+      hasInitializedChatRef.current = true;
+      setActiveChatId(unfiledConversations[0].conversationId);
+    }
+  }, [activeChatId, unfiledConversations, setActiveChatId]);
+
+  // Local fallback for conversations created during this session before they're
+  // reflected in the sidebar list
+  const [createdConversationId, setCreatedConversationId] = useState<
+    string | null
+  >(null);
+  const [isRenamingChat, setIsRenamingChat] = useState(false);
+
+  // Track which dashboardId was active when the create was initiated so that
+  // an in-flight response from a previous dashboard doesn't overwrite state
+  // after the user has navigated to a different dashboard.
+  const activeDashboardIdRef = useRef(dashboardId);
+
+  // Track whether we've already visited a dashboard in this session.
+  // undefined = first visit (came from chat/elsewhere) → collapse sidebar.
+  // any string = switching between dashboards → leave sidebar alone.
+  const prevDashboardIdRef = useRef<string | undefined>(undefined);
+  const handleConversationCreated = useCallback(
+    (conversationId: string) => {
+      if (activeDashboardIdRef.current === dashboardId) {
+        setCreatedConversationId(conversationId);
+        setActiveChatId(conversationId);
+      }
+    },
+    [dashboardId, setActiveChatId],
+  );
+
+  // Initialize from URL param (e.g. "View in Dashboard" deep-link).
+  useEffect(() => {
+    if (conversationIdFromParams) {
+      setActiveChatId(conversationIdFromParams);
+      setIsChatPanelOpen(true);
+    }
+  }, [conversationIdFromParams, setActiveChatId, setIsChatPanelOpen]);
+
+  // Reset local conversation when navigating to a different dashboard.
+  // Note: activeChatId in GlobalChatProvider intentionally does NOT reset —
+  // that is what keeps the chat panel persistent across dashboard switches.
+  useEffect(() => {
+    activeDashboardIdRef.current = dashboardId;
+    prevDashboardIdRef.current = dashboardId;
+    setCreatedConversationId(null);
+  }, [dashboardId]);
+
+  // The active conversation: global selection takes priority, then local fallback
+  const conversationId = activeChatId ?? createdConversationId;
+
+  // Fetch dashboard metadata for the chat panel (React Query cache — no duplicate request
+  // since DashboardCanvas calls this same hook with the same key)
+  const { data } = useDashboardQuery(dashboardId);
+  const dashboardTitle = data?.dashboard?.title ?? "";
+  const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
+
+  const {
+    widthCss: chatPaneWidth,
+    isResizing,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+  } = useResizablePane();
+
+  return (
+    <div className="flex h-full w-full">
       <div className="flex-1 min-w-0 h-full relative">
-        <AnalyticsView
-          dashboard={dashboard}
-          refreshInfo={refreshInfo}
-          activeFilters={activeFilters}
-          onRefresh={handleRefresh}
-          onSave={handleSave}
-          savePhase={savePhase}
-          onRevert={handleRevert}
-          revertPhase={revertPhase}
-          onShare={handleShare}
-          sharePhase={sharePhase}
-          onChatClick={openChat}
-          onChatClose={closeChat}
-          isChatOpen={isChatOpen}
-          onTablePageChange={handlePageChange}
-          loadingTablePanels={loadingPanels}
-          paginatedWidgets={mergedWidgets}
-          onDrillDown={openDrilldown}
-          onPointDrillDown={openPointDrilldown}
-          onTableSortChange={handleSortChange}
-          tableSortStates={activeSorts}
-          defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-          onColorThemeChange={handleColorThemeChange}
-          onRename={handleRename}
-          schedule={schedule}
-          isScheduled={isScheduled}
-          isSchedulePaused={isSchedulePaused}
-          isScheduleMutating={isScheduleMutating}
-          onCreateSchedule={handleCreateSchedule}
-          onUpdateSchedule={handleUpdateSchedule}
-          onPauseSchedule={handlePauseSchedule}
-          onResumeSchedule={handleResumeSchedule}
-          onDeleteSchedule={handleDeleteSchedule}
-        />
-        <DrilldownPanel
-          isOpen={isDrilldownOpen}
-          onClose={closeDrilldown}
-          widgetTitle={drilldownWidgetTitle}
-          data={drilldownData}
-          pagination={drilldownPagination}
-          isLoading={isDrilldownLoading}
-          isError={isDrilldownError}
-          onPageChange={changeDrilldownPage}
-          onSortChange={changeDrilldownSort}
-          sortState={drilldownSort}
+        {/* key={dashboardId} resets all dashboard-specific state on navigation */}
+        <DashboardCanvas
+          key={dashboardId}
+          dashboardId={dashboardId}
+          onChatClick={() => setIsChatPanelOpen(true)}
+          onChatClose={() => setIsChatPanelOpen(false)}
+          isChatOpen={isChatPanelOpen}
+          collapseOnMount={prevDashboardIdRef.current === undefined}
         />
       </div>
 
-      {isChatOpen && (
-        <div
-          className="h-full flex-shrink-0 relative"
+      <div
+          className="h-full flex-shrink-0 relative flex flex-col bg-white rounded-xl shadow-xs border border-gray-100"
           style={{
-            width: chatPaneWidth,
+            width: isChatPanelOpen ? chatPaneWidth : "0px",
+            overflow: isChatPanelOpen ? undefined : "hidden",
             transition: isResizing ? "none" : "width 0.3s ease",
           }}
         >
@@ -225,26 +309,59 @@ const Analytics = () => {
             <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
           </div>
 
-          {conversationId ? (
-            <AnalyticsChatContainer
-              key={conversationId}
-              conversationId={conversationId}
-              dashboardId={dashboardId}
-              dashboardTitle={dashboard.title}
-              dashboardVersion={dashboard.dashboardVersion}
+          {/* Chat picker — persistent header that lets users switch conversations */}
+          <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5">
+            <ChatPicker
+              activeChatId={activeChatId}
+              onSelect={setActiveChatId}
+              isRenaming={isRenamingChat}
+              onRenameEnd={() => setIsRenamingChat(false)}
             />
-          ) : (
-            <AnalyticsNewConversationContainer
-              key={dashboardId}
-              dashboardId={dashboardId}
-              dashboardTitle={dashboard.title}
-              dashboardVersion={dashboard.dashboardVersion}
-              onCreated={handleConversationCreated}
+            <Tooltip content="New chat">
+              <button
+                onClick={() => setActiveChatId(null)}
+                className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <PlusCircleIcon size={16} weight="fill" />
+              </button>
+            </Tooltip>
+            <ConversationMoreMenu
+              conversationId={activeChatId}
+              onDeleted={() => setActiveChatId(null)}
+              onStartRename={() => setIsRenamingChat(true)}
             />
-          )}
+            <Tooltip content="Collapse chat">
+              <button
+                onClick={() => setIsChatPanelOpen(false)}
+                className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLineRightIcon size={14} weight="bold" />
+              </button>
+            </Tooltip>
+          </div>
+
+          {/* Chat content */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {conversationId ? (
+              <AnalyticsChatContainer
+                key={conversationId}
+                conversationId={conversationId}
+                dashboardId={dashboardId}
+                dashboardTitle={dashboardTitle}
+                dashboardVersion={dashboardVersion}
+              />
+            ) : (
+              <AnalyticsNewConversationContainer
+                key={dashboardId}
+                dashboardId={dashboardId}
+                dashboardTitle={dashboardTitle}
+                dashboardVersion={dashboardVersion}
+                onCreated={handleConversationCreated}
+              />
+            )}
+          </div>
         </div>
-      )}
-    </div>
+      </div>
   );
 };
 

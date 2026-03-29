@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowSquareOutIcon,
+  ArrowsOutSimpleIcon,
   SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
   SpinnerGapIcon,
@@ -258,74 +258,41 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
             <DashboardLayout.HeaderRow.Right>
               {onExpand && (
-                <Tooltip
-                  content={
-                    isSaved
-                      ? "View in Dashboards"
-                      : "Save the dashboard to view in Dashboards"
-                  }
+                <button
+                  onClick={isSaved ? onExpand : undefined}
+                  disabled={!isSaved}
+                  className={`flex items-center gap-1.5 h-[34px] px-2.5 text-xs font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                    !isSaved
+                      ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                      : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                  }`}
                 >
-                  <button
-                    onClick={isSaved ? onExpand : undefined}
-                    disabled={!isSaved}
-                    className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                      !isSaved
-                        ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                        : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-                    }`}
-                  >
-                    <ArrowSquareOutIcon size={14} />
-                  </button>
-                </Tooltip>
+                  <ArrowsOutSimpleIcon size={13} />
+                  View in Dashboards
+                </button>
               )}
 
-              {/* Animated "Ask Von" ↔ sidebar-icon chat toggle */}
-              {onChatClick && (
-                <div className="relative" style={{ minWidth: 34 }}>
-                  <AnimatePresence mode="wait" initial={false}>
-                    {isChatOpen ? (
-                      <motion.div
-                        key="sidebar-icon"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <Tooltip content="Close chat">
-                          <button
-                            onClick={onChatClose}
-                            className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-gray-100 border border-gray-200/70 rounded-xl hover:bg-gray-200 transition-colors cursor-pointer"
-                          >
-                            <SidebarSimpleIcon
-                              size={14}
-                              className="scale-x-[-1]"
-                            />
-                          </button>
-                        </Tooltip>
-                      </motion.div>
-                    ) : (
-                      <motion.button
-                        key="ask-von"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={onChatClick}
-                        title="Ask Von"
-                        className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-xs font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <img
-                          src={vonFilledLogo}
-                          alt="Von"
-                          width={15}
-                          height={15}
-                          className="flex-shrink-0"
-                        />
-                        Ask Von
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-                </div>
+              {/* "Ask Von" button — only shown when chat panel is closed */}
+              {onChatClick && !isChatOpen && (
+                <motion.button
+                  key="ask-von"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={onChatClick}
+                  title="Ask Von"
+                  className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-xs font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <img
+                    src={vonFilledLogo}
+                    alt="Von"
+                    width={15}
+                    height={15}
+                    className="flex-shrink-0"
+                  />
+                  Ask Von
+                </motion.button>
               )}
 
               {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}

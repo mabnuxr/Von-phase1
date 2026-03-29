@@ -219,9 +219,7 @@ function AnalyticsChatInner({
       onStopStreaming={chatV2.handleStopStreaming}
       isLoading={false}
       placeholder="Make changes to this dashboard..."
-      variant="floating"
-      height="100%"
-      width="100%"
+      variant="sidebar"
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput

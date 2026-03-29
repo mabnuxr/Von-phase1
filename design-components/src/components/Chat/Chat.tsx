@@ -119,6 +119,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
 }) => {
   const isFixed = variant === 'fixed';
   const isFullPage = variant === 'fullpage';
+  const isSidebar = variant === 'sidebar';
 
   // Extract custom empty state from Chat.EmptyState child (compound component pattern)
   let customEmptyState: React.ReactNode = null;
@@ -288,9 +289,11 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     'overflow-hidden',
     'bg-white',
     'antialiased',
-    isFullPage
-      ? 'w-screen h-screen rounded-none border-none'
-      : 'rounded-xl border border-gray-100 shadow-xs',
+    isSidebar
+      ? 'w-full h-full rounded-none border-none'
+      : isFullPage
+        ? 'w-screen h-screen rounded-none border-none'
+        : 'rounded-xl border border-gray-100 shadow-xs',
     isFixed && 'fixed z-[1000]',
     isFullPage && 'fixed inset-0 z-[999]',
   ]
@@ -299,8 +302,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
 
   // Inline styles only for dynamic width/height and fixedPosition
   const containerStyles: React.CSSProperties = {
-    ...(!isFullPage && width && { width }),
-    ...(!isFullPage && height && { height }),
+    ...(!isFullPage && !isSidebar && width && { width }),
+    ...(!isFullPage && !isSidebar && height && { height }),
     ...(isFixed && fixedPosition),
   };
 
