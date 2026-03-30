@@ -132,7 +132,10 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   const textClassName = `text-xs font-medium ${COMPARISON_COLOR_CLASS[comparisonColor]}`;
 
   return (
-    <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors">
+    <div
+      className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors"
+      onClick={onDrillDown}
+    >
       {(queryInfo || onDrillDown) && (
         <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}

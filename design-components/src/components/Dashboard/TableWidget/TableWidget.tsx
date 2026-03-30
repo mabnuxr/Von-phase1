@@ -14,6 +14,8 @@ interface TableWidgetProps {
   onSortChange?: (columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current server sort state */
   sortState?: ServerSortState | null;
+  /** Called when a table body cell is clicked for drilldown */
+  onCellClick?: (columnId: string, cellValue: unknown) => void;
 }
 
 const TableWidget: React.FC<TableWidgetProps> = ({
@@ -22,6 +24,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   isLoading,
   onSortChange,
   sortState,
+  onCellClick,
 }) => {
   const { serverPagination } = config;
   const hasServerPagination = !!serverPagination;
@@ -60,6 +63,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
           hidePagination
           onSortChange={hasServerPagination ? onSortChange : undefined}
           sortState={hasServerPagination ? sortState : undefined}
+          onCellClick={onCellClick}
         />
 
         {/* Shimmer covers body rows while headers stay visible */}
