@@ -7,7 +7,13 @@ import type { WidgetShellProps } from '../types';
  * Provides title, optional subtitle, and content area.
  * Shows a drilldown icon on hover when onDrillDown is provided.
  */
-const WidgetShell: React.FC<WidgetShellProps> = ({ title, subtitle, children, onDrillDown, queryInfo }) => {
+const WidgetShell: React.FC<WidgetShellProps> = ({
+  title,
+  subtitle,
+  children,
+  onDrillDown,
+  queryInfo,
+}) => {
   return (
     <div className="group h-full bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col shadow-xs cursor-pointer hover:border-gray-200 transition-colors">
       <div className="relative flex items-center px-3 py-2.5 border-b border-gray-100 shrink-0">

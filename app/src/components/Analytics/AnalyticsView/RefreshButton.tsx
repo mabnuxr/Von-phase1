@@ -228,7 +228,13 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
       onCreateSchedule(config);
     }
     hideSchedule();
-  }, [pickerSchedule, isScheduled, onCreateSchedule, onUpdateSchedule, hideSchedule]);
+  }, [
+    pickerSchedule,
+    isScheduled,
+    onCreateSchedule,
+    onUpdateSchedule,
+    hideSchedule,
+  ]);
 
   // Summary text for collapsed schedule header
   const scheduleSummary = useMemo(() => {

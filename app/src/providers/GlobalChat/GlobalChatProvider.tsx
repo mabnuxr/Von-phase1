@@ -6,8 +6,11 @@ import type { GlobalChatContextValue } from "./GlobalChatContext";
 
 export function GlobalChatProvider({ children }: { children: ReactNode }) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const { isVisible: isChatPanelOpen, show: openChatPanel, hide: closeChatPanel } =
-    useVisibilityToggle();
+  const {
+    isVisible: isChatPanelOpen,
+    show: openChatPanel,
+    hide: closeChatPanel,
+  } = useVisibilityToggle();
 
   const value = useMemo<GlobalChatContextValue>(
     () => ({

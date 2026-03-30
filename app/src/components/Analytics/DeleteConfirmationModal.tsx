@@ -40,9 +40,15 @@ export function DeleteConfirmationModal({
             <div className="flex flex-col p-4">
               <div className="flex flex-row items-center gap-2 pb-3 mb-3 border-b border-gray-100">
                 <div className="p-1 rounded-lg bg-red-50">
-                  <TrashIcon size={16} weight="regular" className="text-red-600" />
+                  <TrashIcon
+                    size={16}
+                    weight="regular"
+                    className="text-red-600"
+                  />
                 </div>
-                <h3 className="text-sm font-medium text-gray-900">Delete chat</h3>
+                <h3 className="text-sm font-medium text-gray-900">
+                  Delete chat
+                </h3>
               </div>
               <p className="text-sm text-gray-900">
                 Are you sure you want to delete{" "}

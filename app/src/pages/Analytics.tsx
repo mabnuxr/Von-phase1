@@ -202,8 +202,13 @@ const Analytics = () => {
   const conversationIdFromParams = searchParams.get("conversationId");
 
   // Global chat state — persists across dashboard navigation
-  const { activeChatId, setActiveChatId, isChatPanelOpen, openChatPanel, closeChatPanel } =
-    useGlobalChat();
+  const {
+    activeChatId,
+    setActiveChatId,
+    isChatPanelOpen,
+    openChatPanel,
+    closeChatPanel,
+  } = useGlobalChat();
 
   const { unfiledConversations } = useChatSidebarV2();
 
@@ -298,86 +303,86 @@ const Analytics = () => {
       </div>
 
       <div
-          className="h-full flex-shrink-0 relative flex flex-col bg-white rounded-xl shadow-xs border border-gray-100"
-          style={{
-            width: isChatPanelOpen ? chatPaneWidth : "0px",
-            overflow: isChatPanelOpen ? undefined : "hidden",
-            transition: isResizing ? "none" : "width 0.3s ease",
-          }}
+        className="h-full flex-shrink-0 relative flex flex-col bg-white rounded-xl shadow-xs border border-gray-100"
+        style={{
+          width: isChatPanelOpen ? chatPaneWidth : "0px",
+          overflow: isChatPanelOpen ? undefined : "hidden",
+          transition: isResizing ? "none" : "width 0.3s ease",
+        }}
+      >
+        {/* Resize handle */}
+        <div
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-indigo-500/30 transition-colors z-10 group touch-none"
+          style={{ marginLeft: "-3px" }}
         >
-          {/* Resize handle */}
-          <div
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-indigo-500/30 transition-colors z-10 group touch-none"
-            style={{ marginLeft: "-3px" }}
-          >
-            <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
-          </div>
+          <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
+        </div>
 
-          {/* Chat picker — persistent header that lets users switch conversations */}
-          <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5">
-            <ChatPicker
-              activeChatId={activeChatId}
-              onSelect={setActiveChatId}
-              isRenaming={isRenamingChat}
-              onRenameEnd={() => setIsRenamingChat(false)}
-            />
-            <Tooltip content="New chat">
-              <button
-                onClick={() => {
-                  setActiveChatId(null);
-                  setCreatedConversationId(null);
-                }}
-                className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <PlusCircleIcon size={16} weight="fill" />
-              </button>
-            </Tooltip>
-            <ConversationMoreMenu
-              conversationId={activeChatId}
-              onDeleted={() => {
-                  setActiveChatId(null);
-                  setCreatedConversationId(null);
-                }}
-              onStartRename={() => setIsRenamingChat(true)}
-            />
-            <Tooltip content="Collapse chat">
-              <button
-                onClick={() => closeChatPanel()}
-                className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLineRightIcon size={14} weight="bold" />
-              </button>
-            </Tooltip>
-          </div>
+        {/* Chat picker — persistent header that lets users switch conversations */}
+        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5">
+          <ChatPicker
+            activeChatId={activeChatId}
+            onSelect={setActiveChatId}
+            isRenaming={isRenamingChat}
+            onRenameEnd={() => setIsRenamingChat(false)}
+          />
+          <Tooltip content="New chat">
+            <button
+              onClick={() => {
+                setActiveChatId(null);
+                setCreatedConversationId(null);
+              }}
+              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <PlusCircleIcon size={16} weight="fill" />
+            </button>
+          </Tooltip>
+          <ConversationMoreMenu
+            conversationId={activeChatId}
+            onDeleted={() => {
+              setActiveChatId(null);
+              setCreatedConversationId(null);
+            }}
+            onStartRename={() => setIsRenamingChat(true)}
+          />
+          <Tooltip content="Collapse chat">
+            <button
+              onClick={() => closeChatPanel()}
+              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLineRightIcon size={14} weight="bold" />
+            </button>
+          </Tooltip>
+        </div>
 
-          {/* Chat content — gate on dashboard data so we never send empty title/version */}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {!data?.dashboard ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-xs text-gray-400">Loading dashboard…</p>
-              </div>
-            ) : (
-              <ChatSession
-                key={conversationId ?? `new-${dashboardId}`}
-                conversationId={conversationId}
-                variant="sidebar"
-                placeholder="Make changes to this dashboard..."
-                dashboardId={dashboardId}
-                dashboardTitle={dashboardTitle}
-                dashboardVersion={dashboardVersion}
-                onCreated={handleConversationCreated}
-              >
-                <ChatSession.EmptyState>
-                  <AnalyticsChatEmptyState />
-                </ChatSession.EmptyState>
-              </ChatSession>
-            )}
-          </div>
+        {/* Chat content — gate on dashboard data so we never send empty title/version */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {!data?.dashboard ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-xs text-gray-400">Loading dashboard…</p>
+            </div>
+          ) : (
+            <ChatSession
+              key={conversationId ?? `new-${dashboardId}`}
+              conversationId={conversationId}
+              variant="sidebar"
+              placeholder="Make changes to this dashboard..."
+              dashboardId={dashboardId}
+              dashboardTitle={dashboardTitle}
+              dashboardVersion={dashboardVersion}
+              onCreated={handleConversationCreated}
+            >
+              <ChatSession.EmptyState>
+                <AnalyticsChatEmptyState />
+              </ChatSession.EmptyState>
+            </ChatSession>
+          )}
         </div>
       </div>
+    </div>
   );
 };
 

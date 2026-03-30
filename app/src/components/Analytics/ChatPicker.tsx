@@ -1,5 +1,10 @@
 import { useRef, useState, useEffect, useMemo } from "react";
-import { CaretDownIcon, CheckIcon, PlusIcon, ChartBarIcon } from "@phosphor-icons/react";
+import {
+  CaretDownIcon,
+  CheckIcon,
+  PlusIcon,
+  ChartBarIcon,
+} from "@phosphor-icons/react";
 import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
 import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
@@ -54,7 +59,9 @@ function ConvButton({
         onClose();
       }}
       className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-        isActive ? "bg-gray-50 border-x-0 border-y border-gray-200 shadow-xs" : "hover:bg-gray-50"
+        isActive
+          ? "bg-gray-50 border-x-0 border-y border-gray-200 shadow-xs"
+          : "hover:bg-gray-50"
       }`}
     >
       {isDashboardChat && (
@@ -64,22 +71,34 @@ function ConvButton({
           className="flex-shrink-0 text-gray-400"
         />
       )}
-      <span className={`truncate flex-1 font-medium ${isActive ? "text-gray-900" : "text-gray-800"}`}>
+      <span
+        className={`truncate flex-1 font-medium ${isActive ? "text-gray-900" : "text-gray-800"}`}
+      >
         {conv.title}
       </span>
       {isActive && (
-        <CheckIcon size={13} weight="bold" className="flex-shrink-0 text-gray-500" />
+        <CheckIcon
+          size={13}
+          weight="bold"
+          className="flex-shrink-0 text-gray-500"
+        />
       )}
     </button>
   );
 }
 
-export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenameEnd }: ChatPickerProps) {
+export function ChatPicker({
+  activeChatId,
+  onSelect,
+  isRenaming = false,
+  onRenameEnd,
+}: ChatPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { unfiledConversations, isLoading, renameConversation } = useChatSidebarV2();
+  const { unfiledConversations, isLoading, renameConversation } =
+    useChatSidebarV2();
   const { user } = useAppShell();
   const { animatedTitles } = useTitleAnimation({
     tenantId: user?.tenantId,
@@ -91,17 +110,23 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
   );
 
   // Use streaming animated title when available (same as left sidebar)
-  const animatedTitle = activeChatId ? animatedTitles.get(activeChatId) : undefined;
+  const animatedTitle = activeChatId
+    ? animatedTitles.get(activeChatId)
+    : undefined;
   const displayTitle =
     animatedTitle !== undefined
       ? animatedTitle || "…"
-      : activeConversation?.title?.trim() || (activeChatId ? "Chat" : "New chat");
+      : activeConversation?.title?.trim() ||
+        (activeChatId ? "Chat" : "New chat");
 
   // Close on outside click
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -138,7 +163,8 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
     [titledConversations],
   );
 
-  const isEmpty = last7.length === 0 && last30.length === 0 && older.length === 0;
+  const isEmpty =
+    last7.length === 0 && last30.length === 0 && older.length === 0;
 
   return (
     <div ref={containerRef} className="relative flex-1 min-w-0">
@@ -174,9 +200,13 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-80 overflow-y-auto">
           {isLoading ? (
-            <div className="px-3 py-4 text-xs text-gray-400 text-center">Loading…</div>
+            <div className="px-3 py-4 text-xs text-gray-400 text-center">
+              Loading…
+            </div>
           ) : isEmpty ? (
-            <div className="px-3 py-4 text-xs text-gray-400 text-center">No chats yet</div>
+            <div className="px-3 py-4 text-xs text-gray-400 text-center">
+              No chats yet
+            </div>
           ) : (
             <>
               {last7.length > 0 && (
@@ -196,7 +226,9 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
                 </div>
               )}
               {last30.length > 0 && (
-                <div className={last7.length > 0 ? "border-t border-gray-100" : ""}>
+                <div
+                  className={last7.length > 0 ? "border-t border-gray-100" : ""}
+                >
                   <div className="px-3 pt-2.5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                     Last 30 days
                   </div>
@@ -212,7 +244,13 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
                 </div>
               )}
               {older.length > 0 && (
-                <div className={last7.length > 0 || last30.length > 0 ? "border-t border-gray-100" : ""}>
+                <div
+                  className={
+                    last7.length > 0 || last30.length > 0
+                      ? "border-t border-gray-100"
+                      : ""
+                  }
+                >
                   <div className="px-3 pt-2.5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
                     Older
                   </div>

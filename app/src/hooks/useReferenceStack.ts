@@ -52,9 +52,7 @@ export function useReferenceStack(
   }, []);
 
   const activeContext =
-    overlays.length > 0
-      ? overlays[overlays.length - 1].display
-      : base?.display;
+    overlays.length > 0 ? overlays[overlays.length - 1].display : base?.display;
 
   const canRemove = overlays.length > 0;
 

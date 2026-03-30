@@ -100,7 +100,13 @@ const COMPARISON_COLOR_CLASS = {
   neutral: 'text-gray-500',
 } as const;
 
-const CounterWidget: React.FC<CounterWidgetProps> = ({ config, title, subtitle, onDrillDown, queryInfo }) => {
+const CounterWidget: React.FC<CounterWidgetProps> = ({
+  config,
+  title,
+  subtitle,
+  onDrillDown,
+  queryInfo,
+}) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
   const primaryColor = useThemePrimary();
 

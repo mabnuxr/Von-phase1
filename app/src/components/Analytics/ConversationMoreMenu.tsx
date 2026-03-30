@@ -44,7 +44,10 @@ export function ConversationMoreMenu({
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         close();
       }
     };
@@ -95,21 +98,36 @@ export function ConversationMoreMenu({
         {isOpen && (
           <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden w-48">
             <button
-              onClick={() => { close(); onStartRename(); }}
+              onClick={() => {
+                close();
+                onStartRename();
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <PencilSimpleIcon size={14} className="flex-shrink-0 text-gray-400" />
+              <PencilSimpleIcon
+                size={14}
+                className="flex-shrink-0 text-gray-400"
+              />
               Rename
             </button>
             <button
-              onClick={() => { close(); setIsPendingAddToFolder(true); }}
+              onClick={() => {
+                close();
+                setIsPendingAddToFolder(true);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
             >
-              <ArrowBendUpRightIcon size={14} className="flex-shrink-0 text-gray-400" />
+              <ArrowBendUpRightIcon
+                size={14}
+                className="flex-shrink-0 text-gray-400"
+              />
               Add to Folder
             </button>
             <button
-              onClick={() => { close(); setIsPendingDelete(true); }}
+              onClick={() => {
+                close();
+                setIsPendingDelete(true);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
             >
               <TrashIcon size={14} className="flex-shrink-0" />

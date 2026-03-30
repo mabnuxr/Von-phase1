@@ -104,7 +104,7 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
               </pre>
             </div>
           </div>,
-          document.body,
+          document.body
         )}
     </>
   );

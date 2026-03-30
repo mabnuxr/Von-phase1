@@ -10,7 +10,13 @@ import {
 import { TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import { FolderList } from './FolderList';
-import type { SidebarItem, Folder, FolderItemsMap, FolderLoadingMap, DashboardSidebarItem } from '../ChatSidebarV2';
+import type {
+  SidebarItem,
+  Folder,
+  FolderItemsMap,
+  FolderLoadingMap,
+  DashboardSidebarItem,
+} from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';
 
 export interface CollapsedSidebarProps {
@@ -227,7 +233,10 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.15 }}
                     className="fixed w-56 max-h-80 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[9999]"
-                    style={{ top: dashboardsDropdownPosition.top, left: dashboardsDropdownPosition.left }}
+                    style={{
+                      top: dashboardsDropdownPosition.top,
+                      left: dashboardsDropdownPosition.left,
+                    }}
                   >
                     <div className="px-3 py-2 border-b border-gray-100">
                       <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
@@ -248,7 +257,11 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                             onClick={() => onDashboardClick?.(dash.id)}
                             title={dash.label}
                           >
-                            <ChartBarIcon size={14} weight="regular" className="flex-shrink-0 text-gray-500" />
+                            <ChartBarIcon
+                              size={14}
+                              weight="regular"
+                              className="flex-shrink-0 text-gray-500"
+                            />
                             <span className="truncate block">{dash.label}</span>
                           </div>
                         );

@@ -33,7 +33,12 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
   switch (widget.type) {
     case 'chart':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown} queryInfo={widget.queryInfo}>
+        <WidgetShell
+          title={widget.title}
+          subtitle={widget.subtitle}
+          onDrillDown={handleDrillDown}
+          queryInfo={widget.queryInfo}
+        >
           <ChartWidget
             config={widget.config as ChartWidgetConfig}
             drilldown={widget.drilldown}
@@ -79,7 +84,12 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
 
     case 'table':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown} queryInfo={widget.queryInfo}>
+        <WidgetShell
+          title={widget.title}
+          subtitle={widget.subtitle}
+          onDrillDown={handleDrillDown}
+          queryInfo={widget.queryInfo}
+        >
           <TableWidget
             config={widget.config as TableWidgetConfig}
             onPageChange={

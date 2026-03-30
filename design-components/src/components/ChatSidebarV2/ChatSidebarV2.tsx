@@ -1,10 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  SidebarSimpleIcon,
-  PlusCircleIcon,
-  DotsThreeIcon,
-} from '@phosphor-icons/react';
+import { SidebarSimpleIcon, PlusCircleIcon, DotsThreeIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';

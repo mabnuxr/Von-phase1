@@ -43,7 +43,7 @@ export function useCopyToClipboard(resetDelay = 2000): UseCopyToClipboardReturn 
         return false;
       }
     },
-    [resetDelay],
+    [resetDelay]
   );
 
   return { copy, copied };

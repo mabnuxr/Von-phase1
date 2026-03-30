@@ -32,13 +32,13 @@ import {
   usePanelResize,
   ConversationMode,
 } from "@vonlabs/design-components";
-import type {
-  MentionItem,
-  FileArtifact,
-} from "@vonlabs/design-components";
+import type { MentionItem, FileArtifact } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
-import type { Conversation, MessageWithStreaming } from "../../types/conversation";
+import type {
+  Conversation,
+  MessageWithStreaming,
+} from "../../types/conversation";
 import type { MessageReference } from "../../types/conversation";
 import { ReferenceType } from "../../types/conversation";
 import { useBaseChatConfig } from "../../hooks/useBaseChatConfig";
@@ -167,10 +167,7 @@ function ChatSessionRoot(props: ChatSessionProps) {
   if (props.conversationId) {
     return (
       <SlotsContext.Provider value={slots}>
-        <ExistingChatInner
-          {...props}
-          conversationId={props.conversationId}
-        />
+        <ExistingChatInner {...props} conversationId={props.conversationId} />
       </SlotsContext.Provider>
     );
   }
@@ -211,11 +208,14 @@ function ExistingChatInner(
     selfFetchMessages ? conversationId : null,
     MESSAGES_PAGE_LIMIT,
   );
-  const fetchNextMessagePage = props.fetchNextMessagePage ?? msgQuery.fetchNextPage;
+  const fetchNextMessagePage =
+    props.fetchNextMessagePage ?? msgQuery.fetchNextPage;
   const hasNextMessagePage = props.hasNextMessagePage ?? !!msgQuery.hasNextPage;
-  const isFetchingNextMessagePage = props.isFetchingNextMessagePage ?? msgQuery.isFetchingNextPage;
+  const isFetchingNextMessagePage =
+    props.isFetchingNextMessagePage ?? msgQuery.isFetchingNextPage;
   const isLoadingMessages = props.isLoadingMessages ?? msgQuery.isLoading;
-  const refetchMessages = (props.refetchMessages ?? msgQuery.refetch) as () => Promise<unknown>;
+  const refetchMessages = (props.refetchMessages ??
+    msgQuery.refetch) as () => Promise<unknown>;
 
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextMessagePage,
@@ -245,7 +245,12 @@ function ExistingChatInner(
             },
           }
         : null,
-    [hasDashboard, props.dashboardId, props.dashboardTitle, props.dashboardVersion],
+    [
+      hasDashboard,
+      props.dashboardId,
+      props.dashboardTitle,
+      props.dashboardVersion,
+    ],
   );
   const refStack = useReferenceStack(dashboardBaseLayer);
 
@@ -283,7 +288,8 @@ function ExistingChatInner(
     isDeepLinksEnabled: base.features.isDeepLinksEnabled,
     isSourcesEnabled: base.features.isSourcesEnabled,
     isFileUploadEnabled: base.features.isFileUploadEnabled,
-    syncConversationModeToBackend: props.syncConversationModeToBackend ?? (async () => {}),
+    syncConversationModeToBackend:
+      props.syncConversationModeToBackend ?? (async () => {}),
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
     references: refStack.references,
   });
@@ -300,7 +306,12 @@ function ExistingChatInner(
         queryKey: dashboardKeys.detail(props.dashboardId),
       });
     }
-  }, [chatV2.dashboard, props.dashboardId, props.dashboardVersion, queryClient]);
+  }, [
+    chatV2.dashboard,
+    props.dashboardId,
+    props.dashboardVersion,
+    queryClient,
+  ]);
 
   // ── Integration metadata ──────────────────────────────────────────
   const { data: integrationsData } = useIntegrations();
@@ -310,7 +321,8 @@ function ExistingChatInner(
       for (const integration of integrationsData.integrations) {
         if (
           integration.accessLevel === "user" &&
-          integration.authenticationStatus === AuthenticationStatus.AUTHENTICATED
+          integration.authenticationStatus ===
+            AuthenticationStatus.AUTHENTICATED
         ) {
           connected.add(integration.type.toLowerCase());
         }
@@ -335,7 +347,11 @@ function ExistingChatInner(
       const frontendId = getFrontendIntegrationId(integrationType);
       const metadata = INTEGRATION_METADATA[frontendId];
       if (!metadata) return null;
-      return { name: metadata.name, logoPath: metadata.logoPath, description: metadata.description };
+      return {
+        name: metadata.name,
+        logoPath: metadata.logoPath,
+        description: metadata.description,
+      };
     },
     [],
   );
@@ -354,10 +370,9 @@ function ExistingChatInner(
       })) ?? [],
     [dashboardListData],
   );
-  const enableMentions =
-    (props.availableAgentModes ?? CHAT_PANE_AGENT_MODES).includes(
-      ConversationMode.DashboardBuilder,
-    );
+  const enableMentions = (
+    props.availableAgentModes ?? CHAT_PANE_AGENT_MODES
+  ).includes(ConversationMode.DashboardBuilder);
 
   // ── Scheduled commands ────────────────────────────────────────────
   const { data: teamMembersData } = useTeamMembers(
@@ -365,7 +380,10 @@ function ExistingChatInner(
   );
   const teamMembersForSchedule = base.features.isScheduledCommandsEnabled
     ? (teamMembersData ?? []).map((m) => ({
-        id: m.id, email: m.email, firstName: m.firstName, lastName: m.lastName,
+        id: m.id,
+        email: m.email,
+        firstName: m.firstName,
+        lastName: m.lastName,
       }))
     : undefined;
   const currentUserRecipient =
@@ -374,15 +392,26 @@ function ExistingChatInner(
           id: base.user.id,
           email: base.user.email,
           firstName: base.user.firstName ?? base.user.name?.split(" ")[0] ?? "",
-          lastName: base.user.lastName ?? base.user.name?.split(" ").slice(1).join(" ") ?? "",
+          lastName:
+            base.user.lastName ??
+            base.user.name?.split(" ").slice(1).join(" ") ??
+            "",
         }
       : undefined;
 
   // ── Artifact card renderer ────────────────────────────────────────
   const renderArtifactCard = useCallback(
     (artifact: FileArtifact) => {
-      if (artifact.artifactType === "email_draft" || artifact.fileName?.endsWith(".eml")) {
-        return <GmailDraftCardContainer conversationId={conversationId} artifact={artifact} />;
+      if (
+        artifact.artifactType === "email_draft" ||
+        artifact.fileName?.endsWith(".eml")
+      ) {
+        return (
+          <GmailDraftCardContainer
+            conversationId={conversationId}
+            artifact={artifact}
+          />
+        );
       }
       return null;
     },
@@ -391,7 +420,8 @@ function ExistingChatInner(
 
   // ── Dashboard preview pane (floating variant only) ────────────────
   const isFloating = (props.variant ?? "sidebar") === "floating";
-  const { dashboardPaneState, openDashboardPane, closeDashboardPane } = useDashboardPane();
+  const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
+    useDashboardPane();
   const {
     containerRef: splitContainerRef,
     ratios: splitRatios,
@@ -423,11 +453,14 @@ function ExistingChatInner(
   // ── Banner with write-blocked ─────────────────────────────────────
   const fullBanner = useMemo(
     () =>
-      (props.banner || chatV2.writeBlocked) ? (
+      props.banner || chatV2.writeBlocked ? (
         <>
           {props.banner}
           {chatV2.writeBlocked && (
-            <WriteBlockedBanner writeBlocked={chatV2.writeBlocked} onDismiss={chatV2.dismissWriteBlocked} />
+            <WriteBlockedBanner
+              writeBlocked={chatV2.writeBlocked}
+              onDismiss={chatV2.dismissWriteBlocked}
+            />
           )}
         </>
       ) : undefined,
@@ -480,7 +513,9 @@ function ExistingChatInner(
               className="min-w-0 flex flex-col"
               style={
                 dashboardPaneState.isOpen
-                  ? { flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)` }
+                  ? {
+                      flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                    }
                   : { flex: 1 }
               }
             >
@@ -497,7 +532,9 @@ function ExistingChatInner(
                 </div>
                 <div
                   className="h-full min-w-0"
-                  style={{ flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)` }}
+                  style={{
+                    flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+                  }}
                 >
                   <DashboardPreviewPane
                     dashboardId={dashboardPaneState.dashboardId}
@@ -559,7 +596,9 @@ function ExistingChatInner(
       onFilesSelected={chatV2.handleFilesSelected}
       onRemoveAttachment={chatV2.handleRemoveAttachment}
       onFileClick={chatV2.handleFileClick}
-      onFileError={(_error: string, message: string) => chatV2.setFileErrorMessage(message)}
+      onFileError={(_error: string, message: string) =>
+        chatV2.setFileErrorMessage(message)
+      }
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       // Commands
@@ -575,7 +614,11 @@ function ExistingChatInner(
       isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === "admin")}
       teamMembers={teamMembersForSchedule}
       currentUser={currentUserRecipient}
-      onSendTest={base.features.isScheduledCommandsEnabled ? base.commands.handleSendTest : undefined}
+      onSendTest={
+        base.features.isScheduledCommandsEnabled
+          ? base.commands.handleSendTest
+          : undefined
+      }
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}
@@ -616,7 +659,9 @@ function ExistingChatInner(
       loadMoreRef={loadMoreRef}
       isFetchingMore={isFetchingNextMessagePage}
     >
-      {slots.emptyState && <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>}
+      {slots.emptyState && (
+        <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>
+      )}
     </Chat>
   );
 
@@ -630,25 +675,35 @@ function ExistingChatInner(
             chatV2.fileArtifactPanel.fileName && (
               <ArtifactViewerPanel
                 fileName={chatV2.fileArtifactPanel.fileName}
-                artifactType={chatV2.fileArtifactPanel.artifactType ?? "document"}
+                artifactType={
+                  chatV2.fileArtifactPanel.artifactType ?? "document"
+                }
                 mimeType={chatV2.fileArtifactPanel.mimeType}
                 downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
                 pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
                 onClose={chatV2.closeFileArtifactPanel}
                 onDownload={
                   chatV2.fileArtifactPanel.fileId
-                    ? () => chatV2.handleArtifactDownload(chatV2.fileArtifactPanel.fileId!)
+                    ? () =>
+                        chatV2.handleArtifactDownload(
+                          chatV2.fileArtifactPanel.fileId!,
+                        )
                     : undefined
                 }
                 onGoogleDriveClick={
                   props.onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
-                    ? () => props.onGoogleDriveClick!(chatV2.fileArtifactPanel.fileId!)
+                    ? () =>
+                        props.onGoogleDriveClick!(
+                          chatV2.fileArtifactPanel.fileId!,
+                        )
                     : undefined
                 }
                 isDriveEnabled={props.isDriveEnabled}
                 isDriveConnected={props.isDriveConnected}
                 driveTooltip={props.driveTooltip}
-                isDriveLoading={props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId}
+                isDriveLoading={
+                  props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
+                }
               />
             )}
         </div>
@@ -693,7 +748,12 @@ function NewChatInner(props: ChatSessionProps) {
             },
           }
         : null,
-    [hasDashboard, props.dashboardId, props.dashboardTitle, props.dashboardVersion],
+    [
+      hasDashboard,
+      props.dashboardId,
+      props.dashboardTitle,
+      props.dashboardVersion,
+    ],
   );
   const refStack = useReferenceStack(dashboardBaseLayer);
 
@@ -752,7 +812,9 @@ function NewChatInner(props: ChatSessionProps) {
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     >
-      {slots.emptyState && <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>}
+      {slots.emptyState && (
+        <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>
+      )}
     </Chat>
   );
 }
@@ -760,7 +822,13 @@ function NewChatInner(props: ChatSessionProps) {
 // ─── Shared overlays (modals/drawers — render via portals) ──────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function Overlays({ conversationId, chatV2 }: { conversationId: string; chatV2: any }) {
+function Overlays({
+  conversationId,
+  chatV2,
+}: {
+  conversationId: string;
+  chatV2: any;
+}) {
   return (
     <>
       <LazyTransparencyDrawer
