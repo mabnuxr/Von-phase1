@@ -433,20 +433,31 @@ function ExistingChatInner(
   const { onCollapseSidebar } = props;
   const handleDashboardPreview = useCallback(
     (dashboardId: string) => {
+      if (props.compact) {
+        navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
+        return;
+      }
       openDashboardPane(dashboardId);
       onCollapseSidebar?.();
     },
-    [openDashboardPane, onCollapseSidebar],
+    [
+      props.compact,
+      navigate,
+      conversationId,
+      openDashboardPane,
+      onCollapseSidebar,
+    ],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
+    if (props.compact) return;
     const key = chatV2.liveDashboardKey;
     if (key && key !== prevLiveDashboardKeyRef.current) {
       prevLiveDashboardKeyRef.current = key;
       handleDashboardPreview(key.split(":")[0]);
     }
-  }, [chatV2.liveDashboardKey, handleDashboardPreview]);
+  }, [props.compact, chatV2.liveDashboardKey, handleDashboardPreview]);
 
   // ── Banner with write-blocked ─────────────────────────────────────
   const fullBanner = useMemo(
@@ -497,7 +508,7 @@ function ExistingChatInner(
         fetchNextMessagePage={fetchNextMessagePage}
         hasNextMessagePage={hasNextMessagePage}
         isFetchingNextMessagePage={isFetchingNextMessagePage}
-        onDashboardPreview={handleDashboardPreview}
+        onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
         enableFileUpload={base.features.isFileUploadEnabled}
         onFileClick={chatV2.handleFileClick}
         compact={props.compact}
@@ -762,6 +773,8 @@ function NewChatInner(props: ChatSessionProps) {
       onSendMessage={createFlow.handleSendMessage}
       isLoading={false}
       compact={props.compact}
+      height="100%"
+      width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
       placeholder={props.placeholder ?? "Make changes to this dashboard..."}
