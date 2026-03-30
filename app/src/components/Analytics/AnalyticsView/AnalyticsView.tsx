@@ -19,7 +19,7 @@ import {
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
-import { CustomizeButton } from "./CustomizeButton";
+// import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { SharePopover } from "./SharePopover";
@@ -369,7 +369,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     onResumeSchedule={onResumeSchedule}
                     onDeleteSchedule={onDeleteSchedule}
                   />
-                  <CustomizeButton />
+                  {/* <CustomizeButton /> */}
                   <SharePopover
                     isSharedWithTenant={dashboard.isSharedWithTenant}
                     canShare={isSaved}

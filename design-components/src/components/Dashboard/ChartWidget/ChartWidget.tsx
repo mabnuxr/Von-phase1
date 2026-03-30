@@ -85,7 +85,7 @@ const BASE_CHART_OPTIONS: Highcharts.Options = {
   title: { text: undefined },
   credits: { enabled: false },
   legend: {
-    enabled: false,
+    enabled: true,
     align: 'center',
     verticalAlign: 'bottom',
     margin: 4,
@@ -159,7 +159,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config, drilldown, onPointCli
 
   const options = useMemo(() => {
     const raw = config.highchartsOptions as Highcharts.Options;
-    const autoLegend = { legend: { enabled: false } };
+    const autoLegend = {};
 
     // If no theme palette, use raw backend options with base styling.
     // Explicitly strip any pattern/borderColor properties from series so
