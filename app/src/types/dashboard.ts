@@ -94,6 +94,11 @@ export type WidgetType = "chart" | "counter" | "table" | "text";
 import type { CounterWidgetConfig } from "@vonlabs/design-components";
 export type { CounterWidgetConfig };
 
+export interface QueryInfo {
+  sql: string;
+  description?: string;
+}
+
 export interface WidgetConfig {
   id: string;
   type: WidgetType;
@@ -109,6 +114,7 @@ export interface WidgetConfig {
     query_ref: string;
     column_map: Array<{ data_key: string; sql_expression: string }>;
   } | null;
+  queryInfo?: QueryInfo;
 }
 
 // ─── Chart Widget ────────────────────────────────────────────────

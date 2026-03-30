@@ -43,7 +43,7 @@ function ConvButton({
   onSelect: (id: string) => void;
   onClose: () => void;
 }) {
-  const isDashboardChat = conv.mode === "dashboard_builder";
+  const isDashboardChat = conv.mode === "dashboard-builder";
   return (
     <button
       onClick={() => {

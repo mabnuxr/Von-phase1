@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
-  SidebarSimpleIcon,
   ClockCounterClockwiseIcon,
   SpinnerGapIcon,
   XIcon,
@@ -114,7 +113,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onExpand,
   onClose,
   onChatClick,
-  onChatClose,
   isChatOpen,
   onTablePageChange,
   loadingTablePanels,

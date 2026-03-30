@@ -3,6 +3,7 @@ import { ChartWidget } from '../ChartWidget';
 import { CounterWidget } from '../CounterWidget';
 import { TextWidget } from '../TextWidget';
 import { TableWidget } from '../TableWidget';
+import { QueryInfoPopover } from '../QueryInfoPopover';
 import type {
   WidgetRendererProps,
   ChartWidgetConfig,
@@ -32,7 +33,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
   switch (widget.type) {
     case 'chart':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown}>
+        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown} queryInfo={widget.queryInfo}>
           <ChartWidget
             config={widget.config as ChartWidgetConfig}
             drilldown={widget.drilldown}
@@ -48,7 +49,12 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
     case 'counter':
       if (widget.query_failed || (widget.config as CounterWidgetConfig).value === null) {
         return (
-          <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center">
+          <div className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center">
+            {widget.queryInfo && (
+              <div className="absolute top-2 right-2 z-10">
+                <QueryInfoPopover queryInfo={widget.queryInfo} />
+              </div>
+            )}
             {widget.title && <p className="text-xs text-gray-700 mb-1 truncate">{widget.title}</p>}
             <p className="text-2xl font-semibold text-gray-400 tabular-nums">—</p>
           </div>
@@ -60,6 +66,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
           title={widget.title}
           subtitle={widget.subtitle}
           onDrillDown={handleDrillDown}
+          queryInfo={widget.queryInfo}
         />
       );
 
@@ -72,7 +79,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = ({
 
     case 'table':
       return (
-        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown}>
+        <WidgetShell title={widget.title} subtitle={widget.subtitle} onDrillDown={handleDrillDown} queryInfo={widget.queryInfo}>
           <TableWidget
             config={widget.config as TableWidgetConfig}
             onPageChange={
