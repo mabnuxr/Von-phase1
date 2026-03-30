@@ -21,7 +21,7 @@ import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
 import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
-import { useGlobalChat } from "../providers/GlobalChatProvider";
+import { useGlobalChat } from "../providers/useGlobalChat";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 
 interface DashboardCanvasProps {
@@ -202,17 +202,22 @@ const Analytics = () => {
   const conversationIdFromParams = searchParams.get("conversationId");
 
   // Global chat state — persists across dashboard navigation
-  const { activeChatId, setActiveChatId, isChatPanelOpen, setIsChatPanelOpen } =
+  const { activeChatId, setActiveChatId, isChatPanelOpen, openChatPanel, closeChatPanel } =
     useGlobalChat();
 
   const { unfiledConversations } = useChatSidebarV2();
 
-  // Auto-select the most recent conversation on first load
+  // Auto-select the most recent dashboard-builder conversation on first load
   const hasInitializedChatRef = useRef(false);
   useEffect(() => {
-    if (!hasInitializedChatRef.current && activeChatId === null && unfiledConversations.length > 0) {
-      hasInitializedChatRef.current = true;
-      setActiveChatId(unfiledConversations[0].conversationId);
+    if (!hasInitializedChatRef.current && activeChatId === null) {
+      const dashboardConv = unfiledConversations.find(
+        (c) => c.mode === "dashboard-builder",
+      );
+      if (dashboardConv) {
+        hasInitializedChatRef.current = true;
+        setActiveChatId(dashboardConv.conversationId);
+      }
     }
   }, [activeChatId, unfiledConversations, setActiveChatId]);
 
@@ -246,9 +251,9 @@ const Analytics = () => {
   useEffect(() => {
     if (conversationIdFromParams) {
       setActiveChatId(conversationIdFromParams);
-      setIsChatPanelOpen(true);
+      openChatPanel();
     }
-  }, [conversationIdFromParams, setActiveChatId, setIsChatPanelOpen]);
+  }, [conversationIdFromParams, setActiveChatId, openChatPanel]);
 
   // Reset local conversation when navigating to a different dashboard.
   // Note: activeChatId in GlobalChatProvider intentionally does NOT reset —
@@ -283,8 +288,8 @@ const Analytics = () => {
         <DashboardCanvas
           key={dashboardId}
           dashboardId={dashboardId}
-          onChatClick={() => setIsChatPanelOpen(true)}
-          onChatClose={() => setIsChatPanelOpen(false)}
+          onChatClick={() => openChatPanel()}
+          onChatClose={() => closeChatPanel()}
           isChatOpen={isChatPanelOpen}
           collapseOnMount={prevDashboardIdRef.current === undefined}
         />
@@ -332,7 +337,7 @@ const Analytics = () => {
             />
             <Tooltip content="Collapse chat">
               <button
-                onClick={() => setIsChatPanelOpen(false)}
+                onClick={() => closeChatPanel()}
                 className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <ArrowLineRightIcon size={14} weight="bold" />
@@ -340,9 +345,13 @@ const Analytics = () => {
             </Tooltip>
           </div>
 
-          {/* Chat content */}
+          {/* Chat content — gate on dashboard data so we never send empty title/version */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            {conversationId ? (
+            {!data?.dashboard ? (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-xs text-gray-400">Loading dashboard…</p>
+              </div>
+            ) : conversationId ? (
               <AnalyticsChatContainer
                 key={conversationId}
                 conversationId={conversationId}

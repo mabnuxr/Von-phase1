@@ -1,33 +1,42 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useVisibilityToggle } from "@vonlabs/design-components";
 
 interface GlobalChatContextValue {
   activeChatId: string | null;
   setActiveChatId: (id: string | null) => void;
   isChatPanelOpen: boolean;
-  setIsChatPanelOpen: (open: boolean) => void;
+  openChatPanel: () => void;
+  closeChatPanel: () => void;
 }
 
-const GlobalChatContext = createContext<GlobalChatContextValue>({
+export const GlobalChatContext = createContext<GlobalChatContextValue>({
   activeChatId: null,
   setActiveChatId: () => {},
   isChatPanelOpen: false,
-  setIsChatPanelOpen: () => {},
+  openChatPanel: () => {},
+  closeChatPanel: () => {},
 });
 
 export function GlobalChatProvider({ children }: { children: ReactNode }) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
+  const { isVisible: isChatPanelOpen, show: openChatPanel, hide: closeChatPanel } =
+    useVisibilityToggle();
+
+  const value = useMemo<GlobalChatContextValue>(
+    () => ({
+      activeChatId,
+      setActiveChatId,
+      isChatPanelOpen,
+      openChatPanel,
+      closeChatPanel,
+    }),
+    [activeChatId, isChatPanelOpen, openChatPanel, closeChatPanel],
+  );
 
   return (
-    <GlobalChatContext.Provider
-      value={{ activeChatId, setActiveChatId, isChatPanelOpen, setIsChatPanelOpen }}
-    >
+    <GlobalChatContext.Provider value={value}>
       {children}
     </GlobalChatContext.Provider>
   );
-}
-
-export function useGlobalChat() {
-  return useContext(GlobalChatContext);
 }

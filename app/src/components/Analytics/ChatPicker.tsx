@@ -123,7 +123,10 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
   };
 
   const titledConversations = useMemo(
-    () => unfiledConversations.filter((c) => c.title?.trim()),
+    () =>
+      unfiledConversations.filter(
+        (c) => c.title?.trim() && c.mode === "dashboard-builder",
+      ),
     [unfiledConversations],
   );
 
