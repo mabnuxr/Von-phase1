@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import { useTitleAnimation } from "./useTitleAnimation";
@@ -26,7 +26,7 @@ export function useChatSidebarV1({
   currentConversationId,
   user,
 }: UseChatSidebarV1Params) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
 
   // Fetch conversations with infinite scroll
   const {

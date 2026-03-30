@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
 import { TopBar, Banner } from "@vonlabs/design-components";
 
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -12,6 +12,7 @@ import { ChatSidebarV1Container } from "./ChatSidebarV1Container";
 import { ChatSidebarV2Container } from "./ChatSidebarV2Container";
 import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
+import { useGuardedNavigate } from "../providers/NavigationGuard";
 
 /**
  * AppShell — shared layout for pages that need the sidebar shell.
@@ -21,7 +22,7 @@ import type { AppShellContextValue } from "../contexts/AppShellContext";
  * Child pages access shared state via useAppShell() hook.
  */
 export function AppShell() {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const currentConversationId = conversationId ?? null;
 

@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
 import { AppShell } from "./components/AppShell";
 import { LaunchDarklyGate } from "./components/LaunchDarkly";
+import { NavigationGuardProvider } from "./providers/NavigationGuard";
 import { ConversationSkeleton } from "./components/ConversationSkeleton";
 
 export default function App() {
@@ -30,7 +31,9 @@ export default function App() {
           <Route
             element={
               <LaunchDarklyGate fallback={<ConversationSkeleton />}>
-                <AppShell />
+                <NavigationGuardProvider>
+                  <AppShell />
+                </NavigationGuardProvider>
               </LaunchDarklyGate>
             }
           >

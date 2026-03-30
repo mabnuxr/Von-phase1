@@ -188,9 +188,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const isEditMode = dashboard.isEditable;
 
   const handleEnterEditMode = useCallback(() => {
-    onEditModeChange?.(true);
+    if (dashboard.isOwner) {
+      onEditModeChange?.(true);
+    }
     onChatClick?.();
-  }, [onEditModeChange, onChatClick]);
+  }, [dashboard.isOwner, onEditModeChange, onChatClick]);
 
   const exitEditMode = useCallback(() => {
     onEditModeChange?.(false);
@@ -369,7 +371,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   {isEditMode && dashboard.dashboardVersion >= 1 && (
                     <Tooltip content="Reverts to previous saved version">
                       <button
-                        onClick={revertPhase === "idle" ? handleRevertFromEditMode : undefined}
+                        onClick={
+                          revertPhase === "idle"
+                            ? handleRevertFromEditMode
+                            : undefined
+                        }
                         disabled={revertPhase !== "idle"}
                         className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
                           revertPhase === "pending"
