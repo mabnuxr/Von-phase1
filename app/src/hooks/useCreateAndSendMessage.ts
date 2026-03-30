@@ -212,6 +212,26 @@ export function useCreateAndSendMessage({
         store.setShowMessagesFromIndex(newId, 0);
         store.addPendingOptimisticId(optimisticUserId);
         store.addPendingOptimisticId(optimisticAssistantId);
+        // Build command early so it can be included in the optimistic message
+        const command: MessageCommand | undefined = options?.command
+          ? {
+              id: options.command.id,
+              name: options.command.name,
+              prompt: options.command.prompt,
+              dataSources: options.command.dataSources
+                ?.filter((ds) => ds.s3Key)
+                ?.map((ds) => ({
+                  fileId: ds.id,
+                  fileName: ds.name,
+                  fileSize: ds.size,
+                  mimeType: ds.type,
+                  extension: ds.extension,
+                  category: ds.category,
+                  s3Key: ds.s3Key!,
+                })),
+            }
+          : undefined;
+
         store.addMessage(newId, {
           id: optimisticUserId,
           runId: optimisticUserId,
@@ -224,6 +244,7 @@ export function useCreateAndSendMessage({
           isStreaming: false,
           status: "completed",
           ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
+          ...(command ? { command } : {}),
         });
         store.addMessage(newId, {
           id: optimisticAssistantId,
@@ -281,25 +302,6 @@ export function useCreateAndSendMessage({
           mentionRefs.length > 0
             ? [...(references ?? []), ...mentionRefs]
             : references;
-
-        const command: MessageCommand | undefined = options?.command
-          ? {
-              id: options.command.id,
-              name: options.command.name,
-              prompt: options.command.prompt,
-              dataSources: options.command.dataSources
-                ?.filter((ds) => ds.s3Key)
-                ?.map((ds) => ({
-                  fileId: ds.id,
-                  fileName: ds.name,
-                  fileSize: ds.size,
-                  mimeType: ds.type,
-                  extension: ds.extension,
-                  category: ds.category,
-                  s3Key: ds.s3Key!,
-                })),
-            }
-          : undefined;
 
         await sendMessage({
           conversationId: newId,
