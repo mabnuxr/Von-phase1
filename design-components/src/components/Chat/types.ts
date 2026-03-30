@@ -1126,21 +1126,6 @@ export interface ChatProps {
   width?: string;
 
   /**
-   * Variant of the chat component
-   * - floating: Normal document flow
-   * - fixed: Fixed position overlay (bottom-right by default)
-   * - fullpage: Full viewport coverage
-   * @default 'floating'
-   */
-  variant?: 'floating' | 'fixed' | 'fullpage' | 'sidebar';
-
-  /**
-   * Position for fixed variant (ignored for fullpage variant)
-   * @default { bottom: '24px', right: '24px' }
-   */
-  fixedPosition?: FixedPosition;
-
-  /**
    * Active conversation ID (for multi-conversation support)
    */
   conversationId?: string;
@@ -1575,4 +1560,11 @@ export interface ChatProps {
    * The bottom input is always shown when a Chat.EmptyState child is present.
    */
   children?: React.ReactNode;
+
+  /**
+   * Compact mode for narrow sidepane layout.
+   * Stacks agent avatar above content and hides user avatars.
+   * @default false
+   */
+  compact?: boolean;
 }

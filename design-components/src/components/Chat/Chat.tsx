@@ -20,7 +20,6 @@ export type {
   DashboardComponent,
   DashboardArtifact,
   ApiEndpoints,
-  FixedPosition,
   ChatProps,
   SendMessageOptions,
 } from './types';
@@ -44,8 +43,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   isLoading: controlledIsLoading = false,
   height = '600px',
   width = '400px',
-  variant = 'floating',
-  fixedPosition = { bottom: '24px', right: '24px' },
   loadMoreRef,
   isFetchingMore = false,
   showMessagesFromIndex = 0,
@@ -116,11 +113,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onSelectMention,
   onMentionsActivated,
   children,
+  compact = false,
 }) => {
-  const isFixed = variant === 'fixed';
-  const isFullPage = variant === 'fullpage';
-  const isSidebar = variant === 'sidebar';
-
   // Extract custom empty state from Chat.EmptyState child (compound component pattern)
   let customEmptyState: React.ReactNode = null;
   React.Children.forEach(children, (child) => {
@@ -281,7 +275,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     [onSendMessage]
   );
 
-  // Generate container class names based on variant
+  // Generate container class names
   const containerClassName = [
     'relative',
     'flex',
@@ -289,23 +283,18 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     'overflow-hidden',
     'bg-white',
     'antialiased',
-    '@container/chat',
-    isSidebar
+    'chat-container',
+    compact
       ? 'w-full h-full rounded-none border-none'
-      : isFullPage
-        ? 'w-screen h-screen rounded-none border-none'
-        : 'rounded-xl border border-gray-100 shadow-xs',
-    isFixed && 'fixed z-[1000]',
-    isFullPage && 'fixed inset-0 z-[999]',
+      : 'rounded-xl border border-gray-100 shadow-xs',
   ]
     .filter(Boolean)
     .join(' ');
 
   // Inline styles only for dynamic width/height and fixedPosition
   const containerStyles: React.CSSProperties = {
-    ...(!isFullPage && !isSidebar && width && { width }),
-    ...(!isFullPage && !isSidebar && height && { height }),
-    ...(isFixed && fixedPosition),
+    ...(width && { width }),
+    ...(height && { height }),
   };
 
   return (
@@ -444,6 +433,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}
                   getIntegrationMetadata={getIntegrationMetadata}
+                  compact={compact}
                 />
               </div>
             ))}

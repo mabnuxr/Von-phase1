@@ -287,7 +287,7 @@ const Analytics = () => {
   } = useResizablePane();
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full gap-1">
       <div className="flex-1 min-w-0 h-full relative">
         {/* key={dashboardId} resets all dashboard-specific state on navigation */}
         <DashboardCanvas
@@ -361,7 +361,7 @@ const Analytics = () => {
           <ChatSession
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
-            variant="sidebar"
+            compact
             placeholder="Make changes to this dashboard..."
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
