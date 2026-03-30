@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ArrowLineRightIcon, PlusCircleIcon } from "@phosphor-icons/react";
+import { XIcon, PlusCircleIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
@@ -13,7 +13,7 @@ import {
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
-import { Tooltip } from "@vonlabs/design-components";
+import { Tooltip, useVisibilityToggle } from "@vonlabs/design-components";
 import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
@@ -231,7 +231,11 @@ const Analytics = () => {
   const [createdConversationId, setCreatedConversationId] = useState<
     string | null
   >(null);
-  const [isRenamingChat, setIsRenamingChat] = useState(false);
+  const {
+    isVisible: isRenamingChat,
+    show: startRenamingChat,
+    hide: stopRenamingChat,
+  } = useVisibilityToggle(false);
 
   // Track which dashboardId was active when the create was initiated so that
   // an in-flight response from a previous dashboard doesn't overwrite state
@@ -293,8 +297,8 @@ const Analytics = () => {
         <DashboardCanvas
           key={dashboardId}
           dashboardId={dashboardId}
-          onChatClick={() => openChatPanel()}
-          onChatClose={() => closeChatPanel()}
+          onChatClick={openChatPanel}
+          onChatClose={closeChatPanel}
           isChatOpen={isChatPanelOpen}
           collapseOnMount={prevDashboardIdRef.current === undefined}
         />
@@ -325,7 +329,7 @@ const Analytics = () => {
             activeChatId={activeChatId}
             onSelect={setActiveChatId}
             isRenaming={isRenamingChat}
-            onRenameEnd={() => setIsRenamingChat(false)}
+            onRenameEnd={stopRenamingChat}
           />
           <Tooltip content="New chat">
             <button
@@ -344,14 +348,14 @@ const Analytics = () => {
               setActiveChatId(null);
               setCreatedConversationId(null);
             }}
-            onStartRename={() => setIsRenamingChat(true)}
+            onStartRename={startRenamingChat}
           />
-          <Tooltip content="Collapse chat">
+          <Tooltip content="Close chat">
             <button
-              onClick={() => closeChatPanel()}
+              onClick={closeChatPanel}
               className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <ArrowLineRightIcon size={14} weight="bold" />
+              <XIcon size={14} />
             </button>
           </Tooltip>
         </div>
