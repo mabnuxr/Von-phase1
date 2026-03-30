@@ -46,9 +46,11 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
+    window.addEventListener('resize', updatePosition);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [open, updatePosition, hide]);
 

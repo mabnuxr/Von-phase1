@@ -252,24 +252,21 @@ const Analytics = () => {
     [dashboardId, setActiveChatId],
   );
 
-  // Initialize from URL param (e.g. "View in Dashboard" deep-link).
-  useEffect(() => {
-    if (conversationIdFromParams) {
-      setActiveChatId(conversationIdFromParams);
-      openChatPanel();
-    }
-  }, [conversationIdFromParams, setActiveChatId, openChatPanel]);
-
-  // Reset conversation state when navigating to a different dashboard.
-  // activeChatId must reset too — otherwise a conversation created for dashboard A
-  // would receive dashboard B's references when the user switches dashboards.
+  // Reset conversation state on dashboard change, then apply URL param if present.
+  // Merged into one effect so the URL param isn't overwritten by a separate reset.
   useEffect(() => {
     activeDashboardIdRef.current = dashboardId;
     prevDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
-    setActiveChatId(null);
     hasInitializedChatRef.current = false;
-  }, [dashboardId, setActiveChatId]);
+
+    if (conversationIdFromParams) {
+      setActiveChatId(conversationIdFromParams);
+      openChatPanel();
+    } else {
+      setActiveChatId(null);
+    }
+  }, [dashboardId, conversationIdFromParams, setActiveChatId, openChatPanel]);
 
   // The active conversation: global selection takes priority, then local fallback
   const conversationId = activeChatId ?? createdConversationId;
