@@ -435,6 +435,7 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 export {
   ReportTable,
   buildGridOptions,
+  autoSizeGridColumns,
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,

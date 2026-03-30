@@ -1,6 +1,7 @@
 export { ReportTable } from './ReportTable';
 export {
   buildGridOptions,
+  autoSizeGridColumns,
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,

@@ -9,6 +9,7 @@
   height: 100%;
 }
 
+
 /* Fixed row heights so JS pageSize calculation is exact */
 .table-widget-root .hcg-table thead th {
   height: 30px;
@@ -103,22 +104,28 @@
   position: absolute;
   left: 0;
   right: 0;
-  top: 30px; /* sits right below the 30px table header */
+  /* top is set dynamically via inline style from measured thead height */
   bottom: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 4px 16px;
-  gap: 0;
   background: #ffffff;
   z-index: 1;
+  overflow: hidden;
 }
 
-.table-skeleton-row {
-  display: flex;
-  gap: 16px;
-  align-items: center;
+/* Mirror the real grid's table layout so columns line up with headers */
+.table-skeleton-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.table-skeleton-td {
   height: 30px;
-  padding: 0 4px;
+  max-height: 30px;
+  box-sizing: border-box;
+  /* Match the real grid cell padding from report-grid-theme.css */
+  padding: 6px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  border-right: 1px solid #f3f4f6;
 }
 
 .table-skeleton-cell {

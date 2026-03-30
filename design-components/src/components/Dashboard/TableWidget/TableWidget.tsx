@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReportTable } from '../../ReportTable';
 import type { ServerSortState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
@@ -49,12 +49,38 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
 
   const skeletonRows = serverPagination?.limit ?? 10;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [theadHeight, setTheadHeight] = useState(30);
+
+  // Measure the actual thead height once the grid renders.
+  // stableOptions is the dependency because a new grid (with potentially
+  // different header content) is created whenever options change.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    // Grid Lite initializes asynchronously, so the thead may not exist yet.
+    // Use requestAnimationFrame to measure after the next paint.
+    const raf = requestAnimationFrame(() => {
+      const thead = el.querySelector('.hcg-table thead');
+      if (thead) {
+        setTheadHeight(thead.getBoundingClientRect().height);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [stableOptions]);
+
+  // Derive column widths from gridOptions so skeleton aligns with the real table
+  const skeletonColWidths = useMemo(() => {
+    const cols = (stableOptions as { columns?: Array<{ width?: number }> }).columns;
+    if (!cols || cols.length === 0) return null;
+    return cols.map((c) => c.width);
+  }, [stableOptions]);
 
   return (
     <div
       className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}`}
     >
-      <div className="flex-1 min-h-0 overflow-hidden relative">
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden relative">
         <ReportTable
           options={stableOptions}
           hidePagination
@@ -64,17 +90,27 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
         {/* Shimmer covers body rows while headers stay visible */}
         {isLoading && (
-          <div className="table-skeleton">
-            {Array.from({ length: skeletonRows }).map((_, i) => (
-              <div key={i} className="table-skeleton-row">
-                <div className="table-skeleton-cell" style={{ width: '25%' }} />
-                <div className="table-skeleton-cell" style={{ width: '18%' }} />
-                <div className="table-skeleton-cell" style={{ width: '15%' }} />
-                <div className="table-skeleton-cell" style={{ width: '12%' }} />
-                <div className="table-skeleton-cell" style={{ width: '14%' }} />
-                <div className="table-skeleton-cell" style={{ width: '10%' }} />
-              </div>
-            ))}
+          <div className="table-skeleton" style={{ top: theadHeight }}>
+            <table className="table-skeleton-table">
+              {skeletonColWidths && (
+                <colgroup>
+                  {skeletonColWidths.map((w, j) => (
+                    <col key={j} style={w ? { width: `${w}px` } : undefined} />
+                  ))}
+                </colgroup>
+              )}
+              <tbody>
+                {Array.from({ length: skeletonRows }).map((_, i) => (
+                  <tr key={i} className="table-skeleton-row">
+                    {(skeletonColWidths ?? Array.from({ length: 6 })).map((_, j) => (
+                      <td key={j} className="table-skeleton-td">
+                        <div className="table-skeleton-cell" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

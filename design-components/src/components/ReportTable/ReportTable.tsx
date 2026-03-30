@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
 import { addEvent } from '@highcharts/grid-lite/es-modules/Shared/Utilities.js';
+import { autoSizeGridColumns, getDataTableColumns } from './reportTableUtils';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
@@ -107,6 +108,11 @@ export function ReportTable({
   sortState,
 }: ReportTableProps) {
   void sortState; // reserved for future initial-sort sync
+
+  // Auto-size columns that don't have an explicit width based on content.
+  // autoSizeGridColumns mutates in-place so widths are set before Grid initializes.
+  const sizedOptions = useMemo(() => autoSizeGridColumns(options), [options]);
+
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
@@ -236,16 +242,11 @@ export function ReportTable({
 
   // Check if data is empty
   const isEmpty = useMemo(() => {
-    const dt = options.dataTable;
-    if (!dt) return true;
-    if (typeof dt === 'object' && 'columns' in dt) {
-      const cols = (dt as { columns?: Record<string, unknown[]> }).columns;
-      if (!cols) return true;
-      const firstCol = Object.values(cols)[0];
-      return !firstCol || firstCol.length === 0;
-    }
-    return false;
-  }, [options.dataTable]);
+    const cols = getDataTableColumns(sizedOptions);
+    if (!cols) return true;
+    const firstCol = Object.values(cols)[0];
+    return !firstCol || firstCol.length === 0;
+  }, [sizedOptions]);
 
   if (isLoading) {
     return (
@@ -280,7 +281,7 @@ export function ReportTable({
       onMouseOver={handleCellMouseEnter}
       onMouseOut={handleCellMouseLeave}
     >
-      <Grid options={options} callback={onSortChange ? handleGridReady : undefined} />
+      <Grid options={sizedOptions} callback={onSortChange ? handleGridReady : undefined} />
 
       {popoverReasoning && (
         <SourcePopover
