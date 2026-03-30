@@ -670,7 +670,8 @@ function ExistingChatInner(
     <>
       <div className="flex h-full w-full gap-1">
         <div className="flex-1 min-w-0">{chatElement}</div>
-        {base.features.isArtifactsEnabled &&
+        {!props.compact &&
+          base.features.isArtifactsEnabled &&
           chatV2.fileArtifactPanel.isOpen &&
           chatV2.fileArtifactPanel.fileName && (
             <ArtifactViewerPanel

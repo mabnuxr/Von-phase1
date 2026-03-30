@@ -283,7 +283,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     'overflow-hidden',
     'bg-white',
     'antialiased',
-    compact && 'chat-container',
+    'chat-container',
     compact
       ? 'w-full h-full rounded-none border-none'
       : 'rounded-xl border border-gray-100 shadow-xs',
