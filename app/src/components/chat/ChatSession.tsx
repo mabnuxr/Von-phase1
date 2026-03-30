@@ -113,8 +113,8 @@ export interface ChatSessionProps {
   /** Conversation ID — omit/null for new conversation (create on first message) */
   conversationId?: string | null;
 
-  /** Chat variant */
-  variant?: "floating" | "sidebar";
+  /** Compact mode for narrow sidepane layout */
+  compact?: boolean;
   title?: string;
   placeholder?: string;
 
@@ -418,8 +418,7 @@ function ExistingChatInner(
     [conversationId],
   );
 
-  // ── Dashboard preview pane (floating variant only) ────────────────
-  const isFloating = (props.variant ?? "sidebar") === "floating";
+  // ── Dashboard preview pane ────────────────────────────────────────
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
   const {
@@ -442,13 +441,12 @@ function ExistingChatInner(
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!isFloating) return;
     const key = chatV2.liveDashboardKey;
     if (key && key !== prevLiveDashboardKeyRef.current) {
       prevLiveDashboardKeyRef.current = key;
       handleDashboardPreview(key.split(":")[0]);
     }
-  }, [isFloating, chatV2.liveDashboardKey, handleDashboardPreview]);
+  }, [chatV2.liveDashboardKey, handleDashboardPreview]);
 
   // ── Banner with write-blocked ─────────────────────────────────────
   const fullBanner = useMemo(
@@ -499,60 +497,52 @@ function ExistingChatInner(
         fetchNextMessagePage={fetchNextMessagePage}
         hasNextMessagePage={hasNextMessagePage}
         isFetchingNextMessagePage={isFetchingNextMessagePage}
-        onDashboardPreview={isFloating ? handleDashboardPreview : undefined}
+        onDashboardPreview={handleDashboardPreview}
         enableFileUpload={base.features.isFileUploadEnabled}
         onFileClick={chatV2.handleFileClick}
+        compact={props.compact}
       />
     );
 
-    if (isFloating) {
-      return (
-        <>
-          <div ref={splitContainerRef} className="flex h-full w-full">
-            <div
-              className="min-w-0 flex flex-col"
-              style={
-                dashboardPaneState.isOpen
-                  ? {
-                      flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
-                    }
-                  : { flex: 1 }
-              }
-            >
-              {fullBanner}
-              {deepResearchContent}
-            </div>
-            {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
-              <>
-                <div
-                  {...getSplitHandleProps(0)}
-                  className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
-                >
-                  <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
-                </div>
-                <div
-                  className="h-full min-w-0"
-                  style={{
-                    flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
-                  }}
-                >
-                  <DashboardPreviewPane
-                    dashboardId={dashboardPaneState.dashboardId}
-                    conversationId={conversationId}
-                    onClose={closeDashboardPane}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-          <Overlays conversationId={conversationId} chatV2={chatV2} />
-        </>
-      );
-    }
-
     return (
       <>
-        {deepResearchContent}
+        <div ref={splitContainerRef} className="flex h-full w-full">
+          <div
+            className="min-w-0 flex flex-col"
+            style={
+              dashboardPaneState.isOpen
+                ? {
+                    flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                  }
+                : { flex: 1 }
+            }
+          >
+            {fullBanner}
+            {deepResearchContent}
+          </div>
+          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
+            <>
+              <div
+                {...getSplitHandleProps(0)}
+                className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+              >
+                <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+              </div>
+              <div
+                className="h-full min-w-0"
+                style={{
+                  flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+                }}
+              >
+                <DashboardPreviewPane
+                  dashboardId={dashboardPaneState.dashboardId}
+                  conversationId={conversationId}
+                  onClose={closeDashboardPane}
+                />
+              </div>
+            </>
+          )}
+        </div>
         <Overlays conversationId={conversationId} chatV2={chatV2} />
       </>
     );
@@ -573,9 +563,9 @@ function ExistingChatInner(
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
       isLoading={false}
-      variant={props.variant ?? "sidebar"}
-      height={isFloating ? "100%" : undefined}
-      width={isFloating ? "100%" : undefined}
+      compact={props.compact}
+      height="100%"
+      width="100%"
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
@@ -665,56 +655,45 @@ function ExistingChatInner(
     </Chat>
   );
 
-  if (isFloating) {
-    return (
-      <>
-        <div className="flex h-full w-full gap-1">
-          <div className="flex-1 min-w-0">{chatElement}</div>
-          {base.features.isArtifactsEnabled &&
-            chatV2.fileArtifactPanel.isOpen &&
-            chatV2.fileArtifactPanel.fileName && (
-              <ArtifactViewerPanel
-                fileName={chatV2.fileArtifactPanel.fileName}
-                artifactType={
-                  chatV2.fileArtifactPanel.artifactType ?? "document"
-                }
-                mimeType={chatV2.fileArtifactPanel.mimeType}
-                downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
-                pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
-                onClose={chatV2.closeFileArtifactPanel}
-                onDownload={
-                  chatV2.fileArtifactPanel.fileId
-                    ? () =>
-                        chatV2.handleArtifactDownload(
-                          chatV2.fileArtifactPanel.fileId!,
-                        )
-                    : undefined
-                }
-                onGoogleDriveClick={
-                  props.onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
-                    ? () =>
-                        props.onGoogleDriveClick!(
-                          chatV2.fileArtifactPanel.fileId!,
-                        )
-                    : undefined
-                }
-                isDriveEnabled={props.isDriveEnabled}
-                isDriveConnected={props.isDriveConnected}
-                driveTooltip={props.driveTooltip}
-                isDriveLoading={
-                  props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
-                }
-              />
-            )}
-        </div>
-        <Overlays conversationId={conversationId} chatV2={chatV2} />
-      </>
-    );
-  }
-
   return (
     <>
-      {chatElement}
+      <div className="flex h-full w-full gap-1">
+        <div className="flex-1 min-w-0">{chatElement}</div>
+        {base.features.isArtifactsEnabled &&
+          chatV2.fileArtifactPanel.isOpen &&
+          chatV2.fileArtifactPanel.fileName && (
+            <ArtifactViewerPanel
+              fileName={chatV2.fileArtifactPanel.fileName}
+              artifactType={chatV2.fileArtifactPanel.artifactType ?? "document"}
+              mimeType={chatV2.fileArtifactPanel.mimeType}
+              downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
+              pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
+              onClose={chatV2.closeFileArtifactPanel}
+              onDownload={
+                chatV2.fileArtifactPanel.fileId
+                  ? () =>
+                      chatV2.handleArtifactDownload(
+                        chatV2.fileArtifactPanel.fileId!,
+                      )
+                  : undefined
+              }
+              onGoogleDriveClick={
+                props.onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
+                  ? () =>
+                      props.onGoogleDriveClick!(
+                        chatV2.fileArtifactPanel.fileId!,
+                      )
+                  : undefined
+              }
+              isDriveEnabled={props.isDriveEnabled}
+              isDriveConnected={props.isDriveConnected}
+              driveTooltip={props.driveTooltip}
+              isDriveLoading={
+                props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
+              }
+            />
+          )}
+      </div>
       <Overlays conversationId={conversationId} chatV2={chatV2} />
     </>
   );
@@ -782,7 +761,7 @@ function NewChatInner(props: ChatSessionProps) {
       messages={createFlow.transformedMessages}
       onSendMessage={createFlow.handleSendMessage}
       isLoading={false}
-      variant={props.variant ?? "sidebar"}
+      compact={props.compact}
       thinkingProcessVersion="v2"
       useStandardInput
       placeholder={props.placeholder ?? "Make changes to this dashboard..."}

@@ -318,7 +318,6 @@ const Conversation = () => {
         <ChatSession
           key={currentConversationId}
           conversationId={currentConversationId}
-          variant="floating"
           currentConversation={currentConversation}
           conversationMessages={conversationMessages}
           isLoadingMessages={isLoadingMessages}

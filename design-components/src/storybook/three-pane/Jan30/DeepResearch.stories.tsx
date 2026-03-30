@@ -2891,7 +2891,6 @@ const DeepResearchDemo = () => {
             title="Deep Research Analysis"
             messages={chatMessages}
             placeholder="Ask about this dashboard..."
-            variant="floating"
             height="100%"
             width="100%"
             thinkingProcessVersion="v2"

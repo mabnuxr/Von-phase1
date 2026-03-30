@@ -165,7 +165,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         loadMoreRef={loadMoreMessagesRef}
         isFetchingMore={isFetchingNextMessagePage}
         placeholder="Ask von anything"
-        variant="floating"
         height="100%"
         width="100%"
         showMessagesFromIndex={showMessagesFromIndex}

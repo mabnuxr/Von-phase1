@@ -136,6 +136,8 @@ export interface DeepResearchConversationProps {
   enableFileUpload?: boolean;
   /** Callback when a file attachment is clicked */
   onFileClick?: (attachment: MessageFileAttachment) => void;
+  /** Compact mode for narrow sidepane layout */
+  compact?: boolean;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -168,6 +170,7 @@ export const DeepResearchConversation: React.FC<
   onDashboardPreview,
   enableFileUpload = false,
   onFileClick,
+  compact = false,
 }) => {
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
@@ -309,7 +312,9 @@ export const DeepResearchConversation: React.FC<
   );
 
   return (
-    <div className="relative flex flex-col overflow-hidden bg-white antialiased font-sf w-full h-full @container/chat">
+    <div
+      className={`relative flex flex-col overflow-hidden bg-white antialiased font-sf rounded-xl border border-gray-100 shadow-xs w-full h-full ${compact ? "chat-container" : ""}`}
+    >
       {/* Messages area */}
       <div
         ref={containerRef}
@@ -350,6 +355,7 @@ export const DeepResearchConversation: React.FC<
           onDislike={onDislike}
           onDashboardPreview={onDashboardPreview}
           onFileClick={onFileClick}
+          compact={compact}
         />
 
         {/* Scroll to bottom button */}

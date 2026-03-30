@@ -14,9 +14,15 @@ import type { ResearchResultsMetadata } from './DeepResearch/types';
 /**
  * Von Logo Avatar component - shared across deep research UI
  */
-const VonLogoAvatar: React.FC = () => (
-  <div className="size-7 rounded-full overflow-hidden flex-shrink-0">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+const VonLogoAvatar: React.FC<{ compact?: boolean }> = ({ compact }) => (
+  <div className={`${compact ? 'w-6 h-6' : 'w-7 h-7'} rounded-full overflow-hidden flex-shrink-0`}>
+    <svg
+      width={compact ? '24' : '28'}
+      height={compact ? '24' : '28'}
+      viewBox="0 0 28 28"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
         fill="url(#paint0_radial_deep_research_chat)"
@@ -111,6 +117,12 @@ export interface DeepResearchChatProps {
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
   /** Callback when a file attachment is clicked */
   onFileClick?: (attachment: MessageFileAttachment) => void;
+  /**
+   * Compact mode for narrow sidepane layout.
+   * Stacks agent avatar above content and hides user avatars.
+   * @default false
+   */
+  compact?: boolean;
 }
 
 /**
@@ -145,6 +157,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
   onDislike,
   onDashboardPreview,
   onFileClick,
+  compact = false,
 }) => {
   // State for confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -235,6 +248,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                 conversationId={message.conversationId}
                 attachments={message.attachments}
                 onFileClick={onFileClick}
+                compact={compact}
               />
             </div>
           );
@@ -264,12 +278,15 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
           !(isLastAssistant && showResearchResults)
         ) {
           return (
-            <div key={message.id} className="max-w-4xl mx-auto w-full px-4 @max-[550px]/chat:px-6">
-              <div className="flex gap-2 @max-[550px]/chat:flex-col @max-[550px]/chat:gap-1.5">
-                <div className="flex-shrink-0 mt-0.5 @max-[550px]/chat:hidden">
-                  <VonLogoAvatar />
+            <div
+              key={message.id}
+              className={`max-w-4xl mx-auto w-full ${compact ? 'px-6' : 'px-4'}`}
+            >
+              <div className={compact ? 'flex flex-col gap-1.5' : 'flex gap-2'}>
+                <div className="flex-shrink-0 mt-0.5 mb-1">
+                  <VonLogoAvatar compact={compact} />
                 </div>
-                <div className="flex-1 space-y-3 min-w-0 @max-[550px]/chat:flex-none @max-[550px]/chat:w-full">
+                <div className={`${compact ? 'w-full' : 'flex-1'} space-y-3 min-w-0`}>
                   {message.timelineSteps && message.timelineSteps.length > 0 && (
                     <TimelineThinkingProcess
                       steps={message.timelineSteps}
@@ -323,12 +340,15 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
 
         if (isApprovalMessage || (isLastAssistant && showResearchResults)) {
           return (
-            <div key={message.id} className="max-w-4xl mx-auto w-full px-4 @max-[550px]/chat:px-6">
-              <div className="flex gap-2 @max-[550px]/chat:flex-col @max-[550px]/chat:gap-1.5">
-                <div className="flex-shrink-0 mt-0.5 @max-[550px]/chat:hidden">
-                  <VonLogoAvatar />
+            <div
+              key={message.id}
+              className={`max-w-4xl mx-auto w-full ${compact ? 'px-6' : 'px-4'}`}
+            >
+              <div className={compact ? 'flex flex-col gap-1.5' : 'flex gap-2'}>
+                <div className="flex-shrink-0 mt-0.5">
+                  <VonLogoAvatar compact={compact} />
                 </div>
-                <div className="flex-1 space-y-3 min-w-0 @max-[550px]/chat:flex-none @max-[550px]/chat:w-full">
+                <div className={`${compact ? 'w-full' : 'flex-1'} space-y-3 min-w-0`}>
                   {message.timelineSteps && message.timelineSteps.length > 0 && (
                     <TimelineThinkingProcess
                       steps={message.timelineSteps}
@@ -471,6 +491,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               onReject={onReject}
               runId={message.runId}
               showTransparency={false}
+              compact={compact}
             />
           </div>
         );

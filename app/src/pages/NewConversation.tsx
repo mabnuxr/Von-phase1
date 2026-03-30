@@ -165,7 +165,6 @@ const NewConversation = () => {
         onSendMessage={handleSendMessage}
         isLoading={false}
         placeholder="Ask von anything"
-        variant="floating"
         height="100%"
         width="100%"
         banner={banner}
