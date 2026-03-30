@@ -23,6 +23,7 @@ export function ConversationMoreMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [isPendingDelete, setIsPendingDelete] = useState(false);
   const [isPendingAddToFolder, setIsPendingAddToFolder] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -68,13 +69,15 @@ export function ConversationMoreMenu({
     isNewFolder: boolean;
     newFolderName?: string;
   }) => {
-    if (!conversationId) return;
+    if (!conversationId || isMoving) return;
+    setIsMoving(true);
     if (config.isNewFolder && config.newFolderName) {
       createFolderForItem(conversationId, config.newFolderName);
     } else {
       moveItemToFolder(conversationId, config.folderId);
     }
     setIsPendingAddToFolder(false);
+    setIsMoving(false);
   };
 
   // Map folders to the shape MoveToFolderModal expects

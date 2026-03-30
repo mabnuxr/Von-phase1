@@ -19,10 +19,17 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
   const updatePosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
-    setPosition({
-      top: rect.bottom + 6,
-      left: Math.max(8, rect.left - 280),
-    });
+    const popoverWidth = 360;
+    let left = rect.left - popoverWidth + rect.width;
+    const rightEdge = left + popoverWidth;
+
+    if (left < 8) {
+      left = 8;
+    } else if (rightEdge > window.innerWidth - 8) {
+      left = window.innerWidth - popoverWidth - 8;
+    }
+
+    setPosition({ top: rect.bottom + 6, left });
   }, []);
 
   useEffect(() => {
