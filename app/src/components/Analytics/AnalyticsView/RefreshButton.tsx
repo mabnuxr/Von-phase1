@@ -406,7 +406,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
                               hideSchedule();
                             }}
                             disabled={isMutating}
-                            className="flex items-center justify-center gap-1.5 h-[30px] px-2.5 rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <TrashIcon size={12} />
                             Remove

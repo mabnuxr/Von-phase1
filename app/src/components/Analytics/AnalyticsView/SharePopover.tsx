@@ -166,7 +166,7 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
                     {sharePhase === "idle" && "Share"}
                   </button>
 
-                  {selectedShared && onCopyLink && (
+                  {isSharedWithTenant && onCopyLink && (
                     <button
                       onClick={handleCopyLink}
                       className="w-full h-[34px] rounded-xl text-sm font-medium text-gray-800 border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
