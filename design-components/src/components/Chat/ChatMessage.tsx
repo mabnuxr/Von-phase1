@@ -541,11 +541,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
 
                 {/* Content Column */}
-                <div className={`flex-1 min-w-0 -mt-0.5 ${
-                  isUser
-                    ? '@max-[550px]/chat:flex-none @max-[550px]/chat:w-fit @max-[550px]/chat:ml-auto'
-                    : '@max-[550px]/chat:flex-none @max-[550px]/chat:w-full @max-[550px]/chat:mt-0'
-                }`}>
+                <div
+                  className={`flex-1 min-w-0 -mt-0.5 ${
+                    isUser
+                      ? '@max-[550px]/chat:flex-none @max-[550px]/chat:w-fit @max-[550px]/chat:ml-auto'
+                      : '@max-[550px]/chat:flex-none @max-[550px]/chat:w-full @max-[550px]/chat:mt-0'
+                  }`}
+                >
                   {/* For V1 assistant messages: check for errors first (error replaces content) */}
                   {!isUser &&
                   status === 'failed' &&

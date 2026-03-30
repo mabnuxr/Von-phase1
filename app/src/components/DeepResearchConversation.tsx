@@ -309,9 +309,7 @@ export const DeepResearchConversation: React.FC<
   );
 
   return (
-    <div
-      className="relative flex flex-col overflow-hidden bg-white antialiased font-sf w-full h-full @container/chat"
-    >
+    <div className="relative flex flex-col overflow-hidden bg-white antialiased font-sf w-full h-full @container/chat">
       {/* Messages area */}
       <div
         ref={containerRef}
