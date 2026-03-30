@@ -1,22 +1,8 @@
-import { createContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useVisibilityToggle } from "@vonlabs/design-components";
-
-interface GlobalChatContextValue {
-  activeChatId: string | null;
-  setActiveChatId: (id: string | null) => void;
-  isChatPanelOpen: boolean;
-  openChatPanel: () => void;
-  closeChatPanel: () => void;
-}
-
-export const GlobalChatContext = createContext<GlobalChatContextValue>({
-  activeChatId: null,
-  setActiveChatId: () => {},
-  isChatPanelOpen: false,
-  openChatPanel: () => {},
-  closeChatPanel: () => {},
-});
+import { GlobalChatContext } from "./GlobalChatContext";
+import type { GlobalChatContextValue } from "./GlobalChatContext";
 
 export function GlobalChatProvider({ children }: { children: ReactNode }) {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);

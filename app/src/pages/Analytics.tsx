@@ -21,7 +21,7 @@ import { ChatSession } from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
-import { useGlobalChat } from "../providers/useGlobalChat";
+import { useGlobalChat } from "../providers/GlobalChat";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 
 interface DashboardCanvasProps {
@@ -255,14 +255,16 @@ const Analytics = () => {
     }
   }, [conversationIdFromParams, setActiveChatId, openChatPanel]);
 
-  // Reset local conversation when navigating to a different dashboard.
-  // Note: activeChatId in GlobalChatProvider intentionally does NOT reset —
-  // that is what keeps the chat panel persistent across dashboard switches.
+  // Reset conversation state when navigating to a different dashboard.
+  // activeChatId must reset too — otherwise a conversation created for dashboard A
+  // would receive dashboard B's references when the user switches dashboards.
   useEffect(() => {
     activeDashboardIdRef.current = dashboardId;
     prevDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
-  }, [dashboardId]);
+    setActiveChatId(null);
+    hasInitializedChatRef.current = false;
+  }, [dashboardId, setActiveChatId]);
 
   // The active conversation: global selection takes priority, then local fallback
   const conversationId = activeChatId ?? createdConversationId;

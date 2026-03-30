@@ -200,9 +200,11 @@ function ExistingChatInner(
   const currentConversation = props.currentConversation ?? fetchedConversation;
 
   const storeMessages = useChatStore((s) => s.messages);
-  const conversationMessages = props.conversationMessages ??
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useMemo(() => storeMessages[conversationId] || [], [conversationId, storeMessages]);
+  const fallbackMessages = useMemo(
+    () => storeMessages[conversationId] || [],
+    [conversationId, storeMessages],
+  );
+  const conversationMessages = props.conversationMessages ?? fallbackMessages;
 
   const selfFetchMessages = !props.fetchNextMessagePage;
   const msgQuery = useMessages(
@@ -399,12 +401,13 @@ function ExistingChatInner(
     constraints: SPLIT_CONSTRAINTS,
   });
 
+  const { onCollapseSidebar } = props;
   const handleDashboardPreview = useCallback(
     (dashboardId: string) => {
       openDashboardPane(dashboardId);
-      props.onCollapseSidebar?.();
+      onCollapseSidebar?.();
     },
-    [openDashboardPane, props.onCollapseSidebar],
+    [openDashboardPane, onCollapseSidebar],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);

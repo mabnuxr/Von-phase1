@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { CodeIcon, XIcon, CopyIcon, CheckIcon } from '@phosphor-icons/react';
 import { useVisibilityToggle } from '../../../hooks/useVisibilityToggle';
+import { useCopyToClipboard } from '../../../hooks/useCopyToClipboard';
 import type { QueryInfo } from '../types';
 
 interface QueryInfoPopoverProps {
@@ -10,7 +11,7 @@ interface QueryInfoPopoverProps {
 
 const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
   const { isVisible: open, hide, toggleVisibility } = useVisibilityToggle();
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopyToClipboard();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -51,12 +52,6 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
     };
   }, [open, updatePosition, hide]);
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(queryInfo.sql);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <>
       <button
@@ -81,7 +76,7 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
               <span className="text-xs font-medium text-gray-700">Query</span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={handleCopy}
+                  onClick={() => copy(queryInfo.sql)}
                   className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
                   title="Copy SQL"
                 >

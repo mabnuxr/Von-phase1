@@ -17,7 +17,7 @@ export function useBaseChatConfig() {
   const salesforce = useSalesforceConnection();
   const commands = useCommandsPanel(user?.id);
 
-  const canSubmit = salesforce.isConnected && salesforce.isAuthenticated;
+  const canSubmit = salesforce.isConnected && salesforce.isAuthenticated && !features.isTenantDisabled;
 
   return { user, features, commands, canSubmit };
 }

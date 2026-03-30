@@ -19,6 +19,7 @@ function groupByRecency(conversations: SidebarConversation[]) {
 
   const last7: SidebarConversation[] = [];
   const last30: SidebarConversation[] = [];
+  const older: SidebarConversation[] = [];
 
   for (const conv of conversations) {
     const age = now - new Date(conv.updatedAt).getTime();
@@ -26,10 +27,12 @@ function groupByRecency(conversations: SidebarConversation[]) {
       last7.push(conv);
     } else if (age <= thirtyDays) {
       last30.push(conv);
+    } else {
+      older.push(conv);
     }
   }
 
-  return { last7, last30 };
+  return { last7, last30, older };
 }
 
 function ConvButton({
@@ -130,12 +133,12 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
     [unfiledConversations],
   );
 
-  const { last7, last30 } = useMemo(
+  const { last7, last30, older } = useMemo(
     () => groupByRecency(titledConversations),
     [titledConversations],
   );
 
-  const isEmpty = last7.length === 0 && last30.length === 0;
+  const isEmpty = last7.length === 0 && last30.length === 0 && older.length === 0;
 
   return (
     <div ref={containerRef} className="relative flex-1 min-w-0">
@@ -198,6 +201,22 @@ export function ChatPicker({ activeChatId, onSelect, isRenaming = false, onRenam
                     Last 30 days
                   </div>
                   {last30.map((conv) => (
+                    <ConvButton
+                      key={conv.conversationId}
+                      conv={conv}
+                      isActive={conv.conversationId === activeChatId}
+                      onSelect={onSelect}
+                      onClose={() => setIsOpen(false)}
+                    />
+                  ))}
+                </div>
+              )}
+              {older.length > 0 && (
+                <div className={last7.length > 0 || last30.length > 0 ? "border-t border-gray-100" : ""}>
+                  <div className="px-3 pt-2.5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                    Older
+                  </div>
+                  {older.map((conv) => (
                     <ConvButton
                       key={conv.conversationId}
                       conv={conv}

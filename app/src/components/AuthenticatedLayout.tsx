@@ -4,7 +4,7 @@ import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 import { getUserContextFromToken } from "../lib/auth";
 import { identifyDatadogUser } from "../lib/datadog";
 import { LaunchDarklyIdentityContext } from "./LaunchDarkly";
-import { GlobalChatProvider } from "../providers/GlobalChatProvider";
+import { GlobalChatProvider } from "../providers/GlobalChat";
 
 /**
  * Layout wrapper for authenticated routes.
