@@ -84,6 +84,10 @@ export interface Message {
    */
   attachments?: MessageFileAttachment[];
   /**
+   * Dashboard mentions for user messages
+   */
+  mentions?: MentionItem[];
+  /**
    * Thought content for assistant messages (separate from main content)
    */
   thoughtContent?: string;

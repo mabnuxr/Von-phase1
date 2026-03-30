@@ -247,6 +247,7 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
                 messageId={message.messageId || message.id}
                 conversationId={message.conversationId}
                 attachments={message.attachments}
+                mentions={message.mentions}
                 onFileClick={onFileClick}
                 compact={compact}
               />

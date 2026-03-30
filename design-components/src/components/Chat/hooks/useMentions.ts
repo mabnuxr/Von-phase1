@@ -35,6 +35,12 @@ export interface UseMentionsReturn {
   handleCloseMentionsList: () => void;
   /** Extract all mentions from editor doc at send time */
   extractMentions: (editor: Editor | null) => MentionItem[];
+  /** Mentions selected as preview cards (shown above the editor) */
+  selectedMentions: MentionItem[];
+  /** Remove a selected mention card by id */
+  removeSelectedMention: (id: string) => void;
+  /** Clear all selected mentions (e.g. after send) */
+  clearSelectedMentions: () => void;
 }
 
 /**
@@ -47,13 +53,34 @@ function filterItems(items: MentionItem[], search: string): MentionItem[] {
 }
 
 /**
+ * Remove all mention nodes with a given id from a Tiptap editor.
+ */
+function removeMentionNodeById(editor: Editor, mentionId: string) {
+  const { doc, tr } = editor.state;
+  // Collect positions in reverse so deletions don't shift earlier positions
+  const positions: { from: number; to: number }[] = [];
+  doc.descendants((node, pos) => {
+    if (node.type.name === 'mention' && node.attrs.id === mentionId) {
+      positions.push({ from: pos, to: pos + node.nodeSize });
+    }
+  });
+  for (let i = positions.length - 1; i >= 0; i--) {
+    tr.delete(positions[i].from, positions[i].to);
+  }
+  if (positions.length > 0) {
+    editor.view.dispatch(tr);
+  }
+}
+
+/**
  * Unified hook for @ mention functionality.
  *
  * Replaces useMentionInputState + useMentionsKeyboardNav by leveraging
  * Tiptap's built-in suggestion plugin for "@" detection, overlay lifecycle,
  * keyboard navigation, and Escape handling.
  *
- * The existing MentionsOverlay component is reused as the dropdown UI.
+ * Selected mentions are displayed as preview cards above the editor
+ * (like file attachments) rather than inline chips.
  */
 export function useMentions({
   enableMentions,
@@ -64,6 +91,7 @@ export function useMentions({
   const [suggestionState, setSuggestionState] =
     useState<MentionSuggestionState>(INITIAL_SUGGESTION_STATE);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>([]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
@@ -73,6 +101,7 @@ export function useMentions({
   const filteredItemsRef = useRef<MentionItem[]>([]);
   const onSelectMentionRef = useRef(onSelectMention);
   onSelectMentionRef.current = onSelectMention;
+  const editorRef = useRef<Editor | null>(null);
 
   // Keep highlightedIndexRef in sync
   highlightedIndexRef.current = highlightedIndex;
@@ -99,7 +128,7 @@ export function useMentions({
   >(null);
 
   const handleOverlaySelect = useCallback((item: MentionItem) => {
-    // Use Tiptap's suggestion command if available (inserts node into editor)
+    // Use Tiptap's suggestion command to clean up the @query text
     if (suggestionCommandRef.current) {
       suggestionCommandRef.current({
         id: item.id,
@@ -109,7 +138,30 @@ export function useMentions({
       });
       suggestionCommandRef.current = null;
     }
+
+    // Remove the inline mention node that was just inserted — we show it
+    // as a preview card above the editor instead.
+    if (editorRef.current) {
+      // Use requestAnimationFrame to ensure the node is inserted before we remove it
+      requestAnimationFrame(() => {
+        if (editorRef.current) {
+          removeMentionNodeById(editorRef.current, item.id);
+        }
+      });
+    }
+
+    // Add to selected mentions (avoid duplicates)
+    setSelectedMentions((prev) => (prev.some((m) => m.id === item.id) ? prev : [...prev, item]));
+
     onSelectMentionRef.current?.(item);
+  }, []);
+
+  const removeSelectedMention = useCallback((id: string) => {
+    setSelectedMentions((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
+  const clearSelectedMentions = useCallback(() => {
+    setSelectedMentions([]);
   }, []);
 
   const handleCloseMentionsList = useCallback(() => {
@@ -140,7 +192,7 @@ export function useMentions({
       onSelect: handleOverlaySelect,
     });
 
-    // Extend the suggestion config to capture the command function
+    // Extend the suggestion config to capture the command function and editor ref
     const originalRender = suggestion.render!;
     suggestion.render = () => {
       const renderer = originalRender();
@@ -148,10 +200,12 @@ export function useMentions({
         ...renderer,
         onStart(props: SuggestionProps<MentionItem>) {
           suggestionCommandRef.current = props.command;
+          editorRef.current = props.editor;
           renderer.onStart?.(props);
         },
         onUpdate(props: SuggestionProps<MentionItem>) {
           suggestionCommandRef.current = props.command;
+          editorRef.current = props.editor;
           renderer.onUpdate?.(props);
         },
       };
@@ -196,5 +250,8 @@ export function useMentions({
     handleSelectMention: handleOverlaySelect,
     handleCloseMentionsList,
     extractMentions,
+    selectedMentions,
+    removeSelectedMention,
+    clearSelectedMentions,
   };
 }

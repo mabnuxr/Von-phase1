@@ -23,6 +23,7 @@ import {
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { FilePreview } from '../FileAttachment/FilePreview';
+import { MentionPreview } from '../FileAttachment/MentionPreview';
 import { DragDropOverlay } from '../FileAttachment/DragDropOverlay';
 import { FileErrorToast } from '../FileAttachment/FileErrorToast';
 import { useFileUpload } from '../FileAttachment/useFileUpload';
@@ -247,6 +248,9 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       enableFileUpload = false,
       // Additional Tiptap extensions
       additionalExtensions,
+      // Mention previews
+      selectedMentions,
+      onRemoveMention,
     },
     ref
   ) => {
@@ -570,8 +574,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 <div className="flex flex-col bg-white rounded-[15px] gap-1">
                   {/* Drag-and-drop overlay */}
                   <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
-                  {/* File previews - shown above the input when files are attached */}
-                  {hasAttachments && (
+                  {/* File & mention previews - shown above the input */}
+                  {(hasAttachments || (selectedMentions && selectedMentions.length > 0)) && (
                     <div className="px-4 pt-3 pb-1">
                       <div className="flex flex-wrap gap-1.5">
                         {attachments.map((attachment) => (
@@ -579,6 +583,14 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             key={attachment.id}
                             attachment={attachment}
                             onRemove={handleRemoveAttachment}
+                            removable={!disabled}
+                          />
+                        ))}
+                        {selectedMentions?.map((mention) => (
+                          <MentionPreview
+                            key={mention.id}
+                            mention={mention}
+                            onRemove={onRemoveMention}
                             removable={!disabled}
                           />
                         ))}
