@@ -252,21 +252,22 @@ const Analytics = () => {
     [dashboardId, setActiveChatId],
   );
 
-  // Reset conversation state on dashboard change, then apply URL param if present.
-  // Merged into one effect so the URL param isn't overwritten by a separate reset.
+  // Update refs on dashboard change and reset the local created-conversation
+  // fallback (it's dashboard-specific). Don't touch activeChatId — the chat
+  // panel should persist across dashboard navigation.
   useEffect(() => {
     activeDashboardIdRef.current = dashboardId;
     prevDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
-    hasInitializedChatRef.current = false;
+  }, [dashboardId]);
 
+  // Deep-link support: when a conversationId is present in the URL, activate it.
+  useEffect(() => {
     if (conversationIdFromParams) {
       setActiveChatId(conversationIdFromParams);
       openChatPanel();
-    } else {
-      setActiveChatId(null);
     }
-  }, [dashboardId, conversationIdFromParams, setActiveChatId, openChatPanel]);
+  }, [conversationIdFromParams, setActiveChatId, openChatPanel]);
 
   // The active conversation: global selection takes priority, then local fallback
   const conversationId = activeChatId ?? createdConversationId;
@@ -355,28 +356,22 @@ const Analytics = () => {
           </Tooltip>
         </div>
 
-        {/* Chat content — gate on dashboard data so we never send empty title/version */}
+        {/* Chat content — always render ChatSession so it never unmounts on dashboard switch */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          {!data?.dashboard ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-xs text-gray-400">Loading dashboard…</p>
-            </div>
-          ) : (
-            <ChatSession
-              key={conversationId ?? `new-${dashboardId}`}
-              conversationId={conversationId}
-              variant="sidebar"
-              placeholder="Make changes to this dashboard..."
-              dashboardId={dashboardId}
-              dashboardTitle={dashboardTitle}
-              dashboardVersion={dashboardVersion}
-              onCreated={handleConversationCreated}
-            >
-              <ChatSession.EmptyState>
-                <AnalyticsChatEmptyState />
-              </ChatSession.EmptyState>
-            </ChatSession>
-          )}
+          <ChatSession
+            key={conversationId ?? `new-${dashboardId}`}
+            conversationId={conversationId}
+            variant="sidebar"
+            placeholder="Make changes to this dashboard..."
+            dashboardId={dashboardId}
+            dashboardTitle={dashboardTitle}
+            dashboardVersion={dashboardVersion}
+            onCreated={handleConversationCreated}
+          >
+            <ChatSession.EmptyState>
+              <AnalyticsChatEmptyState />
+            </ChatSession.EmptyState>
+          </ChatSession>
         </div>
       </div>
     </div>
