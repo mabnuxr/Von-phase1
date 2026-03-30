@@ -5,7 +5,7 @@
  * Responsibilities:
  * - Conversation init, lookup, switching
  * - Salesforce connection
- * - Delegates all chat logic to ChatV1Container or ChatV2Container
+ * - Delegates all chat logic to ChatV1Container or ChatSession
  *
  * Layout (sidebar, auth, feature flags) is handled by AppShell.
  *
@@ -36,7 +36,7 @@ import { useToast } from "../hooks/useToast";
 import { conversationKeys } from "../hooks/useConversations";
 import { chatSidebarKeys } from "../hooks/useChatSidebar";
 import { ChatV1Container } from "../components/ChatV1Container";
-import { ChatV2Container } from "../components/ChatV2Container";
+import { ChatSession } from "../components/chat/ChatSession";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
@@ -315,11 +315,30 @@ const Conversation = () => {
       {isLoading ? (
         <ChatSkeleton messageCount={4} />
       ) : currentConversationId && isAgentV2 && currentConversation ? (
-        <ChatV2Container
+        <ChatSession
           key={currentConversationId}
           conversationId={currentConversationId}
+          variant="floating"
           currentConversation={currentConversation}
-          {...sharedContainerProps}
+          conversationMessages={conversationMessages}
+          isLoadingMessages={isLoadingMessages}
+          fetchNextMessagePage={fetchNextMessagePage}
+          hasNextMessagePage={!!hasNextMessagePage}
+          isFetchingNextMessagePage={isFetchingNextMessagePage}
+          refetchMessages={refetchMessages as () => Promise<unknown>}
+          lockedConversationMode={lockedConversationMode}
+          isAgentLocked={isAgentLocked}
+          availableAgentModes={availableAgentModes}
+          syncConversationModeToBackend={syncConversationModeToBackend}
+          banner={chatBanner}
+          onDisabledInteraction={handleDisabledInteraction}
+          onCollapseSidebar={collapseSidebar}
+          salesforceInstanceUrl={salesforceInstanceUrl}
+          onGoogleDriveClick={handleGoogleDriveClick}
+          isDriveEnabled={isDriveEnabled}
+          isDriveConnected={isDriveConnected}
+          driveTooltip={driveTooltip}
+          driveLoadingFileId={driveLoadingFileId}
         />
       ) : currentConversationId ? (
         <ChatV1Container

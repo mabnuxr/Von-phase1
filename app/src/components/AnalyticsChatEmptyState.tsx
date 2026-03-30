@@ -1,7 +1,7 @@
 /**
  * AnalyticsChatEmptyState - Simple empty state for the analytics chat panel.
  * Shows a muted Von logo icon and "Start a conversation" prompt.
- * Composed into AnalyticsChatContainer alongside ChatInputSelector.
+ * Used as ChatSession.EmptyState override in the dashboard chat pane.
  */
 
 export function AnalyticsChatEmptyState() {

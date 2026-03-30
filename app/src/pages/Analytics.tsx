@@ -17,8 +17,8 @@ import { Tooltip } from "@vonlabs/design-components";
 import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
-import { AnalyticsChatContainer } from "../components/AnalyticsChatContainer";
-import { AnalyticsNewConversationContainer } from "../components/AnalyticsNewConversationContainer";
+import { ChatSession } from "../components/chat/ChatSession";
+import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/useGlobalChat";
@@ -324,7 +324,10 @@ const Analytics = () => {
             />
             <Tooltip content="New chat">
               <button
-                onClick={() => setActiveChatId(null)}
+                onClick={() => {
+                  setActiveChatId(null);
+                  setCreatedConversationId(null);
+                }}
                 className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <PlusCircleIcon size={16} weight="fill" />
@@ -332,7 +335,10 @@ const Analytics = () => {
             </Tooltip>
             <ConversationMoreMenu
               conversationId={activeChatId}
-              onDeleted={() => setActiveChatId(null)}
+              onDeleted={() => {
+                  setActiveChatId(null);
+                  setCreatedConversationId(null);
+                }}
               onStartRename={() => setIsRenamingChat(true)}
             />
             <Tooltip content="Collapse chat">
@@ -351,22 +357,21 @@ const Analytics = () => {
               <div className="flex items-center justify-center h-full">
                 <p className="text-xs text-gray-400">Loading dashboard…</p>
               </div>
-            ) : conversationId ? (
-              <AnalyticsChatContainer
-                key={conversationId}
-                conversationId={conversationId}
-                dashboardId={dashboardId}
-                dashboardTitle={dashboardTitle}
-                dashboardVersion={dashboardVersion}
-              />
             ) : (
-              <AnalyticsNewConversationContainer
-                key={dashboardId}
+              <ChatSession
+                key={conversationId ?? `new-${dashboardId}`}
+                conversationId={conversationId}
+                variant="sidebar"
+                placeholder="Make changes to this dashboard..."
                 dashboardId={dashboardId}
                 dashboardTitle={dashboardTitle}
                 dashboardVersion={dashboardVersion}
                 onCreated={handleConversationCreated}
-              />
+              >
+                <ChatSession.EmptyState>
+                  <AnalyticsChatEmptyState />
+                </ChatSession.EmptyState>
+              </ChatSession>
             )}
           </div>
         </div>
