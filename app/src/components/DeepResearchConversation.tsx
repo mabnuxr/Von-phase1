@@ -38,6 +38,7 @@ import type {
 interface ChatInputSelectorRef {
   focus: () => void;
 }
+import { useChatMentions } from "../hooks/useChatMentions";
 import { useDeepResearchArtifacts } from "../hooks/useMessageArtifacts";
 import { useDataTablesDrawer } from "../hooks/useDataTablesDrawer";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -172,6 +173,14 @@ export const DeepResearchConversation: React.FC<
   onFileClick,
   compact = false,
 }) => {
+  // ── Mentions ──────────────────────────────────────────────────────
+  const {
+    enableMentions,
+    mentionItems,
+    isLoadingMentions,
+    onMentionsActivated,
+  } = useChatMentions();
+
   // DataTables drawer state (for approval flow)
   const [isDataTablesOpen, setIsDataTablesOpen] = useState(false);
   const [dataTablesRunId, setDataTablesRunId] = useState<string | null>(null);
@@ -387,6 +396,10 @@ export const DeepResearchConversation: React.FC<
           lockedConversationMode={lockedConversationMode}
           availableAgentModes={availableAgentModes}
           enableFileUpload={enableFileUpload}
+          enableMentions={enableMentions}
+          mentionItems={mentionItems}
+          isLoadingMentions={isLoadingMentions}
+          onMentionsActivated={onMentionsActivated}
         />
       )}
 

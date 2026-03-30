@@ -308,6 +308,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       handleSelectMention,
       handleCloseMentionsList,
       extractMentions,
+      selectedMentions,
+      removeSelectedMention,
+      clearSelectedMentions,
     } = useMentions({
       enableMentions,
       mentionItems,
@@ -416,16 +419,18 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               if (fileCount > 0) setCommandNotificationFileCount(fileCount);
               return;
             }
-            // Extract inline mention chips from the editor before it gets cleared
+            // Combine inline mentions (if any remain) with selected mention cards
             const editor = standardInputRef.current?.getEditor?.() ?? null;
-            const mentions = extractMentions(editor);
+            const inlineMentions = extractMentions(editor);
+            const allMentions = [...selectedMentions, ...inlineMentions];
             // When mention chips are present, the markdown contains raw HTML
             // <span> tags. Strip them to plain @Label while preserving formatting.
-            const finalMessage = mentions.length > 0 ? stripMentionHtml(message) : message;
+            const finalMessage = inlineMentions.length > 0 ? stripMentionHtml(message) : message;
             onSend(finalMessage, attachments, {
               agentMode,
-              ...(mentions.length > 0 ? { mentions } : {}),
+              ...(allMentions.length > 0 ? { mentions: allMentions } : {}),
             });
+            clearSelectedMentions();
             dismissCommandsList();
           }
         : undefined;
@@ -444,6 +449,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           availableAgentModes={availableAgentModes}
           enableFileUpload={enableFileUpload}
           additionalExtensions={additionalExtensions}
+          selectedMentions={selectedMentions}
+          onRemoveMention={removeSelectedMention}
         />
       );
     }

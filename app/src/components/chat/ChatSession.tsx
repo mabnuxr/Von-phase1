@@ -19,7 +19,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,8 +31,7 @@ import {
   usePanelResize,
   ConversationMode,
 } from "@vonlabs/design-components";
-import type { MentionItem, FileArtifact } from "@vonlabs/design-components";
-import { MentionItemType } from "@vonlabs/design-components";
+import type { FileArtifact } from "@vonlabs/design-components";
 
 import type {
   Conversation,
@@ -42,6 +40,7 @@ import type {
 import type { MessageReference } from "../../types/conversation";
 import { ReferenceType } from "../../types/conversation";
 import { useBaseChatConfig } from "../../hooks/useBaseChatConfig";
+import { useChatMentions } from "../../hooks/useChatMentions";
 import { useChatV2 } from "../../hooks/useChatV2";
 import { useCreateAndSendMessage } from "../../hooks/useCreateAndSendMessage";
 import { useMessages } from "../../hooks/useMessages";
@@ -50,7 +49,6 @@ import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 import { useReferenceStack } from "../../hooks/useReferenceStack";
 import type { ReferenceStackLayer } from "../../hooks/useReferenceStack";
 import { useDashboardPane } from "../../hooks/useDashboardPane";
-import { useDashboardList } from "../../hooks/useDashboardList";
 import { useTeamMembers } from "../../hooks/useTeam";
 import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
@@ -357,22 +355,12 @@ function ExistingChatInner(
   );
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const [mentionsActivated, setMentionsActivated] = useState(false);
-  const { data: dashboardListData, isLoading: isLoadingMentions } =
-    useDashboardList(mentionsActivated);
-  const mentionItems: MentionItem[] = useMemo(
-    () =>
-      dashboardListData?.data.map((d) => ({
-        id: d.dashboard_id,
-        name: d.dashboard_name,
-        type: MentionItemType.Dashboard,
-        version: d.dashboard_version,
-      })) ?? [],
-    [dashboardListData],
-  );
-  const enableMentions = (
-    props.availableAgentModes ?? CHAT_PANE_AGENT_MODES
-  ).includes(ConversationMode.DashboardBuilder);
+  const {
+    enableMentions,
+    mentionItems,
+    isLoadingMentions,
+    onMentionsActivated,
+  } = useChatMentions();
 
   // ── Scheduled commands ────────────────────────────────────────────
   const { data: teamMembersData } = useTeamMembers(
@@ -649,7 +637,7 @@ function ExistingChatInner(
       enableMentions={enableMentions}
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
-      onMentionsActivated={() => setMentionsActivated(true)}
+      onMentionsActivated={onMentionsActivated}
       // Google Drive
       onGoogleDriveClick={props.onGoogleDriveClick}
       isDriveEnabled={props.isDriveEnabled}
@@ -716,6 +704,14 @@ function ExistingChatInner(
 function NewChatInner(props: ChatSessionProps) {
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
+
+  // ── Mentions ──────────────────────────────────────────────────────
+  const {
+    enableMentions,
+    mentionItems,
+    isLoadingMentions,
+    onMentionsActivated,
+  } = useChatMentions();
 
   // ── Reference stack ───────────────────────────────────────────────
   const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
@@ -801,6 +797,11 @@ function NewChatInner(props: ChatSessionProps) {
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
       isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === "admin")}
+      // Mentions
+      enableMentions={enableMentions}
+      mentionItems={mentionItems}
+      isLoadingMentions={isLoadingMentions}
+      onMentionsActivated={onMentionsActivated}
       // Reference context
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}

@@ -417,6 +417,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   thinkingElapsedTime={message.thinkingElapsedTime}
                   v2FinalResponse={message.v2FinalResponse}
                   attachments={message.attachments}
+                  mentions={message.mentions}
                   onFileClick={onFileClick}
                   // File artifacts (gated by showArtifacts flag)
                   artifacts={showArtifacts ? message.artifacts : undefined}

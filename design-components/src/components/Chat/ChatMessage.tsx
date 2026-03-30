@@ -6,12 +6,14 @@ import { ToolCallItem } from './ToolCallItem';
 import { MessageAreaError } from './MessageAreaError';
 import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
+import { MessageMentionPreview } from './FileAttachment/MessageMentionPreview';
 import { SalesforceLink } from './SalesforceLink';
 import { TiptapViewer } from '../TiptapEditor';
 import { Tooltip } from '../Tooltip';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment, MessageStatus } from './types';
+import type { MentionItem } from '../Mentions/types';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 import { IntegrationCard } from '../IntegrationCard';
 import { CommandPreview } from '../Commands/CommandPreview';
@@ -86,6 +88,11 @@ export interface ChatMessageProps {
    * File attachments for user messages
    */
   attachments?: MessageFileAttachment[];
+
+  /**
+   * Dashboard mentions for user messages
+   */
+  mentions?: MentionItem[];
 
   /**
    * Thought content (for assistant messages)
@@ -379,6 +386,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
   attachments,
+  mentions,
   reasoningContent,
   isStreaming = false,
   isReasoningStreaming = false,
@@ -762,6 +770,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {attachments && attachments.length > 0 && (
                         <div className={command ? 'mt-2' : undefined}>
                           <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
+                        </div>
+                      )}
+                      {mentions && mentions.length > 0 && (
+                        <div
+                          className={
+                            command || (attachments && attachments.length > 0) ? 'mt-2' : undefined
+                          }
+                        >
+                          <MessageMentionPreview mentions={mentions} />
                         </div>
                       )}
                       {/* Text content - render markdown using TiptapViewer */}
