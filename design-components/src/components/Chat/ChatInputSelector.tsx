@@ -415,6 +415,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
               onChange?.('');
               clearSelectedCommand();
+              clearSelectedMentions();
               const fileCount = selectedCommand.dataSources?.length ?? 0;
               if (fileCount > 0) setCommandNotificationFileCount(fileCount);
               return;
