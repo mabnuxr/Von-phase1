@@ -44,7 +44,7 @@ interface AnalyticsViewProps {
   refreshInfo: RefreshInfo | null;
   activeFilters: Record<string, unknown>;
   onRefresh: () => Promise<void>;
-  onSave: (isFirstSave?: boolean) => void;
+  onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
   onRevert: () => void;
   revertPhase: MutationPhase;
@@ -203,8 +203,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [exitEditMode, onChatClose]);
 
   const handleSaveFromEditMode = useCallback(() => {
-    onSave(dashboard.dashboardVersion < 1);
-    exitEditMode();
+    onSave({
+      isFirstSave: dashboard.dashboardVersion < 1,
+      onSuccess: exitEditMode,
+    });
   }, [onSave, dashboard.dashboardVersion, exitEditMode]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;

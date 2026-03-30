@@ -42,10 +42,14 @@ export function useAnalyticsTools(dashboardId: string) {
   });
 
   const handleSave = useCallback(
-    (isFirstSave?: boolean) => {
+    ({
+      isFirstSave,
+      onSuccess,
+    }: { isFirstSave?: boolean; onSuccess?: () => void } = {}) => {
       isFirstSaveRef.current = isFirstSave ?? false;
 
       saveMutation.mutate(undefined, {
+        onSuccess,
         onError: (error) => {
           console.error("[useAnalyticsTools] Save failed:", error);
           showToast({
