@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useGuardedNavigate } from "../providers/NavigationGuard";
 
 /**
  * Encapsulates new chat navigation logic.
@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
  * avoiding orphaned conversations with no user messages.
  */
 export function useNewChat() {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
 
   const handleNewChatClick = useCallback(() => {
     navigate("/chat/new");

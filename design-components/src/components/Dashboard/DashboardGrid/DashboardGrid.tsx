@@ -6,8 +6,11 @@ import type { DashboardGridProps } from '../types';
 import 'react-grid-layout/css/styles.css';
 
 /**
- * View-only dashboard grid. Renders widgets in their configured positions
+ * Dashboard grid. Renders widgets in their configured positions
  * using react-grid-layout with drag and resize disabled.
+ *
+ * When `isEditMode` is true, widgets get a dashed border treatment
+ * to indicate they are editable.
  */
 const DashboardGrid: React.FC<DashboardGridProps> = ({
   layout,
@@ -19,6 +22,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   onPointDrillDown,
   onTableSortChange,
   tableSortStates,
+  isEditMode,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
@@ -65,7 +69,12 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
           const widget = widgets[item.i];
           if (!widget) return <div key={item.i} />;
           return (
-            <div key={item.i} className="h-full">
+            <div
+              key={item.i}
+              className={`h-full ${
+                isEditMode ? 'rounded-2xl border-2 border-dashed border-gray-300 shadow-sm' : ''
+              }`}
+            >
               <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
                 <WidgetRenderer
                   widget={widget}

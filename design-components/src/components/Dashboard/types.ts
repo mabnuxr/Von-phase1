@@ -193,4 +193,6 @@ export interface DashboardGridProps {
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state per panel */
   tableSortStates?: Record<string, SortState>;
+  /** Whether the dashboard is in edit mode (shows visual indicators on widgets) */
+  isEditMode?: boolean;
 }

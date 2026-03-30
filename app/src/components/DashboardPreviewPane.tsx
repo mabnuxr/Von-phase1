@@ -7,7 +7,7 @@
  */
 
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
@@ -28,7 +28,7 @@ export function DashboardPreviewPane({
   conversationId,
   onClose,
 }: DashboardPreviewPaneProps) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const { data, isLoading, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,

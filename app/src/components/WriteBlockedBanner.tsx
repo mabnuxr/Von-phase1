@@ -1,5 +1,5 @@
 import { ShieldWarning, X } from "@phosphor-icons/react";
-import { useNavigate } from "react-router-dom";
+import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { WriteBlockedState } from "../hooks/useWriteBlockedEvent";
 
 const CONNECTABLE_BLOCK_CODES = new Set([
@@ -16,7 +16,7 @@ export function WriteBlockedBanner({
   writeBlocked,
   onDismiss,
 }: WriteBlockedBannerProps) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
   const showConnect = CONNECTABLE_BLOCK_CODES.has(writeBlocked.blockCode);
 
   return (

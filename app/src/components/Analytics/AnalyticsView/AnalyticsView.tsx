@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
   ClockCounterClockwiseIcon,
@@ -43,9 +43,9 @@ interface AnalyticsViewProps {
   refreshInfo: RefreshInfo | null;
   activeFilters: Record<string, unknown>;
   onRefresh: () => Promise<void>;
-  onSave: (isFirstSave?: boolean) => void;
+  onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
-  onRevert: () => void;
+  onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
   onShare: (isSharedWithTenant: boolean) => void;
   sharePhase: MutationPhase;
@@ -55,10 +55,10 @@ interface AnalyticsViewProps {
   onClose?: () => void;
   /** Show Von Chat button */
   onChatClick?: () => void;
-  /** Dedicated handler to close the chat pane (distinct from closing the dashboard) */
-  onChatClose?: () => void;
   /** Whether the chat pane is currently open */
   isChatOpen?: boolean;
+  /** Toggle edit mode via PATCH API (is_editable) */
+  onEditModeChange?: (isEditable: boolean) => void;
   /** Server-side table pagination handler */
   onTablePageChange?: (panelId: string, page: number) => void;
   /** Set of panel IDs currently loading a new page */
@@ -114,6 +114,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onClose,
   onChatClick,
   isChatOpen,
+  onEditModeChange,
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -154,36 +155,59 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     await navigator.clipboard.writeText(window.location.href);
   }, []);
 
-  // Inline rename state
-  const [isEditing, setIsEditing] = useState(false);
+  // ── Inline rename state ─────────────────────────────────────────
+  const [isRenamingTitle, setIsRenamingTitle] = useState(false);
   const [editValue, setEditValue] = useState(dashboard.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const committedRef = useRef(false);
 
-  // Sync editValue when dashboard title changes from the server
   useEffect(() => {
-    if (!isEditing) setEditValue(dashboard.title);
-  }, [dashboard.title, isEditing]);
+    if (!isRenamingTitle) setEditValue(dashboard.title);
+  }, [dashboard.title, isRenamingTitle]);
 
-  // Auto-focus and select when entering edit mode
   useEffect(() => {
-    if (isEditing) {
+    if (isRenamingTitle) {
       committedRef.current = false;
       inputRef.current?.select();
     }
-  }, [isEditing]);
+  }, [isRenamingTitle]);
 
   const commitRename = useCallback(() => {
     if (committedRef.current) return;
     committedRef.current = true;
     const trimmed = editValue.trim();
-    setIsEditing(false);
+    setIsRenamingTitle(false);
     if (trimmed && trimmed !== dashboard.title) {
       onRename?.(trimmed);
     } else {
       setEditValue(dashboard.title);
     }
   }, [editValue, dashboard.title, onRename]);
+
+  // ── Dashboard edit mode (API-driven via is_editable) ────────────
+  const isEditMode = dashboard.isEditable;
+
+  const handleEnterEditMode = useCallback(() => {
+    if (dashboard.isOwner) {
+      onEditModeChange?.(true);
+    }
+    onChatClick?.();
+  }, [dashboard.isOwner, onEditModeChange, onChatClick]);
+
+  const exitEditMode = useCallback(() => {
+    onEditModeChange?.(false);
+  }, [onEditModeChange]);
+
+  const handleSaveFromEditMode = useCallback(() => {
+    onSave({
+      isFirstSave: dashboard.dashboardVersion < 1,
+      onSuccess: exitEditMode,
+    });
+  }, [onSave, dashboard.dashboardVersion, exitEditMode]);
+
+  const handleRevertFromEditMode = useCallback(() => {
+    onRevert({ onSuccess: exitEditMode });
+  }, [onRevert, exitEditMode]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
 
@@ -198,7 +222,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <DashboardLayout.HeaderRow>
             <DashboardLayout.HeaderRow.Left>
               <div className="min-w-0">
-                {isEditing ? (
+                {isRenamingTitle ? (
                   <input
                     ref={inputRef}
                     value={editValue}
@@ -208,7 +232,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       if (e.key === "Enter") commitRename();
                       if (e.key === "Escape") {
                         setEditValue(dashboard.title);
-                        setIsEditing(false);
+                        setIsRenamingTitle(false);
                       }
                     }}
                     className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
@@ -228,7 +252,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       >
                         <button
                           onClick={
-                            isSaved ? () => setIsEditing(true) : undefined
+                            isSaved ? () => setIsRenamingTitle(true) : undefined
                           }
                           disabled={!isSaved}
                           className={`opacity-0 group-hover:opacity-100 transition-opacity ${
@@ -278,7 +302,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.15 }}
-                  onClick={onChatClick}
+                  onClick={handleEnterEditMode}
                   title="Ask Von"
                   className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-xs font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                 >
@@ -307,7 +331,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
 
-          {/* Toolbar row: filters | save/draft, customize, refresh, share */}
+          {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
           <DashboardLayout.HeaderRow bordered>
             <DashboardLayout.HeaderRow.Left>
               <AnalyticsFilters
@@ -324,38 +348,52 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               />
               {dashboard.isOwner && (
                 <>
-                  <SaveButton
-                    savePhase={savePhase}
-                    onSave={() => onSave(dashboard.dashboardVersion < 1)}
-                    isSaved={isSaved}
-                  />
-                  {dashboard.status === DashboardStatus.Draft &&
-                    dashboard.dashboardVersion >= 1 && (
-                      <Tooltip content="Reverts to previous saved version">
-                        <button
-                          onClick={
-                            revertPhase === "idle" ? onRevert : undefined
-                          }
-                          disabled={revertPhase !== "idle"}
-                          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                            revertPhase === "pending"
-                              ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                              : revertPhase === "success"
-                                ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
-                                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-                          }`}
-                        >
-                          {revertPhase === "pending" ? (
-                            <SpinnerGapIcon
-                              size={14}
-                              className="animate-spin"
-                            />
-                          ) : (
-                            <ClockCounterClockwiseIcon size={14} />
-                          )}
-                        </button>
-                      </Tooltip>
-                    )}
+                  {/* Edit / Save toggle */}
+                  {isEditMode ? (
+                    <SaveButton
+                      savePhase={savePhase}
+                      onSave={handleSaveFromEditMode}
+                      isSaved={false}
+                    />
+                  ) : (
+                    <Tooltip content="Edit dashboard">
+                      <button
+                        onClick={handleEnterEditMode}
+                        className="flex items-center gap-1.5 h-[34px] px-2.5 text-xs font-medium rounded-xl border text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <PencilSimpleIcon size={13} />
+                        Edit
+                      </button>
+                    </Tooltip>
+                  )}
+
+                  {/* Revert — only in edit mode when there's a previous version */}
+                  {isEditMode && dashboard.dashboardVersion >= 1 && (
+                    <Tooltip content="Reverts to previous saved version">
+                      <button
+                        onClick={
+                          revertPhase === "idle"
+                            ? handleRevertFromEditMode
+                            : undefined
+                        }
+                        disabled={revertPhase !== "idle"}
+                        className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+                          revertPhase === "pending"
+                            ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                            : revertPhase === "success"
+                              ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                              : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                        }`}
+                      >
+                        {revertPhase === "pending" ? (
+                          <SpinnerGapIcon size={14} className="animate-spin" />
+                        ) : (
+                          <ClockCounterClockwiseIcon size={14} />
+                        )}
+                      </button>
+                    </Tooltip>
+                  )}
+
                   <RefreshButton
                     onRefresh={onRefresh}
                     canRefresh={isSaved}
@@ -383,7 +421,32 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </DashboardLayout.HeaderRow>
         </DashboardLayout.Header>
 
-        <DashboardLayout.Canvas>
+        <DashboardLayout.Canvas
+          className={
+            isEditMode
+              ? "bg-gray-50 transition-colors duration-200"
+              : "transition-colors duration-200"
+          }
+        >
+          {/* Edit mode banner — sticky so it stays visible while scrolling */}
+          <AnimatePresence>
+            {isEditMode && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="sticky top-0 z-10 overflow-hidden"
+              >
+                <div className="bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl mb-3">
+                  You are currently in edit mode. To save your changes, click{" "}
+                  <span className="font-semibold">Save</span> in the toolbar
+                  above.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <ErrorBoundary>
             <DashboardGrid
               layout={layout}
@@ -395,6 +458,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onPointDrillDown={onPointDrillDown}
               onTableSortChange={onTableSortChange}
               tableSortStates={tableSortStates}
+              isEditMode={isEditMode}
             />
           </ErrorBoundary>
         </DashboardLayout.Canvas>

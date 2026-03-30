@@ -56,6 +56,7 @@ export interface Dashboard {
   updatedAt: string;
   createdBy: string;
   analysisId: string;
+  isEditable: boolean;
   uiConfig?: {
     colorPaletteGlobal?: string;
     panelLayouts?: Record<

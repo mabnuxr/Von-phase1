@@ -13,21 +13,22 @@ import {
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
-import { Tooltip } from "@vonlabs/design-components";
+import { Tooltip, useVisibilityToggle } from "@vonlabs/design-components";
 import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
 import { ChatSession } from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
+import { useToast } from "../hooks/useToast";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/GlobalChat";
+import { useNavigationGuard } from "../providers/NavigationGuard";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 
 interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
-  onChatClose: () => void;
   isChatOpen: boolean;
   collapseOnMount: boolean;
 }
@@ -40,7 +41,6 @@ interface DashboardCanvasProps {
 function DashboardCanvas({
   dashboardId,
   onChatClick,
-  onChatClose,
   isChatOpen,
   collapseOnMount,
 }: DashboardCanvasProps) {
@@ -55,7 +55,26 @@ function DashboardCanvas({
     handleRefresh,
   } = useAnalyticsTools(dashboardId);
 
-  const { handleUpdate } = useDashboardUpdate(dashboardId);
+  const { handleUpdate, updateMutation } = useDashboardUpdate(dashboardId);
+  const { showToast } = useToast();
+
+  const handleEditModeChange = useCallback(
+    (isEditable: boolean) => {
+      updateMutation.mutate(
+        { is_editable: isEditable },
+        {
+          onError: (error: unknown) => {
+            console.error("[Analytics] Edit mode toggle failed:", error);
+            showToast({
+              message: "Failed to toggle edit mode. Please try again.",
+              variant: "error",
+            });
+          },
+        },
+      );
+    },
+    [updateMutation, showToast],
+  );
 
   const handleColorThemeChange = useCallback(
     (themeId: string) => {
@@ -150,8 +169,8 @@ function DashboardCanvas({
         onShare={handleShare}
         sharePhase={sharePhase}
         onChatClick={onChatClick}
-        onChatClose={onChatClose}
         isChatOpen={isChatOpen}
+        onEditModeChange={handleEditModeChange}
         onTablePageChange={handlePageChange}
         loadingTablePanels={loadingPanels}
         paginatedWidgets={mergedWidgets}
@@ -231,7 +250,11 @@ const Analytics = () => {
   const [createdConversationId, setCreatedConversationId] = useState<
     string | null
   >(null);
-  const [isRenamingChat, setIsRenamingChat] = useState(false);
+  const {
+    isVisible: isRenamingChat,
+    show: startRenamingChat,
+    hide: stopRenamingChat,
+  } = useVisibilityToggle(false);
 
   // Track which dashboardId was active when the create was initiated so that
   // an in-flight response from a previous dashboard doesn't overwrite state
@@ -277,6 +300,64 @@ const Analytics = () => {
   const { data } = useDashboardQuery(dashboardId);
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
+  const isEditable = data?.dashboard?.isEditable ?? false;
+
+  // ── Navigation guard (Modal 1): blocks route navigation while in edit mode.
+  // Modal is rendered by NavigationGuardProvider — no manual modal here.
+  const { guard } = useNavigationGuard({
+    when: isEditable,
+    title: "Dashboard in edit mode",
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Switching will discard any edits.`,
+    confirmLabel: "Switch Anyway",
+  });
+
+  // ── Chat switch guard (Modal 2): blocks chat switching while in edit mode ──
+  const chatSwitchTitle = "Switch chat?";
+  const chatSwitchBody = `Your current chat has edit context for ${dashboardTitle || "this dashboard"}. Switching chats will lose this context.`;
+  const chatSwitchConfirmLabel = "Switch Chat";
+
+  const guardedSetActiveChatId = useCallback(
+    (chatId: string | null) => {
+      if (
+        guard(() => setActiveChatId(chatId), {
+          title: chatSwitchTitle,
+          body: chatSwitchBody,
+          confirmLabel: chatSwitchConfirmLabel,
+        })
+      )
+        return;
+      setActiveChatId(chatId);
+    },
+    [
+      guard,
+      setActiveChatId,
+      chatSwitchTitle,
+      chatSwitchBody,
+      chatSwitchConfirmLabel,
+    ],
+  );
+
+  const guardedNewChat = useCallback(() => {
+    const action = () => {
+      setActiveChatId(null);
+      setCreatedConversationId(null);
+    };
+    if (
+      guard(action, {
+        title: chatSwitchTitle,
+        body: chatSwitchBody,
+        confirmLabel: chatSwitchConfirmLabel,
+      })
+    )
+      return;
+    action();
+  }, [
+    guard,
+    setActiveChatId,
+    chatSwitchTitle,
+    chatSwitchBody,
+    chatSwitchConfirmLabel,
+  ]);
 
   const {
     widthCss: chatPaneWidth,
@@ -293,8 +374,7 @@ const Analytics = () => {
         <DashboardCanvas
           key={dashboardId}
           dashboardId={dashboardId}
-          onChatClick={() => openChatPanel()}
-          onChatClose={() => closeChatPanel()}
+          onChatClick={openChatPanel}
           isChatOpen={isChatPanelOpen}
           collapseOnMount={prevDashboardIdRef.current === undefined}
         />
@@ -323,16 +403,13 @@ const Analytics = () => {
         <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5">
           <ChatPicker
             activeChatId={activeChatId}
-            onSelect={setActiveChatId}
+            onSelect={guardedSetActiveChatId}
             isRenaming={isRenamingChat}
-            onRenameEnd={() => setIsRenamingChat(false)}
+            onRenameEnd={stopRenamingChat}
           />
           <Tooltip content="New chat">
             <button
-              onClick={() => {
-                setActiveChatId(null);
-                setCreatedConversationId(null);
-              }}
+              onClick={guardedNewChat}
               className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <PlusCircleIcon size={16} weight="fill" />
@@ -344,11 +421,11 @@ const Analytics = () => {
               setActiveChatId(null);
               setCreatedConversationId(null);
             }}
-            onStartRename={() => setIsRenamingChat(true)}
+            onStartRename={startRenamingChat}
           />
           <Tooltip content="Collapse chat">
             <button
-              onClick={() => closeChatPanel()}
+              onClick={closeChatPanel}
               className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLineRightIcon size={14} weight="bold" />
