@@ -821,13 +821,14 @@ function NewChatInner(props: ChatSessionProps) {
 
 // ─── Shared overlays (modals/drawers — render via portals) ──────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ChatV2Return = ReturnType<typeof useChatV2>;
+
 function Overlays({
   conversationId,
   chatV2,
 }: {
   conversationId: string;
-  chatV2: any;
+  chatV2: ChatV2Return;
 }) {
   return (
     <>
