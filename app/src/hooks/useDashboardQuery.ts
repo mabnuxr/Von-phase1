@@ -65,6 +65,11 @@ interface RawApiWidget {
   };
 }
 
+interface RawApiQuery {
+  sql: string;
+  description?: string;
+}
+
 interface RawApiDashboardResponse {
   id: string;
   title: string;
@@ -75,6 +80,7 @@ interface RawApiDashboardResponse {
   is_shared_with_tenant: boolean;
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
+  queries?: Record<string, RawApiQuery>;
   ui_config?: {
     panel_layouts?: Record<
       string,
@@ -93,7 +99,18 @@ interface RawApiDashboardResponse {
 
 // ─── API Response Adapter ───────────────────────────────────────
 
-function adaptWidget(raw: RawApiWidget): WidgetConfig {
+function adaptWidget(
+  raw: RawApiWidget,
+  queries?: Record<string, RawApiQuery>,
+): WidgetConfig {
+  const queryInfo =
+    raw.query_ref && queries?.[raw.query_ref]
+      ? {
+          sql: queries[raw.query_ref].sql,
+          description: queries[raw.query_ref].description,
+        }
+      : undefined;
+
   if (raw.type === "kpi" && raw.kpi) {
     return {
       id: raw.id,
@@ -102,6 +119,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
       config: raw.kpi,
       query_failed: raw.query_failed,
       drilldown: raw.drilldown ?? null,
+      queryInfo,
     };
   }
 
@@ -114,6 +132,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
         type: raw.type as WidgetConfig["type"],
         title: raw.title,
         config: {},
+        queryInfo,
       } as WidgetConfig;
     }
     // Normalize yAxis to array — API may return a single object
@@ -134,6 +153,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
       drilldown: raw.drilldown ?? null,
+      queryInfo,
     };
   }
 
@@ -157,6 +177,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
           : undefined,
       },
       drilldown: raw.drilldown ?? null,
+      queryInfo,
     } as unknown as WidgetConfig;
   }
 
@@ -167,6 +188,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
     title: raw.title,
     config: {},
     drilldown: raw.drilldown ?? null,
+    queryInfo,
   } as WidgetConfig;
 }
 
@@ -175,7 +197,7 @@ function adaptApiResponse(
 ): DashboardMetadataResponse {
   const widgets: Record<string, WidgetConfig> = {};
   for (const [key, apiWidget] of Object.entries(raw.widgets)) {
-    widgets[key] = adaptWidget(apiWidget);
+    widgets[key] = adaptWidget(apiWidget, raw.queries);
   }
 
   return {

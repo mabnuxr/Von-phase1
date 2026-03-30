@@ -1132,7 +1132,7 @@ export interface ChatProps {
    * - fullpage: Full viewport coverage
    * @default 'floating'
    */
-  variant?: 'floating' | 'fixed' | 'fullpage';
+  variant?: 'floating' | 'fixed' | 'fullpage' | 'sidebar';
 
   /**
    * Position for fixed variant (ignored for fullpage variant)

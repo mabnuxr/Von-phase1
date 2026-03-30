@@ -40,6 +40,13 @@ export interface DrilldownConfig {
 /** Column-value pairs sent as drill filters from a chart point click. */
 export type DrillFilters = Record<string, unknown>;
 
+// ─── Query Info ──────────────────────────────────────────────────
+
+export interface QueryInfo {
+  sql: string;
+  description?: string;
+}
+
 // ─── Widget Config ────────────────────────────────────────────────
 
 export interface WidgetConfig {
@@ -51,6 +58,8 @@ export interface WidgetConfig {
   query_failed?: boolean;
   /** Drilldown configuration — present when the panel supports drill-down. */
   drilldown?: DrilldownConfig | null;
+  /** Query SQL and description for this widget */
+  queryInfo?: QueryInfo;
 }
 
 // ─── Chart ───────────────────────────────────────────────────────
@@ -97,6 +106,8 @@ export interface CounterWidgetProps {
   subtitle?: string;
   /** Callback when the drilldown icon is clicked */
   onDrillDown?: () => void;
+  /** Query SQL and description to display on hover */
+  queryInfo?: QueryInfo;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -146,6 +157,8 @@ export interface WidgetShellProps {
   children: React.ReactNode;
   /** Callback when the drilldown icon is clicked */
   onDrillDown?: () => void;
+  /** Query SQL and description to display on hover */
+  queryInfo?: QueryInfo;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────

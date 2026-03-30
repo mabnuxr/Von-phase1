@@ -471,28 +471,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       {/* Full-width section with alternating backgrounds */}
       <div
         className={`
-          w-full transition-all duration-300
-          ${isUser ? 'pt-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-112.5' : ''} bg-white`}
+          w-full transition-all duration-300 pt-6 @max-[550px]/chat:pt-3 bg-white
+          ${!isUser && isStreaming ? 'min-h-112.5' : ''}
         `}
       >
         {/* Centered container */}
-        <div className="px-2">
+        <div className="px-4 @max-[550px]/chat:px-6">
           <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
             {/* Message layout */}
             <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
-              {/* Horizontal layout: Avatar + Content (reversed for user) */}
+              {/* Horizontal layout: Avatar + Content */}
               <div
-                className={`flex gap-3 ${isUser ? `flex-row-reverse ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
+                className={`flex gap-3 ${
+                  isUser
+                    ? `flex-row-reverse @max-[550px]/chat:justify-end ${isSingleLine ? 'items-center' : 'items-start'}`
+                    : 'items-start'
+                }`}
               >
-                {/* Avatar and Status Badge */}
-                <div className="flex items-start gap-2 shrink-0">
+                {/* Avatar */}
+                <div className="flex items-start gap-2 shrink-0 @max-[550px]/chat:hidden">
                   {isUser ? (
-                    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                    <div className="size-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                       {userInitials}
                     </div>
                   ) : (
                     <>
-                      <div className="w-7 h-7 rounded-full overflow-hidden shrink-0">
+                      <div className="size-7 @max-[550px]/chat:size-6 rounded-full overflow-hidden shrink-0">
                         <svg
                           width="28"
                           height="28"
@@ -537,7 +541,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
 
                 {/* Content Column */}
-                <div className="flex-1 min-w-0 -mt-0.5">
+                <div
+                  className={`flex-1 min-w-0 -mt-0.5 ${
+                    isUser
+                      ? '@max-[550px]/chat:flex-none @max-[550px]/chat:w-fit @max-[550px]/chat:ml-auto'
+                      : '@max-[550px]/chat:flex-none @max-[550px]/chat:w-full @max-[550px]/chat:mt-0'
+                  }`}
+                >
                   {/* For V1 assistant messages: check for errors first (error replaces content) */}
                   {!isUser &&
                   status === 'failed' &&

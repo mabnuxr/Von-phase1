@@ -19,8 +19,7 @@ import { useToast } from "./useToast";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
 /**
- * Encapsulates all quick-command panel logic shared between ChatV1Container
- * and ChatV2Container:
+ * Encapsulates all quick-command panel logic shared across chat components:
  *  - prefetched commands list
  *  - save (create / update) with already-uploaded dataSources
  *  - eager file upload (presign → S3)

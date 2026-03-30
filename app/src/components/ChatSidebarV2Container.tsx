@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChatSidebarV2 } from "@vonlabs/design-components";
 import type { SidebarItem } from "@vonlabs/design-components";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
@@ -58,6 +58,7 @@ export function ChatSidebarV2Container({
   onLogoutClick,
 }: ChatSidebarV2ContainerProps) {
   const navigate = useNavigate();
+  const { dashboardId } = useParams<{ dashboardId: string }>();
 
   const {
     folders,
@@ -194,6 +195,7 @@ export function ChatSidebarV2Container({
       onSettingsClick={onSettingsClick}
       isNewChatActive={isNewChatActive}
       dashboards={sidebarDashboards}
+      selectedDashboardId={dashboardId}
       hasMoreDashboards={hasMoreDashboards}
       onLoadMoreDashboards={loadMoreDashboards}
       onRenameDashboard={renameDashboard}

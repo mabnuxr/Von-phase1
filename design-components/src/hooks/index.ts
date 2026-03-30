@@ -10,3 +10,6 @@ export type { UseVisibilityToggleReturn } from './useVisibilityToggle';
 
 export { useFileDrop } from './useFileDrop';
 export type { UseFileDropOptions, UseFileDropReturn } from './useFileDrop';
+
+export { useCopyToClipboard } from './useCopyToClipboard';
+export type { UseCopyToClipboardReturn } from './useCopyToClipboard';

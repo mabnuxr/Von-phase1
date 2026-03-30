@@ -29,6 +29,7 @@ export type {
   DrilldownConfig,
   DrilldownColumnMapping,
   DrillFilters,
+  QueryInfo,
 } from './types';
 
 // ── DashboardLayout (Compound component) ────────────────────────────

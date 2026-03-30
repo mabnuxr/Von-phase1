@@ -535,6 +535,9 @@ export type { UseIsTruncatedReturn } from '../hooks';
 export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
 
+export { useCopyToClipboard } from '../hooks';
+export type { UseCopyToClipboardReturn } from '../hooks';
+
 // ============================================================================
 // FILTER
 // ============================================================================

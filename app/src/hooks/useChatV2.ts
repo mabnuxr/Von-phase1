@@ -2,7 +2,7 @@
  * useChatV2 - Orchestrator hook for V2 chat container
  *
  * Composes all V2-specific hooks and returns everything
- * the ChatV2Container needs to render. Business logic only — no JSX.
+ * chat leaf components need to render. Business logic only — no JSX.
  *
  * Handles both regular V2 chat and deep research mode.
  */

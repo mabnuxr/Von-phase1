@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import RootGate from "./pages/RootGate";
 import Callback from "./pages/Callback";
 import Conversation from "./pages/Conversation";
@@ -12,12 +12,6 @@ import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
 import { AppShell } from "./components/AppShell";
 import { LaunchDarklyGate } from "./components/LaunchDarkly";
 import { ConversationSkeleton } from "./components/ConversationSkeleton";
-
-/** Remounts Analytics when dashboardId changes, resetting all local state (pagination, etc.) */
-function AnalyticsRoute() {
-  const { dashboardId } = useParams<{ dashboardId: string }>();
-  return <Analytics key={dashboardId} />;
-}
 
 export default function App() {
   return (
@@ -43,10 +37,7 @@ export default function App() {
             <Route path="/chat" element={<Conversation />} />
             <Route path="/chat/new" element={<NewConversation />} />
             <Route path="/chat/:conversationId" element={<Conversation />} />
-            <Route
-              path="/dashboard/:dashboardId"
-              element={<AnalyticsRoute />}
-            />
+            <Route path="/dashboard/:dashboardId" element={<Analytics />} />
           </Route>
 
           {/* Settings has its own sidebar */}

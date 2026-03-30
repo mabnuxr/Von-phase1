@@ -135,10 +135,13 @@ export function useChatSidebarState({
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [isFoldersHovered, setIsFoldersHovered] = useState(false);
   const [foldersDropdownPosition, setFoldersDropdownPosition] = useState({ top: 0, left: 0 });
+  const [isDashboardsHovered, setIsDashboardsHovered] = useState(false);
+  const [dashboardsDropdownPosition, setDashboardsDropdownPosition] = useState({ top: 0, left: 0 });
 
   // Refs
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   const foldersButtonRef = useRef<HTMLButtonElement>(null);
+  const dashboardsButtonRef = useRef<HTMLButtonElement>(null);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
 
@@ -379,6 +382,17 @@ export function useChatSidebarState({
     setIsFoldersHovered(isHovering);
   }, []);
 
+  const handleDashboardsHover = useCallback((isHovering: boolean) => {
+    if (isHovering && dashboardsButtonRef.current) {
+      const rect = dashboardsButtonRef.current.getBoundingClientRect();
+      setDashboardsDropdownPosition({
+        top: rect.top,
+        left: rect.right + 8,
+      });
+    }
+    setIsDashboardsHovered(isHovering);
+  }, []);
+
   const handleAvatarClick = useCallback(() => {
     if (avatarButtonRef.current) {
       const rect = avatarButtonRef.current.getBoundingClientRect();
@@ -414,6 +428,8 @@ export function useChatSidebarState({
     dropdownPosition,
     isFoldersHovered,
     foldersDropdownPosition,
+    isDashboardsHovered,
+    dashboardsDropdownPosition,
 
     // Inline folder creation
     isCreatingFolder,
@@ -427,6 +443,7 @@ export function useChatSidebarState({
     // Refs
     chatButtonRef,
     foldersButtonRef,
+    dashboardsButtonRef,
     avatarButtonRef,
 
     // Derived state
@@ -465,6 +482,7 @@ export function useChatSidebarState({
     // UI handlers
     handleChatsHover,
     handleFoldersHover,
+    handleDashboardsHover,
     handleAvatarClick,
     handleCloseProfile,
   };

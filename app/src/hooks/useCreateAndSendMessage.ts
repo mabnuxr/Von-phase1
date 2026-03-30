@@ -3,7 +3,7 @@
  *
  * Shared logic for the "create conversation on first message" pattern used in:
  * - NewConversation.tsx  (regular chat)
- * - AnalyticsNewConversationContainer.tsx  (analytics chat pane)
+ * - ChatSession.tsx  (analytics chat pane, new-conversation flow)
  *
  * Returns:
  *   handleSendMessage  — call with message content (+ optional SendMessageOptions)
@@ -201,7 +201,7 @@ export function useCreateAndSendMessage({
         uploadedFiles = await uploadPendingFiles(newId);
 
         // 4. Seed chatStore synchronously before transitioning so the receiving
-        //    component (Conversation.tsx / AnalyticsChatContainer) sees messages
+        //    component (Conversation.tsx / ChatSession) sees messages
         //    immediately on mount instead of flashing blank then re-populating.
         //    We pass these IDs to sendMessage so its onMutate skips duplicate seeding.
         const now = new Date().toISOString();
@@ -334,7 +334,7 @@ export function useCreateAndSendMessage({
           });
         } else {
           // 7. Notify parent — chatStore already seeded so receiving component
-          //    (e.g. AnalyticsChatContainer) renders messages immediately on mount.
+          //    (e.g. ChatSession) renders messages immediately on mount.
           onCreated?.(newId);
         }
       } catch (error) {
