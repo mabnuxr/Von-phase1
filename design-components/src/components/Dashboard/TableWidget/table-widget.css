@@ -9,7 +9,6 @@
   height: 100%;
 }
 
-
 /* Fixed row heights so JS pageSize calculation is exact */
 .table-widget-root .hcg-table thead th {
   height: 30px;

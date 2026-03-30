@@ -328,10 +328,7 @@ const SAMPLE_SIZE = 50;
  * Estimate the ideal pixel width for a column based on its header label,
  * data type, and a sample of actual cell values.
  */
-function estimateColumnWidth(
-  col: ReportColumn,
-  data: Record<string, unknown>[]
-): number {
+function estimateColumnWidth(col: ReportColumn, data: Record<string, unknown>[]): number {
   const minW = MIN_COL_WIDTH[col.type] ?? 80;
 
   // Header width: label chars + padding + icons
@@ -370,7 +367,10 @@ function estimateColumnWidth(
       case 'owner':
         // Avatar (24px) + gap (8px) + name text
         displayLen = String(val).length;
-        maxContentWidth = Math.max(maxContentWidth, displayLen * CHAR_WIDTH_PX + 32 + CELL_PADDING_PX);
+        maxContentWidth = Math.max(
+          maxContentWidth,
+          displayLen * CHAR_WIDTH_PX + 32 + CELL_PADDING_PX
+        );
         continue;
       default:
         displayLen = String(val).length;
@@ -398,9 +398,7 @@ function estimateColumnWidth(
  *  1. New format: `data.columns` (Grid Lite local data provider)
  *  2. Deprecated format: `dataTable.columns` (still used by backend API)
  */
-export function getDataTableColumns(
-  options: GridOptions
-): Record<string, unknown[]> | undefined {
+export function getDataTableColumns(options: GridOptions): Record<string, unknown[]> | undefined {
   // New format: options.data.columns
   const dataOpt = (options as Record<string, unknown>).data as
     | { columns?: Record<string, unknown[]> }
@@ -448,7 +446,10 @@ export function autoSizeGridColumns(options: GridOptions): GridOptions {
     let maxContentWidth = 0;
     for (const val of sampleData) {
       if (val === null || val === undefined) continue;
-      maxContentWidth = Math.max(maxContentWidth, String(val).length * CHAR_WIDTH_PX + CELL_PADDING_PX);
+      maxContentWidth = Math.max(
+        maxContentWidth,
+        String(val).length * CHAR_WIDTH_PX + CELL_PADDING_PX
+      );
     }
 
     col.width = Math.round(Math.min(Math.max(80, headerWidth, maxContentWidth), MAX_COL_WIDTH));

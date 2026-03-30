@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type { GridOptions } from "@highcharts/grid-lite-react";
 import {
   autoSizeGridColumns,
   buildGridOptions,
@@ -11,7 +12,7 @@ import type { ReportColumn } from "@vonlabs/design-components";
 function makeGridOptions(
   columns: Array<{ id: string; width?: number }>,
   dataColumns: Record<string, unknown[]>,
-) {
+): GridOptions {
   return {
     columns: columns.map((c) => ({
       id: c.id,
@@ -19,14 +20,14 @@ function makeGridOptions(
       sorting: { enabled: true },
     })),
     dataTable: { columns: dataColumns },
-  };
+  } as GridOptions;
 }
 
 /** New-style gridOptions using `data.columns` (Grid Lite local data provider) */
 function makeNewFormatGridOptions(
   columns: Array<{ id: string; width?: number }>,
   dataColumns: Record<string, unknown[]>,
-) {
+): GridOptions {
   return {
     columns: columns.map((c) => ({
       id: c.id,
@@ -34,22 +35,19 @@ function makeNewFormatGridOptions(
       sorting: { enabled: true },
     })),
     data: { columns: dataColumns },
-  };
+  } as GridOptions;
 }
 
 // ─── autoSizeGridColumns ──────────────────────────────────────────────────
 
 describe("autoSizeGridColumns", () => {
   it("assigns widths to columns that have no explicit width", () => {
-    const opts = makeGridOptions(
-      [{ id: "name" }, { id: "amount" }],
-      {
-        name: ["Alice", "Bob", "Charlie"],
-        amount: [100, 25000, 500],
-      },
-    );
+    const opts = makeGridOptions([{ id: "name" }, { id: "amount" }], {
+      name: ["Alice", "Bob", "Charlie"],
+      amount: [100, 25000, 500],
+    });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBeTypeOf("number");
@@ -67,7 +65,7 @@ describe("autoSizeGridColumns", () => {
       },
     );
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBe(200); // preserved
@@ -77,12 +75,11 @@ describe("autoSizeGridColumns", () => {
 
   it("caps column width at 280px maximum", () => {
     const longValue = "A".repeat(200); // very long string
-    const opts = makeGridOptions(
-      [{ id: "description" }],
-      { description: [longValue] },
-    );
+    const opts = makeGridOptions([{ id: "description" }], {
+      description: [longValue],
+    });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBeLessThanOrEqual(280);
@@ -94,50 +91,46 @@ describe("autoSizeGridColumns", () => {
       { x: ["a"] }, // very short content
     );
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBeGreaterThanOrEqual(80);
   });
 
   it("wider content produces wider columns", () => {
-    const opts = makeGridOptions(
-      [{ id: "short_col" }, { id: "long_col" }],
-      {
-        short_col: ["$0", "$0", "$0"],
-        long_col: [
-          "Enterprise Annual Subscription",
-          "Professional Monthly Plan",
-          "Premium Plus Package Deal",
-        ],
-      },
-    );
+    const opts = makeGridOptions([{ id: "short_col" }, { id: "long_col" }], {
+      short_col: ["$0", "$0", "$0"],
+      long_col: [
+        "Enterprise Annual Subscription",
+        "Professional Monthly Plan",
+        "Premium Plus Package Deal",
+      ],
+    });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[1].width).toBeGreaterThan(cols[0].width!);
   });
 
   it("returns options unchanged when columns array is missing", () => {
-    const opts = { dataTable: { columns: { x: [1] } } };
-    const result = autoSizeGridColumns(opts as any);
+    const opts = { dataTable: { columns: { x: [1] } } } as GridOptions;
+    const result = autoSizeGridColumns(opts);
     expect(result).toBe(opts); // same reference — no mutation
   });
 
   it("returns options unchanged when dataTable is missing", () => {
-    const opts = { columns: [{ id: "x" }] };
-    const result = autoSizeGridColumns(opts as any);
+    const opts = { columns: [{ id: "x" }] } as GridOptions;
+    const result = autoSizeGridColumns(opts);
     expect(result).toBe(opts);
   });
 
   it("handles null/undefined values in data gracefully", () => {
-    const opts = makeGridOptions(
-      [{ id: "val" }],
-      { val: [null, undefined, null, "hello"] },
-    );
+    const opts = makeGridOptions([{ id: "val" }], {
+      val: [null, undefined, null, "hello"] as unknown[],
+    });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBeTypeOf("number");
@@ -145,12 +138,9 @@ describe("autoSizeGridColumns", () => {
   });
 
   it("handles empty data array", () => {
-    const opts = makeGridOptions(
-      [{ id: "col1" }],
-      { col1: [] },
-    );
+    const opts = makeGridOptions([{ id: "col1" }], { col1: [] });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     // Should still assign a width based on header
@@ -169,22 +159,19 @@ describe("autoSizeGridColumns", () => {
       },
     );
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[1].width).toBeGreaterThan(cols[0].width!);
   });
 
   it("works with new data.columns format", () => {
-    const opts = makeNewFormatGridOptions(
-      [{ id: "name" }, { id: "amount" }],
-      {
-        name: ["Alice", "Bob", "Charlie"],
-        amount: [100, 25000, 500],
-      },
-    );
+    const opts = makeNewFormatGridOptions([{ id: "name" }, { id: "amount" }], {
+      name: ["Alice", "Bob", "Charlie"],
+      amount: [100, 25000, 500],
+    });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBeTypeOf("number");
@@ -202,19 +189,18 @@ describe("autoSizeGridColumns", () => {
       },
     );
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[1].width).toBeGreaterThan(cols[0].width!);
   });
 
   it("new format: preserves explicit widths", () => {
-    const opts = makeNewFormatGridOptions(
-      [{ id: "name", width: 200 }],
-      { name: ["Alice"] },
-    );
+    const opts = makeNewFormatGridOptions([{ id: "name", width: 200 }], {
+      name: ["Alice"],
+    });
 
-    const result = autoSizeGridColumns(opts as any);
+    const result = autoSizeGridColumns(opts);
     const cols = result.columns as Array<{ id: string; width?: number }>;
 
     expect(cols[0].width).toBe(200);
@@ -225,7 +211,11 @@ describe("autoSizeGridColumns", () => {
 
 describe("buildGridOptions content-based widths", () => {
   const makeCol = (
-    overrides: Partial<ReportColumn> & { id: string; label: string; type: ReportColumn["type"] },
+    overrides: Partial<ReportColumn> & {
+      id: string;
+      label: string;
+      type: ReportColumn["type"];
+    },
   ): ReportColumn => ({
     sortable: true,
     ...overrides,
@@ -356,12 +346,14 @@ describe("buildGridOptions content-based widths", () => {
     const opts = buildGridOptions(columns, data);
 
     // Should use new format
-    const dataOpt = (opts as any).data;
+    const dataOpt = (opts as Record<string, unknown>).data as
+      | { columns?: Record<string, unknown[]> }
+      | undefined;
     expect(dataOpt).toBeDefined();
-    expect(dataOpt.columns).toBeDefined();
-    expect(dataOpt.columns.name).toEqual(["Alice"]);
+    expect(dataOpt?.columns).toBeDefined();
+    expect(dataOpt?.columns?.name).toEqual(["Alice"]);
 
     // Should NOT have deprecated dataTable at top level
-    expect((opts as any).dataTable).toBeUndefined();
+    expect((opts as Record<string, unknown>).dataTable).toBeUndefined();
   });
 });
