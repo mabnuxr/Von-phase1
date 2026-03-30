@@ -43,15 +43,12 @@ export function NavigationGuardProvider({
   );
 
   const guard = useCallback(
-    (action: () => void, config: NavigationGuardConfig): boolean => {
+    (action: () => void, modalOverride: NavigationGuardConfig): boolean => {
       const check = guardCheckRef.current;
-      if (check) {
-        const result = check();
-        if (result) {
-          setModalConfig(result);
-          setPendingAction(() => action);
-          return true;
-        }
+      if (check && check()) {
+        setModalConfig(modalOverride);
+        setPendingAction(() => action);
+        return true;
       }
       return false;
     },

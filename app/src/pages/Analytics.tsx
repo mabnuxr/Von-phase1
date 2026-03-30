@@ -312,18 +312,29 @@ const Analytics = () => {
   });
 
   // ── Chat switch guard (Modal 2): blocks chat switching while in edit mode ──
-  const chatSwitchModal = {
-    title: "Switch chat?",
-    body: `Your current chat has edit context for ${dashboardTitle || "this dashboard"}. Switching chats will lose this context.`,
-    confirmLabel: "Switch Chat",
-  };
+  const chatSwitchTitle = "Switch chat?";
+  const chatSwitchBody = `Your current chat has edit context for ${dashboardTitle || "this dashboard"}. Switching chats will lose this context.`;
+  const chatSwitchConfirmLabel = "Switch Chat";
 
   const guardedSetActiveChatId = useCallback(
     (chatId: string | null) => {
-      if (guard(() => setActiveChatId(chatId), chatSwitchModal)) return;
+      if (
+        guard(() => setActiveChatId(chatId), {
+          title: chatSwitchTitle,
+          body: chatSwitchBody,
+          confirmLabel: chatSwitchConfirmLabel,
+        })
+      )
+        return;
       setActiveChatId(chatId);
     },
-    [guard, setActiveChatId, chatSwitchModal],
+    [
+      guard,
+      setActiveChatId,
+      chatSwitchTitle,
+      chatSwitchBody,
+      chatSwitchConfirmLabel,
+    ],
   );
 
   const guardedNewChat = useCallback(() => {
@@ -331,9 +342,22 @@ const Analytics = () => {
       setActiveChatId(null);
       setCreatedConversationId(null);
     };
-    if (guard(action, chatSwitchModal)) return;
+    if (
+      guard(action, {
+        title: chatSwitchTitle,
+        body: chatSwitchBody,
+        confirmLabel: chatSwitchConfirmLabel,
+      })
+    )
+      return;
     action();
-  }, [guard, setActiveChatId, chatSwitchModal]);
+  }, [
+    guard,
+    setActiveChatId,
+    chatSwitchTitle,
+    chatSwitchBody,
+    chatSwitchConfirmLabel,
+  ]);
 
   const {
     widthCss: chatPaneWidth,
