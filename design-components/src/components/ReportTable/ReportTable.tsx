@@ -216,49 +216,53 @@ export function ReportTable({
   }, []);
 
   // ── AI reasoning popover (event delegation on .von-cell-btn) ───────────────
-  const handleWrapperClick = useCallback((e: React.MouseEvent) => {
-    // AI reasoning button takes priority
-    const btnTarget = (e.target as HTMLElement).closest('.von-cell-btn') as HTMLElement | null;
-    if (btnTarget) {
-      e.stopPropagation();
-      const reasoningAttr = btnTarget.getAttribute('data-reasoning');
-      if (!reasoningAttr) return;
+  const handleWrapperClick = useCallback(
+    (e: React.MouseEvent) => {
+      // AI reasoning button takes priority
+      const btnTarget = (e.target as HTMLElement).closest('.von-cell-btn') as HTMLElement | null;
+      if (btnTarget) {
+        e.stopPropagation();
+        const reasoningAttr = btnTarget.getAttribute('data-reasoning');
+        if (!reasoningAttr) return;
 
-      try {
-        const reasoning = JSON.parse(reasoningAttr) as AIReasoningData;
-        const rect = btnTarget.getBoundingClientRect();
-        setPopoverPosition({
-          top: rect.bottom + 4,
-          left: Math.max(8, Math.min(rect.left - 240, window.innerWidth - 340)),
-        });
-        setPopoverReasoning(reasoning);
-      } catch {
-        // Ignore malformed data
+        try {
+          const reasoning = JSON.parse(reasoningAttr) as AIReasoningData;
+          const rect = btnTarget.getBoundingClientRect();
+          setPopoverPosition({
+            top: rect.bottom + 4,
+            left: Math.max(8, Math.min(rect.left - 240, window.innerWidth - 340)),
+          });
+          setPopoverReasoning(reasoning);
+        } catch {
+          // Ignore malformed data
+        }
+        return;
       }
-      return;
-    }
 
-    // Cell click drilldown
-    if (!onCellClick) return;
-    const td = (e.target as HTMLElement).closest('td') as HTMLTableCellElement | null;
-    if (!td) return;
-    const tr = td.closest('tr');
-    if (!tr || !tr.closest('tbody')) return; // ignore header clicks
+      // Cell click drilldown
+      if (!onCellClick) return;
+      if ((e.target as HTMLElement).closest('a,button,input,select,textarea')) return;
+      const td = (e.target as HTMLElement).closest('td') as HTMLTableCellElement | null;
+      if (!td) return;
+      const tr = td.closest('tr');
+      if (!tr || !tr.closest('tbody')) return; // ignore header clicks
 
-    const colIndex = td.cellIndex;
+      const colIndex = td.cellIndex;
 
-    // Get column ID from options.columns array (most reliable)
-    const cols = options.columns as Array<{ id?: string }> | undefined;
-    const columnId = cols?.[colIndex]?.id;
-    if (!columnId) return;
+      // Get column ID from options.columns array (most reliable)
+      const cols = options.columns as Array<{ id?: string }> | undefined;
+      const columnId = cols?.[colIndex]?.id;
+      if (!columnId) return;
 
-    // Extract raw value from the dataTable if available
-    const dataTable = options.dataTable as { columns?: Record<string, unknown[]> } | undefined;
-    const rowIndex = Array.from(tr.parentElement!.children).indexOf(tr);
-    const rawValue = dataTable?.columns?.[columnId]?.[rowIndex] ?? td.textContent?.trim() ?? '';
+      // Extract raw value from the dataTable if available
+      const dataTable = options.dataTable as { columns?: Record<string, unknown[]> } | undefined;
+      const rowIndex = Array.from(tr.parentElement!.children).indexOf(tr);
+      const rawValue = dataTable?.columns?.[columnId]?.[rowIndex] ?? td.textContent?.trim() ?? '';
 
-    onCellClick(columnId, rawValue);
-  }, [onCellClick, options.dataTable, options.columns]);
+      onCellClick(columnId, rawValue);
+    },
+    [onCellClick, options.dataTable, options.columns]
+  );
 
   // Check if data is empty
   const isEmpty = useMemo(() => {
