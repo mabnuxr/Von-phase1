@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export interface UseCopyToClipboardReturn {
   /** Copy text to clipboard. Returns true on success, false on failure. */
@@ -45,6 +45,12 @@ export function useCopyToClipboard(resetDelay = 2000): UseCopyToClipboardReturn 
     },
     [resetDelay]
   );
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   return { copy, copied };
 }

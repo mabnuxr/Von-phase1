@@ -468,7 +468,7 @@ function ExistingChatInner(
   );
 
   // ── Loading ───────────────────────────────────────────────────────
-  if (isLoadingMessages && conversationMessages.length === 0) {
+  if (!base.user || (isLoadingMessages && conversationMessages.length === 0)) {
     return <ChatSkeleton messageCount={4} />;
   }
 

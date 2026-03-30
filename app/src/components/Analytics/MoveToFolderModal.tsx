@@ -215,7 +215,10 @@ export function MoveToFolderModal({
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={!selectedId && !hasNoFolders}
+                  disabled={
+                    (!selectedId && !hasNoFolders) ||
+                    (isCreatingNew && !newFolderName.trim())
+                  }
                   className="flex-1 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isCreatingNew ? "Create Folder & Add" : "Add"}
