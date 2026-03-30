@@ -313,7 +313,7 @@ export const DeepResearchConversation: React.FC<
 
   return (
     <div
-      className={`relative flex flex-col overflow-hidden bg-white antialiased font-sf rounded-xl border border-gray-100 shadow-xs w-full h-full ${compact ? "chat-container" : ""}`}
+      className={`relative flex flex-col overflow-hidden bg-white antialiased font-sf w-full h-full ${compact ? "chat-container" : "rounded-xl border border-gray-100 shadow-xs"}`}
     >
       {/* Messages area */}
       <div

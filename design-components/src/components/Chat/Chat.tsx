@@ -284,7 +284,9 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     'bg-white',
     'antialiased',
     compact && 'chat-container',
-    'rounded-xl border border-gray-100 shadow-xs',
+    compact
+      ? 'w-full h-full rounded-none border-none'
+      : 'rounded-xl border border-gray-100 shadow-xs',
   ]
     .filter(Boolean)
     .join(' ');
