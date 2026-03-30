@@ -502,7 +502,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               >
                 {/* Avatar — hidden for compact user messages */}
                 {!(compact && isUser) && (
-                  <div className="flex items-start gap-2 shrink-0">
+                  <div
+                    className={`flex items-start gap-2 shrink-0 ${!compact ? '@max-[550px]/chat:hidden' : ''}`}
+                  >
                     {isUser ? (
                       <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                         {userInitials}
