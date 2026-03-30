@@ -583,6 +583,7 @@ export function IntegrationsList({
     isGranolaEnabled,
     isGongEngageEnabled,
     isNotionEnabled,
+    isOutreachEngageEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -595,6 +596,7 @@ export function IntegrationsList({
       if (app.id === "granola" && !isGranolaEnabled) return false;
       if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       if (app.id === "notion" && !isNotionEnabled) return false;
+      if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
       return true;
     });
   }, [
@@ -605,6 +607,7 @@ export function IntegrationsList({
     isGranolaEnabled,
     isNotionEnabled,
     isGongEngageEnabled,
+    isOutreachEngageEnabled,
   ]);
 
   // Merge available apps with connected integrations

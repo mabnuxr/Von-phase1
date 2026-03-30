@@ -31,6 +31,7 @@ export const FEATURE_FLAGS = {
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
   NOTION: "enableNotion",
+  OUTREACH_ENGAGE: "enableOutreachEngage",
 } as const;
 
 /**
@@ -160,6 +161,11 @@ export function useFeatureFlag() {
      * Controls whether Notion integration is visible
      */
     isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
+
+    /**
+     * Controls whether Outreach engagement integration is visible
+     */
+    isOutreachEngageEnabled: flags[FEATURE_FLAGS.OUTREACH_ENGAGE] === true,
 
     /**
      * Raw flags object for advanced usage

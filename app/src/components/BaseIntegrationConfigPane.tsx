@@ -541,7 +541,8 @@ export function BaseIntegrationConfigPane({
                 integrationId === "googledrive" ||
                 integrationId === "gmail" ||
                 integrationId === "granola" ||
-                integrationId === "notion") && (
+                integrationId === "notion" ||
+                integrationId === "outreachengage") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type
