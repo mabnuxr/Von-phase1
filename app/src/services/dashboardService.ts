@@ -39,6 +39,7 @@ export interface DashboardListResponse {
 export interface DashboardUpdateRequest {
   dashboard_name?: string;
   description?: string;
+  is_editable?: boolean;
   ui_config?: {
     color_palette_global?: string;
     [key: string]: unknown;

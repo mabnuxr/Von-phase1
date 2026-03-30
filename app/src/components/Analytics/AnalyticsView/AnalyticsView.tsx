@@ -15,7 +15,6 @@ import {
   ErrorBoundary,
   TruncateWithText,
   Tooltip,
-  useVisibilityToggle,
 } from "@vonlabs/design-components";
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
@@ -46,7 +45,7 @@ interface AnalyticsViewProps {
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
-  onRevert: () => void;
+  onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
   onShare: (isSharedWithTenant: boolean) => void;
   sharePhase: MutationPhase;
@@ -56,10 +55,10 @@ interface AnalyticsViewProps {
   onClose?: () => void;
   /** Show Von Chat button */
   onChatClick?: () => void;
-  /** Dedicated handler to close the chat pane (distinct from closing the dashboard) */
-  onChatClose?: () => void;
   /** Whether the chat pane is currently open */
   isChatOpen?: boolean;
+  /** Toggle edit mode via PATCH API (is_editable) */
+  onEditModeChange?: (isEditable: boolean) => void;
   /** Server-side table pagination handler */
   onTablePageChange?: (panelId: string, page: number) => void;
   /** Set of panel IDs currently loading a new page */
@@ -114,8 +113,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onExpand,
   onClose,
   onChatClick,
-  onChatClose,
   isChatOpen,
+  onEditModeChange,
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -185,22 +184,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     }
   }, [editValue, dashboard.title, onRename]);
 
-  // ── Dashboard edit mode ─────────────────────────────────────────
-  const {
-    isVisible: isEditMode,
-    show: enterEditMode,
-    hide: exitEditMode,
-  } = useVisibilityToggle(false);
+  // ── Dashboard edit mode (API-driven via is_editable) ────────────
+  const isEditMode = dashboard.isEditable;
 
   const handleEnterEditMode = useCallback(() => {
-    enterEditMode();
+    onEditModeChange?.(true);
     onChatClick?.();
-  }, [enterEditMode, onChatClick]);
+  }, [onEditModeChange, onChatClick]);
 
-  const handleExitEditMode = useCallback(() => {
-    exitEditMode();
-    onChatClose?.();
-  }, [exitEditMode, onChatClose]);
+  const exitEditMode = useCallback(() => {
+    onEditModeChange?.(false);
+  }, [onEditModeChange]);
 
   const handleSaveFromEditMode = useCallback(() => {
     onSave({
@@ -208,6 +202,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       onSuccess: exitEditMode,
     });
   }, [onSave, dashboard.dashboardVersion, exitEditMode]);
+
+  const handleRevertFromEditMode = useCallback(() => {
+    onRevert({ onSuccess: exitEditMode });
+  }, [onRevert, exitEditMode]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
 
@@ -317,18 +315,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </motion.button>
               )}
 
-              {/* Exit edit mode — shown when in edit mode with chat open */}
-              {isEditMode && isChatOpen && (
-                <Tooltip content="Exit edit mode">
-                  <button
-                    onClick={handleExitEditMode}
-                    className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <XIcon size={14} />
-                  </button>
-                </Tooltip>
-              )}
-
               {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
               {!onChatClick && onClose && (
                 <Tooltip content="Close">
@@ -383,7 +369,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   {isEditMode && dashboard.dashboardVersion >= 1 && (
                     <Tooltip content="Reverts to previous saved version">
                       <button
-                        onClick={revertPhase === "idle" ? onRevert : undefined}
+                        onClick={revertPhase === "idle" ? handleRevertFromEditMode : undefined}
                         disabled={revertPhase !== "idle"}
                         className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
                           revertPhase === "pending"

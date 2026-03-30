@@ -81,6 +81,7 @@ interface RawApiDashboardResponse {
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
   queries?: Record<string, RawApiQuery>;
+  is_editable?: boolean;
   ui_config?: {
     panel_layouts?: Record<
       string,
@@ -247,6 +248,7 @@ function adaptApiResponse(
         updatedAt: raw.updated_at,
         createdBy: "",
         analysisId: "",
+        isEditable: raw.is_editable ?? false,
         uiConfig: raw.ui_config
           ? {
               colorPaletteGlobal:

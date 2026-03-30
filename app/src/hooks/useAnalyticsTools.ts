@@ -86,17 +86,21 @@ export function useAnalyticsTools(dashboardId: string) {
     },
   });
 
-  const handleRevert = useCallback(() => {
-    revertMutation.mutate(undefined, {
-      onError: (error) => {
-        console.error("[useAnalyticsTools] Revert failed:", error);
-        showToast({
-          message: "Failed to revert dashboard. Please try again.",
-          variant: "error",
-        });
-      },
-    });
-  }, [revertMutation, showToast]);
+  const handleRevert = useCallback(
+    ({ onSuccess }: { onSuccess?: () => void } = {}) => {
+      revertMutation.mutate(undefined, {
+        onSuccess,
+        onError: (error) => {
+          console.error("[useAnalyticsTools] Revert failed:", error);
+          showToast({
+            message: "Failed to revert dashboard. Please try again.",
+            variant: "error",
+          });
+        },
+      });
+    },
+    [revertMutation, showToast],
+  );
 
   const revertPhase = useMutationPhase(
     revertMutation.isPending,
