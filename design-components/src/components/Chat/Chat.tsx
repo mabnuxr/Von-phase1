@@ -289,6 +289,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
     'overflow-hidden',
     'bg-white',
     'antialiased',
+    '@container/chat',
     isSidebar
       ? 'w-full h-full rounded-none border-none'
       : isFullPage

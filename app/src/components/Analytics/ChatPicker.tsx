@@ -96,6 +96,7 @@ export function ChatPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const committedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { unfiledConversations, isLoading, renameConversation } =
     useChatSidebarV2();
@@ -137,6 +138,7 @@ export function ChatPicker({
   // Initialize rename input and focus it when rename mode activates
   useEffect(() => {
     if (isRenaming) {
+      committedRef.current = false;
       setRenameValue(activeConversation?.title?.trim() ?? "");
       setIsOpen(false);
       setTimeout(() => renameInputRef.current?.select(), 0);
@@ -144,6 +146,8 @@ export function ChatPicker({
   }, [isRenaming]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRenameSubmit = () => {
+    if (committedRef.current) return;
+    committedRef.current = true;
     if (activeChatId && renameValue.trim()) {
       renameConversation(activeChatId, renameValue.trim());
     }
@@ -176,7 +180,10 @@ export function ChatPicker({
           onChange={(e) => setRenameValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleRenameSubmit();
-            if (e.key === "Escape") onRenameEnd?.();
+            if (e.key === "Escape") {
+              committedRef.current = true;
+              onRenameEnd?.();
+            }
           }}
           onBlur={handleRenameSubmit}
           className="w-full min-w-0 max-w-[160px] px-2 py-1.5 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"

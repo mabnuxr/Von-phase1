@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { CaretRightIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import { CaretRightIcon, ChalkboardIcon } from '@phosphor-icons/react';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 
 // ============================================================================
@@ -30,7 +30,7 @@ export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
     onClick={onClick ?? onPreview}
   >
     <BaseArtifactCard.Icon>
-      <SquaresFourIcon size={20} weight="regular" className="text-gray-500" />
+      <ChalkboardIcon size={20} weight="regular" className="text-gray-500" />
     </BaseArtifactCard.Icon>
 
     <BaseArtifactCard.Actions>

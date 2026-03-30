@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   MicrophoneIcon,
-  ChartBar,
+  ChalkboardIcon,
   Table,
   FileText,
   X,
@@ -46,7 +46,7 @@ import { TruncateWithText } from '../../TruncateWithText/TruncateWithText';
 function getReferenceIcon(type: ReferenceContext['type']) {
   switch (type) {
     case 'dashboard':
-      return <ChartBar size={14} weight="regular" className="text-gray-800" />;
+      return <ChalkboardIcon size={14} weight="regular" className="text-gray-800" />;
     case 'report':
       return <Table size={14} weight="regular" className="text-gray-800" />;
     case 'document':
@@ -60,7 +60,7 @@ function getReferenceIcon(type: ReferenceContext['type']) {
     case 'source':
       return <DatabaseIcon size={14} weight="regular" className="text-gray-800" />;
     default:
-      return <ChartBar size={14} weight="regular" className="text-gray-800" />;
+      return <ChalkboardIcon size={14} weight="regular" className="text-gray-800" />;
   }
 }
 
@@ -519,7 +519,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
           {/* Reference tag - shown above the input when a reference is set */}
           {referenceContext && !activePopover && (
-            <div className="flex items-center justify-start px-3 pb-6 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-[18px] overflow-hidden">
+            <div className="flex items-center justify-start px-2 pb-4 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-[18px] overflow-hidden">
               <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1 min-w-0 overflow-hidden">
                 <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                   {getReferenceIcon(referenceContext.type)}
