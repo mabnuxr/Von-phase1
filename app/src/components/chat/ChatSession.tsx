@@ -271,7 +271,7 @@ function ExistingChatInner(
     references: refStack.references,
   });
 
-  // ── Dashboard version invalidation ────────────────────────────────
+  // ── Dashboard version invalidation (sidebar context) ──────────────
   const queryClient = useQueryClient();
   useEffect(() => {
     if (
@@ -388,6 +388,24 @@ function ExistingChatInner(
   // ── Dashboard preview pane ────────────────────────────────────────
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
+
+  // Invalidate preview pane dashboard when agent updates it
+  useEffect(() => {
+    if (
+      chatV2.dashboard &&
+      dashboardPaneState.isOpen &&
+      dashboardPaneState.dashboardId === chatV2.dashboard.dashboard_id
+    ) {
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.detail(chatV2.dashboard.dashboard_id),
+      });
+    }
+  }, [
+    chatV2.dashboard,
+    dashboardPaneState.isOpen,
+    dashboardPaneState.dashboardId,
+    queryClient,
+  ]);
   const {
     containerRef: splitContainerRef,
     ratios: splitRatios,

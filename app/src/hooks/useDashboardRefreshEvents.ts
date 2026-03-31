@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { dashboardKeys } from "./useDashboardQuery";
 import { useUserPusherChannel } from "./useUserPusherChannel";
@@ -10,6 +10,8 @@ import {
   type DashboardRefreshCompletedEvent,
 } from "../types/userChannelEvents";
 
+const MIN_REFRESH_DISPLAY_MS = 2000;
+
 export function useDashboardRefreshEvents(dashboardId: string) {
   const queryClient = useQueryClient();
   const { user } = useUser();
@@ -19,15 +21,22 @@ export function useDashboardRefreshEvents(dashboardId: string) {
     userId: user?.id,
   });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   useEffect(() => {
     if (!userChannel) {
       return;
     }
 
+    let minDisplayTimer: ReturnType<typeof setTimeout> | null = null;
+
     const handleRefreshStarted = (data: DashboardRefreshStartedEvent) => {
       if (data.dashboardId !== dashboardId) {
         return;
       }
+
+      setIsRefreshing(true);
+      if (minDisplayTimer) clearTimeout(minDisplayTimer);
 
       showToast({
         message:
@@ -51,6 +60,13 @@ export function useDashboardRefreshEvents(dashboardId: string) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+
+      // Hold the refreshing state for a minimum duration so the user sees
+      // the loading skeleton before new data appears
+      minDisplayTimer = setTimeout(
+        () => setIsRefreshing(false),
+        MIN_REFRESH_DISPLAY_MS,
+      );
     };
 
     userChannel.bind(
@@ -71,6 +87,9 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
         handleRefreshCompleted,
       );
+      if (minDisplayTimer) clearTimeout(minDisplayTimer);
     };
   }, [userChannel, showToast, dashboardId, queryClient]);
+
+  return { isRefreshing };
 }
