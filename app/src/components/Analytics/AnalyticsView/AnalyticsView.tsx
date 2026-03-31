@@ -124,7 +124,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onChatClick,
   isChatOpen,
   onEditModeChange,
-  editModePhase,
+  editModePhase = "idle",
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -204,20 +204,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onChatClick?.();
   }, [dashboard.isOwner, onEditModeChange, onChatClick]);
 
-  const exitEditMode = useCallback(() => {
-    onEditModeChange?.(false);
-  }, [onEditModeChange]);
-
   const handleSaveFromEditMode = useCallback(() => {
     onSave({
       isFirstSave: dashboard.dashboardVersion < 1,
-      onSuccess: exitEditMode,
     });
-  }, [onSave, dashboard.dashboardVersion, exitEditMode]);
+  }, [onSave, dashboard.dashboardVersion]);
 
   const handleRevertFromEditMode = useCallback(() => {
-    onRevert({ onSuccess: exitEditMode });
-  }, [onRevert, exitEditMode]);
+    onRevert();
+  }, [onRevert]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
 
