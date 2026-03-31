@@ -2,6 +2,7 @@ import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { IndividualColumnOptions } from '@highcharts/grid-lite/es-modules/Grid/Core/Options';
 import type { DataTableValue } from '@highcharts/grid-lite/es-modules/Data/DataTableOptions';
 import type { ColumnType, DataSourceType, ReportColumn, AIReasoningData } from './ReportTable';
+import { formatD3Pattern } from '../../utils/formatKpiValue';
 
 // ============================================================================
 // Value Formatting Utility
@@ -466,6 +467,57 @@ export function autoSizeGridColumns(options: GridOptions): GridOptions {
       resizing: { enabled: true, mode: 'independent' as const, ...existingResizing },
     },
   } as GridOptions['rendering'];
+
+  return options;
+}
+
+// ============================================================================
+// Apply column-level format (d3-format) to backend-generated gridOptions
+// ============================================================================
+
+/**
+ * Process gridOptions columns that have a `format` field (d3-format string)
+ * and inject a `cells.formatter` that applies the format to numeric values.
+ *
+ * This bridges the backend's column-level `format` (e.g., "$,.2f") with
+ * Grid Lite's cell rendering. If a column also has `cells.format` (a template
+ * like "{value}%"), the d3-formatted number is injected into the template.
+ *
+ * Columns without `format` are left untouched.
+ */
+export function applyColumnFormats(options: GridOptions): GridOptions {
+  const columns = options.columns as
+    | Array<{ id: string; format?: string; cells?: Record<string, unknown>; [key: string]: unknown }>
+    | undefined;
+  if (!columns || columns.length === 0) return options;
+
+  for (const col of columns) {
+    if (!col.format || typeof col.format !== 'string') continue;
+
+    const d3Format = col.format;
+    const cellTemplate = col.cells?.format as string | undefined;
+
+    col.cells = {
+      ...col.cells,
+      formatter: function (this: { value: unknown }): string {
+        const value = this.value;
+        if (value === null || value === undefined) return '<span style="color:#9ca3af">—</span>';
+
+        const num = typeof value === 'number' ? value : Number(value);
+        if (isNaN(num)) return `<span style="color:#111827">${String(value)}</span>`;
+
+        const formatted = formatD3Pattern(num, d3Format);
+
+        // If there's a cell template like "{value}%", inject the formatted number
+        if (cellTemplate && cellTemplate.includes('{value}')) {
+          const display = cellTemplate.replace('{value}', formatted);
+          return `<span style="color:#111827">${display}</span>`;
+        }
+
+        return `<span style="color:#111827">${formatted}</span>`;
+      },
+    };
+  }
 
   return options;
 }

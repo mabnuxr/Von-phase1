@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
 import { addEvent } from '@highcharts/grid-lite/es-modules/Shared/Utilities.js';
-import { autoSizeGridColumns, getDataTableColumns } from './reportTableUtils';
+import { autoSizeGridColumns, applyColumnFormats, getDataTableColumns } from './reportTableUtils';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
@@ -112,9 +112,9 @@ export function ReportTable({
 }: ReportTableProps) {
   void sortState; // reserved for future initial-sort sync
 
-  // Auto-size columns that don't have an explicit width based on content.
-  // autoSizeGridColumns mutates in-place so widths are set before Grid initializes.
-  const sizedOptions = useMemo(() => autoSizeGridColumns(options), [options]);
+  // Apply column-level d3-format patterns, then auto-size columns.
+  // Both mutate in-place so values are set before Grid initializes.
+  const sizedOptions = useMemo(() => autoSizeGridColumns(applyColumnFormats(options)), [options]);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
