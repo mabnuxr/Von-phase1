@@ -218,7 +218,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const isFirstSaveToastRef = useRef(false);
   useEffect(() => {
     if (savePhase === "success") {
-      isFirstSaveToastRef.current = dashboard.dashboardVersion <= 1;
+      isFirstSaveToastRef.current = dashboard.dashboardVersion < 1;
       setShowSaveToast(true);
       clearTimeout(saveToastTimerRef.current);
       saveToastTimerRef.current = setTimeout(
