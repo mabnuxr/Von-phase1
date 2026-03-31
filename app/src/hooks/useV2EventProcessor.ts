@@ -280,6 +280,7 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
           setExecutionId(null);
+          setIsDashboardBuilderMode(false);
         });
       } else {
         flushSync(() => {
@@ -523,6 +524,7 @@ export function useV2EventProcessor(
               setRunErrorMessage("");
               setDashboard(null);
               setExecutionId(null);
+              setIsDashboardBuilderMode(false);
             });
             timerOnRunStarted(run_id);
           } else {

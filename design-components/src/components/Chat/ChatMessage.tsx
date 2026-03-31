@@ -533,6 +533,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   // State for skip confirmation modal (dashboard builder approval flow)
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   // Shared condition: dashboard builder approval is pending on this message
   // Fallback: treat presence of executionId as dashboard-builder mode
@@ -758,11 +759,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               primaryAction={{
                                 label: 'Create Dashboard',
                                 onClick: () => {
-                                  if (executionId && runId && onApprovePlan) {
+                                  if (!isApproving && executionId && runId && onApprovePlan) {
+                                    setIsApproving(true);
                                     onApprovePlan(runId, executionId);
                                   }
                                 },
-                                disabled: !executionId || !onApprovePlan,
+                                disabled: !executionId || !onApprovePlan || isApproving,
                               }}
                               secondaryAction={{
                                 label: 'Skip',
@@ -1178,7 +1180,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {!isUser &&
                     !isStreaming &&
                     !timelineSteps?.some((s) => s.status === 'awaiting-approval') &&
-                    !showDashboardBuilderApproval && (
+                    !showDashboardBuilderApproval &&
+                    (!showResearchResults || researchResults?.isCompleted) && (
                       <MessageActions
                         messageContent={
                           // For v2 thinking process, only use the final response (not intermediate steps)
