@@ -4,9 +4,7 @@ import { applyColumnFormats } from "@vonlabs/design-components";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
-function makeGridOptions(
-  columns: Array<Record<string, unknown>>,
-): GridOptions {
+function makeGridOptions(columns: Array<Record<string, unknown>>): GridOptions {
   return { columns } as GridOptions;
 }
 
@@ -16,7 +14,9 @@ function callFormatter(
   value: unknown,
 ): string {
   const col = (opts.columns as Array<Record<string, unknown>>)[colIndex];
-  const cells = col.cells as { formatter?: (this: { value: unknown }) => string };
+  const cells = col.cells as {
+    formatter?: (this: { value: unknown }) => string;
+  };
   if (!cells?.formatter) throw new Error("No formatter on column");
   return cells.formatter.call({ value });
 }
@@ -25,18 +25,14 @@ function callFormatter(
 
 describe("applyColumnFormats", () => {
   it("injects formatter for columns with a format field", () => {
-    const opts = makeGridOptions([
-      { id: "amount", format: "$,.2f" },
-    ]);
+    const opts = makeGridOptions([{ id: "amount", format: "$,.2f" }]);
     applyColumnFormats(opts);
     const html = callFormatter(opts, 0, 1234.5);
     expect(html).toContain("$1,234.50");
   });
 
   it("leaves columns without format untouched", () => {
-    const opts = makeGridOptions([
-      { id: "name", header: { format: "Name" } },
-    ]);
+    const opts = makeGridOptions([{ id: "name", header: { format: "Name" } }]);
     applyColumnFormats(opts);
     const col = (opts.columns as Array<Record<string, unknown>>)[0];
     const cells = col.cells as { formatter?: unknown } | undefined;
@@ -44,7 +40,9 @@ describe("applyColumnFormats", () => {
   });
 
   it("preserves existing cells.formatter", () => {
-    const custom = function (this: { value: unknown }) { return "custom"; };
+    const custom = function (this: { value: unknown }) {
+      return "custom";
+    };
     const opts = makeGridOptions([
       { id: "x", format: "$,.2f", cells: { formatter: custom } },
     ]);
@@ -79,7 +77,7 @@ describe("applyColumnFormats", () => {
   it("escapes XSS payloads in non-numeric values", () => {
     const opts = makeGridOptions([{ id: "a", format: ",.2f" }]);
     applyColumnFormats(opts);
-    const html = callFormatter(opts, 0, '<img onerror=alert(1) src=x>');
+    const html = callFormatter(opts, 0, "<img onerror=alert(1) src=x>");
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
   });

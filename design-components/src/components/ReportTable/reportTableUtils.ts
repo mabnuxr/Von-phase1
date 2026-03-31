@@ -484,7 +484,12 @@ const ESCAPED_VALUE_PLACEHOLDER = escapeHtml('{value}');
  */
 export function applyColumnFormats(options: GridOptions): GridOptions {
   const columns = options.columns as
-    | Array<{ id: string; format?: string; cells?: Record<string, unknown>; [key: string]: unknown }>
+    | Array<{
+        id: string;
+        format?: string;
+        cells?: Record<string, unknown>;
+        [key: string]: unknown;
+      }>
     | undefined;
   if (!columns || columns.length === 0) return options;
 
@@ -505,8 +510,12 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
         const value = this.value;
         if (value === null || value === undefined) return CELL_NULL_HTML;
 
-        const num = typeof value === 'number' ? value
-          : (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
+        const num =
+          typeof value === 'number'
+            ? value
+            : typeof value === 'string' && value.trim() !== ''
+              ? Number(value)
+              : NaN;
         if (isNaN(num)) {
           const escaped = escapeHtml(String(value));
           if (hasPlaceholder) {
