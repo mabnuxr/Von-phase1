@@ -510,7 +510,13 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
           : (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
         if (isNaN(num)) return `<span style="color:#111827">${escapeHtml(String(value))}</span>`;
 
-        const formatted = escapeHtml(formatD3Pattern(num, d3Format));
+        let formatted: string;
+        try {
+          formatted = escapeHtml(formatD3Pattern(num, d3Format));
+        } catch {
+          // Invalid format string — fall back to plain number display
+          formatted = escapeHtml(String(value));
+        }
 
         // If there's a cell template like "{value}%", inject the formatted number
         if (cellTemplate && cellTemplate.includes('{value}')) {
